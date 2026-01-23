@@ -1,0 +1,182 @@
+//! Name resolution and scope tracking
+//!
+//! Manages variable bindings and scope for ΓΛΩΣΣΑ programs.
+
+use crate::semantic::GlossaType;
+use rustc_hash::FxHashMap;
+
+/// A scope containing variable bindings
+#[derive(Debug, Clone, Default)]
+pub struct Scope {
+    /// Variable bindings in this scope
+    bindings: FxHashMap<String, Binding>,
+    /// Parent scope (for nested scopes)
+    parent: Option<Box<Scope>>,
+}
+
+/// A variable binding with type and metadata
+#[derive(Debug, Clone)]
+pub struct Binding {
+    /// The variable name (normalized)
+    pub name: String,
+    /// The type of the variable
+    pub glossa_type: GlossaType,
+    /// Whether this binding is mutable
+    pub mutable: bool,
+    /// Whether this binding has been used
+    pub used: bool,
+}
+
+impl Scope {
+    /// Create a new empty scope
+    pub fn new() -> Self {
+        Scope {
+            bindings: FxHashMap::default(),
+            parent: None,
+        }
+    }
+
+    /// Create a child scope with this scope as parent
+    pub fn child(&self) -> Self {
+        Scope {
+            bindings: FxHashMap::default(),
+            parent: Some(Box::new(self.clone())),
+        }
+    }
+
+    /// Define a new binding in this scope
+    pub fn define(&mut self, name: String, glossa_type: GlossaType) {
+        self.bindings.insert(
+            name.clone(),
+            Binding {
+                name,
+                glossa_type,
+                mutable: false,
+                used: false,
+            },
+        );
+    }
+
+    /// Define a mutable binding
+    pub fn define_mut(&mut self, name: String, glossa_type: GlossaType) {
+        self.bindings.insert(
+            name.clone(),
+            Binding {
+                name,
+                glossa_type,
+                mutable: true,
+                used: false,
+            },
+        );
+    }
+
+    /// Look up a binding by name, searching parent scopes
+    pub fn lookup(&self, name: &str) -> Option<&GlossaType> {
+        if let Some(binding) = self.bindings.get(name) {
+            Some(&binding.glossa_type)
+        } else if let Some(parent) = &self.parent {
+            parent.lookup(name)
+        } else {
+            None
+        }
+    }
+
+    /// Check if a name is defined in this scope (not parents)
+    pub fn is_defined_locally(&self, name: &str) -> bool {
+        self.bindings.contains_key(name)
+    }
+
+    /// Check if a name is defined anywhere in scope chain
+    pub fn is_defined(&self, name: &str) -> bool {
+        self.lookup(name).is_some()
+    }
+
+    /// Get all bindings in this scope
+    pub fn bindings(&self) -> impl Iterator<Item = (&String, &Binding)> {
+        self.bindings.iter()
+    }
+
+    /// Mark a binding as used
+    pub fn mark_used(&mut self, name: &str) {
+        if let Some(binding) = self.bindings.get_mut(name) {
+            binding.used = true;
+        } else if let Some(parent) = &mut self.parent {
+            parent.mark_used(name);
+        }
+    }
+
+    /// Get unused bindings (for warnings)
+    pub fn unused_bindings(&self) -> Vec<&Binding> {
+        self.bindings
+            .values()
+            .filter(|b| !b.used)
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_scope_define_and_lookup() {
+        let mut scope = Scope::new();
+        scope.define("ξ".to_string(), GlossaType::Number);
+
+        assert!(scope.is_defined("ξ"));
+        assert_eq!(scope.lookup("ξ"), Some(&GlossaType::Number));
+        assert!(!scope.is_defined("υ"));
+    }
+
+    #[test]
+    fn test_child_scope_inherits() {
+        let mut parent = Scope::new();
+        parent.define("ξ".to_string(), GlossaType::Number);
+
+        let child = parent.child();
+        assert!(child.is_defined("ξ"));
+        assert_eq!(child.lookup("ξ"), Some(&GlossaType::Number));
+    }
+
+    #[test]
+    fn test_child_scope_shadows() {
+        let mut parent = Scope::new();
+        parent.define("ξ".to_string(), GlossaType::Number);
+
+        let mut child = parent.child();
+        child.define("ξ".to_string(), GlossaType::String);
+
+        assert_eq!(child.lookup("ξ"), Some(&GlossaType::String));
+    }
+
+    #[test]
+    fn test_mutable_binding() {
+        let mut scope = Scope::new();
+        scope.define_mut("μ".to_string(), GlossaType::Number);
+
+        let binding = scope.bindings.get("μ").unwrap();
+        assert!(binding.mutable);
+    }
+
+    #[test]
+    fn test_mark_used() {
+        let mut scope = Scope::new();
+        scope.define("ξ".to_string(), GlossaType::Number);
+
+        assert!(!scope.bindings.get("ξ").unwrap().used);
+        scope.mark_used("ξ");
+        assert!(scope.bindings.get("ξ").unwrap().used);
+    }
+
+    #[test]
+    fn test_unused_bindings() {
+        let mut scope = Scope::new();
+        scope.define("ξ".to_string(), GlossaType::Number);
+        scope.define("υ".to_string(), GlossaType::String);
+        scope.mark_used("ξ");
+
+        let unused = scope.unused_bindings();
+        assert_eq!(unused.len(), 1);
+        assert_eq!(unused[0].name, "υ");
+    }
+}

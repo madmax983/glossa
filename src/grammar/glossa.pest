@@ -1,0 +1,100 @@
+// ΓΛΩΣΣΑ PEG Grammar
+// The living specification for the GLOSSA language
+//
+// Key design principles:
+// 1. Word order is flexible (SOV, VSO, OVS all valid) - morphology determines roles
+// 2. Case endings encode semantic roles, not position
+// 3. Greek punctuation (Strict Spartan):
+//    . (τελεία) - full stop, ends statements
+//    · (U+00B7 άνω τελεία / middle dot) - semicolon/colon, chains expressions
+//    ; (U+037E ερωτηματικό) - question mark
+
+// =============================================================================
+// Top-level rules
+// =============================================================================
+
+program = { SOI ~ statement* ~ EOI }
+
+statement = { expression_list ~ statement_end }
+
+statement_end = { period | query }
+
+// Expression list allows chaining with middle dot
+expression_list = { expression ~ (chain ~ expression)* }
+
+// =============================================================================
+// Expressions
+// =============================================================================
+
+expression = { term+ }
+
+term = {
+    string_literal
+    | number_literal
+    | boolean_literal
+    | greek_word
+}
+
+// =============================================================================
+// Literals
+// =============================================================================
+
+// Greek guillemets for strings: «text»
+string_literal = { "«" ~ string_content ~ "»" }
+string_content = { (!"»" ~ ANY)* }
+
+// Numbers (Arabic numerals for now, Greek numerals later)
+number_literal = @{ ASCII_DIGIT+ }
+
+// Boolean literals
+boolean_literal = { "ἀληθές" | "ψεῦδος" | "αληθες" | "ψευδος" }
+
+// =============================================================================
+// Greek words
+// =============================================================================
+
+// A Greek word is a sequence of Greek letters (with optional diacritics)
+greek_word = @{ GREEK_CHAR+ }
+
+// Greek characters including polytonic diacritics
+GREEK_CHAR = {
+    GREEK_LETTER
+    | GREEK_COMBINING
+}
+
+// Base Greek letters (both cases)
+// Excludes U+037E (Greek question mark) and U+0387 (Greek ano teleia, though we use U+00B7)
+GREEK_LETTER = {
+    '\u{0370}'..'\u{037D}'
+    | '\u{037F}'..'\u{0386}'
+    | '\u{0388}'..'\u{03FF}'
+    | '\u{1F00}'..'\u{1FFF}'
+}
+
+// Combining diacritical marks for Greek
+GREEK_COMBINING = { '\u{0300}'..'\u{036F}' }
+
+// =============================================================================
+// Punctuation
+// =============================================================================
+
+// Full stop (τελεία) - ends a statement
+period = { "." }
+
+// Middle dot / ano teleia (U+00B7) - chains expressions within a statement
+// This is the Greek semicolon/colon
+chain = { "\u{00B7}" }
+
+// Greek question mark (U+037E) - looks like semicolon but is the question mark
+// Also accept ASCII ? for convenience
+query = { "\u{037E}" | "?" }
+
+// =============================================================================
+// Whitespace and comments
+// =============================================================================
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+// Comments use // (like Rust) - reclaiming () for grouping/function calls
+COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
+NEWLINE = _{ "\r\n" | "\n" | "\r" }
