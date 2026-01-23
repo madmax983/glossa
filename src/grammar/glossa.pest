@@ -95,5 +95,6 @@ query = { "\u{037E}" | "?" }
 
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
-// Comments use Greek parentheses or standard
-COMMENT = _{ "(" ~ (!")" ~ ANY)* ~ ")" }
+// Comments use // (like Rust) - reclaiming () for grouping/function calls
+COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
+NEWLINE = _{ "\r\n" | "\n" | "\r" }

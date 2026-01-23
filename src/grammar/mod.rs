@@ -100,4 +100,19 @@ mod tests {
         let result = parse(source);
         assert!(result.is_ok(), "Failed to parse ASCII question mark: {:?}", result.err());
     }
+
+    #[test]
+    fn test_parse_line_comment() {
+        // Comments use // like Rust
+        let source = "// τοῦτο σχόλιόν ἐστι\n«χαῖρε» λέγε.";
+        let result = parse(source);
+        assert!(result.is_ok(), "Failed to parse comment: {:?}", result.err());
+    }
+
+    #[test]
+    fn test_parse_inline_comment() {
+        let source = "ξ πέντε ἔστω. // binding ξ to 5\nξ λέγε.";
+        let result = parse(source);
+        assert!(result.is_ok(), "Failed to parse inline comment: {:?}", result.err());
+    }
 }
