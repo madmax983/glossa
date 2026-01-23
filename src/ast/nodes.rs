@@ -13,7 +13,7 @@ pub struct Program {
 /// A single statement, ending with . (statement) or ? (query)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Statement {
-    /// The expressions in this statement (may be chained with ·)
+    /// The expressions in this statement (may be chained with · U+00B7 ano teleia)
     pub expressions: Vec<Expr>,
     /// Whether this is a query (ends with ?)
     pub is_query: bool,

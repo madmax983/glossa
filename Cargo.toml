@@ -1,7 +1,7 @@
 [package]
 name = "glossa"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "ΓΛΩΣΣΑ - A compiler where Ancient Greek morphology encodes programming semantics"
 
 [dependencies]

@@ -79,9 +79,25 @@ mod tests {
 
     #[test]
     fn test_parse_chained_statements() {
-        // Using Greek semicolon (·) to chain
+        // Using ano teleia (· U+00B7) to chain - the Greek semicolon
         let source = "«χαῖρε» λέγε· «κόσμε» λέγε.";
         let result = parse(source);
         assert!(result.is_ok(), "Failed to parse chained statements: {:?}", result.err());
+    }
+
+    #[test]
+    fn test_parse_greek_question_mark() {
+        // Using Greek question mark (U+037E) - looks like ; but is different
+        let source = "ξ\u{037E}"; // "what is ξ?"
+        let result = parse(source);
+        assert!(result.is_ok(), "Failed to parse Greek question mark: {:?}", result.err());
+    }
+
+    #[test]
+    fn test_parse_ascii_question_mark() {
+        // ASCII ? also works for convenience
+        let source = "ξ?";
+        let result = parse(source);
+        assert!(result.is_ok(), "Failed to parse ASCII question mark: {:?}", result.err());
     }
 }

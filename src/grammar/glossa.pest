@@ -4,7 +4,10 @@
 // Key design principles:
 // 1. Word order is flexible (SOV, VSO, OVS all valid) - morphology determines roles
 // 2. Case endings encode semantic roles, not position
-// 3. Greek punctuation: . (τελεία) ends statements, · (άνω τελεία) chains, ; (ερωτηματικό) queries
+// 3. Greek punctuation (Strict Spartan):
+//    . (τελεία) - full stop, ends statements
+//    · (U+00B7 άνω τελεία / middle dot) - semicolon/colon, chains expressions
+//    ; (U+037E ερωτηματικό) - question mark
 
 // =============================================================================
 // Top-level rules
@@ -60,7 +63,13 @@ GREEK_CHAR = {
 }
 
 // Base Greek letters (both cases)
-GREEK_LETTER = { '\u{0370}'..'\u{03FF}' | '\u{1F00}'..'\u{1FFF}' }
+// Excludes U+037E (Greek question mark) and U+0387 (Greek ano teleia, though we use U+00B7)
+GREEK_LETTER = {
+    '\u{0370}'..'\u{037D}'
+    | '\u{037F}'..'\u{0386}'
+    | '\u{0388}'..'\u{03FF}'
+    | '\u{1F00}'..'\u{1FFF}'
+}
 
 // Combining diacritical marks for Greek
 GREEK_COMBINING = { '\u{0300}'..'\u{036F}' }
@@ -72,12 +81,13 @@ GREEK_COMBINING = { '\u{0300}'..'\u{036F}' }
 // Full stop (τελεία) - ends a statement
 period = { "." }
 
-// Middle dot (άνω τελεία) - chains expressions within a statement
-chain = { "·" | ";" }  // Note: Greek semicolon looks like English semicolon but is middle dot
+// Middle dot / ano teleia (U+00B7) - chains expressions within a statement
+// This is the Greek semicolon/colon
+chain = { "\u{00B7}" }
 
-// Question mark (ερωτηματικό) - actually semicolon in Greek! (;)
-// But to avoid confusion, we use actual question mark for queries
-query = { "?" }
+// Greek question mark (U+037E) - looks like semicolon but is the question mark
+// Also accept ASCII ? for convenience
+query = { "\u{037E}" | "?" }
 
 // =============================================================================
 // Whitespace and comments
