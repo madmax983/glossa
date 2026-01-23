@@ -27,6 +27,41 @@ pub enum HirStatement {
 
     /// expression;
     Expr(HirExpr),
+
+    /// if condition { then_body } else { else_body }
+    If {
+        condition: HirExpr,
+        then_body: Vec<HirStatement>,
+        else_body: Option<Vec<HirStatement>>,
+    },
+
+    /// while condition { body }
+    While {
+        condition: HirExpr,
+        body: Vec<HirStatement>,
+    },
+
+    /// for var in iterator { body }
+    For {
+        variable: String,
+        iterator: HirExpr,
+        body: Vec<HirStatement>,
+    },
+
+    /// match scrutinee { arms }
+    Match {
+        scrutinee: HirExpr,
+        arms: Vec<(HirExpr, Vec<HirStatement>)>,
+    },
+
+    /// break;
+    Break,
+
+    /// continue;
+    Continue,
+
+    /// return expr;
+    Return(Option<HirExpr>),
 }
 
 /// A HIR expression
@@ -170,6 +205,58 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
 
             Some(HirStatement::Print { args })
         }
+
+        StatementKind::If { condition, then_body, else_body } => {
+            Some(HirStatement::If {
+                condition: lower_expr(condition),
+                then_body: then_body.iter()
+                    .filter_map(|s| lower_statement(s))
+                    .collect(),
+                else_body: else_body.as_ref().map(|stmts| {
+                    stmts.iter()
+                        .filter_map(|s| lower_statement(s))
+                        .collect()
+                }),
+            })
+        }
+
+        StatementKind::While { condition, body } => {
+            Some(HirStatement::While {
+                condition: lower_expr(condition),
+                body: body.iter()
+                    .filter_map(|s| lower_statement(s))
+                    .collect(),
+            })
+        }
+
+        StatementKind::For { variable, iterator, body } => {
+            Some(HirStatement::For {
+                variable: variable.clone(),
+                iterator: lower_expr(iterator),
+                body: body.iter()
+                    .filter_map(|s| lower_statement(s))
+                    .collect(),
+            })
+        }
+
+        StatementKind::Match { scrutinee, arms } => {
+            Some(HirStatement::Match {
+                scrutinee: lower_expr(scrutinee),
+                arms: arms.iter()
+                    .map(|(pattern, body)| {
+                        let pattern_expr = lower_expr(pattern);
+                        let body_stmts = body.iter()
+                            .filter_map(|s| lower_statement(s))
+                            .collect();
+                        (pattern_expr, body_stmts)
+                    })
+                    .collect(),
+            })
+        }
+
+        StatementKind::Break => Some(HirStatement::Break),
+
+        StatementKind::Continue => Some(HirStatement::Continue),
     }
 }
 

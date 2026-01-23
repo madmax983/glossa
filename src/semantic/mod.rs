@@ -41,16 +41,19 @@ use crate::grammar::normalize_greek;
 /// Perform semantic analysis on a program using the slot-based assembler
 /// This is the primary entry point that provides word-order independence
 pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError> {
-    // Use the assembler-based approach for true word-order independence
-    let assembled = analyze_with_assembler(program)?;
-
-    // Convert assembled statements to analyzed statements
     let mut scope = Scope::new();
     let mut analyzed_statements = Vec::new();
 
-    for asm_stmt in assembled {
-        let analyzed = convert_assembled_to_analyzed(&asm_stmt, &mut scope)?;
-        analyzed_statements.push(analyzed);
+    for stmt in &program.statements {
+        // Check if this is a control flow construct
+        if let Some(control_flow_stmt) = analyze_control_flow(stmt, &mut scope)? {
+            analyzed_statements.push(control_flow_stmt);
+        } else {
+            // Use the assembler-based approach for regular statements
+            let assembled = analyze_single_statement_with_assembler(stmt)?;
+            let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
+            analyzed_statements.push(analyzed);
+        }
     }
 
     Ok(AnalyzedProgram {
@@ -66,32 +69,193 @@ pub fn analyze_program_legacy(program: &Program) -> Result<AnalyzedProgram, Glos
     analyzer.analyze(program)
 }
 
-/// Perform semantic analysis using the slot-based assembler
-/// This is the Greek-native approach that ignores word order
-fn analyze_with_assembler(program: &Program) -> Result<Vec<AssembledStatement>, GlossaError> {
-    let mut results = Vec::new();
+/// Analyze a single statement using the slot-based assembler
+fn analyze_single_statement_with_assembler(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
     let mut asm = Assembler::new();
+    asm.set_query(stmt.is_query);
 
-    for stmt in &program.statements {
-        asm.reset();
-        asm.set_query(stmt.is_query);
+    // Disambiguation context accumulator - articles set context for following words
+    let mut current_context = DisambiguationContext::new();
 
-        // Disambiguation context accumulator - articles set context for following words
-        let mut current_context = DisambiguationContext::new();
-
-        // Feed each expression/term to the assembler with disambiguation
-        for expr in &stmt.expressions {
+    // Feed each expression/term to the assembler with disambiguation
+    // Process all clauses - they're separated by commas in the grammar
+    for clause in &stmt.clauses {
+        for expr in &clause.expressions {
             feed_expr_to_assembler_with_context(&mut asm, expr, &mut current_context)?;
-        }
-
-        // Finalize the statement
-        match asm.finalize() {
-            Ok(assembled) => results.push(assembled),
-            Err(e) => return Err(GlossaError::semantic(&e.to_string())),
         }
     }
 
-    Ok(results)
+    // Finalize the statement
+    match asm.finalize() {
+        Ok(assembled) => Ok(assembled),
+        Err(e) => Err(GlossaError::semantic(&e.to_string())),
+    }
+}
+
+/// Check if a statement is a control flow construct and analyze it
+/// Returns Some(AnalyzedStatement) if it's control flow, None otherwise
+fn analyze_control_flow(stmt: &Statement, _scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    use crate::morphology::lexicon;
+
+    // Get the first word to check for control flow particles
+    // If this fails (e.g., statement starts with literal), it's not control flow
+    let first_word = match get_first_word(stmt) {
+        Ok(word) => word,
+        Err(_) => return Ok(None),
+    };
+    let normalized = normalize_greek(&first_word);
+
+    // Conditional: εἰ/ἐάν condition, body [, εἰ δὲ μή, else_body]
+    if lexicon::is_conditional_particle(&normalized) {
+        return parse_conditional(stmt, _scope);
+    }
+
+    if lexicon::is_loop_particle(&normalized) {
+        // TODO: Parse loops (ἕως/διά)
+        return Ok(None);
+    }
+
+    if lexicon::is_match_particle(&normalized) {
+        // TODO: Parse match (κατά)
+        return Ok(None);
+    }
+
+    if lexicon::is_break_verb(&normalized) {
+        // TODO: Parse break (παῦε)
+        return Ok(None);
+    }
+
+    if lexicon::is_continue_verb(&normalized) {
+        // TODO: Parse continue (συνέχιζε)
+        return Ok(None);
+    }
+
+    // Not a control flow construct
+    Ok(None)
+}
+
+/// Get the first word from a statement for pattern detection
+fn get_first_word(stmt: &Statement) -> Result<String, GlossaError> {
+    if let Some(first_clause) = stmt.clauses.first() {
+        if let Some(first_expr) = first_clause.expressions.first() {
+            if let Expr::Phrase(terms) = first_expr {
+                if let Some(first_term) = terms.first() {
+                    if let Expr::Word(word) = first_term {
+                        return Ok(word.original.clone());
+                    }
+                }
+            } else if let Expr::Word(word) = first_expr {
+                return Ok(word.original.clone());
+            }
+        }
+    }
+    Err(GlossaError::semantic("Empty statement"))
+}
+
+/// Parse a conditional statement (εἰ/ἐάν)
+/// Structure: εἰ condition, body [, εἰ δὲ μή, else_body]
+fn parse_conditional(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if stmt.clauses.len() < 2 {
+        return Err(GlossaError::semantic("Conditional needs at least 2 clauses: condition and body"));
+    }
+
+    // Parse condition (first clause, minus the εἰ/ἐάν particle)
+    let condition_clause = &stmt.clauses[0];
+    let condition_expr = skip_first_word_and_parse(condition_clause, scope)?;
+
+    // Parse then-body (second clause)
+    let then_body = parse_clause_as_statement(&stmt.clauses[1], scope)?;
+
+    // Check for else clause (εἰ δὲ μή)
+    let else_body = if stmt.clauses.len() >= 4 {
+        // Check if clause 2 starts with "εἰ δὲ μή"
+        if check_else_pattern(&stmt.clauses[2]) {
+            Some(vec![parse_clause_as_statement(&stmt.clauses[3], scope)?])
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    Ok(Some(AnalyzedStatement {
+        kind: StatementKind::If {
+            condition: Box::new(condition_expr),
+            then_body: vec![then_body],
+            else_body,
+        },
+        expressions: vec![], // Control flow doesn't use flat expression list
+    }))
+}
+
+/// Skip the first word of a clause and parse the rest as an expression
+fn skip_first_word_and_parse(clause: &crate::ast::Clause, scope: &mut Scope) -> Result<AnalyzedExpr, GlossaError> {
+    // Create a modified clause without the first word
+    let mut modified_clause = clause.clone();
+
+    // Remove the first word from the first expression
+    if let Some(first_expr) = modified_clause.expressions.first_mut() {
+        if let Expr::Phrase(terms) = first_expr {
+            if !terms.is_empty() {
+                terms.remove(0);
+            }
+        }
+    }
+
+    // Parse the modified clause as a statement
+    let stmt = parse_clause_as_mini_statement(&modified_clause)?;
+    let analyzed = analyze_single_statement_with_assembler(&stmt)?;
+    let converted = convert_assembled_to_analyzed(&analyzed, scope)?;
+
+    // Extract the first expression as the condition
+    if let Some(first) = converted.expressions.first() {
+        Ok(first.clone())
+    } else {
+        Err(GlossaError::semantic("Empty condition in conditional"))
+    }
+}
+
+/// Parse a clause as a statement
+fn parse_clause_as_statement(clause: &crate::ast::Clause, scope: &mut Scope) -> Result<AnalyzedStatement, GlossaError> {
+    let stmt = parse_clause_as_mini_statement(clause)?;
+    let assembled = analyze_single_statement_with_assembler(&stmt)?;
+    convert_assembled_to_analyzed(&assembled, scope)
+}
+
+/// Convert a clause to a mini-statement for parsing
+fn parse_clause_as_mini_statement(clause: &crate::ast::Clause) -> Result<Statement, GlossaError> {
+    Ok(Statement {
+        clauses: vec![clause.clone()],
+        is_query: false,
+    })
+}
+
+/// Check if a clause starts with "εἰ δὲ μή" (else pattern)
+fn check_else_pattern(clause: &crate::ast::Clause) -> bool {
+    use crate::morphology::lexicon;
+
+    // Collect first 3 words and check if they form "εἰ δὲ μή"
+    let words: Vec<String> = clause.expressions.iter()
+        .take(3)
+        .filter_map(|expr| {
+            if let Expr::Phrase(terms) = expr {
+                terms.first().and_then(|term| {
+                    if let Expr::Word(w) = term {
+                        Some(normalize_greek(&w.original))
+                    } else {
+                        None
+                    }
+                })
+            } else if let Expr::Word(w) = expr {
+                Some(normalize_greek(&w.original))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let phrase = words.join(" ");
+    lexicon::is_else_pattern(&phrase)
 }
 
 /// Feed an expression into the assembler with disambiguation context
@@ -180,6 +344,17 @@ fn feed_expr_to_assembler_with_context(
             // TODO: Implement unary operation handling
             feed_expr_to_assembler_with_context(asm, operand, context)?;
         }
+        Expr::Block(statements) => {
+            // TODO: Handle block expressions (for control flow bodies)
+            // For now, just process statements recursively
+            for stmt in statements {
+                for clause in &stmt.clauses {
+                    for expr in &clause.expressions {
+                        feed_expr_to_assembler_with_context(asm, expr, context)?;
+                    }
+                }
+            }
+        }
     }
     Ok(())
 }
@@ -205,6 +380,39 @@ fn classify_assembled_statement(
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
         if crate::morphology::lexicon::is_binding_verb(&verb_lemma) {
+            // Check if this is actually a comparison with subjunctive (εἰ condition)
+            // Pattern: subject operator literal subjunctive-verb
+            if !asm_stmt.operators.is_empty() &&
+               asm_stmt.literals.len() >= 1 &&
+               verb.mood == Some(crate::morphology::Mood::Subjunctive) {
+                // This is a comparison expression, not a binding
+                // Build: subject op literal
+                if let Some(ref subject) = asm_stmt.subject {
+                    // Get left operand (subject variable)
+                    let left = if let Some(var_type) = scope.lookup(&subject.lemma) {
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+                            glossa_type: var_type.clone(),
+                        }
+                    } else {
+                        // Variable not in scope, treat as boolean literal false
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::BooleanLiteral(false),
+                            glossa_type: GlossaType::Boolean,
+                        }
+                    };
+
+                    // Get right operand (first literal)
+                    let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+
+                    // Build binary expression
+                    let op = asm_stmt.operators[0];
+                    let comparison = build_binary_expr(left, op, right);
+
+                    return Ok((StatementKind::Expression, vec![comparison]));
+                }
+            }
+
             // Binding: subject is the variable name, literals are the value
             if let Some(ref subject) = asm_stmt.subject {
                 let name = subject.lemma.clone();
@@ -498,6 +706,32 @@ pub enum StatementKind {
     Expression,
     /// Query: ξ?
     Query,
+    /// If conditional: εἰ condition, body [εἰ δὲ μή, else_body]
+    If {
+        condition: Box<AnalyzedExpr>,
+        then_body: Vec<AnalyzedStatement>,
+        else_body: Option<Vec<AnalyzedStatement>>,
+    },
+    /// While loop: ἕως condition, body
+    While {
+        condition: Box<AnalyzedExpr>,
+        body: Vec<AnalyzedStatement>,
+    },
+    /// For loop: διά/ἀπό...μέχρι
+    For {
+        variable: String,
+        iterator: Box<AnalyzedExpr>,
+        body: Vec<AnalyzedStatement>,
+    },
+    /// Match expression: κατά scrutinee { arms }
+    Match {
+        scrutinee: Box<AnalyzedExpr>,
+        arms: Vec<(AnalyzedExpr, Vec<AnalyzedStatement>)>,
+    },
+    /// Break: παῦε
+    Break,
+    /// Continue: συνέχιζε
+    Continue,
 }
 
 /// Analyzed expression with type information
@@ -565,7 +799,8 @@ impl SemanticAnalyzer {
 
     fn analyze_statement(&mut self, stmt: &Statement) -> Result<AnalyzedStatement, GlossaError> {
         // Determine statement kind by analyzing expressions
-        let exprs = &stmt.expressions;
+        // Collect expressions from all clauses
+        let exprs: Vec<&Expr> = stmt.expressions().collect();
 
         if exprs.is_empty() {
             return Ok(AnalyzedStatement {
@@ -575,7 +810,7 @@ impl SemanticAnalyzer {
         }
 
         // Analyze the first (and usually only) expression
-        let first_expr = &exprs[0];
+        let first_expr = exprs[0];
         let (kind, analyzed_exprs) = self.analyze_expression_list(first_expr, stmt.is_query)?;
 
         Ok(AnalyzedStatement {

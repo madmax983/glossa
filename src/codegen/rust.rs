@@ -69,6 +69,92 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             let expr_tokens = generate_expr(expr);
             quote! { #expr_tokens; }
         }
+
+        HirStatement::If { condition, then_body, else_body } => {
+            let cond = generate_expr(condition);
+            let then_stmts: Vec<TokenStream> = then_body.iter()
+                .map(generate_statement)
+                .collect();
+
+            match else_body {
+                Some(else_stmts) => {
+                    let else_tokens: Vec<TokenStream> = else_stmts.iter()
+                        .map(generate_statement)
+                        .collect();
+                    quote! {
+                        if #cond {
+                            #(#then_stmts)*
+                        } else {
+                            #(#else_tokens)*
+                        }
+                    }
+                }
+                None => {
+                    quote! {
+                        if #cond {
+                            #(#then_stmts)*
+                        }
+                    }
+                }
+            }
+        }
+
+        HirStatement::While { condition, body } => {
+            let cond = generate_expr(condition);
+            let body_stmts: Vec<TokenStream> = body.iter()
+                .map(generate_statement)
+                .collect();
+            quote! {
+                while #cond {
+                    #(#body_stmts)*
+                }
+            }
+        }
+
+        HirStatement::For { variable, iterator, body } => {
+            let var_ident = format_ident!("{}", sanitize_name(variable));
+            let iter = generate_expr(iterator);
+            let body_stmts: Vec<TokenStream> = body.iter()
+                .map(generate_statement)
+                .collect();
+            quote! {
+                for #var_ident in #iter {
+                    #(#body_stmts)*
+                }
+            }
+        }
+
+        HirStatement::Match { scrutinee, arms } => {
+            let scrut = generate_expr(scrutinee);
+            let arm_tokens: Vec<TokenStream> = arms.iter()
+                .map(|(pattern, body)| {
+                    let pat = generate_expr(pattern);
+                    let body_stmts: Vec<TokenStream> = body.iter()
+                        .map(generate_statement)
+                        .collect();
+                    quote! { #pat => { #(#body_stmts)* } }
+                })
+                .collect();
+            quote! {
+                match #scrut {
+                    #(#arm_tokens),*
+                }
+            }
+        }
+
+        HirStatement::Break => quote! { break; },
+
+        HirStatement::Continue => quote! { continue; },
+
+        HirStatement::Return(expr) => {
+            match expr {
+                Some(e) => {
+                    let value = generate_expr(e);
+                    quote! { return #value; }
+                }
+                None => quote! { return; }
+            }
+        }
     }
 }
 

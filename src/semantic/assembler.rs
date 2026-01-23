@@ -156,8 +156,14 @@ impl Assembler {
 
         // Check for operators first (before normal part-of-speech handling)
         // Boolean operators: καί (&&), ἤ (||)
-        if let Some(op) = crate::morphology::lexicon::boolean_operator(&normalized) {
-            self.pending_operators.push(op);
+        // IMPORTANT: Use original form for ἤ to distinguish from ᾖ (subjunctive)
+        // ἤ has smooth breathing + acute, ᾖ has subscript iota + circumflex
+        if matches!(original, "καί" | "και") {
+            self.pending_operators.push(BinaryOp::And);
+            return Ok(());
+        }
+        if matches!(original, "ἤ" | "ή") {  // ἤ with breathing+accent, but not ᾖ
+            self.pending_operators.push(BinaryOp::Or);
             return Ok(());
         }
 

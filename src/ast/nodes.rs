@@ -13,10 +13,26 @@ pub struct Program {
 /// A single statement, ending with . (statement) or ? (query)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Statement {
-    /// The expressions in this statement (may be chained with · U+00B7 ano teleia)
-    pub expressions: Vec<Expr>,
+    /// Clauses in this statement, separated by commas
+    /// Each clause contains expressions (chained with · U+00B7 ano teleia)
+    /// e.g., "εἰ condition, body" has 2 clauses
+    pub clauses: Vec<Clause>,
     /// Whether this is a query (ends with ?)
     pub is_query: bool,
+}
+
+/// A clause within a statement (comma-separated)
+#[derive(Debug, Clone, PartialEq)]
+pub struct Clause {
+    /// Expressions in this clause (chained with middle dot)
+    pub expressions: Vec<Expr>,
+}
+
+impl Statement {
+    /// Get all expressions flattened (for backwards compatibility)
+    pub fn expressions(&self) -> impl Iterator<Item = &Expr> {
+        self.clauses.iter().flat_map(|c| c.expressions.iter())
+    }
 }
 
 /// An expression in GLOSSA
@@ -70,6 +86,9 @@ pub enum Expr {
         op: UnaryOperator,
         operand: Box<Expr>,
     },
+
+    /// A block of statements in braces { ... }
+    Block(Vec<Statement>),
 }
 
 /// Binary operators in GLOSSA

@@ -1032,6 +1032,23 @@ pub fn is_match_particle(normalized_word: &str) -> bool {
     normalized_word == "κατα"
 }
 
+/// Check if a word is a necessity particle (ἀνάγκη - necessarily)
+/// This is the Aristotelian marker for logical consequence
+pub fn is_necessity_particle(normalized_word: &str) -> bool {
+    matches!(normalized_word, "αναγκη" | "αναγκαιον")
+}
+
+/// Check if a word is an obligation particle (δεῖ - must/ought)
+/// Less absolute than ἀνάγκη, used for practical necessity
+pub fn is_obligation_particle(normalized_word: &str) -> bool {
+    matches!(normalized_word, "δει" | "δεον" | "χρη")
+}
+
+/// Check if a word introduces a consequence (ἀνάγκη or δεῖ)
+pub fn is_consequence_marker(normalized_word: &str) -> bool {
+    is_necessity_particle(normalized_word) || is_obligation_particle(normalized_word)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
