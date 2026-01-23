@@ -478,20 +478,8 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         voice: None,
     });
 
-    // ἤ - or
-    m.insert("η", LexiconEntry {
-        lemma: "η".to_string(),
-        pos: PartOfSpeech::Conjunction,
-        gender: None,
-        meaning: "or",
-        rust_equiv: Some("||"),
-        case: None,
-        number: None,
-        person: None,
-        tense: None,
-        mood: None,
-        voice: None,
-    });
+    // NOTE: ἤ (or) is NOT in the lexicon - handled by boolean_operator()
+    // This avoids conflict with ᾖ (subjunctive of εἰμί) which also normalizes to η
 
     // οὐ/οὐκ - not
     m.insert("ου", LexiconEntry {
@@ -705,20 +693,8 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         voice: None,
     });
 
-    // ἤ - or (||)
-    m.insert("η", LexiconEntry {
-        lemma: "η".to_string(),
-        pos: PartOfSpeech::Conjunction,
-        gender: None,
-        meaning: "or",
-        rust_equiv: Some("||"),
-        case: None,
-        number: None,
-        person: None,
-        tense: None,
-        mood: None,
-        voice: None,
-    });
+    // NOTE: ἤ (or) handled by boolean_operator(), not lexicon
+    // Avoids conflict with ᾖ (subjunctive εἰμί)
 
     // οὐ/οὐκ/οὐχ - not (!)
     for neg in ["ου", "ουκ", "ουχ"] {
@@ -1015,6 +991,45 @@ pub fn get_binary_operator(normalized_word: &str) -> Option<BinaryOp> {
     comparison_operator(normalized_word)
         .or_else(|| boolean_operator(normalized_word))
         .or_else(|| arithmetic_operator(normalized_word))
+}
+
+// =============================================================================
+// Control Flow Particles (Phase 2)
+// =============================================================================
+
+/// Check if a word is a conditional particle (if)
+pub fn is_conditional_particle(normalized_word: &str) -> bool {
+    matches!(normalized_word, "ει" | "εαν" | "ην" | "αν")
+}
+
+/// Check if a sequence is the else pattern (εἰ δὲ μή)
+pub fn is_else_pattern(normalized_phrase: &str) -> bool {
+    normalized_phrase == "ει δε μη"
+}
+
+/// Check if a word is a loop particle
+pub fn is_loop_particle(normalized_word: &str) -> bool {
+    matches!(normalized_word, "εως" | "δια")
+}
+
+/// Check if a word is a range particle
+pub fn is_range_particle(normalized_word: &str) -> bool {
+    matches!(normalized_word, "απο" | "μεχρι" | "εως")
+}
+
+/// Check if a word is the break verb (παῦε)
+pub fn is_break_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "παυε" | "παυω")
+}
+
+/// Check if a word is the continue verb (συνέχιζε)
+pub fn is_continue_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "συνεχιζε" | "συνεχιζω")
+}
+
+/// Check if a word is the match particle (κατά)
+pub fn is_match_particle(normalized_word: &str) -> bool {
+    normalized_word == "κατα"
 }
 
 #[cfg(test)]

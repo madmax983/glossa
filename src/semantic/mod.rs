@@ -111,23 +111,9 @@ fn feed_expr_to_assembler_with_context(
             asm.feed_boolean(*b);
         }
         Expr::Word(w) => {
-            // Check for operators first - they take priority over articles
-            // (e.g., ἤ = "or" should not be confused with ἡ = "the" feminine article)
-            if crate::morphology::lexicon::boolean_operator(&w.normalized).is_some()
-                || crate::morphology::lexicon::comparison_operator(&w.normalized).is_some()
-                || crate::morphology::lexicon::arithmetic_operator(&w.normalized).is_some()
-            {
-                // Feed directly to assembler - it will handle operator detection
-                let analyses = morphology::analyze_all(&w.normalized);
-                let best_analysis = resolve_best(analyses, context);
-                if let Err(e) = asm.feed(&best_analysis, &w.original) {
-                    return Err(GlossaError::semantic(&e.to_string()));
-                }
-                return Ok(());
-            }
-
-            // Check if this is an article - if so, set context for following word
-            if let Some(article_context) = analyze_article(&w.normalized) {
+            // Check if this is an article using ORIGINAL form (preserves diacritics)
+            // This distinguishes ἡ (article) from ἤ (or) - they differ only in breathing/accent
+            if let Some(article_context) = analyze_article(&w.original) {
                 *context = article_context;
                 // Articles themselves don't go to assembler slots
                 return Ok(());

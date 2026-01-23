@@ -142,4 +142,10 @@ mod tests {
         // ἤ (eta with smooth breathing + acute) should normalize to η
         assert_eq!(normalize_greek("ἤ"), "η");
     }
+
+    #[test]
+    fn test_normalize_subjunctive_eimi() {
+        // ᾖ (eta with iota subscript + circumflex) should normalize to η
+        assert_eq!(normalize_greek("ᾖ"), "η");
+    }
 }
