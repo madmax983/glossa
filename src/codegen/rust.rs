@@ -123,6 +123,7 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
                 BinOp::Sub => quote! { (#left_tokens - #right_tokens) },
                 BinOp::Mul => quote! { (#left_tokens * #right_tokens) },
                 BinOp::Div => quote! { (#left_tokens / #right_tokens) },
+                BinOp::Mod => quote! { (#left_tokens % #right_tokens) },
                 BinOp::Eq => quote! { (#left_tokens == #right_tokens) },
                 BinOp::Ne => quote! { (#left_tokens != #right_tokens) },
                 BinOp::Lt => quote! { (#left_tokens < #right_tokens) },

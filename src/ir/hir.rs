@@ -84,6 +84,7 @@ pub enum BinOp {
     Sub,
     Mul,
     Div,
+    Mod,
     Eq,
     Ne,
     Lt,
@@ -92,6 +93,27 @@ pub enum BinOp {
     Ge,
     And,
     Or,
+}
+
+impl From<crate::morphology::lexicon::BinaryOp> for BinOp {
+    fn from(op: crate::morphology::lexicon::BinaryOp) -> Self {
+        use crate::morphology::lexicon::BinaryOp as MorphOp;
+        match op {
+            MorphOp::Add => BinOp::Add,
+            MorphOp::Sub => BinOp::Sub,
+            MorphOp::Mul => BinOp::Mul,
+            MorphOp::Div => BinOp::Div,
+            MorphOp::Mod => BinOp::Mod,
+            MorphOp::Eq => BinOp::Eq,
+            MorphOp::Ne => BinOp::Ne,
+            MorphOp::Lt => BinOp::Lt,
+            MorphOp::Le => BinOp::Le,
+            MorphOp::Gt => BinOp::Gt,
+            MorphOp::Ge => BinOp::Ge,
+            MorphOp::And => BinOp::And,
+            MorphOp::Or => BinOp::Or,
+        }
+    }
 }
 
 /// Lower analyzed program to HIR
@@ -167,6 +189,35 @@ fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
             HirExpr::Call {
                 func: verb.clone(),
                 args: args.iter().map(|a| lower_expr(a)).collect(),
+            }
+        }
+        AnalyzedExprKind::BinOp { left, op, right } => {
+            HirExpr::BinOp {
+                op: (*op).into(),
+                left: Box::new(lower_expr(left)),
+                right: Box::new(lower_expr(right)),
+            }
+        }
+        AnalyzedExprKind::UnaryOp { op, operand } => {
+            // For now, treat unary ops as BinOp with a default value
+            // TODO: Add proper UnaryOp to HirExpr
+            match op {
+                crate::morphology::lexicon::UnaryOp::Not => {
+                    // !x is equivalent to x == false for booleans
+                    HirExpr::BinOp {
+                        op: BinOp::Eq,
+                        left: Box::new(lower_expr(operand)),
+                        right: Box::new(HirExpr::BoolLit(false)),
+                    }
+                }
+                crate::morphology::lexicon::UnaryOp::Neg => {
+                    // -x is equivalent to 0 - x
+                    HirExpr::BinOp {
+                        op: BinOp::Sub,
+                        left: Box::new(HirExpr::IntLit(0)),
+                        right: Box::new(lower_expr(operand)),
+                    }
+                }
             }
         }
     }

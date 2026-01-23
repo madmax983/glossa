@@ -111,6 +111,21 @@ fn feed_expr_to_assembler_with_context(
             asm.feed_boolean(*b);
         }
         Expr::Word(w) => {
+            // Check for operators first - they take priority over articles
+            // (e.g., ἤ = "or" should not be confused with ἡ = "the" feminine article)
+            if crate::morphology::lexicon::boolean_operator(&w.normalized).is_some()
+                || crate::morphology::lexicon::comparison_operator(&w.normalized).is_some()
+                || crate::morphology::lexicon::arithmetic_operator(&w.normalized).is_some()
+            {
+                // Feed directly to assembler - it will handle operator detection
+                let analyses = morphology::analyze_all(&w.normalized);
+                let best_analysis = resolve_best(analyses, context);
+                if let Err(e) = asm.feed(&best_analysis, &w.original) {
+                    return Err(GlossaError::semantic(&e.to_string()));
+                }
+                return Ok(());
+            }
+
             // Check if this is an article - if so, set context for following word
             if let Some(article_context) = analyze_article(&w.normalized) {
                 *context = article_context;
@@ -170,6 +185,15 @@ fn feed_expr_to_assembler_with_context(
             }
             feed_expr_to_assembler_with_context(asm, value, context)?;
         }
+        Expr::BinOp { left, op: _, right } => {
+            // TODO: Implement binary operation handling
+            feed_expr_to_assembler_with_context(asm, left, context)?;
+            feed_expr_to_assembler_with_context(asm, right, context)?;
+        }
+        Expr::UnaryOp { op: _, operand } => {
+            // TODO: Implement unary operation handling
+            feed_expr_to_assembler_with_context(asm, operand, context)?;
+        }
     }
     Ok(())
 }
@@ -223,12 +247,39 @@ fn classify_assembled_statement(
 
         // Check for print pattern
         if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
-            let mut args = Vec::new();
+            // If we have operators, combine subject/variables with literals using operators
+            if !asm_stmt.operators.is_empty() {
+                // Get left operand (subject variable)
+                let left = if let Some(ref subj) = asm_stmt.subject {
+                    if let Some(var_type) = scope.lookup(&subj.lemma) {
+                        Some(AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                            glossa_type: var_type.clone(),
+                        })
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
 
-            // Collect all literals as print arguments
-            for lit in &asm_stmt.literals {
-                args.push(literal_to_analyzed_expr(lit));
+                // Get right operand (first literal)
+                let right = asm_stmt.literals.first().map(literal_to_analyzed_expr);
+
+                // If we have both operands and an operator, build a binary expression
+                if let (Some(left_expr), Some(right_expr)) = (left, right) {
+                    let op = asm_stmt.operators[0];
+                    let bin_expr = build_binary_expr(left_expr, op, right_expr);
+                    return Ok((StatementKind::Print, vec![bin_expr]));
+                }
             }
+
+            // Build binary expressions from literals and operators if available
+            // This handles cases like: true || false
+            let mut args = build_expressions_from_literals_and_ops(
+                &asm_stmt.literals,
+                &asm_stmt.operators,
+            );
 
             // Also include subject/object if present (variable references)
             if let Some(ref subj) = asm_stmt.subject {
@@ -270,17 +321,29 @@ fn classify_assembled_statement(
     }
 
     // Default: expression statement
-    let mut exprs = Vec::new();
-    for lit in &asm_stmt.literals {
-        exprs.push(literal_to_analyzed_expr(lit));
-    }
+    let exprs = build_expressions_from_literals_and_ops(
+        &asm_stmt.literals,
+        &asm_stmt.operators,
+    );
 
     Ok((StatementKind::Expression, exprs))
 }
 
 /// Extract value from assembled statement (literals or constituents)
 fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
-    // Prefer literals
+    // If we have operators, build a binary expression from literals
+    if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() >= 2 {
+        let exprs = build_expressions_from_literals_and_ops(
+            &asm_stmt.literals,
+            &asm_stmt.operators,
+        );
+        if let Some(expr) = exprs.into_iter().next() {
+            let ty = expr.glossa_type.clone();
+            return (expr, ty);
+        }
+    }
+
+    // Prefer literals (single value, no operators)
     if let Some(lit) = asm_stmt.literals.first() {
         return (literal_to_analyzed_expr(lit), literal_to_type(lit));
     }
@@ -344,6 +407,86 @@ fn literal_to_type(lit: &Literal) -> GlossaType {
     }
 }
 
+/// Build a binary expression from two analyzed expressions and an operator
+fn build_binary_expr(
+    left: AnalyzedExpr,
+    op: crate::morphology::lexicon::BinaryOp,
+    right: AnalyzedExpr,
+) -> AnalyzedExpr {
+    let result_type = infer_binop_type(&left.glossa_type, &op, &right.glossa_type);
+    AnalyzedExpr {
+        expr: AnalyzedExprKind::BinOp {
+            left: Box::new(left),
+            op,
+            right: Box::new(right),
+        },
+        glossa_type: result_type,
+    }
+}
+
+/// Build expressions from literals and operators
+/// If there are operators, builds a binary expression tree
+/// Otherwise, returns the literals as-is
+fn build_expressions_from_literals_and_ops(
+    literals: &[Literal],
+    operators: &[crate::morphology::lexicon::BinaryOp],
+) -> Vec<AnalyzedExpr> {
+    // If no operators, just return literals as separate expressions
+    if operators.is_empty() {
+        return literals.iter().map(literal_to_analyzed_expr).collect();
+    }
+
+    // If we have operators, build a binary expression
+    // Pattern: lit0 op0 lit1 op1 lit2 ... -> ((lit0 op0 lit1) op1 lit2) ...
+    if literals.len() < 2 || operators.is_empty() {
+        return literals.iter().map(literal_to_analyzed_expr).collect();
+    }
+
+    // Build left-associative tree
+    let mut result = literal_to_analyzed_expr(&literals[0]);
+
+    for (i, op) in operators.iter().enumerate() {
+        if i + 1 < literals.len() {
+            let right = literal_to_analyzed_expr(&literals[i + 1]);
+            let result_type = infer_binop_type(&result.glossa_type, op, &right.glossa_type);
+            result = AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    left: Box::new(result),
+                    op: *op,
+                    right: Box::new(right),
+                },
+                glossa_type: result_type,
+            };
+        }
+    }
+
+    vec![result]
+}
+
+/// Infer the result type of a binary operation
+fn infer_binop_type(
+    _left: &GlossaType,
+    op: &crate::morphology::lexicon::BinaryOp,
+    _right: &GlossaType,
+) -> GlossaType {
+    use crate::morphology::lexicon::BinaryOp;
+
+    match op {
+        // Arithmetic operations on numbers return numbers
+        BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod => {
+            GlossaType::Number
+        }
+        // Comparison operations return booleans
+        BinaryOp::Eq | BinaryOp::Ne | BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
+            GlossaType::Boolean
+        }
+        // Boolean operations return booleans
+        BinaryOp::And | BinaryOp::Or => {
+            GlossaType::Boolean
+        }
+    }
+}
+
 /// Analyzed program with resolved names and types
 #[derive(Debug, Clone)]
 pub struct AnalyzedProgram {
@@ -387,6 +530,17 @@ pub enum AnalyzedExprKind {
     Variable(String),
     PropertyAccess { owner: Box<AnalyzedExpr>, property: String },
     VerbCall { verb: String, args: Vec<AnalyzedExpr> },
+    /// Binary operation (arithmetic, comparison, boolean)
+    BinOp {
+        left: Box<AnalyzedExpr>,
+        op: crate::morphology::lexicon::BinaryOp,
+        right: Box<AnalyzedExpr>,
+    },
+    /// Unary operation (negation)
+    UnaryOp {
+        op: crate::morphology::lexicon::UnaryOp,
+        operand: Box<AnalyzedExpr>,
+    },
 }
 
 /// Semantic analyzer state

@@ -55,6 +55,51 @@ pub enum Expr {
         name: Word,
         value: Box<Expr>,
     },
+
+    /// Binary operation (arithmetic, comparison, boolean)
+    /// e.g., x μεῖζον y → x > y
+    BinOp {
+        left: Box<Expr>,
+        op: BinOperator,
+        right: Box<Expr>,
+    },
+
+    /// Unary operation (negation)
+    /// e.g., οὐκ x → !x
+    UnaryOp {
+        op: UnaryOperator,
+        operand: Box<Expr>,
+    },
+}
+
+/// Binary operators in GLOSSA
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinOperator {
+    // Arithmetic
+    Add,  // ἄθροισμα
+    Sub,  // διαφορά
+    Mul,  // γινόμενον
+    Div,  // μέρος
+    Mod,  // ὑπόλοιπον
+
+    // Comparison
+    Eq,   // ἴσον
+    Ne,   // ἄνισον
+    Lt,   // ἔλαττον
+    Le,   // ἔλαττον ἢ ἴσον
+    Gt,   // μεῖζον
+    Ge,   // μεῖζον ἢ ἴσον
+
+    // Boolean
+    And,  // καί
+    Or,   // ἤ
+}
+
+/// Unary operators in GLOSSA
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnaryOperator {
+    Not,  // οὐ/οὐκ/οὐχ
+    Neg,  // arithmetic negation
 }
 
 /// A Greek word with original and normalized forms

@@ -622,7 +622,204 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         voice: None,
     });
 
+    // =========================================================================
+    // Comparison adjectives (map to operators)
+    // =========================================================================
+
+    // μεῖζον - greater (>)
+    m.insert("μειζον", LexiconEntry {
+        lemma: "μεγας".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "greater (comparative)",
+        rust_equiv: Some(">"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἔλαττον - lesser (<)
+    m.insert("ελαττον", LexiconEntry {
+        lemma: "ελαττων".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "lesser (comparative)",
+        rust_equiv: Some("<"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἴσον - equal (==)
+    m.insert("ισον", LexiconEntry {
+        lemma: "ισος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "equal",
+        rust_equiv: Some("=="),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἄνισον - unequal (!=)
+    m.insert("ανισον", LexiconEntry {
+        lemma: "ανισος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "unequal",
+        rust_equiv: Some("!="),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // =========================================================================
+    // Boolean particles (map to operators)
+    // =========================================================================
+
+    // καί - and (&&)
+    m.insert("και", LexiconEntry {
+        lemma: "και".to_string(),
+        pos: PartOfSpeech::Conjunction,
+        gender: None,
+        meaning: "and",
+        rust_equiv: Some("&&"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἤ - or (||)
+    m.insert("η", LexiconEntry {
+        lemma: "η".to_string(),
+        pos: PartOfSpeech::Conjunction,
+        gender: None,
+        meaning: "or",
+        rust_equiv: Some("||"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // οὐ/οὐκ/οὐχ - not (!)
+    for neg in ["ου", "ουκ", "ουχ"] {
+        m.insert(neg, LexiconEntry {
+            lemma: "ου".to_string(),
+            pos: PartOfSpeech::Particle,
+            gender: None,
+            meaning: "not",
+            rust_equiv: Some("!"),
+            case: None,
+            number: None,
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        });
+    }
+
+    // =========================================================================
+    // Arithmetic nouns (map to operators)
+    // =========================================================================
+
+    // ἄθροισμα - sum (+)
+    m.insert("αθροισμα", LexiconEntry {
+        lemma: "αθροισμα".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "sum",
+        rust_equiv: Some("+"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // διαφορά - difference (-)
+    m.insert("διαφορα", LexiconEntry {
+        lemma: "διαφορα".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Feminine),
+        meaning: "difference",
+        rust_equiv: Some("-"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // γινόμενον - product (*)
+    m.insert("γινομενον", LexiconEntry {
+        lemma: "γινομενον".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "product",
+        rust_equiv: Some("*"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // μέρος - quotient/part (/)
+    m.insert("μερος", LexiconEntry {
+        lemma: "μερος".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "quotient, part",
+        rust_equiv: Some("/"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ὑπόλοιπον - remainder (%)
+    m.insert("υπολοιπον", LexiconEntry {
+        lemma: "υπολοιπον".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "remainder",
+        rust_equiv: Some("%"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // =========================================================================
     // Greek numerals as words
+    // =========================================================================
+
     for (word, _value) in [
         ("εν", 1), ("ενα", 1),
         ("δυο", 2),
@@ -679,22 +876,145 @@ pub fn is_print_verb(normalized_word: &str) -> bool {
 }
 
 /// Get the numeric value of a Greek numeral word
+/// Includes all case forms (nominative, genitive, dative, accusative)
 pub fn numeral_value(normalized_word: &str) -> Option<i64> {
     match normalized_word {
-        "εν" | "ενα" => Some(1),
-        "δυο" => Some(2),
-        "τρια" | "τρεις" => Some(3),
-        "τεσσαρα" | "τεσσαρες" => Some(4),
+        // 1 - εἷς, μία, ἕν
+        "εν" | "ενα" | "ενος" | "μια" | "μιας" => Some(1),
+        // 2 - δύο (indeclinable)
+        "δυο" | "δυοιν" => Some(2),
+        // 3 - τρεῖς, τρία
+        "τρια" | "τρεις" | "τριων" | "τρισι" | "τρισιν" => Some(3),
+        // 4 - τέτταρες, τέτταρα
+        "τεσσαρα" | "τεσσαρες" | "τεσσαρων" | "τεσσαρσι" | "τεσσαρσιν" => Some(4),
+        // 5 - πέντε (indeclinable)
         "πεντε" => Some(5),
+        // 6 - ἕξ (indeclinable)
         "εξ" => Some(6),
+        // 7 - ἑπτά (indeclinable)
         "επτα" => Some(7),
+        // 8 - ὀκτώ (indeclinable)
         "οκτω" => Some(8),
+        // 9 - ἐννέα (indeclinable)
         "εννεα" => Some(9),
+        // 10 - δέκα (indeclinable)
         "δεκα" => Some(10),
+        // 100 - ἑκατόν (indeclinable)
         "εκατον" => Some(100),
-        "χιλια" => Some(1000),
+        // 1000 - χίλιοι/χίλια
+        "χιλια" | "χιλιοι" | "χιλιων" => Some(1000),
         _ => None,
     }
+}
+
+/// Binary operator type for code generation
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryOp {
+    // Arithmetic
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    // Comparison
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    // Boolean
+    And,
+    Or,
+}
+
+impl BinaryOp {
+    /// Get the Rust operator string
+    pub fn to_rust(&self) -> &'static str {
+        match self {
+            BinaryOp::Add => "+",
+            BinaryOp::Sub => "-",
+            BinaryOp::Mul => "*",
+            BinaryOp::Div => "/",
+            BinaryOp::Mod => "%",
+            BinaryOp::Eq => "==",
+            BinaryOp::Ne => "!=",
+            BinaryOp::Lt => "<",
+            BinaryOp::Le => "<=",
+            BinaryOp::Gt => ">",
+            BinaryOp::Ge => ">=",
+            BinaryOp::And => "&&",
+            BinaryOp::Or => "||",
+        }
+    }
+}
+
+/// Unary operator type for code generation
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnaryOp {
+    Not,  // οὐ/οὐκ
+    Neg,  // arithmetic negation
+}
+
+impl UnaryOp {
+    /// Get the Rust operator string
+    pub fn to_rust(&self) -> &'static str {
+        match self {
+            UnaryOp::Not => "!",
+            UnaryOp::Neg => "-",
+        }
+    }
+}
+
+/// Check if a word is a comparison adjective and return the operator
+pub fn comparison_operator(normalized_word: &str) -> Option<BinaryOp> {
+    match normalized_word {
+        "μειζον" => Some(BinaryOp::Gt),
+        "ελαττον" => Some(BinaryOp::Lt),
+        "ισον" => Some(BinaryOp::Eq),
+        "ανισον" => Some(BinaryOp::Ne),
+        _ => None,
+    }
+}
+
+/// Check if a word is a boolean conjunction and return the operator
+pub fn boolean_operator(normalized_word: &str) -> Option<BinaryOp> {
+    match normalized_word {
+        "και" => Some(BinaryOp::And),
+        "η" => Some(BinaryOp::Or),
+        _ => None,
+    }
+}
+
+/// Check if a word is a negation particle
+pub fn is_negation(normalized_word: &str) -> bool {
+    matches!(normalized_word, "ου" | "ουκ" | "ουχ")
+}
+
+/// Check if a word is an arithmetic noun and return the operator
+pub fn arithmetic_operator(normalized_word: &str) -> Option<BinaryOp> {
+    match normalized_word {
+        "αθροισμα" => Some(BinaryOp::Add),
+        "διαφορα" => Some(BinaryOp::Sub),
+        "γινομενον" => Some(BinaryOp::Mul),
+        "μερος" => Some(BinaryOp::Div),
+        "υπολοιπον" => Some(BinaryOp::Mod),
+        _ => None,
+    }
+}
+
+/// Check if a word maps to any binary operator
+pub fn is_operator_word(normalized_word: &str) -> bool {
+    comparison_operator(normalized_word).is_some()
+        || boolean_operator(normalized_word).is_some()
+        || arithmetic_operator(normalized_word).is_some()
+}
+
+/// Get the binary operator for any operator word
+pub fn get_binary_operator(normalized_word: &str) -> Option<BinaryOp> {
+    comparison_operator(normalized_word)
+        .or_else(|| boolean_operator(normalized_word))
+        .or_else(|| arithmetic_operator(normalized_word))
 }
 
 #[cfg(test)]
@@ -743,5 +1063,58 @@ mod tests {
 
         let entry = lookup("ψευδος").unwrap();
         assert_eq!(entry.rust_equiv, Some("false"));
+    }
+
+    #[test]
+    fn test_comparison_operators() {
+        assert_eq!(comparison_operator("μειζον"), Some(BinaryOp::Gt));
+        assert_eq!(comparison_operator("ελαττον"), Some(BinaryOp::Lt));
+        assert_eq!(comparison_operator("ισον"), Some(BinaryOp::Eq));
+        assert_eq!(comparison_operator("ανισον"), Some(BinaryOp::Ne));
+        assert_eq!(comparison_operator("foo"), None);
+    }
+
+    #[test]
+    fn test_boolean_operators() {
+        assert_eq!(boolean_operator("και"), Some(BinaryOp::And));
+        assert_eq!(boolean_operator("η"), Some(BinaryOp::Or));
+        assert!(is_negation("ου"));
+        assert!(is_negation("ουκ"));
+        assert!(is_negation("ουχ"));
+    }
+
+    #[test]
+    fn test_arithmetic_operators() {
+        assert_eq!(arithmetic_operator("αθροισμα"), Some(BinaryOp::Add));
+        assert_eq!(arithmetic_operator("διαφορα"), Some(BinaryOp::Sub));
+        assert_eq!(arithmetic_operator("γινομενον"), Some(BinaryOp::Mul));
+        assert_eq!(arithmetic_operator("μερος"), Some(BinaryOp::Div));
+        assert_eq!(arithmetic_operator("υπολοιπον"), Some(BinaryOp::Mod));
+    }
+
+    #[test]
+    fn test_operator_to_rust() {
+        assert_eq!(BinaryOp::Add.to_rust(), "+");
+        assert_eq!(BinaryOp::Gt.to_rust(), ">");
+        assert_eq!(BinaryOp::And.to_rust(), "&&");
+        assert_eq!(UnaryOp::Not.to_rust(), "!");
+    }
+
+    #[test]
+    fn test_operator_lexicon_entries() {
+        // Comparison adjectives
+        let entry = lookup("μειζον").unwrap();
+        assert_eq!(entry.rust_equiv, Some(">"));
+        assert_eq!(entry.pos, PartOfSpeech::Adjective);
+
+        // Boolean particles
+        let entry = lookup("και").unwrap();
+        assert_eq!(entry.rust_equiv, Some("&&"));
+        assert_eq!(entry.pos, PartOfSpeech::Conjunction);
+
+        // Arithmetic nouns
+        let entry = lookup("αθροισμα").unwrap();
+        assert_eq!(entry.rust_equiv, Some("+"));
+        assert_eq!(entry.pos, PartOfSpeech::Noun);
     }
 }

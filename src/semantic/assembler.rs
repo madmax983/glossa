@@ -8,6 +8,7 @@
 //! them into a statement when finalized (at end of sentence).
 
 use crate::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender, Person, Tense, Mood};
+use crate::morphology::lexicon::BinaryOp;
 use crate::grammar::normalize_greek;
 
 /// A fully assembled statement with all grammatical roles filled
@@ -25,6 +26,8 @@ pub struct AssembledStatement {
     pub genitives: Vec<Constituent>,
     /// Literal values (strings, numbers) that appeared
     pub literals: Vec<Literal>,
+    /// Binary operators found between expressions
+    pub operators: Vec<BinaryOp>,
     /// Whether this is a query (ends with ;)
     pub is_query: bool,
 }
@@ -81,6 +84,7 @@ pub struct Assembler {
     pending_verb: Option<VerbConstituent>,
     pending_genitives: Vec<Constituent>,
     pending_literals: Vec<Literal>,
+    pending_operators: Vec<BinaryOp>,
     is_query: bool,
 }
 
@@ -124,6 +128,7 @@ impl Assembler {
             pending_verb: None,
             pending_genitives: Vec::new(),
             pending_literals: Vec::new(),
+            pending_operators: Vec::new(),
             is_query: false,
         }
     }
@@ -136,6 +141,7 @@ impl Assembler {
         self.pending_verb = None;
         self.pending_genitives.clear();
         self.pending_literals.clear();
+        self.pending_operators.clear();
         self.is_query = false;
     }
 
@@ -146,6 +152,34 @@ impl Assembler {
 
     /// Feed a morphologically-analyzed token into the assembler
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+        let normalized = normalize_greek(original);
+
+        // Check for operators first (before normal part-of-speech handling)
+        // Boolean operators: καί (&&), ἤ (||)
+        if let Some(op) = crate::morphology::lexicon::boolean_operator(&normalized) {
+            self.pending_operators.push(op);
+            return Ok(());
+        }
+
+        // Comparison operators: μεῖζον (>), ἔλαττον (<), ἴσον (==)
+        if let Some(op) = crate::morphology::lexicon::comparison_operator(&normalized) {
+            self.pending_operators.push(op);
+            return Ok(());
+        }
+
+        // Arithmetic operators: ἄθροισμα (+), διαφορά (-), γινόμενον (*)
+        if let Some(op) = crate::morphology::lexicon::arithmetic_operator(&normalized) {
+            self.pending_operators.push(op);
+            return Ok(());
+        }
+
+        // Check for numeral words (any case form) - these become literals
+        // This catches numeral words regardless of how morphology parsed them
+        if let Some(value) = crate::morphology::lexicon::numeral_value(&normalized) {
+            self.pending_literals.push(Literal::Number(value));
+            return Ok(());
+        }
+
         match analysis.part_of_speech {
             PartOfSpeech::Noun | PartOfSpeech::Pronoun | PartOfSpeech::Adjective => {
                 self.handle_nominal(analysis, original)
@@ -154,12 +188,11 @@ impl Assembler {
                 self.handle_verb(analysis, original)
             }
             PartOfSpeech::Numeral => {
-                // Numerals can act as nouns or adjectives
-                if let Some(value) = crate::morphology::lexicon::numeral_value(&normalize_greek(original)) {
-                    self.pending_literals.push(Literal::Number(value));
-                } else {
-                    self.handle_nominal(analysis, original)?;
-                }
+                // Already handled above, but keep this for explicit numeral POS
+                self.handle_nominal(analysis, original)
+            }
+            PartOfSpeech::Conjunction => {
+                // Non-operator conjunctions are ignored for now
                 Ok(())
             }
             _ => Ok(()), // Ignore particles, articles for now
@@ -288,6 +321,7 @@ impl Assembler {
             indirect: self.pending_indirect.take(),
             genitives: std::mem::take(&mut self.pending_genitives),
             literals: std::mem::take(&mut self.pending_literals),
+            operators: std::mem::take(&mut self.pending_operators),
             is_query: self.is_query,
         };
 
@@ -316,6 +350,59 @@ impl Default for Assembler {
 mod tests {
     use super::*;
     use crate::morphology::analyze;
+
+    #[test]
+    fn test_operator_detection() {
+        // μεῖζον should be detected as > operator
+        let mut asm = Assembler::new();
+
+        // Feed comparison adjective
+        let meizon = analyze("μειζον");
+        asm.feed(&meizon, "μεῖζον").unwrap();
+
+        let stmt = asm.finalize().unwrap();
+        assert!(!stmt.operators.is_empty(), "Expected operator to be captured");
+        assert_eq!(stmt.operators[0], BinaryOp::Gt);
+    }
+
+    #[test]
+    fn test_boolean_or_detection() {
+        // ἤ should be detected as || operator
+        let mut asm = Assembler::new();
+
+        // Feed boolean particle
+        let or_particle = analyze("η");
+        asm.feed(&or_particle, "ἤ").unwrap();
+
+        let stmt = asm.finalize().unwrap();
+        assert!(!stmt.operators.is_empty(), "Expected operator to be captured, got: {:?}", stmt);
+        assert_eq!(stmt.operators[0], BinaryOp::Or);
+    }
+
+    #[test]
+    fn test_full_boolean_or_expression() {
+        // ἀληθές ἤ ψεῦδος λέγε - simulate the full expression
+        let mut asm = Assembler::new();
+
+        // Feed true (boolean literal - handled by parser, goes to feed_boolean)
+        asm.feed_boolean(true);
+
+        // Feed ἤ (OR operator)
+        let or_particle = analyze("η");
+        asm.feed(&or_particle, "ἤ").unwrap();
+
+        // Feed false (boolean literal)
+        asm.feed_boolean(false);
+
+        // Feed λέγε (print verb)
+        let verb = analyze("λεγε");
+        asm.feed(&verb, "λέγε").unwrap();
+
+        let stmt = asm.finalize().unwrap();
+        assert_eq!(stmt.literals.len(), 2, "Expected 2 literals, got: {:?}", stmt.literals);
+        assert_eq!(stmt.operators.len(), 1, "Expected 1 operator, got: {:?}", stmt.operators);
+        assert_eq!(stmt.operators[0], BinaryOp::Or);
+    }
 
     #[test]
     fn test_simple_sov() {
