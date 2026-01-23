@@ -797,6 +797,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     // =========================================================================
 
     for (word, _value) in [
+        ("μηδεν", 0),  // zero (nominative/accusative neuter)
         ("εν", 1), ("ενα", 1),
         ("δυο", 2),
         ("τρια", 3), ("τρεις", 3),
@@ -824,6 +825,21 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
             voice: None,
         });
     }
+
+    // Add declined forms of zero (μηδέν)
+    m.insert("μηδενος", LexiconEntry {
+        lemma: "μηδεν".to_string(),
+        pos: PartOfSpeech::Numeral,
+        gender: Some(Gender::Neuter),
+        meaning: "of zero, of nothing",
+        rust_equiv: None,
+        case: Some(Case::Genitive),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
 
     m
 });
@@ -855,6 +871,8 @@ pub fn is_print_verb(normalized_word: &str) -> bool {
 /// Includes all case forms (nominative, genitive, dative, accusative)
 pub fn numeral_value(normalized_word: &str) -> Option<i64> {
     match normalized_word {
+        // 0 - μηδέν (nothing/zero)
+        "μηδεν" | "μηδενος" => Some(0),
         // 1 - εἷς, μία, ἕν
         "εν" | "ενα" | "ενος" | "μια" | "μιας" => Some(1),
         // 2 - δύο (indeclinable)

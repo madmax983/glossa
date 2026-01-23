@@ -229,6 +229,16 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
                 quote! { &#inner }
             }
         }
+
+        HirExpr::Range { start, end, inclusive } => {
+            let start_tokens = generate_expr(start);
+            let end_tokens = generate_expr(end);
+            if *inclusive {
+                quote! { (#start_tokens..=#end_tokens) }
+            } else {
+                quote! { (#start_tokens..#end_tokens) }
+            }
+        }
     }
 }
 

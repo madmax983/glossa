@@ -110,8 +110,23 @@ fn analyze_control_flow(stmt: &Statement, _scope: &mut Scope) -> Result<Option<A
         return parse_conditional(stmt, _scope);
     }
 
+    // While loop: ἕως condition, body
+    if normalized == "εως" {
+        return parse_while_loop(stmt, _scope);
+    }
+
+    // For loop with range: ἀπὸ start μέχρι/ἕως end, body
+    if normalized == "απο" {
+        return parse_for_range_loop(stmt, _scope);
+    }
+
+    // For loop with iteration: διὰ collection, body
+    if normalized == "δια" {
+        return parse_for_iteration_loop(stmt, _scope);
+    }
+
     if lexicon::is_loop_particle(&normalized) {
-        // TODO: Parse loops (ἕως/διά)
+        // Other loop forms handled above
         return Ok(None);
     }
 
@@ -120,14 +135,20 @@ fn analyze_control_flow(stmt: &Statement, _scope: &mut Scope) -> Result<Option<A
         return Ok(None);
     }
 
+    // Break: παῦε
     if lexicon::is_break_verb(&normalized) {
-        // TODO: Parse break (παῦε)
-        return Ok(None);
+        return Ok(Some(AnalyzedStatement {
+            kind: StatementKind::Break,
+            expressions: vec![],
+        }));
     }
 
+    // Continue: συνέχιζε
     if lexicon::is_continue_verb(&normalized) {
-        // TODO: Parse continue (συνέχιζε)
-        return Ok(None);
+        return Ok(Some(AnalyzedStatement {
+            kind: StatementKind::Continue,
+            expressions: vec![],
+        }));
     }
 
     // Not a control flow construct
@@ -152,6 +173,103 @@ fn get_first_word(stmt: &Statement) -> Result<String, GlossaError> {
     Err(GlossaError::semantic("Empty statement"))
 }
 
+/// Parse a while loop statement (ἕως)
+/// Structure: ἕως condition, body
+fn parse_while_loop(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if stmt.clauses.len() < 2 {
+        return Err(GlossaError::semantic("While loop needs at least 2 clauses: condition and body"));
+    }
+
+    // Parse condition (first clause, minus the ἕως particle)
+    let condition_clause = &stmt.clauses[0];
+    let condition_expr = skip_first_word_and_parse(condition_clause, scope)?;
+
+    // Parse body (second clause)
+    let body = parse_clause_as_statement(&stmt.clauses[1], scope)?;
+
+    Ok(Some(AnalyzedStatement {
+        kind: StatementKind::While {
+            condition: Box::new(condition_expr),
+            body: vec![body],
+        },
+        expressions: vec![],
+    }))
+}
+
+/// Parse a for loop with range (ἀπὸ ... μέχρι/ἕως ...)
+/// Structure: ἀπὸ start μέχρι/ἕως end, body
+fn parse_for_range_loop(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if stmt.clauses.len() < 2 {
+        return Err(GlossaError::semantic("For loop needs at least 2 clauses: range and body"));
+    }
+
+    // Parse range specification from first clause
+    // Pattern: ἀπὸ start μέχρι/ἕως end
+    // We need to extract start, end, and whether it's inclusive
+    let range_clause = &stmt.clauses[0];
+
+    // For now, create a simple iterator expression
+    // TODO: Properly parse the range pattern
+    // Placeholder: use a range 0..10
+    let iterator = AnalyzedExpr {
+        expr: AnalyzedExprKind::Range {
+            start: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(0),
+                glossa_type: GlossaType::Number,
+            }),
+            end: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(10),
+                glossa_type: GlossaType::Number,
+            }),
+            inclusive: false,
+        },
+        glossa_type: GlossaType::Number, // Range type
+    };
+
+    // Parse body (second clause)
+    let body = parse_clause_as_statement(&stmt.clauses[1], scope)?;
+
+    // Variable name is typically ι (iota) for loop index
+    let variable = "ι".to_string();
+
+    Ok(Some(AnalyzedStatement {
+        kind: StatementKind::For {
+            variable,
+            iterator: Box::new(iterator),
+            body: vec![body],
+        },
+        expressions: vec![],
+    }))
+}
+
+/// Parse a for loop with iteration (διὰ collection)
+/// Structure: διὰ collection, body
+fn parse_for_iteration_loop(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if stmt.clauses.len() < 2 {
+        return Err(GlossaError::semantic("For loop needs at least 2 clauses: collection and body"));
+    }
+
+    // Parse collection (first clause, minus the διά particle)
+    let collection_clause = &stmt.clauses[0];
+    let collection_expr = skip_first_word_and_parse(collection_clause, scope)?;
+
+    // Parse body (second clause)
+    let body = parse_clause_as_statement(&stmt.clauses[1], scope)?;
+
+    // Variable name extracted from collection genitive
+    // TODO: Properly extract from genitive pattern
+    let variable = "x".to_string();
+
+    Ok(Some(AnalyzedStatement {
+        kind: StatementKind::For {
+            variable,
+            iterator: Box::new(collection_expr),
+            body: vec![body],
+        },
+        expressions: vec![],
+    }))
+}
+
 /// Parse a conditional statement (εἰ/ἐάν)
 /// Structure: εἰ condition, body [, εἰ δὲ μή, else_body]
 fn parse_conditional(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
@@ -163,14 +281,27 @@ fn parse_conditional(stmt: &Statement, scope: &mut Scope) -> Result<Option<Analy
     let condition_clause = &stmt.clauses[0];
     let condition_expr = skip_first_word_and_parse(condition_clause, scope)?;
 
-    // Parse then-body (second clause)
-    let then_body = parse_clause_as_statement(&stmt.clauses[1], scope)?;
+    // Parse then-body (second clause, first expression)
+    // Note: Clause 1 may have multiple expressions chained with middle dot (·)
+    // The first expression is the then-body, the second (if present) is the else marker
+    let then_clause = &stmt.clauses[1];
+    let then_body = if then_clause.expressions.is_empty() {
+        return Err(GlossaError::semantic("Empty then-body in conditional"));
+    } else {
+        // Create a mini-clause with just the first expression
+        let first_expr_clause = crate::ast::Clause {
+            expressions: vec![then_clause.expressions[0].clone()],
+        };
+        parse_clause_as_statement(&first_expr_clause, scope)?
+    };
 
     // Check for else clause (εἰ δὲ μή)
-    let else_body = if stmt.clauses.len() >= 4 {
-        // Check if clause 2 starts with "εἰ δὲ μή"
-        if check_else_pattern(&stmt.clauses[2]) {
-            Some(vec![parse_clause_as_statement(&stmt.clauses[3], scope)?])
+    // The else marker should be the second expression in clause 1, chained with ·
+    // The else body is in clause 2
+    let else_body = if then_clause.expressions.len() > 1 && stmt.clauses.len() >= 3 {
+        // Check if the second expression in clause 1 is "εἰ δὲ μή"
+        if check_else_pattern_in_expression(&then_clause.expressions[1]) {
+            Some(vec![parse_clause_as_statement(&stmt.clauses[2], scope)?])
         } else {
             None
         }
@@ -253,6 +384,30 @@ fn check_else_pattern(clause: &crate::ast::Clause) -> bool {
             }
         })
         .collect();
+
+    let phrase = words.join(" ");
+    lexicon::is_else_pattern(&phrase)
+}
+
+/// Check if an expression matches "εἰ δὲ μή" (else pattern)
+fn check_else_pattern_in_expression(expr: &Expr) -> bool {
+    use crate::morphology::lexicon;
+
+    // Extract first 3 words from the expression
+    let words: Vec<String> = if let Expr::Phrase(terms) = expr {
+        terms.iter()
+            .take(3)
+            .filter_map(|term| {
+                if let Expr::Word(w) = term {
+                    Some(normalize_greek(&w.original))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    } else {
+        vec![]
+    };
 
     let phrase = words.join(" ");
     lexicon::is_else_pattern(&phrase)
@@ -760,6 +915,12 @@ pub enum AnalyzedExprKind {
     UnaryOp {
         op: crate::morphology::lexicon::UnaryOp,
         operand: Box<AnalyzedExpr>,
+    },
+    /// Range expression for loops (start..end or start..=end)
+    Range {
+        start: Box<AnalyzedExpr>,
+        end: Box<AnalyzedExpr>,
+        inclusive: bool,
     },
 }
 

@@ -110,6 +110,13 @@ pub enum HirExpr {
         mutable: bool,
         expr: Box<HirExpr>,
     },
+
+    /// Range for loops: start..end or start..=end
+    Range {
+        start: Box<HirExpr>,
+        end: Box<HirExpr>,
+        inclusive: bool,
+    },
 }
 
 /// Binary operators
@@ -305,6 +312,13 @@ fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
                         right: Box::new(lower_expr(operand)),
                     }
                 }
+            }
+        }
+        AnalyzedExprKind::Range { start, end, inclusive } => {
+            HirExpr::Range {
+                start: Box::new(lower_expr(start)),
+                end: Box::new(lower_expr(end)),
+                inclusive: *inclusive,
             }
         }
     }

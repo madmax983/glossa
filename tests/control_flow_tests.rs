@@ -83,6 +83,16 @@ fn test_ean_conditional() {
 // =============================================================================
 
 #[test]
+fn test_comparison_with_genitive() {
+    // ξ μηδενὸς μεῖζον - "x greater than zero"
+    let source = "ξ πέντε ἔστω. ξ μηδενὸς μεῖζον.";
+    let output = compile_to_rust(source);
+
+    // Should compile without error
+    assert!(output.contains("let"), "Expected binding");
+}
+
+#[test]
 fn test_while_loop() {
     // ἕως ξ μηδενὸς μεῖζον ᾖ, ξ λέγε.
     // "while x greater than zero be, say x"
