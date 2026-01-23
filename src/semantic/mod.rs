@@ -36,16 +36,39 @@ pub use disambiguation::{DisambiguationContext, disambiguate, resolve_best, anal
 use crate::ast::{Program, Statement, Expr};
 use crate::errors::GlossaError;
 use crate::morphology;
+use crate::grammar::normalize_greek;
 
-/// Perform semantic analysis on a program
+/// Perform semantic analysis on a program using the slot-based assembler
+/// This is the primary entry point that provides word-order independence
 pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError> {
+    // Use the assembler-based approach for true word-order independence
+    let assembled = analyze_with_assembler(program)?;
+
+    // Convert assembled statements to analyzed statements
+    let mut scope = Scope::new();
+    let mut analyzed_statements = Vec::new();
+
+    for asm_stmt in assembled {
+        let analyzed = convert_assembled_to_analyzed(&asm_stmt, &mut scope)?;
+        analyzed_statements.push(analyzed);
+    }
+
+    Ok(AnalyzedProgram {
+        statements: analyzed_statements,
+        scope,
+    })
+}
+
+/// Legacy analysis method that doesn't use the assembler
+/// Kept for comparison and fallback purposes
+pub fn analyze_program_legacy(program: &Program) -> Result<AnalyzedProgram, GlossaError> {
     let mut analyzer = SemanticAnalyzer::new();
     analyzer.analyze(program)
 }
 
 /// Perform semantic analysis using the slot-based assembler
 /// This is the Greek-native approach that ignores word order
-pub fn analyze_with_assembler(program: &Program) -> Result<Vec<AssembledStatement>, GlossaError> {
+fn analyze_with_assembler(program: &Program) -> Result<Vec<AssembledStatement>, GlossaError> {
     let mut results = Vec::new();
     let mut asm = Assembler::new();
 
@@ -53,9 +76,12 @@ pub fn analyze_with_assembler(program: &Program) -> Result<Vec<AssembledStatemen
         asm.reset();
         asm.set_query(stmt.is_query);
 
-        // Feed each expression/term to the assembler
+        // Disambiguation context accumulator - articles set context for following words
+        let mut current_context = DisambiguationContext::new();
+
+        // Feed each expression/term to the assembler with disambiguation
         for expr in &stmt.expressions {
-            feed_expr_to_assembler(&mut asm, expr)?;
+            feed_expr_to_assembler_with_context(&mut asm, expr, &mut current_context)?;
         }
 
         // Finalize the statement
@@ -68,8 +94,12 @@ pub fn analyze_with_assembler(program: &Program) -> Result<Vec<AssembledStatemen
     Ok(results)
 }
 
-/// Feed an expression into the assembler
-fn feed_expr_to_assembler(asm: &mut Assembler, expr: &Expr) -> Result<(), GlossaError> {
+/// Feed an expression into the assembler with disambiguation context
+fn feed_expr_to_assembler_with_context(
+    asm: &mut Assembler,
+    expr: &Expr,
+    context: &mut DisambiguationContext,
+) -> Result<(), GlossaError> {
     match expr {
         Expr::StringLiteral(s) => {
             asm.feed_string(s.clone());
@@ -81,44 +111,237 @@ fn feed_expr_to_assembler(asm: &mut Assembler, expr: &Expr) -> Result<(), Glossa
             asm.feed_boolean(*b);
         }
         Expr::Word(w) => {
-            // Morphologically analyze the word and feed it
-            let analysis = morphology::analyze(&w.normalized);
-            if let Err(e) = asm.feed(&analysis, &w.original) {
+            // Check if this is an article - if so, set context for following word
+            if let Some(article_context) = analyze_article(&w.normalized) {
+                *context = article_context;
+                // Articles themselves don't go to assembler slots
+                return Ok(());
+            }
+
+            // Get all possible analyses for the word
+            let analyses = morphology::analyze_all(&w.normalized);
+
+            // Use disambiguation context to pick the best analysis
+            let best_analysis = resolve_best(analyses, context);
+
+            // Feed the disambiguated analysis to assembler
+            if let Err(e) = asm.feed(&best_analysis, &w.original) {
                 return Err(GlossaError::semantic(&e.to_string()));
             }
+
+            // Clear context after use (it was consumed by the following noun)
+            *context = DisambiguationContext::new();
         }
         Expr::Phrase(terms) => {
-            // Feed each term in the phrase
+            // Feed each term in the phrase, passing context through
             for term in terms {
-                feed_expr_to_assembler(asm, term)?;
+                feed_expr_to_assembler_with_context(asm, term, context)?;
             }
         }
         Expr::PropertyAccess { owner, property } => {
             // Owner is genitive, property is what it attaches to
-            feed_expr_to_assembler(asm, owner)?;
-            feed_expr_to_assembler(asm, property)?;
+            feed_expr_to_assembler_with_context(asm, owner, context)?;
+            feed_expr_to_assembler_with_context(asm, property, context)?;
         }
         Expr::Call { verb, arguments } => {
-            // Feed the verb
-            let analysis = morphology::analyze(&verb.normalized);
-            if let Err(e) = asm.feed(&analysis, &verb.original) {
+            // Feed the verb - verbs can set context for subjects
+            let analyses = morphology::analyze_all(&verb.normalized);
+            let best_verb = resolve_best(analyses, context);
+
+            // Set context from verb for potential subject agreement
+            *context = DisambiguationContext::from_verb(&best_verb);
+
+            if let Err(e) = asm.feed(&best_verb, &verb.original) {
                 return Err(GlossaError::semantic(&e.to_string()));
             }
+
             // Feed arguments
             for arg in arguments {
-                feed_expr_to_assembler(asm, arg)?;
+                feed_expr_to_assembler_with_context(asm, arg, context)?;
             }
         }
         Expr::Binding { name, value } => {
             // Feed the name and value (binding verbs handled by assembler)
-            let analysis = morphology::analyze(&name.normalized);
-            if let Err(e) = asm.feed(&analysis, &name.original) {
+            let analyses = morphology::analyze_all(&name.normalized);
+            let best_name = resolve_best(analyses, context);
+
+            if let Err(e) = asm.feed(&best_name, &name.original) {
                 return Err(GlossaError::semantic(&e.to_string()));
             }
-            feed_expr_to_assembler(asm, value)?;
+            feed_expr_to_assembler_with_context(asm, value, context)?;
         }
     }
     Ok(())
+}
+
+/// Convert an AssembledStatement to an AnalyzedStatement
+/// This bridges the slot-based assembler output to the HIR lowering input
+fn convert_assembled_to_analyzed(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<AnalyzedStatement, GlossaError> {
+    // Determine statement kind based on assembled content
+    let (kind, expressions) = classify_assembled_statement(asm_stmt, scope)?;
+
+    Ok(AnalyzedStatement { kind, expressions })
+}
+
+/// Classify an assembled statement and extract analyzed expressions
+fn classify_assembled_statement(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
+    // Check for binding pattern: has subject + literals + binding verb
+    if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
+        if crate::morphology::lexicon::is_binding_verb(&verb_lemma) {
+            // Binding: subject is the variable name, literals are the value
+            if let Some(ref subject) = asm_stmt.subject {
+                let name = subject.lemma.clone();
+
+                // Get value from literals or object
+                let (value_expr, value_type) = extract_value(asm_stmt);
+
+                // Register binding in scope
+                scope.define(name.clone(), value_type.clone());
+
+                return Ok((
+                    StatementKind::Binding {
+                        name: name.clone(),
+                        value_type: value_type.clone(),
+                    },
+                    vec![
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(name),
+                            glossa_type: value_type.clone(),
+                        },
+                        value_expr,
+                    ],
+                ));
+            }
+        }
+
+        // Check for print pattern
+        if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
+            let mut args = Vec::new();
+
+            // Collect all literals as print arguments
+            for lit in &asm_stmt.literals {
+                args.push(literal_to_analyzed_expr(lit));
+            }
+
+            // Also include subject/object if present (variable references)
+            if let Some(ref subj) = asm_stmt.subject {
+                if let Some(var_type) = scope.lookup(&subj.lemma) {
+                    args.insert(0, AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    });
+                }
+            }
+
+            if let Some(ref obj) = asm_stmt.object {
+                if let Some(var_type) = scope.lookup(&obj.lemma) {
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    });
+                }
+            }
+
+            return Ok((StatementKind::Print, args));
+        }
+    }
+
+    // Query pattern
+    if asm_stmt.is_query {
+        let mut exprs = Vec::new();
+        for lit in &asm_stmt.literals {
+            exprs.push(literal_to_analyzed_expr(lit));
+        }
+        if let Some(ref subj) = asm_stmt.subject {
+            let var_type = scope.lookup(&subj.lemma).cloned().unwrap_or(GlossaType::Unknown);
+            exprs.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                glossa_type: var_type,
+            });
+        }
+        return Ok((StatementKind::Query, exprs));
+    }
+
+    // Default: expression statement
+    let mut exprs = Vec::new();
+    for lit in &asm_stmt.literals {
+        exprs.push(literal_to_analyzed_expr(lit));
+    }
+
+    Ok((StatementKind::Expression, exprs))
+}
+
+/// Extract value from assembled statement (literals or constituents)
+fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
+    // Prefer literals
+    if let Some(lit) = asm_stmt.literals.first() {
+        return (literal_to_analyzed_expr(lit), literal_to_type(lit));
+    }
+
+    // Otherwise use object
+    if let Some(ref obj) = asm_stmt.object {
+        // Check if it's a numeral word
+        if let Some(value) = crate::morphology::lexicon::numeral_value(&normalize_greek(&obj.lemma)) {
+            return (
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(value),
+                    glossa_type: GlossaType::Number,
+                },
+                GlossaType::Number,
+            );
+        }
+
+        return (
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            },
+            GlossaType::Unknown,
+        );
+    }
+
+    // Default
+    (
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(0),
+            glossa_type: GlossaType::Number,
+        },
+        GlossaType::Number,
+    )
+}
+
+/// Convert a Literal to an AnalyzedExpr
+fn literal_to_analyzed_expr(lit: &Literal) -> AnalyzedExpr {
+    match lit {
+        Literal::String(s) => AnalyzedExpr {
+            expr: AnalyzedExprKind::StringLiteral(s.clone()),
+            glossa_type: GlossaType::String,
+        },
+        Literal::Number(n) => AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(*n),
+            glossa_type: GlossaType::Number,
+        },
+        Literal::Boolean(b) => AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(*b),
+            glossa_type: GlossaType::Boolean,
+        },
+    }
+}
+
+/// Get the type of a Literal
+fn literal_to_type(lit: &Literal) -> GlossaType {
+    match lit {
+        Literal::String(_) => GlossaType::String,
+        Literal::Number(_) => GlossaType::Number,
+        Literal::Boolean(_) => GlossaType::Boolean,
+    }
 }
 
 /// Analyzed program with resolved names and types

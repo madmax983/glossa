@@ -667,9 +667,10 @@ pub fn is_verb(normalized_word: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Check if a word is a binding verb (ἔστω)
+/// Check if a word is a binding verb (ἔστω / εἰμί)
+/// This includes the conjugated form (εστω) and the lemma (ειμι)
 pub fn is_binding_verb(normalized_word: &str) -> bool {
-    normalized_word == "εστω"
+    matches!(normalized_word, "εστω" | "ειμι" | "εστι" | "εισι" | "ειναι")
 }
 
 /// Check if a word is a print verb (λέγε, γράφε)
