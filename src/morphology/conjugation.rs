@@ -53,6 +53,42 @@ const PRESENT_INFINITIVE: &str = "ειν";
 /// Aorist Active Infinitive ending
 const AORIST_INFINITIVE: &str = "σαι";
 
+/// Strip the temporal augment from an aorist stem to find the true verb stem
+///
+/// The augment marks past tense in Greek:
+/// - Simple ε-augment: ἔλυσα → λυ- (ε + λυ + σα)
+/// - Vowel lengthening: ἤγαγον → ἀγ- (α → η)
+///
+/// Without stripping, "ελυσα" would give lemma "ελυω" instead of "λυω"
+///
+/// Note: Input should already be normalized (monotonic, lowercase)
+fn strip_augment(augmented_stem: &str) -> String {
+    // Simple epsilon augment (most common)
+    // After normalization, this is just "ε"
+    if let Some(stripped) = augmented_stem.strip_prefix("ε") {
+        return stripped.to_string();
+    }
+
+    // Vowel lengthening augments (less common, but important)
+    // α → η (e.g., ἄγω → ἤγαγον)
+    if let Some(rest) = augmented_stem.strip_prefix("η") {
+        // Could be α → η augment, restore α
+        // But η could also be original, so this is heuristic
+        return format!("α{}", rest);
+    }
+
+    // ο → ω (e.g., ὀνομάζω → ὠνόμασα)
+    if let Some(rest) = augmented_stem.strip_prefix("ω") {
+        return format!("ο{}", rest);
+    }
+
+    // αι → ῃ, ει → ῃ, οι → ῳ - these are rarer
+    // For MVP, we handle the common cases
+
+    // No augment found, return as-is
+    augmented_stem.to_string()
+}
+
 /// Try to analyze a word as a verb
 pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Try present active indicative
@@ -86,9 +122,11 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     }
 
     // Try aorist active indicative
-    if let Some((stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_IND) {
+    if let Some((augmented_stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_IND) {
+        // Strip temporal augment to find true stem: ἔλυσα → ελυ → λυ
+        let true_stem = strip_augment(&augmented_stem);
         return Some(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: format!("{}ω", true_stem),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: Some(number),
@@ -100,7 +138,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
         });
     }
 
-    // Try aorist active imperative
+    // Try aorist active imperative (no augment in imperative, but keep consistent)
     if let Some((stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_IMP) {
         return Some(MorphAnalysis {
             lemma: format!("{}ω", stem),
@@ -238,6 +276,29 @@ mod tests {
         assert_eq!(analysis.tense, Some(Tense::Aorist));
         assert_eq!(analysis.mood, Some(Mood::Indicative));
         assert_eq!(analysis.person, Some(Person::First));
+        // Augment stripped: ελυ → λυ, so lemma is λυω not ελυω
+        assert_eq!(analysis.lemma, "λυω");
+    }
+
+    #[test]
+    fn test_augment_stripping() {
+        // Standard sigmatic aorist with ε-augment
+        // ελυσα = ε (augment) + λυ (stem) + σα (aorist ending)
+        let analysis = analyze_verb("ελυσα").unwrap();
+        assert_eq!(analysis.lemma, "λυω");
+        assert_eq!(analysis.tense, Some(Tense::Aorist));
+
+        // επαυσα = ε (augment) + παυ (stem) + σα (ending)
+        let analysis = analyze_verb("επαυσα").unwrap();
+        assert_eq!(analysis.lemma, "παυω");
+    }
+
+    #[test]
+    fn test_strip_augment_function() {
+        assert_eq!(strip_augment("ελυ"), "λυ");
+        assert_eq!(strip_augment("εγραψ"), "γραψ");
+        assert_eq!(strip_augment("ηγαγ"), "αγαγ"); // η → α restoration
+        assert_eq!(strip_augment("λυ"), "λυ"); // no augment
     }
 
     #[test]
