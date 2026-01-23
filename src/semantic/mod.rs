@@ -184,13 +184,25 @@ fn parse_while_loop(stmt: &Statement, scope: &mut Scope) -> Result<Option<Analyz
     let condition_clause = &stmt.clauses[0];
     let condition_expr = skip_first_word_and_parse(condition_clause, scope)?;
 
-    // Parse body (second clause)
-    let body = parse_clause_as_statement(&stmt.clauses[1], scope)?;
+    // Parse body - all remaining clauses
+    let body_clauses = &stmt.clauses[1..];
+
+    let body_stmt = Statement {
+        clauses: body_clauses.to_vec(),
+        is_query: false,
+    };
+
+    let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
+        cf
+    } else {
+        let assembled = analyze_single_statement_with_assembler(&body_stmt)?;
+        convert_assembled_to_analyzed(&assembled, scope)?
+    };
 
     Ok(Some(AnalyzedStatement {
         kind: StatementKind::While {
             condition: Box::new(condition_expr),
-            body: vec![body],
+            body: vec![body_analyzed],
         },
         expressions: vec![],
     }))
@@ -205,66 +217,215 @@ fn parse_for_range_loop(stmt: &Statement, scope: &mut Scope) -> Result<Option<An
 
     // Parse range specification from first clause
     // Pattern: ἀπὸ start μέχρι/ἕως end
-    // We need to extract start, end, and whether it's inclusive
+    // Structure in clause.expressions[0].Phrase: [ἀπὸ, start, μέχρι/ἕως, end]
     let range_clause = &stmt.clauses[0];
 
-    // For now, create a simple iterator expression
-    // TODO: Properly parse the range pattern
-    // Placeholder: use a range 0..10
-    let iterator = AnalyzedExpr {
-        expr: AnalyzedExprKind::Range {
-            start: Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(0),
-                glossa_type: GlossaType::Number,
-            }),
-            end: Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(10),
-                glossa_type: GlossaType::Number,
-            }),
-            inclusive: false,
-        },
-        glossa_type: GlossaType::Number, // Range type
+    if range_clause.expressions.is_empty() {
+        return Err(GlossaError::semantic("Empty range clause in for loop"));
+    }
+
+    // Extract words from the first expression (should be a Phrase)
+    let words = if let Expr::Phrase(terms) = &range_clause.expressions[0] {
+        terms
+    } else {
+        return Err(GlossaError::semantic("Expected phrase in for range"));
     };
 
-    // Parse body (second clause)
-    let body = parse_clause_as_statement(&stmt.clauses[1], scope)?;
+    // Pattern: ἀπὸ start μέχρι/ἕως end
+    // We need at least 4 words
+    if words.len() < 4 {
+        return Err(GlossaError::semantic("For range needs: ἀπὸ start μέχρι/ἕως end"));
+    }
 
-    // Variable name is typically ι (iota) for loop index
-    let variable = "ι".to_string();
+    // Extract start (word at index 1)
+    let start_expr = if let Expr::Word(w) = &words[1] {
+        // Parse as number literal
+        if let Some(val) = crate::morphology::lexicon::numeral_value(&w.normalized) {
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(val),
+                glossa_type: GlossaType::Number,
+            }
+        } else {
+            // Try as variable
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(w.normalized.clone()),
+                glossa_type: scope.lookup(&w.normalized).cloned().unwrap_or(GlossaType::Number),
+            }
+        }
+    } else {
+        return Err(GlossaError::semantic("Expected word for range start"));
+    };
+
+    // Check if it's inclusive (ἕως) or exclusive (μέχρι) - word at index 2
+    let inclusive = if let Expr::Word(w) = &words[2] {
+        normalize_greek(&w.original) == "εως"
+    } else {
+        false
+    };
+
+    // Extract end (word at index 3)
+    let end_expr = if let Expr::Word(w) = &words[3] {
+        // Parse as number literal
+        if let Some(val) = crate::morphology::lexicon::numeral_value(&w.normalized) {
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(val),
+                glossa_type: GlossaType::Number,
+            }
+        } else {
+            // Try as variable
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(w.normalized.clone()),
+                glossa_type: scope.lookup(&w.normalized).cloned().unwrap_or(GlossaType::Number),
+            }
+        }
+    } else {
+        return Err(GlossaError::semantic("Expected word for range end"));
+    };
+
+    let iterator = AnalyzedExpr {
+        expr: AnalyzedExprKind::Range {
+            start: Box::new(start_expr),
+            end: Box::new(end_expr),
+            inclusive,
+        },
+        glossa_type: GlossaType::Number,
+    };
+
+    // Parse body - all remaining clauses form the body
+    // Body might be a single clause or multiple clauses (e.g., if statement)
+    let body_clauses = &stmt.clauses[1..];
+
+    if body_clauses.is_empty() {
+        return Err(GlossaError::semantic("For loop needs a body"));
+    }
+
+    // Extract variable name from first word of first body clause
+    let variable = if let Some(first_expr) = body_clauses[0].expressions.first() {
+        if let Expr::Phrase(terms) = first_expr {
+            if let Some(Expr::Word(w)) = terms.first() {
+                w.normalized.clone()
+            } else {
+                "i".to_string()
+            }
+        } else if let Expr::Word(w) = first_expr {
+            w.normalized.clone()
+        } else {
+            "i".to_string()
+        }
+    } else {
+        "i".to_string()
+    };
+
+    // Parse body as a multi-clause statement (handles if/else/etc)
+    let body_stmt = Statement {
+        clauses: body_clauses.to_vec(),
+        is_query: false,
+    };
+
+    // Add loop variable to scope temporarily while parsing body
+    scope.define(variable.clone(), GlossaType::Number);
+
+    // Check if body is control flow, otherwise parse as regular statement
+    let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
+        cf
+    } else {
+        let assembled = analyze_single_statement_with_assembler(&body_stmt)?;
+        convert_assembled_to_analyzed(&assembled, scope)?
+    };
+
+    // Note: We don't remove the variable from scope since Scope doesn't support that
+    // In a real implementation, we'd use nested scopes
 
     Ok(Some(AnalyzedStatement {
         kind: StatementKind::For {
             variable,
             iterator: Box::new(iterator),
-            body: vec![body],
+            body: vec![body_analyzed],
         },
         expressions: vec![],
     }))
 }
 
 /// Parse a for loop with iteration (διὰ collection)
-/// Structure: διὰ collection, body
+/// Structure: διὰ collection_genitive, body
+/// Example: διὰ στοιχείων, στοιχεῖον λέγε (through elements, say element)
 fn parse_for_iteration_loop(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses.len() < 2 {
         return Err(GlossaError::semantic("For loop needs at least 2 clauses: collection and body"));
     }
 
-    // Parse collection (first clause, minus the διά particle)
+    // Extract collection name from first clause (διὰ + genitive noun)
+    // Pattern: διὰ στοιχείων -> extract "στοιχείων" as collection variable
     let collection_clause = &stmt.clauses[0];
-    let collection_expr = skip_first_word_and_parse(collection_clause, scope)?;
 
-    // Parse body (second clause)
-    let body = parse_clause_as_statement(&stmt.clauses[1], scope)?;
+    if collection_clause.expressions.is_empty() {
+        return Err(GlossaError::semantic("Empty collection clause in for loop"));
+    }
 
-    // Variable name extracted from collection genitive
-    // TODO: Properly extract from genitive pattern
-    let variable = "x".to_string();
+    let collection_name = if let Expr::Phrase(terms) = &collection_clause.expressions[0] {
+        // Skip διά (first word) and get the collection name (second word)
+        if terms.len() < 2 {
+            return Err(GlossaError::semantic("For iteration needs: διὰ collection"));
+        }
+        if let Expr::Word(w) = &terms[1] {
+            w.normalized.clone()
+        } else {
+            return Err(GlossaError::semantic("Expected word for collection"));
+        }
+    } else {
+        return Err(GlossaError::semantic("Expected phrase in for iteration"));
+    };
+
+    // Create a variable expression for the collection
+    // TODO: Look up the collection in scope to get its actual type
+    let collection_type = scope.lookup(&collection_name).cloned().unwrap_or(GlossaType::String);
+    let collection_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(collection_name),
+        glossa_type: collection_type,
+    };
+
+    // Parse body - all remaining clauses
+    let body_clauses = &stmt.clauses[1..];
+
+    // Extract variable name from first word of body
+    let variable = if let Some(first_expr) = body_clauses[0].expressions.first() {
+        if let Expr::Phrase(terms) = first_expr {
+            if let Some(Expr::Word(w)) = terms.first() {
+                w.normalized.clone()
+            } else {
+                "x".to_string()
+            }
+        } else if let Expr::Word(w) = first_expr {
+            w.normalized.clone()
+        } else {
+            "x".to_string()
+        }
+    } else {
+        "x".to_string()
+    };
+
+    // Parse body as multi-clause statement
+    let body_stmt = Statement {
+        clauses: body_clauses.to_vec(),
+        is_query: false,
+    };
+
+    // Add loop variable to scope temporarily
+    // TODO: Infer element type from collection type
+    scope.define(variable.clone(), GlossaType::String);
+
+    let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
+        cf
+    } else {
+        let assembled = analyze_single_statement_with_assembler(&body_stmt)?;
+        convert_assembled_to_analyzed(&assembled, scope)?
+    };
 
     Ok(Some(AnalyzedStatement {
         kind: StatementKind::For {
             variable,
             iterator: Box::new(collection_expr),
-            body: vec![body],
+            body: vec![body_analyzed],
         },
         expressions: vec![],
     }))
@@ -349,6 +510,12 @@ fn skip_first_word_and_parse(clause: &crate::ast::Clause, scope: &mut Scope) -> 
 /// Parse a clause as a statement
 fn parse_clause_as_statement(clause: &crate::ast::Clause, scope: &mut Scope) -> Result<AnalyzedStatement, GlossaError> {
     let stmt = parse_clause_as_mini_statement(clause)?;
+
+    // Check if it's control flow first (break, continue, etc.)
+    if let Some(cf) = analyze_control_flow(&stmt, scope)? {
+        return Ok(cf);
+    }
+
     let assembled = analyze_single_statement_with_assembler(&stmt)?;
     convert_assembled_to_analyzed(&assembled, scope)
 }

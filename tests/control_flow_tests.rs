@@ -135,6 +135,7 @@ fn test_for_iteration() {
     let source = "διὰ στοιχείων, στοιχεῖον λέγε.";
     let output = compile_to_rust(source);
 
+    eprintln!("Generated output:\n{}", output);
     assert!(output.contains("for"), "Expected for loop");
     assert!(output.contains("in"), "Expected 'in' keyword");
 }
@@ -172,6 +173,7 @@ fn test_break() {
     let source = "ἀπὸ μηδενὸς μέχρι δέκα, εἰ ι πέντε μεῖζον ᾖ, παῦε.";
     let output = compile_to_rust(source);
 
+    eprintln!("Generated output:\n{}", output);
     assert!(output.contains("break"), "Expected break statement");
 }
 
