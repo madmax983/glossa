@@ -5,6 +5,19 @@
 //! - Number (singular, plural)
 //! - Gender (masculine, feminine, neuter)
 //! - For verbs: person, tense, mood, voice
+//!
+//! ## Ambiguity Handling
+//!
+//! Greek morphology is inherently ambiguous. For example:
+//! - `-α` can be nominative singular (1st decl.) or accusative plural (2nd decl. neuter)
+//! - `-ης` can be nominative singular (1st decl. masc.) or genitive singular (1st decl. fem.)
+//!
+//! This module supports two analysis modes:
+//! - `analyze()` - returns the most likely single analysis
+//! - `analyze_all()` - returns ALL possible analyses with confidence scores
+//!
+//! Disambiguation uses syntactic context (article agreement, verb agreement) in the
+//! semantic analysis phase.
 
 mod case;
 mod declension;
@@ -30,6 +43,33 @@ pub struct MorphAnalysis {
     pub tense: Option<Tense>,
     pub mood: Option<Mood>,
     pub voice: Option<Voice>,
+    /// Confidence score (0.0 - 1.0). Higher = more likely.
+    /// Lexicon entries get 1.0, pattern matches get lower scores.
+    pub confidence: f32,
+}
+
+impl MorphAnalysis {
+    /// Create a new analysis with default confidence
+    pub fn new(lemma: String, pos: PartOfSpeech) -> Self {
+        MorphAnalysis {
+            lemma,
+            part_of_speech: pos,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 0.5,
+        }
+    }
+
+    /// Set confidence score
+    pub fn with_confidence(mut self, confidence: f32) -> Self {
+        self.confidence = confidence;
+        self
+    }
 }
 
 /// Part of speech
@@ -39,42 +79,112 @@ pub enum PartOfSpeech {
     Verb,
     Adjective,
     Pronoun,
+    Article,
     Particle,
     Numeral,
+    Preposition,
+    Conjunction,
+    Adverb,
     Unknown,
 }
 
-/// Analyze a Greek word and return its morphological features
+/// Analyze a Greek word and return the most likely morphological analysis
 pub fn analyze(word: &str) -> MorphAnalysis {
+    let analyses = analyze_all(word);
+    analyses.into_iter().next().unwrap_or_else(|| {
+        let normalized = normalize_greek(word);
+        MorphAnalysis {
+            lemma: normalized,
+            part_of_speech: PartOfSpeech::Unknown,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 0.0,
+        }
+    })
+}
+
+/// Analyze a Greek word and return ALL possible morphological analyses
+///
+/// Returns analyses sorted by confidence (highest first).
+/// Use this when you need to resolve ambiguity using syntactic context.
+///
+/// # Example
+/// ```ignore
+/// let analyses = analyze_all("θαλασσα");
+/// // Could be:
+/// // - Nominative singular feminine (1st decl.) - "the sea" as subject
+/// // - Vocative singular feminine - "O sea!"
+/// ```
+pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     let normalized = normalize_greek(word);
+    let mut analyses = Vec::new();
 
-    // First check the lexicon for known words
+    // First check the lexicon - these get highest confidence
     if let Some(entry) = lexicon::lookup(&normalized) {
-        return entry.to_analysis();
+        let mut analysis = entry.to_analysis();
+        analysis.confidence = 1.0; // Lexicon entries are definitive
+        analyses.push(analysis);
     }
 
-    // Try to analyze as a noun by declension patterns
-    if let Some(analysis) = declension::analyze_noun(&normalized) {
-        return analysis;
+    // Get all possible noun analyses
+    let noun_analyses = declension::analyze_noun_all(&normalized);
+    analyses.extend(noun_analyses);
+
+    // Get all possible verb analyses
+    let verb_analyses = conjugation::analyze_verb_all(&normalized);
+    analyses.extend(verb_analyses);
+
+    // Sort by confidence (highest first)
+    analyses.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
+
+    // If we found nothing, return unknown
+    if analyses.is_empty() {
+        analyses.push(MorphAnalysis {
+            lemma: normalized,
+            part_of_speech: PartOfSpeech::Unknown,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 0.0,
+        });
     }
 
-    // Try to analyze as a verb by conjugation patterns
-    if let Some(analysis) = conjugation::analyze_verb(&normalized) {
-        return analysis;
+    analyses
+}
+
+/// Check if two analyses are compatible (could refer to the same word in context)
+pub fn analyses_compatible(a: &MorphAnalysis, b: &MorphAnalysis) -> bool {
+    // Check case agreement if both have cases
+    if let (Some(case_a), Some(case_b)) = (a.case, b.case) {
+        if case_a != case_b {
+            return false;
+        }
     }
 
-    // Unknown word
-    MorphAnalysis {
-        lemma: normalized,
-        part_of_speech: PartOfSpeech::Unknown,
-        case: None,
-        number: None,
-        gender: None,
-        person: None,
-        tense: None,
-        mood: None,
-        voice: None,
+    // Check number agreement if both have numbers
+    if let (Some(num_a), Some(num_b)) = (a.number, b.number) {
+        if num_a != num_b {
+            return false;
+        }
     }
+
+    // Check gender agreement if both have genders
+    if let (Some(gen_a), Some(gen_b)) = (a.gender, b.gender) {
+        if gen_a != gen_b {
+            return false;
+        }
+    }
+
+    true
 }
 
 #[cfg(test)]

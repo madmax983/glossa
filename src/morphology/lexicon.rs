@@ -44,6 +44,7 @@ impl LexiconEntry {
             tense: self.tense,
             mood: self.mood,
             voice: self.voice,
+            confidence: 1.0, // Lexicon entries are definitive
         }
     }
 }
@@ -184,6 +185,384 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         gender: Some(Gender::Feminine),
         meaning: "list",
         rust_equiv: Some("Vec"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // κενόν - unit/void type
+    m.insert("κενον", LexiconEntry {
+        lemma: "κενον".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "empty, void",
+        rust_equiv: Some("()"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // χαρακτήρ - character type
+    m.insert("χαρακτηρ", LexiconEntry {
+        lemma: "χαρακτηρ".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Masculine),
+        meaning: "character",
+        rust_equiv: Some("char"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // βάσις - byte type
+    m.insert("βασις", LexiconEntry {
+        lemma: "βασις".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Feminine),
+        meaning: "base, byte",
+        rust_equiv: Some("u8"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // δεσμός - tuple/bond
+    m.insert("δεσμος", LexiconEntry {
+        lemma: "δεσμος".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Masculine),
+        meaning: "bond, tuple",
+        rust_equiv: Some("tuple"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // χάρτης - map/dictionary
+    m.insert("χαρτης", LexiconEntry {
+        lemma: "χαρτης".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Masculine),
+        meaning: "map, chart",
+        rust_equiv: Some("HashMap"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // σύνολον - set
+    m.insert("συνολον", LexiconEntry {
+        lemma: "συνολον".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "collection, set",
+        rust_equiv: Some("HashSet"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // =========================================================================
+    // More verbs for common operations
+    // =========================================================================
+
+    // ποιέω - to make/do (general action)
+    m.insert("ποιεω", LexiconEntry {
+        lemma: "ποιεω".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "make, do",
+        rust_equiv: None,
+        case: None,
+        number: Some(Number::Singular),
+        person: Some(Person::First),
+        tense: Some(Tense::Present),
+        mood: Some(Mood::Indicative),
+        voice: Some(Voice::Active),
+    });
+
+    m.insert("ποιει", LexiconEntry {
+        lemma: "ποιεω".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "makes, does",
+        rust_equiv: None,
+        case: None,
+        number: Some(Number::Singular),
+        person: Some(Person::Third),
+        tense: Some(Tense::Present),
+        mood: Some(Mood::Indicative),
+        voice: Some(Voice::Active),
+    });
+
+    // λαμβάνω - to take/receive (input)
+    m.insert("λαμβανω", LexiconEntry {
+        lemma: "λαμβανω".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "take, receive, input",
+        rust_equiv: Some("read_line"),
+        case: None,
+        number: Some(Number::Singular),
+        person: Some(Person::First),
+        tense: Some(Tense::Present),
+        mood: Some(Mood::Indicative),
+        voice: Some(Voice::Active),
+    });
+
+    m.insert("λαβε", LexiconEntry {
+        lemma: "λαμβανω".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "take! receive! (imperative)",
+        rust_equiv: Some("read_line"),
+        case: None,
+        number: Some(Number::Singular),
+        person: Some(Person::Second),
+        tense: Some(Tense::Aorist),
+        mood: Some(Mood::Imperative),
+        voice: Some(Voice::Active),
+    });
+
+    // δίδωμι - to give (output/return)
+    m.insert("διδωμι", LexiconEntry {
+        lemma: "διδωμι".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "give, return",
+        rust_equiv: Some("return"),
+        case: None,
+        number: Some(Number::Singular),
+        person: Some(Person::First),
+        tense: Some(Tense::Present),
+        mood: Some(Mood::Indicative),
+        voice: Some(Voice::Active),
+    });
+
+    m.insert("δος", LexiconEntry {
+        lemma: "διδωμι".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "give! (imperative)",
+        rust_equiv: Some("return"),
+        case: None,
+        number: Some(Number::Singular),
+        person: Some(Person::Second),
+        tense: Some(Tense::Aorist),
+        mood: Some(Mood::Imperative),
+        voice: Some(Voice::Active),
+    });
+
+    // εἰ / ἐάν - conditional
+    m.insert("ει", LexiconEntry {
+        lemma: "ει".to_string(),
+        pos: PartOfSpeech::Particle,
+        gender: None,
+        meaning: "if",
+        rust_equiv: Some("if"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    m.insert("εαν", LexiconEntry {
+        lemma: "εαν".to_string(),
+        pos: PartOfSpeech::Particle,
+        gender: None,
+        meaning: "if (with subjunctive)",
+        rust_equiv: Some("if"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἄλλως - else
+    m.insert("αλλως", LexiconEntry {
+        lemma: "αλλως".to_string(),
+        pos: PartOfSpeech::Particle,
+        gender: None,
+        meaning: "otherwise, else",
+        rust_equiv: Some("else"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἕως - while/until
+    m.insert("εως", LexiconEntry {
+        lemma: "εως".to_string(),
+        pos: PartOfSpeech::Particle,
+        gender: None,
+        meaning: "while, until",
+        rust_equiv: Some("while"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // διά - for (iteration)
+    m.insert("δια", LexiconEntry {
+        lemma: "δια".to_string(),
+        pos: PartOfSpeech::Preposition,
+        gender: None,
+        meaning: "through, for each",
+        rust_equiv: Some("for"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἐν - in (membership)
+    m.insert("εν", LexiconEntry {
+        lemma: "εν".to_string(),
+        pos: PartOfSpeech::Preposition,
+        gender: None,
+        meaning: "in",
+        rust_equiv: Some("in"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // καί - and
+    m.insert("και", LexiconEntry {
+        lemma: "και".to_string(),
+        pos: PartOfSpeech::Conjunction,
+        gender: None,
+        meaning: "and",
+        rust_equiv: Some("&&"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἤ - or
+    m.insert("η", LexiconEntry {
+        lemma: "η".to_string(),
+        pos: PartOfSpeech::Conjunction,
+        gender: None,
+        meaning: "or",
+        rust_equiv: Some("||"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // οὐ/οὐκ - not
+    m.insert("ου", LexiconEntry {
+        lemma: "ου".to_string(),
+        pos: PartOfSpeech::Particle,
+        gender: None,
+        meaning: "not",
+        rust_equiv: Some("!"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    m.insert("ουκ", LexiconEntry {
+        lemma: "ου".to_string(),
+        pos: PartOfSpeech::Particle,
+        gender: None,
+        meaning: "not (before vowels)",
+        rust_equiv: Some("!"),
+        case: None,
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // =========================================================================
+    // Comparison operators
+    // =========================================================================
+
+    // ἴσος - equal
+    m.insert("ισος", LexiconEntry {
+        lemma: "ισος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Masculine),
+        meaning: "equal",
+        rust_equiv: Some("=="),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // μείζων - greater
+    m.insert("μειζων", LexiconEntry {
+        lemma: "μεγας".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Masculine),
+        meaning: "greater",
+        rust_equiv: Some(">"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἐλάσσων - lesser
+    m.insert("ελασσων", LexiconEntry {
+        lemma: "μικρος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Masculine),
+        meaning: "lesser, smaller",
+        rust_equiv: Some("<"),
         case: Some(Case::Nominative),
         number: Some(Number::Singular),
         person: None,

@@ -1,25 +1,124 @@
 //! Semantic analysis for ΓΛΩΣΣΑ
 //!
 //! This module handles:
+//! - Slot-based sentence assembly (Greek-native word-order independence)
 //! - Name resolution and scope tracking
 //! - Gender/number/case agreement checking
 //! - Type inference from morphology
+//!
+//! ## The Assembler Approach
+//!
+//! Unlike traditional parsers that rely on word position, ΓΛΩΣΣΑ uses a
+//! slot-based assembler that routes words to grammatical slots based on
+//! their case endings - just like Ancient Greek actually works.
+//!
+//! ```text
+//! Nominative → Subject slot
+//! Accusative → Object slot
+//! Dative     → Indirect object slot
+//! Genitive   → Possession/attachment
+//! ```
+//!
+//! This means SOV, VSO, and OVS all produce the same result!
 
 mod resolver;
 mod agreement;
 mod types;
+pub mod assembler;
+pub mod disambiguation;
 
 pub use resolver::*;
 pub use agreement::*;
 pub use types::*;
+pub use assembler::{Assembler, AssembledStatement, AssemblyError, Constituent, VerbConstituent, Literal};
+pub use disambiguation::{DisambiguationContext, disambiguate, resolve_best, analyze_article};
 
 use crate::ast::{Program, Statement, Expr};
 use crate::errors::GlossaError;
+use crate::morphology;
 
 /// Perform semantic analysis on a program
 pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError> {
     let mut analyzer = SemanticAnalyzer::new();
     analyzer.analyze(program)
+}
+
+/// Perform semantic analysis using the slot-based assembler
+/// This is the Greek-native approach that ignores word order
+pub fn analyze_with_assembler(program: &Program) -> Result<Vec<AssembledStatement>, GlossaError> {
+    let mut results = Vec::new();
+    let mut asm = Assembler::new();
+
+    for stmt in &program.statements {
+        asm.reset();
+        asm.set_query(stmt.is_query);
+
+        // Feed each expression/term to the assembler
+        for expr in &stmt.expressions {
+            feed_expr_to_assembler(&mut asm, expr)?;
+        }
+
+        // Finalize the statement
+        match asm.finalize() {
+            Ok(assembled) => results.push(assembled),
+            Err(e) => return Err(GlossaError::semantic(&e.to_string())),
+        }
+    }
+
+    Ok(results)
+}
+
+/// Feed an expression into the assembler
+fn feed_expr_to_assembler(asm: &mut Assembler, expr: &Expr) -> Result<(), GlossaError> {
+    match expr {
+        Expr::StringLiteral(s) => {
+            asm.feed_string(s.clone());
+        }
+        Expr::NumberLiteral(n) => {
+            asm.feed_number(*n);
+        }
+        Expr::BooleanLiteral(b) => {
+            asm.feed_boolean(*b);
+        }
+        Expr::Word(w) => {
+            // Morphologically analyze the word and feed it
+            let analysis = morphology::analyze(&w.normalized);
+            if let Err(e) = asm.feed(&analysis, &w.original) {
+                return Err(GlossaError::semantic(&e.to_string()));
+            }
+        }
+        Expr::Phrase(terms) => {
+            // Feed each term in the phrase
+            for term in terms {
+                feed_expr_to_assembler(asm, term)?;
+            }
+        }
+        Expr::PropertyAccess { owner, property } => {
+            // Owner is genitive, property is what it attaches to
+            feed_expr_to_assembler(asm, owner)?;
+            feed_expr_to_assembler(asm, property)?;
+        }
+        Expr::Call { verb, arguments } => {
+            // Feed the verb
+            let analysis = morphology::analyze(&verb.normalized);
+            if let Err(e) = asm.feed(&analysis, &verb.original) {
+                return Err(GlossaError::semantic(&e.to_string()));
+            }
+            // Feed arguments
+            for arg in arguments {
+                feed_expr_to_assembler(asm, arg)?;
+            }
+        }
+        Expr::Binding { name, value } => {
+            // Feed the name and value (binding verbs handled by assembler)
+            let analysis = morphology::analyze(&name.normalized);
+            if let Err(e) = asm.feed(&analysis, &name.original) {
+                return Err(GlossaError::semantic(&e.to_string()));
+            }
+            feed_expr_to_assembler(asm, value)?;
+        }
+    }
+    Ok(())
 }
 
 /// Analyzed program with resolved names and types

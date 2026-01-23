@@ -1,0 +1,352 @@
+//! Morphological disambiguation for ΓΛΩΣΣΑ
+//!
+//! Greek morphology is inherently ambiguous. This module resolves ambiguity
+//! using syntactic context:
+//! - Article-noun agreement (gender, number, case)
+//! - Subject-verb agreement (person, number)
+//! - Adjective-noun agreement (gender, number, case)
+//!
+//! ## Example
+//!
+//! The word "θαλασσα" could be:
+//! - Nominative singular (the sea as subject)
+//! - Vocative singular (O sea!)
+//!
+//! If preceded by "ἡ" (feminine nominative article), we know it's nominative.
+
+use crate::morphology::{MorphAnalysis, Case, Number, Gender, Person, PartOfSpeech};
+
+/// A disambiguation context built from surrounding words
+#[derive(Debug, Clone, Default)]
+pub struct DisambiguationContext {
+    /// Expected case from article or preposition
+    pub expected_case: Option<Case>,
+    /// Expected number from article or verb
+    pub expected_number: Option<Number>,
+    /// Expected gender from article or adjective
+    pub expected_gender: Option<Gender>,
+    /// Expected person from verb (for subject agreement)
+    pub expected_person: Option<Person>,
+}
+
+impl DisambiguationContext {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Create context from a preceding article
+    pub fn from_article(article: &MorphAnalysis) -> Self {
+        DisambiguationContext {
+            expected_case: article.case,
+            expected_number: article.number,
+            expected_gender: article.gender,
+            expected_person: None,
+        }
+    }
+
+    /// Create context from a verb (for subject agreement)
+    pub fn from_verb(verb: &MorphAnalysis) -> Self {
+        DisambiguationContext {
+            expected_case: Some(Case::Nominative), // Subject is nominative
+            expected_number: verb.number,
+            expected_gender: None, // Verbs don't have gender
+            expected_person: verb.person,
+        }
+    }
+
+    /// Create context expecting a specific case (e.g., after preposition)
+    pub fn expecting_case(case: Case) -> Self {
+        DisambiguationContext {
+            expected_case: Some(case),
+            expected_number: None,
+            expected_gender: None,
+            expected_person: None,
+        }
+    }
+}
+
+/// Disambiguate a list of possible analyses using context
+///
+/// Returns analyses filtered and re-ranked by how well they match the context.
+/// The first element is the best match.
+pub fn disambiguate(
+    analyses: Vec<MorphAnalysis>,
+    context: &DisambiguationContext,
+) -> Vec<MorphAnalysis> {
+    if analyses.is_empty() {
+        return analyses;
+    }
+
+    // If no context, return as-is (sorted by original confidence)
+    if context.expected_case.is_none()
+        && context.expected_number.is_none()
+        && context.expected_gender.is_none()
+        && context.expected_person.is_none()
+    {
+        return analyses;
+    }
+
+    // Score each analysis by how well it matches the context
+    let mut scored: Vec<(MorphAnalysis, f32)> = analyses
+        .into_iter()
+        .map(|a| {
+            let score = score_analysis(&a, context);
+            (a, score)
+        })
+        .collect();
+
+    // Sort by score (descending), then by original confidence
+    scored.sort_by(|a, b| {
+        let score_cmp = b.1.partial_cmp(&a.1).unwrap();
+        if score_cmp == std::cmp::Ordering::Equal {
+            b.0.confidence.partial_cmp(&a.0.confidence).unwrap()
+        } else {
+            score_cmp
+        }
+    });
+
+    // Return with updated confidence
+    scored
+        .into_iter()
+        .map(|(mut a, score)| {
+            // Boost confidence for matching, penalize for non-matching
+            a.confidence = (a.confidence * 0.5 + score * 0.5).min(1.0);
+            a
+        })
+        .collect()
+}
+
+/// Score how well an analysis matches the context (0.0 - 1.0)
+fn score_analysis(analysis: &MorphAnalysis, context: &DisambiguationContext) -> f32 {
+    let mut score: f32 = 0.5; // Neutral starting point
+
+    // Case agreement
+    if let Some(expected) = context.expected_case {
+        if analysis.case == Some(expected) {
+            score += 0.2;
+        } else if analysis.case.is_some() {
+            score -= 0.3; // Penalize mismatches
+        }
+    }
+
+    // Number agreement
+    if let Some(expected) = context.expected_number {
+        if analysis.number == Some(expected) {
+            score += 0.2;
+        } else if analysis.number.is_some() {
+            score -= 0.3;
+        }
+    }
+
+    // Gender agreement
+    if let Some(expected) = context.expected_gender {
+        if analysis.gender == Some(expected) {
+            score += 0.2;
+        } else if analysis.gender.is_some() {
+            score -= 0.3;
+        }
+    }
+
+    // Person agreement (for verbs matching subjects)
+    if let Some(expected) = context.expected_person {
+        if analysis.person == Some(expected) {
+            score += 0.2;
+        } else if analysis.person.is_some() {
+            score -= 0.3;
+        }
+    }
+
+    // Clamp to valid range
+    score.max(0.0).min(1.0)
+}
+
+/// Resolve the best analysis from multiple possibilities
+///
+/// This is the main entry point for disambiguation. It returns the single
+/// best analysis based on context, or the highest-confidence one if no
+/// context matches.
+pub fn resolve_best(
+    analyses: Vec<MorphAnalysis>,
+    context: &DisambiguationContext,
+) -> MorphAnalysis {
+    let disambiguated = disambiguate(analyses.clone(), context);
+    disambiguated.into_iter().next().unwrap_or_else(|| {
+        analyses.into_iter().next().unwrap_or_else(|| {
+            MorphAnalysis::new("?".to_string(), PartOfSpeech::Unknown)
+        })
+    })
+}
+
+/// Known Greek articles for context building
+pub fn analyze_article(word: &str) -> Option<DisambiguationContext> {
+    // Normalized Greek articles
+    match word {
+        // Masculine
+        "ο" => Some(DisambiguationContext {
+            expected_case: Some(Case::Nominative),
+            expected_number: Some(Number::Singular),
+            expected_gender: Some(Gender::Masculine),
+            expected_person: None,
+        }),
+        "του" => Some(DisambiguationContext {
+            expected_case: Some(Case::Genitive),
+            expected_number: Some(Number::Singular),
+            expected_gender: Some(Gender::Masculine),
+            expected_person: None,
+        }),
+        "τω" => Some(DisambiguationContext {
+            expected_case: Some(Case::Dative),
+            expected_number: Some(Number::Singular),
+            expected_gender: Some(Gender::Masculine),
+            expected_person: None,
+        }),
+        "τον" => Some(DisambiguationContext {
+            expected_case: Some(Case::Accusative),
+            expected_number: Some(Number::Singular),
+            expected_gender: Some(Gender::Masculine),
+            expected_person: None,
+        }),
+        "οι" => Some(DisambiguationContext {
+            expected_case: Some(Case::Nominative),
+            expected_number: Some(Number::Plural),
+            expected_gender: Some(Gender::Masculine),
+            expected_person: None,
+        }),
+        "των" => Some(DisambiguationContext {
+            expected_case: Some(Case::Genitive),
+            expected_number: Some(Number::Plural),
+            expected_gender: None, // All genders share των
+            expected_person: None,
+        }),
+        "τοις" => Some(DisambiguationContext {
+            expected_case: Some(Case::Dative),
+            expected_number: Some(Number::Plural),
+            expected_gender: Some(Gender::Masculine),
+            expected_person: None,
+        }),
+        "τους" => Some(DisambiguationContext {
+            expected_case: Some(Case::Accusative),
+            expected_number: Some(Number::Plural),
+            expected_gender: Some(Gender::Masculine),
+            expected_person: None,
+        }),
+
+        // Feminine
+        "η" => Some(DisambiguationContext {
+            expected_case: Some(Case::Nominative),
+            expected_number: Some(Number::Singular),
+            expected_gender: Some(Gender::Feminine),
+            expected_person: None,
+        }),
+        "της" => Some(DisambiguationContext {
+            expected_case: Some(Case::Genitive),
+            expected_number: Some(Number::Singular),
+            expected_gender: Some(Gender::Feminine),
+            expected_person: None,
+        }),
+        "τη" => Some(DisambiguationContext {
+            expected_case: Some(Case::Dative),
+            expected_number: Some(Number::Singular),
+            expected_gender: Some(Gender::Feminine),
+            expected_person: None,
+        }),
+        "την" => Some(DisambiguationContext {
+            expected_case: Some(Case::Accusative),
+            expected_number: Some(Number::Singular),
+            expected_gender: Some(Gender::Feminine),
+            expected_person: None,
+        }),
+        "αι" => Some(DisambiguationContext {
+            expected_case: Some(Case::Nominative),
+            expected_number: Some(Number::Plural),
+            expected_gender: Some(Gender::Feminine),
+            expected_person: None,
+        }),
+        "ταις" => Some(DisambiguationContext {
+            expected_case: Some(Case::Dative),
+            expected_number: Some(Number::Plural),
+            expected_gender: Some(Gender::Feminine),
+            expected_person: None,
+        }),
+        "τας" => Some(DisambiguationContext {
+            expected_case: Some(Case::Accusative),
+            expected_number: Some(Number::Plural),
+            expected_gender: Some(Gender::Feminine),
+            expected_person: None,
+        }),
+
+        // Neuter
+        "το" => Some(DisambiguationContext {
+            expected_case: Some(Case::Nominative), // or Accusative - same form
+            expected_number: Some(Number::Singular),
+            expected_gender: Some(Gender::Neuter),
+            expected_person: None,
+        }),
+        "τα" => Some(DisambiguationContext {
+            expected_case: Some(Case::Nominative), // or Accusative - same form
+            expected_number: Some(Number::Plural),
+            expected_gender: Some(Gender::Neuter),
+            expected_person: None,
+        }),
+
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::morphology::analyze_all;
+
+    #[test]
+    fn test_disambiguate_with_article() {
+        // "θαλασσα" could be nominative or vocative
+        let analyses = analyze_all("θαλασσα");
+
+        // With feminine nominative article context
+        let context = DisambiguationContext {
+            expected_case: Some(Case::Nominative),
+            expected_number: Some(Number::Singular),
+            expected_gender: Some(Gender::Feminine),
+            expected_person: None,
+        };
+
+        let resolved = disambiguate(analyses, &context);
+        assert!(!resolved.is_empty());
+        // First result should be nominative
+        assert_eq!(resolved[0].case, Some(Case::Nominative));
+    }
+
+    #[test]
+    fn test_article_context() {
+        let ctx = analyze_article("ο").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Nominative));
+        assert_eq!(ctx.expected_gender, Some(Gender::Masculine));
+
+        let ctx = analyze_article("την").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Accusative));
+        assert_eq!(ctx.expected_gender, Some(Gender::Feminine));
+    }
+
+    #[test]
+    fn test_verb_context() {
+        use crate::morphology::analyze;
+
+        let verb = analyze("γραφει");
+        let ctx = DisambiguationContext::from_verb(&verb);
+
+        assert_eq!(ctx.expected_case, Some(Case::Nominative));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_person, Some(crate::morphology::Person::Third));
+    }
+
+    #[test]
+    fn test_no_context_preserves_order() {
+        let analyses = analyze_all("λογος");
+        let ctx = DisambiguationContext::new();
+        let resolved = disambiguate(analyses.clone(), &ctx);
+
+        // Order should be preserved when no context
+        assert_eq!(analyses.len(), resolved.len());
+    }
+}

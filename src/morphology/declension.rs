@@ -111,6 +111,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
             tense: None,
             mood: None,
             voice: None,
+            confidence: 0.9,
         });
     }
 
@@ -126,6 +127,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
             tense: None,
             mood: None,
             voice: None,
+            confidence: 0.8,
         });
     }
 
@@ -143,6 +145,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
                 tense: None,
                 mood: None,
                 voice: None,
+                confidence: 0.75,
             });
         }
     }
@@ -159,6 +162,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
             tense: None,
             mood: None,
             voice: None,
+            confidence: 0.8,
         });
     }
 
@@ -174,6 +178,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
             tense: None,
             mood: None,
             voice: None,
+            confidence: 0.75,
         });
     }
 
@@ -195,6 +200,111 @@ fn match_endings(word: &str, endings: &[(&str, Case, Number)]) -> Option<(String
         }
     }
     None
+}
+
+/// Match a word against ALL possible endings, returning all matches
+fn match_endings_all(word: &str, endings: &[(&str, Case, Number)]) -> Vec<(String, Case, Number)> {
+    let mut matches = Vec::new();
+
+    for (ending, case, number) in endings {
+        if word.ends_with(ending) {
+            let stem = &word[..word.len() - ending.len()];
+            if !stem.is_empty() {
+                matches.push((stem.to_string(), *case, *number));
+            }
+        }
+    }
+
+    matches
+}
+
+/// Analyze a word as a noun, returning ALL possible analyses
+///
+/// This is used for ambiguity resolution. For example, "θαλασσα" could be:
+/// - Nominative singular (the sea as subject)
+/// - Vocative singular (O sea!)
+///
+/// The caller should use syntactic context to pick the right one.
+pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
+    let mut analyses = Vec::new();
+
+    // Declension info for confidence scoring
+    // Longer endings = higher confidence
+    struct DeclInfo {
+        endings: &'static [(&'static str, Case, Number)],
+        gender: Gender,
+        nom_ending: &'static str,
+        base_confidence: f32,
+    }
+
+    let declensions = [
+        DeclInfo {
+            endings: THIRD_DECLENSION_MA,
+            gender: Gender::Neuter,
+            nom_ending: "μα",
+            base_confidence: 0.9, // -μα is distinctive
+        },
+        DeclInfo {
+            endings: SECOND_DECLENSION_MASC,
+            gender: Gender::Masculine,
+            nom_ending: "ος",
+            base_confidence: 0.8,
+        },
+        DeclInfo {
+            endings: SECOND_DECLENSION_NEUT,
+            gender: Gender::Neuter,
+            nom_ending: "ον",
+            base_confidence: 0.7,
+        },
+        DeclInfo {
+            endings: FIRST_DECLENSION_ETA,
+            gender: Gender::Feminine,
+            nom_ending: "η",
+            base_confidence: 0.75,
+        },
+        DeclInfo {
+            endings: FIRST_DECLENSION_ALPHA,
+            gender: Gender::Feminine,
+            nom_ending: "α",
+            base_confidence: 0.7,
+        },
+    ];
+
+    for decl in &declensions {
+        let matches = match_endings_all(word, decl.endings);
+
+        for (stem, case, number) in matches {
+            // Calculate confidence based on ending length and distinctiveness
+            let ending_len = word.len() - stem.len();
+            let length_bonus = (ending_len as f32 - 1.0) * 0.05; // Longer = better
+            let confidence = (decl.base_confidence + length_bonus).min(0.95);
+
+            analyses.push(MorphAnalysis {
+                lemma: format!("{}{}", stem, decl.nom_ending),
+                part_of_speech: PartOfSpeech::Noun,
+                case: Some(case),
+                number: Some(number),
+                gender: Some(decl.gender),
+                person: None,
+                tense: None,
+                mood: None,
+                voice: None,
+                confidence,
+            });
+        }
+    }
+
+    // Deduplicate identical analyses (same case/number/gender)
+    analyses.sort_by(|a, b| {
+        let key_a = (a.case, a.number, a.gender, &a.lemma);
+        let key_b = (b.case, b.number, b.gender, &b.lemma);
+        key_a.cmp(&key_b)
+    });
+    analyses.dedup_by(|a, b| {
+        a.case == b.case && a.number == b.number && a.gender == b.gender && a.lemma == b.lemma
+    });
+
+    analyses
 }
 
 /// Extract stem from a word given its nominative form and declension

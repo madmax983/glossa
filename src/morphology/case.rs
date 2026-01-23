@@ -11,7 +11,7 @@
 /// - Dative: indirect object, recipient, mutable borrow (&mut T)
 /// - Accusative: direct object, function argument, move/ownership
 /// - Vocative: direct address (for error messages)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Case {
     Nominative,
     Genitive,
@@ -34,7 +34,7 @@ impl Case {
 }
 
 /// Grammatical number
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Number {
     Singular,
     Plural,
@@ -42,7 +42,7 @@ pub enum Number {
 }
 
 /// Grammatical gender
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Gender {
     Masculine,
     Feminine,
@@ -50,7 +50,7 @@ pub enum Gender {
 }
 
 /// Person (for verbs)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Person {
     First,
     Second,
@@ -64,7 +64,7 @@ pub enum Person {
 /// - Aorist: one-shot/complete operations
 /// - Perfect: completed with lasting result
 /// - Imperfect: ongoing past (for async?)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Tense {
     Present,
     Imperfect,
@@ -107,7 +107,7 @@ pub enum ExecutionMode {
 /// - Imperative: commands, top-level expressions
 /// - Subjunctive: conditionals, possibility
 /// - Optative: wishes, optional execution
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Mood {
     Indicative,
     Imperative,
