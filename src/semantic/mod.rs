@@ -131,8 +131,7 @@ fn analyze_control_flow(stmt: &Statement, _scope: &mut Scope) -> Result<Option<A
     }
 
     if lexicon::is_match_particle(&normalized) {
-        // TODO: Parse match (κατά)
-        return Ok(None);
+        return parse_match_expression(stmt, _scope);
     }
 
     // Break: παῦε
@@ -431,6 +430,127 @@ fn parse_for_iteration_loop(stmt: &Statement, scope: &mut Scope) -> Result<Optio
     }))
 }
 
+/// Parse a match expression (κατά)
+/// Structure: κατὰ scrutinee· pattern₁ ᾖ, body₁· pattern₂ ᾖ, body₂· pattern₃ ᾖ, body₃.
+/// Example: κατὰ ξ· μηδὲν ᾖ, «μηδέν» λέγε· ἓν ᾖ, «ἕν» λέγε· ἄλλο ᾖ, «ἄλλο» λέγε.
+fn parse_match_expression(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if stmt.clauses.is_empty() {
+        return Err(GlossaError::semantic("Match expression needs at least one clause"));
+    }
+
+    // Extract scrutinee from clause 0, expression 0 (skip κατά)
+    let scrutinee_clause = &stmt.clauses[0];
+    let scrutinee = skip_first_word_and_parse(scrutinee_clause, scope)?;
+
+    // Build arms: pattern from clause[i], expr 1 → body from clause[i+1], expr 0
+    let mut arms = Vec::new();
+
+    for i in 0..stmt.clauses.len() {
+        let clause = &stmt.clauses[i];
+
+        // Get pattern from expression 1 (if it exists)
+        if clause.expressions.len() > 1 {
+            let pattern_expr = &clause.expressions[1];
+
+            // Extract pattern value (skip ᾖ subjunctive verb)
+            // Pattern is the first word(s) before ᾖ
+            let pattern = parse_match_pattern(pattern_expr, scope)?;
+
+            // Get body from next clause, expression 0
+            if i + 1 >= stmt.clauses.len() {
+                return Err(GlossaError::semantic("Match pattern without body"));
+            }
+
+            let body_clause = &stmt.clauses[i + 1];
+            if body_clause.expressions.is_empty() {
+                return Err(GlossaError::semantic("Empty match arm body"));
+            }
+
+            // Parse body as a statement
+            let body_expr_clause = crate::ast::Clause {
+                expressions: vec![body_clause.expressions[0].clone()],
+            };
+            let body_stmt = parse_clause_as_statement(&body_expr_clause, scope)?;
+
+            arms.push((pattern, vec![body_stmt]));
+        }
+    }
+
+    if arms.is_empty() {
+        return Err(GlossaError::semantic("Match expression needs at least one arm"));
+    }
+
+    Ok(Some(AnalyzedStatement {
+        kind: StatementKind::Match {
+            scrutinee: Box::new(scrutinee),
+            arms,
+        },
+        expressions: vec![],
+    }))
+}
+
+/// Parse a match pattern expression
+/// Patterns can be: literals (μηδὲν, ἓν, δύο), or wildcard (ἄλλο)
+fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, GlossaError> {
+    // Pattern is typically: value ᾖ
+    // We want to extract the value part
+    if let Expr::Phrase(terms) = expr {
+        if terms.is_empty() {
+            return Err(GlossaError::semantic("Empty match pattern"));
+        }
+
+        // Get first word (the pattern value)
+        if let Expr::Word(w) = &terms[0] {
+            let normalized = normalize_greek(&w.original);
+
+            // Check if it's ἄλλο (wildcard)
+            if normalized == "αλλο" {
+                // Wildcard pattern - represented as a special marker
+                // We'll use a boolean literal true as a placeholder for wildcard
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                });
+            }
+
+            // Check if it's a numeral
+            if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(val),
+                    glossa_type: GlossaType::Number,
+                });
+            }
+
+            // Otherwise, treat as variable reference
+            let var_type = scope.lookup(&normalized).cloned().unwrap_or(GlossaType::Number);
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(normalized),
+                glossa_type: var_type,
+            });
+        }
+    } else if let Expr::Word(w) = expr {
+        let normalized = normalize_greek(&w.original);
+
+        // Check for wildcard
+        if normalized == "αλλο" {
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: GlossaType::Boolean,
+            });
+        }
+
+        // Check for numeral
+        if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(val),
+                glossa_type: GlossaType::Number,
+            });
+        }
+    }
+
+    Err(GlossaError::semantic("Invalid match pattern"))
+}
+
 /// Parse a conditional statement (εἰ/ἐάν)
 /// Structure: εἰ condition, body [, εἰ δὲ μή, else_body]
 fn parse_conditional(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
@@ -456,13 +576,43 @@ fn parse_conditional(stmt: &Statement, scope: &mut Scope) -> Result<Option<Analy
         parse_clause_as_statement(&first_expr_clause, scope)?
     };
 
-    // Check for else clause (εἰ δὲ μή)
-    // The else marker should be the second expression in clause 1, chained with ·
-    // The else body is in clause 2
+    // Check for else/elif clause
+    // The second expression in clause 1 (if present) can be:
+    // 1. "εἰ δὲ μή" - else clause
+    // 2. "εἰ" - elif chain (nested if)
     let else_body = if then_clause.expressions.len() > 1 && stmt.clauses.len() >= 3 {
-        // Check if the second expression in clause 1 is "εἰ δὲ μή"
-        if check_else_pattern_in_expression(&then_clause.expressions[1]) {
+        let second_expr = &then_clause.expressions[1];
+
+        // Check if it's "εἰ δὲ μή" (else)
+        if check_else_pattern_in_expression(second_expr) {
             Some(vec![parse_clause_as_statement(&stmt.clauses[2], scope)?])
+        }
+        // Check if it's "εἰ" or "ἐάν" (elif)
+        else if check_conditional_start(second_expr) {
+            // Build a new statement for the elif chain
+            // The elif condition is in clause 1, expression 1
+            // We need to restructure: make a new clause 0 with just that expression
+            let mut elif_clauses = Vec::new();
+
+            // New clause 0: just the elif condition (from clause 1, expr 1)
+            elif_clauses.push(crate::ast::Clause {
+                expressions: vec![then_clause.expressions[1].clone()],
+            });
+
+            // Add remaining clauses (they contain the bodies)
+            elif_clauses.extend_from_slice(&stmt.clauses[2..]);
+
+            let elif_stmt = Statement {
+                clauses: elif_clauses,
+                is_query: false,
+            };
+
+            // Recursively parse as a new conditional (which becomes the else body)
+            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope)? {
+                Some(vec![elif_analyzed])
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -578,6 +728,32 @@ fn check_else_pattern_in_expression(expr: &Expr) -> bool {
 
     let phrase = words.join(" ");
     lexicon::is_else_pattern(&phrase)
+}
+
+/// Check if an expression starts with a conditional particle (εἰ or ἐάν)
+fn check_conditional_start(expr: &Expr) -> bool {
+    use crate::morphology::lexicon;
+
+    // Get the first word from the expression
+    let first_word = if let Expr::Phrase(terms) = expr {
+        terms.first().and_then(|term| {
+            if let Expr::Word(w) = term {
+                Some(normalize_greek(&w.original))
+            } else {
+                None
+            }
+        })
+    } else if let Expr::Word(w) = expr {
+        Some(normalize_greek(&w.original))
+    } else {
+        None
+    };
+
+    if let Some(word) = first_word {
+        lexicon::is_conditional_particle(&word)
+    } else {
+        false
+    }
 }
 
 /// Feed an expression into the assembler with disambiguation context

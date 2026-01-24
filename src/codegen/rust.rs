@@ -128,7 +128,13 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             let scrut = generate_expr(scrutinee);
             let arm_tokens: Vec<TokenStream> = arms.iter()
                 .map(|(pattern, body)| {
-                    let pat = generate_expr(pattern);
+                    // Check if pattern is wildcard (represented as BoolLit(true))
+                    let pat = if matches!(pattern, HirExpr::BoolLit(true)) {
+                        // Generate wildcard pattern
+                        quote! { _ }
+                    } else {
+                        generate_expr(pattern)
+                    };
                     let body_stmts: Vec<TokenStream> = body.iter()
                         .map(generate_statement)
                         .collect();

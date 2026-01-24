@@ -64,6 +64,7 @@ fn test_if_elif_else() {
     let source = "ξ πέντε ἔστω. εἰ ξ μηδὲν ᾖ, «μηδέν» λέγε · εἰ ξ ἓν ᾖ, «ἕν» λέγε · εἰ δὲ μή, «ἄλλο» λέγε.";
     let output = compile_to_rust(source);
 
+    eprintln!("Generated output:\n{}", output);
     assert!(output.contains("if"), "Expected if statement");
     assert!(output.contains("else if") || output.contains("} else {"),
         "Expected else-if chain or else");
