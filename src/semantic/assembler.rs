@@ -10,6 +10,7 @@
 use crate::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender, Person, Tense, Mood};
 use crate::morphology::lexicon::BinaryOp;
 use crate::grammar::normalize_greek;
+use crate::ast::{Expr, Word};
 
 /// A fully assembled statement with all grammatical roles filled
 #[derive(Debug, Clone)]
@@ -26,6 +27,12 @@ pub struct AssembledStatement {
     pub genitives: Vec<Constituent>,
     /// Literal values (strings, numbers) that appeared
     pub literals: Vec<Literal>,
+    /// Array literals that appeared
+    pub arrays: Vec<Vec<Expr>>,
+    /// Index accesses (array, index)
+    pub index_accesses: Vec<(Expr, Expr)>,
+    /// Property accesses (owner, property)
+    pub property_accesses: Vec<(String, String)>,
     /// Binary operators found between expressions
     pub operators: Vec<BinaryOp>,
     /// Whether this is a query (ends with ;)
@@ -84,6 +91,9 @@ pub struct Assembler {
     pending_verb: Option<VerbConstituent>,
     pending_genitives: Vec<Constituent>,
     pending_literals: Vec<Literal>,
+    pending_arrays: Vec<Vec<Expr>>,
+    pending_index_accesses: Vec<(Expr, Expr)>,
+    pending_property_accesses: Vec<(String, String)>,
     pending_operators: Vec<BinaryOp>,
     is_query: bool,
 }
@@ -128,6 +138,9 @@ impl Assembler {
             pending_verb: None,
             pending_genitives: Vec::new(),
             pending_literals: Vec::new(),
+            pending_arrays: Vec::new(),
+            pending_index_accesses: Vec::new(),
+            pending_property_accesses: Vec::new(),
             pending_operators: Vec::new(),
             is_query: false,
         }
@@ -141,6 +154,9 @@ impl Assembler {
         self.pending_verb = None;
         self.pending_genitives.clear();
         self.pending_literals.clear();
+        self.pending_arrays.clear();
+        self.pending_index_accesses.clear();
+        self.pending_property_accesses.clear();
         self.pending_operators.clear();
         self.is_query = false;
     }
@@ -186,6 +202,35 @@ impl Assembler {
             return Ok(());
         }
 
+        // Check for property nouns (μῆκος)
+        if crate::morphology::lexicon::is_length_property(&normalized) {
+            // If we have a subject, create a property access
+            if let Some(ref subj) = self.pending_subject {
+                self.pending_property_accesses.push((subj.lemma.clone(), "len".to_string()));
+                self.pending_subject = None; // Consume the subject
+            }
+            return Ok(());
+        }
+
+        // Check for ordinal adjectives (πρῶτον, δεύτερον, τρίτον)
+        if crate::morphology::lexicon::is_ordinal(&normalized) {
+            // If we have a subject, create an index access with the ordinal index
+            if let Some(ref subj) = self.pending_subject {
+                if let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized) {
+                    // Create array and index expressions
+                    let array = Expr::Word(Word {
+                        original: subj.original.clone(),
+                        normalized: subj.lemma.clone(),
+                    });
+                    let index_expr = Expr::NumberLiteral(index);
+
+                    self.pending_index_accesses.push((array, index_expr));
+                    self.pending_subject = None; // Consume the subject
+                }
+            }
+            return Ok(());
+        }
+
         match analysis.part_of_speech {
             PartOfSpeech::Noun | PartOfSpeech::Pronoun | PartOfSpeech::Adjective => {
                 self.handle_nominal(analysis, original)
@@ -218,6 +263,16 @@ impl Assembler {
     /// Feed a boolean literal
     pub fn feed_boolean(&mut self, value: bool) {
         self.pending_literals.push(Literal::Boolean(value));
+    }
+
+    /// Feed an array literal
+    pub fn feed_array(&mut self, elements: Vec<Expr>) {
+        self.pending_arrays.push(elements);
+    }
+
+    /// Feed an index access (array[index])
+    pub fn feed_index_access(&mut self, array: Expr, index: Expr) {
+        self.pending_index_accesses.push((array, index));
     }
 
     /// Handle a noun/pronoun/adjective - route to slot by case
@@ -327,6 +382,9 @@ impl Assembler {
             indirect: self.pending_indirect.take(),
             genitives: std::mem::take(&mut self.pending_genitives),
             literals: std::mem::take(&mut self.pending_literals),
+            arrays: std::mem::take(&mut self.pending_arrays),
+            index_accesses: std::mem::take(&mut self.pending_index_accesses),
+            property_accesses: std::mem::take(&mut self.pending_property_accesses),
             operators: std::mem::take(&mut self.pending_operators),
             is_query: self.is_query,
         };
@@ -343,6 +401,9 @@ impl Assembler {
             || self.pending_verb.is_some()
             || !self.pending_genitives.is_empty()
             || !self.pending_literals.is_empty()
+            || !self.pending_arrays.is_empty()
+            || !self.pending_index_accesses.is_empty()
+            || !self.pending_property_accesses.is_empty()
     }
 }
 

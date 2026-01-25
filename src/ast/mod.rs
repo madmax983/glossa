@@ -102,6 +102,80 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, AstError> {
             }
             Ok(Expr::Block(statements))
         }
+        Rule::array_literal => {
+            let mut elements = Vec::new();
+            for child in inner.into_inner() {
+                if child.as_rule() == Rule::array_elements {
+                    for elem in child.into_inner() {
+                        if elem.as_rule() == Rule::array_element {
+                            elements.push(build_array_element(elem)?);
+                        }
+                    }
+                }
+            }
+            Ok(Expr::ArrayLiteral(elements))
+        }
+        Rule::indexed_word => {
+            let mut parts = inner.into_inner();
+            // First is the greek_word (array name)
+            let array_word = parts.next().ok_or(AstError::EmptyTerm)?;
+            let array = Expr::Word(Word {
+                original: array_word.as_str().to_string(),
+                normalized: crate::grammar::normalize_greek(array_word.as_str()),
+            });
+            // Second is the index_expr
+            let index_pair = parts.next().ok_or(AstError::EmptyTerm)?;
+            let index_inner = index_pair.into_inner().next().ok_or(AstError::EmptyTerm)?;
+            let index = match index_inner.as_rule() {
+                Rule::number_literal => {
+                    let value: i64 = index_inner.as_str().parse()
+                        .map_err(|_| AstError::InvalidNumber(index_inner.as_str().to_string()))?;
+                    Expr::NumberLiteral(value)
+                }
+                Rule::greek_word => {
+                    Expr::Word(Word {
+                        original: index_inner.as_str().to_string(),
+                        normalized: crate::grammar::normalize_greek(index_inner.as_str()),
+                    })
+                }
+                _ => return Err(AstError::UnexpectedRule(format!("{:?}", index_inner.as_rule()))),
+            };
+            Ok(Expr::IndexAccess {
+                array: Box::new(array),
+                index: Box::new(index),
+            })
+        }
+        Rule::string_literal => {
+            let content = inner.into_inner()
+                .find(|p| p.as_rule() == Rule::string_content)
+                .map(|p| p.as_str().to_string())
+                .unwrap_or_default();
+            Ok(Expr::StringLiteral(content))
+        }
+        Rule::number_literal => {
+            let value: i64 = inner.as_str().parse()
+                .map_err(|_| AstError::InvalidNumber(inner.as_str().to_string()))?;
+            Ok(Expr::NumberLiteral(value))
+        }
+        Rule::boolean_literal => {
+            let normalized = crate::grammar::normalize_greek(inner.as_str());
+            let value = normalized == "αληθες";
+            Ok(Expr::BooleanLiteral(value))
+        }
+        Rule::greek_word => {
+            Ok(Expr::Word(Word {
+                original: inner.as_str().to_string(),
+                normalized: crate::grammar::normalize_greek(inner.as_str()),
+            }))
+        }
+        _ => Err(AstError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
+    }
+}
+
+fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, AstError> {
+    let inner = pair.into_inner().next().ok_or(AstError::EmptyTerm)?;
+
+    match inner.as_rule() {
         Rule::string_literal => {
             let content = inner.into_inner()
                 .find(|p| p.as_rule() == Rule::string_content)

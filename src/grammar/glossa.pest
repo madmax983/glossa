@@ -38,11 +38,22 @@ expression = { term+ }
 
 term = {
     block
+    | array_literal
     | string_literal
     | number_literal
     | boolean_literal
+    | indexed_word
     | greek_word
 }
+
+// Indexed word: word[index]
+indexed_word = { greek_word ~ "[" ~ index_expr ~ "]" }
+index_expr = { number_literal | greek_word }
+
+// Array literal: [element, element, ...]
+array_literal = { "[" ~ array_elements? ~ "]" }
+array_elements = { array_element ~ ("," ~ array_element)* }
+array_element = { string_literal | number_literal | boolean_literal | greek_word }
 
 // A block is a sequence of statements in braces
 // Used for multi-statement bodies in control flow

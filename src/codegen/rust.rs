@@ -178,6 +178,19 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             quote! { #b }
         }
 
+        HirExpr::ArrayLit(elements) => {
+            let elem_tokens: Vec<TokenStream> = elements.iter()
+                .map(generate_expr)
+                .collect();
+            quote! { vec![#(#elem_tokens),*] }
+        }
+
+        HirExpr::Index { array, index } => {
+            let array_tokens = generate_expr(array);
+            let index_tokens = generate_expr(index);
+            quote! { #array_tokens[#index_tokens] }
+        }
+
         HirExpr::Var(name) => {
             let name_ident = format_ident!("{}", sanitize_name(name));
             quote! { #name_ident }

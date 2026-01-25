@@ -853,6 +853,14 @@ fn feed_expr_to_assembler_with_context(
                 }
             }
         }
+        Expr::ArrayLiteral(elements) => {
+            // Feed array literal to assembler
+            asm.feed_array(elements.clone());
+        }
+        Expr::IndexAccess { array, index } => {
+            // Feed index access to assembler
+            asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone());
+        }
     }
     Ok(())
 }
@@ -937,6 +945,67 @@ fn classify_assembled_statement(
             }
         }
 
+        // Check for pop pattern: subject ἕλκεται (middle voice)
+        if crate::morphology::lexicon::is_pop_verb(&verb_lemma) {
+            if let Some(ref subject) = asm_stmt.subject {
+                // Get the receiver (array variable)
+                let receiver = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+                    glossa_type: scope.lookup(&subject.lemma).cloned().unwrap_or(GlossaType::Unknown),
+                };
+
+                // Return method call expression with no arguments
+                let method_call = AnalyzedExpr {
+                    expr: AnalyzedExprKind::MethodCall {
+                        receiver: Box::new(receiver),
+                        method: "pop".to_string(),
+                        args: vec![],
+                    },
+                    glossa_type: GlossaType::Unknown, // Option<T>
+                };
+
+                return Ok((StatementKind::Expression, vec![method_call]));
+            }
+        }
+
+        // Check for push pattern: subject ὠθεῖ value
+        if crate::morphology::lexicon::is_push_verb(&verb_lemma) {
+            if let Some(ref subject) = asm_stmt.subject {
+                // Get the receiver (array variable)
+                let receiver = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+                    glossa_type: scope.lookup(&subject.lemma).cloned().unwrap_or(GlossaType::Unknown),
+                };
+
+                // Get the argument to push (from literals or object)
+                let arg = if let Some(lit) = asm_stmt.literals.first() {
+                    literal_to_analyzed_expr(lit)
+                } else if let Some(ref obj) = asm_stmt.object {
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                        glossa_type: scope.lookup(&obj.lemma).cloned().unwrap_or(GlossaType::Unknown),
+                    }
+                } else {
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(0),
+                        glossa_type: GlossaType::Number,
+                    }
+                };
+
+                // Return method call expression
+                let method_call = AnalyzedExpr {
+                    expr: AnalyzedExprKind::MethodCall {
+                        receiver: Box::new(receiver),
+                        method: "push".to_string(),
+                        args: vec![arg],
+                    },
+                    glossa_type: GlossaType::Unit,
+                };
+
+                return Ok((StatementKind::Expression, vec![method_call]));
+            }
+        }
+
         // Check for print pattern
         if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
             // If we have operators, combine subject/variables with literals using operators
@@ -964,6 +1033,43 @@ fn classify_assembled_statement(
                     let bin_expr = build_binary_expr(left_expr, op, right_expr);
                     return Ok((StatementKind::Print, vec![bin_expr]));
                 }
+            }
+
+            // Check if we have property accesses to print (e.g., ξ μῆκος λέγε)
+            if !asm_stmt.property_accesses.is_empty() {
+                let mut args = Vec::new();
+                for (owner, method) in &asm_stmt.property_accesses {
+                    let receiver = AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(owner.clone()),
+                        glossa_type: scope.lookup(owner).cloned().unwrap_or(GlossaType::Unknown),
+                    };
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::MethodCall {
+                            receiver: Box::new(receiver),
+                            method: method.clone(),
+                            args: vec![],
+                        },
+                        glossa_type: GlossaType::Number, // len() returns usize
+                    });
+                }
+                return Ok((StatementKind::Print, args));
+            }
+
+            // Check if we have index accesses to print
+            if !asm_stmt.index_accesses.is_empty() {
+                let mut args = Vec::new();
+                for (array_expr, index_expr) in &asm_stmt.index_accesses {
+                    let array_analyzed = convert_expr_to_analyzed(array_expr);
+                    let index_analyzed = convert_expr_to_analyzed(index_expr);
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::IndexAccess {
+                            array: Box::new(array_analyzed),
+                            index: Box::new(index_analyzed),
+                        },
+                        glossa_type: GlossaType::Unknown,
+                    });
+                }
+                return Ok((StatementKind::Print, args));
             }
 
             // Build binary expressions from literals and operators if available
@@ -1023,6 +1129,56 @@ fn classify_assembled_statement(
 
 /// Extract value from assembled statement (literals or constituents)
 fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
+    // If we have property accesses, use the first one
+    if let Some((owner, method)) = asm_stmt.property_accesses.first() {
+        let receiver = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(owner.clone()),
+            glossa_type: GlossaType::Unknown,
+        };
+        return (
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(receiver),
+                    method: method.clone(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Number,
+            },
+            GlossaType::Number,
+        );
+    }
+
+    // If we have index accesses, use the first one
+    if let Some((array_expr, index_expr)) = asm_stmt.index_accesses.first() {
+        let array_analyzed = convert_expr_to_analyzed(array_expr);
+        let index_analyzed = convert_expr_to_analyzed(index_expr);
+        return (
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::IndexAccess {
+                    array: Box::new(array_analyzed),
+                    index: Box::new(index_analyzed),
+                },
+                glossa_type: GlossaType::Unknown, // Element type is unknown without inference
+            },
+            GlossaType::Unknown,
+        );
+    }
+
+    // If we have arrays, use the first array
+    if let Some(array_elements) = asm_stmt.arrays.first() {
+        let analyzed_elements = convert_array_elements(array_elements);
+        let element_type = analyzed_elements.first()
+            .map(|e| e.glossa_type.clone())
+            .unwrap_or(GlossaType::Unknown);
+        return (
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
+                glossa_type: GlossaType::List(Box::new(element_type)),
+            },
+            GlossaType::List(Box::new(GlossaType::Unknown)),
+        );
+    }
+
     // If we have operators, build a binary expression from literals
     if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() >= 2 {
         let exprs = build_expressions_from_literals_and_ops(
@@ -1070,6 +1226,99 @@ fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
         },
         GlossaType::Number,
     )
+}
+
+/// Convert an Expr to an AnalyzedExpr
+fn convert_expr_to_analyzed(expr: &Expr) -> AnalyzedExpr {
+    match expr {
+        Expr::StringLiteral(s) => AnalyzedExpr {
+            expr: AnalyzedExprKind::StringLiteral(s.clone()),
+            glossa_type: GlossaType::String,
+        },
+        Expr::NumberLiteral(n) => AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(*n),
+            glossa_type: GlossaType::Number,
+        },
+        Expr::BooleanLiteral(b) => AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(*b),
+            glossa_type: GlossaType::Boolean,
+        },
+        Expr::Word(w) => {
+            // Check if it's a numeral
+            if let Some(val) = crate::morphology::lexicon::numeral_value(&w.normalized) {
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(val),
+                    glossa_type: GlossaType::Number,
+                }
+            } else {
+                // Variable reference
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(w.normalized.clone()),
+                    glossa_type: GlossaType::Unknown,
+                }
+            }
+        }
+        Expr::ArrayLiteral(elements) => {
+            let analyzed_elements = convert_array_elements(elements);
+            let element_type = analyzed_elements.first()
+                .map(|e| e.glossa_type.clone())
+                .unwrap_or(GlossaType::Unknown);
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
+                glossa_type: GlossaType::List(Box::new(element_type)),
+            }
+        }
+        Expr::IndexAccess { array, index } => {
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::IndexAccess {
+                    array: Box::new(convert_expr_to_analyzed(array)),
+                    index: Box::new(convert_expr_to_analyzed(index)),
+                },
+                glossa_type: GlossaType::Unknown,
+            }
+        }
+        _ => AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(0),
+            glossa_type: GlossaType::Number,
+        },
+    }
+}
+
+/// Convert array elements from Expr to AnalyzedExpr
+fn convert_array_elements(elements: &[Expr]) -> Vec<AnalyzedExpr> {
+    elements.iter().map(|e| match e {
+        Expr::StringLiteral(s) => AnalyzedExpr {
+            expr: AnalyzedExprKind::StringLiteral(s.clone()),
+            glossa_type: GlossaType::String,
+        },
+        Expr::NumberLiteral(n) => AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(*n),
+            glossa_type: GlossaType::Number,
+        },
+        Expr::BooleanLiteral(b) => AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(*b),
+            glossa_type: GlossaType::Boolean,
+        },
+        Expr::Word(w) => {
+            // Check if it's a numeral
+            if let Some(val) = crate::morphology::lexicon::numeral_value(&w.normalized) {
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(val),
+                    glossa_type: GlossaType::Number,
+                }
+            } else {
+                // Variable reference
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(w.normalized.clone()),
+                    glossa_type: GlossaType::Unknown,
+                }
+            }
+        }
+        _ => AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(0),
+            glossa_type: GlossaType::Number,
+        },
+    }).collect()
 }
 
 /// Convert a Literal to an AnalyzedExpr
@@ -1264,6 +1513,19 @@ pub enum AnalyzedExprKind {
         start: Box<AnalyzedExpr>,
         end: Box<AnalyzedExpr>,
         inclusive: bool,
+    },
+    /// Array literal [1, 2, 3]
+    ArrayLiteral(Vec<AnalyzedExpr>),
+    /// Index access array[index]
+    IndexAccess {
+        array: Box<AnalyzedExpr>,
+        index: Box<AnalyzedExpr>,
+    },
+    /// Method call receiver.method(args)
+    MethodCall {
+        receiver: Box<AnalyzedExpr>,
+        method: String,
+        args: Vec<AnalyzedExpr>,
     },
 }
 

@@ -1,0 +1,30 @@
+// ΓΛΩΣΣΑ Collections Demo - Phase 3
+// Demonstrates array literals, indexing, and operations
+
+// Array literal
+ἀριθμοί [10, 20, 30, 40, 50] ἔστω.
+
+// Numeric indexing
+ἀριθμοί[0] λέγε.
+ἀριθμοί[2] λέγε.
+
+// Ordinal indexing (new!)
+ἀριθμοί πρῶτον λέγε.
+ἀριθμοί δεύτερον λέγε.
+ἀριθμοί τρίτον λέγε.
+
+// Push operation
+κενός [] ἔστω.
+κενός ὠθεῖ 42.
+κενός ὠθεῖ 99.
+κενός λέγε.
+
+// Pop operation
+κενός ἕλκεται.
+κενός λέγε.
+
+// Length property
+κενός μῆκος λέγε.
+
+// Array iteration
+διὰ ἀριθμοί, ξ λέγε.

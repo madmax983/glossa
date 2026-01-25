@@ -76,6 +76,15 @@ pub enum HirExpr {
     /// Boolean literal
     BoolLit(bool),
 
+    /// Array literal vec![...]
+    ArrayLit(Vec<HirExpr>),
+
+    /// Index access array[index]
+    Index {
+        array: Box<HirExpr>,
+        index: Box<HirExpr>,
+    },
+
     /// Variable reference
     Var(String),
 
@@ -272,6 +281,22 @@ fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
         AnalyzedExprKind::StringLiteral(s) => HirExpr::StringLit(s.clone()),
         AnalyzedExprKind::NumberLiteral(n) => HirExpr::IntLit(*n),
         AnalyzedExprKind::BooleanLiteral(b) => HirExpr::BoolLit(*b),
+        AnalyzedExprKind::ArrayLiteral(elements) => {
+            HirExpr::ArrayLit(elements.iter().map(lower_expr).collect())
+        }
+        AnalyzedExprKind::IndexAccess { array, index } => {
+            HirExpr::Index {
+                array: Box::new(lower_expr(array)),
+                index: Box::new(lower_expr(index)),
+            }
+        }
+        AnalyzedExprKind::MethodCall { receiver, method, args } => {
+            HirExpr::MethodCall {
+                receiver: Box::new(lower_expr(receiver)),
+                method: method.clone(),
+                args: args.iter().map(lower_expr).collect(),
+            }
+        }
         AnalyzedExprKind::Variable(name) => HirExpr::Var(name.clone()),
         AnalyzedExprKind::PropertyAccess { owner, property } => {
             HirExpr::Field {

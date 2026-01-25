@@ -345,6 +345,172 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         voice: Some(Voice::Active),
     });
 
+    // ὠθέω - to push (collection operation)
+    m.insert("ωθει", LexiconEntry {
+        lemma: "ωθεω".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "pushes (collection operation)",
+        rust_equiv: Some(".push"),
+        case: None,
+        number: Some(Number::Singular),
+        person: Some(Person::Third),
+        tense: Some(Tense::Present),
+        mood: Some(Mood::Indicative),
+        voice: Some(Voice::Active),
+    });
+
+    // ἕλκω - to pull/pop (collection operation, middle voice)
+    m.insert("ελκεται", LexiconEntry {
+        lemma: "ελκω".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "pulls itself (pop, middle voice)",
+        rust_equiv: Some(".pop"),
+        case: None,
+        number: Some(Number::Singular),
+        person: Some(Person::Third),
+        tense: Some(Tense::Present),
+        mood: Some(Mood::Indicative),
+        voice: Some(Voice::Middle),
+    });
+
+    // μῆκος - length (property noun for collections)
+    m.insert("μηκος", LexiconEntry {
+        lemma: "μηκος".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "length",
+        rust_equiv: Some(".len()"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // =========================================================================
+    // Ordinal numbers (for array indexing)
+    // =========================================================================
+
+    // πρῶτος - first (1st = index 0)
+    m.insert("πρωτον", LexiconEntry {
+        lemma: "πρωτος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "first",
+        rust_equiv: Some("[0]"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    m.insert("πρωτου", LexiconEntry {
+        lemma: "πρωτος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "of first",
+        rust_equiv: Some("[0]"),
+        case: Some(Case::Genitive),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // δεύτερος - second (2nd = index 1)
+    m.insert("δευτερον", LexiconEntry {
+        lemma: "δευτερος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "second",
+        rust_equiv: Some("[1]"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    m.insert("δευτερου", LexiconEntry {
+        lemma: "δευτερος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "of second",
+        rust_equiv: Some("[1]"),
+        case: Some(Case::Genitive),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // τρίτος - third (3rd = index 2)
+    m.insert("τριτον", LexiconEntry {
+        lemma: "τριτος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "third",
+        rust_equiv: Some("[2]"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    m.insert("τριτου", LexiconEntry {
+        lemma: "τριτος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "of third",
+        rust_equiv: Some("[2]"),
+        case: Some(Case::Genitive),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // τέταρτος - fourth (4th = index 3)
+    m.insert("τεταρτον", LexiconEntry {
+        lemma: "τεταρτος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "fourth",
+        rust_equiv: Some("[3]"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // πέμπτος - fifth (5th = index 4)
+    m.insert("πεμπτον", LexiconEntry {
+        lemma: "πεμπτος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "fifth",
+        rust_equiv: Some("[4]"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
     // δίδωμι - to give (output/return)
     m.insert("διδωμι", LexiconEntry {
         lemma: "διδωμι".to_string(),
@@ -1048,6 +1214,50 @@ pub fn is_continue_verb(normalized_word: &str) -> bool {
 /// Check if a word is the match particle (κατά)
 pub fn is_match_particle(normalized_word: &str) -> bool {
     normalized_word == "κατα"
+}
+
+// =============================================================================
+// Collection Operations (Phase 3)
+// =============================================================================
+
+/// Check if a word is a push verb (ὠθεῖ/ὠθέω)
+pub fn is_push_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "ωθει" | "ωθεω" | "ωθω")
+}
+
+/// Check if a word is a pop verb (ἕλκεται/ἕλκομαι - middle voice)
+pub fn is_pop_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "ελκεται" | "ελκομαι" | "ελκω")
+}
+
+/// Check if a word is the length property (μῆκος)
+pub fn is_length_property(normalized_word: &str) -> bool {
+    normalized_word == "μηκος"
+}
+
+/// Check if a word is an ordinal adjective
+pub fn is_ordinal(normalized_word: &str) -> bool {
+    matches!(
+        normalized_word,
+        "πρωτον" | "πρωτου" |
+        "δευτερον" | "δευτερου" |
+        "τριτον" | "τριτου" |
+        "τεταρτον" | "τεταρτου" |
+        "πεμπτον" | "πεμπτου"
+    )
+}
+
+/// Convert an ordinal word to a zero-based array index
+/// Returns None if the word is not a recognized ordinal
+pub fn ordinal_to_index(normalized_word: &str) -> Option<i64> {
+    match normalized_word {
+        "πρωτον" | "πρωτου" => Some(0),        // first = 0
+        "δευτερον" | "δευτερου" => Some(1),    // second = 1
+        "τριτον" | "τριτου" => Some(2),        // third = 2
+        "τεταρτον" | "τεταρτου" => Some(3),    // fourth = 3
+        "πεμπτον" | "πεμπτου" => Some(4),      // fifth = 4
+        _ => None,
+    }
 }
 
 /// Check if a word is a necessity particle (ἀνάγκη - necessarily)
