@@ -204,9 +204,10 @@ impl Assembler {
 
         // Check for property nouns (μῆκος)
         if crate::morphology::lexicon::is_length_property(&normalized) {
-            // If we have a subject, create a property access
+            // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.pending_subject {
-                self.pending_property_accesses.push((subj.lemma.clone(), "len".to_string()));
+                let normalized_original = crate::grammar::normalize_greek(&subj.original);
+                self.pending_property_accesses.push((normalized_original, "len".to_string()));
                 self.pending_subject = None; // Consume the subject
             }
             return Ok(());
@@ -217,10 +218,11 @@ impl Assembler {
             // If we have a subject, create an index access with the ordinal index
             if let Some(ref subj) = self.pending_subject {
                 if let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized) {
-                    // Create array and index expressions
+                    // Create array and index expressions (use normalized original, not lemma)
+                    let normalized_original = crate::grammar::normalize_greek(&subj.original);
                     let array = Expr::Word(Word {
                         original: subj.original.clone(),
-                        normalized: subj.lemma.clone(),
+                        normalized: normalized_original,
                     });
                     let index_expr = Expr::NumberLiteral(index);
 

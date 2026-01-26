@@ -101,6 +101,21 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         voice: Some(Voice::Active),
     });
 
+    // ἔστωσαν - let them be (plural binding)
+    m.insert("εστωσαν", LexiconEntry {
+        lemma: "ειμι".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "let them be (plural binding)",
+        rust_equiv: Some("let"),
+        case: None,
+        number: Some(Number::Plural),
+        person: Some(Person::Third),
+        tense: Some(Tense::Present),
+        mood: Some(Mood::Imperative),
+        voice: Some(Voice::Active),
+    });
+
     // γράφω - to write
     m.insert("γραφω", LexiconEntry {
         lemma: "γραφω".to_string(),
@@ -1056,10 +1071,10 @@ pub fn is_verb(normalized_word: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Check if a word is a binding verb (ἔστω / εἰμί)
-/// This includes the conjugated form (εστω) and the lemma (ειμι)
+/// Check if a word is a binding verb (ἔστω / ἔστωσαν / εἰμί)
+/// This includes the conjugated forms (εστω, εστωσαν) and the lemma (ειμι)
 pub fn is_binding_verb(normalized_word: &str) -> bool {
-    matches!(normalized_word, "εστω" | "ειμι" | "εστι" | "εισι" | "ειναι")
+    matches!(normalized_word, "εστω" | "εστωσαν" | "ειμι" | "εστι" | "εισι" | "ειναι")
 }
 
 /// Check if a word is a print verb (λέγε, γράφε)

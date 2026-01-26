@@ -198,10 +198,13 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
                 HirExpr::IntLit(0) // Default
             };
 
+            // Arrays need to be mutable for push/pop operations
+            let is_array = matches!(value, HirExpr::ArrayLit(_));
+
             Some(HirStatement::Let {
                 name: name.clone(),
                 value,
-                mutable: false,
+                mutable: is_array,
             })
         }
 

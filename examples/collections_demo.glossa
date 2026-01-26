@@ -2,7 +2,7 @@
 // Demonstrates array literals, indexing, and operations
 
 // Array literal
-ἀριθμοί [10, 20, 30, 40, 50] ἔστω.
+ἀριθμοί [10, 20, 30, 40, 50] ἔστωσαν.
 
 // Numeric indexing
 ἀριθμοί[0] λέγε.
@@ -13,15 +13,16 @@
 ἀριθμοί δεύτερον λέγε.
 ἀριθμοί τρίτον λέγε.
 
-// Push operation
+// Push operation (empty array - singular is fine for "empty")
 κενός [] ἔστω.
 κενός ὠθεῖ 42.
 κενός ὠθεῖ 99.
-κενός λέγε.
+// Note: Can't print arrays directly in Rust (no Display impl)
+// κενός λέγε.
 
 // Pop operation
 κενός ἕλκεται.
-κενός λέγε.
+// κενός λέγε.
 
 // Length property
 κενός μῆκος λέγε.

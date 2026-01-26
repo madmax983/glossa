@@ -1377,17 +1377,18 @@ fn classify_assembled_statement(
                         glossa_type: return_type.clone(),
                     };
 
-                    // Register subject as variable
-                    scope.define(subject.lemma.clone(), return_type.clone());
+                    // Register subject as variable (use original form, not lemma)
+                    let var_name = normalize_greek(&subject.original);
+                    scope.define(var_name.clone(), return_type.clone());
 
                     return Ok((
                         StatementKind::Binding {
-                            name: subject.lemma.clone(),
+                            name: var_name.clone(),
                             value_type: return_type.clone(),
                         },
                         vec![
                             AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+                                expr: AnalyzedExprKind::Variable(var_name),
                                 glossa_type: return_type.clone(),
                             },
                             func_call,
@@ -1433,7 +1434,8 @@ fn classify_assembled_statement(
 
             // Binding: subject is the variable name, literals are the value
             if let Some(ref subject) = asm_stmt.subject {
-                let name = subject.lemma.clone();
+                // Use original form (normalized), not lemma, to preserve plurality
+                let name = normalize_greek(&subject.original);
 
                 // Get value from literals or object
                 let (value_expr, value_type) = extract_value(asm_stmt);

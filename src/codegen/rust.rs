@@ -233,7 +233,8 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
         HirExpr::Index { array, index } => {
             let array_tokens = generate_expr(array);
             let index_tokens = generate_expr(index);
-            quote! { #array_tokens[#index_tokens] }
+            // Cast index to usize for Rust array indexing
+            quote! { #array_tokens[(#index_tokens) as usize] }
         }
 
         HirExpr::Var(name) => {
