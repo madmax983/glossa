@@ -8,13 +8,22 @@ use proc_macro2::TokenStream;
 
 /// Generate Rust code from a HIR program
 pub fn generate_rust(hir: &HirProgram) -> String {
-    let statements: Vec<TokenStream> = hir.statements.iter()
-        .map(generate_statement)
-        .collect();
+    // Separate function definitions from main body statements
+    let mut fn_defs = Vec::new();
+    let mut main_stmts = Vec::new();
+
+    for stmt in &hir.statements {
+        match stmt {
+            HirStatement::FnDef { .. } => fn_defs.push(generate_statement(stmt)),
+            _ => main_stmts.push(generate_statement(stmt)),
+        }
+    }
 
     let output = quote! {
+        #(#fn_defs)*
+
         fn main() {
-            #(#statements)*
+            #(#main_stmts)*
         }
     };
 
@@ -159,6 +168,42 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                     quote! { return #value; }
                 }
                 None => quote! { return; }
+            }
+        }
+
+        HirStatement::FnDef { name, params, body, return_type } => {
+            let fn_name = format_ident!("{}", sanitize_name(name));
+            let body_stmts: Vec<TokenStream> = body.iter()
+                .map(generate_statement)
+                .collect();
+
+            // Generate parameter list
+            let param_tokens: Vec<TokenStream> = params.iter()
+                .map(|(param_name, param_type)| {
+                    let param_ident = format_ident!("{}", sanitize_name(param_name));
+                    if let Some(type_str) = param_type {
+                        let ty = format_ident!("{}", type_str);
+                        quote! { #param_ident: #ty }
+                    } else {
+                        quote! { #param_ident }
+                    }
+                })
+                .collect();
+
+            // Generate return type
+            if let Some(ret_type) = return_type {
+                let ret_ty = format_ident!("{}", ret_type);
+                quote! {
+                    fn #fn_name(#(#param_tokens),*) -> #ret_ty {
+                        #(#body_stmts)*
+                    }
+                }
+            } else {
+                quote! {
+                    fn #fn_name(#(#param_tokens),*) {
+                        #(#body_stmts)*
+                    }
+                }
             }
         }
     }

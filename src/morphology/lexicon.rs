@@ -540,6 +540,21 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         voice: Some(Voice::Active),
     });
 
+    // ὁρίζω - to define, to bound
+    m.insert("οριζειν", LexiconEntry {
+        lemma: "οριζω".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "to define, to bound",
+        rust_equiv: Some("fn"),
+        case: None,
+        number: None,
+        person: None,
+        tense: Some(Tense::Present),
+        mood: Some(Mood::Infinitive),
+        voice: Some(Voice::Active),
+    });
+
     // εἰ / ἐάν - conditional
     m.insert("ει", LexiconEntry {
         lemma: "ει".to_string(),
@@ -833,6 +848,25 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         meaning: "unequal",
         rust_equiv: Some("!="),
         case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // =========================================================================
+    // Articles
+    // =========================================================================
+
+    // τῷ - dative singular article "to the"
+    m.insert("τω", LexiconEntry {
+        lemma: "ο".to_string(),
+        pos: PartOfSpeech::Article,
+        gender: Some(Gender::Masculine), // Can be any gender contextually
+        meaning: "to the (dative article)",
+        rust_equiv: None,
+        case: Some(Case::Dative),
         number: Some(Number::Singular),
         person: None,
         tense: None,

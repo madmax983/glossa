@@ -62,6 +62,14 @@ pub enum HirStatement {
 
     /// return expr;
     Return(Option<HirExpr>),
+
+    /// fn name(params) -> ret { body }
+    FnDef {
+        name: String,
+        params: Vec<(String, Option<String>)>, // (name, type)
+        body: Vec<HirStatement>,
+        return_type: Option<String>,
+    },
 }
 
 /// A HIR expression
@@ -273,6 +281,23 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
         StatementKind::Break => Some(HirStatement::Break),
 
         StatementKind::Continue => Some(HirStatement::Continue),
+
+        StatementKind::Return { value } => {
+            Some(HirStatement::Return(value.as_ref().map(|v| lower_expr(v))))
+        }
+
+        StatementKind::FunctionDef { name, params, body, return_type } => {
+            Some(HirStatement::FnDef {
+                name: name.clone(),
+                params: params.iter()
+                    .map(|(n, t)| (n.clone(), t.as_ref().map(|ty| ty.to_rust().to_string())))
+                    .collect(),
+                body: body.iter()
+                    .filter_map(|s| lower_statement(s))
+                    .collect(),
+                return_type: return_type.as_ref().map(|ty| ty.to_rust().to_string()),
+            })
+        }
     }
 }
 
@@ -307,6 +332,12 @@ fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
         AnalyzedExprKind::VerbCall { verb, args } => {
             HirExpr::Call {
                 func: verb.clone(),
+                args: args.iter().map(|a| lower_expr(a)).collect(),
+            }
+        }
+        AnalyzedExprKind::FunctionCall { func, args } => {
+            HirExpr::Call {
+                func: func.clone(),
                 args: args.iter().map(|a| lower_expr(a)).collect(),
             }
         }

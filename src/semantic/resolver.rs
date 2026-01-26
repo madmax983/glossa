@@ -10,8 +10,21 @@ use rustc_hash::FxHashMap;
 pub struct Scope {
     /// Variable bindings in this scope
     bindings: FxHashMap<String, Binding>,
+    /// Function definitions in this scope
+    functions: FxHashMap<String, FunctionSignature>,
     /// Parent scope (for nested scopes)
     parent: Option<Box<Scope>>,
+}
+
+/// A function signature for tracking defined functions
+#[derive(Debug, Clone)]
+pub struct FunctionSignature {
+    /// The function name (normalized)
+    pub name: String,
+    /// Parameter types
+    pub param_types: Vec<GlossaType>,
+    /// Return type (None for void)
+    pub return_type: Option<GlossaType>,
 }
 
 /// A variable binding with type and metadata
@@ -32,6 +45,7 @@ impl Scope {
     pub fn new() -> Self {
         Scope {
             bindings: FxHashMap::default(),
+            functions: FxHashMap::default(),
             parent: None,
         }
     }
@@ -40,7 +54,42 @@ impl Scope {
     pub fn child(&self) -> Self {
         Scope {
             bindings: FxHashMap::default(),
+            functions: FxHashMap::default(),
             parent: Some(Box::new(self.clone())),
+        }
+    }
+
+    /// Define a function in this scope
+    pub fn define_function(&mut self, name: String, param_types: Vec<GlossaType>, return_type: Option<GlossaType>) {
+        self.functions.insert(
+            name.clone(),
+            FunctionSignature {
+                name,
+                param_types,
+                return_type,
+            },
+        );
+    }
+
+    /// Check if a name is a defined function
+    pub fn is_function(&self, name: &str) -> bool {
+        if self.functions.contains_key(name) {
+            true
+        } else if let Some(parent) = &self.parent {
+            parent.is_function(name)
+        } else {
+            false
+        }
+    }
+
+    /// Look up a function signature
+    pub fn lookup_function(&self, name: &str) -> Option<&FunctionSignature> {
+        if let Some(sig) = self.functions.get(name) {
+            Some(sig)
+        } else if let Some(parent) = &self.parent {
+            parent.lookup_function(name)
+        } else {
+            None
         }
     }
 

@@ -47,7 +47,17 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
     for stmt in &program.statements {
         // Check if this is a control flow construct
         if let Some(control_flow_stmt) = analyze_control_flow(stmt, &mut scope)? {
+            // If it's a function definition, register it in the scope
+            if let StatementKind::FunctionDef { name, params, return_type, .. } = &control_flow_stmt.kind {
+                let param_types: Vec<GlossaType> = params.iter()
+                    .map(|(_, ty)| ty.clone().unwrap_or(GlossaType::Unknown))
+                    .collect();
+                scope.define_function(name.clone(), param_types, return_type.clone());
+            }
             analyzed_statements.push(control_flow_stmt);
+        } else if let Some(func_call_stmt) = try_parse_function_call(stmt, &mut scope)? {
+            // Check if this is a function call before using the assembler
+            analyzed_statements.push(func_call_stmt);
         } else {
             // Use the assembler-based approach for regular statements
             let assembled = analyze_single_statement_with_assembler(stmt)?;
@@ -97,6 +107,11 @@ fn analyze_single_statement_with_assembler(stmt: &Statement) -> Result<Assembled
 fn analyze_control_flow(stmt: &Statement, _scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
     use crate::morphology::lexicon;
 
+    // Check for function definition (contains ὁρίζειν)
+    if contains_function_definition_verb(stmt) {
+        return parse_function_definition(stmt, _scope);
+    }
+
     // Get the first word to check for control flow particles
     // If this fails (e.g., statement starts with literal), it's not control flow
     let first_word = match get_first_word(stmt) {
@@ -134,6 +149,11 @@ fn analyze_control_flow(stmt: &Statement, _scope: &mut Scope) -> Result<Option<A
         return parse_match_expression(stmt, _scope);
     }
 
+    // Return: δός (give)
+    if normalized == "δος" {
+        return parse_return_statement(stmt, _scope);
+    }
+
     // Break: παῦε
     if lexicon::is_break_verb(&normalized) {
         return Ok(Some(AnalyzedStatement {
@@ -154,6 +174,110 @@ fn analyze_control_flow(stmt: &Statement, _scope: &mut Scope) -> Result<Option<A
     Ok(None)
 }
 
+/// Try to parse a statement as a function call: subject function args... ἔστω
+fn try_parse_function_call(stmt: &Statement, scope: &Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    // Pattern: subject function_name arg1 arg2 ... ἔστω
+    // All words are nominative or numerals, with ἔστω at the end
+
+    if stmt.clauses.is_empty() {
+        return Ok(None);
+    }
+
+    let clause = &stmt.clauses[0];
+    if clause.expressions.is_empty() {
+        return Ok(None);
+    }
+
+    // Get all words from the phrase
+    let words = match &clause.expressions[0] {
+        Expr::Phrase(terms) => terms,
+        _ => return Ok(None),
+    };
+
+    if words.len() < 3 {
+        return Ok(None); // Need at least: subject, function, verb
+    }
+
+    // Last word should be ἔστω
+    if let Expr::Word(last_word) = words.last().unwrap() {
+        let normalized = normalize_greek(&last_word.original);
+        if !crate::morphology::lexicon::is_binding_verb(&normalized) {
+            return Ok(None);
+        }
+    } else {
+        return Ok(None);
+    }
+
+    // First word is the subject (variable being assigned)
+    let subject_name = if let Expr::Word(w) = &words[0] {
+        normalize_greek(&w.original)
+    } else {
+        return Ok(None);
+    };
+
+    // Second word might be the function name
+    if words.len() >= 3 {
+        if let Expr::Word(w) = &words[1] {
+            let potential_func = normalize_greek(&w.original);
+
+            // Check if it's a defined function
+            if scope.is_function(&potential_func) {
+                // Remaining words (except last) are arguments
+                let mut args = Vec::new();
+                for word_expr in &words[2..words.len()-1] {
+                    if let Expr::Word(arg_word) = word_expr {
+                        let arg_normalized = normalize_greek(&arg_word.original);
+
+                        // Check if it's a numeral
+                        if let Some(val) = crate::morphology::lexicon::numeral_value(&arg_normalized) {
+                            args.push(AnalyzedExpr {
+                                expr: AnalyzedExprKind::NumberLiteral(val),
+                                glossa_type: GlossaType::Number,
+                            });
+                        } else if let Some(var_type) = scope.lookup(&arg_normalized) {
+                            // It's a variable
+                            args.push(AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable(arg_normalized),
+                                glossa_type: var_type.clone(),
+                            });
+                        }
+                    }
+                }
+
+                // Get return type from function signature
+                let return_type = scope.lookup_function(&potential_func)
+                    .and_then(|sig| sig.return_type.clone())
+                    .unwrap_or(GlossaType::Unknown);
+
+                let func_call = AnalyzedExpr {
+                    expr: AnalyzedExprKind::FunctionCall {
+                        func: potential_func,
+                        args,
+                    },
+                    glossa_type: return_type.clone(),
+                };
+
+                // This is a binding statement
+                return Ok(Some(AnalyzedStatement {
+                    kind: StatementKind::Binding {
+                        name: subject_name.clone(),
+                        value_type: return_type.clone(),
+                    },
+                    expressions: vec![
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subject_name),
+                            glossa_type: return_type,
+                        },
+                        func_call,
+                    ],
+                }));
+            }
+        }
+    }
+
+    Ok(None)
+}
+
 /// Get the first word from a statement for pattern detection
 fn get_first_word(stmt: &Statement) -> Result<String, GlossaError> {
     if let Some(first_clause) = stmt.clauses.first() {
@@ -170,6 +294,250 @@ fn get_first_word(stmt: &Statement) -> Result<String, GlossaError> {
         }
     }
     Err(GlossaError::semantic("Empty statement"))
+}
+
+/// Check if a statement contains the function definition verb (ὁρίζειν)
+fn contains_function_definition_verb(stmt: &Statement) -> bool {
+    for clause in &stmt.clauses {
+        for expr in &clause.expressions {
+            if contains_verb_in_expr(expr, "οριζειν") {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Helper to check if an expression contains a specific verb
+fn contains_verb_in_expr(expr: &Expr, verb: &str) -> bool {
+    match expr {
+        Expr::Word(word) => normalize_greek(&word.original) == verb,
+        Expr::Phrase(terms) => terms.iter().any(|t| contains_verb_in_expr(t, verb)),
+        _ => false,
+    }
+}
+
+/// Parse a function definition: name ὁρίζειν [params]· body
+fn parse_function_definition(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    // The middle dot (·) separates expressions within a clause
+    // Structure: expr1 · expr2 where expr1 is "name ὁρίζειν [params]" and expr2 is the body
+
+    // Get the first clause
+    if stmt.clauses.is_empty() {
+        return Err(GlossaError::semantic("Function definition cannot be empty"));
+    }
+
+    let clause = &stmt.clauses[0];
+
+    // We need at least 2 expressions: header and body
+    if clause.expressions.len() < 2 {
+        return Err(GlossaError::semantic("Function definition needs header and body separated by middle dot (·)"));
+    }
+
+    // Parse header (first expression contains name, ὁρίζειν, and parameters)
+    let header_expr = &clause.expressions[0];
+    let function_name = extract_function_name_from_expr(header_expr)?;
+
+    // Extract parameters (dative words) from the header
+    let params = extract_parameters_from_expr(header_expr)?;
+
+    // Create a new scope for the function body and add parameters to it
+    let mut function_scope = Scope::new();
+    for (param_name, param_type) in &params {
+        let glossa_type = param_type.clone().unwrap_or(GlossaType::Unknown);
+        function_scope.define(param_name.clone(), glossa_type);
+    }
+
+    // Parse body (remaining expressions after middle dot)
+    let body_exprs = &clause.expressions[1..];
+    let mut body_statements = Vec::new();
+
+    // Each expression in the body becomes a statement
+    for expr in body_exprs {
+        // Create a clause with this single expression
+        let body_clause = crate::ast::Clause {
+            expressions: vec![expr.clone()],
+        };
+
+        let clause_stmt = Statement {
+            clauses: vec![body_clause],
+            is_query: false,
+        };
+
+        // Analyze each body expression as a statement with the function scope
+        if let Some(cf) = analyze_control_flow(&clause_stmt, &mut function_scope)? {
+            body_statements.push(cf);
+        } else {
+            let assembled = analyze_single_statement_with_assembler(&clause_stmt)?;
+            let analyzed = convert_assembled_to_analyzed(&assembled, &mut function_scope)?;
+            body_statements.push(analyzed);
+        }
+    }
+
+    // Infer return type from return statements
+    let return_type = infer_return_type_from_body(&body_statements);
+
+    Ok(Some(AnalyzedStatement {
+        kind: StatementKind::FunctionDef {
+            name: function_name,
+            params,
+            body: body_statements,
+            return_type,
+        },
+        expressions: vec![],
+    }))
+}
+
+/// Extract the function name from a function definition header expression
+fn extract_function_name_from_expr(expr: &Expr) -> Result<String, GlossaError> {
+    // Collect all words and find the nominative word before ὁρίζειν
+    let words = collect_words_from_expr(expr);
+
+    let mut function_name = None;
+
+    for (i, word) in words.iter().enumerate() {
+        let normalized = normalize_greek(&word.original);
+
+        // Stop at ὁρίζειν
+        if normalized == "οριζειν" {
+            if let Some(name) = function_name {
+                return Ok(name);
+            } else {
+                break;
+            }
+        }
+
+        // Look for nominative words (or words without clear case marking, which default to nominative)
+        let analysis = morphology::analyze(&word.original);
+        if analysis.part_of_speech != morphology::PartOfSpeech::Article
+            && analysis.part_of_speech != morphology::PartOfSpeech::Verb
+        {
+            // This could be the function name
+            function_name = Some(normalized);
+        }
+    }
+
+    function_name.ok_or_else(|| GlossaError::semantic("Could not find function name in definition"))
+}
+
+/// Find the first nominative word in an expression
+fn find_nominative_word(expr: &Expr) -> Option<String> {
+    match expr {
+        Expr::Word(word) => {
+            let analysis = morphology::analyze(&word.original);
+            if analysis.case == Some(morphology::Case::Nominative) {
+                return Some(normalize_greek(&word.original));
+            }
+            None
+        }
+        Expr::Phrase(terms) => {
+            for term in terms {
+                if let Some(name) = find_nominative_word(term) {
+                    return Some(name);
+                }
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+/// Extract parameters from a function definition header expression
+/// Parameters are words after dative article τῷ, optionally followed by genitive type annotations
+fn extract_parameters_from_expr(expr: &Expr) -> Result<Vec<(String, Option<GlossaType>)>, GlossaError> {
+    let mut params = Vec::new();
+
+    // Collect all words from the expression
+    let words = collect_words_from_expr(expr);
+
+    // Find the position of ὁρίζειν
+    let mut start_pos = None;
+    for (i, word) in words.iter().enumerate() {
+        let normalized = normalize_greek(&word.original);
+        if normalized == "οριζειν" {
+            start_pos = Some(i + 1); // Start after ὁρίζειν
+            break;
+        }
+    }
+
+    let start_pos = start_pos.unwrap_or(0);
+    let mut i = start_pos;
+
+    while i < words.len() {
+        let word = &words[i];
+        let analysis = morphology::analyze(&word.original);
+        let normalized = normalize_greek(&word.original);
+
+        // Check for dative article τῷ
+        if analysis.part_of_speech == morphology::PartOfSpeech::Article
+            && analysis.case == Some(morphology::Case::Dative)
+        {
+            // Next word should be the parameter name
+            if i + 1 < words.len() {
+                let param_word = &words[i + 1];
+                let param_name = normalize_greek(&param_word.original);
+
+                // Check if word after param is a genitive (type annotation)
+                let mut param_type = None;
+                if i + 2 < words.len() {
+                    let next_word = &words[i + 2];
+                    let next_analysis = morphology::analyze(&next_word.original);
+                    if next_analysis.case == Some(morphology::Case::Genitive) {
+                        // Map genitive type to GlossaType
+                        let type_name = normalize_greek(&next_word.original);
+                        param_type = Some(map_greek_type_to_glossa(&type_name));
+                        i += 1; // Skip the type annotation
+                    }
+                }
+
+                params.push((param_name, param_type));
+                i += 1; // Skip the parameter name
+            }
+        }
+
+        i += 1;
+    }
+
+    Ok(params)
+}
+
+/// Collect all Word nodes from an expression (flattening phrases)
+fn collect_words_from_expr(expr: &Expr) -> Vec<&crate::ast::Word> {
+    let mut words = Vec::new();
+
+    match expr {
+        Expr::Word(word) => words.push(word),
+        Expr::Phrase(terms) => {
+            for term in terms {
+                words.extend(collect_words_from_expr(term));
+            }
+        }
+        _ => {}
+    }
+
+    words
+}
+
+/// Map Greek type names to GlossaType
+fn map_greek_type_to_glossa(type_name: &str) -> GlossaType {
+    match type_name {
+        "αριθμου" => GlossaType::Number,
+        "ονοματος" => GlossaType::String,
+        "λιστης" => GlossaType::List(Box::new(GlossaType::Unknown)),
+        _ => GlossaType::Unknown,
+    }
+}
+
+/// Infer the return type from the function body by examining return statements
+fn infer_return_type_from_body(body: &[AnalyzedStatement]) -> Option<GlossaType> {
+    for stmt in body {
+        if let StatementKind::Return { value } = &stmt.kind {
+            if let Some(return_expr) = value {
+                return Some(return_expr.glossa_type.clone());
+            }
+        }
+    }
+    None
 }
 
 /// Parse a while loop statement (ἕως)
@@ -487,6 +855,82 @@ fn parse_match_expression(stmt: &Statement, scope: &mut Scope) -> Result<Option<
         },
         expressions: vec![],
     }))
+}
+
+/// Parse a return statement: δός value
+fn parse_return_statement(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    // Get the first clause
+    if stmt.clauses.is_empty() {
+        return Ok(Some(AnalyzedStatement {
+            kind: StatementKind::Return { value: None },
+            expressions: vec![],
+        }));
+    }
+
+    let clause = &stmt.clauses[0];
+
+    // Try to parse return expression - for now, use a simple heuristic
+    // Full expression parsing will need a context-aware approach
+    let return_expr = parse_return_expression(clause, scope)?;
+
+    Ok(Some(AnalyzedStatement {
+        kind: StatementKind::Return {
+            value: Some(Box::new(return_expr)),
+        },
+        expressions: vec![],
+    }))
+}
+
+/// Parse return expression in a simple way (avoiding assembler issues with scoped variables)
+fn parse_return_expression(clause: &crate::ast::Clause, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
+    // For Cycle 3, we'll do simple expression parsing
+    // The expression after δός could be:
+    // - A simple variable: ξ
+    // - A literal: πέντε
+    // - An operation: ξ δύο ἄθροισμα
+
+    // Get all words after δός
+    let words = if let Some(Expr::Phrase(terms)) = clause.expressions.first() {
+        terms.iter().skip(1).collect::<Vec<_>>() // Skip δός
+    } else {
+        vec![]
+    };
+
+    if words.is_empty() {
+        return Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(0),
+            glossa_type: GlossaType::Number,
+        });
+    }
+
+    // Simple heuristic: if single word, treat as variable or literal
+    if words.len() == 1 {
+        if let Expr::Word(w) = words[0] {
+            let normalized = normalize_greek(&w.original);
+
+            // Check if it's a numeral
+            if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(val),
+                    glossa_type: GlossaType::Number,
+                });
+            }
+
+            // Treat as variable
+            let var_type = scope.lookup(&normalized).cloned().unwrap_or(GlossaType::Unknown);
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(normalized),
+                glossa_type: var_type,
+            });
+        }
+    }
+
+    // For now, just return a number literal placeholder for complex expressions
+    // TODO: Implement full expression parsing that respects function scope
+    Ok(AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(0),
+        glossa_type: GlossaType::Number,
+    })
 }
 
 /// Parse a match pattern expression
@@ -882,9 +1326,77 @@ fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
-    // Check for binding pattern: has subject + literals + binding verb
+    // Check for function call pattern first
+    // Pattern: subject function_name args... ἔστω
+    // Where function_name is not a built-in verb but a user-defined function
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
+
+        // Check if verb is a binding verb and if there's an object or genitive that could be a function call
+        if crate::morphology::lexicon::is_binding_verb(&verb_lemma) {
+            // Check if object is a user-defined function
+            // Pattern: subject = function(args)
+            // The function name might be in the object slot or genitives
+
+            // Try object slot first
+            let mut func_name = None;
+            if let Some(ref object) = asm_stmt.object {
+                if scope.is_function(&object.lemma) {
+                    func_name = Some(object.lemma.clone());
+                }
+            }
+
+            // Try genitives if not found
+            if func_name.is_none() {
+                for genitive in &asm_stmt.genitives {
+                    if scope.is_function(&genitive.lemma) {
+                        func_name = Some(genitive.lemma.clone());
+                        break;
+                    }
+                }
+            }
+
+            // If we found a function name, build the call
+            if let Some(func) = func_name {
+                if let Some(ref subject) = asm_stmt.subject {
+                    // Build function call with literals as arguments
+                    let args: Vec<AnalyzedExpr> = asm_stmt.literals.iter()
+                        .map(literal_to_analyzed_expr)
+                        .collect();
+
+                    // Get return type from function signature
+                    let return_type = scope.lookup_function(&func)
+                        .and_then(|sig| sig.return_type.clone())
+                        .unwrap_or(GlossaType::Unknown);
+
+                    let func_call = AnalyzedExpr {
+                        expr: AnalyzedExprKind::FunctionCall {
+                            func: func.clone(),
+                            args,
+                        },
+                        glossa_type: return_type.clone(),
+                    };
+
+                    // Register subject as variable
+                    scope.define(subject.lemma.clone(), return_type.clone());
+
+                    return Ok((
+                        StatementKind::Binding {
+                            name: subject.lemma.clone(),
+                            value_type: return_type.clone(),
+                        },
+                        vec![
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+                                glossa_type: return_type.clone(),
+                            },
+                            func_call,
+                        ],
+                    ));
+                }
+            }
+        }
+
         if crate::morphology::lexicon::is_binding_verb(&verb_lemma) {
             // Check if this is actually a comparison with subjunctive (εἰ condition)
             // Pattern: subject operator literal subjunctive-verb
@@ -1479,6 +1991,15 @@ pub enum StatementKind {
     Break,
     /// Continue: συνέχιζε
     Continue,
+    /// Return: δός value
+    Return { value: Option<Box<AnalyzedExpr>> },
+    /// Function definition: name ὁρίζειν params· body
+    FunctionDef {
+        name: String,
+        params: Vec<(String, Option<GlossaType>)>,
+        body: Vec<AnalyzedStatement>,
+        return_type: Option<GlossaType>,
+    },
 }
 
 /// Analyzed expression with type information
@@ -1520,6 +2041,11 @@ pub enum AnalyzedExprKind {
     IndexAccess {
         array: Box<AnalyzedExpr>,
         index: Box<AnalyzedExpr>,
+    },
+    /// Function call to user-defined function
+    FunctionCall {
+        func: String,
+        args: Vec<AnalyzedExpr>,
     },
     /// Method call receiver.method(args)
     MethodCall {
