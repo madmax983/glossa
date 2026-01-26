@@ -8,13 +8,22 @@ use proc_macro2::TokenStream;
 
 /// Generate Rust code from a HIR program
 pub fn generate_rust(hir: &HirProgram) -> String {
-    let statements: Vec<TokenStream> = hir.statements.iter()
-        .map(generate_statement)
-        .collect();
+    // Separate function definitions from main body statements
+    let mut fn_defs = Vec::new();
+    let mut main_stmts = Vec::new();
+
+    for stmt in &hir.statements {
+        match stmt {
+            HirStatement::FnDef { .. } => fn_defs.push(generate_statement(stmt)),
+            _ => main_stmts.push(generate_statement(stmt)),
+        }
+    }
 
     let output = quote! {
+        #(#fn_defs)*
+
         fn main() {
-            #(#statements)*
+            #(#main_stmts)*
         }
     };
 
@@ -69,6 +78,134 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             let expr_tokens = generate_expr(expr);
             quote! { #expr_tokens; }
         }
+
+        HirStatement::If { condition, then_body, else_body } => {
+            let cond = generate_expr(condition);
+            let then_stmts: Vec<TokenStream> = then_body.iter()
+                .map(generate_statement)
+                .collect();
+
+            match else_body {
+                Some(else_stmts) => {
+                    let else_tokens: Vec<TokenStream> = else_stmts.iter()
+                        .map(generate_statement)
+                        .collect();
+                    quote! {
+                        if #cond {
+                            #(#then_stmts)*
+                        } else {
+                            #(#else_tokens)*
+                        }
+                    }
+                }
+                None => {
+                    quote! {
+                        if #cond {
+                            #(#then_stmts)*
+                        }
+                    }
+                }
+            }
+        }
+
+        HirStatement::While { condition, body } => {
+            let cond = generate_expr(condition);
+            let body_stmts: Vec<TokenStream> = body.iter()
+                .map(generate_statement)
+                .collect();
+            quote! {
+                while #cond {
+                    #(#body_stmts)*
+                }
+            }
+        }
+
+        HirStatement::For { variable, iterator, body } => {
+            let var_ident = format_ident!("{}", sanitize_name(variable));
+            let iter = generate_expr(iterator);
+            let body_stmts: Vec<TokenStream> = body.iter()
+                .map(generate_statement)
+                .collect();
+            quote! {
+                for #var_ident in #iter {
+                    #(#body_stmts)*
+                }
+            }
+        }
+
+        HirStatement::Match { scrutinee, arms } => {
+            let scrut = generate_expr(scrutinee);
+            let arm_tokens: Vec<TokenStream> = arms.iter()
+                .map(|(pattern, body)| {
+                    // Check if pattern is wildcard (represented as BoolLit(true))
+                    let pat = if matches!(pattern, HirExpr::BoolLit(true)) {
+                        // Generate wildcard pattern
+                        quote! { _ }
+                    } else {
+                        generate_expr(pattern)
+                    };
+                    let body_stmts: Vec<TokenStream> = body.iter()
+                        .map(generate_statement)
+                        .collect();
+                    quote! { #pat => { #(#body_stmts)* } }
+                })
+                .collect();
+            quote! {
+                match #scrut {
+                    #(#arm_tokens),*
+                }
+            }
+        }
+
+        HirStatement::Break => quote! { break; },
+
+        HirStatement::Continue => quote! { continue; },
+
+        HirStatement::Return(expr) => {
+            match expr {
+                Some(e) => {
+                    let value = generate_expr(e);
+                    quote! { return #value; }
+                }
+                None => quote! { return; }
+            }
+        }
+
+        HirStatement::FnDef { name, params, body, return_type } => {
+            let fn_name = format_ident!("{}", sanitize_name(name));
+            let body_stmts: Vec<TokenStream> = body.iter()
+                .map(generate_statement)
+                .collect();
+
+            // Generate parameter list
+            let param_tokens: Vec<TokenStream> = params.iter()
+                .map(|(param_name, param_type)| {
+                    let param_ident = format_ident!("{}", sanitize_name(param_name));
+                    if let Some(type_str) = param_type {
+                        let ty = format_ident!("{}", type_str);
+                        quote! { #param_ident: #ty }
+                    } else {
+                        quote! { #param_ident }
+                    }
+                })
+                .collect();
+
+            // Generate return type
+            if let Some(ret_type) = return_type {
+                let ret_ty = format_ident!("{}", ret_type);
+                quote! {
+                    fn #fn_name(#(#param_tokens),*) -> #ret_ty {
+                        #(#body_stmts)*
+                    }
+                }
+            } else {
+                quote! {
+                    fn #fn_name(#(#param_tokens),*) {
+                        #(#body_stmts)*
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -84,6 +221,20 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
 
         HirExpr::BoolLit(b) => {
             quote! { #b }
+        }
+
+        HirExpr::ArrayLit(elements) => {
+            let elem_tokens: Vec<TokenStream> = elements.iter()
+                .map(generate_expr)
+                .collect();
+            quote! { vec![#(#elem_tokens),*] }
+        }
+
+        HirExpr::Index { array, index } => {
+            let array_tokens = generate_expr(array);
+            let index_tokens = generate_expr(index);
+            // Cast index to usize for Rust array indexing
+            quote! { #array_tokens[(#index_tokens) as usize] }
         }
 
         HirExpr::Var(name) => {
@@ -123,6 +274,7 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
                 BinOp::Sub => quote! { (#left_tokens - #right_tokens) },
                 BinOp::Mul => quote! { (#left_tokens * #right_tokens) },
                 BinOp::Div => quote! { (#left_tokens / #right_tokens) },
+                BinOp::Mod => quote! { (#left_tokens % #right_tokens) },
                 BinOp::Eq => quote! { (#left_tokens == #right_tokens) },
                 BinOp::Ne => quote! { (#left_tokens != #right_tokens) },
                 BinOp::Lt => quote! { (#left_tokens < #right_tokens) },
@@ -140,6 +292,16 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
                 quote! { &mut #inner }
             } else {
                 quote! { &#inner }
+            }
+        }
+
+        HirExpr::Range { start, end, inclusive } => {
+            let start_tokens = generate_expr(start);
+            let end_tokens = generate_expr(end);
+            if *inclusive {
+                quote! { (#start_tokens..=#end_tokens) }
+            } else {
+                quote! { (#start_tokens..#end_tokens) }
             }
         }
     }

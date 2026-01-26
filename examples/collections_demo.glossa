@@ -1,0 +1,31 @@
+// ΓΛΩΣΣΑ Collections Demo - Phase 3
+// Demonstrates array literals, indexing, and operations
+
+// Array literal
+ἀριθμοί [10, 20, 30, 40, 50] ἔστωσαν.
+
+// Numeric indexing
+ἀριθμοί[0] λέγε.
+ἀριθμοί[2] λέγε.
+
+// Ordinal indexing (new!)
+ἀριθμοί πρῶτον λέγε.
+ἀριθμοί δεύτερον λέγε.
+ἀριθμοί τρίτον λέγε.
+
+// Push operation (empty array - singular is fine for "empty")
+κενός [] ἔστω.
+κενός ὠθεῖ 42.
+κενός ὠθεῖ 99.
+// Note: Can't print arrays directly in Rust (no Display impl)
+// κενός λέγε.
+
+// Pop operation
+κενός ἕλκεται.
+// κενός λέγε.
+
+// Length property
+κενός μῆκος λέγε.
+
+// Array iteration
+διὰ ἀριθμοί, ξ λέγε.

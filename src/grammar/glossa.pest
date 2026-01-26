@@ -8,6 +8,10 @@
 //    . (τελεία) - full stop, ends statements
 //    · (U+00B7 άνω τελεία / middle dot) - semicolon/colon, chains expressions
 //    ; (U+037E ερωτηματικό) - question mark
+//    , (comma) - clause separator in control flow
+//
+// Control flow keywords (εἰ, ἕως, κατά, etc.) are identified in semantic analysis
+// using normalized forms, NOT in the grammar. This keeps the grammar simple.
 
 // =============================================================================
 // Top-level rules
@@ -15,12 +19,16 @@
 
 program = { SOI ~ statement* ~ EOI }
 
-statement = { expression_list ~ statement_end }
+statement = { clause_list ~ statement_end }
 
 statement_end = { period | query }
 
-// Expression list allows chaining with middle dot
-expression_list = { expression ~ (chain ~ expression)* }
+// Clause list: clauses separated by commas (for control flow)
+// e.g., "εἰ condition, body" or "ἕως condition, body"
+clause_list = { clause ~ (comma ~ clause)* }
+
+// A clause is an expression list (chained with middle dot)
+clause = { expression ~ (chain ~ expression)* }
 
 // =============================================================================
 // Expressions
@@ -29,11 +37,31 @@ expression_list = { expression ~ (chain ~ expression)* }
 expression = { term+ }
 
 term = {
-    string_literal
+    block
+    | array_literal
+    | string_literal
     | number_literal
     | boolean_literal
+    | indexed_word
+    | parenthesized_expr
     | greek_word
 }
+
+// Parenthesized expression for grouping (e.g., nested function calls)
+parenthesized_expr = { "(" ~ expression ~ ")" }
+
+// Indexed word: word[index]
+indexed_word = { greek_word ~ "[" ~ index_expr ~ "]" }
+index_expr = { number_literal | greek_word }
+
+// Array literal: [element, element, ...]
+array_literal = { "[" ~ array_elements? ~ "]" }
+array_elements = { array_element ~ ("," ~ array_element)* }
+array_element = { string_literal | number_literal | boolean_literal | greek_word }
+
+// A block is a sequence of statements in braces
+// Used for multi-statement bodies in control flow
+block = { "{" ~ statement* ~ "}" }
 
 // =============================================================================
 // Literals
@@ -88,6 +116,9 @@ chain = { "\u{00B7}" }
 // Greek question mark (U+037E) - looks like semicolon but is the question mark
 // Also accept ASCII ? for convenience
 query = { "\u{037E}" | "?" }
+
+// Comma - separates clauses (condition from body in control flow)
+comma = { "," }
 
 // =============================================================================
 // Whitespace and comments

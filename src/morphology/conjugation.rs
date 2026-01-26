@@ -47,6 +47,31 @@ const AORIST_ACTIVE_IMP: &[(&str, Person, Number)] = &[
     ("σαντων", Person::Third, Number::Plural),
 ];
 
+/// Present Active Subjunctive endings (long vowel theme)
+/// Pattern: λύω → λύω (identical to present indicative in form, but subjunctive in meaning)
+/// The subjunctive has lengthened thematic vowel: ω/η instead of ο/ε
+const PRESENT_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
+    ("ω", Person::First, Number::Singular),
+    ("ῃς", Person::Second, Number::Singular),   // Note: η + ς
+    ("ῃ", Person::Third, Number::Singular),     // Long vowel ῃ
+    ("ωμεν", Person::First, Number::Plural),
+    ("ητε", Person::Second, Number::Plural),
+    ("ωσι", Person::Third, Number::Plural),
+    ("ωσιν", Person::Third, Number::Plural),    // with movable nu
+];
+
+/// Aorist Active Subjunctive endings
+/// Pattern: λύσω (σ + subjunctive endings)
+const AORIST_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
+    ("σω", Person::First, Number::Singular),
+    ("σῃς", Person::Second, Number::Singular),
+    ("σῃ", Person::Third, Number::Singular),
+    ("σωμεν", Person::First, Number::Plural),
+    ("σητε", Person::Second, Number::Plural),
+    ("σωσι", Person::Third, Number::Plural),
+    ("σωσιν", Person::Third, Number::Plural),
+];
+
 /// Present Active Infinitive ending
 const PRESENT_INFINITIVE: &str = "ειν";
 
@@ -140,8 +165,39 @@ fn strip_augment(augmented_stem: &str) -> String {
 }
 
 /// Try to analyze a word as a verb
+/// Subjunctive forms of εἰμί (to be) - irregular but essential for conditionals
+const EIMI_SUBJUNCTIVE: &[(&str, Person, Number)] = &[
+    ("ω", Person::First, Number::Singular),      // ὦ
+    ("ης", Person::Second, Number::Singular),    // ᾖς (normalized)
+    ("η", Person::Third, Number::Singular),      // ᾖ (normalized) - most common in conditionals
+    ("ωμεν", Person::First, Number::Plural),     // ὦμεν
+    ("ητε", Person::Second, Number::Plural),     // ἦτε
+    ("ωσι", Person::Third, Number::Plural),      // ὦσι
+    ("ωσιν", Person::Third, Number::Plural),     // with movable nu
+];
+
 pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
-    // Try present active indicative
+    // Special handling for εἰμί (to be) subjunctive forms
+    // These are irregular and essential for conditionals (εἰ ... ᾖ)
+    for (form, person, number) in EIMI_SUBJUNCTIVE {
+        if word == *form {
+            return Some(MorphAnalysis {
+                lemma: "ειμι".to_string(),
+                part_of_speech: PartOfSpeech::Verb,
+                case: None,
+                number: Some(*number),
+                gender: None,
+                person: Some(*person),
+                tense: Some(Tense::Present),
+                mood: Some(Mood::Subjunctive),
+                voice: Some(Voice::Active),
+                confidence: 0.95,
+            });
+        }
+    }
+
+    // Try present active indicative FIRST (most common mood)
+    // Note: -ω ending is ambiguous (indicative vs subjunctive), prefer indicative
     if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_IND) {
         return Some(MorphAnalysis {
             lemma: format!("{}ω", stem),
@@ -245,6 +301,39 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
         }
     }
 
+    // Try present active subjunctive (checked after indicative due to -ω overlap)
+    // Only match distinctive subjunctive endings (ῃς, ῃ, ωμεν, ητε, ωσι)
+    if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_SUBJ) {
+        return Some(MorphAnalysis {
+            lemma: format!("{}ω", stem),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(number),
+            gender: None,
+            person: Some(person),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Subjunctive),
+            voice: Some(Voice::Active),
+            confidence: 0.70, // Lower confidence due to rarity
+        });
+    }
+
+    // Try aorist active subjunctive
+    if let Some((stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_SUBJ) {
+        return Some(MorphAnalysis {
+            lemma: format!("{}ω", stem),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(number),
+            gender: None,
+            person: Some(person),
+            tense: Some(Tense::Aorist),
+            mood: Some(Mood::Subjunctive),
+            voice: Some(Voice::Active),
+            confidence: 0.70,
+        });
+    }
+
     None
 }
 
@@ -289,6 +378,25 @@ fn match_verb_endings_all(word: &str, endings: &[(&str, Person, Number)]) -> Vec
 /// - 3rd person singular aorist indicative (ἔλυσε)
 pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
     let mut analyses = Vec::new();
+
+    // Special handling for εἰμί (to be) subjunctive forms
+    // These are irregular and essential for conditionals (εἰ ... ᾖ)
+    for (form, person, number) in EIMI_SUBJUNCTIVE {
+        if word == *form {
+            analyses.push(MorphAnalysis {
+                lemma: "ειμι".to_string(),
+                part_of_speech: PartOfSpeech::Verb,
+                case: None,
+                number: Some(*number),
+                gender: None,
+                person: Some(*person),
+                tense: Some(Tense::Present),
+                mood: Some(Mood::Subjunctive),
+                voice: Some(Voice::Active),
+                confidence: 0.95,
+            });
+        }
+    }
 
     // Helper struct for conjugation patterns
     struct ConjPattern {
@@ -514,6 +622,16 @@ mod tests {
         let analysis = analyze_verb("λεγειν").unwrap();
         assert_eq!(analysis.tense, Some(Tense::Present));
         assert_eq!(analysis.mood, Some(Mood::Infinitive));
+    }
+
+    #[test]
+    fn test_eimi_subjunctive() {
+        // ᾖ normalizes to η - 3rd person singular subjunctive of εἰμί
+        let analysis = analyze_verb("η").unwrap();
+        assert_eq!(analysis.lemma, "ειμι");
+        assert_eq!(analysis.mood, Some(Mood::Subjunctive));
+        assert_eq!(analysis.person, Some(Person::Third));
+        assert_eq!(analysis.number, Some(Number::Singular));
     }
 
     #[test]

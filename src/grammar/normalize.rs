@@ -130,4 +130,22 @@ mod tests {
         assert_eq!(normalize_greek("ΛΟΓΟΣ"), "λογος");
         assert_eq!(normalize_greek("Λόγος"), "λογος");
     }
+
+    #[test]
+    fn test_normalize_meizon() {
+        // μεῖζον with circumflex should normalize to μειζον
+        assert_eq!(normalize_greek("μεῖζον"), "μειζον");
+    }
+
+    #[test]
+    fn test_normalize_or_particle() {
+        // ἤ (eta with smooth breathing + acute) should normalize to η
+        assert_eq!(normalize_greek("ἤ"), "η");
+    }
+
+    #[test]
+    fn test_normalize_subjunctive_eimi() {
+        // ᾖ (eta with iota subscript + circumflex) should normalize to η
+        assert_eq!(normalize_greek("ᾖ"), "η");
+    }
 }

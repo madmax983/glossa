@@ -8,7 +8,9 @@
 //! them into a statement when finalized (at end of sentence).
 
 use crate::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender, Person, Tense, Mood};
+use crate::morphology::lexicon::BinaryOp;
 use crate::grammar::normalize_greek;
+use crate::ast::{Expr, Word};
 
 /// A fully assembled statement with all grammatical roles filled
 #[derive(Debug, Clone)]
@@ -25,6 +27,14 @@ pub struct AssembledStatement {
     pub genitives: Vec<Constituent>,
     /// Literal values (strings, numbers) that appeared
     pub literals: Vec<Literal>,
+    /// Array literals that appeared
+    pub arrays: Vec<Vec<Expr>>,
+    /// Index accesses (array, index)
+    pub index_accesses: Vec<(Expr, Expr)>,
+    /// Property accesses (owner, property)
+    pub property_accesses: Vec<(String, String)>,
+    /// Binary operators found between expressions
+    pub operators: Vec<BinaryOp>,
     /// Whether this is a query (ends with ;)
     pub is_query: bool,
 }
@@ -81,6 +91,10 @@ pub struct Assembler {
     pending_verb: Option<VerbConstituent>,
     pending_genitives: Vec<Constituent>,
     pending_literals: Vec<Literal>,
+    pending_arrays: Vec<Vec<Expr>>,
+    pending_index_accesses: Vec<(Expr, Expr)>,
+    pending_property_accesses: Vec<(String, String)>,
+    pending_operators: Vec<BinaryOp>,
     is_query: bool,
 }
 
@@ -124,6 +138,10 @@ impl Assembler {
             pending_verb: None,
             pending_genitives: Vec::new(),
             pending_literals: Vec::new(),
+            pending_arrays: Vec::new(),
+            pending_index_accesses: Vec::new(),
+            pending_property_accesses: Vec::new(),
+            pending_operators: Vec::new(),
             is_query: false,
         }
     }
@@ -136,6 +154,10 @@ impl Assembler {
         self.pending_verb = None;
         self.pending_genitives.clear();
         self.pending_literals.clear();
+        self.pending_arrays.clear();
+        self.pending_index_accesses.clear();
+        self.pending_property_accesses.clear();
+        self.pending_operators.clear();
         self.is_query = false;
     }
 
@@ -146,6 +168,71 @@ impl Assembler {
 
     /// Feed a morphologically-analyzed token into the assembler
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+        let normalized = normalize_greek(original);
+
+        // Check for operators first (before normal part-of-speech handling)
+        // Boolean operators: καί (&&), ἤ (||)
+        // IMPORTANT: Use original form for ἤ to distinguish from ᾖ (subjunctive)
+        // ἤ has smooth breathing + acute, ᾖ has subscript iota + circumflex
+        if matches!(original, "καί" | "και") {
+            self.pending_operators.push(BinaryOp::And);
+            return Ok(());
+        }
+        if matches!(original, "ἤ" | "ή") {  // ἤ with breathing+accent, but not ᾖ
+            self.pending_operators.push(BinaryOp::Or);
+            return Ok(());
+        }
+
+        // Comparison operators: μεῖζον (>), ἔλαττον (<), ἴσον (==)
+        if let Some(op) = crate::morphology::lexicon::comparison_operator(&normalized) {
+            self.pending_operators.push(op);
+            return Ok(());
+        }
+
+        // Arithmetic operators: ἄθροισμα (+), διαφορά (-), γινόμενον (*)
+        if let Some(op) = crate::morphology::lexicon::arithmetic_operator(&normalized) {
+            self.pending_operators.push(op);
+            return Ok(());
+        }
+
+        // Check for numeral words (any case form) - these become literals
+        // This catches numeral words regardless of how morphology parsed them
+        if let Some(value) = crate::morphology::lexicon::numeral_value(&normalized) {
+            self.pending_literals.push(Literal::Number(value));
+            return Ok(());
+        }
+
+        // Check for property nouns (μῆκος)
+        if crate::morphology::lexicon::is_length_property(&normalized) {
+            // If we have a subject, create a property access (use normalized original, not lemma)
+            if let Some(ref subj) = self.pending_subject {
+                let normalized_original = crate::grammar::normalize_greek(&subj.original);
+                self.pending_property_accesses.push((normalized_original, "len".to_string()));
+                self.pending_subject = None; // Consume the subject
+            }
+            return Ok(());
+        }
+
+        // Check for ordinal adjectives (πρῶτον, δεύτερον, τρίτον)
+        if crate::morphology::lexicon::is_ordinal(&normalized) {
+            // If we have a subject, create an index access with the ordinal index
+            if let Some(ref subj) = self.pending_subject {
+                if let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized) {
+                    // Create array and index expressions (use normalized original, not lemma)
+                    let normalized_original = crate::grammar::normalize_greek(&subj.original);
+                    let array = Expr::Word(Word {
+                        original: subj.original.clone(),
+                        normalized: normalized_original,
+                    });
+                    let index_expr = Expr::NumberLiteral(index);
+
+                    self.pending_index_accesses.push((array, index_expr));
+                    self.pending_subject = None; // Consume the subject
+                }
+            }
+            return Ok(());
+        }
+
         match analysis.part_of_speech {
             PartOfSpeech::Noun | PartOfSpeech::Pronoun | PartOfSpeech::Adjective => {
                 self.handle_nominal(analysis, original)
@@ -154,12 +241,11 @@ impl Assembler {
                 self.handle_verb(analysis, original)
             }
             PartOfSpeech::Numeral => {
-                // Numerals can act as nouns or adjectives
-                if let Some(value) = crate::morphology::lexicon::numeral_value(&normalize_greek(original)) {
-                    self.pending_literals.push(Literal::Number(value));
-                } else {
-                    self.handle_nominal(analysis, original)?;
-                }
+                // Already handled above, but keep this for explicit numeral POS
+                self.handle_nominal(analysis, original)
+            }
+            PartOfSpeech::Conjunction => {
+                // Non-operator conjunctions are ignored for now
                 Ok(())
             }
             _ => Ok(()), // Ignore particles, articles for now
@@ -179,6 +265,16 @@ impl Assembler {
     /// Feed a boolean literal
     pub fn feed_boolean(&mut self, value: bool) {
         self.pending_literals.push(Literal::Boolean(value));
+    }
+
+    /// Feed an array literal
+    pub fn feed_array(&mut self, elements: Vec<Expr>) {
+        self.pending_arrays.push(elements);
+    }
+
+    /// Feed an index access (array[index])
+    pub fn feed_index_access(&mut self, array: Expr, index: Expr) {
+        self.pending_index_accesses.push((array, index));
     }
 
     /// Handle a noun/pronoun/adjective - route to slot by case
@@ -288,6 +384,10 @@ impl Assembler {
             indirect: self.pending_indirect.take(),
             genitives: std::mem::take(&mut self.pending_genitives),
             literals: std::mem::take(&mut self.pending_literals),
+            arrays: std::mem::take(&mut self.pending_arrays),
+            index_accesses: std::mem::take(&mut self.pending_index_accesses),
+            property_accesses: std::mem::take(&mut self.pending_property_accesses),
+            operators: std::mem::take(&mut self.pending_operators),
             is_query: self.is_query,
         };
 
@@ -303,6 +403,9 @@ impl Assembler {
             || self.pending_verb.is_some()
             || !self.pending_genitives.is_empty()
             || !self.pending_literals.is_empty()
+            || !self.pending_arrays.is_empty()
+            || !self.pending_index_accesses.is_empty()
+            || !self.pending_property_accesses.is_empty()
     }
 }
 
@@ -316,6 +419,59 @@ impl Default for Assembler {
 mod tests {
     use super::*;
     use crate::morphology::analyze;
+
+    #[test]
+    fn test_operator_detection() {
+        // μεῖζον should be detected as > operator
+        let mut asm = Assembler::new();
+
+        // Feed comparison adjective
+        let meizon = analyze("μειζον");
+        asm.feed(&meizon, "μεῖζον").unwrap();
+
+        let stmt = asm.finalize().unwrap();
+        assert!(!stmt.operators.is_empty(), "Expected operator to be captured");
+        assert_eq!(stmt.operators[0], BinaryOp::Gt);
+    }
+
+    #[test]
+    fn test_boolean_or_detection() {
+        // ἤ should be detected as || operator
+        let mut asm = Assembler::new();
+
+        // Feed boolean particle
+        let or_particle = analyze("η");
+        asm.feed(&or_particle, "ἤ").unwrap();
+
+        let stmt = asm.finalize().unwrap();
+        assert!(!stmt.operators.is_empty(), "Expected operator to be captured, got: {:?}", stmt);
+        assert_eq!(stmt.operators[0], BinaryOp::Or);
+    }
+
+    #[test]
+    fn test_full_boolean_or_expression() {
+        // ἀληθές ἤ ψεῦδος λέγε - simulate the full expression
+        let mut asm = Assembler::new();
+
+        // Feed true (boolean literal - handled by parser, goes to feed_boolean)
+        asm.feed_boolean(true);
+
+        // Feed ἤ (OR operator)
+        let or_particle = analyze("η");
+        asm.feed(&or_particle, "ἤ").unwrap();
+
+        // Feed false (boolean literal)
+        asm.feed_boolean(false);
+
+        // Feed λέγε (print verb)
+        let verb = analyze("λεγε");
+        asm.feed(&verb, "λέγε").unwrap();
+
+        let stmt = asm.finalize().unwrap();
+        assert_eq!(stmt.literals.len(), 2, "Expected 2 literals, got: {:?}", stmt.literals);
+        assert_eq!(stmt.operators.len(), 1, "Expected 1 operator, got: {:?}", stmt.operators);
+        assert_eq!(stmt.operators[0], BinaryOp::Or);
+    }
 
     #[test]
     fn test_simple_sov() {

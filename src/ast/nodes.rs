@@ -13,10 +13,26 @@ pub struct Program {
 /// A single statement, ending with . (statement) or ? (query)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Statement {
-    /// The expressions in this statement (may be chained with · U+00B7 ano teleia)
-    pub expressions: Vec<Expr>,
+    /// Clauses in this statement, separated by commas
+    /// Each clause contains expressions (chained with · U+00B7 ano teleia)
+    /// e.g., "εἰ condition, body" has 2 clauses
+    pub clauses: Vec<Clause>,
     /// Whether this is a query (ends with ?)
     pub is_query: bool,
+}
+
+/// A clause within a statement (comma-separated)
+#[derive(Debug, Clone, PartialEq)]
+pub struct Clause {
+    /// Expressions in this clause (chained with middle dot)
+    pub expressions: Vec<Expr>,
+}
+
+impl Statement {
+    /// Get all expressions flattened (for backwards compatibility)
+    pub fn expressions(&self) -> impl Iterator<Item = &Expr> {
+        self.clauses.iter().flat_map(|c| c.expressions.iter())
+    }
 }
 
 /// An expression in GLOSSA
@@ -30,6 +46,15 @@ pub enum Expr {
 
     /// A boolean literal: ἀληθές or ψεῦδος
     BooleanLiteral(bool),
+
+    /// An array literal: [1, 2, 3]
+    ArrayLiteral(Vec<Expr>),
+
+    /// Index access: array[index]
+    IndexAccess {
+        array: Box<Expr>,
+        index: Box<Expr>,
+    },
 
     /// A single Greek word with morphological information
     Word(Word),
@@ -55,6 +80,54 @@ pub enum Expr {
         name: Word,
         value: Box<Expr>,
     },
+
+    /// Binary operation (arithmetic, comparison, boolean)
+    /// e.g., x μεῖζον y → x > y
+    BinOp {
+        left: Box<Expr>,
+        op: BinOperator,
+        right: Box<Expr>,
+    },
+
+    /// Unary operation (negation)
+    /// e.g., οὐκ x → !x
+    UnaryOp {
+        op: UnaryOperator,
+        operand: Box<Expr>,
+    },
+
+    /// A block of statements in braces { ... }
+    Block(Vec<Statement>),
+}
+
+/// Binary operators in GLOSSA
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinOperator {
+    // Arithmetic
+    Add,  // ἄθροισμα
+    Sub,  // διαφορά
+    Mul,  // γινόμενον
+    Div,  // μέρος
+    Mod,  // ὑπόλοιπον
+
+    // Comparison
+    Eq,   // ἴσον
+    Ne,   // ἄνισον
+    Lt,   // ἔλαττον
+    Le,   // ἔλαττον ἢ ἴσον
+    Gt,   // μεῖζον
+    Ge,   // μεῖζον ἢ ἴσον
+
+    // Boolean
+    And,  // καί
+    Or,   // ἤ
+}
+
+/// Unary operators in GLOSSA
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnaryOperator {
+    Not,  // οὐ/οὐκ/οὐχ
+    Neg,  // arithmetic negation
 }
 
 /// A Greek word with original and normalized forms

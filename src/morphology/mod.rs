@@ -142,7 +142,27 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     // Sort by confidence (highest first)
     analyses.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
 
-    // If we found nothing, return unknown
+    // If we found nothing, check if it's a single Greek letter (mathematical variable)
+    if analyses.is_empty() || analyses.iter().all(|a| a.confidence < 0.5) {
+        // Single Greek letters are treated as nominative nouns (variable names)
+        // This follows mathematical convention where α, β, γ, ξ, etc. are variables
+        if is_single_greek_letter(&normalized) {
+            analyses.insert(0, MorphAnalysis {
+                lemma: normalized.clone(),
+                part_of_speech: PartOfSpeech::Noun,
+                case: Some(Case::Nominative),
+                number: Some(Number::Singular),
+                gender: None, // Unknown gender for variables
+                person: None,
+                tense: None,
+                mood: None,
+                voice: None,
+                confidence: 0.9, // High confidence for variable names
+            });
+        }
+    }
+
+    // If still nothing, return unknown
     if analyses.is_empty() {
         analyses.push(MorphAnalysis {
             lemma: normalized,
@@ -159,6 +179,22 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     }
 
     analyses
+}
+
+/// Check if the word is a single Greek letter (used as mathematical variable)
+fn is_single_greek_letter(word: &str) -> bool {
+    let chars: Vec<char> = word.chars().collect();
+    if chars.len() != 1 {
+        return false;
+    }
+
+    let c = chars[0];
+    // Greek lowercase letters range: α (U+03B1) to ω (U+03C9)
+    // Greek uppercase letters range: Α (U+0391) to Ω (U+03A9)
+    // Also include ς (final sigma, U+03C2)
+    ('\u{0391}'..='\u{03A9}').contains(&c) ||   // Uppercase
+    ('\u{03B1}'..='\u{03C9}').contains(&c) ||   // Lowercase
+    c == '\u{03C2}'                              // Final sigma
 }
 
 /// Check if two analyses are compatible (could refer to the same word in context)
