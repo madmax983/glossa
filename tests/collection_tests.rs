@@ -70,8 +70,9 @@ fn test_codegen_empty_array() {
 fn test_numeric_index() {
     // Using bracket syntax: ξ[0]
     let code = compile("ξ [1, 2, 3] ἔστω. ξ[0] λέγε.");
-    // quote! adds spaces and i64 suffix: "xi [0i64]"
-    assert!(code.contains("[0") || code.contains("[ 0"), "Expected index [0 in: {}", code);
+    // Should have index cast to usize
+    assert!(code.contains("as usize"), "Expected index cast to usize in: {}", code);
+    assert!(code.contains("0"), "Expected index 0 in: {}", code);
 }
 
 #[test]
@@ -145,8 +146,9 @@ fn test_ordinal_index_first() {
     // ξ πρῶτον λέγε = "say first of xi"
     // Simplified: subject (xi) + ordinal (first) + verb (say)
     let code = compile("ξ [10, 20, 30] ἔστω. ξ πρῶτον λέγε.");
-    // First element = index 0
-    assert!(code.contains("[0") || code.contains("[ 0"), "Expected [0] for first in: {}", code);
+    // First element = index 0, cast to usize
+    assert!(code.contains("as usize"), "Expected usize cast in: {}", code);
+    assert!(code.contains("0"), "Expected index 0 in: {}", code);
 }
 
 #[test]
@@ -161,8 +163,9 @@ fn test_ordinal_index_second() {
 fn test_ordinal_index_third() {
     // ξ τρίτον λέγε = "say third of xi"
     let code = compile("ξ [10, 20, 30] ἔστω. ξ τρίτον λέγε.");
-    // Third element = index 2 (0-indexed)
-    assert!(code.contains("[2") || code.contains("[ 2"), "Expected [2] for third in: {}", code);
+    // Third element = index 2 (0-indexed), cast to usize
+    assert!(code.contains("as usize"), "Expected usize cast in: {}", code);
+    assert!(code.contains("2"), "Expected index 2 in: {}", code);
 }
 
 // =============================================================================

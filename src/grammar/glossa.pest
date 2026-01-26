@@ -43,8 +43,12 @@ term = {
     | number_literal
     | boolean_literal
     | indexed_word
+    | parenthesized_expr
     | greek_word
 }
+
+// Parenthesized expression for grouping (e.g., nested function calls)
+parenthesized_expr = { "(" ~ expression ~ ")" }
 
 // Indexed word: word[index]
 indexed_word = { greek_word ~ "[" ~ index_expr ~ "]" }

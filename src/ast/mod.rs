@@ -168,6 +168,11 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, AstError> {
                 normalized: crate::grammar::normalize_greek(inner.as_str()),
             }))
         }
+        Rule::parenthesized_expr => {
+            // Unwrap the parentheses and build the inner expression
+            let expr_pair = inner.into_inner().next().ok_or(AstError::EmptyTerm)?;
+            build_expression(expr_pair)
+        }
         _ => Err(AstError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
     }
 }

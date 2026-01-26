@@ -55,6 +55,9 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
                 scope.define_function(name.clone(), param_types, return_type.clone());
             }
             analyzed_statements.push(control_flow_stmt);
+        } else if let Some(local_var_stmt) = try_parse_local_variable(stmt, &mut scope)? {
+            // Check if this is a local variable binding with complex RHS
+            analyzed_statements.push(local_var_stmt);
         } else if let Some(func_call_stmt) = try_parse_function_call(stmt, &mut scope)? {
             // Check if this is a function call before using the assembler
             analyzed_statements.push(func_call_stmt);
@@ -174,6 +177,203 @@ fn analyze_control_flow(stmt: &Statement, _scope: &mut Scope) -> Result<Option<A
     Ok(None)
 }
 
+/// Analyze an argument expression (could be literal, variable, or nested call)
+fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
+    match expr {
+        Expr::Word(w) => {
+            let normalized = normalize_greek(&w.original);
+
+            // Check if it's a numeral
+            if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(val),
+                    glossa_type: GlossaType::Number,
+                });
+            }
+
+            // Check if it's a variable
+            if let Some(var_type) = scope.lookup(&normalized) {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(normalized),
+                    glossa_type: var_type.clone(),
+                });
+            }
+
+            // Unknown variable
+            Err(GlossaError::semantic(&format!("Undefined variable: {}", normalized)))
+        }
+
+        Expr::NumberLiteral(n) => {
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(*n),
+                glossa_type: GlossaType::Number,
+            })
+        }
+
+        Expr::StringLiteral(s) => {
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral(s.clone()),
+                glossa_type: GlossaType::String,
+            })
+        }
+
+        Expr::BooleanLiteral(b) => {
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(*b),
+                glossa_type: GlossaType::Boolean,
+            })
+        }
+
+        Expr::Phrase(terms) => {
+            // A phrase could be a function call: function_name arg1 arg2 ...
+            if terms.is_empty() {
+                return Err(GlossaError::semantic("Empty phrase in argument"));
+            }
+
+            // Check if first term is a function name
+            if let Expr::Word(w) = &terms[0] {
+                let func_name = normalize_greek(&w.original);
+
+                if scope.is_function(&func_name) {
+                    // It's a function call - recursively analyze arguments
+                    let mut args = Vec::new();
+                    for arg_expr in &terms[1..] {
+                        args.push(analyze_argument_expr(arg_expr, scope)?);
+                    }
+
+                    let return_type = scope.lookup_function(&func_name)
+                        .and_then(|sig| sig.return_type.clone())
+                        .unwrap_or(GlossaType::Unknown);
+
+                    return Ok(AnalyzedExpr {
+                        expr: AnalyzedExprKind::FunctionCall {
+                            func: func_name,
+                            args,
+                        },
+                        glossa_type: return_type,
+                    });
+                }
+            }
+
+            // Not a function call - could be a complex expression
+            // For now, just analyze the first term
+            analyze_argument_expr(&terms[0], scope)
+        }
+
+        _ => Err(GlossaError::semantic("Unsupported argument expression type")),
+    }
+}
+
+/// Try to parse a statement as a local variable binding with complex RHS
+/// Pattern: new_var existing_var ... expression ... ἔστω
+/// e.g., τοπικον ξ ἓν ἄθροισμα ἔστω (topikon = xi + 1)
+fn try_parse_local_variable(stmt: &Statement, scope: &Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    // Need at least: new_var old_var ἔστω (3 words minimum)
+    let clause = stmt.clauses.first().ok_or(GlossaError::semantic("Empty statement"))?;
+    if clause.expressions.len() != 1 {
+        return Ok(None);
+    }
+
+    let expr = &clause.expressions[0];
+    if let Expr::Phrase(words) = expr {
+        if words.len() < 3 {
+            return Ok(None);
+        }
+
+        // Last word should be ἔστω
+        if let Expr::Word(last_word) = words.last().unwrap() {
+            let normalized = normalize_greek(&last_word.original);
+            if !crate::morphology::lexicon::is_binding_verb(&normalized) {
+                return Ok(None);
+            }
+        } else {
+            return Ok(None);
+        }
+
+        // First word is the new variable name
+        let new_var = if let Expr::Word(w) = &words[0] {
+            normalize_greek(&w.original)
+        } else {
+            return Ok(None);
+        };
+
+        // Second word onwards (except last) is the value expression
+        // Parse the rest as an expression (could contain variables, operators, literals)
+        let value_expr_terms: Vec<&Expr> = words[1..words.len()-1].iter().collect();
+
+        if value_expr_terms.is_empty() {
+            return Ok(None);
+        }
+
+        // Try to analyze the RHS as an expression
+        // For now, handle simple cases: var + literal, var operator literal, etc.
+        let value_analyzed = if value_expr_terms.len() == 3 {
+            // Pattern: var operator literal (e.g., ξ ἓν ἄθροισμα)
+            // Check if this is: variable literal operator
+            if let (Expr::Word(var_word), Expr::Word(lit_word), Expr::Word(op_word)) =
+                (value_expr_terms[0], value_expr_terms[1], value_expr_terms[2])
+            {
+                let var_name = normalize_greek(&var_word.original);
+                let lit_norm = normalize_greek(&lit_word.original);
+                let op_norm = normalize_greek(&op_word.original);
+
+                // Check if it's a variable
+                if let Some(var_type) = scope.lookup(&var_name) {
+                    // Check if second is a numeral
+                    if let Some(num_val) = crate::morphology::lexicon::numeral_value(&lit_norm) {
+                        // Check if third is an operator
+                        if let Some(bin_op) = crate::morphology::lexicon::arithmetic_operator(&op_norm) {
+                            // Build: var + literal
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::BinOp {
+                                    left: Box::new(AnalyzedExpr {
+                                        expr: AnalyzedExprKind::Variable(var_name),
+                                        glossa_type: var_type.clone(),
+                                    }),
+                                    op: bin_op,
+                                    right: Box::new(AnalyzedExpr {
+                                        expr: AnalyzedExprKind::NumberLiteral(num_val),
+                                        glossa_type: GlossaType::Number,
+                                    }),
+                                },
+                                glossa_type: GlossaType::Number,
+                            }
+                        } else {
+                            return Ok(None);
+                        }
+                    } else {
+                        return Ok(None);
+                    }
+                } else {
+                    return Ok(None);
+                }
+            } else {
+                return Ok(None);
+            }
+        } else {
+            // Other patterns - not yet supported
+            return Ok(None);
+        };
+
+        // Create a binding statement
+        return Ok(Some(AnalyzedStatement {
+            kind: StatementKind::Binding {
+                name: new_var.clone(),
+                value_type: value_analyzed.glossa_type.clone(),
+            },
+            expressions: vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(new_var),
+                    glossa_type: value_analyzed.glossa_type.clone(),
+                },
+                value_analyzed,
+            ],
+        }));
+    }
+
+    Ok(None)
+}
+
 /// Try to parse a statement as a function call: subject function args... ἔστω
 fn try_parse_function_call(stmt: &Statement, scope: &Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // Pattern: subject function_name arg1 arg2 ... ἔστω
@@ -223,25 +423,13 @@ fn try_parse_function_call(stmt: &Statement, scope: &Scope) -> Result<Option<Ana
             // Check if it's a defined function
             if scope.is_function(&potential_func) {
                 // Remaining words (except last) are arguments
+                // Need to analyze each argument expression (could be nested calls, etc.)
                 let mut args = Vec::new();
-                for word_expr in &words[2..words.len()-1] {
-                    if let Expr::Word(arg_word) = word_expr {
-                        let arg_normalized = normalize_greek(&arg_word.original);
-
-                        // Check if it's a numeral
-                        if let Some(val) = crate::morphology::lexicon::numeral_value(&arg_normalized) {
-                            args.push(AnalyzedExpr {
-                                expr: AnalyzedExprKind::NumberLiteral(val),
-                                glossa_type: GlossaType::Number,
-                            });
-                        } else if let Some(var_type) = scope.lookup(&arg_normalized) {
-                            // It's a variable
-                            args.push(AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable(arg_normalized),
-                                glossa_type: var_type.clone(),
-                            });
-                        }
-                    }
+                for arg_expr in &words[2..words.len()-1] {
+                    // Recursively analyze the argument expression
+                    // This handles parenthesized nested calls, variables, literals, etc.
+                    let analyzed_arg = analyze_argument_expr(arg_expr, scope)?;
+                    args.push(analyzed_arg);
                 }
 
                 // Get return type from function signature
@@ -367,6 +555,12 @@ fn parse_function_definition(stmt: &Statement, scope: &mut Scope) -> Result<Opti
         // Analyze each body expression as a statement with the function scope
         if let Some(cf) = analyze_control_flow(&clause_stmt, &mut function_scope)? {
             body_statements.push(cf);
+        } else if let Some(local_var_stmt) = try_parse_local_variable(&clause_stmt, &function_scope)? {
+            // Check if this is a local variable binding with complex RHS
+            body_statements.push(local_var_stmt);
+        } else if let Some(func_call_stmt) = try_parse_function_call(&clause_stmt, &function_scope)? {
+            // Check if this is a function call
+            body_statements.push(func_call_stmt);
         } else {
             let assembled = analyze_single_statement_with_assembler(&clause_stmt)?;
             let analyzed = convert_assembled_to_analyzed(&assembled, &mut function_scope)?;

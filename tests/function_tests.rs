@@ -85,14 +85,15 @@ fn test_function_call() {
 }
 
 #[test]
-#[ignore] // Requires parentheses/expression grouping - beyond Cycle 4
 fn test_nested_calls() {
     let code = compile("
         διπλασιασμος ὁρίζειν τῷ ξ· δός ξ δύο γινόμενον.
         ψ διπλασιασμος (διπλασιασμος πέντε) ἔστω.
     ");
     eprintln!("Generated code:\n{}", code);
-    assert!(code.contains("diplasiasmos("));
+    // Check for nested diplasiasmos calls (allowing for whitespace)
+    assert!(code.matches("diplasiasmos").count() >= 3, "Expected at least 3 occurrences of diplasiasmos (fn def + 2 calls)");
+    assert!(code.contains("5i64"), "Expected literal 5 as argument");
 }
 
 // ============================================================================
@@ -100,7 +101,6 @@ fn test_nested_calls() {
 // ============================================================================
 
 #[test]
-#[ignore] // Requires syntax refinement: two nominatives in assignment confuses assembler
 fn test_function_local_variables() {
     let code = compile("
         αυξησις ὁρίζειν τῷ ξ·
