@@ -19,9 +19,18 @@
 
 program = { SOI ~ statement* ~ EOI }
 
-statement = { clause_list ~ statement_end }
+statement = { (type_definition | clause_list) ~ statement_end }
 
 statement_end = { period | query }
+
+// Type definition: εἶδος typename ὁρίζειν { fields }
+type_definition = { greek_word ~ greek_word ~ greek_word ~ "{" ~ field_list? ~ "}" }
+
+// Field list: field declarations separated by middle dot (·) or period (.)
+field_list = { field_declaration ~ ((chain | period) ~ field_declaration)* ~ (chain | period)? }
+
+// Field declaration: fieldname typename_genitive
+field_declaration = { greek_word ~ greek_word }
 
 // Clause list: clauses separated by commas (for control flow)
 // e.g., "εἰ condition, body" or "ἕως condition, body"

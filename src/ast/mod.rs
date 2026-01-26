@@ -32,9 +32,13 @@ pub fn build_ast(source: &str) -> Result<Program, AstError> {
 fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, AstError> {
     let mut clauses = Vec::new();
     let mut is_query = false;
+    let mut type_def = None;
 
     for inner in pair.into_inner() {
         match inner.as_rule() {
+            Rule::type_definition => {
+                type_def = Some(build_type_definition(inner)?);
+            }
             Rule::clause_list => {
                 for clause_pair in inner.into_inner() {
                     if clause_pair.as_rule() == Rule::clause {
@@ -53,9 +57,73 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, AstError> {
         }
     }
 
-    Ok(Statement {
-        clauses,
-        is_query,
+    if let Some(def) = type_def {
+        Ok(Statement::TypeDefinition(def))
+    } else {
+        Ok(Statement::Regular {
+            clauses,
+            is_query,
+        })
+    }
+}
+
+fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, AstError> {
+    let mut words = Vec::new();
+    let mut fields = Vec::new();
+
+    for inner in pair.into_inner() {
+        match inner.as_rule() {
+            Rule::greek_word => {
+                words.push(Word {
+                    original: inner.as_str().to_string(),
+                    normalized: crate::grammar::normalize_greek(inner.as_str()),
+                });
+            }
+            Rule::field_list => {
+                for field_pair in inner.into_inner() {
+                    if field_pair.as_rule() == Rule::field_declaration {
+                        fields.push(build_field_declaration(field_pair)?);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // εἶδος typename ὁρίζειν
+    // words[0] = εἶδος (keyword)
+    // words[1] = typename
+    // words[2] = ὁρίζειν (keyword)
+    if words.len() < 2 {
+        return Err(AstError::UnexpectedRule("Type definition needs at least a name".to_string()));
+    }
+
+    Ok(TypeDef {
+        name: words[1].clone(),
+        fields,
+    })
+}
+
+fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, AstError> {
+    let mut words = Vec::new();
+
+    for inner in pair.into_inner() {
+        if inner.as_rule() == Rule::greek_word {
+            words.push(Word {
+                original: inner.as_str().to_string(),
+                normalized: crate::grammar::normalize_greek(inner.as_str()),
+            });
+        }
+    }
+
+    // fieldname typename_genitive
+    if words.len() != 2 {
+        return Err(AstError::UnexpectedRule(format!("Field declaration needs exactly 2 words, got {}", words.len())));
+    }
+
+    Ok(FieldDecl {
+        name: words[0].clone(),
+        type_name: words[1].clone(),
     })
 }
 
@@ -230,7 +298,10 @@ mod tests {
 
     /// Helper to get the first expression of the first clause
     fn first_expr(stmt: &Statement) -> &Expr {
-        &stmt.clauses[0].expressions[0]
+        match stmt {
+            Statement::Regular { clauses, .. } => &clauses[0].expressions[0],
+            Statement::TypeDefinition(_) => panic!("Cannot get first_expr from TypeDefinition"),
+        }
     }
 
     #[test]
@@ -239,7 +310,7 @@ mod tests {
         let ast = build_ast(source).unwrap();
 
         assert_eq!(ast.statements.len(), 1);
-        assert!(!ast.statements[0].is_query);
+        assert!(!ast.statements[0].is_query());
     }
 
     #[test]
@@ -290,7 +361,7 @@ mod tests {
         let source = "ξ?";
         let ast = build_ast(source).unwrap();
 
-        assert!(ast.statements[0].is_query);
+        assert!(ast.statements[0].is_query());
     }
 
     #[test]
@@ -322,6 +393,6 @@ mod tests {
         let ast = build_ast(source).unwrap();
 
         assert_eq!(ast.statements.len(), 1);
-        assert_eq!(ast.statements[0].clauses.len(), 2); // Two clauses separated by comma
+        assert_eq!(ast.statements[0].clauses().len(), 2); // Two clauses separated by comma
     }
 }

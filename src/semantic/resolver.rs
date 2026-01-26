@@ -12,6 +12,8 @@ pub struct Scope {
     bindings: FxHashMap<String, Binding>,
     /// Function definitions in this scope
     functions: FxHashMap<String, FunctionSignature>,
+    /// Type definitions in this scope
+    types: FxHashMap<String, GlossaType>,
     /// Parent scope (for nested scopes)
     parent: Option<Box<Scope>>,
 }
@@ -46,6 +48,7 @@ impl Scope {
         Scope {
             bindings: FxHashMap::default(),
             functions: FxHashMap::default(),
+            types: FxHashMap::default(),
             parent: None,
         }
     }
@@ -55,6 +58,7 @@ impl Scope {
         Scope {
             bindings: FxHashMap::default(),
             functions: FxHashMap::default(),
+            types: FxHashMap::default(),
             parent: Some(Box::new(self.clone())),
         }
     }
@@ -88,6 +92,22 @@ impl Scope {
             Some(sig)
         } else if let Some(parent) = &self.parent {
             parent.lookup_function(name)
+        } else {
+            None
+        }
+    }
+
+    /// Define a type in this scope
+    pub fn define_type(&mut self, name: String, glossa_type: GlossaType) {
+        self.types.insert(name, glossa_type);
+    }
+
+    /// Look up a type by name
+    pub fn lookup_type(&self, name: &str) -> Option<&GlossaType> {
+        if let Some(ty) = self.types.get(name) {
+            Some(ty)
+        } else if let Some(parent) = &self.parent {
+            parent.lookup_type(name)
         } else {
             None
         }

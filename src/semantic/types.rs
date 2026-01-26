@@ -27,6 +27,7 @@ pub enum GlossaType {
     Struct {
         name: std::string::String,
         gender: Gender,
+        fields: Vec<(std::string::String, GlossaType)>,
     },
 
     /// Function type

@@ -70,6 +70,12 @@ pub enum HirStatement {
         body: Vec<HirStatement>,
         return_type: Option<String>,
     },
+
+    /// struct name { fields }
+    StructDef {
+        name: String,
+        fields: Vec<(String, String)>, // (field_name, field_type)
+    },
 }
 
 /// A HIR expression
@@ -133,6 +139,12 @@ pub enum HirExpr {
         start: Box<HirExpr>,
         end: Box<HirExpr>,
         inclusive: bool,
+    },
+
+    /// Struct literal: TypeName { field: value, ... }
+    StructLit {
+        type_name: String,
+        args: Vec<HirExpr>,
     },
 }
 
@@ -301,6 +313,15 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
                 return_type: return_type.as_ref().map(|ty| ty.to_rust().to_string()),
             })
         }
+
+        StatementKind::TypeDefinition { name, fields } => {
+            Some(HirStatement::StructDef {
+                name: name.clone(),
+                fields: fields.iter()
+                    .map(|(field_name, field_type)| (field_name.clone(), field_type.to_rust().to_string()))
+                    .collect(),
+            })
+        }
     }
 }
 
@@ -378,6 +399,12 @@ fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
                 start: Box::new(lower_expr(start)),
                 end: Box::new(lower_expr(end)),
                 inclusive: *inclusive,
+            }
+        }
+        AnalyzedExprKind::StructInstantiation { type_name, args } => {
+            HirExpr::StructLit {
+                type_name: type_name.clone(),
+                args: args.iter().map(lower_expr).collect(),
             }
         }
     }

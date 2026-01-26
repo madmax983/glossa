@@ -16,7 +16,10 @@ use crate::ast::{Expr, Word};
 #[derive(Debug, Clone)]
 pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer
+    /// Can have multiple nominatives for function call patterns
     pub subject: Option<Constituent>,
+    /// Additional nominatives (for function names, etc.)
+    pub nominatives: Vec<Constituent>,
     /// The verb - the action
     pub verb: Option<VerbConstituent>,
     /// The direct object (accusative) - receives the action
@@ -25,6 +28,8 @@ pub struct AssembledStatement {
     pub indirect: Option<Constituent>,
     /// Possessors/sources (genitive) - attached to other constituents
     pub genitives: Vec<Constituent>,
+    /// Adjectives modifying nouns (νέον for "new")
+    pub adjectives: Vec<Constituent>,
     /// Literal values (strings, numbers) that appeared
     pub literals: Vec<Literal>,
     /// Array literals that appeared
@@ -35,6 +40,10 @@ pub struct AssembledStatement {
     pub property_accesses: Vec<(String, String)>,
     /// Binary operators found between expressions
     pub operators: Vec<BinaryOp>,
+    /// Parenthesized blocks (nested expressions)
+    pub blocks: Vec<Vec<crate::ast::Statement>>,
+    /// Nested phrases (parenthesized function calls)
+    pub nested_phrases: Vec<Vec<Expr>>,
     /// Whether this is a query (ends with ;)
     pub is_query: bool,
 }
@@ -86,15 +95,19 @@ pub enum Literal {
 /// `finalize()` to get the assembled statement.
 pub struct Assembler {
     pending_subject: Option<Constituent>,
+    pending_nominatives: Vec<Constituent>,
     pending_object: Option<Constituent>,
     pending_indirect: Option<Constituent>,
     pending_verb: Option<VerbConstituent>,
     pending_genitives: Vec<Constituent>,
+    pending_adjectives: Vec<Constituent>,
     pending_literals: Vec<Literal>,
     pending_arrays: Vec<Vec<Expr>>,
     pending_index_accesses: Vec<(Expr, Expr)>,
     pending_property_accesses: Vec<(String, String)>,
     pending_operators: Vec<BinaryOp>,
+    pending_blocks: Vec<Vec<crate::ast::Statement>>,
+    pending_nested_phrases: Vec<Vec<Expr>>,
     is_query: bool,
 }
 
@@ -133,15 +146,19 @@ impl Assembler {
     pub fn new() -> Self {
         Assembler {
             pending_subject: None,
+            pending_nominatives: Vec::new(),
             pending_object: None,
             pending_indirect: None,
             pending_verb: None,
             pending_genitives: Vec::new(),
+            pending_adjectives: Vec::new(),
             pending_literals: Vec::new(),
             pending_arrays: Vec::new(),
             pending_index_accesses: Vec::new(),
             pending_property_accesses: Vec::new(),
             pending_operators: Vec::new(),
+            pending_blocks: Vec::new(),
+            pending_nested_phrases: Vec::new(),
             is_query: false,
         }
     }
@@ -149,15 +166,19 @@ impl Assembler {
     /// Reset the assembler for a new statement
     pub fn reset(&mut self) {
         self.pending_subject = None;
+        self.pending_nominatives.clear();
         self.pending_object = None;
         self.pending_indirect = None;
         self.pending_verb = None;
         self.pending_genitives.clear();
+        self.pending_adjectives.clear();
         self.pending_literals.clear();
         self.pending_arrays.clear();
         self.pending_index_accesses.clear();
         self.pending_property_accesses.clear();
         self.pending_operators.clear();
+        self.pending_blocks.clear();
+        self.pending_nested_phrases.clear();
         self.is_query = false;
     }
 
@@ -234,8 +255,11 @@ impl Assembler {
         }
 
         match analysis.part_of_speech {
-            PartOfSpeech::Noun | PartOfSpeech::Pronoun | PartOfSpeech::Adjective => {
+            PartOfSpeech::Noun | PartOfSpeech::Pronoun => {
                 self.handle_nominal(analysis, original)
+            }
+            PartOfSpeech::Adjective => {
+                self.handle_adjective(analysis, original)
             }
             PartOfSpeech::Verb => {
                 self.handle_verb(analysis, original)
@@ -272,6 +296,16 @@ impl Assembler {
         self.pending_arrays.push(elements);
     }
 
+    /// Feed a parenthesized block (nested expression)
+    pub fn feed_block(&mut self, statements: Vec<crate::ast::Statement>) {
+        self.pending_blocks.push(statements);
+    }
+
+    /// Feed a nested phrase (parenthesized function call)
+    pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) {
+        self.pending_nested_phrases.push(terms);
+    }
+
     /// Feed an index access (array[index])
     pub fn feed_index_access(&mut self, array: Expr, index: Expr) {
         self.pending_index_accesses.push((array, index));
@@ -290,9 +324,11 @@ impl Assembler {
         match analysis.case {
             Some(Case::Nominative) => {
                 if self.pending_subject.is_some() {
-                    return Err(AssemblyError::DoubleSubject);
+                    // Additional nominatives stored separately for function call patterns
+                    self.pending_nominatives.push(constituent);
+                } else {
+                    self.pending_subject = Some(constituent);
                 }
-                self.pending_subject = Some(constituent);
             }
             Some(Case::Accusative) => {
                 if self.pending_object.is_some() {
@@ -344,6 +380,20 @@ impl Assembler {
         Ok(())
     }
 
+    /// Handle an adjective - store it for later pattern matching
+    fn handle_adjective(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+        let constituent = Constituent {
+            lemma: analysis.lemma.clone(),
+            original: original.to_string(),
+            case: analysis.case.unwrap_or(Case::Nominative),
+            number: analysis.number,
+            gender: analysis.gender,
+        };
+
+        self.pending_adjectives.push(constituent);
+        Ok(())
+    }
+
     /// Finalize the statement - check agreement and assemble
     pub fn finalize(&mut self) -> Result<AssembledStatement, AssemblyError> {
         // Check for required verb (unless it's a query or has only literals)
@@ -379,15 +429,19 @@ impl Assembler {
         // Assemble the statement
         let statement = AssembledStatement {
             subject: self.pending_subject.take(),
+            nominatives: std::mem::take(&mut self.pending_nominatives),
             verb: self.pending_verb.take(),
             object: self.pending_object.take(),
             indirect: self.pending_indirect.take(),
             genitives: std::mem::take(&mut self.pending_genitives),
+            adjectives: std::mem::take(&mut self.pending_adjectives),
             literals: std::mem::take(&mut self.pending_literals),
             arrays: std::mem::take(&mut self.pending_arrays),
             index_accesses: std::mem::take(&mut self.pending_index_accesses),
             property_accesses: std::mem::take(&mut self.pending_property_accesses),
             operators: std::mem::take(&mut self.pending_operators),
+            blocks: std::mem::take(&mut self.pending_blocks),
+            nested_phrases: std::mem::take(&mut self.pending_nested_phrases),
             is_query: self.is_query,
         };
 
@@ -520,16 +574,19 @@ mod tests {
     }
 
     #[test]
-    fn test_double_subject_error() {
+    fn test_multiple_nominatives() {
+        // Multiple nominatives are now allowed for function call patterns
         let mut asm = Assembler::new();
 
         let subj1 = analyze("ανθρωπος");
         asm.feed(&subj1, "ἄνθρωπος").unwrap();
 
         let subj2 = analyze("θεος");
-        let result = asm.feed(&subj2, "θεός");
+        asm.feed(&subj2, "θεός").unwrap(); // Should succeed now
 
-        assert!(matches!(result, Err(AssemblyError::DoubleSubject)));
+        let stmt = asm.finalize().unwrap();
+        assert!(stmt.subject.is_some());
+        assert_eq!(stmt.nominatives.len(), 1); // Second nominative in the list
     }
 
     #[test]
