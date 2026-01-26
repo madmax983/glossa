@@ -12,13 +12,28 @@ pub struct Program {
 
 /// A single statement, ending with . (statement) or ? (query)
 #[derive(Debug, Clone, PartialEq)]
-pub struct Statement {
-    /// Clauses in this statement, separated by commas
-    /// Each clause contains expressions (chained with · U+00B7 ano teleia)
-    /// e.g., "εἰ condition, body" has 2 clauses
-    pub clauses: Vec<Clause>,
-    /// Whether this is a query (ends with ?)
-    pub is_query: bool,
+pub enum Statement {
+    /// A regular statement with clauses
+    Regular {
+        clauses: Vec<Clause>,
+        is_query: bool,
+    },
+    /// A type definition statement
+    TypeDefinition(TypeDef),
+}
+
+/// A type definition (struct)
+#[derive(Debug, Clone, PartialEq)]
+pub struct TypeDef {
+    pub name: Word,
+    pub fields: Vec<FieldDecl>,
+}
+
+/// A field declaration in a type
+#[derive(Debug, Clone, PartialEq)]
+pub struct FieldDecl {
+    pub name: Word,
+    pub type_name: Word,
 }
 
 /// A clause within a statement (comma-separated)
@@ -30,8 +45,29 @@ pub struct Clause {
 
 impl Statement {
     /// Get all expressions flattened (for backwards compatibility)
-    pub fn expressions(&self) -> impl Iterator<Item = &Expr> {
-        self.clauses.iter().flat_map(|c| c.expressions.iter())
+    pub fn expressions(&self) -> Box<dyn Iterator<Item = &Expr> + '_> {
+        match self {
+            Statement::Regular { clauses, .. } => {
+                Box::new(clauses.iter().flat_map(|c| c.expressions.iter()))
+            }
+            Statement::TypeDefinition(_) => Box::new(std::iter::empty()),
+        }
+    }
+
+    /// Check if this is a query statement
+    pub fn is_query(&self) -> bool {
+        match self {
+            Statement::Regular { is_query, .. } => *is_query,
+            Statement::TypeDefinition(_) => false,
+        }
+    }
+
+    /// Get clauses if this is a regular statement
+    pub fn clauses(&self) -> &[Clause] {
+        match self {
+            Statement::Regular { clauses, .. } => clauses,
+            Statement::TypeDefinition(_) => &[],
+        }
     }
 }
 

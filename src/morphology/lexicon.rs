@@ -299,6 +299,70 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     });
 
     // =========================================================================
+    // Single Greek letter variables with genitive forms
+    // =========================================================================
+
+    // π (pi) - nominative
+    m.insert("π", LexiconEntry {
+        lemma: "π".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "pi (variable)",
+        rust_equiv: None,
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // που - genitive of π
+    m.insert("που", LexiconEntry {
+        lemma: "π".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "of pi (genitive)",
+        rust_equiv: None,
+        case: Some(Case::Genitive),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // α (alpha) - nominative
+    m.insert("α", LexiconEntry {
+        lemma: "α".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Feminine),
+        meaning: "alpha (variable)",
+        rust_equiv: None,
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // αου - genitive of α
+    m.insert("αου", LexiconEntry {
+        lemma: "α".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Feminine),
+        meaning: "of alpha (genitive)",
+        rust_equiv: None,
+        case: Some(Case::Genitive),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // =========================================================================
     // More verbs for common operations
     // =========================================================================
 
@@ -568,6 +632,66 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         tense: Some(Tense::Present),
         mood: Some(Mood::Infinitive),
         voice: Some(Voice::Active),
+    });
+
+    // νέος - new (masculine nominative)
+    m.insert("νεος", LexiconEntry {
+        lemma: "νεος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Masculine),
+        meaning: "new",
+        rust_equiv: None,
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // νέα - new (feminine nominative)
+    m.insert("νεα", LexiconEntry {
+        lemma: "νεος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Feminine),
+        meaning: "new",
+        rust_equiv: None,
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // νέον - new (neuter nominative/accusative)
+    m.insert("νεον", LexiconEntry {
+        lemma: "νεος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "new",
+        rust_equiv: None,
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // εἶδος - form, type
+    m.insert("ειδος", LexiconEntry {
+        lemma: "ειδος".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "form, type, kind",
+        rust_equiv: Some("struct"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
     });
 
     // εἰ / ἐάν - conditional

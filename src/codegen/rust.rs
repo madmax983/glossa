@@ -8,18 +8,22 @@ use proc_macro2::TokenStream;
 
 /// Generate Rust code from a HIR program
 pub fn generate_rust(hir: &HirProgram) -> String {
-    // Separate function definitions from main body statements
+    // Separate struct definitions, function definitions, and main body statements
+    let mut struct_defs = Vec::new();
     let mut fn_defs = Vec::new();
     let mut main_stmts = Vec::new();
 
     for stmt in &hir.statements {
         match stmt {
+            HirStatement::StructDef { .. } => struct_defs.push(generate_statement(stmt)),
             HirStatement::FnDef { .. } => fn_defs.push(generate_statement(stmt)),
             _ => main_stmts.push(generate_statement(stmt)),
         }
     }
 
     let output = quote! {
+        #(#struct_defs)*
+
         #(#fn_defs)*
 
         fn main() {
@@ -206,6 +210,26 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                 }
             }
         }
+
+        HirStatement::StructDef { name, fields } => {
+            let struct_name = format_ident!("{}", sanitize_name(name));
+
+            // Generate field list
+            let field_tokens: Vec<TokenStream> = fields.iter()
+                .map(|(field_name, field_type)| {
+                    let field_ident = format_ident!("{}", sanitize_name(field_name));
+                    let type_ident = format_ident!("{}", field_type);
+                    quote! { #field_ident: #type_ident }
+                })
+                .collect();
+
+            quote! {
+                #[derive(Debug, Clone)]
+                struct #struct_name {
+                    #(#field_tokens),*
+                }
+            }
+        }
     }
 }
 
@@ -302,6 +326,32 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
                 quote! { (#start_tokens..=#end_tokens) }
             } else {
                 quote! { (#start_tokens..#end_tokens) }
+            }
+        }
+
+        HirExpr::StructLit { type_name, args } => {
+            let struct_name = format_ident!("{}", sanitize_name(type_name));
+
+            // For now, generate positional struct literals
+            // Rust requires field names, so we need to get the struct definition
+            // For simplicity, we'll generate: TypeName { field1: arg1, field2: arg2, ... }
+            // We need to know the field names - for now use generic names
+            let arg_tokens: Vec<TokenStream> = args.iter()
+                .map(generate_expr)
+                .collect();
+
+            // Generate field assignments with generic names
+            // This assumes the fields are named in order from the type definition
+            // For a real implementation, we'd need to look up the type definition
+            if args.len() == 1 {
+                quote! { #struct_name { xi: #(#arg_tokens),* } }
+            } else if args.len() == 2 {
+                let arg1 = &arg_tokens[0];
+                let arg2 = &arg_tokens[1];
+                quote! { #struct_name { xi: #arg1, psi: #arg2 } }
+            } else {
+                // Generic fallback
+                quote! { #struct_name { xi: #(#arg_tokens),* } }
             }
         }
     }

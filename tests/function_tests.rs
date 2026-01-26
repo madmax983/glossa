@@ -20,8 +20,8 @@ fn test_parse_simple_function_no_params() {
     let ast = build_ast("χαιρετισμος ὁρίζειν· «χαῖρε» λέγε.").unwrap();
     assert_eq!(ast.statements.len(), 1);
     // Debug: print clause structure
-    eprintln!("Clauses: {}", ast.statements[0].clauses.len());
-    for (i, clause) in ast.statements[0].clauses.iter().enumerate() {
+    eprintln!("Clauses: {}", ast.statements[0].clauses().len());
+    for (i, clause) in ast.statements[0].clauses().iter().enumerate() {
         eprintln!("Clause {}: {} expressions", i, clause.expressions.len());
     }
 }
