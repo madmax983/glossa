@@ -3,26 +3,35 @@
 //! Translates HIR to Rust source code using the `quote` crate.
 
 use crate::ir::{HirProgram, HirStatement, HirExpr, BinOp};
+use crate::grammar::normalize_greek;
 use quote::{quote, format_ident};
 use proc_macro2::TokenStream;
 
 /// Generate Rust code from a HIR program
 pub fn generate_rust(hir: &HirProgram) -> String {
-    // Separate struct definitions, function definitions, and main body statements
+    // Separate trait defs, struct defs, trait impls, function defs, and main body statements
+    let mut trait_defs = Vec::new();
     let mut struct_defs = Vec::new();
+    let mut trait_impls = Vec::new();
     let mut fn_defs = Vec::new();
     let mut main_stmts = Vec::new();
 
     for stmt in &hir.statements {
         match stmt {
+            HirStatement::TraitDef { .. } => trait_defs.push(generate_statement(stmt)),
             HirStatement::StructDef { .. } => struct_defs.push(generate_statement(stmt)),
+            HirStatement::TraitImpl { .. } => trait_impls.push(generate_statement(stmt)),
             HirStatement::FnDef { .. } => fn_defs.push(generate_statement(stmt)),
             _ => main_stmts.push(generate_statement(stmt)),
         }
     }
 
     let output = quote! {
+        #(#trait_defs)*
+
         #(#struct_defs)*
+
+        #(#trait_impls)*
 
         #(#fn_defs)*
 
@@ -212,7 +221,8 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
         }
 
         HirStatement::StructDef { name, fields } => {
-            let struct_name = format_ident!("{}", sanitize_name(name));
+            // Capitalize struct name for Rust conventions
+            let struct_name = format_ident!("{}", capitalize(&sanitize_name(name)));
 
             // Generate field list
             let field_tokens: Vec<TokenStream> = fields.iter()
@@ -227,6 +237,152 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                 #[derive(Debug, Clone)]
                 struct #struct_name {
                     #(#field_tokens),*
+                }
+            }
+        }
+
+        HirStatement::TraitDef { name, methods } => {
+            // Capitalize trait name for Rust conventions
+            let trait_name = format_ident!("{}", capitalize(&sanitize_name(name)));
+
+            // Generate method signatures
+            let method_tokens: Vec<TokenStream> = methods.iter()
+                .map(|method| {
+                    let method_name = format_ident!("{}", sanitize_name(&method.name));
+
+                    // Generate parameter list
+                    let param_tokens: Vec<TokenStream> = method.params.iter()
+                        .enumerate()
+                        .map(|(idx, (param_name, param_type))| {
+                            // Special case: first parameter named "self" becomes &self
+                            if is_self_parameter(param_name, idx) {
+                                quote! { &self }
+                            } else {
+                                let param_ident = format_ident!("{}", sanitize_name(param_name));
+                                if let Some(type_str) = param_type {
+                                    let ty = format_ident!("{}", type_str);
+                                    quote! { #param_ident: #ty }
+                                } else {
+                                    quote! { #param_ident }
+                                }
+                            }
+                        })
+                        .collect();
+
+                    // Generate return type
+                    if let Some(ret_type) = &method.return_type {
+                        let ret_ty = format_ident!("{}", ret_type);
+                        if method.has_default {
+                            // Default method with body
+                            if let Some(body) = &method.body {
+                                let body_stmts: Vec<TokenStream> = body.iter()
+                                    .map(generate_statement)
+                                    .collect();
+                                quote! {
+                                    fn #method_name(#(#param_tokens),*) -> #ret_ty {
+                                        #(#body_stmts)*
+                                    }
+                                }
+                            } else {
+                                quote! {
+                                    fn #method_name(#(#param_tokens),*) -> #ret_ty;
+                                }
+                            }
+                        } else {
+                            // Required method signature only
+                            quote! {
+                                fn #method_name(#(#param_tokens),*) -> #ret_ty;
+                            }
+                        }
+                    } else {
+                        if method.has_default {
+                            // Default method with body
+                            if let Some(body) = &method.body {
+                                let body_stmts: Vec<TokenStream> = body.iter()
+                                    .map(generate_statement)
+                                    .collect();
+                                quote! {
+                                    fn #method_name(#(#param_tokens),*) {
+                                        #(#body_stmts)*
+                                    }
+                                }
+                            } else {
+                                quote! {
+                                    fn #method_name(#(#param_tokens),*);
+                                }
+                            }
+                        } else {
+                            // Required method signature only
+                            quote! {
+                                fn #method_name(#(#param_tokens),*);
+                            }
+                        }
+                    }
+                })
+                .collect();
+
+            quote! {
+                trait #trait_name {
+                    #(#method_tokens)*
+                }
+            }
+        }
+
+        HirStatement::TraitImpl { trait_name, type_name, methods } => {
+            // Capitalize trait and type names for Rust conventions
+            let trait_ident = format_ident!("{}", capitalize(&sanitize_name(trait_name)));
+            let type_ident = format_ident!("{}", capitalize(&sanitize_name(type_name)));
+
+            // Generate method implementations
+            let method_tokens: Vec<TokenStream> = methods.iter()
+                .map(|method| {
+                    let method_name = format_ident!("{}", sanitize_name(&method.name));
+
+                    // Generate parameter list
+                    let param_tokens: Vec<TokenStream> = method.params.iter()
+                        .enumerate()
+                        .map(|(idx, (param_name, param_type))| {
+                            // Special case: first parameter named "self" becomes &self
+                            if is_self_parameter(param_name, idx) {
+                                quote! { &self }
+                            } else {
+                                let param_ident = format_ident!("{}", sanitize_name(param_name));
+                                if let Some(type_str) = param_type {
+                                    let ty = format_ident!("{}", type_str);
+                                    quote! { #param_ident: #ty }
+                                } else {
+                                    quote! { #param_ident }
+                                }
+                            }
+                        })
+                        .collect();
+
+                    // Generate method body
+                    let body_stmts: Vec<TokenStream> = method.body.iter()
+                        .map(generate_statement)
+                        .collect();
+
+                    // Generate return type
+                    if let Some(ret_type) = &method.return_type {
+                        let ret_ty = format_ident!("{}", ret_type);
+                        quote! {
+                            fn #method_name(#(#param_tokens),*) -> #ret_ty {
+                                #(#body_stmts)*
+                            }
+                        }
+                    } else {
+                        quote! {
+                            fn #method_name(#(#param_tokens),*) {
+                                #(#body_stmts)*
+                            }
+                        }
+                    }
+                })
+                .collect();
+
+            quote! {
+                impl #trait_ident for #type_ident {
+                    #(#method_tokens)*
                 }
             }
         }
@@ -329,32 +485,42 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             }
         }
 
-        HirExpr::StructLit { type_name, args } => {
-            let struct_name = format_ident!("{}", sanitize_name(type_name));
+        HirExpr::StructLit { type_name, fields, args } => {
+            // Capitalize struct name for Rust conventions
+            let struct_name = format_ident!("{}", capitalize(&sanitize_name(type_name)));
 
-            // For now, generate positional struct literals
-            // Rust requires field names, so we need to get the struct definition
-            // For simplicity, we'll generate: TypeName { field1: arg1, field2: arg2, ... }
-            // We need to know the field names - for now use generic names
-            let arg_tokens: Vec<TokenStream> = args.iter()
-                .map(generate_expr)
+            // Generate field: value pairs using actual field names
+            let field_assignments: Vec<TokenStream> = fields.iter()
+                .zip(args.iter())
+                .map(|(field_name, arg)| {
+                    let field_ident = format_ident!("{}", sanitize_name(field_name));
+                    let arg_token = generate_expr(arg);
+                    quote! { #field_ident: #arg_token }
+                })
                 .collect();
 
-            // Generate field assignments with generic names
-            // This assumes the fields are named in order from the type definition
-            // For a real implementation, we'd need to look up the type definition
-            if args.len() == 1 {
-                quote! { #struct_name { xi: #(#arg_tokens),* } }
-            } else if args.len() == 2 {
-                let arg1 = &arg_tokens[0];
-                let arg2 = &arg_tokens[1];
-                quote! { #struct_name { xi: #arg1, psi: #arg2 } }
-            } else {
-                // Generic fallback
-                quote! { #struct_name { xi: #(#arg_tokens),* } }
-            }
+            quote! { #struct_name { #(#field_assignments),* } }
         }
     }
+}
+
+/// Capitalize the first letter of a string (for Rust type/trait names)
+fn capitalize(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+    }
+}
+
+/// Check if a parameter represents the self parameter in a trait method
+fn is_self_parameter(param_name: &str, idx: usize) -> bool {
+    if idx != 0 {
+        return false;
+    }
+    let normalized = normalize_greek(param_name);
+    // Check for "self", "τω" (normalized from τῷ), or if param name contains "self"
+    normalized == "self" || param_name == "self" || normalized == "τω" || param_name.contains("self")
 }
 
 /// Sanitize a Greek name for use as a Rust identifier

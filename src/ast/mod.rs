@@ -33,11 +33,19 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, AstError> {
     let mut clauses = Vec::new();
     let mut is_query = false;
     let mut type_def = None;
+    let mut trait_def = None;
+    let mut trait_impl = None;
 
     for inner in pair.into_inner() {
         match inner.as_rule() {
             Rule::type_definition => {
                 type_def = Some(build_type_definition(inner)?);
+            }
+            Rule::trait_definition => {
+                trait_def = Some(build_trait_definition(inner)?);
+            }
+            Rule::trait_impl => {
+                trait_impl = Some(build_trait_impl(inner)?);
             }
             Rule::clause_list => {
                 for clause_pair in inner.into_inner() {
@@ -59,6 +67,10 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, AstError> {
 
     if let Some(def) = type_def {
         Ok(Statement::TypeDefinition(def))
+    } else if let Some(def) = trait_def {
+        Ok(Statement::TraitDefinition(def))
+    } else if let Some(impl_def) = trait_impl {
+        Ok(Statement::TraitImpl(impl_def))
     } else {
         Ok(Statement::Regular {
             clauses,
@@ -68,13 +80,14 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, AstError> {
 }
 
 fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, AstError> {
-    let mut words = Vec::new();
+    let mut type_name = None;
     let mut fields = Vec::new();
 
     for inner in pair.into_inner() {
         match inner.as_rule() {
             Rule::greek_word => {
-                words.push(Word {
+                // This is the type name (between εἶδος and ὁρίζειν)
+                type_name = Some(Word {
                     original: inner.as_str().to_string(),
                     normalized: crate::grammar::normalize_greek(inner.as_str()),
                 });
@@ -90,16 +103,12 @@ fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, AstError> {
         }
     }
 
-    // εἶδος typename ὁρίζειν
-    // words[0] = εἶδος (keyword)
-    // words[1] = typename
-    // words[2] = ὁρίζειν (keyword)
-    if words.len() < 2 {
-        return Err(AstError::UnexpectedRule("Type definition needs at least a name".to_string()));
+    if type_name.is_none() {
+        return Err(AstError::UnexpectedRule("Type definition needs a name".to_string()));
     }
 
     Ok(TypeDef {
-        name: words[1].clone(),
+        name: type_name.unwrap(),
         fields,
     })
 }
@@ -124,6 +133,204 @@ fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, AstError> 
     Ok(FieldDecl {
         name: words[0].clone(),
         type_name: words[1].clone(),
+    })
+}
+
+fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, AstError> {
+    let mut trait_name = None;
+    let mut methods = Vec::new();
+
+    for inner in pair.into_inner() {
+        match inner.as_rule() {
+            Rule::greek_word => {
+                // This is the trait name (between χαρακτήρ and ὁρίζειν)
+                trait_name = Some(Word {
+                    original: inner.as_str().to_string(),
+                    normalized: crate::grammar::normalize_greek(inner.as_str()),
+                });
+            }
+            Rule::trait_method_list => {
+                for method_pair in inner.into_inner() {
+                    if method_pair.as_rule() == Rule::trait_method {
+                        methods.push(build_trait_method(method_pair)?);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if trait_name.is_none() {
+        return Err(AstError::UnexpectedRule("Trait definition needs a name".to_string()));
+    }
+
+    Ok(TraitDef {
+        name: trait_name.unwrap(),
+        methods,
+    })
+}
+
+fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, AstError> {
+    let mut words = Vec::new();
+    let mut body_statements = Vec::new();
+    let mut has_body = false;
+    let mut is_default = false;
+
+    for inner in pair.into_inner() {
+        match inner.as_rule() {
+            Rule::dei_keyword => {
+                is_default = false;
+            }
+            Rule::ede_keyword => {
+                is_default = true;
+            }
+            Rule::greek_word => {
+                words.push(Word {
+                    original: inner.as_str().to_string(),
+                    normalized: crate::grammar::normalize_greek(inner.as_str()),
+                });
+            }
+            Rule::statement => {
+                has_body = true;
+                body_statements.push(build_statement(inner)?);
+            }
+            _ => {}
+        }
+    }
+
+    // words[0] = method name
+    // words[1..] = parameters (τῷ self, τῷ other, etc.)
+    if words.is_empty() {
+        return Err(AstError::UnexpectedRule("Trait method needs at least a name".to_string()));
+    }
+
+    let method_name = words[0].clone();
+
+    // Parse parameters (skip method name)
+    let mut params = Vec::new();
+    let mut i = 1;
+    while i < words.len() {
+        // Look for τῷ (dative marker) followed by parameter name
+        if words[i].normalized == "τω" || words[i].normalized == "tw" {
+            if i + 1 < words.len() {
+                // Parameter without type annotation (just name)
+                params.push(FieldDecl {
+                    name: words[i + 1].clone(),
+                    type_name: Word::new("_"), // Placeholder, will be inferred
+                });
+                i += 2;
+            } else {
+                i += 1;
+            }
+        } else {
+            i += 1;
+        }
+    }
+
+    Ok(TraitMethodDecl {
+        name: method_name,
+        params,
+        is_default,
+        body: if has_body { Some(body_statements) } else { None },
+    })
+}
+
+fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, AstError> {
+    let mut type_name = None;
+    let mut trait_name = None;
+    let mut methods = Vec::new();
+
+    for inner in pair.into_inner() {
+        match inner.as_rule() {
+            Rule::greek_word => {
+                // First greek_word is the type name, second is the trait name
+                if type_name.is_none() {
+                    type_name = Some(Word {
+                        original: inner.as_str().to_string(),
+                        normalized: crate::grammar::normalize_greek(inner.as_str()),
+                    });
+                } else if trait_name.is_none() {
+                    trait_name = Some(Word {
+                        original: inner.as_str().to_string(),
+                        normalized: crate::grammar::normalize_greek(inner.as_str()),
+                    });
+                }
+            }
+            Rule::impl_method_list => {
+                for method_pair in inner.into_inner() {
+                    if method_pair.as_rule() == Rule::impl_method {
+                        methods.push(build_impl_method(method_pair)?);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if type_name.is_none() || trait_name.is_none() {
+        return Err(AstError::UnexpectedRule("Trait impl needs type and trait names".to_string()));
+    }
+
+    Ok(TraitImplDef {
+        type_name: type_name.unwrap(),
+        trait_name: trait_name.unwrap(),
+        methods,
+    })
+}
+
+fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, AstError> {
+    let mut words = Vec::new();
+    let mut body = None;
+
+    for inner in pair.into_inner() {
+        match inner.as_rule() {
+            Rule::greek_word => {
+                words.push(Word {
+                    original: inner.as_str().to_string(),
+                    normalized: crate::grammar::normalize_greek(inner.as_str()),
+                });
+            }
+            Rule::statement => {
+                // Each impl_method has exactly one statement (use block for multiple)
+                body = Some(build_statement(inner)?);
+            }
+            _ => {}
+        }
+    }
+
+    // words[0] = method name
+    // words[1..] = parameters (τῷ self, τῷ other, etc.)
+    if words.is_empty() {
+        return Err(AstError::UnexpectedRule("Impl method needs at least a name".to_string()));
+    }
+
+    let method_name = words[0].clone();
+
+    // Parse parameters (skip method name)
+    let mut params = Vec::new();
+    let mut i = 1;
+    while i < words.len() {
+        // Look for τῷ (dative marker) followed by parameter name
+        if words[i].normalized == "τω" || words[i].normalized == "tw" {
+            if i + 1 < words.len() {
+                // Parameter without type annotation (just name)
+                params.push(FieldDecl {
+                    name: words[i + 1].clone(),
+                    type_name: Word::new("_"), // Placeholder, will be inferred
+                });
+                i += 2;
+            } else {
+                i += 1;
+            }
+        } else {
+            i += 1;
+        }
+    }
+
+    Ok(ImplMethodDef {
+        name: method_name,
+        params,
+        body: if let Some(stmt) = body { vec![stmt] } else { vec![] },
     })
 }
 
@@ -301,6 +508,8 @@ mod tests {
         match stmt {
             Statement::Regular { clauses, .. } => &clauses[0].expressions[0],
             Statement::TypeDefinition(_) => panic!("Cannot get first_expr from TypeDefinition"),
+            Statement::TraitDefinition(_) => panic!("Cannot get first_expr from TraitDefinition"),
+            Statement::TraitImpl(_) => panic!("Cannot get first_expr from TraitImpl"),
         }
     }
 

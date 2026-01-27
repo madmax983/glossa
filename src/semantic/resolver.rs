@@ -14,6 +14,10 @@ pub struct Scope {
     functions: FxHashMap<String, FunctionSignature>,
     /// Type definitions in this scope
     types: FxHashMap<String, GlossaType>,
+    /// Trait definitions in this scope
+    traits: FxHashMap<String, crate::semantic::types::TraitDef>,
+    /// Trait implementations in this scope
+    trait_impls: Vec<crate::semantic::types::TraitImpl>,
     /// Parent scope (for nested scopes)
     parent: Option<Box<Scope>>,
 }
@@ -49,6 +53,8 @@ impl Scope {
             bindings: FxHashMap::default(),
             functions: FxHashMap::default(),
             types: FxHashMap::default(),
+            traits: FxHashMap::default(),
+            trait_impls: Vec::new(),
             parent: None,
         }
     }
@@ -59,6 +65,8 @@ impl Scope {
             bindings: FxHashMap::default(),
             functions: FxHashMap::default(),
             types: FxHashMap::default(),
+            traits: FxHashMap::default(),
+            trait_impls: Vec::new(),
             parent: Some(Box::new(self.clone())),
         }
     }
@@ -110,6 +118,64 @@ impl Scope {
             parent.lookup_type(name)
         } else {
             None
+        }
+    }
+
+    /// Define a trait in this scope
+    pub fn define_trait(&mut self, name: String, trait_def: crate::semantic::types::TraitDef) {
+        self.traits.insert(name, trait_def);
+    }
+
+    /// Look up a trait by name
+    pub fn lookup_trait(&self, name: &str) -> Option<&crate::semantic::types::TraitDef> {
+        if let Some(trait_def) = self.traits.get(name) {
+            Some(trait_def)
+        } else if let Some(parent) = &self.parent {
+            parent.lookup_trait(name)
+        } else {
+            None
+        }
+    }
+
+    /// Register a trait implementation
+    pub fn register_trait_impl(&mut self, impl_def: crate::semantic::types::TraitImpl) {
+        self.trait_impls.push(impl_def);
+    }
+
+    /// Look up a trait implementation for a given type and trait
+    pub fn lookup_trait_impl(&self, type_name: &str, trait_name: &str) -> Option<&crate::semantic::types::TraitImpl> {
+        for impl_def in &self.trait_impls {
+            if impl_def.type_name == type_name && impl_def.trait_name == trait_name {
+                return Some(impl_def);
+            }
+        }
+        if let Some(parent) = &self.parent {
+            parent.lookup_trait_impl(type_name, trait_name)
+        } else {
+            None
+        }
+    }
+
+    /// Check if a type has a trait method with the given name
+    pub fn has_trait_method(&self, type_name: &str, method_name: &str) -> bool {
+        for trait_impl in &self.trait_impls {
+            if trait_impl.type_name != type_name {
+                continue;
+            }
+            // Check if the trait has this method
+            if let Some(trait_def) = self.lookup_trait(&trait_impl.trait_name) {
+                let has_method = trait_def.required_methods.iter().any(|m| m.name == method_name) ||
+                                 trait_def.default_methods.iter().any(|m| m.signature.name == method_name);
+                if has_method {
+                    return true;
+                }
+            }
+        }
+        // Check parent scope
+        if let Some(parent) = &self.parent {
+            parent.has_trait_method(type_name, method_name)
+        } else {
+            false
         }
     }
 

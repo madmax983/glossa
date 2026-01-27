@@ -76,6 +76,38 @@ pub enum HirStatement {
         name: String,
         fields: Vec<(String, String)>, // (field_name, field_type)
     },
+
+    /// trait name { methods }
+    TraitDef {
+        name: String,
+        methods: Vec<HirTraitMethod>,
+    },
+
+    /// impl Trait for Type { methods }
+    TraitImpl {
+        trait_name: String,
+        type_name: String,
+        methods: Vec<HirImplMethod>,
+    },
+}
+
+/// A method in a trait definition
+#[derive(Debug, Clone)]
+pub struct HirTraitMethod {
+    pub name: String,
+    pub params: Vec<(String, Option<String>)>, // (name, type)
+    pub return_type: Option<String>,
+    pub has_default: bool,
+    pub body: Option<Vec<HirStatement>>,
+}
+
+/// A method in a trait implementation
+#[derive(Debug, Clone)]
+pub struct HirImplMethod {
+    pub name: String,
+    pub params: Vec<(String, Option<String>)>, // (name, type)
+    pub return_type: Option<String>,
+    pub body: Vec<HirStatement>,
 }
 
 /// A HIR expression
@@ -144,6 +176,7 @@ pub enum HirExpr {
     /// Struct literal: TypeName { field: value, ... }
     StructLit {
         type_name: String,
+        fields: Vec<String>,
         args: Vec<HirExpr>,
     },
 }
@@ -322,6 +355,42 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
                     .collect(),
             })
         }
+
+        StatementKind::TraitDefinition { name, methods } => {
+            Some(HirStatement::TraitDef {
+                name: name.clone(),
+                methods: methods.iter().map(|method| {
+                    HirTraitMethod {
+                        name: method.name.clone(),
+                        params: method.params.iter()
+                            .map(|(param_name, param_type)| (param_name.clone(), Some(param_type.to_rust().to_string())))
+                            .collect(),
+                        return_type: None, // We'll infer this later if needed
+                        has_default: method.is_default,
+                        body: method.body.as_ref().map(|body_stmts| {
+                            body_stmts.iter().filter_map(lower_statement).collect()
+                        }),
+                    }
+                }).collect(),
+            })
+        }
+
+        StatementKind::TraitImplementation { trait_name, type_name, methods } => {
+            Some(HirStatement::TraitImpl {
+                trait_name: trait_name.clone(),
+                type_name: type_name.clone(),
+                methods: methods.iter().map(|method| {
+                    HirImplMethod {
+                        name: method.name.clone(),
+                        params: method.params.iter()
+                            .map(|(param_name, param_type)| (param_name.clone(), Some(param_type.to_rust().to_string())))
+                            .collect(),
+                        return_type: None, // We'll infer this later if needed
+                        body: method.body.iter().filter_map(lower_statement).collect(),
+                    }
+                }).collect(),
+            })
+        }
     }
 }
 
@@ -343,6 +412,14 @@ fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
             HirExpr::MethodCall {
                 receiver: Box::new(lower_expr(receiver)),
                 method: method.clone(),
+                args: args.iter().map(lower_expr).collect(),
+            }
+        }
+        AnalyzedExprKind::TraitMethodCall { receiver, method_name, args, .. } => {
+            // Trait method calls lower to regular method calls in Rust
+            HirExpr::MethodCall {
+                receiver: Box::new(lower_expr(receiver)),
+                method: method_name.clone(),
                 args: args.iter().map(lower_expr).collect(),
             }
         }
@@ -401,9 +478,10 @@ fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
                 inclusive: *inclusive,
             }
         }
-        AnalyzedExprKind::StructInstantiation { type_name, args } => {
+        AnalyzedExprKind::StructInstantiation { type_name, fields, args } => {
             HirExpr::StructLit {
                 type_name: type_name.clone(),
+                fields: fields.clone(),
                 args: args.iter().map(lower_expr).collect(),
             }
         }

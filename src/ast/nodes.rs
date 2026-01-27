@@ -20,6 +20,10 @@ pub enum Statement {
     },
     /// A type definition statement
     TypeDefinition(TypeDef),
+    /// A trait definition statement
+    TraitDefinition(TraitDef),
+    /// A trait implementation statement
+    TraitImpl(TraitImplDef),
 }
 
 /// A type definition (struct)
@@ -34,6 +38,38 @@ pub struct TypeDef {
 pub struct FieldDecl {
     pub name: Word,
     pub type_name: Word,
+}
+
+/// A trait definition
+#[derive(Debug, Clone, PartialEq)]
+pub struct TraitDef {
+    pub name: Word,
+    pub methods: Vec<TraitMethodDecl>,
+}
+
+/// A method declaration in a trait
+#[derive(Debug, Clone, PartialEq)]
+pub struct TraitMethodDecl {
+    pub name: Word,
+    pub params: Vec<FieldDecl>,
+    pub is_default: bool,
+    pub body: Option<Vec<Statement>>,
+}
+
+/// A trait implementation
+#[derive(Debug, Clone, PartialEq)]
+pub struct TraitImplDef {
+    pub type_name: Word,
+    pub trait_name: Word,
+    pub methods: Vec<ImplMethodDef>,
+}
+
+/// A method implementation in a trait impl
+#[derive(Debug, Clone, PartialEq)]
+pub struct ImplMethodDef {
+    pub name: Word,
+    pub params: Vec<FieldDecl>,
+    pub body: Vec<Statement>,
 }
 
 /// A clause within a statement (comma-separated)
@@ -51,6 +87,8 @@ impl Statement {
                 Box::new(clauses.iter().flat_map(|c| c.expressions.iter()))
             }
             Statement::TypeDefinition(_) => Box::new(std::iter::empty()),
+            Statement::TraitDefinition(_) => Box::new(std::iter::empty()),
+            Statement::TraitImpl(_) => Box::new(std::iter::empty()),
         }
     }
 
@@ -59,6 +97,8 @@ impl Statement {
         match self {
             Statement::Regular { is_query, .. } => *is_query,
             Statement::TypeDefinition(_) => false,
+            Statement::TraitDefinition(_) => false,
+            Statement::TraitImpl(_) => false,
         }
     }
 
@@ -67,6 +107,8 @@ impl Statement {
         match self {
             Statement::Regular { clauses, .. } => clauses,
             Statement::TypeDefinition(_) => &[],
+            Statement::TraitDefinition(_) => &[],
+            Statement::TraitImpl(_) => &[],
         }
     }
 }

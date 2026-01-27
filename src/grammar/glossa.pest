@@ -19,18 +19,49 @@
 
 program = { SOI ~ statement* ~ EOI }
 
-statement = { (type_definition | clause_list) ~ statement_end }
+statement = { (type_definition | trait_definition | trait_impl | clause_list) ~ statement_end }
 
 statement_end = { period | query }
 
 // Type definition: εἶδος typename ὁρίζειν { fields }
-type_definition = { greek_word ~ greek_word ~ greek_word ~ "{" ~ field_list? ~ "}" }
+type_definition = { eidos_keyword ~ greek_word ~ orizontin_keyword ~ "{" ~ field_list? ~ "}" }
+
+// Trait definition: χαρακτήρ traitname ὁρίζειν { methods }
+trait_definition = { character_keyword ~ greek_word ~ orizontin_keyword ~ "{" ~ trait_method_list? ~ "}" }
+
+// Trait implementation: εἶδος typename τῷ traitname ἐμπίπτειν { methods }
+trait_impl = { eidos_keyword ~ greek_word ~ dative_marker ~ greek_word ~ empiptein_keyword ~ "{" ~ impl_method_list? ~ "}" }
+
+// Keywords
+eidos_keyword = { "εἶδος" | "ειδος" }
+character_keyword = { "χαρακτήρ" | "χαρακτηρ" }
+orizontin_keyword = { "ὁρίζειν" | "οριζειν" }
+dative_marker = { "τῷ" | "τω" }
+empiptein_keyword = { "ἐμπίπτειν" | "εμπιπτειν" }
 
 // Field list: field declarations separated by middle dot (·) or period (.)
 field_list = { field_declaration ~ ((chain | period) ~ field_declaration)* ~ (chain | period)? }
 
 // Field declaration: fieldname typename_genitive
 field_declaration = { greek_word ~ greek_word }
+
+// Trait method list: method declarations separated by period (.)
+trait_method_list = { trait_method ~ (period ~ trait_method)* ~ period? }
+
+// Trait method: δεῖ methodname params or ἤδη methodname params· body
+// Must start with δεῖ or ἤδη to distinguish from field declarations
+trait_method = { (dei_keyword | ede_keyword) ~ greek_word+ ~ (chain ~ statement+)? }
+
+// Keywords for trait methods
+dei_keyword = { "δεῖ" | "δει" }
+ede_keyword = { "ἤδη" | "ηδη" }
+
+// Implementation method list: method implementations (each has one statement body)
+impl_method_list = { impl_method+ }
+
+// Implementation method: methodname params· body_statement
+// For multiple statements in a method body, use a block { ... }
+impl_method = { greek_word+ ~ chain ~ statement }
 
 // Clause list: clauses separated by commas (for control flow)
 // e.g., "εἰ condition, body" or "ἕως condition, body"
@@ -91,7 +122,8 @@ boolean_literal = { "ἀληθές" | "ψεῦδος" | "αληθες" | "ψευ
 // =============================================================================
 
 // A Greek word is a sequence of Greek letters (with optional diacritics)
-greek_word = @{ GREEK_CHAR+ }
+// OR an identifier (Latin letters for type/trait names)
+greek_word = @{ GREEK_CHAR+ | ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 // Greek characters including polytonic diacritics
 GREEK_CHAR = {

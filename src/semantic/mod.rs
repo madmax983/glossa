@@ -51,6 +51,18 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
             continue;
         }
 
+        // Handle trait definitions
+        if let Statement::TraitDefinition(trait_def) = stmt {
+            analyzed_statements.push(analyze_trait_definition(trait_def, &mut scope)?);
+            continue;
+        }
+
+        // Handle trait implementations
+        if let Statement::TraitImpl(trait_impl) = stmt {
+            analyzed_statements.push(analyze_trait_impl(trait_impl, &mut scope)?);
+            continue;
+        }
+
         // Check if this is a control flow construct
         if let Some(control_flow_stmt) = analyze_control_flow(stmt, &mut scope)? {
             // If it's a function definition, register it in the scope
@@ -62,10 +74,21 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
             }
             analyzed_statements.push(control_flow_stmt);
         } else {
-            // Use the assembler-based approach for regular statements
-            let assembled = analyze_single_statement_with_assembler(stmt)?;
-            let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
-            analyzed_statements.push(analyzed);
+            // Check for struct instantiation pattern BEFORE assembler
+            // Pattern: var_name νέον TypeName args... ἔστω
+            if let Some(struct_inst) = try_parse_struct_instantiation(stmt, &mut scope)? {
+                analyzed_statements.push(struct_inst);
+            }
+            // Check for trait method call pattern BEFORE assembler
+            // Pattern: method_name receiver
+            else if let Some(method_call) = try_parse_trait_method_call(stmt, &mut scope)? {
+                analyzed_statements.push(method_call);
+            } else {
+                // Use the assembler-based approach for regular statements
+                let assembled = analyze_single_statement_with_assembler(stmt)?;
+                let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
+                analyzed_statements.push(analyzed);
+            }
         }
     }
 
@@ -177,7 +200,179 @@ fn analyze_control_flow(stmt: &Statement, _scope: &mut Scope) -> Result<Option<A
     Ok(None)
 }
 
+/// Try to parse a trait method call: method_name receiver
+/// Returns Some(analyzed_statement) if this is a trait method call, None otherwise
+fn try_parse_trait_method_call(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    // Only process Regular statements
+    if let Statement::Regular { clauses, .. } = stmt {
+        // Should have exactly one clause with one expression
+        if clauses.len() != 1 || clauses[0].expressions.len() != 1 {
+            return Ok(None);
+        }
+
+        // Should be a Phrase with exactly 2 words
+        if let Expr::Phrase(terms) = &clauses[0].expressions[0] {
+            if terms.len() != 2 {
+                return Ok(None);
+            }
+
+            // Extract words
+            if let (Expr::Word(method_word), Expr::Word(receiver_word)) = (&terms[0], &terms[1]) {
+                let method_name = &method_word.normalized;
+                let receiver_name = &receiver_word.normalized;
+
+                // Check if receiver is a variable in scope
+                if let Some(receiver_type) = scope.lookup(receiver_name) {
+                    if let GlossaType::Struct { name: type_name, .. } = receiver_type {
+                        // Check if this type has a trait method with this name
+                        if scope.has_trait_method(type_name, method_name) {
+                            let receiver = AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable(receiver_name.clone()),
+                                glossa_type: receiver_type.clone(),
+                            };
+
+                            let method_call = AnalyzedExpr {
+                                expr: AnalyzedExprKind::MethodCall {
+                                    receiver: Box::new(receiver),
+                                    method: method_name.clone(),
+                                    args: vec![],
+                                },
+                                glossa_type: GlossaType::Unit,
+                            };
+
+                            return Ok(Some(AnalyzedStatement {
+                                kind: StatementKind::Expression,
+                                expressions: vec![method_call],
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}
+
 /// Try to parse a struct instantiation: variable νέον type_name args ἔστω
+/// Returns Some(analyzed_statement) if this is a struct instantiation, None otherwise
+fn try_parse_struct_instantiation(stmt: &Statement, scope: &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    // Only process Regular statements
+    if let Statement::Regular { clauses, .. } = stmt {
+        // Should have exactly one clause
+        if clauses.len() != 1 {
+            return Ok(None);
+        }
+
+        let clause = &clauses[0];
+        if clause.expressions.len() != 1 {
+            return Ok(None);
+        }
+
+        // Should be a Phrase with at least 4 words
+        if let Expr::Phrase(terms) = &clause.expressions[0] {
+            if terms.len() < 4 {
+                return Ok(None);
+            }
+
+
+            // Extract words
+            let mut words = Vec::new();
+            for term in terms {
+                if let Expr::Word(w) = term {
+                    words.push(w);
+                } else {
+                    return Ok(None); // Not all words
+                }
+            }
+
+            // Check pattern: var_name νέον TypeName args... ἔστω
+            // Last word should be ἔστω (binding verb)
+            if !crate::morphology::lexicon::is_binding_verb(&words.last().unwrap().normalized) {
+                return Ok(None);
+            }
+
+            // Second word should be νέον (new) - check both normalized form and if it's "new" via morphology
+            let normalized_adj = crate::grammar::normalize_greek(&words[1].normalized);
+            // Check if it's "new" - could be νέον, νεον, etc.
+            if normalized_adj != "νεον" && normalized_adj != "νεος" {
+                return Ok(None);
+            }
+
+            // Extract components
+            let var_name = &words[0].normalized;
+            let type_name = &words[2].normalized;
+
+            // Check if type exists
+            if let Some(struct_type) = scope.lookup_type(type_name).cloned() {
+                // Extract field names from struct type
+                let field_names: Vec<String> = if let GlossaType::Struct { fields, .. } = &struct_type {
+                    fields.iter().map(|(name, _)| name.clone()).collect()
+                } else {
+                    vec![]
+                };
+
+                // Collect constructor arguments (everything between type_name and ἔστω)
+                let mut args = Vec::new();
+                for i in 3..words.len()-1 {
+                    // Convert word to analyzed expression
+                    let word = words[i];
+                    let analyzed_arg = if let Some(num) = word.original.parse::<i64>().ok() {
+                        // Direct numeric literal like "5"
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(num),
+                            glossa_type: GlossaType::Number,
+                        }
+                    } else if let Some(num) = crate::morphology::lexicon::numeral_value(&word.normalized) {
+                        // Greek numeral word like πέντε -> 5
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(num),
+                            glossa_type: GlossaType::Number,
+                        }
+                    } else {
+                        // Variable reference
+                        let var_type = scope.lookup(&word.normalized).cloned().unwrap_or(GlossaType::Unknown);
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(word.normalized.clone()),
+                            glossa_type: var_type,
+                        }
+                    };
+                    args.push(analyzed_arg);
+                }
+
+                // Build struct instantiation
+                let struct_inst = AnalyzedExpr {
+                    expr: AnalyzedExprKind::StructInstantiation {
+                        type_name: type_name.clone(),
+                        fields: field_names,
+                        args,
+                    },
+                    glossa_type: struct_type.clone(),
+                };
+
+                // Register variable in scope with correct type
+                scope.define(var_name.clone(), struct_type.clone());
+
+                return Ok(Some(AnalyzedStatement {
+                    kind: StatementKind::Binding {
+                        name: var_name.clone(),
+                        value_type: struct_type.clone(),
+                    },
+                    expressions: vec![
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(var_name.clone()),
+                            glossa_type: struct_type.clone(),
+                        },
+                        struct_inst,
+                    ],
+                }));
+            }
+        }
+    }
+
+    Ok(None)
+}
+
 /// Analyze a type definition statement
 fn analyze_type_definition(type_def: &crate::ast::TypeDef, scope: &mut Scope) -> Result<AnalyzedStatement, GlossaError> {
     use crate::grammar::normalize_greek;
@@ -210,6 +405,208 @@ fn analyze_type_definition(type_def: &crate::ast::TypeDef, scope: &mut Scope) ->
         kind: StatementKind::TypeDefinition {
             name: type_name,
             fields,
+        },
+        expressions: vec![],
+    })
+}
+
+/// Analyze a trait definition statement
+fn analyze_trait_definition(trait_def: &crate::ast::TraitDef, scope: &mut Scope) -> Result<AnalyzedStatement, GlossaError> {
+    use crate::grammar::normalize_greek;
+
+    // Extract trait name
+    let trait_name = normalize_greek(&trait_def.name.original);
+
+    // Check for duplicate trait definition
+    if scope.lookup_trait(&trait_name).is_some() {
+        return Err(GlossaError::semantic(format!("Trait {} is already defined", trait_name)));
+    }
+
+    // Analyze methods
+    let mut required_methods = Vec::new();
+    let mut default_methods = Vec::new();
+    let mut analyzed_methods = Vec::new();
+
+    for method in &trait_def.methods {
+        let method_name = normalize_greek(&method.name.original);
+
+        // Analyze method parameters
+        let mut params = Vec::new();
+        for param in &method.params {
+            let param_name = normalize_greek(&param.name.original);
+            // For now, trait method parameters don't have explicit types
+            // They'll be inferred based on the impl
+            params.push((param_name, GlossaType::Unknown));
+        }
+
+        let signature = crate::semantic::types::MethodSignature {
+            name: method_name.clone(),
+            params: params.clone(),
+            return_type: None,
+            has_default: method.is_default,
+        };
+
+        if method.is_default {
+            // Analyze default method body
+            let body = if let Some(body_stmts) = &method.body {
+                let mut analyzed_body = Vec::new();
+                // Create a child scope for the method
+                let mut method_scope = scope.child();
+                // Add method parameters to scope (including self)
+                for (param_name, param_type) in &params {
+                    method_scope.define(param_name.clone(), param_type.clone());
+                }
+                // Properly analyze statements in the body
+                for body_stmt in body_stmts {
+                    if let Some(struct_inst) = try_parse_struct_instantiation(body_stmt, &mut method_scope)? {
+                        analyzed_body.push(struct_inst);
+                    } else if let Some(method_call) = try_parse_trait_method_call(body_stmt, &mut method_scope)? {
+                        analyzed_body.push(method_call);
+                    } else {
+                        let assembled = analyze_single_statement_with_assembler(body_stmt)?;
+                        let analyzed = convert_assembled_to_analyzed(&assembled, &mut method_scope)?;
+                        analyzed_body.push(analyzed);
+                    }
+                }
+                Some(analyzed_body)
+            } else {
+                Some(vec![])
+            };
+
+            default_methods.push(crate::semantic::types::DefaultMethod {
+                signature: signature.clone(),
+                body: body.clone().unwrap_or_default(),
+            });
+
+            analyzed_methods.push(AnalyzedTraitMethod {
+                name: method_name,
+                params,
+                is_default: true,
+                body,
+            });
+        } else {
+            required_methods.push(signature);
+
+            analyzed_methods.push(AnalyzedTraitMethod {
+                name: method_name,
+                params,
+                is_default: false,
+                body: None,
+            });
+        }
+    }
+
+    // Create the trait definition
+    let trait_def_semantic = crate::semantic::types::TraitDef {
+        name: trait_name.clone(),
+        required_methods,
+        default_methods,
+    };
+
+    // Store the trait in scope
+    scope.define_trait(trait_name.clone(), trait_def_semantic);
+
+    Ok(AnalyzedStatement {
+        kind: StatementKind::TraitDefinition {
+            name: trait_name,
+            methods: analyzed_methods,
+        },
+        expressions: vec![],
+    })
+}
+
+/// Analyze a trait implementation statement
+fn analyze_trait_impl(trait_impl: &crate::ast::TraitImplDef, scope: &mut Scope) -> Result<AnalyzedStatement, GlossaError> {
+    use crate::grammar::normalize_greek;
+
+    // Extract type and trait names
+    let type_name = normalize_greek(&trait_impl.type_name.original);
+    let trait_name = normalize_greek(&trait_impl.trait_name.original);
+
+    // Validate: trait must exist
+    let trait_def = scope.lookup_trait(&trait_name)
+        .ok_or_else(|| GlossaError::semantic(format!("Trait {} is not defined", trait_name)))?;
+
+    // Validate: type must exist
+    let struct_type = scope.lookup_type(&type_name)
+        .cloned()
+        .ok_or_else(|| GlossaError::semantic(format!("Type {} is not defined", type_name)))?;
+
+    // Collect implemented methods
+    let mut implemented_method_names = Vec::new();
+    let mut analyzed_methods = Vec::new();
+
+    for method in &trait_impl.methods {
+        let method_name = normalize_greek(&method.name.original);
+
+        // Analyze method parameters
+        let mut params = Vec::new();
+        for param in &method.params {
+            let param_name = normalize_greek(&param.name.original);
+            // For now, trait method parameters don't have explicit types
+            params.push((param_name, GlossaType::Unknown));
+        }
+
+        // Create a child scope for the method body with self bound
+        let mut method_scope = scope.child();
+        method_scope.define("self".to_string(), struct_type.clone());
+
+        // Also bind parameters
+        for (param_name, param_type) in &params {
+            method_scope.define(param_name.clone(), param_type.clone());
+        }
+
+        // Analyze the method body
+        let mut analyzed_body = Vec::new();
+        for body_stmt in &method.body {
+            // Try struct instantiation pattern first
+            if let Some(struct_inst) = try_parse_struct_instantiation(body_stmt, &mut method_scope)? {
+                analyzed_body.push(struct_inst);
+            }
+            // Try trait method call pattern
+            else if let Some(method_call) = try_parse_trait_method_call(body_stmt, &mut method_scope)? {
+                analyzed_body.push(method_call);
+            } else {
+                // Use assembler for regular statements
+                let assembled = analyze_single_statement_with_assembler(body_stmt)?;
+                let analyzed = convert_assembled_to_analyzed(&assembled, &mut method_scope)?;
+                analyzed_body.push(analyzed);
+            }
+        }
+
+        implemented_method_names.push(method_name.clone());
+        analyzed_methods.push(AnalyzedImplMethod {
+            name: method_name,
+            params,
+            body: analyzed_body,
+        });
+    }
+
+    // Validate: all required methods must be implemented
+    for required_method in &trait_def.required_methods {
+        if !implemented_method_names.contains(&required_method.name) {
+            return Err(GlossaError::semantic(format!(
+                "Type {} does not implement required method {} from trait {}",
+                type_name, required_method.name, trait_name
+            )));
+        }
+    }
+
+    // Create the trait implementation
+    let trait_impl_semantic = crate::semantic::types::TraitImpl {
+        trait_name: trait_name.clone(),
+        type_name: type_name.clone(),
+        methods: vec![], // Semantic tracking only needs names for now
+    };
+
+    // Register the trait impl in scope
+    scope.register_trait_impl(trait_impl_semantic);
+
+    Ok(AnalyzedStatement {
+        kind: StatementKind::TraitImplementation {
+            trait_name,
+            type_name,
+            methods: analyzed_methods,
         },
         expressions: vec![],
     })
@@ -1373,9 +1770,10 @@ fn classify_assembled_statement(
         }
     }
 
-    // Check for struct instantiation pattern
+    // Check for struct instantiation pattern (assembler-based, for Greek type names)
     // Pattern: subject νέον type_name args... ἔστω
     // Example: π νέον σημεῖον πέντε ἔστω
+    // Note: Latin identifier type names are handled before the assembler
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -1394,6 +1792,13 @@ fn classify_assembled_statement(
 
                 // Check if type exists in scope
                 if let Some(struct_type) = scope.lookup_type(&type_name).cloned() {
+                    // Extract field names from struct type
+                    let field_names: Vec<String> = if let GlossaType::Struct { fields, .. } = &struct_type {
+                        fields.iter().map(|(name, _)| name.clone()).collect()
+                    } else {
+                        vec![]
+                    };
+
                     // Get constructor arguments from literals
                     let args: Vec<AnalyzedExpr> = asm_stmt.literals.iter()
                         .map(literal_to_analyzed_expr)
@@ -1403,6 +1808,7 @@ fn classify_assembled_statement(
                     let struct_inst = AnalyzedExpr {
                         expr: AnalyzedExprKind::StructInstantiation {
                             type_name: type_name.clone(),
+                            fields: field_names,
                             args,
                         },
                         glossa_type: struct_type.clone(),
@@ -2163,6 +2569,34 @@ pub enum StatementKind {
         name: String,
         fields: Vec<(String, GlossaType)>,
     },
+    /// Trait definition: χαρακτήρ name ὁρίζειν { methods }
+    TraitDefinition {
+        name: String,
+        methods: Vec<AnalyzedTraitMethod>,
+    },
+    /// Trait implementation: εἶδος Type τῷ Trait ἐμπίπτειν { methods }
+    TraitImplementation {
+        trait_name: String,
+        type_name: String,
+        methods: Vec<AnalyzedImplMethod>,
+    },
+}
+
+/// An analyzed method in a trait definition
+#[derive(Debug, Clone)]
+pub struct AnalyzedTraitMethod {
+    pub name: String,
+    pub params: Vec<(String, GlossaType)>,
+    pub is_default: bool,
+    pub body: Option<Vec<AnalyzedStatement>>,  // Some for default methods, None for required
+}
+
+/// An analyzed method in a trait implementation
+#[derive(Debug, Clone)]
+pub struct AnalyzedImplMethod {
+    pub name: String,
+    pub params: Vec<(String, GlossaType)>,
+    pub body: Vec<AnalyzedStatement>,
 }
 
 /// Analyzed expression with type information
@@ -2216,9 +2650,17 @@ pub enum AnalyzedExprKind {
         method: String,
         args: Vec<AnalyzedExpr>,
     },
+    /// Trait method call receiverου method args (from trait impl)
+    TraitMethodCall {
+        receiver: Box<AnalyzedExpr>,
+        trait_name: String,
+        method_name: String,
+        args: Vec<AnalyzedExpr>,
+    },
     /// Struct instantiation Type { field: value, ... }
     StructInstantiation {
         type_name: String,
+        fields: Vec<String>,  // Field names from struct definition
         args: Vec<AnalyzedExpr>,
     },
 }
@@ -2306,6 +2748,105 @@ impl SemanticAnalyzer {
         is_query: bool,
     ) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
         // Look for patterns: binding, print, property access
+
+        // Check for struct instantiation pattern: var_name νέον TypeName args... ἔστω
+        // Must be checked before assembler since TypeName might be a Latin identifier
+        if terms.len() >= 4 {
+            // Check if last term is ἔστω (binding verb)
+            if let Expr::Word(last_word) = terms.last().unwrap() {
+                if crate::morphology::lexicon::is_binding_verb(&last_word.normalized) {
+                    // Check if second term is νέον (new)
+                    if let Expr::Word(second_word) = &terms[1] {
+                        let normalized_adj = &second_word.normalized;
+                        if normalized_adj == "νεος" || normalized_adj == "νεον" {
+                            // This looks like: var_name νέον TypeName args... ἔστω
+                            if let Expr::Word(var_word) = &terms[0] {
+                                if let Expr::Word(type_word) = &terms[2] {
+                                    let var_name = &var_word.normalized;
+                                    let type_name = &type_word.normalized;
+
+                                    // Check if the type exists
+                                    if let Some(struct_type) = self.scope.lookup_type(type_name).cloned() {
+                                        // Extract field names from struct type
+                                        let field_names: Vec<String> = if let GlossaType::Struct { fields, .. } = &struct_type {
+                                            fields.iter().map(|(name, _)| name.clone()).collect()
+                                        } else {
+                                            vec![]
+                                        };
+
+                                        // Collect constructor arguments (everything between type_name and ἔστω)
+                                        let mut args = Vec::new();
+                                        for i in 3..terms.len()-1 {
+                                            args.push(self.analyze_single_expr(&terms[i])?);
+                                        }
+
+                                        // Build struct instantiation
+                                        let struct_inst = AnalyzedExpr {
+                                            expr: AnalyzedExprKind::StructInstantiation {
+                                                type_name: type_name.clone(),
+                                                fields: field_names,
+                                                args,
+                                            },
+                                            glossa_type: struct_type.clone(),
+                                        };
+
+                                        // Register variable in scope with correct type
+                                        self.scope.define(var_name.clone(), struct_type.clone());
+
+                                        return Ok((
+                                            StatementKind::Binding {
+                                                name: var_name.clone(),
+                                                value_type: struct_type.clone(),
+                                            },
+                                            vec![
+                                                AnalyzedExpr {
+                                                    expr: AnalyzedExprKind::Variable(var_name.clone()),
+                                                    glossa_type: struct_type.clone(),
+                                                },
+                                                struct_inst,
+                                            ],
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check for trait method call pattern: method_name receiver (e.g., "show π")
+        // This must be checked before verb analysis since method names may not be Greek verbs
+        if terms.len() == 2 {
+            if let (Expr::Word(method_word), Expr::Word(receiver_word)) = (&terms[0], &terms[1]) {
+                let method_name = &method_word.normalized;
+                let receiver_name = &receiver_word.normalized;
+
+                // Check if receiver is a variable in scope
+                if let Some(receiver_type) = self.scope.lookup(receiver_name) {
+                    if let GlossaType::Struct { name: type_name, .. } = receiver_type {
+                        // Check if this type has a trait method with this name
+                        if self.scope.has_trait_method(type_name, method_name) {
+                            let receiver = AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable(receiver_name.clone()),
+                                glossa_type: receiver_type.clone(),
+                            };
+
+                            let method_call = AnalyzedExpr {
+                                expr: AnalyzedExprKind::MethodCall {
+                                    receiver: Box::new(receiver),
+                                    method: method_name.clone(),
+                                    args: vec![],
+                                },
+                                glossa_type: GlossaType::Unit,
+                            };
+
+                            return Ok((StatementKind::Expression, vec![method_call]));
+                        }
+                    }
+                }
+            }
+        }
 
         // Find verb position and type
         let mut verb_idx = None;
