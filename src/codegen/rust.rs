@@ -254,9 +254,8 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                     let param_tokens: Vec<TokenStream> = method.params.iter()
                         .enumerate()
                         .map(|(idx, (param_name, param_type))| {
-                            let normalized_name = normalize_greek(param_name);
                             // Special case: first parameter named "self" becomes &self
-                            if idx == 0 && (normalized_name == "self" || param_name == "self" || normalized_name == "τῷ" || param_name.contains("self")) {
+                            if is_self_parameter(param_name, idx) {
                                 quote! { &self }
                             } else {
                                 let param_ident = format_ident!("{}", sanitize_name(param_name));
@@ -343,9 +342,8 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                     let param_tokens: Vec<TokenStream> = method.params.iter()
                         .enumerate()
                         .map(|(idx, (param_name, param_type))| {
-                            let normalized_name = normalize_greek(param_name);
                             // Special case: first parameter named "self" becomes &self
-                            if idx == 0 && (normalized_name == "self" || param_name == "self" || normalized_name == "τῷ" || param_name.contains("self")) {
+                            if is_self_parameter(param_name, idx) {
                                 quote! { &self }
                             } else {
                                 let param_ident = format_ident!("{}", sanitize_name(param_name));
@@ -487,31 +485,21 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             }
         }
 
-        HirExpr::StructLit { type_name, args } => {
+        HirExpr::StructLit { type_name, fields, args } => {
             // Capitalize struct name for Rust conventions
             let struct_name = format_ident!("{}", capitalize(&sanitize_name(type_name)));
 
-            // For now, generate positional struct literals
-            // Rust requires field names, so we need to get the struct definition
-            // For simplicity, we'll generate: TypeName { field1: arg1, field2: arg2, ... }
-            // We need to know the field names - for now use generic names
-            let arg_tokens: Vec<TokenStream> = args.iter()
-                .map(generate_expr)
+            // Generate field: value pairs using actual field names
+            let field_assignments: Vec<TokenStream> = fields.iter()
+                .zip(args.iter())
+                .map(|(field_name, arg)| {
+                    let field_ident = format_ident!("{}", sanitize_name(field_name));
+                    let arg_token = generate_expr(arg);
+                    quote! { #field_ident: #arg_token }
+                })
                 .collect();
 
-            // Generate field assignments with generic names
-            // This assumes the fields are named in order from the type definition
-            // For a real implementation, we'd need to look up the type definition
-            if args.len() == 1 {
-                quote! { #struct_name { xi: #(#arg_tokens),* } }
-            } else if args.len() == 2 {
-                let arg1 = &arg_tokens[0];
-                let arg2 = &arg_tokens[1];
-                quote! { #struct_name { xi: #arg1, psi: #arg2 } }
-            } else {
-                // Generic fallback
-                quote! { #struct_name { xi: #(#arg_tokens),* } }
-            }
+            quote! { #struct_name { #(#field_assignments),* } }
         }
     }
 }
@@ -523,6 +511,16 @@ fn capitalize(s: &str) -> String {
         None => String::new(),
         Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
     }
+}
+
+/// Check if a parameter represents the self parameter in a trait method
+fn is_self_parameter(param_name: &str, idx: usize) -> bool {
+    if idx != 0 {
+        return false;
+    }
+    let normalized = normalize_greek(param_name);
+    // Check for "self", "τω" (normalized from τῷ), or if param name contains "self"
+    normalized == "self" || param_name == "self" || normalized == "τω" || param_name.contains("self")
 }
 
 /// Sanitize a Greek name for use as a Rust identifier

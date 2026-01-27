@@ -176,6 +176,7 @@ pub enum HirExpr {
     /// Struct literal: TypeName { field: value, ... }
     StructLit {
         type_name: String,
+        fields: Vec<String>,
         args: Vec<HirExpr>,
     },
 }
@@ -358,15 +359,17 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
         StatementKind::TraitDefinition { name, methods } => {
             Some(HirStatement::TraitDef {
                 name: name.clone(),
-                methods: methods.iter().map(|(method_name, params, is_default)| {
+                methods: methods.iter().map(|method| {
                     HirTraitMethod {
-                        name: method_name.clone(),
-                        params: params.iter()
+                        name: method.name.clone(),
+                        params: method.params.iter()
                             .map(|(param_name, param_type)| (param_name.clone(), Some(param_type.to_rust().to_string())))
                             .collect(),
                         return_type: None, // We'll infer this later if needed
-                        has_default: *is_default,
-                        body: None, // Default method bodies not implemented yet
+                        has_default: method.is_default,
+                        body: method.body.as_ref().map(|body_stmts| {
+                            body_stmts.iter().filter_map(lower_statement).collect()
+                        }),
                     }
                 }).collect(),
             })
@@ -475,9 +478,10 @@ fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
                 inclusive: *inclusive,
             }
         }
-        AnalyzedExprKind::StructInstantiation { type_name, args } => {
+        AnalyzedExprKind::StructInstantiation { type_name, fields, args } => {
             HirExpr::StructLit {
                 type_name: type_name.clone(),
+                fields: fields.clone(),
                 args: args.iter().map(lower_expr).collect(),
             }
         }

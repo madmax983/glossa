@@ -305,6 +305,12 @@ fn try_parse_struct_instantiation(stmt: &Statement, scope: &mut Scope) -> Result
 
             // Check if type exists
             if let Some(struct_type) = scope.lookup_type(type_name).cloned() {
+                // Extract field names from struct type
+                let field_names: Vec<String> = if let GlossaType::Struct { fields, .. } = &struct_type {
+                    fields.iter().map(|(name, _)| name.clone()).collect()
+                } else {
+                    vec![]
+                };
 
                 // Collect constructor arguments (everything between type_name and ἔστω)
                 let mut args = Vec::new();
@@ -338,6 +344,7 @@ fn try_parse_struct_instantiation(stmt: &Statement, scope: &mut Scope) -> Result
                 let struct_inst = AnalyzedExpr {
                     expr: AnalyzedExprKind::StructInstantiation {
                         type_name: type_name.clone(),
+                        fields: field_names,
                         args,
                     },
                     glossa_type: struct_type.clone(),
@@ -418,7 +425,7 @@ fn analyze_trait_definition(trait_def: &crate::ast::TraitDef, scope: &mut Scope)
     // Analyze methods
     let mut required_methods = Vec::new();
     let mut default_methods = Vec::new();
-    let mut method_signatures = Vec::new();
+    let mut analyzed_methods = Vec::new();
 
     for method in &trait_def.methods {
         let method_name = normalize_greek(&method.name.original);
@@ -431,8 +438,6 @@ fn analyze_trait_definition(trait_def: &crate::ast::TraitDef, scope: &mut Scope)
             // They'll be inferred based on the impl
             params.push((param_name, GlossaType::Unknown));
         }
-
-        method_signatures.push((method_name.clone(), params.clone(), method.is_default));
 
         let signature = crate::semantic::types::MethodSignature {
             name: method_name.clone(),
@@ -447,31 +452,47 @@ fn analyze_trait_definition(trait_def: &crate::ast::TraitDef, scope: &mut Scope)
                 let mut analyzed_body = Vec::new();
                 // Create a child scope for the method
                 let mut method_scope = scope.child();
-                // Add method parameters to scope
+                // Add method parameters to scope (including self)
                 for (param_name, param_type) in &params {
                     method_scope.define(param_name.clone(), param_type.clone());
                 }
-                // Analyze statements in the body
+                // Properly analyze statements in the body
                 for body_stmt in body_stmts {
-                    // For now, just do basic analysis
-                    // We'll need to recursively call the analyzer here
-                    // For simplicity in this implementation, we'll skip detailed analysis
-                    analyzed_body.push(AnalyzedStatement {
-                        kind: StatementKind::Expression,
-                        expressions: vec![],
-                    });
+                    if let Some(struct_inst) = try_parse_struct_instantiation(body_stmt, &mut method_scope)? {
+                        analyzed_body.push(struct_inst);
+                    } else if let Some(method_call) = try_parse_trait_method_call(body_stmt, &mut method_scope)? {
+                        analyzed_body.push(method_call);
+                    } else {
+                        let assembled = analyze_single_statement_with_assembler(body_stmt)?;
+                        let analyzed = convert_assembled_to_analyzed(&assembled, &mut method_scope)?;
+                        analyzed_body.push(analyzed);
+                    }
                 }
-                analyzed_body
+                Some(analyzed_body)
             } else {
-                vec![]
+                Some(vec![])
             };
 
             default_methods.push(crate::semantic::types::DefaultMethod {
-                signature,
+                signature: signature.clone(),
+                body: body.clone().unwrap_or_default(),
+            });
+
+            analyzed_methods.push(AnalyzedTraitMethod {
+                name: method_name,
+                params,
+                is_default: true,
                 body,
             });
         } else {
             required_methods.push(signature);
+
+            analyzed_methods.push(AnalyzedTraitMethod {
+                name: method_name,
+                params,
+                is_default: false,
+                body: None,
+            });
         }
     }
 
@@ -488,7 +509,7 @@ fn analyze_trait_definition(trait_def: &crate::ast::TraitDef, scope: &mut Scope)
     Ok(AnalyzedStatement {
         kind: StatementKind::TraitDefinition {
             name: trait_name,
-            methods: method_signatures,
+            methods: analyzed_methods,
         },
         expressions: vec![],
     })
@@ -1771,6 +1792,13 @@ fn classify_assembled_statement(
 
                 // Check if type exists in scope
                 if let Some(struct_type) = scope.lookup_type(&type_name).cloned() {
+                    // Extract field names from struct type
+                    let field_names: Vec<String> = if let GlossaType::Struct { fields, .. } = &struct_type {
+                        fields.iter().map(|(name, _)| name.clone()).collect()
+                    } else {
+                        vec![]
+                    };
+
                     // Get constructor arguments from literals
                     let args: Vec<AnalyzedExpr> = asm_stmt.literals.iter()
                         .map(literal_to_analyzed_expr)
@@ -1780,6 +1808,7 @@ fn classify_assembled_statement(
                     let struct_inst = AnalyzedExpr {
                         expr: AnalyzedExprKind::StructInstantiation {
                             type_name: type_name.clone(),
+                            fields: field_names,
                             args,
                         },
                         glossa_type: struct_type.clone(),
@@ -2543,7 +2572,7 @@ pub enum StatementKind {
     /// Trait definition: χαρακτήρ name ὁρίζειν { methods }
     TraitDefinition {
         name: String,
-        methods: Vec<(String, Vec<(String, GlossaType)>, bool)>, // (name, params, is_default)
+        methods: Vec<AnalyzedTraitMethod>,
     },
     /// Trait implementation: εἶδος Type τῷ Trait ἐμπίπτειν { methods }
     TraitImplementation {
@@ -2551,6 +2580,15 @@ pub enum StatementKind {
         type_name: String,
         methods: Vec<AnalyzedImplMethod>,
     },
+}
+
+/// An analyzed method in a trait definition
+#[derive(Debug, Clone)]
+pub struct AnalyzedTraitMethod {
+    pub name: String,
+    pub params: Vec<(String, GlossaType)>,
+    pub is_default: bool,
+    pub body: Option<Vec<AnalyzedStatement>>,  // Some for default methods, None for required
 }
 
 /// An analyzed method in a trait implementation
@@ -2622,6 +2660,7 @@ pub enum AnalyzedExprKind {
     /// Struct instantiation Type { field: value, ... }
     StructInstantiation {
         type_name: String,
+        fields: Vec<String>,  // Field names from struct definition
         args: Vec<AnalyzedExpr>,
     },
 }
@@ -2713,16 +2752,13 @@ impl SemanticAnalyzer {
         // Check for struct instantiation pattern: var_name νέον TypeName args... ἔστω
         // Must be checked before assembler since TypeName might be a Latin identifier
         if terms.len() >= 4 {
-            eprintln!("DEBUG analyze_phrase: checking struct inst pattern, terms.len()={}", terms.len());
             // Check if last term is ἔστω (binding verb)
             if let Expr::Word(last_word) = terms.last().unwrap() {
-                eprintln!("DEBUG analyze_phrase: last_word={}, is_binding={}", last_word.normalized, crate::morphology::lexicon::is_binding_verb(&last_word.normalized));
                 if crate::morphology::lexicon::is_binding_verb(&last_word.normalized) {
                     // Check if second term is νέον (new)
                     if let Expr::Word(second_word) = &terms[1] {
-                        let normalized_adj = crate::grammar::normalize_greek(&second_word.normalized);
-                        eprintln!("DEBUG analyze_phrase: second_word={}, normalized={}, is_neos={}", second_word.normalized, normalized_adj, normalized_adj == "νεος");
-                        if normalized_adj == "νεος" {
+                        let normalized_adj = &second_word.normalized;
+                        if normalized_adj == "νεος" || normalized_adj == "νεον" {
                             // This looks like: var_name νέον TypeName args... ἔστω
                             if let Expr::Word(var_word) = &terms[0] {
                                 if let Expr::Word(type_word) = &terms[2] {
@@ -2731,6 +2767,13 @@ impl SemanticAnalyzer {
 
                                     // Check if the type exists
                                     if let Some(struct_type) = self.scope.lookup_type(type_name).cloned() {
+                                        // Extract field names from struct type
+                                        let field_names: Vec<String> = if let GlossaType::Struct { fields, .. } = &struct_type {
+                                            fields.iter().map(|(name, _)| name.clone()).collect()
+                                        } else {
+                                            vec![]
+                                        };
+
                                         // Collect constructor arguments (everything between type_name and ἔστω)
                                         let mut args = Vec::new();
                                         for i in 3..terms.len()-1 {
@@ -2741,6 +2784,7 @@ impl SemanticAnalyzer {
                                         let struct_inst = AnalyzedExpr {
                                             expr: AnalyzedExprKind::StructInstantiation {
                                                 type_name: type_name.clone(),
+                                                fields: field_names,
                                                 args,
                                             },
                                             glossa_type: struct_type.clone(),
