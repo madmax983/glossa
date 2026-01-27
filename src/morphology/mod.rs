@@ -116,11 +116,14 @@ pub fn analyze(word: &str) -> MorphAnalysis {
 /// Use this when you need to resolve ambiguity using syntactic context.
 ///
 /// # Example
-/// ```ignore
+/// ```
+/// use glossa::morphology::analyze_all;
+///
 /// let analyses = analyze_all("θαλασσα");
 /// // Could be:
 /// // - Nominative singular feminine (1st decl.) - "the sea" as subject
 /// // - Vocative singular feminine - "O sea!"
+/// assert!(!analyses.is_empty());
 /// ```
 pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     let normalized = normalize_greek(word);

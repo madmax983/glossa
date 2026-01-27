@@ -15,8 +15,9 @@
 //!
 //! ## Examples
 //!
-//! ```ignore
+//! ```
 //! use glossa::morphology::participle::analyze_participle;
+//! use glossa::morphology::Tense;
 //!
 //! let p = analyze_participle("γραφων").unwrap();
 //! assert_eq!(p.verb_lemma(), "γραφω");
@@ -49,7 +50,9 @@ impl ParticipleAnalysis {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```
+    /// use glossa::morphology::participle::analyze_participle;
+    ///
     /// let p = analyze_participle("γραφων").unwrap();
     /// assert_eq!(p.verb_lemma(), "γραφω");
     /// ```
@@ -470,8 +473,9 @@ const PERFECT_PASSIVE_PARTICIPLE: &[ParticiplePattern] = &[
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```
 /// use glossa::morphology::participle::analyze_participle;
+/// use glossa::morphology::Tense;
 ///
 /// let p = analyze_participle("γραφων").unwrap();
 /// assert_eq!(p.verb_lemma(), "γραφω");
