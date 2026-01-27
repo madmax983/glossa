@@ -23,11 +23,13 @@ mod case;
 mod declension;
 mod conjugation;
 pub mod lexicon;
+pub mod participle;
 
 pub use case::*;
 pub use declension::*;
 pub use conjugation::*;
 pub use lexicon::*;
+pub use participle::*;
 
 use crate::grammar::normalize_greek;
 

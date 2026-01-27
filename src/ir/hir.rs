@@ -179,6 +179,54 @@ pub enum HirExpr {
         fields: Vec<String>,
         args: Vec<HirExpr>,
     },
+
+    /// Closure: |params| body
+    Closure {
+        params: Vec<String>,
+        body: Box<HirExpr>,
+        capture_mode: CaptureMode,
+    },
+
+    /// Iterator chain: collection.iter().map(...).filter(...)
+    IteratorChain {
+        collection: Box<HirExpr>,
+        ops: Vec<IteratorOp>,
+    },
+}
+
+/// Closure capture mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaptureMode {
+    /// Borrow captured variables (default)
+    Borrow,
+    /// Move captured variables (for one-shot/consuming closures)
+    Move,
+    /// Memoize result (for cached closures)
+    Memoize,
+}
+
+/// Iterator operation
+#[derive(Debug, Clone)]
+pub enum IteratorOp {
+    /// .iter() - create iterator
+    Iter,
+    /// .map(closure) - transform elements
+    Map(Box<HirExpr>),
+    /// .filter(closure) - select elements
+    Filter(Box<HirExpr>),
+    /// .find(closure) - find first matching element
+    Find(Box<HirExpr>),
+    /// .fold(init, closure) - reduce to single value
+    Fold {
+        init: Box<HirExpr>,
+        closure: Box<HirExpr>,
+    },
+    /// .any(closure) - test if any element matches
+    Any(Box<HirExpr>),
+    /// .all(closure) - test if all elements match
+    All(Box<HirExpr>),
+    /// .collect() - collect into collection
+    Collect,
 }
 
 /// Binary operators
@@ -394,7 +442,7 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
     }
 }
 
-fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
+pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => HirExpr::StringLit(s.clone()),
         AnalyzedExprKind::NumberLiteral(n) => HirExpr::IntLit(*n),
@@ -484,6 +532,31 @@ fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
                 fields: fields.clone(),
                 args: args.iter().map(lower_expr).collect(),
             }
+        }
+        AnalyzedExprKind::Lambda { params, body, capture_mode } => {
+            use crate::ast::CaptureMode as AstCaptureMode;
+
+            // Convert from AST CaptureMode to HIR CaptureMode
+            let hir_capture_mode = match capture_mode {
+                AstCaptureMode::Borrow => CaptureMode::Borrow,
+                AstCaptureMode::Move => CaptureMode::Move,
+                AstCaptureMode::Memoize => CaptureMode::Memoize,
+            };
+
+            HirExpr::Closure {
+                params: params.clone(),
+                body: Box::new(lower_expr(body)),
+                capture_mode: hir_capture_mode,
+            }
+        }
+        AnalyzedExprKind::IteratorChain { collection, ops } => {
+            HirExpr::IteratorChain {
+                collection: Box::new(lower_expr(collection)),
+                ops: ops.clone(),
+            }
+        }
+        AnalyzedExprKind::Literal(n) => {
+            HirExpr::IntLit(*n)
         }
     }
 }

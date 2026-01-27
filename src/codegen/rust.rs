@@ -501,6 +501,79 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
 
             quote! { #struct_name { #(#field_assignments),* } }
         }
+
+        HirExpr::Closure { params, body, capture_mode } => {
+            use crate::ir::CaptureMode;
+
+            let body_tokens = generate_expr(body);
+            let params_idents: Vec<_> = params.iter()
+                .map(|p| format_ident!("{}", sanitize_name(p)))
+                .collect();
+
+            match capture_mode {
+                CaptureMode::Move => {
+                    quote! { move |#(#params_idents),*| #body_tokens }
+                }
+                CaptureMode::Borrow => {
+                    quote! { |#(#params_idents),*| #body_tokens }
+                }
+                CaptureMode::Memoize => {
+                    // For memoization, use a simple cached closure pattern
+                    // In production, this would use lazy_static or once_cell
+                    quote! {
+                        {
+                            use std::cell::OnceCell;
+                            let cache: OnceCell<_> = OnceCell::new();
+                            move |#(#params_idents),*| *cache.get_or_init(|| #body_tokens)
+                        }
+                    }
+                }
+            }
+        }
+
+        HirExpr::IteratorChain { collection, ops } => {
+            use crate::ir::IteratorOp;
+
+            let mut current = generate_expr(collection);
+
+            for op in ops {
+                current = match op {
+                    IteratorOp::Iter => {
+                        quote! { #current.iter() }
+                    }
+                    IteratorOp::Map(closure) => {
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.map(#closure_tokens) }
+                    }
+                    IteratorOp::Filter(closure) => {
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.filter(#closure_tokens) }
+                    }
+                    IteratorOp::Find(closure) => {
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.find(#closure_tokens) }
+                    }
+                    IteratorOp::Fold { init, closure } => {
+                        let init_tokens = generate_expr(init);
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.fold(#init_tokens, #closure_tokens) }
+                    }
+                    IteratorOp::Any(closure) => {
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.any(#closure_tokens) }
+                    }
+                    IteratorOp::All(closure) => {
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.all(#closure_tokens) }
+                    }
+                    IteratorOp::Collect => {
+                        quote! { #current.collect() }
+                    }
+                };
+            }
+
+            current
+        }
     }
 }
 

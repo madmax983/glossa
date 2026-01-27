@@ -1624,10 +1624,25 @@ fn feed_expr_to_assembler_with_context(
         Expr::Word(w) => {
             // Check if this is an article using ORIGINAL form (preserves diacritics)
             // This distinguishes ἡ (article) from ἤ (or) - they differ only in breathing/accent
-            if let Some(article_context) = analyze_article(&w.original) {
+            let article_check = analyze_article(&w.original);
+            if let Some(article_context) = article_check {
                 *context = article_context;
                 // Articles themselves don't go to assembler slots
                 return Ok(());
+            }
+
+            // Check if this word is a participle (for lambda construction)
+            // BUT: skip participle check if the word is in the lexicon as something else
+            // This prevents comparative adjectives like μείζον from being misidentified as participles
+            let in_lexicon = morphology::lexicon::lookup(&w.normalized).is_some();
+            let is_numeral = morphology::lexicon::numeral_value(&w.normalized).is_some();
+
+            if !in_lexicon && !is_numeral {
+                let participle_check = morphology::analyze_participle(&w.normalized);
+                if let Some(participle_analysis) = participle_check {
+                    asm.feed_participle(&participle_analysis, &w.original);
+                    return Ok(());
+                }
             }
 
             // Get all possible analyses for the word
@@ -1713,6 +1728,11 @@ fn feed_expr_to_assembler_with_context(
             // Feed index access to assembler
             asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone());
         }
+        Expr::Lambda { kind, verb_lemma, implicit_param } => {
+            // TODO: Implement lambda handling in Cycle 3+
+            // For now, just acknowledge the lambda exists
+            let _ = (kind, verb_lemma, implicit_param);
+        }
     }
     Ok(())
 }
@@ -1729,11 +1749,695 @@ fn convert_assembled_to_analyzed(
     Ok(AnalyzedStatement { kind, expressions })
 }
 
+/// Convert an AssembledStatement to a single AnalyzedExpr for use in value expressions
+/// Handles patterns like: ξ ἓν ἄθροισμα → BinOp(Variable("xi"), Add, NumberLiteral(1))
+fn classify_value_expression(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<AnalyzedExpr, GlossaError> {
+    // Check for binary operation: subject + object + operator
+    if let Some(subject) = &asm_stmt.subject {
+        if !asm_stmt.operators.is_empty() {
+            let subj_name = normalize_greek(&subject.original);
+            let left = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj_name.clone()),
+                glossa_type: scope.lookup(&subj_name)
+                    .cloned()
+                    .unwrap_or(GlossaType::Number),
+            };
+
+            // Get the right operand (from literals or object)
+            let right = if !asm_stmt.literals.is_empty() {
+                match &asm_stmt.literals[0] {
+                    crate::semantic::assembler::Literal::Number(n) => AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(*n),
+                        glossa_type: GlossaType::Number,
+                    },
+                    crate::semantic::assembler::Literal::String(s) => AnalyzedExpr {
+                        expr: AnalyzedExprKind::StringLiteral(s.clone()),
+                        glossa_type: GlossaType::String,
+                    },
+                    crate::semantic::assembler::Literal::Boolean(b) => AnalyzedExpr {
+                        expr: AnalyzedExprKind::BooleanLiteral(*b),
+                        glossa_type: GlossaType::Boolean,
+                    },
+                }
+            } else if let Some(object) = &asm_stmt.object {
+                let obj_name = normalize_greek(&object.original);
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj_name.clone()),
+                    glossa_type: scope.lookup(&obj_name)
+                        .cloned()
+                        .unwrap_or(GlossaType::Number),
+                }
+            } else {
+                return Err(GlossaError::semantic("Binary operation missing right operand"));
+            };
+
+            let op = asm_stmt.operators[0];
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                },
+                glossa_type: GlossaType::Number,
+            });
+        }
+
+        // Just a variable reference
+        let var_name = normalize_greek(&subject.original);
+        return Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(var_name.clone()),
+            glossa_type: scope.lookup(&var_name).cloned().unwrap_or(GlossaType::Number),
+        });
+    }
+
+    // Check for literal-only value
+    if !asm_stmt.literals.is_empty() {
+        return match &asm_stmt.literals[0] {
+            crate::semantic::assembler::Literal::Number(n) => Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(*n),
+                glossa_type: GlossaType::Number,
+            }),
+            crate::semantic::assembler::Literal::String(s) => Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral(s.clone()),
+                glossa_type: GlossaType::String,
+            }),
+            crate::semantic::assembler::Literal::Boolean(b) => Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(*b),
+                glossa_type: GlossaType::Boolean,
+            }),
+        };
+    }
+
+    Err(GlossaError::semantic("Unable to classify value expression"))
+}
+
+/// Detect iterator patterns with participles
+/// Pattern: collection + participle(s) + verb
+/// Example: ξ διπλασιαζόμενα λέγε → ξ.iter().map(|x| x * 2).collect()
+fn detect_iterator_pattern(
+    asm_stmt: &AssembledStatement,
+    _scope: &mut Scope,
+) -> Result<Option<AnalyzedExpr>, GlossaError> {
+    // Need: (subject OR array) + (participles OR comparatives) + (print OR find verb)
+    let verb = match &asm_stmt.verb {
+        Some(v) => v,
+        None => return Ok(None),
+    };
+
+    // Check if verb is a print or find verb
+    let verb_lemma = normalize_greek(&verb.lemma);
+    let is_print = crate::morphology::lexicon::is_print_verb(&verb_lemma);
+    let is_find = crate::morphology::lexicon::is_find_verb(&verb_lemma);
+
+    if !is_print && !is_find {
+        return Ok(None);
+    }
+
+    // Get the collection - prefer array literals, then subject (but not quantifiers)
+    let collection_expr = if !asm_stmt.arrays.is_empty() {
+        // Use the first array literal
+        let array_elements: Vec<AnalyzedExpr> = asm_stmt.arrays[0]
+            .iter()
+            .map(|e| match e {
+                crate::ast::Expr::NumberLiteral(n) => AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(*n),
+                    glossa_type: GlossaType::Number,
+                },
+                _ => AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(0),
+                    glossa_type: GlossaType::Number,
+                },
+            })
+            .collect();
+
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::ArrayLiteral(array_elements),
+            glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
+        }
+    } else if let Some(subject) = &asm_stmt.subject {
+        // Use subject only if it's not a quantifier (τι/πάντα)
+        let collection_name = normalize_greek(&subject.lemma);
+        if !crate::morphology::lexicon::is_any_quantifier(&collection_name) &&
+           !crate::morphology::lexicon::is_all_quantifier(&collection_name) {
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(collection_name),
+                glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
+            }
+        } else {
+            return Ok(None);
+        }
+    } else {
+        return Ok(None);
+    };
+
+    // Start with the collection variable
+    let mut iterator_ops = vec![crate::ir::IteratorOp::Iter];
+
+    // Check for any/all quantifiers
+    let mut is_any = false;
+    let mut is_all = false;
+    if let Some(ref subj) = asm_stmt.subject {
+        let subj_lemma = normalize_greek(&subj.lemma);
+        is_any = crate::morphology::lexicon::is_any_quantifier(&subj_lemma);
+        is_all = crate::morphology::lexicon::is_all_quantifier(&subj_lemma);
+    }
+    // Also check nominatives for quantifiers
+    for nom in &asm_stmt.nominatives {
+        let nom_lemma = normalize_greek(&nom.lemma);
+        if crate::morphology::lexicon::is_any_quantifier(&nom_lemma) {
+            is_any = true;
+        }
+        if crate::morphology::lexicon::is_all_quantifier(&nom_lemma) {
+            is_all = true;
+        }
+    }
+
+    // Check for comparative adjective filter/any/all pattern
+    // Pattern: collection + number + comparative_adj → filter/any/all
+    // Pattern: collection + predicate_adj (implicit zero) → filter/any/all
+    // Example: [1, 10, 3, 8] πέντε μείζονα → filter(|x| x > 5)
+    // Example: [1, 2, 3] πάντα θετικά → all(|x| x > 0)
+    if !asm_stmt.adjectives.is_empty() {
+        for adj in &asm_stmt.adjectives {
+            // Look up adjective in lexicon to check if it's comparative
+            // Use the ORIGINAL form, not the lemma, because comparatives are irregular
+            if let Some(entry) = crate::morphology::lexicon::lookup(&normalize_greek(&adj.original)) {
+                if entry.pos == crate::morphology::PartOfSpeech::Adjective {
+                    if let Some(rust_op) = entry.rust_equiv {
+                        if rust_op == ">" || rust_op == "<" {
+                            // Found a comparative adjective!
+                            // Get the comparison value from:
+                            // 1. Genitive (captured variable like θου)
+                            // 2. Literal (number like πέντε)
+                            // 3. Implicit 0 (for predicates like θετικά)
+                            let comparison_expr = if let Some(genitive) = asm_stmt.genitives.first() {
+                                // Genitive of comparison: θου μείζονα = "greater than theta"
+                                // For single-letter variables, strip genitive ending
+                                let normalized = normalize_greek(&genitive.original);
+                                let var_name = if normalized.ends_with("ου") {
+                                    // Strip -ου genitive ending (θου → θ)
+                                    normalized.trim_end_matches("ου").to_string()
+                                } else if normalized.ends_with("ης") {
+                                    // Strip -ης genitive ending
+                                    normalized.trim_end_matches("ης").to_string()
+                                } else if normalized.ends_with("ων") {
+                                    // Strip -ων genitive plural ending
+                                    normalized.trim_end_matches("ων").to_string()
+                                } else {
+                                    // Use as-is (shouldn't happen for valid genitives)
+                                    normalized
+                                };
+                                AnalyzedExpr {
+                                    expr: AnalyzedExprKind::Variable(var_name),
+                                    glossa_type: GlossaType::Number,
+                                }
+                            } else if let Some(literal) = asm_stmt.literals.first() {
+                                // Literal comparison: πέντε μείζονα = "greater than five"
+                                let value = match literal {
+                                    crate::semantic::assembler::Literal::Number(n) => *n,
+                                    _ => 0,
+                                };
+                                AnalyzedExpr {
+                                    expr: AnalyzedExprKind::NumberLiteral(value),
+                                    glossa_type: GlossaType::Number,
+                                }
+                            } else {
+                                // Implicit zero: θετικά = "positive" = greater than 0
+                                AnalyzedExpr {
+                                    expr: AnalyzedExprKind::NumberLiteral(0),
+                                    glossa_type: GlossaType::Number,
+                                }
+                            };
+
+                            // Determine the binary operation
+                            let bin_op = if rust_op == ">" {
+                                crate::morphology::lexicon::BinaryOp::Gt
+                            } else {
+                                crate::morphology::lexicon::BinaryOp::Lt
+                            };
+
+                            // Create the filter predicate: |x| x > value
+                            let predicate_body = AnalyzedExpr {
+                                expr: AnalyzedExprKind::BinOp {
+                                    op: bin_op,
+                                    left: Box::new(AnalyzedExpr {
+                                        expr: AnalyzedExprKind::Variable("x".to_string()),
+                                        glossa_type: GlossaType::Number,
+                                    }),
+                                    right: Box::new(comparison_expr),
+                                },
+                                glossa_type: GlossaType::Boolean,
+                            };
+
+                            let filter_closure = AnalyzedExpr {
+                                expr: AnalyzedExprKind::Lambda {
+                                    params: vec!["x".to_string()],
+                                    body: Box::new(predicate_body),
+                                    capture_mode: crate::ast::CaptureMode::Borrow,
+                                },
+                                glossa_type: GlossaType::Function {
+                                    params: vec![GlossaType::Number],
+                                    returns: Box::new(GlossaType::Boolean),
+                                },
+                            };
+
+                            // Determine which operation to use based on quantifier
+                            if is_any {
+                                iterator_ops.push(crate::ir::IteratorOp::Any(Box::new(
+                                    crate::ir::lower_expr(&filter_closure)
+                                )));
+                            } else if is_all {
+                                iterator_ops.push(crate::ir::IteratorOp::All(Box::new(
+                                    crate::ir::lower_expr(&filter_closure)
+                                )));
+                            } else {
+                                iterator_ops.push(crate::ir::IteratorOp::Filter(Box::new(
+                                    crate::ir::lower_expr(&filter_closure)
+                                )));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Process each participle and add appropriate iterator operation
+    for participle in &asm_stmt.participles {
+        let verb_stem = normalize_greek(&participle.verb_lemma);
+
+        // Check for fold pattern: συλλεγόμενα εἰς [target]
+        // Pattern: collection + συλλεγόμενα + εἰς + operator(sum/product) + verb
+        // Note: ἄθροισμα and γινόμενον are stored as operators, not nouns
+        let mut is_fold = false;
+        if verb_stem.contains("συλλεγ") {
+            // Look for target operator (Add for sum, Mul for product)
+            for &bin_op in &asm_stmt.operators {
+                if matches!(bin_op, crate::morphology::lexicon::BinaryOp::Add | crate::morphology::lexicon::BinaryOp::Mul) {
+                    // Determine initial value based on operation
+                    let init_value = match bin_op {
+                        crate::morphology::lexicon::BinaryOp::Add => 0,
+                        crate::morphology::lexicon::BinaryOp::Mul => 1,
+                        _ => unreachable!(),
+                    };
+
+                    // Determine capture mode based on participle tense
+                    let capture_mode = match participle.tense {
+                        crate::morphology::Tense::Aorist => crate::ast::CaptureMode::Move,
+                        crate::morphology::Tense::Perfect => crate::ast::CaptureMode::Memoize,
+                        _ => crate::ast::CaptureMode::Borrow,
+                    };
+
+                    // Create fold closure: |acc, x| acc + x (or acc * x)
+                    let fold_body = AnalyzedExpr {
+                        expr: AnalyzedExprKind::BinOp {
+                            op: bin_op,
+                            left: Box::new(AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable("acc".to_string()),
+                                glossa_type: GlossaType::Number,
+                            }),
+                            right: Box::new(AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable("x".to_string()),
+                                glossa_type: GlossaType::Number,
+                            }),
+                        },
+                        glossa_type: GlossaType::Number,
+                    };
+
+                    let fold_closure = AnalyzedExpr {
+                        expr: AnalyzedExprKind::Lambda {
+                            params: vec!["acc".to_string(), "x".to_string()],
+                            body: Box::new(fold_body),
+                            capture_mode,
+                        },
+                        glossa_type: GlossaType::Function {
+                            params: vec![GlossaType::Number, GlossaType::Number],
+                            returns: Box::new(GlossaType::Number),
+                        },
+                    };
+
+                    let init_expr = AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(init_value),
+                        glossa_type: GlossaType::Number,
+                    };
+
+                    iterator_ops.push(crate::ir::IteratorOp::Fold {
+                        init: Box::new(crate::ir::lower_expr(&init_expr)),
+                        closure: Box::new(crate::ir::lower_expr(&fold_closure)),
+                    });
+
+                    is_fold = true;
+                    break; // Exit operators loop
+                }
+            }
+        }
+
+        // Skip other participle processing if this was a fold
+        if is_fold {
+            continue;
+        }
+
+        // For now, map present middle participles to .map()
+        // The closure will be the verb operation
+        if participle.voice == crate::morphology::Voice::Middle {
+            // Present middle participle: διπλασιαζόμενα → "doubling itself"
+            // Maps to: .map(|x| x * 2)
+
+            // Create a simple lambda based on the verb
+
+            // For now, create a placeholder closure
+            // In a full implementation, we'd look up the verb's operation
+            let closure_body = if verb_stem.contains("διπλασιαζ") {
+                // διπλασιαζω = "to double"
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::BinOp {
+                        op: crate::morphology::lexicon::BinaryOp::Mul,
+                        left: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable("x".to_string()),
+                            glossa_type: GlossaType::Number,
+                        }),
+                        right: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::Literal(2),
+                            glossa_type: GlossaType::Number,
+                        }),
+                    },
+                    glossa_type: GlossaType::Number,
+                }
+            } else {
+                // Default: just return x
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".to_string()),
+                    glossa_type: GlossaType::Unknown,
+                }
+            };
+
+            // Determine capture mode based on participle tense
+            // Present participle: borrow (streaming operation)
+            // Aorist participle: move (one-shot consumption)
+            // Perfect participle: memoize (cached result)
+            let capture_mode = match participle.tense {
+                crate::morphology::Tense::Aorist => crate::ast::CaptureMode::Move,
+                crate::morphology::Tense::Perfect => crate::ast::CaptureMode::Memoize,
+                _ => crate::ast::CaptureMode::Borrow,  // Present, Imperfect, etc.
+            };
+
+            // Create closure: |x| body
+            let closure = AnalyzedExpr {
+                expr: AnalyzedExprKind::Lambda {
+                    params: vec!["x".to_string()],
+                    body: Box::new(closure_body),
+                    capture_mode,
+                },
+                glossa_type: GlossaType::Function {
+                    params: vec![GlossaType::Number],
+                    returns: Box::new(GlossaType::Number),
+                },
+            };
+
+            // Lower the closure to HIR and wrap in iterator op
+            iterator_ops.push(crate::ir::IteratorOp::Map(Box::new(
+                crate::ir::lower_expr(&closure)
+            )));
+        }
+    }
+
+    // Handle any/all operations with operators (comparatives stored as operators)
+    // Pattern: collection τι/πάντα value comparative_op verb
+    // Example: [1, -2, 3] τι μηδενὸς μείζον λέγε → .any(|x| x > 0)
+    // Example: [5, 15, 3] τι θου μείζον λέγε → .any(|x| x > theta)
+    if (is_any || is_all) && !asm_stmt.operators.is_empty() {
+        // Get the comparison operator (Gt or Lt)
+        for &bin_op in &asm_stmt.operators {
+            if matches!(bin_op, crate::morphology::lexicon::BinaryOp::Gt | crate::morphology::lexicon::BinaryOp::Lt) {
+                // Get comparison value from genitive (variable) or literal
+                let comparison_expr = if let Some(genitive) = asm_stmt.genitives.first() {
+                    // Genitive of comparison: θου μείζον = "greater than theta"
+                    // For single-letter variables, strip genitive ending
+                    let normalized = normalize_greek(&genitive.original);
+                    let var_name = if normalized.ends_with("ου") {
+                        // Strip -ου genitive ending (θου → θ)
+                        normalized.trim_end_matches("ου").to_string()
+                    } else if normalized.ends_with("ης") {
+                        // Strip -ης genitive ending
+                        normalized.trim_end_matches("ης").to_string()
+                    } else if normalized.ends_with("ων") {
+                        // Strip -ων genitive plural ending
+                        normalized.trim_end_matches("ων").to_string()
+                    } else {
+                        // Use as-is
+                        normalized
+                    };
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(var_name),
+                        glossa_type: GlossaType::Number,
+                    }
+                } else if let Some(literal) = asm_stmt.literals.first() {
+                    // Literal comparison
+                    let value = match literal {
+                        crate::semantic::assembler::Literal::Number(n) => *n,
+                        _ => 0,
+                    };
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(value),
+                        glossa_type: GlossaType::Number,
+                    }
+                } else {
+                    // No value specified, use implicit 0
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(0),
+                        glossa_type: GlossaType::Number,
+                    }
+                };
+
+                // Create the predicate: |x| x > value
+                let predicate_body = AnalyzedExpr {
+                    expr: AnalyzedExprKind::BinOp {
+                        op: bin_op,
+                        left: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable("x".to_string()),
+                            glossa_type: GlossaType::Number,
+                        }),
+                        right: Box::new(comparison_expr),
+                    },
+                    glossa_type: GlossaType::Boolean,
+                };
+
+                let any_all_closure = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Lambda {
+                        params: vec!["x".to_string()],
+                        body: Box::new(predicate_body),
+                        capture_mode: crate::ast::CaptureMode::Borrow,
+                    },
+                    glossa_type: GlossaType::Function {
+                        params: vec![GlossaType::Number],
+                        returns: Box::new(GlossaType::Boolean),
+                    },
+                };
+
+                if is_any {
+                    iterator_ops.push(crate::ir::IteratorOp::Any(Box::new(
+                        crate::ir::lower_expr(&any_all_closure)
+                    )));
+                } else {
+                    iterator_ops.push(crate::ir::IteratorOp::All(Box::new(
+                        crate::ir::lower_expr(&any_all_closure)
+                    )));
+                }
+
+                // Build the iterator chain for any/all (returns boolean)
+                let iterator_chain = AnalyzedExpr {
+                    expr: AnalyzedExprKind::IteratorChain {
+                        collection: Box::new(collection_expr),
+                        ops: iterator_ops,
+                    },
+                    glossa_type: GlossaType::Boolean,
+                };
+                return Ok(Some(iterator_chain));
+            }
+        }
+    }
+
+    // Handle find operations differently from print operations
+    if is_find {
+        // Find operation: .iter().find(predicate)
+        // Check if we have a predicate (comparative operator + value)
+        // Pattern: collection value comparative_op find_verb
+        // Example: [1, 5, 3] τριῶν μείζον εὑρέ → .find(|x| x > 3)
+        // Example: [1, 5, 3] θου μείζον εὑρέ → .find(|x| x > theta)
+        // Note: μείζον is stored as an operator (Gt), not an adjective
+        if !asm_stmt.operators.is_empty() {
+            // Get the comparison operator (Gt or Lt)
+            for &bin_op in &asm_stmt.operators {
+                if matches!(bin_op, crate::morphology::lexicon::BinaryOp::Gt | crate::morphology::lexicon::BinaryOp::Lt) {
+                    // Get comparison value from genitive (variable) or literal
+                    let comparison_expr = if let Some(genitive) = asm_stmt.genitives.first() {
+                        // Genitive of comparison: θου μείζον = "greater than theta"
+                        // For single-letter variables, strip genitive ending
+                        let normalized = normalize_greek(&genitive.original);
+                        let var_name = if normalized.ends_with("ου") {
+                            // Strip -ου genitive ending (θου → θ)
+                            normalized.trim_end_matches("ου").to_string()
+                        } else if normalized.ends_with("ης") {
+                            // Strip -ης genitive ending
+                            normalized.trim_end_matches("ης").to_string()
+                        } else if normalized.ends_with("ων") {
+                            // Strip -ων genitive plural ending
+                            normalized.trim_end_matches("ων").to_string()
+                        } else {
+                            // Use as-is
+                            normalized
+                        };
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(var_name),
+                            glossa_type: GlossaType::Number,
+                        }
+                    } else if let Some(literal) = asm_stmt.literals.first() {
+                        // Literal comparison
+                        let value = match literal {
+                            crate::semantic::assembler::Literal::Number(n) => *n,
+                            _ => 0,
+                        };
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(value),
+                            glossa_type: GlossaType::Number,
+                        }
+                    } else {
+                        // No value specified
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(0),
+                            glossa_type: GlossaType::Number,
+                        }
+                    };
+
+                    // Create the predicate: |x| x > value
+                    let predicate_body = AnalyzedExpr {
+                        expr: AnalyzedExprKind::BinOp {
+                            op: bin_op,
+                            left: Box::new(AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable("x".to_string()),
+                                glossa_type: GlossaType::Number,
+                            }),
+                            right: Box::new(comparison_expr),
+                        },
+                        glossa_type: GlossaType::Boolean,
+                    };
+
+                                let find_closure = AnalyzedExpr {
+                                    expr: AnalyzedExprKind::Lambda {
+                                        params: vec!["x".to_string()],
+                                        body: Box::new(predicate_body),
+                                        capture_mode: crate::ast::CaptureMode::Borrow,
+                                    },
+                                    glossa_type: GlossaType::Function {
+                                        params: vec![GlossaType::Number],
+                                        returns: Box::new(GlossaType::Boolean),
+                                    },
+                                };
+
+                    iterator_ops.push(crate::ir::IteratorOp::Find(Box::new(
+                        crate::ir::lower_expr(&find_closure)
+                    )));
+                    break;
+                }
+            }
+        }
+
+        // If no predicate was added, just find the first element (essentially .next())
+        // But since we don't have a .next() operation, we can use .find(|_| true)
+        if iterator_ops.len() <= 1 {
+            // No predicate, so just get first element
+            // For now, just return None - we'll implement this later if needed
+            return Ok(None);
+        }
+
+        // Build the iterator chain for find (no .collect())
+        let iterator_chain = AnalyzedExpr {
+            expr: AnalyzedExprKind::IteratorChain {
+                collection: Box::new(collection_expr),
+                ops: iterator_ops,
+            },
+            glossa_type: GlossaType::Number, // find returns Option<T>, but we'll unwrap for now
+        };
+
+        return Ok(Some(iterator_chain));
+    }
+
+    // Print operation: only proceed if we have actual operations
+    if iterator_ops.len() <= 1 {
+        // No filter/map operations were added, so this isn't an iterator pattern
+        return Ok(None);
+    }
+
+    // Check if this is a fold/any/all operation (returns single value, not a collection)
+    let has_fold = iterator_ops.iter().any(|op| matches!(op, crate::ir::IteratorOp::Fold { .. }));
+    let has_any = iterator_ops.iter().any(|op| matches!(op, crate::ir::IteratorOp::Any(_)));
+    let has_all = iterator_ops.iter().any(|op| matches!(op, crate::ir::IteratorOp::All(_)));
+
+    if has_fold {
+        // Fold returns a single value, no .collect() needed
+        let iterator_chain = AnalyzedExpr {
+            expr: AnalyzedExprKind::IteratorChain {
+                collection: Box::new(collection_expr),
+                ops: iterator_ops,
+            },
+            glossa_type: GlossaType::Number, // fold returns a single number
+        };
+        return Ok(Some(iterator_chain));
+    }
+
+    if has_any || has_all {
+        // Any/all return a boolean, no .collect() needed
+        let iterator_chain = AnalyzedExpr {
+            expr: AnalyzedExprKind::IteratorChain {
+                collection: Box::new(collection_expr),
+                ops: iterator_ops,
+            },
+            glossa_type: GlossaType::Boolean,
+        };
+        return Ok(Some(iterator_chain));
+    }
+
+    // Add .collect() at the end for map/filter operations
+    iterator_ops.push(crate::ir::IteratorOp::Collect);
+
+    // Build the iterator chain expression
+    let iterator_chain = AnalyzedExpr {
+        expr: AnalyzedExprKind::IteratorChain {
+            collection: Box::new(collection_expr),
+            ops: iterator_ops,
+        },
+        glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
+    };
+
+    Ok(Some(iterator_chain))
+}
+
 /// Classify an assembled statement and extract analyzed expressions
 fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
+    // Check for iterator pattern with participles, comparative adjectives, or find verbs
+    // Pattern 1: ξ διπλασιαζόμενα λέγε → ξ.iter().map(|x| x * 2).collect()
+    // Pattern 2: ξ πέντε μείζονα λέγε → ξ.iter().filter(|x| x > 5).collect()
+    // Pattern 3: ξ τριῶν μείζον εὑρέ → ξ.iter().find(|x| x > 3)
+    let has_find_or_print_verb = if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
+        crate::morphology::lexicon::is_print_verb(&verb_lemma) ||
+        crate::morphology::lexicon::is_find_verb(&verb_lemma)
+    } else {
+        false
+    };
+
+    if !asm_stmt.participles.is_empty() || !asm_stmt.adjectives.is_empty() || has_find_or_print_verb {
+        if let Some(analyzed) = detect_iterator_pattern(asm_stmt, scope)? {
+            return Ok((StatementKind::Print, vec![analyzed]));
+        }
+    }
+
     // Check for property access pattern: genitive + nominative + verb
     // Pattern: genitive_var nominative_field λέγε
     // Example: που ξ λέγε → pi.xi
@@ -1958,10 +2662,22 @@ fn classify_assembled_statement(
                 }
             }
 
+            // Check if there's a participle that's actually a user-defined variable name
+            // Heuristic: if there's a participle with an unknown verb stem, it's probably
+            // a false positive (e.g., "τοπικον" parsed as participle but really a variable name)
+            let has_false_participle = !asm_stmt.participles.is_empty() &&
+                !morphology::lexicon::lookup(&asm_stmt.participles[0].verb_lemma).is_some();
+
             // Binding: subject is the variable name, literals are the value
             // BUT: check for ambiguous case where subject/object might be swapped
             // Heuristic: if subject is in scope and object is not, they're probably swapped
-            let (var_name, actual_asm) = if let (Some(subject), Some(object)) = (&asm_stmt.subject, &asm_stmt.object) {
+            let (var_name, actual_asm) = if has_false_participle {
+                // Use the first participle as the variable name and remove it from participles list
+                let first_participle = &asm_stmt.participles[0];
+                let mut fixed_asm = asm_stmt.clone();
+                fixed_asm.participles = asm_stmt.participles[1..].to_vec();
+                (normalize_greek(&first_participle.original), fixed_asm)
+            } else if let (Some(subject), Some(object)) = (&asm_stmt.subject, &asm_stmt.object) {
                 let subject_name = normalize_greek(&subject.original);
                 let object_name = normalize_greek(&object.original);
 
@@ -1977,6 +2693,15 @@ fn classify_assembled_statement(
                 }
             } else if let Some(subject) = &asm_stmt.subject {
                 (normalize_greek(&subject.original), asm_stmt.clone())
+            } else if !asm_stmt.participles.is_empty() {
+                // Special case: first word was incorrectly identified as a participle
+                // This happens with user-defined names like "τοπικον" that have participle-like endings
+                // Use the first participle's original form as the variable name
+                let first_participle = &asm_stmt.participles[0];
+                let mut fixed_asm = asm_stmt.clone();
+                // Remove the first participle and don't add it as subject (it's not a valid constituent)
+                fixed_asm.participles = asm_stmt.participles[1..].to_vec();
+                (normalize_greek(&first_participle.original), fixed_asm)
             } else {
                 return Err(GlossaError::semantic("Binding without subject"));
             };
@@ -2663,6 +3388,19 @@ pub enum AnalyzedExprKind {
         fields: Vec<String>,  // Field names from struct definition
         args: Vec<AnalyzedExpr>,
     },
+    /// Lambda/closure |params| body
+    Lambda {
+        params: Vec<String>,
+        body: Box<AnalyzedExpr>,
+        capture_mode: crate::ast::CaptureMode,
+    },
+    /// Iterator chain collection.iter().map(...).filter(...)
+    IteratorChain {
+        collection: Box<AnalyzedExpr>,
+        ops: Vec<crate::ir::IteratorOp>,
+    },
+    /// Literal value (used in iterator ops, different from specific literals above)
+    Literal(i64),
 }
 
 /// Semantic analyzer state
@@ -2870,26 +3608,56 @@ impl SemanticAnalyzer {
         }
 
         if is_binding {
-            // Pattern: name value ἔστω
+            // Pattern: name value... ἔστω
             // e.g., ξ πέντε ἔστω
+            // e.g., τοπικον ξ ἓν ἄθροισμα ἔστω
             if terms.len() >= 3 {
                 let name = self.extract_name(&terms[0])?;
-                let value = self.analyze_single_expr(&terms[1])?;
+
+                // Collect all terms between the name and the ἔστω verb
+                let verb_position = verb_idx.unwrap();
+                let value_terms = &terms[1..verb_position];
+
+                // Analyze the value expression using the assembler
+                // Create a phrase expression from the value terms and analyze it
+                let value_expr = if value_terms.len() == 1 {
+                    // Simple case: single term value
+                    self.analyze_single_expr(&value_terms[0])?
+                } else {
+                    // Complex case: multiple terms (e.g., "ξ ἓν ἄθροισμα")
+                    // Use assembler to properly analyze the expression
+                    let phrase_expr = Expr::Phrase(value_terms.to_vec());
+
+                    // Create a synthetic statement to analyze through assembler
+                    use crate::ast::{Statement, Clause};
+                    let synthetic_stmt = Statement::Regular {
+                        clauses: vec![Clause {
+                            expressions: vec![phrase_expr],
+                        }],
+                        is_query: false,
+                    };
+
+                    // Analyze through assembler
+                    let assembled = analyze_single_statement_with_assembler(&synthetic_stmt)?;
+
+                    // Convert to AnalyzedExpr using pattern detection
+                    classify_value_expression(&assembled, &mut self.scope)?
+                };
 
                 // Register in scope
-                self.scope.define(name.clone(), value.glossa_type.clone());
+                self.scope.define(name.clone(), value_expr.glossa_type.clone());
 
                 return Ok((
                     StatementKind::Binding {
                         name: name.clone(),
-                        value_type: value.glossa_type.clone(),
+                        value_type: value_expr.glossa_type.clone(),
                     },
                     vec![
                         AnalyzedExpr {
                             expr: AnalyzedExprKind::Variable(name),
-                            glossa_type: value.glossa_type.clone(),
+                            glossa_type: value_expr.glossa_type.clone(),
                         },
-                        value,
+                        value_expr,
                     ],
                 ));
             }

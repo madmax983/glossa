@@ -176,6 +176,43 @@ pub enum Expr {
 
     /// A block of statements in braces { ... }
     Block(Vec<Statement>),
+
+    /// A lambda/closure constructed from a participle
+    /// e.g., γράφων → |x| x.write()
+    Lambda {
+        kind: LambdaKind,
+        verb_lemma: String,
+        implicit_param: bool,  // true if parameter inferred from context
+    },
+}
+
+/// Lambda kind derived from participle tense/voice
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LambdaKind {
+    /// Present participle - streaming/borrowing closure
+    /// e.g., γράφων → |x| body
+    Streaming,
+
+    /// Aorist participle - one-shot/consuming closure
+    /// e.g., γράψας → move |x| body
+    OneShot,
+
+    /// Perfect participle - memoized/cached closure
+    /// e.g., γεγραμμένος → cached |x| body
+    Memoized,
+}
+
+/// Capture mode for closures
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaptureMode {
+    /// Borrow captured variables (default for present participles)
+    Borrow,
+
+    /// Move captured variables (for aorist participles)
+    Move,
+
+    /// Memoize result (for perfect participles)
+    Memoize,
 }
 
 /// Binary operators in GLOSSA

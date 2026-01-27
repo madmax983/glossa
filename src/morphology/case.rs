@@ -107,6 +107,8 @@ pub enum ExecutionMode {
 /// - Imperative: commands, top-level expressions
 /// - Subjunctive: conditionals, possibility
 /// - Optative: wishes, optional execution
+/// - Infinitive: non-finite verb form
+/// - Participle: verbal adjective, used for lambdas/closures
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Mood {
     Indicative,
@@ -114,6 +116,7 @@ pub enum Mood {
     Subjunctive,
     Optative,
     Infinitive,
+    Participle,
 }
 
 /// Voice - active, middle, passive

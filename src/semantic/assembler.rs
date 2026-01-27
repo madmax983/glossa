@@ -7,7 +7,7 @@
 //! The assembler accumulates morphologically-analyzed tokens and assembles
 //! them into a statement when finalized (at end of sentence).
 
-use crate::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender, Person, Tense, Mood};
+use crate::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender, Person, Tense, Mood, Voice};
 use crate::morphology::lexicon::BinaryOp;
 use crate::grammar::normalize_greek;
 use crate::ast::{Expr, Word};
@@ -44,6 +44,8 @@ pub struct AssembledStatement {
     pub blocks: Vec<Vec<crate::ast::Statement>>,
     /// Nested phrases (parenthesized function calls)
     pub nested_phrases: Vec<Vec<Expr>>,
+    /// Participles (used for lambdas/closures)
+    pub participles: Vec<ParticipleConstituent>,
     /// Whether this is a query (ends with ;)
     pub is_query: bool,
 }
@@ -80,6 +82,25 @@ pub struct VerbConstituent {
     pub mood: Option<Mood>,
 }
 
+/// A participle constituent (used for lambdas/closures)
+#[derive(Debug, Clone)]
+pub struct ParticipleConstituent {
+    /// The verb stem extracted from the participle
+    pub verb_lemma: String,
+    /// Original text as it appeared
+    pub original: String,
+    /// Tense (present, aorist, perfect)
+    pub tense: Tense,
+    /// Voice (active, middle, passive)
+    pub voice: Voice,
+    /// Case (adjectival property)
+    pub case: Case,
+    /// Gender (adjectival property)
+    pub gender: Gender,
+    /// Number (adjectival property)
+    pub number: Number,
+}
+
 /// A literal value
 #[derive(Debug, Clone)]
 pub enum Literal {
@@ -108,6 +129,7 @@ pub struct Assembler {
     pending_operators: Vec<BinaryOp>,
     pending_blocks: Vec<Vec<crate::ast::Statement>>,
     pending_nested_phrases: Vec<Vec<Expr>>,
+    pending_participles: Vec<ParticipleConstituent>,
     is_query: bool,
 }
 
@@ -159,6 +181,7 @@ impl Assembler {
             pending_operators: Vec::new(),
             pending_blocks: Vec::new(),
             pending_nested_phrases: Vec::new(),
+            pending_participles: Vec::new(),
             is_query: false,
         }
     }
@@ -179,6 +202,7 @@ impl Assembler {
         self.pending_operators.clear();
         self.pending_blocks.clear();
         self.pending_nested_phrases.clear();
+        self.pending_participles.clear();
         self.is_query = false;
     }
 
@@ -309,6 +333,20 @@ impl Assembler {
     /// Feed an index access (array[index])
     pub fn feed_index_access(&mut self, array: Expr, index: Expr) {
         self.pending_index_accesses.push((array, index));
+    }
+
+    /// Feed a participle (for lambda construction)
+    pub fn feed_participle(&mut self, analysis: &crate::morphology::ParticipleAnalysis, original: &str) {
+        let constituent = ParticipleConstituent {
+            verb_lemma: analysis.verb_lemma(),
+            original: original.to_string(),
+            tense: analysis.tense,
+            voice: analysis.voice,
+            case: analysis.case,
+            gender: analysis.gender,
+            number: analysis.number,
+        };
+        self.pending_participles.push(constituent);
     }
 
     /// Handle a noun/pronoun/adjective - route to slot by case
@@ -442,6 +480,7 @@ impl Assembler {
             operators: std::mem::take(&mut self.pending_operators),
             blocks: std::mem::take(&mut self.pending_blocks),
             nested_phrases: std::mem::take(&mut self.pending_nested_phrases),
+            participles: std::mem::take(&mut self.pending_participles),
             is_query: self.is_query,
         };
 

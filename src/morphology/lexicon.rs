@@ -86,6 +86,21 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         voice: Some(Voice::Active),
     });
 
+    // εὑρέ - find! (imperative of εὑρίσκω)
+    m.insert("ευρε", LexiconEntry {
+        lemma: "ευρισκω".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "find! discover! (imperative)",
+        rust_equiv: Some("find"),
+        case: None,
+        number: Some(Number::Singular),
+        person: Some(Person::Second),
+        tense: Some(Tense::Aorist),
+        mood: Some(Mood::Imperative),
+        voice: Some(Voice::Active),
+    });
+
     // ἔστω - let it be (variable binding)
     m.insert("εστω", LexiconEntry {
         lemma: "ειμι".to_string(),
@@ -145,6 +160,21 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         voice: Some(Voice::Active),
     });
 
+    // συλλέγω - to collect, gather (for fold operation)
+    m.insert("συλλεγω", LexiconEntry {
+        lemma: "συλλεγω".to_string(),
+        pos: PartOfSpeech::Verb,
+        gender: None,
+        meaning: "collect, gather",
+        rust_equiv: Some("fold"),
+        case: None,
+        number: Some(Number::Singular),
+        person: Some(Person::First),
+        tense: Some(Tense::Present),
+        mood: Some(Mood::Indicative),
+        voice: Some(Voice::Middle),
+    });
+
     // =========================================================================
     // Built-in type nouns
     // =========================================================================
@@ -201,6 +231,36 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         meaning: "list",
         rust_equiv: Some("Vec"),
         case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἄθροισμα - sum (fold target for addition)
+    m.insert("αθροισμα", LexiconEntry {
+        lemma: "αθροισμα".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "sum, total",
+        rust_equiv: Some("sum"),
+        case: Some(Case::Accusative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // γινόμενον - product (fold target for multiplication)
+    m.insert("γινομενον", LexiconEntry {
+        lemma: "γινομενον".to_string(),
+        pos: PartOfSpeech::Noun,
+        gender: Some(Gender::Neuter),
+        meaning: "product",
+        rust_equiv: Some("product"),
+        case: Some(Case::Accusative),
         number: Some(Number::Singular),
         person: None,
         tense: None,
@@ -783,6 +843,21 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         voice: None,
     });
 
+    // εἰς - into (direction, fold target)
+    m.insert("εις", LexiconEntry {
+        lemma: "εις".to_string(),
+        pos: PartOfSpeech::Preposition,
+        gender: None,
+        meaning: "into, toward",
+        rust_equiv: Some("into"),
+        case: Some(Case::Accusative),  // governs accusative
+        number: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
     // καί - and
     m.insert("και", LexiconEntry {
         lemma: "και".to_string(),
@@ -800,6 +875,44 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
 
     // NOTE: ἤ (or) is NOT in the lexicon - handled by boolean_operator()
     // This avoids conflict with ᾖ (subjunctive of εἰμί) which also normalizes to η
+
+    // =========================================================================
+    // Quantifiers (for any/all operations)
+    // =========================================================================
+
+    // τι - any, some (interrogative/indefinite pronoun, neuter nominative)
+    m.insert("τι", LexiconEntry {
+        lemma: "τις".to_string(),
+        pos: PartOfSpeech::Pronoun,
+        gender: Some(Gender::Neuter),
+        meaning: "any, some",
+        rust_equiv: Some("any"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // πάντα - all (plural neuter nominative)
+    m.insert("παντα", LexiconEntry {
+        lemma: "πας".to_string(),
+        pos: PartOfSpeech::Pronoun,
+        gender: Some(Gender::Neuter),
+        meaning: "all, every",
+        rust_equiv: Some("all"),
+        case: Some(Case::Nominative),
+        number: Some(Number::Plural),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // =========================================================================
+    // Particles
+    // =========================================================================
 
     // οὐ/οὐκ - not
     m.insert("ου", LexiconEntry {
@@ -864,6 +977,21 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         voice: None,
     });
 
+    // μείζονα - greater (accusative plural neuter)
+    m.insert("μειζονα", LexiconEntry {
+        lemma: "μεγας".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "greater",
+        rust_equiv: Some(">"),
+        case: Some(Case::Accusative),
+        number: Some(Number::Plural),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
     // ἐλάσσων - lesser
     m.insert("ελασσων", LexiconEntry {
         lemma: "μικρος".to_string(),
@@ -873,6 +1001,21 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         rust_equiv: Some("<"),
         case: Some(Case::Nominative),
         number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // ἐλάττονα - lesser (accusative plural neuter)
+    m.insert("ελαττονα", LexiconEntry {
+        lemma: "μικρος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "lesser, smaller",
+        rust_equiv: Some("<"),
+        case: Some(Case::Accusative),
+        number: Some(Number::Plural),
         person: None,
         tense: None,
         mood: None,
@@ -924,6 +1067,25 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         rust_equiv: Some("user"),
         case: Some(Case::Nominative),
         number: Some(Number::Singular),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    // =========================================================================
+    // Predicate adjectives (for any/all tests)
+    // =========================================================================
+
+    // θετικά - positive (plural neuter nominative)
+    m.insert("θετικα", LexiconEntry {
+        lemma: "θετικος".to_string(),
+        pos: PartOfSpeech::Adjective,
+        gender: Some(Gender::Neuter),
+        meaning: "positive",
+        rust_equiv: Some(">"),  // positive means > 0
+        case: Some(Case::Nominative),
+        number: Some(Number::Plural),
         person: None,
         tense: None,
         mood: None,
@@ -1204,6 +1366,21 @@ pub fn is_binding_verb(normalized_word: &str) -> bool {
 /// Check if a word is a print verb (λέγε, γράφε)
 pub fn is_print_verb(normalized_word: &str) -> bool {
     matches!(normalized_word, "λεγε" | "γραφε" | "λεγω" | "γραφω")
+}
+
+/// Check if a word is a find verb (εὑρέ)
+pub fn is_find_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "ευρε" | "ευρισκω")
+}
+
+/// Check if a word is the "any" quantifier (τι)
+pub fn is_any_quantifier(normalized_word: &str) -> bool {
+    matches!(normalized_word, "τι" | "τις")  // τι is the form, τις is the lemma
+}
+
+/// Check if a word is the "all" quantifier (πάντα)
+pub fn is_all_quantifier(normalized_word: &str) -> bool {
+    matches!(normalized_word, "παντα" | "πας")  // πάντα is the form, πας is the lemma
 }
 
 /// Get the numeric value of a Greek numeral word
