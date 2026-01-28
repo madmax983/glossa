@@ -1,132 +1,59 @@
 # 12. Collections
 
-## 12.1 Arrays (Πίναξ)
+## 12.1 Arrays
 
 ### Literals
 
 ```glossa
-// Array literal
-[εἷς, δύο, τρεῖς] ἔστω ἀριθμοί.
-// → let numbers = [1, 2, 3];
-
-// Empty array with type
-πίναξ ἀριθμῶν κενός ἔστω.
-"array of-numbers empty let-be"
-// → let arr: Vec<i64> = vec![];
+ξ [1, 2, 3] ἔστω.
+"x [1, 2, 3] let-be."
+// → let mut xi = vec![1, 2, 3];
 ```
 
-### Indexing
+Array bindings are automatically mutable in generated Rust.
+
+### Indexing with Ordinals
+
+Ordinal adjectives map to array indices:
 
 ```glossa
-// Access by index (genitive of position)
-πίνακος τρίτου στοιχεῖον
-"of-array of-third element"
-// → array[2]
-
-// Or with ἐν (in/at)
-στοιχεῖον ἐν πίνακι τρίτον
-"element in array third"
-// → array[2]
+ξ [10, 20, 30] ἔστω.
+ψ ξ πρῶτον ἔστω.           // y = x[0]  (first → index 0)
+χ ξ δεύτερον ἔστω.          // z = x[1]  (second → index 1)
+ξ τρίτον λέγε.              // print(x[2]) (third → index 2)
 ```
 
-### Methods
+| Ordinal | Meaning | Index |
+|---------|---------|-------|
+| πρῶτον | first | 0 |
+| δεύτερον | second | 1 |
+| τρίτον | third | 2 |
+
+### Direct Indexing
+
+Square bracket indexing is also supported:
 
 ```glossa
-// Push (dative recipient + accusative item)
-πίνακι στοιχεῖον ὠθεῖ.
-"to-array element pushes"
-// → array.push(element)
-
-// Pop (middle voice - array acts on itself)
-πίναξ ἕλκεται.
-"array pulls-itself"
-// → array.pop()
-
-// Length
-πίνακος μῆκος
-"of-array length"
-// → array.len()
-
-// Is empty
-πίναξ κενός;
-"array empty?"
-// → array.is_empty()
+ξ[0] λέγε.
+// → println!("{}", xi[0]);
 ```
 
-## 12.2 HashMap (Χάρτης)
-
-### Creation
+### Length
 
 ```glossa
-χάρτης κενὸς ἔστω.
-"map empty let-be"
-// → let map = HashMap::new();
+ξ μῆκος λέγε.
+"x length say."
+// → println!("{}", xi.len());
 ```
 
-### Set
+## 12.2 Iterator Operations
+
+See [Chapter 17 — Participles as Lambdas](17-Lambdas.md) for map, filter, fold, find, any, and all operations on collections.
 
 ```glossa
-χάρτῃ κλειδὶ τιμὴν τίθησι.
-"to-map with-key value places"
-// → map.insert(key, value)
+[1, 2, 3] διπλασιαζόμενα λέγε.         // map: double each
+[1, 10, 3, 8] πέντε μείζονα λέγε.       // filter: > 5
+[1, 5, 3, 8] πέντε μείζονα διπλασιαζόμενα λέγε.  // filter then map
 ```
 
-### Get
-
-```glossa
-χάρτου κλειδὸς τιμή
-"of-map of-key value"
-// → map.get(&key)
-
-// Returns Option, so often with optative:
-χάρτου κλειδὸς τιμὴ εὑρεθείη.
-"of-map of-key value might-be-found"
-// → map.get(&key)  // Option<V>
-```
-
-### Contains
-
-```glossa
-κλεὶς ἐν χάρτῃ;
-"key in map?"
-// → map.contains_key(&key)
-```
-
-## 12.3 Set (Σύνολον)
-
-```glossa
-// Create
-σύνολον κενὸν ἔστω.
-
-// Add
-συνόλῳ στοιχεῖον τίθησι.
-"to-set element places"
-// → set.insert(element)
-
-// Contains
-στοιχεῖον ἐν συνόλῳ;
-"element in set?"
-// → set.contains(&element)
-```
-
-## 12.4 String (Λόγος)
-
-```glossa
-// Length
-λόγου μῆκος
-// → string.len()
-
-// Contains
-«κόσμε» ἐν λόγῳ;
-// → string.contains("κόσμε")
-
-// Split
-λόγος κατὰ « » σχίζεται.
-"string according-to ' ' splits-itself"
-// → string.split(' ')
-
-// Join
-λόγοι κατὰ «, » ἑνοῦνται.
-"strings according-to ', ' unite-themselves"
-// → strings.join(", ")
-```
+> **Not yet implemented:** HashMap, Set, and String-specific operations (insert, get, contains, split, join). The lexicon recognizes the Greek vocabulary for these types (χάρτης, σύνολον, λόγος) but semantic support for their operations is pending.

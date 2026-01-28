@@ -2,66 +2,82 @@
 
 ## 13.1 Function Definition
 
-Functions use the infinitive or are introduced with ἔργον:
+Functions are defined with **ὁρίζειν** ("to define/delimit"). Parameters use the **dative case** marker **τῷ** ("to/for"):
 
 ```glossa
-// Simple function
-διπλασιασμὸς ἔργον ἀριθμῷ·
-    ἀριθμὸς δύο πολλαπλασιασθείς.
+// Simple function — no parameters
+χαιρετισμος ὁρίζειν· «χαῖρε» λέγε.
+"greeting to-define: 'hello' say."
+// → fn chairetismos() { println!("hello"); }
 
-"doubling [is] a work for-number:
-    number two multiplied"
-
-// → fn double(n: i64) -> i64 { n * 2 }
+// Function with one parameter
+διπλασιασμος ὁρίζειν τῷ ξ· δός ξ δύο γινόμενον.
+"doubling to-define for x: give x two product."
+// → fn diplasiasmos(xi: i64) -> i64 { return xi * 2; }
 ```
 
-### With Explicit Types
+### With Type Annotations
+
+Type annotations use the **genitive** (type "of" the parameter):
 
 ```glossa
-διπλασιασμὸς ἔργον· ἀριθμῷ ἀριθμὸν δίδωσι·
-    ἀριθμὸς δύο γινόμενον.
-
-"doubling [is] a work: for-number gives number:
-    number two product"
-
-// → fn double(n: i64) -> i64 { n * 2 }
+προσθεσις ὁρίζειν τῷ ξ ἀριθμοῦ τῷ ψ ἀριθμοῦ· δός ξ ψ ἄθροισμα.
+"addition to-define for x of-number for y of-number: give x y sum."
+// → fn prosthesis(xi: i64, psi: i64) -> i64 { return xi + psi; }
 ```
 
-## 13.2 Function Call
+## 13.2 Return Statements
+
+The imperative **δός** ("give!") serves as `return`:
 
 ```glossa
-πέντε διπλασιάζεται.
-"five is-doubled"
-// → double(5)
-
-// Or with explicit object
-πέντε διπλασιασμός.
-"five doubling"
-// → double(5)
+διπλασιασμος ὁρίζειν τῷ ξ· δός ξ δύο γινόμενον.
+// → fn diplasiasmos(xi: i64) -> i64 { return xi * 2; }
 ```
 
-## 13.3 Multiple Parameters
+Return types are inferred from the expression given to δός. When parameters have type annotations, the return type is explicit in generated code.
 
-Parameters in dative case:
+## 13.3 Function Calls
+
+Functions are called by name with arguments. Bind the result with **ἔστω**:
 
 ```glossa
-πρόσθεσις ἔργον· αῳ βῳ ἀριθμὸν δίδωσι·
-    α β ἄθροισμα.
-
-"addition [is] a work: for-a for-b gives number:
-    of-a of-b sum"
-
-// → fn add(a: i64, b: i64) -> i64 { a + b }
+ἀποτελεσμα προσθεσις πέντε τρία ἔστω.
+"result addition five three let-be."
+// → let apotelasma = prosthesis(5, 3);
 ```
 
-## 13.4 No Return Value
+### Nested Calls
+
+Parentheses group nested function calls:
 
 ```glossa
-ἐκτύπωσις ἔργον· λόγῳ·
-    λόγον λέγε.
+ψ διπλασιασμος (διπλασιασμος πέντε) ἔστω.
+"y doubling (doubling five) let-be."
+// → let psi = diplasiasmos(diplasiasmos(5));
+```
 
-"printing [is] a work: for-string:
-    string say"
+## 13.4 Multiple Parameters
 
-// → fn print(s: &str) { println!("{}", s); }
+Parameters are introduced with repeated **τῷ** markers:
+
+```glossa
+προσθεσις ὁρίζειν τῷ ξ τῷ ψ· δός ξ ψ ἄθροισμα.
+"addition to-define for x for y: give x y sum."
+// → fn prosthesis(xi: i64, psi: i64) -> i64 { return xi + psi; }
+```
+
+## 13.5 Local Variables
+
+Functions can define local bindings with **ἔστω**:
+
+```glossa
+αυξησις ὁρίζειν τῷ ξ·
+    τοπικον ξ ἓν ἄθροισμα ἔστω·
+    δός τοπικον.
+
+"increment to-define for x:
+    local x one sum let-be;
+    give local."
+// → fn auxesis(xi: i64) -> i64 { let topikon = xi + 1; return topikon; }
 ```
