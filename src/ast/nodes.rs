@@ -124,12 +124,21 @@ impl Statement {
 }
 
 /// An expression in GLOSSA
+///
+/// Expressions represent values that can be evaluated.
+/// They include literals, variable references, operations, and function calls.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     /// A string literal: «text»
+    ///
+    /// # Example
+    /// `«χαῖρε κόσμε»`
     StringLiteral(String),
 
     /// A number literal
+    ///
+    /// # Example
+    /// `42` or `πέντε`
     NumberLiteral(i64),
 
     /// A boolean literal: ἀληθές or ψεῦδος
@@ -145,6 +154,9 @@ pub enum Expr {
     Word(Word),
 
     /// Multiple terms forming a phrase
+    ///
+    /// Phrases are sequences of words that haven't been fully parsed into
+    /// specific grammatical structures yet.
     Phrase(Vec<Expr>),
 
     /// A property access (genitive construction)
@@ -248,6 +260,19 @@ pub enum UnaryOperator {
 }
 
 /// A Greek word with original and normalized forms
+///
+/// This struct preserves the original polytonic Greek text (for display)
+/// while providing a normalized version for compiler analysis.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::ast::Word;
+///
+/// let word = Word::new("Ἀθῆναι");
+/// assert_eq!(word.original, "Ἀθῆναι");
+/// assert_eq!(word.normalized, "αθηναι");
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Word {
     /// Original text with diacritics
@@ -257,6 +282,7 @@ pub struct Word {
 }
 
 impl Word {
+    /// Create a new word, automatically generating the normalized form
     pub fn new(original: impl Into<String>) -> Self {
         let original = original.into();
         let normalized = crate::grammar::normalize_greek(&original);
