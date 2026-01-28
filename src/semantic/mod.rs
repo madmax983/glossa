@@ -2603,13 +2603,13 @@ fn classify_assembled_statement(
 
         if crate::morphology::lexicon::is_print_verb(&verb_lemma)
             && !asm_stmt.genitives.is_empty()
-            && asm_stmt.subject.is_some()
+            && let Some(subject) = &asm_stmt.subject
         {
             // Get owner from genitive (use lemma to get base variable name)
             let owner_lemma = &asm_stmt.genitives[0].lemma;
 
             // Get property from subject (nominative)
-            let property = normalize_greek(&asm_stmt.subject.as_ref().unwrap().original);
+            let property = normalize_greek(&subject.original);
 
             // Check if owner is a struct type in scope
             if let Some(owner_type) = scope.lookup(owner_lemma)
@@ -2641,17 +2641,16 @@ fn classify_assembled_statement(
 
         if crate::morphology::lexicon::is_binding_verb(&verb_lemma)
             && !asm_stmt.adjectives.is_empty()
-            && asm_stmt.subject.is_some()
-            && asm_stmt.object.is_some()
+            && let (Some(subject), Some(object)) = (&asm_stmt.subject, &asm_stmt.object)
         {
             // Check if adjective is νέον (new)
             let adj_lemma = normalize_greek(&asm_stmt.adjectives[0].lemma);
             if adj_lemma == "νεος" {
                 // Get variable name from subject
-                let var_name = normalize_greek(&asm_stmt.subject.as_ref().unwrap().original);
+                let var_name = normalize_greek(&subject.original);
 
                 // Get type name from object
-                let type_name = normalize_greek(&asm_stmt.object.as_ref().unwrap().original);
+                let type_name = normalize_greek(&object.original);
 
                 // Check if type exists in scope
                 if let Some(struct_type) = scope.lookup_type(&type_name).cloned() {
