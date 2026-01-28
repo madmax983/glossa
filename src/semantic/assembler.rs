@@ -7,10 +7,12 @@
 //! The assembler accumulates morphologically-analyzed tokens and assembles
 //! them into a statement when finalized (at end of sentence).
 
-use crate::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender, Person, Tense, Mood};
-use crate::morphology::lexicon::BinaryOp;
-use crate::grammar::normalize_greek;
 use crate::ast::{Expr, Word};
+use crate::grammar::normalize_greek;
+use crate::morphology::lexicon::BinaryOp;
+use crate::morphology::{
+    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
+};
 
 /// A fully assembled statement with all grammatical roles filled
 #[derive(Debug, Clone)]
@@ -44,6 +46,8 @@ pub struct AssembledStatement {
     pub blocks: Vec<Vec<crate::ast::Statement>>,
     /// Nested phrases (parenthesized function calls)
     pub nested_phrases: Vec<Vec<Expr>>,
+    /// Participles (used for lambdas/closures)
+    pub participles: Vec<ParticipleConstituent>,
     /// Whether this is a query (ends with ;)
     pub is_query: bool,
 }
@@ -80,6 +84,25 @@ pub struct VerbConstituent {
     pub mood: Option<Mood>,
 }
 
+/// A participle constituent (used for lambdas/closures)
+#[derive(Debug, Clone)]
+pub struct ParticipleConstituent {
+    /// The verb stem extracted from the participle
+    pub verb_lemma: String,
+    /// Original text as it appeared
+    pub original: String,
+    /// Tense (present, aorist, perfect)
+    pub tense: Tense,
+    /// Voice (active, middle, passive)
+    pub voice: Voice,
+    /// Case (adjectival property)
+    pub case: Case,
+    /// Gender (adjectival property)
+    pub gender: Gender,
+    /// Number (adjectival property)
+    pub number: Number,
+}
+
 /// A literal value
 #[derive(Debug, Clone)]
 pub enum Literal {
@@ -108,6 +131,7 @@ pub struct Assembler {
     pending_operators: Vec<BinaryOp>,
     pending_blocks: Vec<Vec<crate::ast::Statement>>,
     pending_nested_phrases: Vec<Vec<Expr>>,
+    pending_participles: Vec<ParticipleConstituent>,
     is_query: bool,
 }
 
@@ -159,6 +183,7 @@ impl Assembler {
             pending_operators: Vec::new(),
             pending_blocks: Vec::new(),
             pending_nested_phrases: Vec::new(),
+            pending_participles: Vec::new(),
             is_query: false,
         }
     }
@@ -179,6 +204,7 @@ impl Assembler {
         self.pending_operators.clear();
         self.pending_blocks.clear();
         self.pending_nested_phrases.clear();
+        self.pending_participles.clear();
         self.is_query = false;
     }
 
@@ -199,7 +225,8 @@ impl Assembler {
             self.pending_operators.push(BinaryOp::And);
             return Ok(());
         }
-        if matches!(original, "ἤ" | "ή") {  // ἤ with breathing+accent, but not ᾖ
+        if matches!(original, "ἤ" | "ή") {
+            // ἤ with breathing+accent, but not ᾖ
             self.pending_operators.push(BinaryOp::Or);
             return Ok(());
         }
@@ -228,7 +255,8 @@ impl Assembler {
             // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.pending_subject {
                 let normalized_original = crate::grammar::normalize_greek(&subj.original);
-                self.pending_property_accesses.push((normalized_original, "len".to_string()));
+                self.pending_property_accesses
+                    .push((normalized_original, "len".to_string()));
                 self.pending_subject = None; // Consume the subject
             }
             return Ok(());
@@ -237,33 +265,27 @@ impl Assembler {
         // Check for ordinal adjectives (πρῶτον, δεύτερον, τρίτον)
         if crate::morphology::lexicon::is_ordinal(&normalized) {
             // If we have a subject, create an index access with the ordinal index
-            if let Some(ref subj) = self.pending_subject {
-                if let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized) {
-                    // Create array and index expressions (use normalized original, not lemma)
-                    let normalized_original = crate::grammar::normalize_greek(&subj.original);
-                    let array = Expr::Word(Word {
-                        original: subj.original.clone(),
-                        normalized: normalized_original,
-                    });
-                    let index_expr = Expr::NumberLiteral(index);
+            if let Some(ref subj) = self.pending_subject
+                && let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized)
+            {
+                // Create array and index expressions (use normalized original, not lemma)
+                let normalized_original = crate::grammar::normalize_greek(&subj.original);
+                let array = Expr::Word(Word {
+                    original: subj.original.clone(),
+                    normalized: normalized_original,
+                });
+                let index_expr = Expr::NumberLiteral(index);
 
-                    self.pending_index_accesses.push((array, index_expr));
-                    self.pending_subject = None; // Consume the subject
-                }
+                self.pending_index_accesses.push((array, index_expr));
+                self.pending_subject = None; // Consume the subject
             }
             return Ok(());
         }
 
         match analysis.part_of_speech {
-            PartOfSpeech::Noun | PartOfSpeech::Pronoun => {
-                self.handle_nominal(analysis, original)
-            }
-            PartOfSpeech::Adjective => {
-                self.handle_adjective(analysis, original)
-            }
-            PartOfSpeech::Verb => {
-                self.handle_verb(analysis, original)
-            }
+            PartOfSpeech::Noun | PartOfSpeech::Pronoun => self.handle_nominal(analysis, original),
+            PartOfSpeech::Adjective => self.handle_adjective(analysis, original),
+            PartOfSpeech::Verb => self.handle_verb(analysis, original),
             PartOfSpeech::Numeral => {
                 // Already handled above, but keep this for explicit numeral POS
                 self.handle_nominal(analysis, original)
@@ -311,8 +333,30 @@ impl Assembler {
         self.pending_index_accesses.push((array, index));
     }
 
+    /// Feed a participle (for lambda construction)
+    pub fn feed_participle(
+        &mut self,
+        analysis: &crate::morphology::ParticipleAnalysis,
+        original: &str,
+    ) {
+        let constituent = ParticipleConstituent {
+            verb_lemma: analysis.verb_lemma(),
+            original: original.to_string(),
+            tense: analysis.tense,
+            voice: analysis.voice,
+            case: analysis.case,
+            gender: analysis.gender,
+            number: analysis.number,
+        };
+        self.pending_participles.push(constituent);
+    }
+
     /// Handle a noun/pronoun/adjective - route to slot by case
-    fn handle_nominal(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+    fn handle_nominal(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+    ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
             lemma: analysis.lemma.clone(),
             original: original.to_string(),
@@ -363,7 +407,11 @@ impl Assembler {
     }
 
     /// Handle a verb
-    fn handle_verb(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+    fn handle_verb(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+    ) -> Result<(), AssemblyError> {
         if self.pending_verb.is_some() {
             return Err(AssemblyError::DoubleVerb);
         }
@@ -381,7 +429,11 @@ impl Assembler {
     }
 
     /// Handle an adjective - store it for later pattern matching
-    fn handle_adjective(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+    fn handle_adjective(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+    ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
             lemma: analysis.lemma.clone(),
             original: original.to_string(),
@@ -410,18 +462,18 @@ impl Assembler {
         if let (Some(subject), Some(verb)) = (&self.pending_subject, &self.pending_verb) {
             // In Greek, 3rd person subjects agree with 3rd person verbs
             // 1st/2nd person verbs often don't have explicit subjects (pro-drop)
-            if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number) {
-                if let Some(subj_number) = subject.number {
-                    // Special rule: Neuter plural nouns take singular verbs in Greek!
-                    let is_neuter_plural = subject.gender == Some(Gender::Neuter)
-                        && subj_number == Number::Plural;
+            if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number)
+                && let Some(subj_number) = subject.number
+            {
+                // Special rule: Neuter plural nouns take singular verbs in Greek!
+                let is_neuter_plural =
+                    subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
 
-                    if !is_neuter_plural && subj_number != verb_number {
-                        return Err(AssemblyError::SubjectVerbDisagreement {
-                            subject: (Some(Person::Third), Some(subj_number)),
-                            verb: (Some(verb_person), Some(verb_number)),
-                        });
-                    }
+                if !is_neuter_plural && subj_number != verb_number {
+                    return Err(AssemblyError::SubjectVerbDisagreement {
+                        subject: (Some(Person::Third), Some(subj_number)),
+                        verb: (Some(verb_person), Some(verb_number)),
+                    });
                 }
             }
         }
@@ -442,6 +494,7 @@ impl Assembler {
             operators: std::mem::take(&mut self.pending_operators),
             blocks: std::mem::take(&mut self.pending_blocks),
             nested_phrases: std::mem::take(&mut self.pending_nested_phrases),
+            participles: std::mem::take(&mut self.pending_participles),
             is_query: self.is_query,
         };
 
@@ -484,7 +537,10 @@ mod tests {
         asm.feed(&meizon, "μεῖζον").unwrap();
 
         let stmt = asm.finalize().unwrap();
-        assert!(!stmt.operators.is_empty(), "Expected operator to be captured");
+        assert!(
+            !stmt.operators.is_empty(),
+            "Expected operator to be captured"
+        );
         assert_eq!(stmt.operators[0], BinaryOp::Gt);
     }
 
@@ -498,7 +554,11 @@ mod tests {
         asm.feed(&or_particle, "ἤ").unwrap();
 
         let stmt = asm.finalize().unwrap();
-        assert!(!stmt.operators.is_empty(), "Expected operator to be captured, got: {:?}", stmt);
+        assert!(
+            !stmt.operators.is_empty(),
+            "Expected operator to be captured, got: {:?}",
+            stmt
+        );
         assert_eq!(stmt.operators[0], BinaryOp::Or);
     }
 
@@ -522,8 +582,18 @@ mod tests {
         asm.feed(&verb, "λέγε").unwrap();
 
         let stmt = asm.finalize().unwrap();
-        assert_eq!(stmt.literals.len(), 2, "Expected 2 literals, got: {:?}", stmt.literals);
-        assert_eq!(stmt.operators.len(), 1, "Expected 1 operator, got: {:?}", stmt.operators);
+        assert_eq!(
+            stmt.literals.len(),
+            2,
+            "Expected 2 literals, got: {:?}",
+            stmt.literals
+        );
+        assert_eq!(
+            stmt.operators.len(),
+            1,
+            "Expected 1 operator, got: {:?}",
+            stmt.operators
+        );
         assert_eq!(stmt.operators[0], BinaryOp::Or);
     }
 

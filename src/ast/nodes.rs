@@ -3,7 +3,6 @@
 //! These nodes capture the structure of a GLOSSA program,
 //! preserving both original Greek text and normalized forms.
 
-
 /// A complete GLOSSA program
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
@@ -129,10 +128,7 @@ pub enum Expr {
     ArrayLiteral(Vec<Expr>),
 
     /// Index access: array[index]
-    IndexAccess {
-        array: Box<Expr>,
-        index: Box<Expr>,
-    },
+    IndexAccess { array: Box<Expr>, index: Box<Expr> },
 
     /// A single Greek word with morphological information
     Word(Word),
@@ -148,16 +144,10 @@ pub enum Expr {
     },
 
     /// A function/verb call
-    Call {
-        verb: Word,
-        arguments: Vec<Expr>,
-    },
+    Call { verb: Word, arguments: Vec<Expr> },
 
     /// Variable binding (ἔστω construction)
-    Binding {
-        name: Word,
-        value: Box<Expr>,
-    },
+    Binding { name: Word, value: Box<Expr> },
 
     /// Binary operation (arithmetic, comparison, boolean)
     /// e.g., x μεῖζον y → x > y
@@ -176,36 +166,73 @@ pub enum Expr {
 
     /// A block of statements in braces { ... }
     Block(Vec<Statement>),
+
+    /// A lambda/closure constructed from a participle
+    /// e.g., γράφων → |x| x.write()
+    Lambda {
+        kind: LambdaKind,
+        verb_lemma: String,
+        implicit_param: bool, // true if parameter inferred from context
+    },
+}
+
+/// Lambda kind derived from participle tense/voice
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LambdaKind {
+    /// Present participle - streaming/borrowing closure
+    /// e.g., γράφων → |x| body
+    Streaming,
+
+    /// Aorist participle - one-shot/consuming closure
+    /// e.g., γράψας → move |x| body
+    OneShot,
+
+    /// Perfect participle - memoized/cached closure
+    /// e.g., γεγραμμένος → cached |x| body
+    Memoized,
+}
+
+/// Capture mode for closures
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaptureMode {
+    /// Borrow captured variables (default for present participles)
+    Borrow,
+
+    /// Move captured variables (for aorist participles)
+    Move,
+
+    /// Memoize result (for perfect participles)
+    Memoize,
 }
 
 /// Binary operators in GLOSSA
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinOperator {
     // Arithmetic
-    Add,  // ἄθροισμα
-    Sub,  // διαφορά
-    Mul,  // γινόμενον
-    Div,  // μέρος
-    Mod,  // ὑπόλοιπον
+    Add, // ἄθροισμα
+    Sub, // διαφορά
+    Mul, // γινόμενον
+    Div, // μέρος
+    Mod, // ὑπόλοιπον
 
     // Comparison
-    Eq,   // ἴσον
-    Ne,   // ἄνισον
-    Lt,   // ἔλαττον
-    Le,   // ἔλαττον ἢ ἴσον
-    Gt,   // μεῖζον
-    Ge,   // μεῖζον ἢ ἴσον
+    Eq, // ἴσον
+    Ne, // ἄνισον
+    Lt, // ἔλαττον
+    Le, // ἔλαττον ἢ ἴσον
+    Gt, // μεῖζον
+    Ge, // μεῖζον ἢ ἴσον
 
     // Boolean
-    And,  // καί
-    Or,   // ἤ
+    And, // καί
+    Or,  // ἤ
 }
 
 /// Unary operators in GLOSSA
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOperator {
-    Not,  // οὐ/οὐκ/οὐχ
-    Neg,  // arithmetic negation
+    Not, // οὐ/οὐκ/οὐχ
+    Neg, // arithmetic negation
 }
 
 /// A Greek word with original and normalized forms
@@ -221,7 +248,10 @@ impl Word {
     pub fn new(original: impl Into<String>) -> Self {
         let original = original.into();
         let normalized = crate::grammar::normalize_greek(&original);
-        Word { original, normalized }
+        Word {
+            original,
+            normalized,
+        }
     }
 }
 

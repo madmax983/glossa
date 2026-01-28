@@ -5,14 +5,14 @@
 //! - Second declension: -ος/-ον masculine/neuter nouns
 //! - Third declension: -μα neuter nouns (and others)
 
-use super::{Case, Number, Gender, MorphAnalysis, PartOfSpeech};
+use super::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
 
 /// Declension pattern
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Declension {
-    First,   // -η/-α (feminine)
-    Second,  // -ος/-ον (masculine/neuter)
-    Third,   // consonant stems, -μα
+    First,  // -η/-α (feminine)
+    Second, // -ος/-ον (masculine/neuter)
+    Third,  // consonant stems, -μα
 }
 
 /// Second declension endings (masculine -ος type)
@@ -21,7 +21,7 @@ const SECOND_DECLENSION_MASC: &[(&str, Case, Number)] = &[
     // Singular
     ("ος", Case::Nominative, Number::Singular),
     ("ου", Case::Genitive, Number::Singular),
-    ("ω", Case::Dative, Number::Singular),      // ῳ normalized to ω
+    ("ω", Case::Dative, Number::Singular), // ῳ normalized to ω
     ("ον", Case::Accusative, Number::Singular),
     ("ε", Case::Vocative, Number::Singular),
     // Plural
@@ -53,7 +53,7 @@ const FIRST_DECLENSION_ETA: &[(&str, Case, Number)] = &[
     // Singular
     ("η", Case::Nominative, Number::Singular),
     ("ης", Case::Genitive, Number::Singular),
-    ("η", Case::Dative, Number::Singular),      // ῃ normalized
+    ("η", Case::Dative, Number::Singular), // ῃ normalized
     ("ην", Case::Accusative, Number::Singular),
     ("η", Case::Vocative, Number::Singular),
     // Plural
@@ -69,7 +69,7 @@ const FIRST_DECLENSION_ALPHA: &[(&str, Case, Number)] = &[
     // Singular
     ("α", Case::Nominative, Number::Singular),
     ("ας", Case::Genitive, Number::Singular),
-    ("α", Case::Dative, Number::Singular),      // ᾳ normalized
+    ("α", Case::Dative, Number::Singular), // ᾳ normalized
     ("αν", Case::Accusative, Number::Singular),
     ("α", Case::Vocative, Number::Singular),
     // Plural (same as eta type)
@@ -91,7 +91,7 @@ const THIRD_DECLENSION_MA: &[(&str, Case, Number)] = &[
     // Plural
     ("ματα", Case::Nominative, Number::Plural),
     ("ματων", Case::Genitive, Number::Plural),
-    ("μασι", Case::Dative, Number::Plural),     // μασι(ν)
+    ("μασι", Case::Dative, Number::Plural), // μασι(ν)
     ("ματα", Case::Accusative, Number::Plural),
 ];
 
@@ -192,11 +192,10 @@ fn match_endings(word: &str, endings: &[(&str, Case, Number)]) -> Option<(String
     sorted_endings.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
 
     for (ending, case, number) in sorted_endings {
-        if word.ends_with(ending) {
-            let stem = &word[..word.len() - ending.len()];
-            if !stem.is_empty() {
-                return Some((stem.to_string(), *case, *number));
-            }
+        if let Some(stem) = word.strip_suffix(ending)
+            && !stem.is_empty()
+        {
+            return Some((stem.to_string(), *case, *number));
         }
     }
     None
@@ -207,11 +206,10 @@ fn match_endings_all(word: &str, endings: &[(&str, Case, Number)]) -> Vec<(Strin
     let mut matches = Vec::new();
 
     for (ending, case, number) in endings {
-        if word.ends_with(ending) {
-            let stem = &word[..word.len() - ending.len()];
-            if !stem.is_empty() {
-                matches.push((stem.to_string(), *case, *number));
-            }
+        if let Some(stem) = word.strip_suffix(ending)
+            && !stem.is_empty()
+        {
+            matches.push((stem.to_string(), *case, *number));
         }
     }
 
@@ -311,26 +309,26 @@ pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
 pub fn get_stem(nominative: &str, declension: Declension) -> String {
     match declension {
         Declension::Second => {
-            if nominative.ends_with("ος") {
-                nominative[..nominative.len() - "ος".len()].to_string()
-            } else if nominative.ends_with("ον") {
-                nominative[..nominative.len() - "ον".len()].to_string()
+            if let Some(stem) = nominative.strip_suffix("ος") {
+                stem.to_string()
+            } else if let Some(stem) = nominative.strip_suffix("ον") {
+                stem.to_string()
             } else {
                 nominative.to_string()
             }
         }
         Declension::First => {
-            if nominative.ends_with("η") {
-                nominative[..nominative.len() - "η".len()].to_string()
-            } else if nominative.ends_with("α") {
-                nominative[..nominative.len() - "α".len()].to_string()
+            if let Some(stem) = nominative.strip_suffix("η") {
+                stem.to_string()
+            } else if let Some(stem) = nominative.strip_suffix("α") {
+                stem.to_string()
             } else {
                 nominative.to_string()
             }
         }
         Declension::Third => {
-            if nominative.ends_with("μα") {
-                nominative[..nominative.len() - "μα".len()].to_string()
+            if let Some(stem) = nominative.strip_suffix("μα") {
+                stem.to_string()
             } else {
                 nominative.to_string()
             }
@@ -339,13 +337,19 @@ pub fn get_stem(nominative: &str, declension: Declension) -> String {
 }
 
 /// Decline a noun to a specific case and number
-pub fn decline(stem: &str, declension: Declension, gender: Gender, case: Case, number: Number) -> String {
+pub fn decline(
+    stem: &str,
+    declension: Declension,
+    gender: Gender,
+    case: Case,
+    number: Number,
+) -> String {
     let endings = match (declension, gender) {
         (Declension::Second, Gender::Masculine) => SECOND_DECLENSION_MASC,
         (Declension::Second, Gender::Neuter) => SECOND_DECLENSION_NEUT,
         (Declension::First, _) => FIRST_DECLENSION_ETA,
         (Declension::Third, Gender::Neuter) => THIRD_DECLENSION_MA,
-        _ => return format!("{}", stem),
+        _ => return stem.to_string(),
     };
 
     for (ending, c, n) in endings {
@@ -433,9 +437,36 @@ mod tests {
 
     #[test]
     fn test_decline_second_masculine() {
-        assert_eq!(decline("χρηστ", Declension::Second, Gender::Masculine, Case::Nominative, Number::Singular), "χρηστος");
-        assert_eq!(decline("χρηστ", Declension::Second, Gender::Masculine, Case::Genitive, Number::Singular), "χρηστου");
-        assert_eq!(decline("χρηστ", Declension::Second, Gender::Masculine, Case::Dative, Number::Singular), "χρηστω");
+        assert_eq!(
+            decline(
+                "χρηστ",
+                Declension::Second,
+                Gender::Masculine,
+                Case::Nominative,
+                Number::Singular
+            ),
+            "χρηστος"
+        );
+        assert_eq!(
+            decline(
+                "χρηστ",
+                Declension::Second,
+                Gender::Masculine,
+                Case::Genitive,
+                Number::Singular
+            ),
+            "χρηστου"
+        );
+        assert_eq!(
+            decline(
+                "χρηστ",
+                Declension::Second,
+                Gender::Masculine,
+                Case::Dative,
+                Number::Singular
+            ),
+            "χρηστω"
+        );
     }
 
     #[test]

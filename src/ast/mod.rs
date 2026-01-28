@@ -72,10 +72,7 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, AstError> {
     } else if let Some(impl_def) = trait_impl {
         Ok(Statement::TraitImpl(impl_def))
     } else {
-        Ok(Statement::Regular {
-            clauses,
-            is_query,
-        })
+        Ok(Statement::Regular { clauses, is_query })
     }
 }
 
@@ -104,7 +101,9 @@ fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, AstError> {
     }
 
     if type_name.is_none() {
-        return Err(AstError::UnexpectedRule("Type definition needs a name".to_string()));
+        return Err(AstError::UnexpectedRule(
+            "Type definition needs a name".to_string(),
+        ));
     }
 
     Ok(TypeDef {
@@ -127,7 +126,10 @@ fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, AstError> 
 
     // fieldname typename_genitive
     if words.len() != 2 {
-        return Err(AstError::UnexpectedRule(format!("Field declaration needs exactly 2 words, got {}", words.len())));
+        return Err(AstError::UnexpectedRule(format!(
+            "Field declaration needs exactly 2 words, got {}",
+            words.len()
+        )));
     }
 
     Ok(FieldDecl {
@@ -161,7 +163,9 @@ fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, AstError> {
     }
 
     if trait_name.is_none() {
-        return Err(AstError::UnexpectedRule("Trait definition needs a name".to_string()));
+        return Err(AstError::UnexpectedRule(
+            "Trait definition needs a name".to_string(),
+        ));
     }
 
     Ok(TraitDef {
@@ -201,7 +205,9 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, AstError>
     // words[0] = method name
     // words[1..] = parameters (τῷ self, τῷ other, etc.)
     if words.is_empty() {
-        return Err(AstError::UnexpectedRule("Trait method needs at least a name".to_string()));
+        return Err(AstError::UnexpectedRule(
+            "Trait method needs at least a name".to_string(),
+        ));
     }
 
     let method_name = words[0].clone();
@@ -231,7 +237,11 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, AstError>
         name: method_name,
         params,
         is_default,
-        body: if has_body { Some(body_statements) } else { None },
+        body: if has_body {
+            Some(body_statements)
+        } else {
+            None
+        },
     })
 }
 
@@ -268,7 +278,9 @@ fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, AstError> {
     }
 
     if type_name.is_none() || trait_name.is_none() {
-        return Err(AstError::UnexpectedRule("Trait impl needs type and trait names".to_string()));
+        return Err(AstError::UnexpectedRule(
+            "Trait impl needs type and trait names".to_string(),
+        ));
     }
 
     Ok(TraitImplDef {
@@ -301,7 +313,9 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, AstError> {
     // words[0] = method name
     // words[1..] = parameters (τῷ self, τῷ other, etc.)
     if words.is_empty() {
-        return Err(AstError::UnexpectedRule("Impl method needs at least a name".to_string()));
+        return Err(AstError::UnexpectedRule(
+            "Impl method needs at least a name".to_string(),
+        ));
     }
 
     let method_name = words[0].clone();
@@ -330,7 +344,11 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, AstError> {
     Ok(ImplMethodDef {
         name: method_name,
         params,
-        body: if let Some(stmt) = body { vec![stmt] } else { vec![] },
+        body: if let Some(stmt) = body {
+            vec![stmt]
+        } else {
+            vec![]
+        },
     })
 }
 
@@ -403,17 +421,22 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, AstError> {
             let index_inner = index_pair.into_inner().next().ok_or(AstError::EmptyTerm)?;
             let index = match index_inner.as_rule() {
                 Rule::number_literal => {
-                    let value: i64 = index_inner.as_str().parse()
+                    let value: i64 = index_inner
+                        .as_str()
+                        .parse()
                         .map_err(|_| AstError::InvalidNumber(index_inner.as_str().to_string()))?;
                     Expr::NumberLiteral(value)
                 }
-                Rule::greek_word => {
-                    Expr::Word(Word {
-                        original: index_inner.as_str().to_string(),
-                        normalized: crate::grammar::normalize_greek(index_inner.as_str()),
-                    })
+                Rule::greek_word => Expr::Word(Word {
+                    original: index_inner.as_str().to_string(),
+                    normalized: crate::grammar::normalize_greek(index_inner.as_str()),
+                }),
+                _ => {
+                    return Err(AstError::UnexpectedRule(format!(
+                        "{:?}",
+                        index_inner.as_rule()
+                    )));
                 }
-                _ => return Err(AstError::UnexpectedRule(format!("{:?}", index_inner.as_rule()))),
             };
             Ok(Expr::IndexAccess {
                 array: Box::new(array),
@@ -421,14 +444,17 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, AstError> {
             })
         }
         Rule::string_literal => {
-            let content = inner.into_inner()
+            let content = inner
+                .into_inner()
                 .find(|p| p.as_rule() == Rule::string_content)
                 .map(|p| p.as_str().to_string())
                 .unwrap_or_default();
             Ok(Expr::StringLiteral(content))
         }
         Rule::number_literal => {
-            let value: i64 = inner.as_str().parse()
+            let value: i64 = inner
+                .as_str()
+                .parse()
                 .map_err(|_| AstError::InvalidNumber(inner.as_str().to_string()))?;
             Ok(Expr::NumberLiteral(value))
         }
@@ -437,12 +463,10 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, AstError> {
             let value = normalized == "αληθες";
             Ok(Expr::BooleanLiteral(value))
         }
-        Rule::greek_word => {
-            Ok(Expr::Word(Word {
-                original: inner.as_str().to_string(),
-                normalized: crate::grammar::normalize_greek(inner.as_str()),
-            }))
-        }
+        Rule::greek_word => Ok(Expr::Word(Word {
+            original: inner.as_str().to_string(),
+            normalized: crate::grammar::normalize_greek(inner.as_str()),
+        })),
         Rule::parenthesized_expr => {
             // Unwrap the parentheses and build the inner expression
             let expr_pair = inner.into_inner().next().ok_or(AstError::EmptyTerm)?;
@@ -457,14 +481,17 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, AstError> {
 
     match inner.as_rule() {
         Rule::string_literal => {
-            let content = inner.into_inner()
+            let content = inner
+                .into_inner()
                 .find(|p| p.as_rule() == Rule::string_content)
                 .map(|p| p.as_str().to_string())
                 .unwrap_or_default();
             Ok(Expr::StringLiteral(content))
         }
         Rule::number_literal => {
-            let value: i64 = inner.as_str().parse()
+            let value: i64 = inner
+                .as_str()
+                .parse()
                 .map_err(|_| AstError::InvalidNumber(inner.as_str().to_string()))?;
             Ok(Expr::NumberLiteral(value))
         }
@@ -473,12 +500,10 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, AstError> {
             let value = normalized == "αληθες";
             Ok(Expr::BooleanLiteral(value))
         }
-        Rule::greek_word => {
-            Ok(Expr::Word(Word {
-                original: inner.as_str().to_string(),
-                normalized: crate::grammar::normalize_greek(inner.as_str()),
-            }))
-        }
+        Rule::greek_word => Ok(Expr::Word(Word {
+            original: inner.as_str().to_string(),
+            normalized: crate::grammar::normalize_greek(inner.as_str()),
+        })),
         _ => Err(AstError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
     }
 }
@@ -587,11 +612,11 @@ mod tests {
         let ast = build_ast(source).unwrap();
 
         let expr = first_expr(&ast.statements[0]);
-        if let Expr::Phrase(terms) = expr {
-            if let Expr::Word(w) = &terms[0] {
-                assert_eq!(w.original, "χρήστου");
-                assert_eq!(w.normalized, "χρηστου");
-            }
+        if let Expr::Phrase(terms) = expr
+            && let Expr::Word(w) = &terms[0]
+        {
+            assert_eq!(w.original, "χρήστου");
+            assert_eq!(w.normalized, "χρηστου");
         }
     }
 

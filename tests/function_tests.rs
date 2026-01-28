@@ -1,7 +1,7 @@
 use glossa::ast::build_ast;
-use glossa::semantic::analyze_program;
-use glossa::ir::lower_to_hir;
 use glossa::codegen::generate_rust;
+use glossa::ir::lower_to_hir;
+use glossa::semantic::analyze_program;
 
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> String {
@@ -76,23 +76,33 @@ fn test_return_type_inference() {
 
 #[test]
 fn test_function_call() {
-    let code = compile("
+    let code = compile(
+        "
         προσθεσις ὁρίζειν τῷ ξ τῷ ψ· δός ξ ψ ἄθροισμα.
         ἀποτελεσμα προσθεσις πέντε τρία ἔστω.
-    ");
+    ",
+    );
     eprintln!("Generated code:\n{}", code);
-    assert!(code.contains("prosthesis") && (code.contains("prosthesis(") || code.contains("prosthesis (")));
+    assert!(
+        code.contains("prosthesis")
+            && (code.contains("prosthesis(") || code.contains("prosthesis ("))
+    );
 }
 
 #[test]
 fn test_nested_calls() {
-    let code = compile("
+    let code = compile(
+        "
         διπλασιασμος ὁρίζειν τῷ ξ· δός ξ δύο γινόμενον.
         ψ διπλασιασμος (διπλασιασμος πέντε) ἔστω.
-    ");
+    ",
+    );
     eprintln!("Generated code:\n{}", code);
     // Check for nested diplasiasmos calls (allowing for whitespace)
-    assert!(code.matches("diplasiasmos").count() >= 3, "Expected at least 3 occurrences of diplasiasmos (fn def + 2 calls)");
+    assert!(
+        code.matches("diplasiasmos").count() >= 3,
+        "Expected at least 3 occurrences of diplasiasmos (fn def + 2 calls)"
+    );
     assert!(code.contains("5i64"), "Expected literal 5 as argument");
 }
 
@@ -102,22 +112,26 @@ fn test_nested_calls() {
 
 #[test]
 fn test_function_local_variables() {
-    let code = compile("
+    let code = compile(
+        "
         αυξησις ὁρίζειν τῷ ξ·
             τοπικον ξ ἓν ἄθροισμα ἔστω·
             δός τοπικον.
-    ");
+    ",
+    );
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("let topikon"));
 }
 
 #[test]
 fn test_parameter_shadowing() {
-    let code = compile("
+    let code = compile(
+        "
         ξ δέκα ἔστω.
         προσθεσις ὁρίζειν τῷ ξ· δός ξ ἓν ἄθροισμα.
         ψ προσθεσις πέντε ἔστω.
-    ");
+    ",
+    );
     eprintln!("Generated code:\n{}", code);
     // Should compile without error - just verify it compiles
 }

@@ -47,7 +47,7 @@ fn is_greek_diacritic(c: char) -> bool {
         | '\u{0342}'        // Combining Greek perispomeni (circumflex)
         | '\u{0343}'        // Combining Greek koronis
         | '\u{0344}'        // Combining Greek dialytika tonos
-        | '\u{0345}'        // Combining Greek ypogegrammeni (iota subscript)
+        | '\u{0345}' // Combining Greek ypogegrammeni (iota subscript)
     )
 }
 

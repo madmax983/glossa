@@ -24,11 +24,11 @@ impl Case {
     /// Convert case to its ownership/borrowing semantic
     pub fn to_rust_ownership(&self) -> &'static str {
         match self {
-            Case::Nominative => "",           // Subject, just the value
-            Case::Genitive => "&",            // Borrow (of/from)
-            Case::Dative => "&mut",           // Mutable borrow (to/for)
-            Case::Accusative => "",           // Move (direct object)
-            Case::Vocative => "",             // No ownership semantic
+            Case::Nominative => "", // Subject, just the value
+            Case::Genitive => "&",  // Borrow (of/from)
+            Case::Dative => "&mut", // Mutable borrow (to/for)
+            Case::Accusative => "", // Move (direct object)
+            Case::Vocative => "",   // No ownership semantic
         }
     }
 }
@@ -107,6 +107,8 @@ pub enum ExecutionMode {
 /// - Imperative: commands, top-level expressions
 /// - Subjunctive: conditionals, possibility
 /// - Optative: wishes, optional execution
+/// - Infinitive: non-finite verb form
+/// - Participle: verbal adjective, used for lambdas/closures
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Mood {
     Indicative,
@@ -114,6 +116,7 @@ pub enum Mood {
     Subjunctive,
     Optative,
     Infinitive,
+    Participle,
 }
 
 /// Voice - active, middle, passive

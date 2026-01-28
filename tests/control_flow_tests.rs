@@ -6,11 +6,10 @@
 /// - Loops: ἕως (while), διά/ἀπό...μέχρι (for)
 /// - Pattern matching: κατά (match)
 /// - Loop control: παῦε (break), συνέχιζε (continue)
-
 use glossa::ast::build_ast;
-use glossa::semantic::analyze_program;
-use glossa::ir::lower_to_hir;
 use glossa::codegen::generate_rust;
+use glossa::ir::lower_to_hir;
+use glossa::semantic::analyze_program;
 
 fn compile_to_rust(source: &str) -> String {
     let ast = build_ast(source).expect("AST build failed");
@@ -28,8 +27,11 @@ fn test_subjunctive_verb_form() {
     // ᾖ is subjunctive of εἰμί (to be)
     // Should be recognized as subjunctive mood
     let analysis = glossa::morphology::analyze("ᾖ");
-    assert_eq!(analysis.mood, Some(glossa::morphology::Mood::Subjunctive),
-        "ᾖ should be recognized as subjunctive");
+    assert_eq!(
+        analysis.mood,
+        Some(glossa::morphology::Mood::Subjunctive),
+        "ᾖ should be recognized as subjunctive"
+    );
 }
 
 // =============================================================================
@@ -61,13 +63,16 @@ fn test_if_else() {
 #[test]
 fn test_if_elif_else() {
     // Chain of conditions
-    let source = "ξ πέντε ἔστω. εἰ ξ μηδὲν ᾖ, «μηδέν» λέγε · εἰ ξ ἓν ᾖ, «ἕν» λέγε · εἰ δὲ μή, «ἄλλο» λέγε.";
+    let source =
+        "ξ πέντε ἔστω. εἰ ξ μηδὲν ᾖ, «μηδέν» λέγε · εἰ ξ ἓν ᾖ, «ἕν» λέγε · εἰ δὲ μή, «ἄλλο» λέγε.";
     let output = compile_to_rust(source);
 
     eprintln!("Generated output:\n{}", output);
     assert!(output.contains("if"), "Expected if statement");
-    assert!(output.contains("else if") || output.contains("} else {"),
-        "Expected else-if chain or else");
+    assert!(
+        output.contains("else if") || output.contains("} else {"),
+        "Expected else-if chain or else"
+    );
 }
 
 #[test]
@@ -149,7 +154,8 @@ fn test_for_iteration() {
 fn test_match_basic() {
     // κατὰ ξ· μηδὲν ᾖ, «μηδέν»· ἓν ᾖ, «ἕν»· ἄλλο ᾖ, «ἄλλο».
     // "according to x: if zero, 'zero'; if one, 'one'; if other, 'other'"
-    let source = "ξ πέντε ἔστω. κατὰ ξ· μηδὲν ᾖ, «μηδέν» λέγε· ἓν ᾖ, «ἕν» λέγε· ἄλλο ᾖ, «ἄλλο» λέγε.";
+    let source =
+        "ξ πέντε ἔστω. κατὰ ξ· μηδὲν ᾖ, «μηδέν» λέγε· ἓν ᾖ, «ἕν» λέγε· ἄλλο ᾖ, «ἄλλο» λέγε.";
     let output = compile_to_rust(source);
 
     assert!(output.contains("match"), "Expected match expression");
@@ -196,9 +202,18 @@ fn test_lexicon_conditional_particles() {
     use glossa::morphology::lexicon;
 
     // These should be recognized as control flow particles
-    assert!(lexicon::is_conditional_particle("ει"), "εἰ should be conditional");
-    assert!(lexicon::is_conditional_particle("εαν"), "ἐάν should be conditional");
-    assert!(lexicon::is_conditional_particle("ην"), "ἤν should be conditional");
+    assert!(
+        lexicon::is_conditional_particle("ει"),
+        "εἰ should be conditional"
+    );
+    assert!(
+        lexicon::is_conditional_particle("εαν"),
+        "ἐάν should be conditional"
+    );
+    assert!(
+        lexicon::is_conditional_particle("ην"),
+        "ἤν should be conditional"
+    );
 }
 
 #[test]
@@ -206,17 +221,32 @@ fn test_lexicon_else_particle() {
     use glossa::morphology::lexicon;
 
     // "εἰ δὲ μή" is the else pattern
-    assert!(lexicon::is_else_pattern("ει δε μη"), "εἰ δὲ μή should be else");
+    assert!(
+        lexicon::is_else_pattern("ει δε μη"),
+        "εἰ δὲ μή should be else"
+    );
 }
 
 #[test]
 fn test_lexicon_loop_particles() {
     use glossa::morphology::lexicon;
 
-    assert!(lexicon::is_loop_particle("εως"), "ἕως should be loop particle (while)");
-    assert!(lexicon::is_loop_particle("δια"), "διά should be loop particle (for)");
-    assert!(lexicon::is_range_particle("απο"), "ἀπό should be range start");
-    assert!(lexicon::is_range_particle("μεχρι"), "μέχρι should be range end (exclusive)");
+    assert!(
+        lexicon::is_loop_particle("εως"),
+        "ἕως should be loop particle (while)"
+    );
+    assert!(
+        lexicon::is_loop_particle("δια"),
+        "διά should be loop particle (for)"
+    );
+    assert!(
+        lexicon::is_range_particle("απο"),
+        "ἀπό should be range start"
+    );
+    assert!(
+        lexicon::is_range_particle("μεχρι"),
+        "μέχρι should be range end (exclusive)"
+    );
 }
 
 #[test]
@@ -224,12 +254,18 @@ fn test_lexicon_loop_control() {
     use glossa::morphology::lexicon;
 
     assert!(lexicon::is_break_verb("παυε"), "παῦε should be break");
-    assert!(lexicon::is_continue_verb("συνεχιζε"), "συνέχιζε should be continue");
+    assert!(
+        lexicon::is_continue_verb("συνεχιζε"),
+        "συνέχιζε should be continue"
+    );
 }
 
 #[test]
 fn test_lexicon_match_particle() {
     use glossa::morphology::lexicon;
 
-    assert!(lexicon::is_match_particle("κατα"), "κατά should be match particle");
+    assert!(
+        lexicon::is_match_particle("κατα"),
+        "κατά should be match particle"
+    );
 }

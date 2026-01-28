@@ -20,14 +20,16 @@
 //! semantic analysis phase.
 
 mod case;
-mod declension;
 mod conjugation;
+mod declension;
 pub mod lexicon;
+pub mod participle;
 
 pub use case::*;
-pub use declension::*;
 pub use conjugation::*;
+pub use declension::*;
 pub use lexicon::*;
+pub use participle::*;
 
 use crate::grammar::normalize_greek;
 
@@ -114,11 +116,14 @@ pub fn analyze(word: &str) -> MorphAnalysis {
 /// Use this when you need to resolve ambiguity using syntactic context.
 ///
 /// # Example
-/// ```ignore
+/// ```
+/// use glossa::morphology::analyze_all;
+///
 /// let analyses = analyze_all("θαλασσα");
 /// // Could be:
 /// // - Nominative singular feminine (1st decl.) - "the sea" as subject
 /// // - Vocative singular feminine - "O sea!"
+/// assert!(!analyses.is_empty());
 /// ```
 pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     let normalized = normalize_greek(word);
@@ -147,18 +152,21 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
         // Single Greek letters are treated as nominative nouns (variable names)
         // This follows mathematical convention where α, β, γ, ξ, etc. are variables
         if is_single_greek_letter(&normalized) {
-            analyses.insert(0, MorphAnalysis {
-                lemma: normalized.clone(),
-                part_of_speech: PartOfSpeech::Noun,
-                case: Some(Case::Nominative),
-                number: Some(Number::Singular),
-                gender: None, // Unknown gender for variables
-                person: None,
-                tense: None,
-                mood: None,
-                voice: None,
-                confidence: 0.9, // High confidence for variable names
-            });
+            analyses.insert(
+                0,
+                MorphAnalysis {
+                    lemma: normalized.clone(),
+                    part_of_speech: PartOfSpeech::Noun,
+                    case: Some(Case::Nominative),
+                    number: Some(Number::Singular),
+                    gender: None, // Unknown gender for variables
+                    person: None,
+                    tense: None,
+                    mood: None,
+                    voice: None,
+                    confidence: 0.9, // High confidence for variable names
+                },
+            );
         }
     }
 
@@ -194,30 +202,30 @@ fn is_single_greek_letter(word: &str) -> bool {
     // Also include ς (final sigma, U+03C2)
     ('\u{0391}'..='\u{03A9}').contains(&c) ||   // Uppercase
     ('\u{03B1}'..='\u{03C9}').contains(&c) ||   // Lowercase
-    c == '\u{03C2}'                              // Final sigma
+    c == '\u{03C2}' // Final sigma
 }
 
 /// Check if two analyses are compatible (could refer to the same word in context)
 pub fn analyses_compatible(a: &MorphAnalysis, b: &MorphAnalysis) -> bool {
     // Check case agreement if both have cases
-    if let (Some(case_a), Some(case_b)) = (a.case, b.case) {
-        if case_a != case_b {
-            return false;
-        }
+    if let (Some(case_a), Some(case_b)) = (a.case, b.case)
+        && case_a != case_b
+    {
+        return false;
     }
 
     // Check number agreement if both have numbers
-    if let (Some(num_a), Some(num_b)) = (a.number, b.number) {
-        if num_a != num_b {
-            return false;
-        }
+    if let (Some(num_a), Some(num_b)) = (a.number, b.number)
+        && num_a != num_b
+    {
+        return false;
     }
 
     // Check gender agreement if both have genders
-    if let (Some(gen_a), Some(gen_b)) = (a.gender, b.gender) {
-        if gen_a != gen_b {
-            return false;
-        }
+    if let (Some(gen_a), Some(gen_b)) = (a.gender, b.gender)
+        && gen_a != gen_b
+    {
+        return false;
     }
 
     true
