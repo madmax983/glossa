@@ -2,6 +2,8 @@
 //!
 //! Provides Greek error messages with miette integration.
 
+#![allow(unused_assignments)]
+
 mod messages;
 
 pub use messages::*;
@@ -11,14 +13,17 @@ use thiserror::Error;
 
 /// Main error type for ΓΛΩΣΣΑ
 #[derive(Debug, Clone, Error, Diagnostic)]
+#[allow(unused_assignments)]
 pub enum GlossaError {
     #[error("Σφάλμα συντάξεως: {message}")]
     #[diagnostic(code(glossa::parse))]
     ParseError {
         message: String,
         #[source_code]
+        #[allow(dead_code)]
         src: String,
         #[label("ἐνταῦθα")]
+        #[allow(dead_code)]
         span: Option<SourceSpan>,
     },
 

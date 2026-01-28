@@ -192,12 +192,10 @@ fn match_endings(word: &str, endings: &[(&str, Case, Number)]) -> Option<(String
     sorted_endings.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
 
     for (ending, case, number) in sorted_endings {
-        if word.ends_with(ending) {
-            let stem = &word[..word.len() - ending.len()];
-            if !stem.is_empty() {
+        if let Some(stem) = word.strip_suffix(ending)
+            && !stem.is_empty() {
                 return Some((stem.to_string(), *case, *number));
             }
-        }
     }
     None
 }
@@ -207,12 +205,10 @@ fn match_endings_all(word: &str, endings: &[(&str, Case, Number)]) -> Vec<(Strin
     let mut matches = Vec::new();
 
     for (ending, case, number) in endings {
-        if word.ends_with(ending) {
-            let stem = &word[..word.len() - ending.len()];
-            if !stem.is_empty() {
+        if let Some(stem) = word.strip_suffix(ending)
+            && !stem.is_empty() {
                 matches.push((stem.to_string(), *case, *number));
             }
-        }
     }
 
     matches
@@ -311,26 +307,26 @@ pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
 pub fn get_stem(nominative: &str, declension: Declension) -> String {
     match declension {
         Declension::Second => {
-            if nominative.ends_with("ος") {
-                nominative[..nominative.len() - "ος".len()].to_string()
-            } else if nominative.ends_with("ον") {
-                nominative[..nominative.len() - "ον".len()].to_string()
+            if let Some(stem) = nominative.strip_suffix("ος") {
+                stem.to_string()
+            } else if let Some(stem) = nominative.strip_suffix("ον") {
+                stem.to_string()
             } else {
                 nominative.to_string()
             }
         }
         Declension::First => {
-            if nominative.ends_with("η") {
-                nominative[..nominative.len() - "η".len()].to_string()
-            } else if nominative.ends_with("α") {
-                nominative[..nominative.len() - "α".len()].to_string()
+            if let Some(stem) = nominative.strip_suffix("η") {
+                stem.to_string()
+            } else if let Some(stem) = nominative.strip_suffix("α") {
+                stem.to_string()
             } else {
                 nominative.to_string()
             }
         }
         Declension::Third => {
-            if nominative.ends_with("μα") {
-                nominative[..nominative.len() - "μα".len()].to_string()
+            if let Some(stem) = nominative.strip_suffix("μα") {
+                stem.to_string()
             } else {
                 nominative.to_string()
             }
@@ -351,7 +347,7 @@ pub fn decline(
         (Declension::Second, Gender::Neuter) => SECOND_DECLENSION_NEUT,
         (Declension::First, _) => FIRST_DECLENSION_ETA,
         (Declension::Third, Gender::Neuter) => THIRD_DECLENSION_MA,
-        _ => return format!("{}", stem),
+        _ => return stem.to_string(),
     };
 
     for (ending, c, n) in endings {

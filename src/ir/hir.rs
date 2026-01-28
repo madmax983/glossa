@@ -293,22 +293,18 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
         }
 
         StatementKind::Print => {
-            let args: Vec<HirExpr> = stmt.expressions.iter().map(|e| lower_expr(e)).collect();
+            let args: Vec<HirExpr> = stmt.expressions.iter().map(lower_expr).collect();
 
             Some(HirStatement::Print { args })
         }
 
         StatementKind::Expression => {
-            if let Some(first) = stmt.expressions.first() {
-                Some(HirStatement::Expr(lower_expr(first)))
-            } else {
-                None
-            }
+            stmt.expressions.first().map(|first| HirStatement::Expr(lower_expr(first)))
         }
 
         StatementKind::Query => {
             // For now, queries become print statements
-            let args: Vec<HirExpr> = stmt.expressions.iter().map(|e| lower_expr(e)).collect();
+            let args: Vec<HirExpr> = stmt.expressions.iter().map(lower_expr).collect();
 
             Some(HirStatement::Print { args })
         }
@@ -321,16 +317,16 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
             condition: lower_expr(condition),
             then_body: then_body
                 .iter()
-                .filter_map(|s| lower_statement(s))
+                .filter_map(lower_statement)
                 .collect(),
             else_body: else_body
                 .as_ref()
-                .map(|stmts| stmts.iter().filter_map(|s| lower_statement(s)).collect()),
+                .map(|stmts| stmts.iter().filter_map(lower_statement).collect()),
         }),
 
         StatementKind::While { condition, body } => Some(HirStatement::While {
             condition: lower_expr(condition),
-            body: body.iter().filter_map(|s| lower_statement(s)).collect(),
+            body: body.iter().filter_map(lower_statement).collect(),
         }),
 
         StatementKind::For {
@@ -340,7 +336,7 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
         } => Some(HirStatement::For {
             variable: variable.clone(),
             iterator: lower_expr(iterator),
-            body: body.iter().filter_map(|s| lower_statement(s)).collect(),
+            body: body.iter().filter_map(lower_statement).collect(),
         }),
 
         StatementKind::Match { scrutinee, arms } => Some(HirStatement::Match {
@@ -349,7 +345,7 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
                 .iter()
                 .map(|(pattern, body)| {
                     let pattern_expr = lower_expr(pattern);
-                    let body_stmts = body.iter().filter_map(|s| lower_statement(s)).collect();
+                    let body_stmts = body.iter().filter_map(lower_statement).collect();
                     (pattern_expr, body_stmts)
                 })
                 .collect(),
@@ -374,7 +370,7 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
                 .iter()
                 .map(|(n, t)| (n.clone(), t.as_ref().map(|ty| ty.to_rust().to_string())))
                 .collect(),
-            body: body.iter().filter_map(|s| lower_statement(s)).collect(),
+            body: body.iter().filter_map(lower_statement).collect(),
             return_type: return_type.as_ref().map(|ty| ty.to_rust().to_string()),
         }),
 
@@ -485,11 +481,11 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
         },
         AnalyzedExprKind::VerbCall { verb, args } => HirExpr::Call {
             func: verb.clone(),
-            args: args.iter().map(|a| lower_expr(a)).collect(),
+            args: args.iter().map(lower_expr).collect(),
         },
         AnalyzedExprKind::FunctionCall { func, args } => HirExpr::Call {
             func: func.clone(),
-            args: args.iter().map(|a| lower_expr(a)).collect(),
+            args: args.iter().map(lower_expr).collect(),
         },
         AnalyzedExprKind::BinOp { left, op, right } => HirExpr::BinOp {
             op: (*op).into(),

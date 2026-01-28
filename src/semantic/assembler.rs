@@ -265,8 +265,8 @@ impl Assembler {
         // Check for ordinal adjectives (πρῶτον, δεύτερον, τρίτον)
         if crate::morphology::lexicon::is_ordinal(&normalized) {
             // If we have a subject, create an index access with the ordinal index
-            if let Some(ref subj) = self.pending_subject {
-                if let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized) {
+            if let Some(ref subj) = self.pending_subject
+                && let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized) {
                     // Create array and index expressions (use normalized original, not lemma)
                     let normalized_original = crate::grammar::normalize_greek(&subj.original);
                     let array = Expr::Word(Word {
@@ -278,7 +278,6 @@ impl Assembler {
                     self.pending_index_accesses.push((array, index_expr));
                     self.pending_subject = None; // Consume the subject
                 }
-            }
             return Ok(());
         }
 
@@ -462,8 +461,8 @@ impl Assembler {
         if let (Some(subject), Some(verb)) = (&self.pending_subject, &self.pending_verb) {
             // In Greek, 3rd person subjects agree with 3rd person verbs
             // 1st/2nd person verbs often don't have explicit subjects (pro-drop)
-            if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number) {
-                if let Some(subj_number) = subject.number {
+            if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number)
+                && let Some(subj_number) = subject.number {
                     // Special rule: Neuter plural nouns take singular verbs in Greek!
                     let is_neuter_plural =
                         subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
@@ -475,7 +474,6 @@ impl Assembler {
                         });
                     }
                 }
-            }
         }
 
         // Assemble the statement

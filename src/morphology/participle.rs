@@ -494,9 +494,7 @@ pub fn analyze_participle(word: &str) -> Option<ParticipleAnalysis> {
     all_patterns.sort_by(|a, b| b.ending.len().cmp(&a.ending.len()));
 
     for pattern in all_patterns {
-        if word.ends_with(pattern.ending) {
-            let stem = &word[..word.len() - pattern.ending.len()];
-
+        if let Some(stem) = word.strip_suffix(pattern.ending) {
             // Stem must not be empty
             if stem.is_empty() {
                 continue;

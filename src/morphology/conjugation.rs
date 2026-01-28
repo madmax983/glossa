@@ -150,11 +150,10 @@ fn strip_augment(augmented_stem: &str) -> String {
     }
 
     // ο → ω (e.g., ὀνομάζω → ὠνόμασα)
-    if let Some(rest) = augmented_stem.strip_prefix("ω") {
-        if !rest.is_empty() {
+    if let Some(rest) = augmented_stem.strip_prefix("ω")
+        && !rest.is_empty() {
             return format!("ο{}", rest);
         }
-    }
 
     // ε → η (ε-contract verbs)
     // αι → ῃ, ει → ῃ, οι → ῳ - these are rarer
@@ -264,9 +263,8 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     }
 
     // Try present infinitive
-    if word.ends_with(PRESENT_INFINITIVE) {
-        let stem = &word[..word.len() - PRESENT_INFINITIVE.len()];
-        if !stem.is_empty() {
+    if let Some(stem) = word.strip_suffix(PRESENT_INFINITIVE)
+        && !stem.is_empty() {
             return Some(MorphAnalysis {
                 lemma: format!("{}ω", stem),
                 part_of_speech: PartOfSpeech::Verb,
@@ -280,12 +278,10 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
                 confidence: 0.85,
             });
         }
-    }
 
     // Try aorist infinitive
-    if word.ends_with(AORIST_INFINITIVE) {
-        let stem = &word[..word.len() - AORIST_INFINITIVE.len()];
-        if !stem.is_empty() {
+    if let Some(stem) = word.strip_suffix(AORIST_INFINITIVE)
+        && !stem.is_empty() {
             return Some(MorphAnalysis {
                 lemma: format!("{}ω", stem),
                 part_of_speech: PartOfSpeech::Verb,
@@ -299,7 +295,6 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
                 confidence: 0.85,
             });
         }
-    }
 
     // Try present active subjunctive (checked after indicative due to -ω overlap)
     // Only match distinctive subjunctive endings (ῃς, ῃ, ωμεν, ητε, ωσι)
@@ -347,12 +342,10 @@ fn match_verb_endings(
     sorted.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
 
     for (ending, person, number) in sorted {
-        if word.ends_with(ending) {
-            let stem = &word[..word.len() - ending.len()];
-            if !stem.is_empty() {
+        if let Some(stem) = word.strip_suffix(ending)
+            && !stem.is_empty() {
                 return Some((stem.to_string(), *person, *number));
             }
-        }
     }
     None
 }
@@ -365,12 +358,10 @@ fn match_verb_endings_all(
     let mut matches = Vec::new();
 
     for (ending, person, number) in endings {
-        if word.ends_with(ending) {
-            let stem = &word[..word.len() - ending.len()];
-            if !stem.is_empty() {
+        if let Some(stem) = word.strip_suffix(ending)
+            && !stem.is_empty() {
                 matches.push((stem.to_string(), *person, *number));
             }
-        }
     }
 
     matches
@@ -481,9 +472,8 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
     }
 
     // Try infinitives
-    if word.ends_with(PRESENT_INFINITIVE) {
-        let stem = &word[..word.len() - PRESENT_INFINITIVE.len()];
-        if !stem.is_empty() {
+    if let Some(stem) = word.strip_suffix(PRESENT_INFINITIVE)
+        && !stem.is_empty() {
             analyses.push(MorphAnalysis {
                 lemma: format!("{}ω", stem),
                 part_of_speech: PartOfSpeech::Verb,
@@ -497,11 +487,9 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
                 confidence: 0.85,
             });
         }
-    }
 
-    if word.ends_with(AORIST_INFINITIVE) {
-        let stem = &word[..word.len() - AORIST_INFINITIVE.len()];
-        if !stem.is_empty() {
+    if let Some(stem) = word.strip_suffix(AORIST_INFINITIVE)
+        && !stem.is_empty() {
             analyses.push(MorphAnalysis {
                 lemma: format!("{}ω", stem),
                 part_of_speech: PartOfSpeech::Verb,
@@ -515,7 +503,6 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
                 confidence: 0.85,
             });
         }
-    }
 
     // Deduplicate identical analyses
     analyses.sort_by(|a, b| {

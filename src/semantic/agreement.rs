@@ -11,8 +11,8 @@ pub fn check_agreement(word1: &str, word2: &str) -> Result<(), AgreementError> {
     let analysis2 = analyze(word2);
 
     // Check gender agreement
-    if let (Some(g1), Some(g2)) = (analysis1.gender, analysis2.gender) {
-        if g1 != g2 {
+    if let (Some(g1), Some(g2)) = (analysis1.gender, analysis2.gender)
+        && g1 != g2 {
             return Err(AgreementError::GenderMismatch {
                 word1: word1.to_string(),
                 gender1: g1,
@@ -20,11 +20,10 @@ pub fn check_agreement(word1: &str, word2: &str) -> Result<(), AgreementError> {
                 gender2: g2,
             });
         }
-    }
 
     // Check number agreement
-    if let (Some(n1), Some(n2)) = (analysis1.number, analysis2.number) {
-        if n1 != n2 {
+    if let (Some(n1), Some(n2)) = (analysis1.number, analysis2.number)
+        && n1 != n2 {
             return Err(AgreementError::NumberMismatch {
                 word1: word1.to_string(),
                 number1: n1,
@@ -32,11 +31,10 @@ pub fn check_agreement(word1: &str, word2: &str) -> Result<(), AgreementError> {
                 number2: n2,
             });
         }
-    }
 
     // Check case agreement
-    if let (Some(c1), Some(c2)) = (analysis1.case, analysis2.case) {
-        if c1 != c2 {
+    if let (Some(c1), Some(c2)) = (analysis1.case, analysis2.case)
+        && c1 != c2 {
             return Err(AgreementError::CaseMismatch {
                 word1: word1.to_string(),
                 case1: c1,
@@ -44,7 +42,6 @@ pub fn check_agreement(word1: &str, word2: &str) -> Result<(), AgreementError> {
                 case2: c2,
             });
         }
-    }
 
     Ok(())
 }
@@ -146,8 +143,8 @@ pub fn check_verb_subject_agreement(verb: &str, subject: &str) -> Result<(), Agr
     let subject_analysis = analyze(subject);
 
     // Check number agreement between verb and subject
-    if let (Some(verb_num), Some(subj_num)) = (verb_analysis.number, subject_analysis.number) {
-        if verb_num != subj_num {
+    if let (Some(verb_num), Some(subj_num)) = (verb_analysis.number, subject_analysis.number)
+        && verb_num != subj_num {
             return Err(AgreementError::NumberMismatch {
                 word1: verb.to_string(),
                 number1: verb_num,
@@ -155,7 +152,6 @@ pub fn check_verb_subject_agreement(verb: &str, subject: &str) -> Result<(), Agr
                 number2: subj_num,
             });
         }
-    }
 
     Ok(())
 }

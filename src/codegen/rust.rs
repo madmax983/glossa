@@ -302,27 +302,25 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                                 fn #method_name(#(#param_tokens),*) -> #ret_ty;
                             }
                         }
-                    } else {
-                        if method.has_default {
-                            // Default method with body
-                            if let Some(body) = &method.body {
-                                let body_stmts: Vec<TokenStream> =
-                                    body.iter().map(generate_statement).collect();
-                                quote! {
-                                    fn #method_name(#(#param_tokens),*) {
-                                        #(#body_stmts)*
-                                    }
-                                }
-                            } else {
-                                quote! {
-                                    fn #method_name(#(#param_tokens),*);
+                    } else if method.has_default {
+                        // Default method with body
+                        if let Some(body) = &method.body {
+                            let body_stmts: Vec<TokenStream> =
+                                body.iter().map(generate_statement).collect();
+                            quote! {
+                                fn #method_name(#(#param_tokens),*) {
+                                    #(#body_stmts)*
                                 }
                             }
                         } else {
-                            // Required method signature only
                             quote! {
                                 fn #method_name(#(#param_tokens),*);
                             }
+                        }
+                    } else {
+                        // Required method signature only
+                        quote! {
+                            fn #method_name(#(#param_tokens),*);
                         }
                     }
                 })

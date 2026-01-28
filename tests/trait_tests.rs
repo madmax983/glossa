@@ -33,7 +33,7 @@ fn test_parse_trait_with_required_method() {
 
             let method = &trait_def.methods[0];
             assert_eq!(method.name.original, "show");
-            assert_eq!(method.is_default, false);
+            assert!(!method.is_default);
             assert!(method.body.is_none());
             assert_eq!(method.params.len(), 1); // self parameter
         }
@@ -54,7 +54,7 @@ fn test_parse_trait_with_default_method() {
 
             let method = &trait_def.methods[0];
             assert_eq!(method.name.original, "double");
-            assert_eq!(method.is_default, true);
+            assert!(method.is_default);
             assert!(method.body.is_some());
         }
         _ => panic!("Expected TraitDefinition, got {:?}", ast.statements[0]),
@@ -79,12 +79,12 @@ fn test_parse_trait_multiple_methods() {
 
             // First method: required
             assert_eq!(trait_def.methods[0].name.original, "add");
-            assert_eq!(trait_def.methods[0].is_default, false);
+            assert!(!trait_def.methods[0].is_default);
             assert_eq!(trait_def.methods[0].params.len(), 2); // self and other
 
             // Second method: default
             assert_eq!(trait_def.methods[1].name.original, "double");
-            assert_eq!(trait_def.methods[1].is_default, true);
+            assert!(trait_def.methods[1].is_default);
             assert!(trait_def.methods[1].body.is_some());
         }
         _ => panic!("Expected TraitDefinition, got {:?}", ast.statements[0]),
@@ -188,7 +188,7 @@ fn test_parse_trait_impl_with_method() {
 
             let method = &trait_impl.methods[0];
             assert_eq!(method.name.original, "show");
-            assert!(method.body.len() > 0);
+            assert!(!method.body.is_empty());
         }
         _ => panic!("Expected TraitImpl, got {:?}", ast.statements[0]),
     }
