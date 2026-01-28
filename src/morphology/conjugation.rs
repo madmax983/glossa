@@ -151,9 +151,10 @@ fn strip_augment(augmented_stem: &str) -> String {
 
     // ο → ω (e.g., ὀνομάζω → ὠνόμασα)
     if let Some(rest) = augmented_stem.strip_prefix("ω")
-        && !rest.is_empty() {
-            return format!("ο{}", rest);
-        }
+        && !rest.is_empty()
+    {
+        return format!("ο{}", rest);
+    }
 
     // ε → η (ε-contract verbs)
     // αι → ῃ, ει → ῃ, οι → ῳ - these are rarer
@@ -264,37 +265,39 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
 
     // Try present infinitive
     if let Some(stem) = word.strip_suffix(PRESENT_INFINITIVE)
-        && !stem.is_empty() {
-            return Some(MorphAnalysis {
-                lemma: format!("{}ω", stem),
-                part_of_speech: PartOfSpeech::Verb,
-                case: None,
-                number: None,
-                gender: None,
-                person: None,
-                tense: Some(Tense::Present),
-                mood: Some(Mood::Infinitive),
-                voice: Some(Voice::Active),
-                confidence: 0.85,
-            });
-        }
+        && !stem.is_empty()
+    {
+        return Some(MorphAnalysis {
+            lemma: format!("{}ω", stem),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Infinitive),
+            voice: Some(Voice::Active),
+            confidence: 0.85,
+        });
+    }
 
     // Try aorist infinitive
     if let Some(stem) = word.strip_suffix(AORIST_INFINITIVE)
-        && !stem.is_empty() {
-            return Some(MorphAnalysis {
-                lemma: format!("{}ω", stem),
-                part_of_speech: PartOfSpeech::Verb,
-                case: None,
-                number: None,
-                gender: None,
-                person: None,
-                tense: Some(Tense::Aorist),
-                mood: Some(Mood::Infinitive),
-                voice: Some(Voice::Active),
-                confidence: 0.85,
-            });
-        }
+        && !stem.is_empty()
+    {
+        return Some(MorphAnalysis {
+            lemma: format!("{}ω", stem),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: Some(Tense::Aorist),
+            mood: Some(Mood::Infinitive),
+            voice: Some(Voice::Active),
+            confidence: 0.85,
+        });
+    }
 
     // Try present active subjunctive (checked after indicative due to -ω overlap)
     // Only match distinctive subjunctive endings (ῃς, ῃ, ωμεν, ητε, ωσι)
@@ -343,9 +346,10 @@ fn match_verb_endings(
 
     for (ending, person, number) in sorted {
         if let Some(stem) = word.strip_suffix(ending)
-            && !stem.is_empty() {
-                return Some((stem.to_string(), *person, *number));
-            }
+            && !stem.is_empty()
+        {
+            return Some((stem.to_string(), *person, *number));
+        }
     }
     None
 }
@@ -359,9 +363,10 @@ fn match_verb_endings_all(
 
     for (ending, person, number) in endings {
         if let Some(stem) = word.strip_suffix(ending)
-            && !stem.is_empty() {
-                matches.push((stem.to_string(), *person, *number));
-            }
+            && !stem.is_empty()
+        {
+            matches.push((stem.to_string(), *person, *number));
+        }
     }
 
     matches
@@ -473,36 +478,38 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
 
     // Try infinitives
     if let Some(stem) = word.strip_suffix(PRESENT_INFINITIVE)
-        && !stem.is_empty() {
-            analyses.push(MorphAnalysis {
-                lemma: format!("{}ω", stem),
-                part_of_speech: PartOfSpeech::Verb,
-                case: None,
-                number: None,
-                gender: None,
-                person: None,
-                tense: Some(Tense::Present),
-                mood: Some(Mood::Infinitive),
-                voice: Some(Voice::Active),
-                confidence: 0.85,
-            });
-        }
+        && !stem.is_empty()
+    {
+        analyses.push(MorphAnalysis {
+            lemma: format!("{}ω", stem),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Infinitive),
+            voice: Some(Voice::Active),
+            confidence: 0.85,
+        });
+    }
 
     if let Some(stem) = word.strip_suffix(AORIST_INFINITIVE)
-        && !stem.is_empty() {
-            analyses.push(MorphAnalysis {
-                lemma: format!("{}ω", stem),
-                part_of_speech: PartOfSpeech::Verb,
-                case: None,
-                number: None,
-                gender: None,
-                person: None,
-                tense: Some(Tense::Aorist),
-                mood: Some(Mood::Infinitive),
-                voice: Some(Voice::Active),
-                confidence: 0.85,
-            });
-        }
+        && !stem.is_empty()
+    {
+        analyses.push(MorphAnalysis {
+            lemma: format!("{}ω", stem),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: Some(Tense::Aorist),
+            mood: Some(Mood::Infinitive),
+            voice: Some(Voice::Active),
+            confidence: 0.85,
+        });
+    }
 
     // Deduplicate identical analyses
     analyses.sort_by(|a, b| {

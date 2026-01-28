@@ -541,13 +541,22 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
                     quote! { |#(#params_idents),*| #body_tokens }
                 }
                 CaptureMode::Memoize => {
-                    // For memoization, use a simple cached closure pattern
-                    // In production, this would use lazy_static or once_cell
+                    // Perfect participle: lazy evaluation with caching
+                    // Each closure instance caches its first computed value and returns it for all subsequent calls
+                    // Limitation: This shares a single cached value for all inputs (not true per-input memoization)
+                    // Use case: Constant computations or operations that should only execute once
+                    // Future: Implement HashMap-based memoization for per-input caching
                     quote! {
                         {
-                            use std::cell::OnceCell;
-                            let cache: OnceCell<_> = OnceCell::new();
-                            move |#(#params_idents),*| *cache.get_or_init(|| #body_tokens)
+                            use std::cell::RefCell;
+                            let cache = RefCell::new(None);
+                            move |#(#params_idents),*| {
+                                let mut cache_ref = cache.borrow_mut();
+                                if cache_ref.is_none() {
+                                    *cache_ref = Some(#body_tokens);
+                                }
+                                cache_ref.clone().unwrap()
+                            }
                         }
                     }
                 }

@@ -298,9 +298,10 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
             Some(HirStatement::Print { args })
         }
 
-        StatementKind::Expression => {
-            stmt.expressions.first().map(|first| HirStatement::Expr(lower_expr(first)))
-        }
+        StatementKind::Expression => stmt
+            .expressions
+            .first()
+            .map(|first| HirStatement::Expr(lower_expr(first))),
 
         StatementKind::Query => {
             // For now, queries become print statements
@@ -315,10 +316,7 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
             else_body,
         } => Some(HirStatement::If {
             condition: lower_expr(condition),
-            then_body: then_body
-                .iter()
-                .filter_map(lower_statement)
-                .collect(),
+            then_body: then_body.iter().filter_map(lower_statement).collect(),
             else_body: else_body
                 .as_ref()
                 .map(|stmts| stmts.iter().filter_map(lower_statement).collect()),

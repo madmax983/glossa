@@ -613,10 +613,11 @@ mod tests {
 
         let expr = first_expr(&ast.statements[0]);
         if let Expr::Phrase(terms) = expr
-            && let Expr::Word(w) = &terms[0] {
-                assert_eq!(w.original, "χρήστου");
-                assert_eq!(w.normalized, "χρηστου");
-            }
+            && let Expr::Word(w) = &terms[0]
+        {
+            assert_eq!(w.original, "χρήστου");
+            assert_eq!(w.normalized, "χρηστου");
+        }
     }
 
     #[test]

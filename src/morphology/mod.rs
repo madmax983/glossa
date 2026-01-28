@@ -209,21 +209,24 @@ fn is_single_greek_letter(word: &str) -> bool {
 pub fn analyses_compatible(a: &MorphAnalysis, b: &MorphAnalysis) -> bool {
     // Check case agreement if both have cases
     if let (Some(case_a), Some(case_b)) = (a.case, b.case)
-        && case_a != case_b {
-            return false;
-        }
+        && case_a != case_b
+    {
+        return false;
+    }
 
     // Check number agreement if both have numbers
     if let (Some(num_a), Some(num_b)) = (a.number, b.number)
-        && num_a != num_b {
-            return false;
-        }
+        && num_a != num_b
+    {
+        return false;
+    }
 
     // Check gender agreement if both have genders
     if let (Some(gen_a), Some(gen_b)) = (a.gender, b.gender)
-        && gen_a != gen_b {
-            return false;
-        }
+        && gen_a != gen_b
+    {
+        return false;
+    }
 
     true
 }

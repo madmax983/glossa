@@ -13,7 +13,6 @@ use thiserror::Error;
 
 /// Main error type for ΓΛΩΣΣΑ
 #[derive(Debug, Clone, Error, Diagnostic)]
-#[allow(unused_assignments)]
 pub enum GlossaError {
     #[error("Σφάλμα συντάξεως: {message}")]
     #[diagnostic(code(glossa::parse))]

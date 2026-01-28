@@ -193,9 +193,10 @@ fn match_endings(word: &str, endings: &[(&str, Case, Number)]) -> Option<(String
 
     for (ending, case, number) in sorted_endings {
         if let Some(stem) = word.strip_suffix(ending)
-            && !stem.is_empty() {
-                return Some((stem.to_string(), *case, *number));
-            }
+            && !stem.is_empty()
+        {
+            return Some((stem.to_string(), *case, *number));
+        }
     }
     None
 }
@@ -206,9 +207,10 @@ fn match_endings_all(word: &str, endings: &[(&str, Case, Number)]) -> Vec<(Strin
 
     for (ending, case, number) in endings {
         if let Some(stem) = word.strip_suffix(ending)
-            && !stem.is_empty() {
-                matches.push((stem.to_string(), *case, *number));
-            }
+            && !stem.is_empty()
+        {
+            matches.push((stem.to_string(), *case, *number));
+        }
     }
 
     matches

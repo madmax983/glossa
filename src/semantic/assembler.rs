@@ -266,18 +266,19 @@ impl Assembler {
         if crate::morphology::lexicon::is_ordinal(&normalized) {
             // If we have a subject, create an index access with the ordinal index
             if let Some(ref subj) = self.pending_subject
-                && let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized) {
-                    // Create array and index expressions (use normalized original, not lemma)
-                    let normalized_original = crate::grammar::normalize_greek(&subj.original);
-                    let array = Expr::Word(Word {
-                        original: subj.original.clone(),
-                        normalized: normalized_original,
-                    });
-                    let index_expr = Expr::NumberLiteral(index);
+                && let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized)
+            {
+                // Create array and index expressions (use normalized original, not lemma)
+                let normalized_original = crate::grammar::normalize_greek(&subj.original);
+                let array = Expr::Word(Word {
+                    original: subj.original.clone(),
+                    normalized: normalized_original,
+                });
+                let index_expr = Expr::NumberLiteral(index);
 
-                    self.pending_index_accesses.push((array, index_expr));
-                    self.pending_subject = None; // Consume the subject
-                }
+                self.pending_index_accesses.push((array, index_expr));
+                self.pending_subject = None; // Consume the subject
+            }
             return Ok(());
         }
 
@@ -462,18 +463,19 @@ impl Assembler {
             // In Greek, 3rd person subjects agree with 3rd person verbs
             // 1st/2nd person verbs often don't have explicit subjects (pro-drop)
             if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number)
-                && let Some(subj_number) = subject.number {
-                    // Special rule: Neuter plural nouns take singular verbs in Greek!
-                    let is_neuter_plural =
-                        subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
+                && let Some(subj_number) = subject.number
+            {
+                // Special rule: Neuter plural nouns take singular verbs in Greek!
+                let is_neuter_plural =
+                    subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
 
-                    if !is_neuter_plural && subj_number != verb_number {
-                        return Err(AssemblyError::SubjectVerbDisagreement {
-                            subject: (Some(Person::Third), Some(subj_number)),
-                            verb: (Some(verb_person), Some(verb_number)),
-                        });
-                    }
+                if !is_neuter_plural && subj_number != verb_number {
+                    return Err(AssemblyError::SubjectVerbDisagreement {
+                        subject: (Some(Person::Third), Some(subj_number)),
+                        verb: (Some(verb_person), Some(verb_number)),
+                    });
                 }
+            }
         }
 
         // Assemble the statement
