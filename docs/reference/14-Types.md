@@ -2,62 +2,65 @@
 
 ## 14.1 Struct Definition
 
-The genitive + εἶδος pattern:
+Types are defined with **εἶδος** ("form/type") + name + **ὁρίζειν** ("to define") + braced fields:
 
 ```glossa
-Χρήστου εἶδος·
-    ὄνομα λόγος·
-    ἡλικία ἀριθμός.
-
-"Of-User form:
-    name [is] string;
-    age [is] number."
+εἶδος σημεῖον ὁρίζειν { ξ ἀριθμοῦ. }.
+"form point to-define { x of-number. }."
 ```
 
 →
 
 ```rust
-struct Chrestes {
-    onoma: String,
-    helikia: i64,
+struct Semeion {
+    xi: i64,
 }
 ```
 
-## 14.2 Field Modifiers
+Fields are declared as `name type_genitive`, where the type is in the genitive case ("of number" = `ἀριθμοῦ`). Multiple fields are separated by middle dots or periods:
 
 ```glossa
-Ἀποτελέσματος εἶδος·
-    τιμὴ ἀριθμὸς ἴσως·      // Option<i64>
-    σφάλματα λόγοι πολλά·   // Vec<String>
-    μετρητὴς ἀριθμὸς μετά.  // mut i64
-
-// ἴσως = maybe → Option<T>
-// πολλά = many → Vec<T>
-// μετά = mutable → mut
+εἶδος σημεῖον ὁρίζειν { ξ ἀριθμοῦ· ψ ἀριθμοῦ. }.
+"form point to-define { x of-number; y of-number. }."
 ```
 
-## 14.3 Instantiation
+→
+
+```rust
+struct Semeion {
+    xi: i64,
+    psi: i64,
+}
+```
+
+## 14.2 Instantiation
+
+Struct instances are created with **νέον** ("new") + type name + field values:
 
 ```glossa
-// Constructor call
-χρήστης Χρήστης.νέος «Σωκράτης» ἑβδομήκοντα.
-// → let user = User::new("Socrates", 70);
+π νέον σημεῖον πέντε ἔστω.
+"p new point five let-be."
+// → let pi = Semeion { xi: 5 };
 
-// Literal syntax
-χρήστης Χρήστης· ὄνομα «Σωκράτης» · ἡλικία ἑβδομήκοντα.
-// → let user = User { name: "Socrates", age: 70 };
+π νέον σημεῖον πέντε τρία ἔστω.
+"p new point five three let-be."
+// → let pi = Semeion { xi: 5, psi: 3 };
 ```
 
-## 14.4 Field Access
+Field values are positional, matching the order of field declarations.
 
-Genitive chain:
+## 14.3 Field Access
+
+Field access uses the **genitive** (possessive "of") pattern. The variable name takes a genitive suffix (commonly `-ου`):
 
 ```glossa
-χρήστου ὄνομα
-"of-user name"
-// → user.name
+που ξ λέγε.
+"of-p x say."
+// → println!("{}", pi.xi);
 
-χρήστου ἡλικίας διπλάσιον
-"of-user of-age double"
-// → user.age * 2
+αου ψ λέγε.
+"of-a y say."
+// → println!("{}", alpha.psi);
 ```
+
+The genitive suffix varies by variable name — single Greek letters typically add `-ου` (e.g., `π` → `που`, `α` → `αου`).

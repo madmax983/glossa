@@ -51,26 +51,27 @@ Diacritics (breathings, accents, iota subscript) are normalized during lexing bu
 | Symbol | Unicode | Name | Meaning |
 |--------|---------|------|---------|
 | `.` | U+002E | τελεία | Statement terminator |
-| `·` | U+00B7 | ἄνω τελεία | Expression chain (semicolon) |
-| `;` | U+037E | ἐρωτηματικό | Question / query |
+| `·` | U+00B7 | ἄνω τελεία | Expression chain (chains clauses) |
+| `;` | U+037E | ἐρωτηματικό | Query (also accepts `?`) |
+| `;` | U+003B | (ASCII semicolon) | Propagation operator (Rust's `?`) |
+| `,` | U+002C | (comma) | Clause separator (control flow) |
 | `«»` | U+00AB/BB | εἰσαγωγικά | String delimiters |
 
 ## 2.3 Literals
 
 ### Strings
 ```glossa
-«χαῖρε κόσμε»           // Greek guillemets (preferred)
-"hello world"           // ASCII quotes (allowed)
+«χαῖρε κόσμε»           // Greek guillemets
 ```
+
+String literals use Greek guillemets (`« »`). ASCII double quotes are not supported.
 
 ### Numbers
 ```glossa
-42                      // Arabic numerals
-0x2A                    // Hexadecimal
-0b101010                // Binary
-3.14159                 // Float
-μβʹ                     // Greek numerals (42)
+42                      // Arabic numerals (integer only)
 ```
+
+> **Not yet implemented:** Hexadecimal (`0x2A`), binary (`0b101010`), floating-point (`3.14`), and Greek numeral (`μβʹ`) literals.
 
 ### Booleans
 ```glossa
@@ -87,12 +88,9 @@ Diacritics (breathings, accents, iota subscript) are normalized during lexing bu
 
 ```glossa
 // Single line comment (like Rust)
-
-/* 
-   Block comment
-   (like C)
-*/
 ```
+
+> **Not yet implemented:** Block comments (`/* ... */`).
 
 ## 2.5 Whitespace
 

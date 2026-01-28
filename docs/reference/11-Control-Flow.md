@@ -1,56 +1,47 @@
 # 11. Control Flow
 
-## 11.1 The Aristotelian Approach
+## 11.1 Design Philosophy
 
-ΓΛΩΣΣΑ follows Aristotle's logical syntax from the *Organon* rather than modern imperative control flow. In Aristotle's syllogistic logic, consequences are introduced with **ἀνάγκη** (necessity):
+ΓΛΩΣΣΑ uses Greek grammatical mood to delimit control flow:
 
-```
-εἰ τὸ Α κατὰ παντὸς τοῦ Β, ἀνάγκη τὸ Α κατὰ παντὸς τοῦ Γ
-"If A of all B, necessarily A of all C"
-```
+- The **subjunctive mood** (ᾖ) marks hypothetical/conditional boundaries
+- **Commas** separate condition clauses from consequence clauses
+- **Imperative verbs** (λέγε, παῦε) express commands in consequence clauses
+- **εἰ δὲ μή** ("if but not") introduces else branches
 
-This is **declarative**: we state logical truths, not imperative commands.
+This allows natural Greek sentence structure to encode if/else, loops, and pattern matching without braces or special delimiters.
 
 ## 11.2 Conditionals
 
-### Simple Conditional (εἰ... ἀνάγκη)
+### Simple Conditional (εἰ... ᾖ)
 
 ```glossa
-εἰ ξ πέντε μεῖζον ᾖ, ἀνάγκη «μέγα» λέγειν.
-"If x than-five greater be-[subj], necessarily 'large' to-say."
-// → if x > 5 { println!("large") }
+εἰ ξ πέντε μεῖζον ᾖ, «ναί» λέγε.
+"If x than-five greater be-[subj], 'yes' say."
+// → if x > 5 { println!("yes") }
 
 // The subjunctive ᾖ marks the condition boundary
-// ἀνάγκη introduces the necessary consequence
+// The comma separates condition from consequence
 ```
 
-### Alternative: δεῖ (must/ought)
-
-For less absolute necessity, use **δεῖ** (it is necessary, one must):
+### Conditional with Else (εἰ... εἰ δὲ μή...)
 
 ```glossa
-εἰ ξ πέντε μεῖζον ᾖ, δεῖ «μέγα» λέγειν.
-"If x than-five greater be, one-must 'large' to-say."
-```
-
-### Conditional with Else (εἰ... ἀνάγκη... εἰ δὲ μή...)
-
-```glossa
-εἰ ξ πέντε μεῖζον ᾖ, ἀνάγκη «ναί» λέγειν · εἰ δὲ μή, «οὔ» λέγειν.
-"If x than-five greater be, necessarily 'yes' to-say; if but not, 'no' to-say."
+εἰ ξ πέντε μεῖζον ᾖ, «ναί» λέγε · εἰ δὲ μή, «οὔ» λέγε.
+"If x than-five greater be, 'yes' say; if but not, 'no' say."
 // → if x > 5 { println!("yes") } else { println!("no") }
 ```
 
 ### Chained Conditionals
 
 ```glossa
-εἰ ξ μηδὲν ᾖ, ἀνάγκη «μηδέν» λέγειν ·
-εἰ ξ ἓν ᾖ, ἀνάγκη «ἕν» λέγειν ·
-εἰ δὲ μή, «ἄλλο» λέγειν.
+εἰ ξ μηδὲν ᾖ, «μηδέν» λέγε ·
+εἰ ξ ἓν ᾖ, «ἕν» λέγε ·
+εἰ δὲ μή, «ἄλλο» λέγε.
 
-"If x zero be, necessarily 'zero' to-say;
- if x one be, necessarily 'one' to-say;
- if but not, 'other' to-say."
+"If x zero be, 'zero' say;
+ if x one be, 'one' say;
+ if but not, 'other' say."
 // → if x == 0 { "zero" } else if x == 1 { "one" } else { "other" }
 ```
 
@@ -60,62 +51,61 @@ For less absolute necessity, use **δεῖ** (it is necessary, one must):
 |-------|---------|-------|
 | εἰ | if | General conditional |
 | ἐάν / ἤν | if (uncertain) | With subjunctive, future-leaning |
-| ἀνάγκη | necessarily | Introduces logical consequence |
-| δεῖ | must, ought | Introduces practical consequence |
 | εἰ δὲ μή | if but not | Else clause |
-| ἄλλως | otherwise | Alternative else |
 
 ## 11.3 Pattern Matching (κατά)
 
 Pattern matching uses **κατά** (according to) with cases:
 
 ```glossa
-κατὰ τιμήν·
-    μηδὲν ᾖ, ἀνάγκη «μηδέν»·
-    ἓν ᾖ, ἀνάγκη «ἕν»·
-    ἄλλο ᾖ, ἀνάγκη «ἄλλο».
+κατὰ ξ·
+    μηδὲν ᾖ, «μηδέν» λέγε·
+    ἓν ᾖ, «ἕν» λέγε·
+    ἄλλο ᾖ, «ἄλλο» λέγε.
 
-"According-to value:
-    zero be, necessarily 'zero';
-    one be, necessarily 'one';
-    other be, necessarily 'other'."
+"According-to x:
+    zero be, 'zero' say;
+    one be, 'one' say;
+    other be, 'other' say."
 
-// → match value { 0 => "zero", 1 => "one", _ => "other" }
+// → match x { 0 => println!("zero"), 1 => println!("one"), _ => println!("other") }
 ```
+
+The wildcard pattern uses **ἄλλο** ("other") which maps to Rust's `_`.
 
 ## 11.4 Loops
 
-### While Loop (ἕως... ἀνάγκη)
-
-The pattern follows Aristotle: "while condition holds, necessarily action":
+### While Loop (ἕως)
 
 ```glossa
-ἕως ξ μηδενὸς μεῖζον ᾖ, ἀνάγκη ξ μειοῦσθαι.
-"While x than-zero greater be-[subj], necessarily x to-decrease."
-// → while x > 0 { x -= 1 }
+ἕως ξ μηδενὸς μεῖζον ᾖ, ξ λέγε.
+"While x than-zero greater be-[subj], x say."
+// → while x > 0 { println!("{}", x) }
 ```
 
-### Iteration (διά + Genitive)
+### Collection Iteration (διά)
 
-Iteration uses **διά** (through) with the genitive:
+Iteration uses **διά** (through):
 
 ```glossa
-διὰ στοιχείων λίστης, ἀνάγκη στοιχεῖον λέγειν.
-"Through elements of-list, necessarily element to-say."
-// → for elem in list { println!("{}", elem) }
+διὰ στοιχείων, στοιχεῖον λέγε.
+"Through elements, element say."
+// → for elem in elements { println!("{}", elem) }
 ```
 
 ### Range Iteration (ἀπό... μέχρι/ἕως)
 
 ```glossa
-ἀπὸ μηδενὸς μέχρι δέκα, ἀνάγκη ι λέγειν.
-"From zero until ten, necessarily i to-say."
-// → for i in 0..10 { println!("{}", i) }
+ἀπὸ μηδενὸς μέχρι πέντε, ι λέγε.
+"From zero until five, i say."
+// → for i in 0..5 { println!("{}", i) }
 
-ἀπὸ μηδενὸς ἕως δέκα, ἀνάγκη ι λέγειν.
-"From zero to ten [inclusive], necessarily i to-say."
-// → for i in 0..=10 { println!("{}", i) }
+ἀπὸ μηδενὸς ἕως πέντε, ι λέγε.
+"From zero to five [inclusive], i say."
+// → for i in 0..=5 { println!("{}", i) }
 ```
+
+Note: **μέχρι** (until) produces an exclusive range (`..`), while **ἕως** (to) produces an inclusive range (`..=`).
 
 ## 11.5 Loop Control
 
@@ -124,29 +114,35 @@ Iteration uses **διά** (through) with the genitive:
 συνέχιζε.       // continue - "carry on!" (imperative of συνεχίζω)
 ```
 
+These can be used inside conditional clauses within loops:
+
+```glossa
+ἀπὸ μηδενὸς μέχρι δέκα, εἰ ι πέντε μεῖζον ᾖ, παῦε.
+// → for i in 0..10 { if i > 5 { break } }
+```
+
 ## 11.6 Early Return
 
 ```glossa
-δίδου τιμήν.    // return value - "give value!" (imperative active)
-διδόσθω τιμή.   // return value - "let value be given" (imperative passive)
+δός τιμήν.      // return value - "give!" (aorist imperative of δίδωμι)
+// → return value;
 ```
 
 ## 11.7 Design Rationale
 
-### Why ἀνάγκη?
+### Why Subjunctive + Comma?
 
-1. **Philosophical consistency**: Follows Aristotle's actual logical notation
-2. **Declarative semantics**: States what must be true, not what to do
-3. **Clear boundaries**: ἀνάγκη explicitly marks the consequence
-4. **No braces needed**: Greek syntax naturally delimits clauses
+1. **Grammatical naturalism**: The subjunctive mood (ᾖ) naturally marks hypothetical conditions in Greek
+2. **Minimal syntax**: Commas separate clauses just as in Greek prose
+3. **No braces needed**: Greek clause structure naturally delimits scope
+4. **Morphological consistency**: Mood encodes semantics, not keywords
 
 ### Comparison with Traditional Languages
 
 | Traditional | ΓΛΩΣΣΑ |
 |-------------|--------|
-| `if (x > 5) { ... }` | `εἰ ξ πέντε μεῖζον ᾖ, ἀνάγκη ...` |
-| `while (x > 0) { ... }` | `ἕως ξ μηδενὸς μεῖζον ᾖ, ἀνάγκη ...` |
-| `for x in list { ... }` | `διὰ στοιχείων, ἀνάγκη ...` |
-
-The subjunctive mood (ᾖ) naturally marks hypothetical/conditional boundaries,
-and ἀνάγκη introduces what necessarily follows—exactly as Aristotle wrote.
+| `if (x > 5) { ... }` | `εἰ ξ πέντε μεῖζον ᾖ, ...` |
+| `while (x > 0) { ... }` | `ἕως ξ μηδενὸς μεῖζον ᾖ, ...` |
+| `for i in 0..10 { ... }` | `ἀπὸ μηδενὸς μέχρι δέκα, ...` |
+| `for x in list { ... }` | `διὰ στοιχείων, ...` |
+| `match x { ... }` | `κατὰ ξ· ...` |
