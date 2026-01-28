@@ -72,6 +72,30 @@ const AORIST_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
     ("σωσιν", Person::Third, Number::Plural),
 ];
 
+/// Present Active Optative endings
+/// Pattern: γράφοιμι "I might write"
+/// The optative mood expresses possibility, wish, or potential - natural for Option<T>
+const PRESENT_ACTIVE_OPT: &[(&str, Person, Number)] = &[
+    ("οιμι", Person::First, Number::Singular),
+    ("οις", Person::Second, Number::Singular),
+    ("οι", Person::Third, Number::Singular),
+    ("οιμεν", Person::First, Number::Plural),
+    ("οιτε", Person::Second, Number::Plural),
+    ("οιεν", Person::Third, Number::Plural),
+];
+
+/// Aorist Passive Optative endings
+/// Pattern: εὑρεθείη "might be found"
+/// Used for values that "might exist" (Option<T> semantics)
+const AORIST_PASSIVE_OPT: &[(&str, Person, Number)] = &[
+    ("θειην", Person::First, Number::Singular),
+    ("θειης", Person::Second, Number::Singular),
+    ("θειη", Person::Third, Number::Singular),
+    ("θειημεν", Person::First, Number::Plural),
+    ("θειητε", Person::Second, Number::Plural),
+    ("θειησαν", Person::Third, Number::Plural),
+];
+
 /// Present Active Infinitive ending
 const PRESENT_INFINITIVE: &str = "ειν";
 
@@ -332,6 +356,48 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
         });
     }
 
+    // Try present active optative (for Option<T> semantics)
+    if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_OPT) {
+        return Some(MorphAnalysis {
+            lemma: format!("{}ω", stem),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(number),
+            gender: None,
+            person: Some(person),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Optative),
+            voice: Some(Voice::Active),
+            confidence: 0.75,
+        });
+    }
+
+    // Try aorist passive optative (εὑρεθείη "might be found")
+    if let Some((stem, person, number)) = match_verb_endings(word, AORIST_PASSIVE_OPT) {
+        // Aorist passive stem typically ends in θ (from -θη-)
+        // For θειη ending, the stem before θ is what we want
+        let lemma = if stem.ends_with('θ') {
+            // Strip the θη passive marker to get base stem, then add -ω for lemma
+            let base_stem = stem.trim_end_matches('θ');
+            format!("{}ω", base_stem)
+        } else {
+            format!("{}ω", stem)
+        };
+
+        return Some(MorphAnalysis {
+            lemma,
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(number),
+            gender: None,
+            person: Some(person),
+            tense: Some(Tense::Aorist),
+            mood: Some(Mood::Optative),
+            voice: Some(Voice::Passive),
+            confidence: 0.75,
+        });
+    }
+
     None
 }
 
@@ -440,6 +506,22 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
             tense: Tense::Aorist,
             mood: Mood::Imperative,
             voice: Voice::Active,
+            has_augment: false,
+            base_confidence: 0.75,
+        },
+        ConjPattern {
+            endings: PRESENT_ACTIVE_OPT,
+            tense: Tense::Present,
+            mood: Mood::Optative,
+            voice: Voice::Active,
+            has_augment: false,
+            base_confidence: 0.75,
+        },
+        ConjPattern {
+            endings: AORIST_PASSIVE_OPT,
+            tense: Tense::Aorist,
+            mood: Mood::Optative,
+            voice: Voice::Passive,
             has_augment: false,
             base_confidence: 0.75,
         },

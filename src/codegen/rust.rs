@@ -419,6 +419,35 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             quote! { vec![#(#elem_tokens),*] }
         }
 
+        HirExpr::Some(inner) => {
+            let inner_tokens = generate_expr(inner);
+            quote! { Some(#inner_tokens) }
+        }
+
+        HirExpr::None => {
+            quote! { None }
+        }
+
+        HirExpr::Ok(inner) => {
+            let inner_tokens = generate_expr(inner);
+            quote! { Ok(#inner_tokens) }
+        }
+
+        HirExpr::Err(inner) => {
+            let inner_tokens = generate_expr(inner);
+            quote! { Err(#inner_tokens) }
+        }
+
+        HirExpr::Try(inner) => {
+            let inner_tokens = generate_expr(inner);
+            quote! { #inner_tokens? }
+        }
+
+        HirExpr::Unwrap(inner) => {
+            let inner_tokens = generate_expr(inner);
+            quote! { #inner_tokens.unwrap() }
+        }
+
         HirExpr::Index { array, index } => {
             let array_tokens = generate_expr(array);
             let index_tokens = generate_expr(index);

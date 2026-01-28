@@ -120,6 +120,7 @@ fn analyze_single_statement_with_assembler(
 ) -> Result<AssembledStatement, GlossaError> {
     let mut asm = Assembler::new();
     asm.set_query(stmt.is_query());
+    asm.set_propagate(stmt.is_propagate());
 
     // Disambiguation context accumulator - articles set context for following words
     let mut current_context = DisambiguationContext::new();
@@ -868,6 +869,7 @@ fn parse_function_definition(
         let clause_stmt = Statement::Regular {
             clauses: vec![body_clause],
             is_query: false,
+            is_propagate: false,
         };
 
         // Analyze each body expression as a statement with the function scope
@@ -1047,6 +1049,7 @@ fn parse_while_loop(
     let body_stmt = Statement::Regular {
         clauses: body_clauses.to_vec(),
         is_query: false,
+        is_propagate: false,
     };
 
     let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
@@ -1190,6 +1193,7 @@ fn parse_for_range_loop(
     let body_stmt = Statement::Regular {
         clauses: body_clauses.to_vec(),
         is_query: false,
+        is_propagate: false,
     };
 
     // Add loop variable to scope temporarily while parsing body
@@ -1286,6 +1290,7 @@ fn parse_for_iteration_loop(
     let body_stmt = Statement::Regular {
         clauses: body_clauses.to_vec(),
         is_query: false,
+        is_propagate: false,
     };
 
     // Add loop variable to scope temporarily
@@ -1584,6 +1589,7 @@ fn parse_conditional(
             let elif_stmt = Statement::Regular {
                 clauses: elif_clauses,
                 is_query: false,
+                is_propagate: false,
             };
 
             // Recursively parse as a new conditional (which becomes the else body)
@@ -1659,6 +1665,7 @@ fn parse_clause_as_mini_statement(clause: &crate::ast::Clause) -> Result<Stateme
     Ok(Statement::Regular {
         clauses: vec![clause.clone()],
         is_query: false,
+        is_propagate: false,
     })
 }
 
@@ -1820,9 +1827,15 @@ fn feed_expr_to_assembler_with_context(
             feed_expr_to_assembler_with_context(asm, left, context)?;
             feed_expr_to_assembler_with_context(asm, right, context)?;
         }
-        Expr::UnaryOp { op: _, operand } => {
-            // TODO: Implement unary operation handling
-            feed_expr_to_assembler_with_context(asm, operand, context)?;
+        Expr::UnaryOp { op, operand } => {
+            // Handle unwrap operator specially - it's a postfix operator that doesn't need word-order handling
+            if matches!(op, crate::ast::UnaryOperator::Unwrap) {
+                // Store the unwrap expression for special handling
+                asm.feed_unwrap(operand.as_ref().clone());
+            } else {
+                // TODO: Implement other unary operations (Not, Neg)
+                feed_expr_to_assembler_with_context(asm, operand, context)?;
+            }
         }
         Expr::Block(statements) => {
             // Parenthesized expressions are stored as blocks for later analysis
@@ -2871,7 +2884,33 @@ fn classify_assembled_statement(
             };
 
             // Get value from literals or object
-            let (value_expr, value_type) = extract_value(&actual_asm);
+            // Special handling for Option/Result standalone words (None, Some without value, etc.)
+            let (value_expr, value_type) = if let Some(ref obj) = actual_asm.object {
+                let obj_normalized = normalize_greek(&obj.lemma);
+                if crate::morphology::lexicon::is_none_word(&obj_normalized) {
+                    (
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::None,
+                            glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
+                        },
+                        GlossaType::Option(Box::new(GlossaType::Unknown)),
+                    )
+                } else {
+                    extract_value(&actual_asm)
+                }
+            } else {
+                extract_value(&actual_asm)
+            };
+
+            // Wrap in Try if this is a propagation statement (ends with `;`)
+            let final_value_expr = if asm_stmt.is_propagate {
+                AnalyzedExpr {
+                    glossa_type: value_type.clone(),
+                    expr: AnalyzedExprKind::Try(Box::new(value_expr)),
+                }
+            } else {
+                value_expr
+            };
 
             // Register binding in scope
             scope.define(var_name.clone(), value_type.clone());
@@ -2886,7 +2925,7 @@ fn classify_assembled_statement(
                         expr: AnalyzedExprKind::Variable(var_name),
                         glossa_type: value_type.clone(),
                     },
-                    value_expr,
+                    final_value_expr,
                 ],
             ));
         }
@@ -3023,6 +3062,19 @@ fn classify_assembled_statement(
                 return Ok((StatementKind::Print, args));
             }
 
+            // Check if we have unwrap expressions to print
+            if !asm_stmt.unwraps.is_empty() {
+                let mut args = Vec::new();
+                for unwrap_expr in &asm_stmt.unwraps {
+                    let inner_analyzed = convert_expr_to_analyzed(unwrap_expr);
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Unwrap(Box::new(inner_analyzed)),
+                        glossa_type: GlossaType::Unknown, // Type will be inferred
+                    });
+                }
+                return Ok((StatementKind::Print, args));
+            }
+
             // Build binary expressions from literals and operators if available
             // This handles cases like: true || false
             let mut args =
@@ -3074,13 +3126,147 @@ fn classify_assembled_statement(
     }
 
     // Default: expression statement
-    let exprs = build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
+    let mut exprs =
+        build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
+
+    // Propagation pattern: wrap the last expression in Try (converts to `?` in Rust)
+    if asm_stmt.is_propagate && !exprs.is_empty() {
+        let last_expr = exprs.pop().unwrap();
+        let try_expr = AnalyzedExpr {
+            glossa_type: last_expr.glossa_type.clone(),
+            expr: AnalyzedExprKind::Try(Box::new(last_expr)),
+        };
+        exprs.push(try_expr);
+    }
 
     Ok((StatementKind::Expression, exprs))
 }
 
 /// Extract value from assembled statement (literals or constituents)
 fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
+    // Check for unwrap expressions first
+    if !asm_stmt.unwraps.is_empty() {
+        let inner_analyzed = convert_expr_to_analyzed(&asm_stmt.unwraps[0]);
+        return (
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Unwrap(Box::new(inner_analyzed)),
+                glossa_type: GlossaType::Unknown, // Type will be inferred
+            },
+            GlossaType::Unknown,
+        );
+    }
+
+    // Check subject for Option/Result words (pronouns often land here)
+    if let Some(ref subj) = asm_stmt.subject {
+        let subj_normalized = normalize_greek(&subj.lemma);
+
+        // Check for None (οὐδέν)
+        if crate::morphology::lexicon::is_none_word(&subj_normalized) {
+            return (
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::None,
+                    glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
+                },
+                GlossaType::Option(Box::new(GlossaType::Unknown)),
+            );
+        }
+
+        // Check for Some (τί) with a value
+        if crate::morphology::lexicon::is_some_word(&subj_normalized) {
+            // Get the inner value from literals
+            if let Some(lit) = asm_stmt.literals.first() {
+                let inner_expr = literal_to_analyzed_expr(lit);
+                let inner_type = inner_expr.glossa_type.clone();
+                return (
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Some(Box::new(inner_expr)),
+                        glossa_type: GlossaType::Option(Box::new(inner_type.clone())),
+                    },
+                    GlossaType::Option(Box::new(inner_type)),
+                );
+            }
+        }
+    }
+
+    // Check nominatives for Option/Result words first (they might land here due to case)
+    for nom in &asm_stmt.nominatives {
+        let nom_lemma = normalize_greek(&nom.lemma);
+        let nom_original = normalize_greek(&nom.original);
+
+        // Check for None (οὐδέν)
+        if crate::morphology::lexicon::is_none_word(&nom_lemma)
+            || crate::morphology::lexicon::is_none_word(&nom_original)
+        {
+            return (
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::None,
+                    glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
+                },
+                GlossaType::Option(Box::new(GlossaType::Unknown)),
+            );
+        }
+
+        // Check for Some (τί) with a value
+        if crate::morphology::lexicon::is_some_word(&nom_lemma)
+            || crate::morphology::lexicon::is_some_word(&nom_original)
+        {
+            // Get the inner value from literals
+            if let Some(lit) = asm_stmt.literals.first() {
+                let inner_expr = literal_to_analyzed_expr(lit);
+                let inner_type = inner_expr.glossa_type.clone();
+                return (
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Some(Box::new(inner_expr)),
+                        glossa_type: GlossaType::Option(Box::new(inner_type.clone())),
+                    },
+                    GlossaType::Option(Box::new(inner_type)),
+                );
+            }
+        }
+
+        // Check for Ok (ἐπιτυχία) with a value
+        if crate::morphology::lexicon::is_ok_word(&nom_lemma)
+            || crate::morphology::lexicon::is_ok_word(&nom_original)
+        {
+            // Get the inner value from literals
+            if let Some(lit) = asm_stmt.literals.first() {
+                let inner_expr = literal_to_analyzed_expr(lit);
+                let inner_type = inner_expr.glossa_type.clone();
+                return (
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Ok(Box::new(inner_expr)),
+                        glossa_type: GlossaType::Result(
+                            Box::new(inner_type.clone()),
+                            Box::new(GlossaType::String),
+                        ),
+                    },
+                    GlossaType::Result(Box::new(inner_type), Box::new(GlossaType::String)),
+                );
+            }
+        }
+
+        // Check for Err (σφάλμα) with a value
+        if crate::morphology::lexicon::is_err_word(&nom_lemma)
+            || crate::morphology::lexicon::is_err_word(&nom_original)
+        {
+            // Get the error value from literals
+            if let Some(lit) = asm_stmt.literals.first() {
+                let inner_expr = literal_to_analyzed_expr(lit);
+                let inner_type = inner_expr.glossa_type.clone();
+                return (
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Err(Box::new(inner_expr)),
+                        glossa_type: GlossaType::Result(
+                            Box::new(GlossaType::Unknown),
+                            Box::new(inner_type.clone()),
+                        ),
+                    },
+                    GlossaType::Result(Box::new(GlossaType::Unknown), Box::new(inner_type)),
+                );
+            }
+        }
+    }
+
     // If we have property accesses, use the first one
     if let Some((owner, method)) = asm_stmt.property_accesses.first() {
         let receiver = AnalyzedExpr {
@@ -3168,9 +3354,85 @@ fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
 
     // Otherwise use object
     if let Some(ref obj) = asm_stmt.object {
-        // Check if it's a numeral word
-        if let Some(value) = crate::morphology::lexicon::numeral_value(&normalize_greek(&obj.lemma))
+        // Check both lemma and original form
+        let obj_lemma = normalize_greek(&obj.lemma);
+        let obj_original = normalize_greek(&obj.original);
+
+        // Check for None (οὐδέν)
+        if crate::morphology::lexicon::is_none_word(&obj_lemma)
+            || crate::morphology::lexicon::is_none_word(&obj_original)
         {
+            return (
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::None,
+                    glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
+                },
+                GlossaType::Option(Box::new(GlossaType::Unknown)),
+            );
+        }
+
+        // Check for Some (τί) with a value
+        if crate::morphology::lexicon::is_some_word(&obj_lemma)
+            || crate::morphology::lexicon::is_some_word(&obj_original)
+        {
+            // Get the inner value from literals
+            if let Some(lit) = asm_stmt.literals.first() {
+                let inner_expr = literal_to_analyzed_expr(lit);
+                let inner_type = inner_expr.glossa_type.clone();
+                return (
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Some(Box::new(inner_expr)),
+                        glossa_type: GlossaType::Option(Box::new(inner_type.clone())),
+                    },
+                    GlossaType::Option(Box::new(inner_type)),
+                );
+            }
+        }
+
+        // Check for Ok (ἐπιτυχία) with a value
+        if crate::morphology::lexicon::is_ok_word(&obj_lemma)
+            || crate::morphology::lexicon::is_ok_word(&obj_original)
+        {
+            // Get the inner value from literals
+            if let Some(lit) = asm_stmt.literals.first() {
+                let inner_expr = literal_to_analyzed_expr(lit);
+                let inner_type = inner_expr.glossa_type.clone();
+                return (
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Ok(Box::new(inner_expr)),
+                        glossa_type: GlossaType::Result(
+                            Box::new(inner_type.clone()),
+                            Box::new(GlossaType::String),
+                        ),
+                    },
+                    GlossaType::Result(Box::new(inner_type), Box::new(GlossaType::String)),
+                );
+            }
+        }
+
+        // Check for Err (σφάλμα) with a value
+        if crate::morphology::lexicon::is_err_word(&obj_lemma)
+            || crate::morphology::lexicon::is_err_word(&obj_original)
+        {
+            // Get the error value from literals
+            if let Some(lit) = asm_stmt.literals.first() {
+                let inner_expr = literal_to_analyzed_expr(lit);
+                let inner_type = inner_expr.glossa_type.clone();
+                return (
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Err(Box::new(inner_expr)),
+                        glossa_type: GlossaType::Result(
+                            Box::new(GlossaType::Unknown),
+                            Box::new(inner_type.clone()),
+                        ),
+                    },
+                    GlossaType::Result(Box::new(GlossaType::Unknown), Box::new(inner_type)),
+                );
+            }
+        }
+
+        // Check if it's a numeral word
+        if let Some(value) = crate::morphology::lexicon::numeral_value(&obj_lemma) {
             return (
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::NumberLiteral(value),
@@ -3538,6 +3800,18 @@ pub enum AnalyzedExprKind {
     },
     /// Array literal [1, 2, 3]
     ArrayLiteral(Vec<AnalyzedExpr>),
+    /// Some(value) - Option<T> constructor
+    Some(Box<AnalyzedExpr>),
+    /// None - Option<T> empty value
+    None,
+    /// Ok(value) - Result<T,E> success constructor
+    Ok(Box<AnalyzedExpr>),
+    /// Err(error) - Result<T,E> error constructor
+    Err(Box<AnalyzedExpr>),
+    /// Unwrap operator (!) - confident extraction from Option/Result
+    Unwrap(Box<AnalyzedExpr>),
+    /// Try operator (`;` after Option/Result) - propagates None/Err upward
+    Try(Box<AnalyzedExpr>),
     /// Index access array[index]
     IndexAccess {
         array: Box<AnalyzedExpr>,
@@ -3815,6 +4089,7 @@ impl SemanticAnalyzer {
                             expressions: vec![phrase_expr],
                         }],
                         is_query: false,
+                        is_propagate: false,
                     };
 
                     // Analyze through assembler

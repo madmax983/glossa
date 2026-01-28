@@ -125,6 +125,24 @@ pub enum HirExpr {
     /// Array literal vec![...]
     ArrayLit(Vec<HirExpr>),
 
+    /// Some(value) - Option<T> constructor
+    Some(Box<HirExpr>),
+
+    /// None - Option<T> empty value
+    None,
+
+    /// Ok(value) - Result<T,E> success constructor
+    Ok(Box<HirExpr>),
+
+    /// Err(error) - Result<T,E> error constructor
+    Err(Box<HirExpr>),
+
+    /// Try operator (?) - propagates None/Err
+    Try(Box<HirExpr>),
+
+    /// Unwrap operator (!) - confident extraction
+    Unwrap(Box<HirExpr>),
+
     /// Index access array[index]
     Index {
         array: Box<HirExpr>,
@@ -446,6 +464,12 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
         AnalyzedExprKind::ArrayLiteral(elements) => {
             HirExpr::ArrayLit(elements.iter().map(lower_expr).collect())
         }
+        AnalyzedExprKind::Some(inner) => HirExpr::Some(Box::new(lower_expr(inner))),
+        AnalyzedExprKind::None => HirExpr::None,
+        AnalyzedExprKind::Ok(inner) => HirExpr::Ok(Box::new(lower_expr(inner))),
+        AnalyzedExprKind::Err(inner) => HirExpr::Err(Box::new(lower_expr(inner))),
+        AnalyzedExprKind::Unwrap(inner) => HirExpr::Unwrap(Box::new(lower_expr(inner))),
+        AnalyzedExprKind::Try(inner) => HirExpr::Try(Box::new(lower_expr(inner))),
         AnalyzedExprKind::IndexAccess { array, index } => HirExpr::Index {
             array: Box::new(lower_expr(array)),
             index: Box::new(lower_expr(index)),

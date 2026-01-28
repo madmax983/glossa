@@ -5,6 +5,10 @@
 //! - ὄνομα (onoma) → String
 //! - ἀληθές/ψεῦδος → Boolean
 //! - λίστη (liste) → List/Vec
+//!
+//! Special types from Greek morphology:
+//! - Optative mood → Option<T> (value that "might be")
+//! - ἀποτέλεσμα (apotelasma) → Result<T,E> (outcome/result)
 
 use crate::morphology::{Case, Gender, Tense};
 
@@ -22,6 +26,30 @@ pub enum GlossaType {
 
     /// λίστη - list of T
     List(Box<GlossaType>),
+
+    /// Option<T> - value that might not exist
+    ///
+    /// Expressed in ΓΛΩΣΣΑ via the **optative mood** (εὑρεθείη "might be found").
+    /// The optative mood in Ancient Greek expresses wish, possibility, or potential,
+    /// making it a natural fit for optional values.
+    ///
+    /// # Examples
+    /// - τί (ti) → Some(value) ("something")
+    /// - οὐδέν (ouden) → None ("nothing")
+    /// - `;` after optative verb → propagates None (like Rust's `?`)
+    /// - `!` suffix → unwrap (confident extraction)
+    Option(Box<GlossaType>),
+
+    /// Result<T, E> - value or error
+    ///
+    /// Expressed in ΓΛΩΣΣΑ via ἀποτέλεσμα (apotelasma) "result/outcome".
+    /// Uses disjunctive patterns to distinguish success from failure.
+    ///
+    /// # Examples
+    /// - ἐπιτυχία (epitychia) → Ok(value) ("success")
+    /// - σφάλμα (sphalma) → Err(error) ("error/mistake")
+    /// - `;` after Result expression → propagates Err (like Rust's `?`)
+    Result(Box<GlossaType>, Box<GlossaType>),
 
     /// Custom struct type (from noun)
     Struct {
@@ -45,16 +73,18 @@ pub enum GlossaType {
 
 impl GlossaType {
     /// Get the Rust equivalent type
-    pub fn to_rust(&self) -> &'static str {
+    pub fn to_rust(&self) -> String {
         match self {
-            GlossaType::Number => "i64",
-            GlossaType::String => "String",
-            GlossaType::Boolean => "bool",
-            GlossaType::List(_) => "Vec",
-            GlossaType::Unit => "()",
-            GlossaType::Struct { .. } => "struct",
-            GlossaType::Function { .. } => "fn",
-            GlossaType::Unknown => "_",
+            GlossaType::Number => "i64".to_string(),
+            GlossaType::String => "String".to_string(),
+            GlossaType::Boolean => "bool".to_string(),
+            GlossaType::List(inner) => format!("Vec<{}>", inner.to_rust()),
+            GlossaType::Option(inner) => format!("Option<{}>", inner.to_rust()),
+            GlossaType::Result(ok, err) => format!("Result<{}, {}>", ok.to_rust(), err.to_rust()),
+            GlossaType::Unit => "()".to_string(),
+            GlossaType::Struct { .. } => "struct".to_string(),
+            GlossaType::Function { .. } => "fn".to_string(),
+            GlossaType::Unknown => "_".to_string(),
         }
     }
 
@@ -65,6 +95,8 @@ impl GlossaType {
             GlossaType::String => "ὄνομα",
             GlossaType::Boolean => "ἀληθές",
             GlossaType::List(_) => "λίστη",
+            GlossaType::Option(_) => "εὑρεθείη", // "might be found" (optative)
+            GlossaType::Result(_, _) => "ἀποτέλεσμα", // "result/outcome"
             GlossaType::Unit => "οὐδέν",
             GlossaType::Struct { .. } => "εἶδος",
             GlossaType::Function { .. } => "ἔργον",
@@ -77,6 +109,10 @@ impl GlossaType {
         match (self, other) {
             (GlossaType::Unknown, _) | (_, GlossaType::Unknown) => true,
             (GlossaType::List(a), GlossaType::List(b)) => a.is_compatible(b),
+            (GlossaType::Option(a), GlossaType::Option(b)) => a.is_compatible(b),
+            (GlossaType::Result(ok1, err1), GlossaType::Result(ok2, err2)) => {
+                ok1.is_compatible(ok2) && err1.is_compatible(err2)
+            }
             _ => self == other,
         }
     }
@@ -211,9 +247,9 @@ mod tests {
 
     #[test]
     fn test_type_to_rust() {
-        assert_eq!(GlossaType::Number.to_rust(), "i64");
-        assert_eq!(GlossaType::String.to_rust(), "String");
-        assert_eq!(GlossaType::Boolean.to_rust(), "bool");
+        assert_eq!(GlossaType::Number.to_rust(), "i64".to_string());
+        assert_eq!(GlossaType::String.to_rust(), "String".to_string());
+        assert_eq!(GlossaType::Boolean.to_rust(), "bool".to_string());
     }
 
     #[test]

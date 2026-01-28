@@ -21,7 +21,7 @@ program = { SOI ~ statement* ~ EOI }
 
 statement = { (type_definition | trait_definition | trait_impl | clause_list) ~ statement_end }
 
-statement_end = { period | query }
+statement_end = { period | query | propagate }
 
 // Type definition: εἶδος typename ὁρίζειν { fields }
 type_definition = { eidos_keyword ~ greek_word ~ orizontin_keyword ~ "{" ~ field_list? ~ "}" }
@@ -82,10 +82,14 @@ term = {
     | string_literal
     | number_literal
     | boolean_literal
+    | unwrap_expr
     | indexed_word
     | parenthesized_expr
     | greek_word
 }
+
+// Unwrap expression: word! (confident extraction from Option/Result)
+unwrap_expr = { greek_word ~ "!" }
 
 // Parenthesized expression for grouping (e.g., nested function calls)
 parenthesized_expr = { "(" ~ expression ~ ")" }
@@ -157,6 +161,10 @@ chain = { "\u{00B7}" }
 // Greek question mark (U+037E) - looks like semicolon but is the question mark
 // Also accept ASCII ? for convenience
 query = { "\u{037E}" | "?" }
+
+// ASCII semicolon - propagation operator (converts statement value to `?` in Rust)
+// Used with Option/Result to propagate None/Err upward
+propagate = { ";" }
 
 // Comma - separates clauses (condition from body in control flow)
 comma = { "," }

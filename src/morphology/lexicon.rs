@@ -1247,6 +1247,86 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     );
 
     // =========================================================================
+    // Option<T> and Result<T,E> vocabulary
+    // =========================================================================
+
+    // οὐδέν - nothing (None)
+    // From οὐδείς (no one, nothing) in neuter form
+    m.insert(
+        "ουδεν",
+        LexiconEntry {
+            lemma: "ουδεις".to_string(),
+            pos: PartOfSpeech::Pronoun,
+            gender: Some(Gender::Neuter),
+            meaning: "nothing, none",
+            rust_equiv: Some("None"),
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // τί - something (Some)
+    // Interrogative/indefinite pronoun "what/something"
+    m.insert(
+        "τι",
+        LexiconEntry {
+            lemma: "τις".to_string(),
+            pos: PartOfSpeech::Pronoun,
+            gender: Some(Gender::Neuter),
+            meaning: "something, some",
+            rust_equiv: Some("Some"),
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // ἐπιτυχία - success (Ok)
+    // From ἐπιτυγχάνω "to succeed, achieve"
+    m.insert(
+        "επιτυχια",
+        LexiconEntry {
+            lemma: "επιτυχια".to_string(),
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Feminine),
+            meaning: "success, achievement",
+            rust_equiv: Some("Ok"),
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // σφάλμα - error (Err)
+    // From σφάλλω "to cause to fall, err"
+    m.insert(
+        "σφαλμα",
+        LexiconEntry {
+            lemma: "σφαλμα".to_string(),
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Neuter),
+            meaning: "error, mistake, failure",
+            rust_equiv: Some("Err"),
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // =========================================================================
     // Common words
     // =========================================================================
 
@@ -1878,6 +1958,26 @@ pub fn is_obligation_particle(normalized_word: &str) -> bool {
 /// Check if a word introduces a consequence (ἀνάγκη or δεῖ)
 pub fn is_consequence_marker(normalized_word: &str) -> bool {
     is_necessity_particle(normalized_word) || is_obligation_particle(normalized_word)
+}
+
+/// Check if a word represents None (οὐδέν)
+pub fn is_none_word(normalized_word: &str) -> bool {
+    matches!(normalized_word, "ουδεν")
+}
+
+/// Check if a word represents Some (τί)
+pub fn is_some_word(normalized_word: &str) -> bool {
+    matches!(normalized_word, "τι")
+}
+
+/// Check if a word represents Ok (ἐπιτυχία)
+pub fn is_ok_word(normalized_word: &str) -> bool {
+    matches!(normalized_word, "επιτυχια")
+}
+
+/// Check if a word represents Err (σφάλμα)
+pub fn is_err_word(normalized_word: &str) -> bool {
+    matches!(normalized_word, "σφαλμα")
 }
 
 #[cfg(test)]
