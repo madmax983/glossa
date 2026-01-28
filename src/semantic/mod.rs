@@ -2884,23 +2884,8 @@ fn classify_assembled_statement(
             };
 
             // Get value from literals or object
-            // Special handling for Option/Result standalone words (None, Some without value, etc.)
-            let (value_expr, value_type) = if let Some(ref obj) = actual_asm.object {
-                let obj_normalized = normalize_greek(&obj.lemma);
-                if crate::morphology::lexicon::is_none_word(&obj_normalized) {
-                    (
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::None,
-                            glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
-                        },
-                        GlossaType::Option(Box::new(GlossaType::Unknown)),
-                    )
-                } else {
-                    extract_value(&actual_asm)
-                }
-            } else {
-                extract_value(&actual_asm)
-            };
+            // Delegate Option/Result constructor detection to extract_value
+            let (value_expr, value_type) = extract_value(&actual_asm);
 
             // Wrap in Try if this is a propagation statement (ends with `;`)
             let final_value_expr = if asm_stmt.is_propagate {
@@ -3158,10 +3143,13 @@ fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
 
     // Check subject for Option/Result words (pronouns often land here)
     if let Some(ref subj) = asm_stmt.subject {
-        let subj_normalized = normalize_greek(&subj.lemma);
+        let subj_lemma = normalize_greek(&subj.lemma);
+        let subj_original = normalize_greek(&subj.original);
 
-        // Check for None (οὐδέν)
-        if crate::morphology::lexicon::is_none_word(&subj_normalized) {
+        // Check for None (οὐδέν) - check both lemma and original form
+        if crate::morphology::lexicon::is_none_word(&subj_lemma)
+            || crate::morphology::lexicon::is_none_word(&subj_original)
+        {
             return (
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::None,
@@ -3171,8 +3159,10 @@ fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
             );
         }
 
-        // Check for Some (τί) with a value
-        if crate::morphology::lexicon::is_some_word(&subj_normalized) {
+        // Check for Some (τί) with a value - check both lemma and original form
+        if crate::morphology::lexicon::is_some_word(&subj_lemma)
+            || crate::morphology::lexicon::is_some_word(&subj_original)
+        {
             // Get the inner value from literals
             if let Some(lit) = asm_stmt.literals.first() {
                 let inner_expr = literal_to_analyzed_expr(lit);
@@ -3232,6 +3222,9 @@ fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
             if let Some(lit) = asm_stmt.literals.first() {
                 let inner_expr = literal_to_analyzed_expr(lit);
                 let inner_type = inner_expr.glossa_type.clone();
+                // LIMITATION: Error type defaults to String when only Ok variant is provided.
+                // Full Result<T,E> inference would require type context from function signatures.
+                // Future enhancement: infer E from usage or allow explicit type annotations.
                 return (
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::Ok(Box::new(inner_expr)),
@@ -3253,6 +3246,9 @@ fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
             if let Some(lit) = asm_stmt.literals.first() {
                 let inner_expr = literal_to_analyzed_expr(lit);
                 let inner_type = inner_expr.glossa_type.clone();
+                // LIMITATION: Success type defaults to Unknown when only Err variant is provided.
+                // Full Result<T,E> inference would require type context from function signatures.
+                // Future enhancement: infer T from usage or allow explicit type annotations.
                 return (
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::Err(Box::new(inner_expr)),
@@ -3397,6 +3393,7 @@ fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
             if let Some(lit) = asm_stmt.literals.first() {
                 let inner_expr = literal_to_analyzed_expr(lit);
                 let inner_type = inner_expr.glossa_type.clone();
+                // LIMITATION: Error type defaults to String. See nominatives section for explanation.
                 return (
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::Ok(Box::new(inner_expr)),
@@ -3418,6 +3415,7 @@ fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
             if let Some(lit) = asm_stmt.literals.first() {
                 let inner_expr = literal_to_analyzed_expr(lit);
                 let inner_type = inner_expr.glossa_type.clone();
+                // LIMITATION: Success type defaults to Unknown. See nominatives section for explanation.
                 return (
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::Err(Box::new(inner_expr)),
