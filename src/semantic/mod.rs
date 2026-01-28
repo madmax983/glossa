@@ -2346,11 +2346,30 @@ fn detect_iterator_pattern(
         }
 
         // If no predicate was added, just find the first element (essentially .next())
-        // But since we don't have a .next() operation, we can use .find(|_| true)
+        // Use .find(|_| true) to get the first element
         if iterator_ops.len() <= 1 {
-            // No predicate, so just get first element
-            // For now, just return None - we'll implement this later if needed
-            return Ok(None);
+            // No predicate specified, so find the first element
+            // Create a trivial predicate that always returns true: |_| true
+            let always_true_body = AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: GlossaType::Boolean,
+            };
+
+            let find_first_closure = AnalyzedExpr {
+                expr: AnalyzedExprKind::Lambda {
+                    params: vec!["_".to_string()],
+                    body: Box::new(always_true_body),
+                    capture_mode: crate::ast::CaptureMode::Borrow,
+                },
+                glossa_type: GlossaType::Function {
+                    params: vec![GlossaType::Number],
+                    returns: Box::new(GlossaType::Boolean),
+                },
+            };
+
+            iterator_ops.push(crate::ir::IteratorOp::Find(Box::new(
+                crate::ir::lower_expr(&find_first_closure)
+            )));
         }
 
         // Build the iterator chain for find (no .collect())
