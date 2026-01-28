@@ -32,6 +32,7 @@ pub fn build_ast(source: &str) -> Result<Program, AstError> {
 fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, AstError> {
     let mut clauses = Vec::new();
     let mut is_query = false;
+    let mut is_propagate = false;
     let mut type_def = None;
     let mut trait_def = None;
     let mut trait_impl = None;
@@ -56,8 +57,10 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, AstError> {
             }
             Rule::statement_end => {
                 for end_inner in inner.into_inner() {
-                    if end_inner.as_rule() == Rule::query {
-                        is_query = true;
+                    match end_inner.as_rule() {
+                        Rule::query => is_query = true,
+                        Rule::propagate => is_propagate = true,
+                        _ => {}
                     }
                 }
             }
@@ -72,7 +75,11 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, AstError> {
     } else if let Some(impl_def) = trait_impl {
         Ok(Statement::TraitImpl(impl_def))
     } else {
-        Ok(Statement::Regular { clauses, is_query })
+        Ok(Statement::Regular {
+            clauses,
+            is_query,
+            is_propagate,
+        })
     }
 }
 
@@ -471,6 +478,18 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, AstError> {
             // Unwrap the parentheses and build the inner expression
             let expr_pair = inner.into_inner().next().ok_or(AstError::EmptyTerm)?;
             build_expression(expr_pair)
+        }
+        Rule::unwrap_expr => {
+            // Extract the word from "word!"
+            let word_pair = inner.into_inner().next().ok_or(AstError::EmptyTerm)?;
+            let word = Expr::Word(Word {
+                original: word_pair.as_str().to_string(),
+                normalized: crate::grammar::normalize_greek(word_pair.as_str()),
+            });
+            Ok(Expr::UnaryOp {
+                op: UnaryOperator::Unwrap,
+                operand: Box::new(word),
+            })
         }
         _ => Err(AstError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
     }

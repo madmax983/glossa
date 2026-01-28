@@ -9,13 +9,14 @@ pub struct Program {
     pub statements: Vec<Statement>,
 }
 
-/// A single statement, ending with . (statement) or ? (query)
+/// A single statement, ending with . (statement), ? (query), or ; (propagate)
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     /// A regular statement with clauses
     Regular {
         clauses: Vec<Clause>,
         is_query: bool,
+        is_propagate: bool,
     },
     /// A type definition statement
     TypeDefinition(TypeDef),
@@ -95,6 +96,16 @@ impl Statement {
     pub fn is_query(&self) -> bool {
         match self {
             Statement::Regular { is_query, .. } => *is_query,
+            Statement::TypeDefinition(_) => false,
+            Statement::TraitDefinition(_) => false,
+            Statement::TraitImpl(_) => false,
+        }
+    }
+
+    /// Check if this is a propagate statement (ends with `;`)
+    pub fn is_propagate(&self) -> bool {
+        match self {
+            Statement::Regular { is_propagate, .. } => *is_propagate,
             Statement::TypeDefinition(_) => false,
             Statement::TraitDefinition(_) => false,
             Statement::TraitImpl(_) => false,
@@ -231,8 +242,9 @@ pub enum BinOperator {
 /// Unary operators in GLOSSA
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOperator {
-    Not, // οὐ/οὐκ/οὐχ
-    Neg, // arithmetic negation
+    Not,    // οὐ/οὐκ/οὐχ - logical negation
+    Neg,    // arithmetic negation
+    Unwrap, // ! - confident extraction from Option/Result
 }
 
 /// A Greek word with original and normalized forms

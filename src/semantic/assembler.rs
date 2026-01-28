@@ -48,8 +48,12 @@ pub struct AssembledStatement {
     pub nested_phrases: Vec<Vec<Expr>>,
     /// Participles (used for lambdas/closures)
     pub participles: Vec<ParticipleConstituent>,
-    /// Whether this is a query (ends with ;)
+    /// Unwrap expressions (expr!)
+    pub unwraps: Vec<Expr>,
+    /// Whether this is a query (ends with ?)
     pub is_query: bool,
+    /// Whether this statement propagates (ends with ;) - converts to `?` in Rust
+    pub is_propagate: bool,
 }
 
 /// A noun/pronoun constituent with its grammatical info
@@ -132,7 +136,9 @@ pub struct Assembler {
     pending_blocks: Vec<Vec<crate::ast::Statement>>,
     pending_nested_phrases: Vec<Vec<Expr>>,
     pending_participles: Vec<ParticipleConstituent>,
+    pending_unwraps: Vec<Expr>,
     is_query: bool,
+    is_propagate: bool,
 }
 
 /// Errors that can occur during assembly
@@ -184,7 +190,9 @@ impl Assembler {
             pending_blocks: Vec::new(),
             pending_nested_phrases: Vec::new(),
             pending_participles: Vec::new(),
+            pending_unwraps: Vec::new(),
             is_query: false,
+            is_propagate: false,
         }
     }
 
@@ -205,12 +213,19 @@ impl Assembler {
         self.pending_blocks.clear();
         self.pending_nested_phrases.clear();
         self.pending_participles.clear();
+        self.pending_unwraps.clear();
         self.is_query = false;
+        self.is_propagate = false;
     }
 
     /// Mark this statement as a query
     pub fn set_query(&mut self, is_query: bool) {
         self.is_query = is_query;
+    }
+
+    /// Mark this statement as propagation (ends with `;` → converts to `?`)
+    pub fn set_propagate(&mut self, is_propagate: bool) {
+        self.is_propagate = is_propagate;
     }
 
     /// Feed a morphologically-analyzed token into the assembler
@@ -331,6 +346,11 @@ impl Assembler {
     /// Feed an index access (array[index])
     pub fn feed_index_access(&mut self, array: Expr, index: Expr) {
         self.pending_index_accesses.push((array, index));
+    }
+
+    /// Feed an unwrap expression (expr!)
+    pub fn feed_unwrap(&mut self, expr: Expr) {
+        self.pending_unwraps.push(expr);
     }
 
     /// Feed a participle (for lambda construction)
@@ -495,7 +515,9 @@ impl Assembler {
             blocks: std::mem::take(&mut self.pending_blocks),
             nested_phrases: std::mem::take(&mut self.pending_nested_phrases),
             participles: std::mem::take(&mut self.pending_participles),
+            unwraps: std::mem::take(&mut self.pending_unwraps),
             is_query: self.is_query,
+            is_propagate: self.is_propagate,
         };
 
         self.reset();
