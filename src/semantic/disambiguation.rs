@@ -14,7 +14,7 @@
 //!
 //! If preceded by "ἡ" (feminine nominative article), we know it's nominative.
 
-use crate::morphology::{MorphAnalysis, Case, Number, Gender, Person, PartOfSpeech};
+use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person};
 
 /// A disambiguation context built from surrounding words
 #[derive(Debug, Clone, Default)]
@@ -171,9 +171,10 @@ pub fn resolve_best(
 ) -> MorphAnalysis {
     let disambiguated = disambiguate(analyses.clone(), context);
     disambiguated.into_iter().next().unwrap_or_else(|| {
-        analyses.into_iter().next().unwrap_or_else(|| {
-            MorphAnalysis::new("?".to_string(), PartOfSpeech::Unknown)
-        })
+        analyses
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| MorphAnalysis::new("?".to_string(), PartOfSpeech::Unknown))
     })
 }
 

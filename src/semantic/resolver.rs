@@ -72,7 +72,12 @@ impl Scope {
     }
 
     /// Define a function in this scope
-    pub fn define_function(&mut self, name: String, param_types: Vec<GlossaType>, return_type: Option<GlossaType>) {
+    pub fn define_function(
+        &mut self,
+        name: String,
+        param_types: Vec<GlossaType>,
+        return_type: Option<GlossaType>,
+    ) {
         self.functions.insert(
             name.clone(),
             FunctionSignature {
@@ -143,7 +148,11 @@ impl Scope {
     }
 
     /// Look up a trait implementation for a given type and trait
-    pub fn lookup_trait_impl(&self, type_name: &str, trait_name: &str) -> Option<&crate::semantic::types::TraitImpl> {
+    pub fn lookup_trait_impl(
+        &self,
+        type_name: &str,
+        trait_name: &str,
+    ) -> Option<&crate::semantic::types::TraitImpl> {
         for impl_def in &self.trait_impls {
             if impl_def.type_name == type_name && impl_def.trait_name == trait_name {
                 return Some(impl_def);
@@ -164,8 +173,14 @@ impl Scope {
             }
             // Check if the trait has this method
             if let Some(trait_def) = self.lookup_trait(&trait_impl.trait_name) {
-                let has_method = trait_def.required_methods.iter().any(|m| m.name == method_name) ||
-                                 trait_def.default_methods.iter().any(|m| m.signature.name == method_name);
+                let has_method = trait_def
+                    .required_methods
+                    .iter()
+                    .any(|m| m.name == method_name)
+                    || trait_def
+                        .default_methods
+                        .iter()
+                        .any(|m| m.signature.name == method_name);
                 if has_method {
                     return true;
                 }
@@ -242,10 +257,7 @@ impl Scope {
 
     /// Get unused bindings (for warnings)
     pub fn unused_bindings(&self) -> Vec<&Binding> {
-        self.bindings
-            .values()
-            .filter(|b| !b.used)
-            .collect()
+        self.bindings.values().filter(|b| !b.used).collect()
     }
 }
 

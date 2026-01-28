@@ -4,9 +4,9 @@
 //! Following TDD: these tests are written BEFORE implementation.
 
 use glossa::ast::build_ast;
-use glossa::semantic::analyze_program;
-use glossa::ir::lower_to_hir;
 use glossa::codegen::generate_rust;
+use glossa::ir::lower_to_hir;
+use glossa::semantic::analyze_program;
 
 /// Helper to compile source and get the Rust output
 fn compile_to_rust(source: &str) -> String {

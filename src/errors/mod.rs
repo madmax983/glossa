@@ -24,39 +24,27 @@ pub enum GlossaError {
 
     #[error("Σφάλμα σημασίας: {message}")]
     #[diagnostic(code(glossa::semantic))]
-    SemanticError {
-        message: String,
-    },
+    SemanticError { message: String },
 
     #[error("Σφάλμα τύπου: {message}")]
     #[diagnostic(code(glossa::type_error))]
-    TypeError {
-        message: String,
-    },
+    TypeError { message: String },
 
     #[error("Ἄγνωστον ὄνομα: {name}")]
     #[diagnostic(code(glossa::undefined))]
-    UndefinedName {
-        name: String,
-    },
+    UndefinedName { name: String },
 
     #[error("Σφάλμα συμφωνίας: {message}")]
     #[diagnostic(code(glossa::agreement))]
-    AgreementError {
-        message: String,
-    },
+    AgreementError { message: String },
 
     #[error("Σφάλμα κώδικος: {message}")]
     #[diagnostic(code(glossa::codegen))]
-    CodegenError {
-        message: String,
-    },
+    CodegenError { message: String },
 
     #[error("Σφάλμα ἀρχείου: {message}")]
     #[diagnostic(code(glossa::io))]
-    IoError {
-        message: String,
-    },
+    IoError { message: String },
 }
 
 impl GlossaError {
@@ -70,7 +58,11 @@ impl GlossaError {
     }
 
     /// Create a parse error with source
-    pub fn parse_with_source(message: impl Into<String>, src: impl Into<String>, span: SourceSpan) -> Self {
+    pub fn parse_with_source(
+        message: impl Into<String>,
+        src: impl Into<String>,
+        span: SourceSpan,
+    ) -> Self {
         GlossaError::ParseError {
             message: message.into(),
             src: src.into(),
@@ -94,9 +86,7 @@ impl GlossaError {
 
     /// Create an undefined name error
     pub fn undefined(name: impl Into<String>) -> Self {
-        GlossaError::UndefinedName {
-            name: name.into(),
-        }
+        GlossaError::UndefinedName { name: name.into() }
     }
 
     /// Create an agreement error

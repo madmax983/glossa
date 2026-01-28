@@ -24,11 +24,11 @@ impl Case {
     /// Convert case to its ownership/borrowing semantic
     pub fn to_rust_ownership(&self) -> &'static str {
         match self {
-            Case::Nominative => "",           // Subject, just the value
-            Case::Genitive => "&",            // Borrow (of/from)
-            Case::Dative => "&mut",           // Mutable borrow (to/for)
-            Case::Accusative => "",           // Move (direct object)
-            Case::Vocative => "",             // No ownership semantic
+            Case::Nominative => "", // Subject, just the value
+            Case::Genitive => "&",  // Borrow (of/from)
+            Case::Dative => "&mut", // Mutable borrow (to/for)
+            Case::Accusative => "", // Move (direct object)
+            Case::Vocative => "",   // No ownership semantic
         }
     }
 }

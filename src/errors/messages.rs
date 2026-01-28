@@ -6,26 +6,22 @@ use crate::morphology::{Case, Gender, Number};
 
 /// Get a Greek message for a type mismatch
 pub fn type_mismatch(expected: &str, got: &str) -> String {
-    format!(
-        "Ἐδόκει {} εὑρεῖν, ἀλλ' εὗρον {}",
-        expected, got
-    )
+    format!("Ἐδόκει {} εὑρεῖν, ἀλλ' εὗρον {}", expected, got)
 }
 
 /// Get a Greek message for an undefined variable
 pub fn undefined_variable(name: &str) -> String {
-    format!(
-        "Οὐκ οἶδα τὸ ὄνομα «{}»",
-        name
-    )
+    format!("Οὐκ οἶδα τὸ ὄνομα «{}»", name)
 }
 
 /// Get a Greek message for gender mismatch
 pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gender) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
-        word1, gender_name(gender1),
-        word2, gender_name(gender2)
+        word1,
+        gender_name(gender1),
+        word2,
+        gender_name(gender2)
     )
 }
 
@@ -33,8 +29,10 @@ pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gende
 pub fn number_mismatch(word1: &str, num1: Number, word2: &str, num2: Number) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
-        word1, number_name(num1),
-        word2, number_name(num2)
+        word1,
+        number_name(num1),
+        word2,
+        number_name(num2)
     )
 }
 
@@ -42,8 +40,10 @@ pub fn number_mismatch(word1: &str, num1: Number, word2: &str, num2: Number) -> 
 pub fn case_mismatch(word1: &str, case1: Case, word2: &str, case2: Case) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
-        word1, case_name(case1),
-        word2, case_name(case2)
+        word1,
+        case_name(case1),
+        word2,
+        case_name(case2)
     )
 }
 

@@ -20,14 +20,14 @@
 //! semantic analysis phase.
 
 mod case;
-mod declension;
 mod conjugation;
+mod declension;
 pub mod lexicon;
 pub mod participle;
 
 pub use case::*;
-pub use declension::*;
 pub use conjugation::*;
+pub use declension::*;
 pub use lexicon::*;
 pub use participle::*;
 
@@ -152,18 +152,21 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
         // Single Greek letters are treated as nominative nouns (variable names)
         // This follows mathematical convention where α, β, γ, ξ, etc. are variables
         if is_single_greek_letter(&normalized) {
-            analyses.insert(0, MorphAnalysis {
-                lemma: normalized.clone(),
-                part_of_speech: PartOfSpeech::Noun,
-                case: Some(Case::Nominative),
-                number: Some(Number::Singular),
-                gender: None, // Unknown gender for variables
-                person: None,
-                tense: None,
-                mood: None,
-                voice: None,
-                confidence: 0.9, // High confidence for variable names
-            });
+            analyses.insert(
+                0,
+                MorphAnalysis {
+                    lemma: normalized.clone(),
+                    part_of_speech: PartOfSpeech::Noun,
+                    case: Some(Case::Nominative),
+                    number: Some(Number::Singular),
+                    gender: None, // Unknown gender for variables
+                    person: None,
+                    tense: None,
+                    mood: None,
+                    voice: None,
+                    confidence: 0.9, // High confidence for variable names
+                },
+            );
         }
     }
 
@@ -199,7 +202,7 @@ fn is_single_greek_letter(word: &str) -> bool {
     // Also include ς (final sigma, U+03C2)
     ('\u{0391}'..='\u{03A9}').contains(&c) ||   // Uppercase
     ('\u{03B1}'..='\u{03C9}').contains(&c) ||   // Lowercase
-    c == '\u{03C2}'                              // Final sigma
+    c == '\u{03C2}' // Final sigma
 }
 
 /// Check if two analyses are compatible (could refer to the same word in context)

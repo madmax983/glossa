@@ -3,7 +3,7 @@
 //! In Ancient Greek (and ΓΛΩΣΣΑ), adjectives must agree with nouns in
 //! gender, number, and case. This agreement serves as a form of type checking.
 
-use crate::morphology::{Case, Number, Gender, analyze};
+use crate::morphology::{Case, Gender, Number, analyze};
 
 /// Check agreement between two words (e.g., adjective and noun)
 pub fn check_agreement(word1: &str, word2: &str) -> Result<(), AgreementError> {
@@ -81,17 +81,32 @@ impl AgreementError {
     /// Convert to a Greek error message
     pub fn to_greek(&self) -> String {
         match self {
-            AgreementError::GenderMismatch { word1, gender1, word2, gender2 } => {
+            AgreementError::GenderMismatch {
+                word1,
+                gender1,
+                word2,
+                gender2,
+            } => {
                 let g1 = gender_to_greek(*gender1);
                 let g2 = gender_to_greek(*gender2);
                 format!("Σφάλμα γένους: {} ({}) πρὸς {} ({})", word1, g1, word2, g2)
             }
-            AgreementError::NumberMismatch { word1, number1, word2, number2 } => {
+            AgreementError::NumberMismatch {
+                word1,
+                number1,
+                word2,
+                number2,
+            } => {
                 let n1 = number_to_greek(*number1);
                 let n2 = number_to_greek(*number2);
                 format!("Σφάλμα ἀριθμοῦ: {} ({}) πρὸς {} ({})", word1, n1, word2, n2)
             }
-            AgreementError::CaseMismatch { word1, case1, word2, case2 } => {
+            AgreementError::CaseMismatch {
+                word1,
+                case1,
+                word2,
+                case2,
+            } => {
                 let c1 = case_to_greek(*case1);
                 let c2 = case_to_greek(*case2);
                 format!("Σφάλμα πτώσεως: {} ({}) πρὸς {} ({})", word1, c1, word2, c2)

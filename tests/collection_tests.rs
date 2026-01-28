@@ -3,9 +3,9 @@
 //! Tests array literals, indexing, and collection operations.
 
 use glossa::ast::build_ast;
-use glossa::semantic::analyze_program;
-use glossa::ir::lower_to_hir;
 use glossa::codegen::generate_rust;
+use glossa::ir::lower_to_hir;
+use glossa::semantic::analyze_program;
 
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> String {
@@ -71,7 +71,11 @@ fn test_numeric_index() {
     // Using bracket syntax: ξ[0]
     let code = compile("ξ [1, 2, 3] ἔστω. ξ[0] λέγε.");
     // Should have index cast to usize
-    assert!(code.contains("as usize"), "Expected index cast to usize in: {}", code);
+    assert!(
+        code.contains("as usize"),
+        "Expected index cast to usize in: {}",
+        code
+    );
     assert!(code.contains("0"), "Expected index 0 in: {}", code);
 }
 
@@ -80,7 +84,11 @@ fn test_numeric_index_expression() {
     // Index should work as an expression
     let code = compile("ξ [10, 20, 30] ἔστω. ψ ξ[1] ἔστω.");
     // quote! adds spaces and i64 suffix
-    assert!(code.contains("[1") || code.contains("[ 1"), "Expected index [1 in: {}", code);
+    assert!(
+        code.contains("[1") || code.contains("[ 1"),
+        "Expected index [1 in: {}",
+        code
+    );
 }
 
 // =============================================================================
@@ -91,7 +99,11 @@ fn test_numeric_index_expression() {
 fn test_push_operation() {
     // ξ ὠθεῖ 42 = "xi pushes 42" (simpler syntax)
     let code = compile("ξ [] ἔστω. ξ ὠθεῖ 42.");
-    assert!(code.contains(".push(") || code.contains(". push"), "Expected .push( in: {}", code);
+    assert!(
+        code.contains(".push(") || code.contains(". push"),
+        "Expected .push( in: {}",
+        code
+    );
 }
 
 #[test]
@@ -109,7 +121,11 @@ fn test_push_multiple() {
 fn test_pop_operation() {
     // ξ ἕλκεται = "xi pulls-itself" (middle voice = pop)
     let code = compile("ξ [1, 2, 3] ἔστω. ξ ἕλκεται.");
-    assert!(code.contains("pop") || code.contains(". pop"), "Expected .pop in: {}", code);
+    assert!(
+        code.contains("pop") || code.contains(". pop"),
+        "Expected .pop in: {}",
+        code
+    );
 }
 
 #[test]
@@ -127,7 +143,11 @@ fn test_pop_multiple() {
 fn test_length_property() {
     // ξ μῆκος λέγε = "say length of xi" (simpler syntax)
     let code = compile("ξ [1, 2, 3] ἔστω. ξ μῆκος λέγε.");
-    assert!(code.contains("len") || code.contains(". len"), "Expected .len in: {}", code);
+    assert!(
+        code.contains("len") || code.contains(". len"),
+        "Expected .len in: {}",
+        code
+    );
 }
 
 #[test]
@@ -147,7 +167,11 @@ fn test_ordinal_index_first() {
     // Simplified: subject (xi) + ordinal (first) + verb (say)
     let code = compile("ξ [10, 20, 30] ἔστω. ξ πρῶτον λέγε.");
     // First element = index 0, cast to usize
-    assert!(code.contains("as usize"), "Expected usize cast in: {}", code);
+    assert!(
+        code.contains("as usize"),
+        "Expected usize cast in: {}",
+        code
+    );
     assert!(code.contains("0"), "Expected index 0 in: {}", code);
 }
 
@@ -156,7 +180,11 @@ fn test_ordinal_index_second() {
     // ξ δεύτερον λέγε = "say second of xi"
     let code = compile("ξ [10, 20, 30] ἔστω. ξ δεύτερον λέγε.");
     // Second element = index 1
-    assert!(code.contains("[1") || code.contains("[ 1"), "Expected [1] for second in: {}", code);
+    assert!(
+        code.contains("[1") || code.contains("[ 1"),
+        "Expected [1] for second in: {}",
+        code
+    );
 }
 
 #[test]
@@ -164,7 +192,11 @@ fn test_ordinal_index_third() {
     // ξ τρίτον λέγε = "say third of xi"
     let code = compile("ξ [10, 20, 30] ἔστω. ξ τρίτον λέγε.");
     // Third element = index 2 (0-indexed), cast to usize
-    assert!(code.contains("as usize"), "Expected usize cast in: {}", code);
+    assert!(
+        code.contains("as usize"),
+        "Expected usize cast in: {}",
+        code
+    );
     assert!(code.contains("2"), "Expected index 2 in: {}", code);
 }
 
@@ -183,5 +215,9 @@ fn test_array_iteration() {
 fn test_array_iteration_with_body() {
     // More complex iteration with body
     let code = compile("ξ [1, 2, 3] ἔστω. διὰ ξ, ψ λέγε.");
-    assert!(code.contains("for") && code.contains("in"), "Expected for..in in: {}", code);
+    assert!(
+        code.contains("for") && code.contains("in"),
+        "Expected for..in in: {}",
+        code
+    );
 }

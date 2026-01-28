@@ -1,9 +1,9 @@
 //! Integration tests for the ΓΛΩΣΣΑ compiler pipeline
 
 use glossa::ast::build_ast;
-use glossa::semantic::analyze_program;
-use glossa::ir::lower_to_hir;
 use glossa::codegen::generate_rust;
+use glossa::ir::lower_to_hir;
+use glossa::semantic::analyze_program;
 
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> Result<String, String> {

@@ -1,0 +1,19 @@
+# Clippy configuration for GLOSSA
+
+# Warn on missing documentation for public items
+missing-docs-in-crate-items = false
+
+# Maximum cognitive complexity for functions
+cognitive-complexity-threshold = 30
+
+# Maximum number of single char bindings in scope
+single-char-binding-names-threshold = 4
+
+# Maximum allowed size for a type
+type-complexity-threshold = 250
+
+# Maximum allowed nesting level for blocks
+too-many-lines-threshold = 100
+
+# Allow arithmetic side effects in tests
+arithmetic-side-effects-allowed = ["tests"]

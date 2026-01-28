@@ -24,7 +24,7 @@
 //! assert_eq!(p.tense, Tense::Present);
 //! ```
 
-use super::{Case, Number, Gender, Tense, Voice};
+use super::{Case, Gender, Number, Tense, Voice};
 
 /// Result of participle morphological analysis
 #[derive(Debug, Clone, PartialEq)]
@@ -216,7 +216,7 @@ const PRESENT_MIDDLE_PARTICIPLE: &[ParticiplePattern] = &[
         number: Number::Singular,
     },
     ParticiplePattern {
-        ending: "ομενω",  // normalized form (iota subscript removed)
+        ending: "ομενω", // normalized form (iota subscript removed)
         tense: Tense::Present,
         voice: Voice::Middle,
         case: Case::Dative,
@@ -405,7 +405,7 @@ const PERFECT_PASSIVE_PARTICIPLE: &[ParticiplePattern] = &[
         number: Number::Singular,
     },
     ParticiplePattern {
-        ending: "μενω",  // normalized (iota subscript removed)
+        ending: "μενω", // normalized (iota subscript removed)
         tense: Tense::Perfect,
         voice: Voice::Passive,
         case: Case::Dative,
@@ -508,7 +508,7 @@ pub fn analyze_participle(word: &str) -> Option<ParticipleAnalysis> {
                 if has_reduplication(stem) {
                     0.85
                 } else {
-                    0.65  // Lower confidence without reduplication
+                    0.65 // Lower confidence without reduplication
                 }
             } else {
                 0.80

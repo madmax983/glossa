@@ -7,10 +7,12 @@
 //! The assembler accumulates morphologically-analyzed tokens and assembles
 //! them into a statement when finalized (at end of sentence).
 
-use crate::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender, Person, Tense, Mood, Voice};
-use crate::morphology::lexicon::BinaryOp;
-use crate::grammar::normalize_greek;
 use crate::ast::{Expr, Word};
+use crate::grammar::normalize_greek;
+use crate::morphology::lexicon::BinaryOp;
+use crate::morphology::{
+    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
+};
 
 /// A fully assembled statement with all grammatical roles filled
 #[derive(Debug, Clone)]
@@ -223,7 +225,8 @@ impl Assembler {
             self.pending_operators.push(BinaryOp::And);
             return Ok(());
         }
-        if matches!(original, "ἤ" | "ή") {  // ἤ with breathing+accent, but not ᾖ
+        if matches!(original, "ἤ" | "ή") {
+            // ἤ with breathing+accent, but not ᾖ
             self.pending_operators.push(BinaryOp::Or);
             return Ok(());
         }
@@ -252,7 +255,8 @@ impl Assembler {
             // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.pending_subject {
                 let normalized_original = crate::grammar::normalize_greek(&subj.original);
-                self.pending_property_accesses.push((normalized_original, "len".to_string()));
+                self.pending_property_accesses
+                    .push((normalized_original, "len".to_string()));
                 self.pending_subject = None; // Consume the subject
             }
             return Ok(());
@@ -279,15 +283,9 @@ impl Assembler {
         }
 
         match analysis.part_of_speech {
-            PartOfSpeech::Noun | PartOfSpeech::Pronoun => {
-                self.handle_nominal(analysis, original)
-            }
-            PartOfSpeech::Adjective => {
-                self.handle_adjective(analysis, original)
-            }
-            PartOfSpeech::Verb => {
-                self.handle_verb(analysis, original)
-            }
+            PartOfSpeech::Noun | PartOfSpeech::Pronoun => self.handle_nominal(analysis, original),
+            PartOfSpeech::Adjective => self.handle_adjective(analysis, original),
+            PartOfSpeech::Verb => self.handle_verb(analysis, original),
             PartOfSpeech::Numeral => {
                 // Already handled above, but keep this for explicit numeral POS
                 self.handle_nominal(analysis, original)
@@ -336,7 +334,11 @@ impl Assembler {
     }
 
     /// Feed a participle (for lambda construction)
-    pub fn feed_participle(&mut self, analysis: &crate::morphology::ParticipleAnalysis, original: &str) {
+    pub fn feed_participle(
+        &mut self,
+        analysis: &crate::morphology::ParticipleAnalysis,
+        original: &str,
+    ) {
         let constituent = ParticipleConstituent {
             verb_lemma: analysis.verb_lemma(),
             original: original.to_string(),
@@ -350,7 +352,11 @@ impl Assembler {
     }
 
     /// Handle a noun/pronoun/adjective - route to slot by case
-    fn handle_nominal(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+    fn handle_nominal(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+    ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
             lemma: analysis.lemma.clone(),
             original: original.to_string(),
@@ -401,7 +407,11 @@ impl Assembler {
     }
 
     /// Handle a verb
-    fn handle_verb(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+    fn handle_verb(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+    ) -> Result<(), AssemblyError> {
         if self.pending_verb.is_some() {
             return Err(AssemblyError::DoubleVerb);
         }
@@ -419,7 +429,11 @@ impl Assembler {
     }
 
     /// Handle an adjective - store it for later pattern matching
-    fn handle_adjective(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+    fn handle_adjective(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+    ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
             lemma: analysis.lemma.clone(),
             original: original.to_string(),
@@ -451,8 +465,8 @@ impl Assembler {
             if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number) {
                 if let Some(subj_number) = subject.number {
                     // Special rule: Neuter plural nouns take singular verbs in Greek!
-                    let is_neuter_plural = subject.gender == Some(Gender::Neuter)
-                        && subj_number == Number::Plural;
+                    let is_neuter_plural =
+                        subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
 
                     if !is_neuter_plural && subj_number != verb_number {
                         return Err(AssemblyError::SubjectVerbDisagreement {
@@ -523,7 +537,10 @@ mod tests {
         asm.feed(&meizon, "μεῖζον").unwrap();
 
         let stmt = asm.finalize().unwrap();
-        assert!(!stmt.operators.is_empty(), "Expected operator to be captured");
+        assert!(
+            !stmt.operators.is_empty(),
+            "Expected operator to be captured"
+        );
         assert_eq!(stmt.operators[0], BinaryOp::Gt);
     }
 
@@ -537,7 +554,11 @@ mod tests {
         asm.feed(&or_particle, "ἤ").unwrap();
 
         let stmt = asm.finalize().unwrap();
-        assert!(!stmt.operators.is_empty(), "Expected operator to be captured, got: {:?}", stmt);
+        assert!(
+            !stmt.operators.is_empty(),
+            "Expected operator to be captured, got: {:?}",
+            stmt
+        );
         assert_eq!(stmt.operators[0], BinaryOp::Or);
     }
 
@@ -561,8 +582,18 @@ mod tests {
         asm.feed(&verb, "λέγε").unwrap();
 
         let stmt = asm.finalize().unwrap();
-        assert_eq!(stmt.literals.len(), 2, "Expected 2 literals, got: {:?}", stmt.literals);
-        assert_eq!(stmt.operators.len(), 1, "Expected 1 operator, got: {:?}", stmt.operators);
+        assert_eq!(
+            stmt.literals.len(),
+            2,
+            "Expected 2 literals, got: {:?}",
+            stmt.literals
+        );
+        assert_eq!(
+            stmt.operators.len(),
+            1,
+            "Expected 1 operator, got: {:?}",
+            stmt.operators
+        );
         assert_eq!(stmt.operators[0], BinaryOp::Or);
     }
 

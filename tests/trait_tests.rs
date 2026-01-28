@@ -1,4 +1,4 @@
-use glossa::ast::{build_ast, Statement};
+use glossa::ast::{Statement, build_ast};
 use glossa::semantic::analyze_program;
 
 // =============================================================================
@@ -100,7 +100,11 @@ fn test_analyze_trait_definition() {
     let input = "χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.";
     let ast = build_ast(input).expect("Parsing failed");
     let result = analyze_program(&ast);
-    assert!(result.is_ok(), "Trait definition should analyze without errors: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Trait definition should analyze without errors: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -110,7 +114,11 @@ fn test_trait_stored_in_scope() {
     let input = "χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.";
     let ast = build_ast(input).expect("Parsing failed");
     let result = analyze_program(&ast);
-    assert!(result.is_ok(), "Should store trait in scope: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should store trait in scope: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -123,8 +131,11 @@ fn test_duplicate_trait_error() {
     let result = analyze_program(&ast);
     assert!(result.is_err(), "Should error on duplicate trait name");
     let err_msg = result.unwrap_err().to_string();
-    assert!(err_msg.contains("already defined") || err_msg.contains("duplicate"),
-            "Error should mention duplicate/already defined: {}", err_msg);
+    assert!(
+        err_msg.contains("already defined") || err_msg.contains("duplicate"),
+        "Error should mention duplicate/already defined: {}",
+        err_msg
+    );
 }
 
 #[test]
@@ -132,7 +143,11 @@ fn test_default_method_body_analysis() {
     let input = "χαρακτήρ Math ὁρίζειν { ἤδη double τῷ self· δός πέντε. }.";
     let ast = build_ast(input).expect("Parsing failed");
     let result = analyze_program(&ast);
-    assert!(result.is_ok(), "Default method body should be analyzed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Default method body should be analyzed: {:?}",
+        result.err()
+    );
 }
 
 // =============================================================================
@@ -218,7 +233,11 @@ fn test_analyze_trait_impl() {
     "#;
     let ast = build_ast(input).expect("Parsing failed");
     let result = analyze_program(&ast);
-    assert!(result.is_ok(), "Valid impl should analyze without errors: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Valid impl should analyze without errors: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -233,8 +252,13 @@ fn test_impl_for_undefined_trait_error() {
     let result = analyze_program(&ast);
     assert!(result.is_err(), "Should error when trait doesn't exist");
     let err_msg = result.unwrap_err().to_string();
-    assert!(err_msg.to_lowercase().contains("showable") || err_msg.contains("not") || err_msg.contains("defined"),
-            "Error should mention undefined trait: {}", err_msg);
+    assert!(
+        err_msg.to_lowercase().contains("showable")
+            || err_msg.contains("not")
+            || err_msg.contains("defined"),
+        "Error should mention undefined trait: {}",
+        err_msg
+    );
 }
 
 #[test]
@@ -249,8 +273,13 @@ fn test_impl_for_undefined_type_error() {
     let result = analyze_program(&ast);
     assert!(result.is_err(), "Should error when type doesn't exist");
     let err_msg = result.unwrap_err().to_string();
-    assert!(err_msg.to_lowercase().contains("point") || err_msg.contains("not") || err_msg.contains("defined"),
-            "Error should mention undefined type: {}", err_msg);
+    assert!(
+        err_msg.to_lowercase().contains("point")
+            || err_msg.contains("not")
+            || err_msg.contains("defined"),
+        "Error should mention undefined type: {}",
+        err_msg
+    );
 }
 
 #[test]
@@ -267,10 +296,18 @@ fn test_missing_required_method_error() {
     "#;
     let ast = build_ast(input).expect("Parsing failed");
     let result = analyze_program(&ast);
-    assert!(result.is_err(), "Should error when required method is missing");
+    assert!(
+        result.is_err(),
+        "Should error when required method is missing"
+    );
     let err_msg = result.unwrap_err().to_string();
-    assert!(err_msg.to_lowercase().contains("subtract") || err_msg.contains("required") || err_msg.contains("not implement"),
-            "Error should mention missing required method: {}", err_msg);
+    assert!(
+        err_msg.to_lowercase().contains("subtract")
+            || err_msg.contains("required")
+            || err_msg.contains("not implement"),
+        "Error should mention missing required method: {}",
+        err_msg
+    );
 }
 
 #[test]
@@ -287,7 +324,11 @@ fn test_impl_with_default_method_not_required() {
     "#;
     let ast = build_ast(input).expect("Parsing failed");
     let result = analyze_program(&ast);
-    assert!(result.is_ok(), "Default methods should be optional: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Default methods should be optional: {:?}",
+        result.err()
+    );
 }
 
 // =============================================================================
@@ -307,7 +348,11 @@ fn test_call_trait_method() {
     "#;
     let ast = build_ast(input).expect("Parsing failed");
     let result = analyze_program(&ast);
-    assert!(result.is_ok(), "Should allow calling trait methods: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should allow calling trait methods: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -324,7 +369,11 @@ fn test_call_trait_method_with_args() {
     "#;
     let ast = build_ast(input).expect("Parsing failed");
     let result = analyze_program(&ast);
-    assert!(result.is_ok(), "Should allow calling trait methods with args: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should allow calling trait methods with args: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -343,7 +392,11 @@ fn test_call_default_method() {
     "#;
     let ast = build_ast(input).expect("Parsing failed");
     let result = analyze_program(&ast);
-    assert!(result.is_ok(), "Should allow calling default trait methods: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should allow calling default trait methods: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -359,15 +412,19 @@ fn test_trait_method_call_error_not_implemented() {
     // This should actually compile - the error would be at runtime
     // Or we could make it a compile-time error if we track which types implement which traits
     // For now, let's allow it to compile
-    assert!(result.is_ok(), "Method calls are resolved dynamically: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Method calls are resolved dynamically: {:?}",
+        result.err()
+    );
 }
 
 // =============================================================================
 // CYCLE 6: Code Generation
 // =============================================================================
 
-use glossa::ir::lower_to_hir;
 use glossa::codegen::generate_rust;
+use glossa::ir::lower_to_hir;
 
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> String {
@@ -381,9 +438,17 @@ fn compile(source: &str) -> String {
 fn test_codegen_trait_definition() {
     let source = "χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.";
     let code = compile(source);
-    assert!(code.contains("trait Showable"), "Should generate trait keyword: {}", code);
+    assert!(
+        code.contains("trait Showable"),
+        "Should generate trait keyword: {}",
+        code
+    );
     // quote! adds spaces, so check for "& self" with possible spaces
-    assert!(code.contains("fn show") && code.contains("& self"), "Should generate method signature: {}", code);
+    assert!(
+        code.contains("fn show") && code.contains("& self"),
+        "Should generate method signature: {}",
+        code
+    );
 }
 
 #[test]
@@ -396,8 +461,16 @@ fn test_codegen_trait_impl() {
         }.
     "#;
     let code = compile(source);
-    assert!(code.contains("impl Showable for Point"), "Should generate impl block: {}", code);
-    assert!(code.contains("fn show") && code.contains("& self"), "Should generate impl method: {}", code);
+    assert!(
+        code.contains("impl Showable for Point"),
+        "Should generate impl block: {}",
+        code
+    );
+    assert!(
+        code.contains("fn show") && code.contains("& self"),
+        "Should generate impl method: {}",
+        code
+    );
 }
 
 #[test]
@@ -409,11 +482,27 @@ fn test_codegen_trait_with_default() {
         }.
     "#;
     let code = compile(source);
-    assert!(code.contains("trait Math"), "Should generate trait: {}", code);
-    assert!(code.contains("fn value") && code.contains("& self"), "Should have required method: {}", code);
-    assert!(code.contains("fn double") && code.contains("& self"), "Should have default method: {}", code);
+    assert!(
+        code.contains("trait Math"),
+        "Should generate trait: {}",
+        code
+    );
+    assert!(
+        code.contains("fn value") && code.contains("& self"),
+        "Should have required method: {}",
+        code
+    );
+    assert!(
+        code.contains("fn double") && code.contains("& self"),
+        "Should have default method: {}",
+        code
+    );
     // Default method should have a body
-    assert!(code.contains("double") && code.contains("& self") && code.contains("{"), "Default method should have body: {}", code);
+    assert!(
+        code.contains("double") && code.contains("& self") && code.contains("{"),
+        "Default method should have body: {}",
+        code
+    );
 }
 
 #[test]
@@ -431,8 +520,16 @@ fn test_codegen_trait_method_call_genitive() {
     let code = compile(source);
     // Using genitive pattern (που), this creates a property access which becomes a method call
     // The print statement should show the method call
-    assert!(code.contains("trait Showable"), "Should have trait: {}", code);
-    assert!(code.contains("impl Showable for Point"), "Should have impl: {}", code);
+    assert!(
+        code.contains("trait Showable"),
+        "Should have trait: {}",
+        code
+    );
+    assert!(
+        code.contains("impl Showable for Point"),
+        "Should have impl: {}",
+        code
+    );
     // We know genitive pattern works from earlier tests
 }
 
@@ -450,11 +547,23 @@ fn test_codegen_full_example() {
     let code = compile(source);
 
     // Check for trait definition
-    assert!(code.contains("trait Showable"), "Missing trait definition: {}", code);
+    assert!(
+        code.contains("trait Showable"),
+        "Missing trait definition: {}",
+        code
+    );
     // Check for struct definition
-    assert!(code.contains("struct Point"), "Missing struct definition: {}", code);
+    assert!(
+        code.contains("struct Point"),
+        "Missing struct definition: {}",
+        code
+    );
     // Check for impl block
-    assert!(code.contains("impl Showable for Point"), "Missing impl block: {}", code);
+    assert!(
+        code.contains("impl Showable for Point"),
+        "Missing impl block: {}",
+        code
+    );
     // Check for main function (quote! adds spaces)
     assert!(code.contains("fn main"), "Missing main function: {}", code);
 }

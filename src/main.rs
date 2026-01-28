@@ -10,10 +10,10 @@ use std::process::{Command, Stdio};
 use std::time::SystemTime;
 
 use glossa::ast::build_ast;
-use glossa::semantic::analyze_program;
-use glossa::ir::lower_to_hir;
 use glossa::codegen::{generate_rust, generate_rust_file};
 use glossa::errors::GlossaError;
+use glossa::ir::lower_to_hir;
+use glossa::semantic::analyze_program;
 
 #[derive(Parser)]
 #[command(name = "glossa")]
@@ -129,9 +129,9 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     let rust_code = compile(&source).map_err(|e| miette::miette!("{}", e))?;
 
-    let output_path = output.map(|p| p.to_owned()).unwrap_or_else(|| {
-        input.with_extension("rs")
-    });
+    let output_path = output
+        .map(|p| p.to_owned())
+        .unwrap_or_else(|| input.with_extension("rs"));
 
     fs::write(&output_path, &rust_code).into_diagnostic()?;
 
@@ -152,14 +152,16 @@ fn run_file(input: &Path) -> Result<()> {
 
     let key = cache_key(input);
     let cached_rs = cache.join(format!("{}.rs", key));
-    let cached_exe = cache.join(format!("{}{}", key, if cfg!(windows) { ".exe" } else { "" }));
+    let cached_exe = cache.join(format!(
+        "{}{}",
+        key,
+        if cfg!(windows) { ".exe" } else { "" }
+    ));
 
     // Check if we can use cached binary
     if cache_valid(input, &cached_exe) && cached_exe.exists() {
         // Run cached binary directly
-        let status = Command::new(&cached_exe)
-            .status()
-            .into_diagnostic()?;
+        let status = Command::new(&cached_exe).status().into_diagnostic()?;
 
         if !status.success() {
             std::process::exit(status.code().unwrap_or(1));
@@ -192,9 +194,7 @@ fn run_file(input: &Path) -> Result<()> {
     }
 
     // Run the compiled program
-    let status = Command::new(&cached_exe)
-        .status()
-        .into_diagnostic()?;
+    let status = Command::new(&cached_exe).status().into_diagnostic()?;
 
     if !status.success() {
         std::process::exit(status.code().unwrap_or(1));
@@ -311,7 +311,15 @@ impl ReplContext {
 
         // Generate and return the code (for now, just show the Rust)
         let rust_code = generate_rust(&hir);
-        Ok(format!("→ {}", rust_code.lines().skip(1).take(5).collect::<Vec<_>>().join("\n")))
+        Ok(format!(
+            "→ {}",
+            rust_code
+                .lines()
+                .skip(1)
+                .take(5)
+                .collect::<Vec<_>>()
+                .join("\n")
+        ))
     }
 }
 

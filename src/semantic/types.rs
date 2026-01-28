@@ -6,7 +6,7 @@
 //! - ἀληθές/ψεῦδος → Boolean
 //! - λίστη (liste) → List/Vec
 
-use crate::morphology::{Gender, Case, Tense};
+use crate::morphology::{Case, Gender, Tense};
 
 /// Types in ΓΛΩΣΣΑ
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

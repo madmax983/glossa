@@ -6,7 +6,7 @@
 #[cfg(test)]
 mod cycle1_participle_morphology {
     use glossa::morphology::participle::*;
-    use glossa::morphology::{Tense, Voice, Gender, Number, Case};
+    use glossa::morphology::{Case, Gender, Number, Tense, Voice};
 
     #[test]
     fn test_present_active_participle() {
@@ -77,7 +77,10 @@ mod cycle4_map_operation {
     fn test_participle_word_detection() {
         // Test that our exact Greek word is detected as a participle
         let p = morphology::analyze_participle("διπλασιαζομενα");
-        assert!(p.is_some(), "διπλασιαζομενα should be detected as participle");
+        assert!(
+            p.is_some(),
+            "διπλασιαζομενα should be detected as participle"
+        );
 
         let participle = p.unwrap();
         assert_eq!(participle.tense, morphology::Tense::Present);
@@ -89,7 +92,11 @@ mod cycle4_map_operation {
         // Start with just the binding statement
         let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
-        assert!(analyzed.is_ok(), "Binding should parse: {:?}", analyzed.err());
+        assert!(
+            analyzed.is_ok(),
+            "Binding should parse: {:?}",
+            analyzed.err()
+        );
     }
 
     #[test]
@@ -98,7 +105,11 @@ mod cycle4_map_operation {
         // First: bind the variable
         let ast1 = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed1 = semantic::analyze_program(&ast1);
-        assert!(analyzed1.is_ok(), "First statement should work: {:?}", analyzed1.err());
+        assert!(
+            analyzed1.is_ok(),
+            "First statement should work: {:?}",
+            analyzed1.err()
+        );
 
         // Second: just the participle pattern (simplified - no variable binding first)
         // We need a collection that already exists, but for now let's use a literal
@@ -117,7 +128,10 @@ mod cycle4_map_operation {
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(code_no_space.contains(".map("), "Should have .map()");
             assert!(code_no_space.contains("*2"), "Should multiply by 2");
-            assert!(code_no_space.contains(".collect()"), "Should have .collect()");
+            assert!(
+                code_no_space.contains(".collect()"),
+                "Should have .collect()"
+            );
         } else {
             panic!("Second statement failed: {:?}", analyzed2.err());
         }
@@ -134,7 +148,11 @@ mod cycle5_filter_operation {
         // This should be detected as a comparative adjective
         let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
-        assert!(analyzed.is_ok(), "Variable binding should work: {:?}", analyzed.err());
+        assert!(
+            analyzed.is_ok(),
+            "Variable binding should work: {:?}",
+            analyzed.err()
+        );
     }
 
     #[test]
@@ -154,7 +172,10 @@ mod cycle5_filter_operation {
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(code_no_space.contains(".filter("), "Should have .filter(");
-            assert!(code_no_space.contains(">"), "Should have comparison operator");
+            assert!(
+                code_no_space.contains(">"),
+                "Should have comparison operator"
+            );
             assert!(code_no_space.contains("5"), "Should compare to five");
         } else {
             panic!("Filter statement failed: {:?}", analyzed.err());
@@ -167,7 +188,11 @@ mod cycle5_filter_operation {
         // Should filter [5, 15, 3, 20] to get [5, 3]
         let ast = ast::build_ast("[5, 15, 3, 20] δέκα ἐλάττονα λέγε.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
-        assert!(analyzed.is_ok(), "Filter pattern should parse: {:?}", analyzed.err());
+        assert!(
+            analyzed.is_ok(),
+            "Filter pattern should parse: {:?}",
+            analyzed.err()
+        );
     }
 }
 
@@ -181,7 +206,11 @@ mod cycle6_find_operation {
         // Just test that the verb is recognized
         let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
-        assert!(analyzed.is_ok(), "Variable binding should work: {:?}", analyzed.err());
+        assert!(
+            analyzed.is_ok(),
+            "Variable binding should work: {:?}",
+            analyzed.err()
+        );
     }
 
     #[test]
@@ -204,7 +233,10 @@ mod cycle6_find_operation {
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(code_no_space.contains(".find("), "Should have .find(");
-            assert!(code_no_space.contains(">"), "Should have comparison operator");
+            assert!(
+                code_no_space.contains(">"),
+                "Should have comparison operator"
+            );
             assert!(code_no_space.contains("3"), "Should compare to three");
         } else {
             panic!("Find statement failed: {:?}", analyzed.err());
@@ -243,7 +275,11 @@ mod cycle7_fold_operation {
         // Just test that the participle is recognized
         let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
-        assert!(analyzed.is_ok(), "Variable binding should work: {:?}", analyzed.err());
+        assert!(
+            analyzed.is_ok(),
+            "Variable binding should work: {:?}",
+            analyzed.err()
+        );
     }
 
     #[test]
@@ -309,7 +345,11 @@ mod cycle8_any_all_operations {
         // Just test that basic parsing works
         let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
-        assert!(analyzed.is_ok(), "Variable binding should work: {:?}", analyzed.err());
+        assert!(
+            analyzed.is_ok(),
+            "Variable binding should work: {:?}",
+            analyzed.err()
+        );
     }
 
     #[test]
@@ -334,7 +374,10 @@ mod cycle8_any_all_operations {
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(code_no_space.contains(".any("), "Should have .any(");
-            assert!(code_no_space.contains(">"), "Should have comparison operator");
+            assert!(
+                code_no_space.contains(">"),
+                "Should have comparison operator"
+            );
             assert!(code_no_space.contains("5"), "Should compare to five");
         } else {
             panic!("Any statement failed: {:?}", analyzed.err());
@@ -347,7 +390,11 @@ mod cycle8_any_all_operations {
         // Just test basic parsing
         let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
-        assert!(analyzed.is_ok(), "Variable binding should work: {:?}", analyzed.err());
+        assert!(
+            analyzed.is_ok(),
+            "Variable binding should work: {:?}",
+            analyzed.err()
+        );
     }
 
     #[test]
@@ -371,7 +418,10 @@ mod cycle8_any_all_operations {
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(code_no_space.contains(".all("), "Should have .all(");
-            assert!(code_no_space.contains(">"), "Should have comparison operator");
+            assert!(
+                code_no_space.contains(">"),
+                "Should have comparison operator"
+            );
             assert!(code_no_space.contains("0"), "Should compare to zero");
         } else {
             panic!("All statement failed: {:?}", analyzed.err());
@@ -429,7 +479,10 @@ mod cycle9_combined_operations {
             assert!(code_no_space.contains(">"), "Should have comparison");
             assert!(code_no_space.contains("5"), "Should compare to 5");
             assert!(code_no_space.contains("*2"), "Should multiply by 2");
-            assert!(code_no_space.contains(".collect()"), "Should have .collect()");
+            assert!(
+                code_no_space.contains(".collect()"),
+                "Should have .collect()"
+            );
         } else {
             panic!("Filter then map failed: {:?}", analyzed.err());
         }
@@ -459,7 +512,10 @@ mod cycle9_combined_operations {
             assert!(code_no_space.contains("0"), "Should have init value 0");
             assert!(code_no_space.contains("+"), "Should have + operation");
             // Fold returns single value, no .collect()
-            assert!(!code_no_space.contains(".collect()"), "Should NOT have .collect()");
+            assert!(
+                !code_no_space.contains(".collect()"),
+                "Should NOT have .collect()"
+            );
         } else {
             panic!("Map then fold failed: {:?}", analyzed.err());
         }
@@ -517,7 +573,10 @@ mod cycle11_variable_capture {
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(code_no_space.contains(".filter("), "Should have .filter(");
             // Should reference theta variable in closure
-            assert!(code_no_space.contains("theta") || code_no_space.contains("θ"), "Should capture theta");
+            assert!(
+                code_no_space.contains("theta") || code_no_space.contains("θ"),
+                "Should capture theta"
+            );
         } else {
             panic!("Capture in filter failed: {:?}", analyzed.err());
         }
@@ -542,7 +601,10 @@ mod cycle11_variable_capture {
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(code_no_space.contains(".any("), "Should have .any(");
-            assert!(code_no_space.contains("theta") || code_no_space.contains("θ"), "Should capture theta");
+            assert!(
+                code_no_space.contains("theta") || code_no_space.contains("θ"),
+                "Should capture theta"
+            );
         } else {
             panic!("Capture in any failed: {:?}", analyzed.err());
         }
@@ -569,7 +631,10 @@ mod cycle11_variable_capture {
             assert!(code_no_space.contains(".filter("), "Should have .filter(");
             assert!(code_no_space.contains("5"), "Should use literal 5");
             // Should NOT reference theta
-            assert!(!code_no_space.contains("theta") && !code_no_space.contains("θ"), "Should NOT capture theta");
+            assert!(
+                !code_no_space.contains("theta") && !code_no_space.contains("θ"),
+                "Should NOT capture theta"
+            );
         } else {
             panic!("No capture test failed: {:?}", analyzed.err());
         }
@@ -585,7 +650,10 @@ mod cycle12_aorist_participles {
         // γράψαντα = "having written" (aorist active participle, neuter accusative plural)
         // This is already tested in Cycle 1, but let's verify it's recognized
         let p = morphology::analyze_participle("γραψαντα");
-        assert!(p.is_some(), "γράψαντα should be detected as aorist participle");
+        assert!(
+            p.is_some(),
+            "γράψαντα should be detected as aorist participle"
+        );
 
         let participle = p.unwrap();
         assert_eq!(participle.tense, morphology::Tense::Aorist);
@@ -604,8 +672,16 @@ mod cycle12_aorist_participles {
         // γράψαντα is aorist active participle (neuter accusative plural)
         // The system should recognize it as aorist tense
         let p = morphology::analyze_participle("γραψαντα").unwrap();
-        assert_eq!(p.tense, morphology::Tense::Aorist, "Should detect aorist tense");
-        assert_eq!(p.voice, morphology::Voice::Active, "Should detect active voice");
+        assert_eq!(
+            p.tense,
+            morphology::Tense::Aorist,
+            "Should detect aorist tense"
+        );
+        assert_eq!(
+            p.voice,
+            morphology::Voice::Active,
+            "Should detect active voice"
+        );
     }
 
     #[test]
@@ -623,7 +699,10 @@ mod cycle12_aorist_participles {
             let code_str = codegen::generate_rust(&hir);
 
             // Present participles should NOT have "move" keyword
-            assert!(!code_str.contains("move |"), "Present participle should not generate move closure");
+            assert!(
+                !code_str.contains("move |"),
+                "Present participle should not generate move closure"
+            );
         } else {
             panic!("Present participle test failed: {:?}", analyzed1.err());
         }
@@ -639,7 +718,10 @@ mod cycle13_perfect_participles {
         // γεγραμμένος = "having been written" (perfect passive participle)
         // This is already tested in Cycle 1, but let's verify it's recognized
         let p = morphology::analyze_participle("γεγραμμενος");
-        assert!(p.is_some(), "γεγραμμένος should be detected as perfect participle");
+        assert!(
+            p.is_some(),
+            "γεγραμμένος should be detected as perfect participle"
+        );
 
         let participle = p.unwrap();
         assert_eq!(participle.tense, morphology::Tense::Perfect);

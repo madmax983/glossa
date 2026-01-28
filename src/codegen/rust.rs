@@ -2,10 +2,10 @@
 //!
 //! Translates HIR to Rust source code using the `quote` crate.
 
-use crate::ir::{HirProgram, HirStatement, HirExpr, BinOp};
 use crate::grammar::normalize_greek;
-use quote::{quote, format_ident};
+use crate::ir::{BinOp, HirExpr, HirProgram, HirStatement};
 use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 
 /// Generate Rust code from a HIR program
 pub fn generate_rust(hir: &HirProgram) -> String {
@@ -56,7 +56,11 @@ pub fn generate_rust_file(hir: &HirProgram) -> String {
 
 fn generate_statement(stmt: &HirStatement) -> TokenStream {
     match stmt {
-        HirStatement::Let { name, value, mutable } => {
+        HirStatement::Let {
+            name,
+            value,
+            mutable,
+        } => {
             let name_ident = format_ident!("{}", sanitize_name(name));
             let value_tokens = generate_expr(value);
 
@@ -80,9 +84,7 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                 }
             } else {
                 // Multiple args - join with space
-                let arg_tokens: Vec<TokenStream> = args.iter()
-                    .map(generate_expr)
-                    .collect();
+                let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
                 quote! { println!("{}", vec![#(format!("{}", #arg_tokens)),*].join(" ")); }
             }
         }
@@ -92,17 +94,18 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             quote! { #expr_tokens; }
         }
 
-        HirStatement::If { condition, then_body, else_body } => {
+        HirStatement::If {
+            condition,
+            then_body,
+            else_body,
+        } => {
             let cond = generate_expr(condition);
-            let then_stmts: Vec<TokenStream> = then_body.iter()
-                .map(generate_statement)
-                .collect();
+            let then_stmts: Vec<TokenStream> = then_body.iter().map(generate_statement).collect();
 
             match else_body {
                 Some(else_stmts) => {
-                    let else_tokens: Vec<TokenStream> = else_stmts.iter()
-                        .map(generate_statement)
-                        .collect();
+                    let else_tokens: Vec<TokenStream> =
+                        else_stmts.iter().map(generate_statement).collect();
                     quote! {
                         if #cond {
                             #(#then_stmts)*
@@ -123,9 +126,7 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
 
         HirStatement::While { condition, body } => {
             let cond = generate_expr(condition);
-            let body_stmts: Vec<TokenStream> = body.iter()
-                .map(generate_statement)
-                .collect();
+            let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
             quote! {
                 while #cond {
                     #(#body_stmts)*
@@ -133,12 +134,14 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             }
         }
 
-        HirStatement::For { variable, iterator, body } => {
+        HirStatement::For {
+            variable,
+            iterator,
+            body,
+        } => {
             let var_ident = format_ident!("{}", sanitize_name(variable));
             let iter = generate_expr(iterator);
-            let body_stmts: Vec<TokenStream> = body.iter()
-                .map(generate_statement)
-                .collect();
+            let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
             quote! {
                 for #var_ident in #iter {
                     #(#body_stmts)*
@@ -148,7 +151,8 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
 
         HirStatement::Match { scrutinee, arms } => {
             let scrut = generate_expr(scrutinee);
-            let arm_tokens: Vec<TokenStream> = arms.iter()
+            let arm_tokens: Vec<TokenStream> = arms
+                .iter()
                 .map(|(pattern, body)| {
                     // Check if pattern is wildcard (represented as BoolLit(true))
                     let pat = if matches!(pattern, HirExpr::BoolLit(true)) {
@@ -157,9 +161,8 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                     } else {
                         generate_expr(pattern)
                     };
-                    let body_stmts: Vec<TokenStream> = body.iter()
-                        .map(generate_statement)
-                        .collect();
+                    let body_stmts: Vec<TokenStream> =
+                        body.iter().map(generate_statement).collect();
                     quote! { #pat => { #(#body_stmts)* } }
                 })
                 .collect();
@@ -174,24 +177,26 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
 
         HirStatement::Continue => quote! { continue; },
 
-        HirStatement::Return(expr) => {
-            match expr {
-                Some(e) => {
-                    let value = generate_expr(e);
-                    quote! { return #value; }
-                }
-                None => quote! { return; }
+        HirStatement::Return(expr) => match expr {
+            Some(e) => {
+                let value = generate_expr(e);
+                quote! { return #value; }
             }
-        }
+            None => quote! { return; },
+        },
 
-        HirStatement::FnDef { name, params, body, return_type } => {
+        HirStatement::FnDef {
+            name,
+            params,
+            body,
+            return_type,
+        } => {
             let fn_name = format_ident!("{}", sanitize_name(name));
-            let body_stmts: Vec<TokenStream> = body.iter()
-                .map(generate_statement)
-                .collect();
+            let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
 
             // Generate parameter list
-            let param_tokens: Vec<TokenStream> = params.iter()
+            let param_tokens: Vec<TokenStream> = params
+                .iter()
                 .map(|(param_name, param_type)| {
                     let param_ident = format_ident!("{}", sanitize_name(param_name));
                     if let Some(type_str) = param_type {
@@ -225,7 +230,8 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             let struct_name = format_ident!("{}", capitalize(&sanitize_name(name)));
 
             // Generate field list
-            let field_tokens: Vec<TokenStream> = fields.iter()
+            let field_tokens: Vec<TokenStream> = fields
+                .iter()
                 .map(|(field_name, field_type)| {
                     let field_ident = format_ident!("{}", sanitize_name(field_name));
                     let type_ident = format_ident!("{}", field_type);
@@ -246,12 +252,15 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             let trait_name = format_ident!("{}", capitalize(&sanitize_name(name)));
 
             // Generate method signatures
-            let method_tokens: Vec<TokenStream> = methods.iter()
+            let method_tokens: Vec<TokenStream> = methods
+                .iter()
                 .map(|method| {
                     let method_name = format_ident!("{}", sanitize_name(&method.name));
 
                     // Generate parameter list
-                    let param_tokens: Vec<TokenStream> = method.params.iter()
+                    let param_tokens: Vec<TokenStream> = method
+                        .params
+                        .iter()
                         .enumerate()
                         .map(|(idx, (param_name, param_type))| {
                             // Special case: first parameter named "self" becomes &self
@@ -275,9 +284,8 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                         if method.has_default {
                             // Default method with body
                             if let Some(body) = &method.body {
-                                let body_stmts: Vec<TokenStream> = body.iter()
-                                    .map(generate_statement)
-                                    .collect();
+                                let body_stmts: Vec<TokenStream> =
+                                    body.iter().map(generate_statement).collect();
                                 quote! {
                                     fn #method_name(#(#param_tokens),*) -> #ret_ty {
                                         #(#body_stmts)*
@@ -298,9 +306,8 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                         if method.has_default {
                             // Default method with body
                             if let Some(body) = &method.body {
-                                let body_stmts: Vec<TokenStream> = body.iter()
-                                    .map(generate_statement)
-                                    .collect();
+                                let body_stmts: Vec<TokenStream> =
+                                    body.iter().map(generate_statement).collect();
                                 quote! {
                                     fn #method_name(#(#param_tokens),*) {
                                         #(#body_stmts)*
@@ -328,18 +335,25 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             }
         }
 
-        HirStatement::TraitImpl { trait_name, type_name, methods } => {
+        HirStatement::TraitImpl {
+            trait_name,
+            type_name,
+            methods,
+        } => {
             // Capitalize trait and type names for Rust conventions
             let trait_ident = format_ident!("{}", capitalize(&sanitize_name(trait_name)));
             let type_ident = format_ident!("{}", capitalize(&sanitize_name(type_name)));
 
             // Generate method implementations
-            let method_tokens: Vec<TokenStream> = methods.iter()
+            let method_tokens: Vec<TokenStream> = methods
+                .iter()
                 .map(|method| {
                     let method_name = format_ident!("{}", sanitize_name(&method.name));
 
                     // Generate parameter list
-                    let param_tokens: Vec<TokenStream> = method.params.iter()
+                    let param_tokens: Vec<TokenStream> = method
+                        .params
+                        .iter()
                         .enumerate()
                         .map(|(idx, (param_name, param_type))| {
                             // Special case: first parameter named "self" becomes &self
@@ -358,9 +372,8 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
                         .collect();
 
                     // Generate method body
-                    let body_stmts: Vec<TokenStream> = method.body.iter()
-                        .map(generate_statement)
-                        .collect();
+                    let body_stmts: Vec<TokenStream> =
+                        method.body.iter().map(generate_statement).collect();
 
                     // Generate return type
                     if let Some(ret_type) = &method.return_type {
@@ -404,9 +417,7 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
         }
 
         HirExpr::ArrayLit(elements) => {
-            let elem_tokens: Vec<TokenStream> = elements.iter()
-                .map(generate_expr)
-                .collect();
+            let elem_tokens: Vec<TokenStream> = elements.iter().map(generate_expr).collect();
             quote! { vec![#(#elem_tokens),*] }
         }
 
@@ -428,20 +439,20 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             quote! { #obj.#field_ident }
         }
 
-        HirExpr::MethodCall { receiver, method, args } => {
+        HirExpr::MethodCall {
+            receiver,
+            method,
+            args,
+        } => {
             let recv = generate_expr(receiver);
             let method_ident = format_ident!("{}", sanitize_name(method));
-            let arg_tokens: Vec<TokenStream> = args.iter()
-                .map(generate_expr)
-                .collect();
+            let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
             quote! { #recv.#method_ident(#(#arg_tokens),*) }
         }
 
         HirExpr::Call { func, args } => {
             let func_ident = format_ident!("{}", sanitize_name(func));
-            let arg_tokens: Vec<TokenStream> = args.iter()
-                .map(generate_expr)
-                .collect();
+            let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
             quote! { #func_ident(#(#arg_tokens),*) }
         }
 
@@ -475,7 +486,11 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             }
         }
 
-        HirExpr::Range { start, end, inclusive } => {
+        HirExpr::Range {
+            start,
+            end,
+            inclusive,
+        } => {
             let start_tokens = generate_expr(start);
             let end_tokens = generate_expr(end);
             if *inclusive {
@@ -485,12 +500,17 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             }
         }
 
-        HirExpr::StructLit { type_name, fields, args } => {
+        HirExpr::StructLit {
+            type_name,
+            fields,
+            args,
+        } => {
             // Capitalize struct name for Rust conventions
             let struct_name = format_ident!("{}", capitalize(&sanitize_name(type_name)));
 
             // Generate field: value pairs using actual field names
-            let field_assignments: Vec<TokenStream> = fields.iter()
+            let field_assignments: Vec<TokenStream> = fields
+                .iter()
                 .zip(args.iter())
                 .map(|(field_name, arg)| {
                     let field_ident = format_ident!("{}", sanitize_name(field_name));
@@ -502,11 +522,16 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             quote! { #struct_name { #(#field_assignments),* } }
         }
 
-        HirExpr::Closure { params, body, capture_mode } => {
+        HirExpr::Closure {
+            params,
+            body,
+            capture_mode,
+        } => {
             use crate::ir::CaptureMode;
 
             let body_tokens = generate_expr(body);
-            let params_idents: Vec<_> = params.iter()
+            let params_idents: Vec<_> = params
+                .iter()
                 .map(|p| format_ident!("{}", sanitize_name(p)))
                 .collect();
 
@@ -593,7 +618,10 @@ fn is_self_parameter(param_name: &str, idx: usize) -> bool {
     }
     let normalized = normalize_greek(param_name);
     // Check for "self", "τω" (normalized from τῷ), or if param name contains "self"
-    normalized == "self" || param_name == "self" || normalized == "τω" || param_name.contains("self")
+    normalized == "self"
+        || param_name == "self"
+        || normalized == "τω"
+        || param_name.contains("self")
 }
 
 /// Sanitize a Greek name for use as a Rust identifier
@@ -675,7 +703,12 @@ fn transliterate(greek: &str) -> String {
     }
 
     // Ensure it starts with a letter or underscore (valid Rust identifier)
-    if result.chars().next().map(|c| c.is_numeric()).unwrap_or(true) {
+    if result
+        .chars()
+        .next()
+        .map(|c| c.is_numeric())
+        .unwrap_or(true)
+    {
         format!("_{}", result)
     } else {
         result
@@ -686,8 +719,8 @@ fn transliterate(greek: &str) -> String {
 mod tests {
     use super::*;
     use crate::ast::build_ast;
-    use crate::semantic::analyze_program;
     use crate::ir::lower_to_hir;
+    use crate::semantic::analyze_program;
 
     fn compile(source: &str) -> String {
         let ast = build_ast(source).unwrap();
