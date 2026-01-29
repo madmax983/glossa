@@ -415,7 +415,7 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
                                     (param_name.clone(), Some(param_type.to_rust().to_string()))
                                 })
                                 .collect(),
-                            return_type: None, // We'll infer this later if needed
+                            return_type: method.return_type.as_ref().map(|ty| ty.to_rust()),
                             has_default: method.is_default,
                             body: method.body.as_ref().map(|body_stmts| {
                                 body_stmts.iter().filter_map(lower_statement).collect()
@@ -446,7 +446,7 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
                                     (param_name.clone(), Some(param_type.to_rust().to_string()))
                                 })
                                 .collect(),
-                            return_type: None, // We'll infer this later if needed
+                            return_type: method.return_type.as_ref().map(|ty| ty.to_rust()),
                             body: method.body.iter().filter_map(lower_statement).collect(),
                         }
                     })
