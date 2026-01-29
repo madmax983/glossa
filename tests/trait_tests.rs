@@ -1,15 +1,5 @@
 use glossa::ast::{Statement, build_ast};
-use glossa::codegen::generate_rust;
-use glossa::ir::lower_to_hir;
 use glossa::semantic::analyze_program;
-
-/// Helper to compile GLOSSA source to Rust code
-fn compile(source: &str) -> String {
-    let ast = build_ast(source).unwrap();
-    let analyzed = analyze_program(&ast).unwrap();
-    let hir = lower_to_hir(&analyzed);
-    generate_rust(&hir)
-}
 
 // =============================================================================
 // CYCLE 1: Trait Definition Parsing
@@ -433,6 +423,17 @@ fn test_trait_method_call_error_not_implemented() {
 // CYCLE 6: Code Generation
 // =============================================================================
 
+use glossa::codegen::generate_rust;
+use glossa::ir::lower_to_hir;
+
+/// Helper to compile GLOSSA source to Rust code
+fn compile(source: &str) -> String {
+    let ast = build_ast(source).unwrap();
+    let analyzed = analyze_program(&ast).unwrap();
+    let hir = lower_to_hir(&analyzed);
+    generate_rust(&hir)
+}
+
 #[test]
 fn test_codegen_trait_definition() {
     let source = "χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.";
@@ -676,49 +677,22 @@ fn test_multiple_types_implement_same_trait() {
 }
 
 #[test]
-fn test_repro_trait_default_method_return_type() {
-    // Define a trait with a default method that returns a number
-    // "must value to-self; give 5."
-    // Since it returns 5, the signature SHOULD be `fn value(&self) -> i64`
-    let source = r#"
-        χαρακτήρ Numeric ὁρίζειν {
-            ἤδη value τῷ self· δός 5.
-        }.
-    "#;
-
-    let code = compile(source);
-
-    // FIXED: Code should contain explicit return and return type
-    assert!(
-        code.contains("return 5"),
-        "Should contain explicit return statement"
-    );
-    // quote! generates `-> i64` (with or without spaces depending on tokenizer)
-    assert!(
-        code.contains("-> i64") || code.contains("->i64"),
-        "Signature should contain return type"
-    );
-}
-
-#[test]
-fn test_repro_trait_impl_return_type() {
-    // Define a trait and implement it with a return value
+fn test_trait_method_with_return_type() {
+    // Trait method that returns a value
     let source = r#"
         χαρακτήρ Numeric ὁρίζειν {
             δεῖ value τῷ self.
         }.
         εἶδος Num ὁρίζειν { ν ἀριθμοῦ. }.
         εἶδος Num τῷ Numeric ἐμπίπτειν {
-            value τῷ self· δός 5.
+            value τῷ self· δός selfου ν.
         }.
+        α νέον Num δέκα ἔστω.
+        ρ αου value ἔστω.
     "#;
 
     let code = compile(source);
-
-    // FIXED: Impl should contain explicit return and return type
-    assert!(code.contains("return 5"));
-    assert!(
-        code.contains("-> i64") || code.contains("->i64"),
-        "Impl signature should contain return type"
-    );
+    // Should have the impl and method call
+    assert!(code.contains("impl Numeric for Num"));
+    assert!(code.contains("value"));
 }

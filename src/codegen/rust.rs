@@ -60,9 +60,34 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             name,
             value,
             mutable,
-        } => generate_let(name, value, *mutable),
+        } => {
+            let name_ident = format_ident!("{}", sanitize_name(name));
+            let value_tokens = generate_expr(value);
 
-        HirStatement::Print { args } => generate_print(args),
+            if *mutable {
+                quote! { let mut #name_ident = #value_tokens; }
+            } else {
+                quote! { let #name_ident = #value_tokens; }
+            }
+        }
+
+        HirStatement::Print { args } => {
+            if args.is_empty() {
+                quote! { println!(); }
+            } else if args.len() == 1 {
+                let arg = generate_expr(&args[0]);
+                // Use Display formatting for the argument
+                match &args[0] {
+                    HirExpr::StringLit(_) => quote! { println!("{}", #arg); },
+                    HirExpr::Var(_) => quote! { println!("{}", #arg); },
+                    _ => quote! { println!("{}", #arg); },
+                }
+            } else {
+                // Multiple args - join with space
+                let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+                quote! { println!("{}", vec![#(format!("{}", #arg_tokens)),*].join(" ")); }
+            }
+        }
 
         HirStatement::Expr(expr) => {
             let expr_tokens = generate_expr(expr);
@@ -73,17 +98,80 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             condition,
             then_body,
             else_body,
-        } => generate_if(condition, then_body, else_body),
+        } => {
+            let cond = generate_expr(condition);
+            let then_stmts: Vec<TokenStream> = then_body.iter().map(generate_statement).collect();
 
-        HirStatement::While { condition, body } => generate_while(condition, body),
+            match else_body {
+                Some(else_stmts) => {
+                    let else_tokens: Vec<TokenStream> =
+                        else_stmts.iter().map(generate_statement).collect();
+                    quote! {
+                        if #cond {
+                            #(#then_stmts)*
+                        } else {
+                            #(#else_tokens)*
+                        }
+                    }
+                }
+                None => {
+                    quote! {
+                        if #cond {
+                            #(#then_stmts)*
+                        }
+                    }
+                }
+            }
+        }
+
+        HirStatement::While { condition, body } => {
+            let cond = generate_expr(condition);
+            let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+            quote! {
+                while #cond {
+                    #(#body_stmts)*
+                }
+            }
+        }
 
         HirStatement::For {
             variable,
             iterator,
             body,
-        } => generate_for(variable, iterator, body),
+        } => {
+            let var_ident = format_ident!("{}", sanitize_name(variable));
+            let iter = generate_expr(iterator);
+            let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+            quote! {
+                for #var_ident in #iter {
+                    #(#body_stmts)*
+                }
+            }
+        }
 
-        HirStatement::Match { scrutinee, arms } => generate_match(scrutinee, arms),
+        HirStatement::Match { scrutinee, arms } => {
+            let scrut = generate_expr(scrutinee);
+            let arm_tokens: Vec<TokenStream> = arms
+                .iter()
+                .map(|(pattern, body)| {
+                    // Check if pattern is wildcard (represented as BoolLit(true))
+                    let pat = if matches!(pattern, HirExpr::BoolLit(true)) {
+                        // Generate wildcard pattern
+                        quote! { _ }
+                    } else {
+                        generate_expr(pattern)
+                    };
+                    let body_stmts: Vec<TokenStream> =
+                        body.iter().map(generate_statement).collect();
+                    quote! { #pat => { #(#body_stmts)* } }
+                })
+                .collect();
+            quote! {
+                match #scrut {
+                    #(#arm_tokens),*
+                }
+            }
+        }
 
         HirStatement::Break => quote! { break; },
 
@@ -102,223 +190,192 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             params,
             body,
             return_type,
-        } => generate_fn_def(name, params, body, return_type),
-
-        HirStatement::StructDef { name, fields } => generate_struct_def(name, fields),
-
-        HirStatement::TraitDef { name, methods } => generate_trait_def(name, methods),
-
-        HirStatement::TraitImpl {
-            trait_name,
-            type_name,
-            methods,
-        } => generate_trait_impl(trait_name, type_name, methods),
-    }
-}
-
-fn generate_let(name: &str, value: &HirExpr, mutable: bool) -> TokenStream {
-    let name_ident = format_ident!("{}", sanitize_name(name));
-    let value_tokens = generate_expr(value);
-
-    if mutable {
-        quote! { let mut #name_ident = #value_tokens; }
-    } else {
-        quote! { let #name_ident = #value_tokens; }
-    }
-}
-
-fn generate_print(args: &[HirExpr]) -> TokenStream {
-    if args.is_empty() {
-        quote! { println!(); }
-    } else if args.len() == 1 {
-        let arg = generate_expr(&args[0]);
-        // Use Display formatting for the argument
-        match &args[0] {
-            HirExpr::StringLit(_) => quote! { println!("{}", #arg); },
-            HirExpr::Var(_) => quote! { println!("{}", #arg); },
-            _ => quote! { println!("{}", #arg); },
-        }
-    } else {
-        // Multiple args - join with space
-        let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-        quote! { println!("{}", vec![#(format!("{}", #arg_tokens)),*].join(" ")); }
-    }
-}
-
-fn generate_if(
-    condition: &HirExpr,
-    then_body: &[HirStatement],
-    else_body: &Option<Vec<HirStatement>>,
-) -> TokenStream {
-    let cond = generate_expr(condition);
-    let then_stmts: Vec<TokenStream> = then_body.iter().map(generate_statement).collect();
-
-    match else_body {
-        Some(else_stmts) => {
-            let else_tokens: Vec<TokenStream> = else_stmts.iter().map(generate_statement).collect();
-            quote! {
-                if #cond {
-                    #(#then_stmts)*
-                } else {
-                    #(#else_tokens)*
-                }
-            }
-        }
-        None => {
-            quote! {
-                if #cond {
-                    #(#then_stmts)*
-                }
-            }
-        }
-    }
-}
-
-fn generate_while(condition: &HirExpr, body: &[HirStatement]) -> TokenStream {
-    let cond = generate_expr(condition);
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
-    quote! {
-        while #cond {
-            #(#body_stmts)*
-        }
-    }
-}
-
-fn generate_for(variable: &str, iterator: &HirExpr, body: &[HirStatement]) -> TokenStream {
-    let var_ident = format_ident!("{}", sanitize_name(variable));
-    let iter = generate_expr(iterator);
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
-    quote! {
-        for #var_ident in #iter {
-            #(#body_stmts)*
-        }
-    }
-}
-
-fn generate_match(scrutinee: &HirExpr, arms: &[(HirExpr, Vec<HirStatement>)]) -> TokenStream {
-    let scrut = generate_expr(scrutinee);
-    let arm_tokens: Vec<TokenStream> = arms
-        .iter()
-        .map(|(pattern, body)| {
-            // Check if pattern is wildcard (represented as BoolLit(true))
-            let pat = if matches!(pattern, HirExpr::BoolLit(true)) {
-                // Generate wildcard pattern
-                quote! { _ }
-            } else {
-                generate_expr(pattern)
-            };
+        } => {
+            let fn_name = format_ident!("{}", sanitize_name(name));
             let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
-            quote! { #pat => { #(#body_stmts)* } }
-        })
-        .collect();
-    quote! {
-        match #scrut {
-            #(#arm_tokens),*
-        }
-    }
-}
-
-fn generate_fn_def(
-    name: &str,
-    params: &[(String, Option<String>)],
-    body: &[HirStatement],
-    return_type: &Option<String>,
-) -> TokenStream {
-    let fn_name = format_ident!("{}", sanitize_name(name));
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
-
-    // Generate parameter list
-    let param_tokens: Vec<TokenStream> = params
-        .iter()
-        .map(|(param_name, param_type)| {
-            let param_ident = format_ident!("{}", sanitize_name(param_name));
-            if let Some(type_str) = param_type {
-                let ty = format_ident!("{}", type_str);
-                quote! { #param_ident: #ty }
-            } else {
-                quote! { #param_ident }
-            }
-        })
-        .collect();
-
-    // Generate return type
-    if let Some(ret_type) = return_type {
-        let ret_ty = format_ident!("{}", ret_type);
-        quote! {
-            fn #fn_name(#(#param_tokens),*) -> #ret_ty {
-                #(#body_stmts)*
-            }
-        }
-    } else {
-        quote! {
-            fn #fn_name(#(#param_tokens),*) {
-                #(#body_stmts)*
-            }
-        }
-    }
-}
-
-fn generate_struct_def(name: &str, fields: &[(String, String)]) -> TokenStream {
-    // Capitalize struct name for Rust conventions
-    let struct_name = format_ident!("{}", capitalize(&sanitize_name(name)));
-
-    // Generate field list
-    let field_tokens: Vec<TokenStream> = fields
-        .iter()
-        .map(|(field_name, field_type)| {
-            let field_ident = format_ident!("{}", sanitize_name(field_name));
-            let type_ident = format_ident!("{}", field_type);
-            quote! { #field_ident: #type_ident }
-        })
-        .collect();
-
-    quote! {
-        #[derive(Debug, Clone)]
-        struct #struct_name {
-            #(#field_tokens),*
-        }
-    }
-}
-
-fn generate_trait_def(name: &str, methods: &[crate::ir::HirTraitMethod]) -> TokenStream {
-    // Capitalize trait name for Rust conventions
-    let trait_name = format_ident!("{}", capitalize(&sanitize_name(name)));
-
-    // Generate method signatures
-    let method_tokens: Vec<TokenStream> = methods
-        .iter()
-        .map(|method| {
-            let method_name = format_ident!("{}", sanitize_name(&method.name));
 
             // Generate parameter list
-            let param_tokens: Vec<TokenStream> = method
-                .params
+            let param_tokens: Vec<TokenStream> = params
                 .iter()
-                .enumerate()
-                .map(|(idx, (param_name, param_type))| {
-                    // Special case: first parameter named "self" becomes &self
-                    if is_self_parameter(param_name, idx) {
-                        quote! { &self }
+                .map(|(param_name, param_type)| {
+                    let param_ident = format_ident!("{}", sanitize_name(param_name));
+                    if let Some(type_str) = param_type {
+                        let ty = format_ident!("{}", type_str);
+                        quote! { #param_ident: #ty }
                     } else {
-                        let param_ident = format_ident!("{}", sanitize_name(param_name));
-                        if let Some(type_str) = param_type {
-                            let ty = format_ident!("{}", type_str);
-                            quote! { #param_ident: #ty }
-                        } else {
-                            quote! { #param_ident }
-                        }
+                        quote! { #param_ident }
                     }
                 })
                 .collect();
 
             // Generate return type
-            if let Some(ret_type) = &method.return_type {
+            if let Some(ret_type) = return_type {
                 let ret_ty = format_ident!("{}", ret_type);
-                if method.has_default {
-                    // Default method with body
-                    if let Some(body) = &method.body {
-                        let body_stmts: Vec<TokenStream> =
-                            body.iter().map(generate_statement).collect();
+                quote! {
+                    fn #fn_name(#(#param_tokens),*) -> #ret_ty {
+                        #(#body_stmts)*
+                    }
+                }
+            } else {
+                quote! {
+                    fn #fn_name(#(#param_tokens),*) {
+                        #(#body_stmts)*
+                    }
+                }
+            }
+        }
+
+        HirStatement::StructDef { name, fields } => {
+            // Capitalize struct name for Rust conventions
+            let struct_name = format_ident!("{}", capitalize(&sanitize_name(name)));
+
+            // Generate field list
+            let field_tokens: Vec<TokenStream> = fields
+                .iter()
+                .map(|(field_name, field_type)| {
+                    let field_ident = format_ident!("{}", sanitize_name(field_name));
+                    let type_ident = format_ident!("{}", field_type);
+                    quote! { #field_ident: #type_ident }
+                })
+                .collect();
+
+            quote! {
+                #[derive(Debug, Clone)]
+                struct #struct_name {
+                    #(#field_tokens),*
+                }
+            }
+        }
+
+        HirStatement::TraitDef { name, methods } => {
+            // Capitalize trait name for Rust conventions
+            let trait_name = format_ident!("{}", capitalize(&sanitize_name(name)));
+
+            // Generate method signatures
+            let method_tokens: Vec<TokenStream> = methods
+                .iter()
+                .map(|method| {
+                    let method_name = format_ident!("{}", sanitize_name(&method.name));
+
+                    // Generate parameter list
+                    let param_tokens: Vec<TokenStream> = method
+                        .params
+                        .iter()
+                        .enumerate()
+                        .map(|(idx, (param_name, param_type))| {
+                            // Special case: first parameter named "self" becomes &self
+                            if is_self_parameter(param_name, idx) {
+                                quote! { &self }
+                            } else {
+                                let param_ident = format_ident!("{}", sanitize_name(param_name));
+                                if let Some(type_str) = param_type {
+                                    let ty = format_ident!("{}", type_str);
+                                    quote! { #param_ident: #ty }
+                                } else {
+                                    quote! { #param_ident }
+                                }
+                            }
+                        })
+                        .collect();
+
+                    // Generate return type
+                    if let Some(ret_type) = &method.return_type {
+                        let ret_ty = format_ident!("{}", ret_type);
+                        if method.has_default {
+                            // Default method with body
+                            if let Some(body) = &method.body {
+                                let body_stmts: Vec<TokenStream> =
+                                    body.iter().map(generate_statement).collect();
+                                quote! {
+                                    fn #method_name(#(#param_tokens),*) -> #ret_ty {
+                                        #(#body_stmts)*
+                                    }
+                                }
+                            } else {
+                                quote! {
+                                    fn #method_name(#(#param_tokens),*) -> #ret_ty;
+                                }
+                            }
+                        } else {
+                            // Required method signature only
+                            quote! {
+                                fn #method_name(#(#param_tokens),*) -> #ret_ty;
+                            }
+                        }
+                    } else if method.has_default {
+                        // Default method with body
+                        if let Some(body) = &method.body {
+                            let body_stmts: Vec<TokenStream> =
+                                body.iter().map(generate_statement).collect();
+                            quote! {
+                                fn #method_name(#(#param_tokens),*) {
+                                    #(#body_stmts)*
+                                }
+                            }
+                        } else {
+                            quote! {
+                                fn #method_name(#(#param_tokens),*);
+                            }
+                        }
+                    } else {
+                        // Required method signature only
+                        quote! {
+                            fn #method_name(#(#param_tokens),*);
+                        }
+                    }
+                })
+                .collect();
+
+            quote! {
+                trait #trait_name {
+                    #(#method_tokens)*
+                }
+            }
+        }
+
+        HirStatement::TraitImpl {
+            trait_name,
+            type_name,
+            methods,
+        } => {
+            // Capitalize trait and type names for Rust conventions
+            let trait_ident = format_ident!("{}", capitalize(&sanitize_name(trait_name)));
+            let type_ident = format_ident!("{}", capitalize(&sanitize_name(type_name)));
+
+            // Generate method implementations
+            let method_tokens: Vec<TokenStream> = methods
+                .iter()
+                .map(|method| {
+                    let method_name = format_ident!("{}", sanitize_name(&method.name));
+
+                    // Generate parameter list
+                    let param_tokens: Vec<TokenStream> = method
+                        .params
+                        .iter()
+                        .enumerate()
+                        .map(|(idx, (param_name, param_type))| {
+                            // Special case: first parameter named "self" becomes &self
+                            if is_self_parameter(param_name, idx) {
+                                quote! { &self }
+                            } else {
+                                let param_ident = format_ident!("{}", sanitize_name(param_name));
+                                if let Some(type_str) = param_type {
+                                    let ty = format_ident!("{}", type_str);
+                                    quote! { #param_ident: #ty }
+                                } else {
+                                    quote! { #param_ident }
+                                }
+                            }
+                        })
+                        .collect();
+
+                    // Generate method body
+                    let body_stmts: Vec<TokenStream> =
+                        method.body.iter().map(generate_statement).collect();
+
+                    // Generate return type
+                    if let Some(ret_type) = &method.return_type {
+                        let ret_ty = format_ident!("{}", ret_type);
                         quote! {
                             fn #method_name(#(#param_tokens),*) -> #ret_ty {
                                 #(#body_stmts)*
@@ -326,106 +383,19 @@ fn generate_trait_def(name: &str, methods: &[crate::ir::HirTraitMethod]) -> Toke
                         }
                     } else {
                         quote! {
-                            fn #method_name(#(#param_tokens),*) -> #ret_ty;
-                        }
-                    }
-                } else {
-                    // Required method signature only
-                    quote! {
-                        fn #method_name(#(#param_tokens),*) -> #ret_ty;
-                    }
-                }
-            } else if method.has_default {
-                // Default method with body
-                if let Some(body) = &method.body {
-                    let body_stmts: Vec<TokenStream> =
-                        body.iter().map(generate_statement).collect();
-                    quote! {
-                        fn #method_name(#(#param_tokens),*) {
-                            #(#body_stmts)*
-                        }
-                    }
-                } else {
-                    quote! {
-                        fn #method_name(#(#param_tokens),*);
-                    }
-                }
-            } else {
-                // Required method signature only
-                quote! {
-                    fn #method_name(#(#param_tokens),*);
-                }
-            }
-        })
-        .collect();
-
-    quote! {
-        trait #trait_name {
-            #(#method_tokens)*
-        }
-    }
-}
-
-fn generate_trait_impl(
-    trait_name: &str,
-    type_name: &str,
-    methods: &[crate::ir::HirImplMethod],
-) -> TokenStream {
-    // Capitalize trait and type names for Rust conventions
-    let trait_ident = format_ident!("{}", capitalize(&sanitize_name(trait_name)));
-    let type_ident = format_ident!("{}", capitalize(&sanitize_name(type_name)));
-
-    // Generate method implementations
-    let method_tokens: Vec<TokenStream> = methods
-        .iter()
-        .map(|method| {
-            let method_name = format_ident!("{}", sanitize_name(&method.name));
-
-            // Generate parameter list
-            let param_tokens: Vec<TokenStream> = method
-                .params
-                .iter()
-                .enumerate()
-                .map(|(idx, (param_name, param_type))| {
-                    // Special case: first parameter named "self" becomes &self
-                    if is_self_parameter(param_name, idx) {
-                        quote! { &self }
-                    } else {
-                        let param_ident = format_ident!("{}", sanitize_name(param_name));
-                        if let Some(type_str) = param_type {
-                            let ty = format_ident!("{}", type_str);
-                            quote! { #param_ident: #ty }
-                        } else {
-                            quote! { #param_ident }
+                            fn #method_name(#(#param_tokens),*) {
+                                #(#body_stmts)*
+                            }
                         }
                     }
                 })
                 .collect();
 
-            // Generate method body
-            let body_stmts: Vec<TokenStream> = method.body.iter().map(generate_statement).collect();
-
-            // Generate return type
-            if let Some(ret_type) = &method.return_type {
-                let ret_ty = format_ident!("{}", ret_type);
-                quote! {
-                    fn #method_name(#(#param_tokens),*) -> #ret_ty {
-                        #(#body_stmts)*
-                    }
-                }
-            } else {
-                quote! {
-                    fn #method_name(#(#param_tokens),*) {
-                        #(#body_stmts)*
-                    }
+            quote! {
+                impl #trait_ident for #type_ident {
+                    #(#method_tokens)*
                 }
             }
-        })
-        .collect();
-
-    quote! {
-        impl #trait_ident for #type_ident {
-            #(#method_tokens)*
         }
     }
 }
@@ -513,7 +483,26 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             quote! { #func_ident(#(#arg_tokens),*) }
         }
 
-        HirExpr::BinOp { op, left, right } => generate_bin_op(op, left, right),
+        HirExpr::BinOp { op, left, right } => {
+            let left_tokens = generate_expr(left);
+            let right_tokens = generate_expr(right);
+
+            match op {
+                BinOp::Add => quote! { (#left_tokens + #right_tokens) },
+                BinOp::Sub => quote! { (#left_tokens - #right_tokens) },
+                BinOp::Mul => quote! { (#left_tokens * #right_tokens) },
+                BinOp::Div => quote! { (#left_tokens / #right_tokens) },
+                BinOp::Mod => quote! { (#left_tokens % #right_tokens) },
+                BinOp::Eq => quote! { (#left_tokens == #right_tokens) },
+                BinOp::Ne => quote! { (#left_tokens != #right_tokens) },
+                BinOp::Lt => quote! { (#left_tokens < #right_tokens) },
+                BinOp::Le => quote! { (#left_tokens <= #right_tokens) },
+                BinOp::Gt => quote! { (#left_tokens > #right_tokens) },
+                BinOp::Ge => quote! { (#left_tokens >= #right_tokens) },
+                BinOp::And => quote! { (#left_tokens && #right_tokens) },
+                BinOp::Or => quote! { (#left_tokens || #right_tokens) },
+            }
+        }
 
         HirExpr::Ref { mutable, expr } => {
             let inner = generate_expr(expr);
@@ -542,142 +531,111 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             type_name,
             fields,
             args,
-        } => generate_struct_lit(type_name, fields, args),
+        } => {
+            // Capitalize struct name for Rust conventions
+            let struct_name = format_ident!("{}", capitalize(&sanitize_name(type_name)));
+
+            // Generate field: value pairs using actual field names
+            let field_assignments: Vec<TokenStream> = fields
+                .iter()
+                .zip(args.iter())
+                .map(|(field_name, arg)| {
+                    let field_ident = format_ident!("{}", sanitize_name(field_name));
+                    let arg_token = generate_expr(arg);
+                    quote! { #field_ident: #arg_token }
+                })
+                .collect();
+
+            quote! { #struct_name { #(#field_assignments),* } }
+        }
 
         HirExpr::Closure {
             params,
             body,
             capture_mode,
-        } => generate_closure(params, body, capture_mode),
+        } => {
+            use crate::ir::CaptureMode;
 
-        HirExpr::IteratorChain { collection, ops } => generate_iterator_chain(collection, ops),
-    }
-}
+            let body_tokens = generate_expr(body);
+            let params_idents: Vec<_> = params
+                .iter()
+                .map(|p| format_ident!("{}", sanitize_name(p)))
+                .collect();
 
-fn generate_bin_op(op: &BinOp, left: &HirExpr, right: &HirExpr) -> TokenStream {
-    let left_tokens = generate_expr(left);
-    let right_tokens = generate_expr(right);
-
-    match op {
-        BinOp::Add => quote! { (#left_tokens + #right_tokens) },
-        BinOp::Sub => quote! { (#left_tokens - #right_tokens) },
-        BinOp::Mul => quote! { (#left_tokens * #right_tokens) },
-        BinOp::Div => quote! { (#left_tokens / #right_tokens) },
-        BinOp::Mod => quote! { (#left_tokens % #right_tokens) },
-        BinOp::Eq => quote! { (#left_tokens == #right_tokens) },
-        BinOp::Ne => quote! { (#left_tokens != #right_tokens) },
-        BinOp::Lt => quote! { (#left_tokens < #right_tokens) },
-        BinOp::Le => quote! { (#left_tokens <= #right_tokens) },
-        BinOp::Gt => quote! { (#left_tokens > #right_tokens) },
-        BinOp::Ge => quote! { (#left_tokens >= #right_tokens) },
-        BinOp::And => quote! { (#left_tokens && #right_tokens) },
-        BinOp::Or => quote! { (#left_tokens || #right_tokens) },
-    }
-}
-
-fn generate_struct_lit(type_name: &str, fields: &[String], args: &[HirExpr]) -> TokenStream {
-    // Capitalize struct name for Rust conventions
-    let struct_name = format_ident!("{}", capitalize(&sanitize_name(type_name)));
-
-    // Generate field: value pairs using actual field names
-    let field_assignments: Vec<TokenStream> = fields
-        .iter()
-        .zip(args.iter())
-        .map(|(field_name, arg)| {
-            let field_ident = format_ident!("{}", sanitize_name(field_name));
-            let arg_token = generate_expr(arg);
-            quote! { #field_ident: #arg_token }
-        })
-        .collect();
-
-    quote! { #struct_name { #(#field_assignments),* } }
-}
-
-fn generate_closure(
-    params: &[String],
-    body: &HirExpr,
-    capture_mode: &crate::ir::CaptureMode,
-) -> TokenStream {
-    use crate::ir::CaptureMode;
-
-    let body_tokens = generate_expr(body);
-    let params_idents: Vec<_> = params
-        .iter()
-        .map(|p| format_ident!("{}", sanitize_name(p)))
-        .collect();
-
-    match capture_mode {
-        CaptureMode::Move => {
-            quote! { move |#(#params_idents),*| #body_tokens }
-        }
-        CaptureMode::Borrow => {
-            quote! { |#(#params_idents),*| #body_tokens }
-        }
-        CaptureMode::Memoize => {
-            // Perfect participle: lazy evaluation with caching
-            // Each closure instance caches its first computed value and returns it for all subsequent calls
-            // Limitation: This shares a single cached value for all inputs (not true per-input memoization)
-            // Use case: Constant computations or operations that should only execute once
-            // Future: Implement HashMap-based memoization for per-input caching
-            quote! {
-                {
-                    use std::cell::RefCell;
-                    let cache = RefCell::new(None);
-                    move |#(#params_idents),*| {
-                        let mut cache_ref = cache.borrow_mut();
-                        if cache_ref.is_none() {
-                            *cache_ref = Some(#body_tokens);
+            match capture_mode {
+                CaptureMode::Move => {
+                    quote! { move |#(#params_idents),*| #body_tokens }
+                }
+                CaptureMode::Borrow => {
+                    quote! { |#(#params_idents),*| #body_tokens }
+                }
+                CaptureMode::Memoize => {
+                    // Perfect participle: lazy evaluation with caching
+                    // Each closure instance caches its first computed value and returns it for all subsequent calls
+                    // Limitation: This shares a single cached value for all inputs (not true per-input memoization)
+                    // Use case: Constant computations or operations that should only execute once
+                    // Future: Implement HashMap-based memoization for per-input caching
+                    quote! {
+                        {
+                            use std::cell::RefCell;
+                            let cache = RefCell::new(None);
+                            move |#(#params_idents),*| {
+                                let mut cache_ref = cache.borrow_mut();
+                                if cache_ref.is_none() {
+                                    *cache_ref = Some(#body_tokens);
+                                }
+                                cache_ref.clone().unwrap()
+                            }
                         }
-                        cache_ref.clone().unwrap()
                     }
                 }
             }
         }
+
+        HirExpr::IteratorChain { collection, ops } => {
+            use crate::ir::IteratorOp;
+
+            let mut current = generate_expr(collection);
+
+            for op in ops {
+                current = match op {
+                    IteratorOp::Iter => {
+                        quote! { #current.iter() }
+                    }
+                    IteratorOp::Map(closure) => {
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.map(#closure_tokens) }
+                    }
+                    IteratorOp::Filter(closure) => {
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.filter(#closure_tokens) }
+                    }
+                    IteratorOp::Find(closure) => {
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.find(#closure_tokens) }
+                    }
+                    IteratorOp::Fold { init, closure } => {
+                        let init_tokens = generate_expr(init);
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.fold(#init_tokens, #closure_tokens) }
+                    }
+                    IteratorOp::Any(closure) => {
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.any(#closure_tokens) }
+                    }
+                    IteratorOp::All(closure) => {
+                        let closure_tokens = generate_expr(closure);
+                        quote! { #current.all(#closure_tokens) }
+                    }
+                    IteratorOp::Collect => {
+                        quote! { #current.collect() }
+                    }
+                };
+            }
+
+            current
+        }
     }
-}
-
-fn generate_iterator_chain(collection: &HirExpr, ops: &[crate::ir::IteratorOp]) -> TokenStream {
-    use crate::ir::IteratorOp;
-
-    let mut current = generate_expr(collection);
-
-    for op in ops {
-        current = match op {
-            IteratorOp::Iter => {
-                quote! { #current.iter() }
-            }
-            IteratorOp::Map(closure) => {
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.map(#closure_tokens) }
-            }
-            IteratorOp::Filter(closure) => {
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.filter(#closure_tokens) }
-            }
-            IteratorOp::Find(closure) => {
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.find(#closure_tokens) }
-            }
-            IteratorOp::Fold { init, closure } => {
-                let init_tokens = generate_expr(init);
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.fold(#init_tokens, #closure_tokens) }
-            }
-            IteratorOp::Any(closure) => {
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.any(#closure_tokens) }
-            }
-            IteratorOp::All(closure) => {
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.all(#closure_tokens) }
-            }
-            IteratorOp::Collect => {
-                quote! { #current.collect() }
-            }
-        };
-    }
-
-    current
 }
 
 /// Capitalize the first letter of a string (for Rust type/trait names)

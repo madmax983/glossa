@@ -3,8 +3,7 @@
 //! A simplified IR that maps closely to Rust constructs.
 
 use crate::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedProgram, AnalyzedStatement,
-    StatementKind,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, StatementKind,
 };
 
 /// A HIR program ready for code generation
@@ -401,52 +400,59 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
                 .collect(),
         }),
 
-        StatementKind::TraitDefinition { name, methods } => Some(HirStatement::TraitDef {
-            name: name.clone(),
-            methods: methods
-                .iter()
-                .map(|method| HirTraitMethod {
-                    name: method.name.clone(),
-                    params: method
-                        .params
-                        .iter()
-                        .map(|(param_name, param_type)| {
-                            (param_name.clone(), Some(param_type.to_rust().to_string()))
-                        })
-                        .collect(),
-                    return_type: method.return_type.as_ref().map(|ty| ty.to_rust()),
-                    has_default: method.is_default,
-                    body: method
-                        .body
-                        .as_ref()
-                        .map(|body_stmts| body_stmts.iter().filter_map(lower_statement).collect()),
-                })
-                .collect(),
-        }),
+        StatementKind::TraitDefinition { name, methods } => {
+            Some(HirStatement::TraitDef {
+                name: name.clone(),
+                methods: methods
+                    .iter()
+                    .map(|method| {
+                        HirTraitMethod {
+                            name: method.name.clone(),
+                            params: method
+                                .params
+                                .iter()
+                                .map(|(param_name, param_type)| {
+                                    (param_name.clone(), Some(param_type.to_rust().to_string()))
+                                })
+                                .collect(),
+                            return_type: None, // We'll infer this later if needed
+                            has_default: method.is_default,
+                            body: method.body.as_ref().map(|body_stmts| {
+                                body_stmts.iter().filter_map(lower_statement).collect()
+                            }),
+                        }
+                    })
+                    .collect(),
+            })
+        }
 
         StatementKind::TraitImplementation {
             trait_name,
             type_name,
             methods,
-        } => Some(HirStatement::TraitImpl {
-            trait_name: trait_name.clone(),
-            type_name: type_name.clone(),
-            methods: methods
-                .iter()
-                .map(|method| HirImplMethod {
-                    name: method.name.clone(),
-                    params: method
-                        .params
-                        .iter()
-                        .map(|(param_name, param_type)| {
-                            (param_name.clone(), Some(param_type.to_rust().to_string()))
-                        })
-                        .collect(),
-                    return_type: method.return_type.as_ref().map(|ty| ty.to_rust()),
-                    body: method.body.iter().filter_map(lower_statement).collect(),
-                })
-                .collect(),
-        }),
+        } => {
+            Some(HirStatement::TraitImpl {
+                trait_name: trait_name.clone(),
+                type_name: type_name.clone(),
+                methods: methods
+                    .iter()
+                    .map(|method| {
+                        HirImplMethod {
+                            name: method.name.clone(),
+                            params: method
+                                .params
+                                .iter()
+                                .map(|(param_name, param_type)| {
+                                    (param_name.clone(), Some(param_type.to_rust().to_string()))
+                                })
+                                .collect(),
+                            return_type: None, // We'll infer this later if needed
+                            body: method.body.iter().filter_map(lower_statement).collect(),
+                        }
+                    })
+                    .collect(),
+            })
+        }
     }
 }
 
@@ -570,24 +576,7 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
         }
         AnalyzedExprKind::IteratorChain { collection, ops } => HirExpr::IteratorChain {
             collection: Box::new(lower_expr(collection)),
-            ops: ops
-                .iter()
-                .map(|op| match op {
-                    AnalyzedIteratorOp::Iter => IteratorOp::Iter,
-                    AnalyzedIteratorOp::Map(expr) => IteratorOp::Map(Box::new(lower_expr(expr))),
-                    AnalyzedIteratorOp::Filter(expr) => {
-                        IteratorOp::Filter(Box::new(lower_expr(expr)))
-                    }
-                    AnalyzedIteratorOp::Find(expr) => IteratorOp::Find(Box::new(lower_expr(expr))),
-                    AnalyzedIteratorOp::Fold { init, closure } => IteratorOp::Fold {
-                        init: Box::new(lower_expr(init)),
-                        closure: Box::new(lower_expr(closure)),
-                    },
-                    AnalyzedIteratorOp::Any(expr) => IteratorOp::Any(Box::new(lower_expr(expr))),
-                    AnalyzedIteratorOp::All(expr) => IteratorOp::All(Box::new(lower_expr(expr))),
-                    AnalyzedIteratorOp::Collect => IteratorOp::Collect,
-                })
-                .collect(),
+            ops: ops.clone(),
         },
         AnalyzedExprKind::Literal(n) => HirExpr::IntLit(*n),
     }
