@@ -49,7 +49,7 @@
 //! * **VSO**: `λέγει τὸν λόγον ὁ ἄνθρωπος` (Says the word the man)
 //! * **OVS**: `τὸν λόγον λέγει ὁ ἄνθρωπος` (The man says the word — with the object fronted)
 //!
-//! The assembler handles all of these correctly, producing the exact same AST.
+//! The assembler handles all of these correctly, producing the same assembled semantic representation.
 
 use crate::ast::{Expr, Word};
 use crate::grammar::normalize_greek;
