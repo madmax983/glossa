@@ -47,7 +47,7 @@
 //!
 //! * **SOV**: `ὁ ἄνθρωπος τὸν λόγον λέγει` (The man says the word)
 //! * **VSO**: `λέγει τὸν λόγον ὁ ἄνθρωπος` (Says the word the man)
-//! * **OVS**: `τὸν λόγον λέγει ὁ ἄνθρωπος` (The word says the man)
+//! * **OVS**: `τὸν λόγον λέγει ὁ ἄνθρωπος` (The man says the word — with the object fronted)
 //!
 //! The assembler handles all of these correctly, producing the exact same AST.
 
