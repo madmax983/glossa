@@ -316,11 +316,13 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
 
         StatementKind::Assignment { name, .. } => {
             // Get the value expression (second expression in the list)
-            let value = if stmt.expressions.len() > 1 {
-                lower_expr(&stmt.expressions[1])
-            } else {
-                HirExpr::IntLit(0) // Default
-            };
+            // Assignment must have a value - panic if missing (indicates semantic analysis bug)
+            assert!(
+                stmt.expressions.len() > 1,
+                "Assignment statement missing value expression during HIR lowering. \
+                 This indicates a bug in the semantic analysis phase."
+            );
+            let value = lower_expr(&stmt.expressions[1]);
 
             Some(HirStatement::Assign {
                 name: name.clone(),

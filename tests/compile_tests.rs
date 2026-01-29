@@ -95,3 +95,10 @@ fn test_mutable_binding_and_reassignment() {
     assert!(code.contains("xi = 10"));
     assert!(code.matches("println").count() >= 2);
 }
+
+#[test]
+fn test_assignment_missing_value_error() {
+    let result = compile("μετά ξ πέντε ἔστω. ξ γίγνεται.");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("δεῖ τιμῆς"));
+}

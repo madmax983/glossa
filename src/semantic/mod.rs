@@ -2984,6 +2984,22 @@ fn classify_assembled_statement(
                     )));
                 }
                 Some(b) => {
+                    // An assignment must have a value
+                    let has_value = !asm_stmt.literals.is_empty()
+                        || asm_stmt.object.is_some()
+                        || !asm_stmt.arrays.is_empty()
+                        || !asm_stmt.unwraps.is_empty()
+                        || !asm_stmt.index_accesses.is_empty()
+                        || !asm_stmt.property_accesses.is_empty()
+                        || !asm_stmt.nested_phrases.is_empty();
+
+                    if !has_value {
+                        return Err(GlossaError::semantic(format!(
+                            "Τῇ πράξει «{} γίγνεται» δεῖ τιμῆς",
+                            var_name
+                        )));
+                    }
+
                     let value_type = b.glossa_type.clone();
                     let (value_expr, _) = extract_value(asm_stmt);
                     scope.mark_used(&var_name);
