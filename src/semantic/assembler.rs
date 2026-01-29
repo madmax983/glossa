@@ -4,8 +4,52 @@
 //! Instead of relying on word order, it routes words to slots based on
 //! their grammatical case - just like Ancient Greek actually works.
 //!
-//! The assembler accumulates morphologically-analyzed tokens and assembles
-//! them into a statement when finalized (at end of sentence).
+//! # The "Slot" Concept
+//!
+//! In languages like English or Rust, word order determines meaning:
+//! `func(a, b)` is different from `func(b, a)`.
+//!
+//! In Ancient Greek (and ΓΛΩΣΣΑ), word order is flexible. Meaning is determined
+//! by **case endings**. The `Assembler` acts as a state machine that collects
+//! these tokens and puts them into the correct semantic "slots".
+//!
+//! ```text
+//! ┌───────────────────────────────────────────────────────────────┐
+//! │                       The Assembler                           │
+//! │                                                               │
+//! │  Input Stream      ┌──────────────┐                           │
+//! │  "ὁ ἄνθρωπος" ────►│ Nominative   │─────► Subject (Agent)     │
+//! │  (The man)         └──────────────┘                           │
+//! │                                                               │
+//! │                    ┌──────────────┐                           │
+//! │  "τὸν λόγον"  ────►│ Accusative   │─────► Object (Patient)    │
+//! │  (the word)        └──────────────┘                           │
+//! │                                                               │
+//! │                    ┌──────────────┐                           │
+//! │  "λέγει"      ────►│ Verb         │─────► Action              │
+//! │  (says)            └──────────────┘                           │
+//! │                                                               │
+//! └───────────────────────────────────────────────────────────────┘
+//! ```
+//!
+//! ## How it works
+//!
+//! 1. **Feed**: You feed morphologically analyzed tokens one by one using [`Assembler::feed`].
+//! 2. **Route**: The assembler looks at the `Case` of the token (Nominative, Accusative, etc.)
+//!    and routes it to the corresponding pending slot.
+//! 3. **Accumulate**: Modifiers like adjectives or genitives are accumulated in lists.
+//! 4. **Finalize**: When the statement ends (e.g., at a period), you call [`Assembler::finalize`].
+//!    This checks for validity (e.g., Subject-Verb agreement) and returns the [`AssembledStatement`].
+//!
+//! ## Word Order Independence
+//!
+//! Because slots are filled by case, the following are all equivalent:
+//!
+//! * **SOV**: `ὁ ἄνθρωπος τὸν λόγον λέγει` (The man says the word)
+//! * **VSO**: `λέγει τὸν λόγον ὁ ἄνθρωπος` (Says the word the man)
+//! * **OVS**: `τὸν λόγον λέγει ὁ ἄνθρωπος` (The word says the man)
+//!
+//! The assembler handles all of these correctly, producing the exact same AST.
 
 use crate::ast::{Expr, Word};
 use crate::grammar::normalize_greek;
@@ -15,23 +59,47 @@ use crate::morphology::{
 };
 
 /// A fully assembled statement with all grammatical roles filled
+///
+/// This struct represents the "final state" of a sentence after parsing.
+/// It contains all the semantic components (subject, verb, object, etc.)
+/// extracted from the input stream.
 #[derive(Debug, Clone)]
 pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer
-    /// Can have multiple nominatives for function call patterns
+    ///
+    /// Example: **ὁ ἄνθρωπος** λέγει (The **man** speaks)
     pub subject: Option<Constituent>,
+
     /// Additional nominatives (for function names, etc.)
+    ///
+    /// Used in patterns where multiple nominatives appear, such as
+    /// function calls or predicate nominatives.
     pub nominatives: Vec<Constituent>,
+
     /// The verb - the action
+    ///
+    /// Example: ὁ ἄνθρωπος **λέγει** (The man **speaks**)
     pub verb: Option<VerbConstituent>,
+
     /// The direct object (accusative) - receives the action
+    ///
+    /// Example: βλέπω **τὸν ἄνθρωπον** (I see **the man**)
     pub object: Option<Constituent>,
     /// The indirect object (dative) - recipient/beneficiary
+    ///
+    /// Example: δίδωμι **τῷ ἀνθρώπῳ** (I give **to the man**)
     pub indirect: Option<Constituent>,
+
     /// Possessors/sources (genitive) - attached to other constituents
+    ///
+    /// Example: τὸ τοῦ **ἀνθρώπου** βιβλίον (The **man's** book)
     pub genitives: Vec<Constituent>,
+
     /// Adjectives modifying nouns (νέον for "new")
+    ///
+    /// These are accumulated and applied to the relevant nouns during semantic analysis.
     pub adjectives: Vec<Constituent>,
+
     /// Literal values (strings, numbers) that appeared
     pub literals: Vec<Literal>,
     /// Array literals that appeared
@@ -120,15 +188,35 @@ pub enum Literal {
 /// Feed it tokens one by one, and it routes them to the appropriate slot
 /// based on their grammatical case. When you hit end-of-statement, call
 /// `finalize()` to get the assembled statement.
+///
+/// # State Machine
+///
+/// The assembler maintains "pending" slots. As tokens arrive:
+/// - **Nominative** -> `pending_subject` (or `pending_nominatives` if subject full)
+/// - **Accusative** -> `pending_object`
+/// - **Dative** -> `pending_indirect`
+/// - **Verb** -> `pending_verb`
+///
+/// This allows tokens to arrive in any order (Subject-Verb-Object, Verb-Object-Subject, etc.)
+/// and still fill the correct semantic roles.
 pub struct Assembler {
+    /// Slot for the subject (Nominative case)
     pending_subject: Option<Constituent>,
+    /// Storage for extra nominatives (e.g. predicate nominatives)
     pending_nominatives: Vec<Constituent>,
+    /// Slot for the direct object (Accusative case)
     pending_object: Option<Constituent>,
+    /// Slot for the indirect object (Dative case)
     pending_indirect: Option<Constituent>,
+    /// Slot for the main verb
     pending_verb: Option<VerbConstituent>,
+    /// Accumulated genitives (possessors)
     pending_genitives: Vec<Constituent>,
+    /// Accumulated adjectives
     pending_adjectives: Vec<Constituent>,
+    /// Accumulated literals (numbers, strings)
     pending_literals: Vec<Literal>,
+    /// Accumulated array literals
     pending_arrays: Vec<Vec<Expr>>,
     pending_index_accesses: Vec<(Expr, Expr)>,
     pending_property_accesses: Vec<(String, String)>,
@@ -173,6 +261,14 @@ pub enum AssemblyError {
 
 impl Assembler {
     /// Create a new empty assembler
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    ///
+    /// let asm = Assembler::new();
+    /// ```
     pub fn new() -> Self {
         Assembler {
             pending_subject: None,
@@ -197,6 +293,10 @@ impl Assembler {
     }
 
     /// Reset the assembler for a new statement
+    ///
+    /// Clears all pending slots, preparing the assembler for the next sentence.
+    /// This is typically called automatically by `finalize()`, but can be
+    /// called manually to discard a partial statement.
     pub fn reset(&mut self) {
         self.pending_subject = None;
         self.pending_nominatives.clear();
@@ -229,6 +329,25 @@ impl Assembler {
     }
 
     /// Feed a morphologically-analyzed token into the assembler
+    ///
+    /// This routes the token to the correct slot based on its case.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    /// use glossa::morphology::analyze;
+    ///
+    /// let mut asm = Assembler::new();
+    ///
+    /// // "ἄνθρωπος" (Nom) -> Subject
+    /// let subj = analyze("ἄνθρωπος");
+    /// asm.feed(&subj, "ἄνθρωπος").unwrap();
+    ///
+    /// // "λόγον" (Acc) -> Object
+    /// let obj = analyze("λόγον");
+    /// asm.feed(&obj, "λόγον").unwrap();
+    /// ```
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
         let normalized = normalize_greek(original);
 
@@ -467,6 +586,33 @@ impl Assembler {
     }
 
     /// Finalize the statement - check agreement and assemble
+    ///
+    /// This validates the sentence structure (e.g. subject-verb agreement) and
+    /// returns the complete `AssembledStatement`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    /// use glossa::morphology::analyze;
+    ///
+    /// let mut asm = Assembler::new();
+    ///
+    /// // "The man says"
+    /// asm.feed(&analyze("ἄνθρωπος"), "ἄνθρωπος").unwrap();
+    /// asm.feed(&analyze("λέγει"), "λέγει").unwrap();
+    ///
+    /// let stmt = asm.finalize().unwrap();
+    /// assert!(stmt.subject.is_some());
+    /// assert!(stmt.verb.is_some());
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Two subjects or two verbs are found (`DoubleSubject`, `DoubleVerb`)
+    /// - Subject and verb disagree in number (`SubjectVerbDisagreement`)
+    /// - Grammatical gender mismatch occurs
     pub fn finalize(&mut self) -> Result<AssembledStatement, AssemblyError> {
         // Check for required verb (unless it's a query or has only literals)
         let has_content = self.pending_subject.is_some()
