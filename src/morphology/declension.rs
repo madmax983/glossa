@@ -500,9 +500,11 @@ mod tests {
         assert!(found_neuter, "Should find Third Declension Neuter analysis");
 
         // We might also find First Declension Feminine (lemma "σωμα" from stem "σωμ" + "α")
-        let found_feminine = analyses
-            .iter()
-            .any(|a| a.gender == Some(Gender::Feminine) && a.number == Some(Number::Singular) && a.lemma == "σωμα");
+        let found_feminine = analyses.iter().any(|a| {
+            a.gender == Some(Gender::Feminine)
+                && a.number == Some(Number::Singular)
+                && a.lemma == "σωμα"
+        });
         assert!(
             found_feminine,
             "Should find First Declension Feminine singular analysis (ambiguity)"
