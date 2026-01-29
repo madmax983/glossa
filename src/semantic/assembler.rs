@@ -306,8 +306,7 @@ impl Assembler {
             // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.sentence.subject {
                 let normalized_original = crate::grammar::normalize_greek(&subj.original);
-                self.expression
-                    .property_accesses
+                self.expression.property_accesses
                     .push((normalized_original, "len".to_string()));
                 self.sentence.subject = None; // Consume the subject
             }

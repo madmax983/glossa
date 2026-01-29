@@ -1,3 +1,3 @@
-## 2024-05-22 - Dismantling the Assembler God Object
+## 2026-10-01 - Dismantling the Assembler God Object
 **Tangle:** The `Assembler` struct in `src/semantic/assembler.rs` was a flat list of ~20 fields mixing sentence constituents (Subject/Verb/Object) with expression parsing state (Literals/Operators), making it a "God Object" that managed too many distinct parsing states in a single context.
 **Blueprint:** Split `Assembler` into `SentenceState` (grammatical slots) and `ExpressionState` (syntactic buffer), composed into the main `Assembler` struct. This enforces separation of concerns between sentence structure and expression evaluation while maintaining the same public API.
