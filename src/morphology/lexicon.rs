@@ -8,10 +8,12 @@ use rustc_hash::FxHashMap;
 use std::sync::LazyLock;
 
 /// A lexicon entry with full morphological information
-#[derive(Debug, Clone)]
+///
+/// Optimization: Uses `&'static str` for strings to avoid heap allocations.
+#[derive(Debug, Clone, Copy)]
 pub struct LexiconEntry {
     /// The dictionary form (lemma)
-    pub lemma: String,
+    pub lemma: &'static str,
     /// Part of speech
     pub pos: PartOfSpeech,
     /// Gender (for nouns/adjectives)
@@ -32,7 +34,7 @@ pub struct LexiconEntry {
 impl LexiconEntry {
     pub fn to_analysis(&self) -> MorphAnalysis {
         MorphAnalysis {
-            lemma: self.lemma.clone(),
+            lemma: self.lemma.to_string(),
             part_of_speech: self.pos,
             case: self.case,
             number: self.number,
@@ -58,7 +60,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "λεγω",
         LexiconEntry {
-            lemma: "λεγω".to_string(),
+            lemma: "λεγω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "say, speak, print",
@@ -75,7 +77,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "λεγε",
         LexiconEntry {
-            lemma: "λεγω".to_string(),
+            lemma: "λεγω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "say! (imperative)",
@@ -93,7 +95,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ευρε",
         LexiconEntry {
-            lemma: "ευρισκω".to_string(),
+            lemma: "ευρισκω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "find! discover! (imperative)",
@@ -111,7 +113,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "εστω",
         LexiconEntry {
-            lemma: "ειμι".to_string(),
+            lemma: "ειμι",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "let it be (binding)",
@@ -129,7 +131,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "εστωσαν",
         LexiconEntry {
-            lemma: "ειμι".to_string(),
+            lemma: "ειμι",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "let them be (plural binding)",
@@ -147,7 +149,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "γραφω",
         LexiconEntry {
-            lemma: "γραφω".to_string(),
+            lemma: "γραφω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "write",
@@ -164,7 +166,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "γραφε",
         LexiconEntry {
-            lemma: "γραφω".to_string(),
+            lemma: "γραφω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "write! (imperative)",
@@ -182,7 +184,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "συλλεγω",
         LexiconEntry {
-            lemma: "συλλεγω".to_string(),
+            lemma: "συλλεγω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "collect, gather",
@@ -204,7 +206,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "αριθμος",
         LexiconEntry {
-            lemma: "αριθμος".to_string(),
+            lemma: "αριθμος",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Masculine),
             meaning: "number",
@@ -222,7 +224,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ονομα",
         LexiconEntry {
-            lemma: "ονομα".to_string(),
+            lemma: "ονομα",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "name, string",
@@ -239,7 +241,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ονοματος",
         LexiconEntry {
-            lemma: "ονομα".to_string(),
+            lemma: "ονομα",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "of a name/string",
@@ -257,7 +259,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "λιστη",
         LexiconEntry {
-            lemma: "λιστη".to_string(),
+            lemma: "λιστη",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Feminine),
             meaning: "list",
@@ -275,7 +277,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "αθροισμα",
         LexiconEntry {
-            lemma: "αθροισμα".to_string(),
+            lemma: "αθροισμα",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "sum, total",
@@ -293,7 +295,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "γινομενον",
         LexiconEntry {
-            lemma: "γινομενον".to_string(),
+            lemma: "γινομενον",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "product",
@@ -311,7 +313,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "κενον",
         LexiconEntry {
-            lemma: "κενον".to_string(),
+            lemma: "κενον",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "empty, void",
@@ -329,7 +331,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "χαρακτηρ",
         LexiconEntry {
-            lemma: "χαρακτηρ".to_string(),
+            lemma: "χαρακτηρ",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Masculine),
             meaning: "character",
@@ -347,7 +349,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "βασις",
         LexiconEntry {
-            lemma: "βασις".to_string(),
+            lemma: "βασις",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Feminine),
             meaning: "base, byte",
@@ -365,7 +367,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "δεσμος",
         LexiconEntry {
-            lemma: "δεσμος".to_string(),
+            lemma: "δεσμος",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Masculine),
             meaning: "bond, tuple",
@@ -383,7 +385,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "χαρτης",
         LexiconEntry {
-            lemma: "χαρτης".to_string(),
+            lemma: "χαρτης",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Masculine),
             meaning: "map, chart",
@@ -401,7 +403,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "συνολον",
         LexiconEntry {
-            lemma: "συνολον".to_string(),
+            lemma: "συνολον",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "collection, set",
@@ -423,7 +425,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "π",
         LexiconEntry {
-            lemma: "π".to_string(),
+            lemma: "π",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "pi (variable)",
@@ -441,7 +443,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "που",
         LexiconEntry {
-            lemma: "π".to_string(),
+            lemma: "π",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "of pi (genitive)",
@@ -459,7 +461,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "α",
         LexiconEntry {
-            lemma: "α".to_string(),
+            lemma: "α",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Feminine),
             meaning: "alpha (variable)",
@@ -477,7 +479,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "αου",
         LexiconEntry {
-            lemma: "α".to_string(),
+            lemma: "α",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Feminine),
             meaning: "of alpha (genitive)",
@@ -499,7 +501,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ποιεω",
         LexiconEntry {
-            lemma: "ποιεω".to_string(),
+            lemma: "ποιεω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "make, do",
@@ -516,7 +518,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ποιει",
         LexiconEntry {
-            lemma: "ποιεω".to_string(),
+            lemma: "ποιεω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "makes, does",
@@ -534,7 +536,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "λαμβανω",
         LexiconEntry {
-            lemma: "λαμβανω".to_string(),
+            lemma: "λαμβανω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "take, receive, input",
@@ -551,7 +553,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "λαβε",
         LexiconEntry {
-            lemma: "λαμβανω".to_string(),
+            lemma: "λαμβανω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "take! receive! (imperative)",
@@ -569,7 +571,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ωθει",
         LexiconEntry {
-            lemma: "ωθεω".to_string(),
+            lemma: "ωθεω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "pushes (collection operation)",
@@ -587,7 +589,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ελκεται",
         LexiconEntry {
-            lemma: "ελκω".to_string(),
+            lemma: "ελκω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "pulls itself (pop, middle voice)",
@@ -605,7 +607,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "μηκος",
         LexiconEntry {
-            lemma: "μηκος".to_string(),
+            lemma: "μηκος",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "length",
@@ -627,7 +629,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "πρωτον",
         LexiconEntry {
-            lemma: "πρωτος".to_string(),
+            lemma: "πρωτος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "first",
@@ -644,7 +646,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "πρωτου",
         LexiconEntry {
-            lemma: "πρωτος".to_string(),
+            lemma: "πρωτος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "of first",
@@ -662,7 +664,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "δευτερον",
         LexiconEntry {
-            lemma: "δευτερος".to_string(),
+            lemma: "δευτερος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "second",
@@ -679,7 +681,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "δευτερου",
         LexiconEntry {
-            lemma: "δευτερος".to_string(),
+            lemma: "δευτερος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "of second",
@@ -697,7 +699,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "τριτον",
         LexiconEntry {
-            lemma: "τριτος".to_string(),
+            lemma: "τριτος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "third",
@@ -714,7 +716,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "τριτου",
         LexiconEntry {
-            lemma: "τριτος".to_string(),
+            lemma: "τριτος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "of third",
@@ -732,7 +734,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "τεταρτον",
         LexiconEntry {
-            lemma: "τεταρτος".to_string(),
+            lemma: "τεταρτος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "fourth",
@@ -750,7 +752,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "πεμπτον",
         LexiconEntry {
-            lemma: "πεμπτος".to_string(),
+            lemma: "πεμπτος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "fifth",
@@ -768,7 +770,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "διδωμι",
         LexiconEntry {
-            lemma: "διδωμι".to_string(),
+            lemma: "διδωμι",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "give, return",
@@ -785,7 +787,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "δος",
         LexiconEntry {
-            lemma: "διδωμι".to_string(),
+            lemma: "διδωμι",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "give! (imperative)",
@@ -803,7 +805,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "οριζειν",
         LexiconEntry {
-            lemma: "οριζω".to_string(),
+            lemma: "οριζω",
             pos: PartOfSpeech::Verb,
             gender: None,
             meaning: "to define, to bound",
@@ -821,7 +823,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "νεος",
         LexiconEntry {
-            lemma: "νεος".to_string(),
+            lemma: "νεος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Masculine),
             meaning: "new",
@@ -839,7 +841,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "νεα",
         LexiconEntry {
-            lemma: "νεος".to_string(),
+            lemma: "νεος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Feminine),
             meaning: "new",
@@ -857,7 +859,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "νεον",
         LexiconEntry {
-            lemma: "νεος".to_string(),
+            lemma: "νεος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "new",
@@ -875,7 +877,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ειδος",
         LexiconEntry {
-            lemma: "ειδος".to_string(),
+            lemma: "ειδος",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "form, type, kind",
@@ -893,7 +895,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ει",
         LexiconEntry {
-            lemma: "ει".to_string(),
+            lemma: "ει",
             pos: PartOfSpeech::Particle,
             gender: None,
             meaning: "if",
@@ -910,7 +912,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "εαν",
         LexiconEntry {
-            lemma: "εαν".to_string(),
+            lemma: "εαν",
             pos: PartOfSpeech::Particle,
             gender: None,
             meaning: "if (with subjunctive)",
@@ -928,7 +930,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "αλλως",
         LexiconEntry {
-            lemma: "αλλως".to_string(),
+            lemma: "αλλως",
             pos: PartOfSpeech::Particle,
             gender: None,
             meaning: "otherwise, else",
@@ -946,7 +948,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "εως",
         LexiconEntry {
-            lemma: "εως".to_string(),
+            lemma: "εως",
             pos: PartOfSpeech::Particle,
             gender: None,
             meaning: "while, until",
@@ -964,7 +966,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "δια",
         LexiconEntry {
-            lemma: "δια".to_string(),
+            lemma: "δια",
             pos: PartOfSpeech::Preposition,
             gender: None,
             meaning: "through, for each",
@@ -982,7 +984,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "εν",
         LexiconEntry {
-            lemma: "εν".to_string(),
+            lemma: "εν",
             pos: PartOfSpeech::Preposition,
             gender: None,
             meaning: "in",
@@ -1000,7 +1002,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "εις",
         LexiconEntry {
-            lemma: "εις".to_string(),
+            lemma: "εις",
             pos: PartOfSpeech::Preposition,
             gender: None,
             meaning: "into, toward",
@@ -1018,7 +1020,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "και",
         LexiconEntry {
-            lemma: "και".to_string(),
+            lemma: "και",
             pos: PartOfSpeech::Conjunction,
             gender: None,
             meaning: "and",
@@ -1043,7 +1045,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "τι",
         LexiconEntry {
-            lemma: "τις".to_string(),
+            lemma: "τις",
             pos: PartOfSpeech::Pronoun,
             gender: Some(Gender::Neuter),
             meaning: "any, some",
@@ -1061,7 +1063,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "παντα",
         LexiconEntry {
-            lemma: "πας".to_string(),
+            lemma: "πας",
             pos: PartOfSpeech::Pronoun,
             gender: Some(Gender::Neuter),
             meaning: "all, every",
@@ -1083,7 +1085,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ου",
         LexiconEntry {
-            lemma: "ου".to_string(),
+            lemma: "ου",
             pos: PartOfSpeech::Particle,
             gender: None,
             meaning: "not",
@@ -1100,7 +1102,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ουκ",
         LexiconEntry {
-            lemma: "ου".to_string(),
+            lemma: "ου",
             pos: PartOfSpeech::Particle,
             gender: None,
             meaning: "not (before vowels)",
@@ -1122,7 +1124,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ισος",
         LexiconEntry {
-            lemma: "ισος".to_string(),
+            lemma: "ισος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Masculine),
             meaning: "equal",
@@ -1140,7 +1142,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "μειζων",
         LexiconEntry {
-            lemma: "μεγας".to_string(),
+            lemma: "μεγας",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Masculine),
             meaning: "greater",
@@ -1158,7 +1160,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "μειζονα",
         LexiconEntry {
-            lemma: "μεγας".to_string(),
+            lemma: "μεγας",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "greater",
@@ -1176,7 +1178,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ελασσων",
         LexiconEntry {
-            lemma: "μικρος".to_string(),
+            lemma: "μικρος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Masculine),
             meaning: "lesser, smaller",
@@ -1194,7 +1196,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ελαττονα",
         LexiconEntry {
-            lemma: "μικρος".to_string(),
+            lemma: "μικρος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "lesser, smaller",
@@ -1215,7 +1217,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "αληθες",
         LexiconEntry {
-            lemma: "αληθης".to_string(),
+            lemma: "αληθης",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "true",
@@ -1232,7 +1234,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ψευδος",
         LexiconEntry {
-            lemma: "ψευδος".to_string(),
+            lemma: "ψευδος",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "false, lie",
@@ -1255,7 +1257,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ουδεν",
         LexiconEntry {
-            lemma: "ουδεις".to_string(),
+            lemma: "ουδεις",
             pos: PartOfSpeech::Pronoun,
             gender: Some(Gender::Neuter),
             meaning: "nothing, none",
@@ -1274,7 +1276,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "τι",
         LexiconEntry {
-            lemma: "τις".to_string(),
+            lemma: "τις",
             pos: PartOfSpeech::Pronoun,
             gender: Some(Gender::Neuter),
             meaning: "something, some",
@@ -1293,7 +1295,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "επιτυχια",
         LexiconEntry {
-            lemma: "επιτυχια".to_string(),
+            lemma: "επιτυχια",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Feminine),
             meaning: "success, achievement",
@@ -1312,7 +1314,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "σφαλμα",
         LexiconEntry {
-            lemma: "σφαλμα".to_string(),
+            lemma: "σφαλμα",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "error, mistake, failure",
@@ -1334,7 +1336,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "χρηστης",
         LexiconEntry {
-            lemma: "χρηστης".to_string(),
+            lemma: "χρηστης",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Masculine),
             meaning: "user",
@@ -1356,7 +1358,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "θετικα",
         LexiconEntry {
-            lemma: "θετικος".to_string(),
+            lemma: "θετικος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "positive",
@@ -1378,7 +1380,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "μειζον",
         LexiconEntry {
-            lemma: "μεγας".to_string(),
+            lemma: "μεγας",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "greater (comparative)",
@@ -1396,7 +1398,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ελαττον",
         LexiconEntry {
-            lemma: "ελαττων".to_string(),
+            lemma: "ελαττων",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "lesser (comparative)",
@@ -1414,7 +1416,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ισον",
         LexiconEntry {
-            lemma: "ισος".to_string(),
+            lemma: "ισος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "equal",
@@ -1432,7 +1434,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "ανισον",
         LexiconEntry {
-            lemma: "ανισος".to_string(),
+            lemma: "ανισος",
             pos: PartOfSpeech::Adjective,
             gender: Some(Gender::Neuter),
             meaning: "unequal",
@@ -1454,7 +1456,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "τω",
         LexiconEntry {
-            lemma: "ο".to_string(),
+            lemma: "ο",
             pos: PartOfSpeech::Article,
             gender: Some(Gender::Masculine), // Can be any gender contextually
             meaning: "to the (dative article)",
@@ -1476,7 +1478,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "και",
         LexiconEntry {
-            lemma: "και".to_string(),
+            lemma: "και",
             pos: PartOfSpeech::Conjunction,
             gender: None,
             meaning: "and",
@@ -1498,7 +1500,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         m.insert(
             neg,
             LexiconEntry {
-                lemma: "ου".to_string(),
+                lemma: "ου",
                 pos: PartOfSpeech::Particle,
                 gender: None,
                 meaning: "not",
@@ -1521,7 +1523,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "αθροισμα",
         LexiconEntry {
-            lemma: "αθροισμα".to_string(),
+            lemma: "αθροισμα",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "sum",
@@ -1539,7 +1541,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "διαφορα",
         LexiconEntry {
-            lemma: "διαφορα".to_string(),
+            lemma: "διαφορα",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Feminine),
             meaning: "difference",
@@ -1557,7 +1559,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "γινομενον",
         LexiconEntry {
-            lemma: "γινομενον".to_string(),
+            lemma: "γινομενον",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "product",
@@ -1575,7 +1577,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "μερος",
         LexiconEntry {
-            lemma: "μερος".to_string(),
+            lemma: "μερος",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "quotient, part",
@@ -1593,7 +1595,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "υπολοιπον",
         LexiconEntry {
-            lemma: "υπολοιπον".to_string(),
+            lemma: "υπολοιπον",
             pos: PartOfSpeech::Noun,
             gender: Some(Gender::Neuter),
             meaning: "remainder",
@@ -1632,7 +1634,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         m.insert(
             word,
             LexiconEntry {
-                lemma: word.to_string(),
+                lemma: word,
                 pos: PartOfSpeech::Numeral,
                 gender: None,
                 meaning: "numeral",
@@ -1651,7 +1653,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m.insert(
         "μηδενος",
         LexiconEntry {
-            lemma: "μηδεν".to_string(),
+            lemma: "μηδεν",
             pos: PartOfSpeech::Numeral,
             gender: Some(Gender::Neuter),
             meaning: "of zero, of nothing",

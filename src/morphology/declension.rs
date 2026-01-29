@@ -475,4 +475,99 @@ mod tests {
         assert_eq!(get_stem("τιμη", Declension::First), "τιμ");
         assert_eq!(get_stem("ονομα", Declension::Third), "ονο");
     }
+
+    #[test]
+    fn test_analyze_noun_all_ambiguity() {
+        // "σωμα" (body) is Third Declension neuter
+        // It has the ending -μα which matches Nominative, Accusative, and Vocative Singular
+        // But -α ending also matches First Declension feminine
+        let analyses = analyze_noun_all("σωμα");
+
+        // Should have at least 3 analyses
+        assert!(
+            analyses.len() >= 6,
+            "Expected at least 6 analyses for ambiguity, got {}",
+            analyses.len()
+        );
+
+        // Check that we found the correct Third Declension Neuter analysis
+        // This should have higher confidence because "μα" (len 2) matches better than "α" (len 1)
+        let found_neuter = analyses.iter().any(|a| {
+            a.gender == Some(Gender::Neuter)
+                && a.number == Some(Number::Singular)
+                && a.lemma == "σωμα"
+        });
+        assert!(found_neuter, "Should find Third Declension Neuter analysis");
+
+        // We might also find First Declension Feminine (lemma "σωμα" from stem "σωμ" + "α")
+        let found_feminine = analyses
+            .iter()
+            .any(|a| a.gender == Some(Gender::Feminine) && a.number == Some(Number::Singular) && a.lemma == "σωμα");
+        assert!(
+            found_feminine,
+            "Should find First Declension Feminine singular analysis (ambiguity)"
+        );
+    }
+
+    #[test]
+    fn test_first_declension_alpha() {
+        // "χώρα" (country) - First Declension Alpha type
+        // Using analyze_noun_all because analyze_noun (singular) defaults to
+        // Second Declension Plural (neuter) for -α ending (e.g. δῶρα from δῶρον).
+        let analyses = analyze_noun_all("χωρα");
+
+        let found = analyses.iter().find(|a| {
+            a.part_of_speech == PartOfSpeech::Noun
+                && a.lemma == "χωρα"
+                && a.gender == Some(Gender::Feminine)
+                && a.case == Some(Case::Nominative)
+        });
+
+        assert!(
+            found.is_some(),
+            "Should find First Declension Alpha analysis for χωρα"
+        );
+    }
+
+    #[test]
+    fn test_decline_alpha_mismatch() {
+        // This test documents a known limitation in `decline`
+        // It uses FIRST_DECLENSION_ETA for all First Declension nouns
+
+        // "χωρ" (stem of χώρα) + First Declension + Genitive Singular
+        // Expectation for Alpha type: "χωρας"
+        // Actual behavior (Eta type): "χωρης"
+
+        let result = decline(
+            "χωρ",
+            Declension::First,
+            Gender::Feminine,
+            Case::Genitive,
+            Number::Singular,
+        );
+
+        // Assert the current behavior (Eta ending)
+        assert_eq!(result, "χωρης");
+
+        // If we fix the bug, this test should be updated to expect "χωρας"
+    }
+
+    #[test]
+    fn test_decline_fallthrough() {
+        // Test that decline returns stem as-is if no ending matches
+        // E.g. asking for a case that doesn't exist in the table (unlikely with Case enum)
+        // or asking for a declension/gender combo that isn't handled.
+
+        // Declension::Third + Gender::Masculine is NOT handled in decline()
+        let stem = "αγνωστ";
+        let result = decline(
+            stem,
+            Declension::Third,
+            Gender::Masculine,
+            Case::Nominative,
+            Number::Singular,
+        );
+
+        assert_eq!(result, stem);
+    }
 }
