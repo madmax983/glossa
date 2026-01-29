@@ -10,9 +10,7 @@
 use crate::ast::{Expr, Word};
 use crate::grammar::normalize_greek;
 use crate::morphology::lexicon::BinaryOp;
-use crate::morphology::{
-    Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person,
-};
+use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person};
 use crate::semantic::constituents::*;
 
 /// The slot-based assembler

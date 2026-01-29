@@ -30,9 +30,7 @@ mod types;
 
 pub use agreement::*;
 pub use assembler::Assembler;
-pub use constituents::{
-    AssembledStatement, AssemblyError, Constituent, Literal, VerbConstituent,
-};
+pub use constituents::{AssembledStatement, AssemblyError, Constituent, Literal, VerbConstituent};
 pub use disambiguation::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub use resolver::*;
 pub use types::*;
