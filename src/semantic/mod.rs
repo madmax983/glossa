@@ -394,6 +394,7 @@ fn try_parse_struct_instantiation(
                     kind: StatementKind::Binding {
                         name: var_name.clone(),
                         value_type: struct_type.clone(),
+                        mutable: false,
                     },
                     expressions: vec![
                         AnalyzedExpr {
@@ -2735,6 +2736,7 @@ fn classify_assembled_statement(
                         StatementKind::Binding {
                             name: var_name.clone(),
                             value_type: struct_type.clone(),
+                            mutable: false,
                         },
                         vec![
                             AnalyzedExpr {
@@ -2828,6 +2830,7 @@ fn classify_assembled_statement(
                     StatementKind::Binding {
                         name: var_name.clone(),
                         value_type: return_type.clone(),
+                        mutable: false,
                     },
                     vec![
                         AnalyzedExpr {
@@ -2933,13 +2936,19 @@ fn classify_assembled_statement(
                 value_expr
             };
 
-            // Register binding in scope
-            scope.define(var_name.clone(), value_type.clone());
+            // Register binding in scope (mutable if μετά marker present)
+            let is_mutable = asm_stmt.has_mutable_marker;
+            if is_mutable {
+                scope.define_mut(var_name.clone(), value_type.clone());
+            } else {
+                scope.define(var_name.clone(), value_type.clone());
+            }
 
             return Ok((
                 StatementKind::Binding {
                     name: var_name.clone(),
                     value_type: value_type.clone(),
+                    mutable: is_mutable,
                 },
                 vec![
                     AnalyzedExpr {
@@ -2949,6 +2958,66 @@ fn classify_assembled_statement(
                     final_value_expr,
                 ],
             ));
+        }
+
+        // Check for assignment: ξ δέκα γίγνεται (middle voice)
+        if crate::morphology::lexicon::is_assignment_verb(&verb_lemma) {
+            // Get the variable name from the subject
+            let var_name = if let Some(ref subject) = asm_stmt.subject {
+                normalize_greek(&subject.original)
+            } else {
+                return Err(GlossaError::semantic("Assignment without subject"));
+            };
+
+            // Check if variable is defined and mutable
+            let binding = scope.lookup_binding(&var_name);
+            match binding {
+                None => {
+                    return Err(GlossaError::semantic(format!(
+                        "Τὸ «{}» οὐχ ὡρίσθη — πρῶτον ὅρισον αὐτό",
+                        var_name
+                    )));
+                }
+                Some(b) if !b.mutable => {
+                    return Err(GlossaError::semantic(crate::errors::immutable_assignment(
+                        &var_name,
+                    )));
+                }
+                Some(b) => {
+                    // An assignment must have a value
+                    let has_value = !asm_stmt.literals.is_empty()
+                        || asm_stmt.object.is_some()
+                        || !asm_stmt.arrays.is_empty()
+                        || !asm_stmt.unwraps.is_empty()
+                        || !asm_stmt.index_accesses.is_empty()
+                        || !asm_stmt.property_accesses.is_empty()
+                        || !asm_stmt.nested_phrases.is_empty();
+
+                    if !has_value {
+                        return Err(GlossaError::semantic(format!(
+                            "Τῇ πράξει «{} γίγνεται» δεῖ τιμῆς",
+                            var_name
+                        )));
+                    }
+
+                    let value_type = b.glossa_type.clone();
+                    let (value_expr, _) = extract_value(asm_stmt);
+                    scope.mark_used(&var_name);
+                    return Ok((
+                        StatementKind::Assignment {
+                            name: var_name.clone(),
+                            value_type: value_type.clone(),
+                        },
+                        vec![
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable(var_name),
+                                glossa_type: value_type.clone(),
+                            },
+                            value_expr,
+                        ],
+                    ));
+                }
+            }
         }
 
         // Check for pop pattern: subject ἕλκεται (middle voice)
@@ -3716,6 +3785,12 @@ pub enum StatementKind {
     Binding {
         name: String,
         value_type: GlossaType,
+        mutable: bool,
+    },
+    /// Assignment: ξ δέκα γίγνεται
+    Assignment {
+        name: String,
+        value_type: GlossaType,
     },
     /// Print statement: «χαῖρε» λέγε
     Print,
@@ -4049,6 +4124,7 @@ impl SemanticAnalyzer {
                                     StatementKind::Binding {
                                         name: var_name.clone(),
                                         value_type: struct_type.clone(),
+                                        mutable: false,
                                     },
                                     vec![
                                         AnalyzedExpr {
@@ -4122,15 +4198,28 @@ impl SemanticAnalyzer {
         }
 
         if is_binding {
-            // Pattern: name value... ἔστω
+            // Pattern: [μετά] name value... ἔστω
             // e.g., ξ πέντε ἔστω
+            // e.g., μετά ξ πέντε ἔστω (mutable)
             // e.g., τοπικον ξ ἓν ἄθροισμα ἔστω
             if terms.len() >= 3 {
-                let name = self.extract_name(&terms[0])?;
+                // Check for μετά mutable marker
+                let (is_mutable, name_start) = if let Expr::Word(w) = &terms[0] {
+                    if crate::morphology::lexicon::is_mutable_marker(&w.normalized) {
+                        (true, 1)
+                    } else {
+                        (false, 0)
+                    }
+                } else {
+                    (false, 0)
+                };
+
+                let name = self.extract_name(&terms[name_start])?;
 
                 // Collect all terms between the name and the ἔστω verb
                 let verb_position = verb_idx.unwrap();
-                let value_terms = &terms[1..verb_position];
+                let value_start = name_start + 1;
+                let value_terms = &terms[value_start..verb_position];
 
                 // Analyze the value expression using the assembler
                 // Create a phrase expression from the value terms and analyze it
@@ -4159,14 +4248,20 @@ impl SemanticAnalyzer {
                     classify_value_expression(&assembled, &mut self.scope)?
                 };
 
-                // Register in scope
-                self.scope
-                    .define(name.clone(), value_expr.glossa_type.clone());
+                // Register in scope (mutable if μετά marker present)
+                if is_mutable {
+                    self.scope
+                        .define_mut(name.clone(), value_expr.glossa_type.clone());
+                } else {
+                    self.scope
+                        .define(name.clone(), value_expr.glossa_type.clone());
+                }
 
                 return Ok((
                     StatementKind::Binding {
                         name: name.clone(),
                         value_type: value_expr.glossa_type.clone(),
+                        mutable: is_mutable,
                     },
                     vec![
                         AnalyzedExpr {

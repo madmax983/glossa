@@ -62,6 +62,12 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
             mutable,
         } => generate_let(name, value, *mutable),
 
+        HirStatement::Assign { name, value } => {
+            let name_ident = format_ident!("{}", sanitize_name(name));
+            let value_tokens = generate_expr(value);
+            quote! { #name_ident = #value_tokens; }
+        }
+
         HirStatement::Print { args } => generate_print(args),
 
         HirStatement::Expr(expr) => {

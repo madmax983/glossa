@@ -122,6 +122,8 @@ pub struct AssembledStatement {
     pub is_query: bool,
     /// Whether this statement propagates (ends with ;) - converts to `?` in Rust
     pub is_propagate: bool,
+    /// Whether this binding has the mutable marker (μετά)
+    pub has_mutable_marker: bool,
 }
 
 /// A noun/pronoun constituent with its grammatical info
@@ -154,6 +156,8 @@ pub struct VerbConstituent {
     pub tense: Option<Tense>,
     /// Mood (indicative, imperative, etc.)
     pub mood: Option<Mood>,
+    /// Voice (active, middle, passive)
+    pub voice: Option<Voice>,
 }
 
 /// A participle constituent (used for lambdas/closures)
@@ -225,6 +229,7 @@ pub struct Assembler {
     pending_nested_phrases: Vec<Vec<Expr>>,
     pending_participles: Vec<ParticipleConstituent>,
     pending_unwraps: Vec<Expr>,
+    pending_mutable_marker: bool,
     is_query: bool,
     is_propagate: bool,
 }
@@ -287,6 +292,7 @@ impl Assembler {
             pending_nested_phrases: Vec::new(),
             pending_participles: Vec::new(),
             pending_unwraps: Vec::new(),
+            pending_mutable_marker: false,
             is_query: false,
             is_propagate: false,
         }
@@ -314,6 +320,7 @@ impl Assembler {
         self.pending_nested_phrases.clear();
         self.pending_participles.clear();
         self.pending_unwraps.clear();
+        self.pending_mutable_marker = false;
         self.is_query = false;
         self.is_propagate = false;
     }
@@ -350,6 +357,12 @@ impl Assembler {
     /// ```
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
         let normalized = normalize_greek(original);
+
+        // Check for mutable marker (μετά) first
+        if crate::morphology::lexicon::is_mutable_marker(&normalized) {
+            self.pending_mutable_marker = true;
+            return Ok(());
+        }
 
         // Check for operators first (before normal part-of-speech handling)
         // Boolean operators: καί (&&), ἤ (||)
@@ -562,6 +575,7 @@ impl Assembler {
             number: analysis.number,
             tense: analysis.tense,
             mood: analysis.mood,
+            voice: analysis.voice,
         });
 
         Ok(())
@@ -662,6 +676,7 @@ impl Assembler {
             nested_phrases: std::mem::take(&mut self.pending_nested_phrases),
             participles: std::mem::take(&mut self.pending_participles),
             unwraps: std::mem::take(&mut self.pending_unwraps),
+            has_mutable_marker: self.pending_mutable_marker,
             is_query: self.is_query,
             is_propagate: self.is_propagate,
         };
@@ -883,5 +898,19 @@ mod tests {
 
         let stmt = asm.finalize().unwrap();
         assert!(stmt.indirect.is_some());
+    }
+
+    #[test]
+    fn test_verb_constituent_has_voice() {
+        let mut asm = Assembler::new();
+
+        // γίγνεται - middle voice verb
+        let verb = analyze("γιγνεται");
+        asm.feed(&verb, "γίγνεται").unwrap();
+
+        let stmt = asm.finalize().unwrap();
+        assert!(stmt.verb.is_some());
+        let verb_const = stmt.verb.unwrap();
+        assert_eq!(verb_const.voice, Some(Voice::Middle));
     }
 }

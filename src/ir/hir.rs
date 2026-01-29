@@ -23,6 +23,9 @@ pub enum HirStatement {
         mutable: bool,
     },
 
+    /// name = value;
+    Assign { name: String, value: HirExpr },
+
     /// println!(...);
     Print { args: Vec<HirExpr> },
 
@@ -293,7 +296,7 @@ pub fn lower_to_hir(analyzed: &AnalyzedProgram) -> HirProgram {
 
 fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
     match &stmt.kind {
-        StatementKind::Binding { name, .. } => {
+        StatementKind::Binding { name, mutable, .. } => {
             // Get the value expression (second expression in the list)
             let value = if stmt.expressions.len() > 1 {
                 lower_expr(&stmt.expressions[1])
@@ -307,7 +310,23 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
             Some(HirStatement::Let {
                 name: name.clone(),
                 value,
-                mutable: is_array,
+                mutable: *mutable || is_array,
+            })
+        }
+
+        StatementKind::Assignment { name, .. } => {
+            // Get the value expression (second expression in the list)
+            // Assignment must have a value - panic if missing (indicates semantic analysis bug)
+            assert!(
+                stmt.expressions.len() > 1,
+                "Assignment statement missing value expression during HIR lowering. \
+                 This indicates a bug in the semantic analysis phase."
+            );
+            let value = lower_expr(&stmt.expressions[1]);
+
+            Some(HirStatement::Assign {
+                name: name.clone(),
+                value,
             })
         }
 
@@ -617,7 +636,7 @@ mod tests {
 
         assert!(matches!(
             &hir.statements[0],
-            HirStatement::Let { name, .. } if name == "ξ"
+            HirStatement::Let { name, mutable, .. } if name == "ξ" && !mutable
         ));
     }
 
@@ -632,5 +651,24 @@ mod tests {
         } else {
             panic!("Expected Print statement");
         }
+    }
+
+    #[test]
+    fn test_lower_assignment() {
+        let ast = build_ast("μετά ξ πέντε ἔστω. ξ δέκα γίγνεται.").unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+        let hir = lower_to_hir(&analyzed);
+
+        // First statement should be Let with mutable
+        assert!(matches!(
+            &hir.statements[0],
+            HirStatement::Let { name, mutable, .. } if name == "ξ" && *mutable
+        ));
+
+        // Second statement should be Assign
+        assert!(matches!(
+            &hir.statements[1],
+            HirStatement::Assign { name, .. } if name == "ξ"
+        ));
     }
 }

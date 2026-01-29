@@ -14,6 +14,14 @@ pub fn undefined_variable(name: &str) -> String {
     format!("Οὐκ οἶδα τὸ ὄνομα «{}»", name)
 }
 
+/// Get a Greek message for assignment to immutable variable
+pub fn immutable_assignment(name: &str) -> String {
+    format!(
+        "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
+        name
+    )
+}
+
 /// Get a Greek message for gender mismatch
 pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gender) -> String {
     format!(

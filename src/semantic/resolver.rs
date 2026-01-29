@@ -231,6 +231,13 @@ impl Scope {
         }
     }
 
+    /// Look up full binding information by name, searching parent scopes
+    pub fn lookup_binding(&self, name: &str) -> Option<&Binding> {
+        self.bindings
+            .get(name)
+            .or_else(|| self.parent.as_ref()?.lookup_binding(name))
+    }
+
     /// Check if a name is defined in this scope (not parents)
     pub fn is_defined_locally(&self, name: &str) -> bool {
         self.bindings.contains_key(name)
@@ -325,5 +332,44 @@ mod tests {
         let unused = scope.unused_bindings();
         assert_eq!(unused.len(), 1);
         assert_eq!(unused[0].name, "υ");
+    }
+
+    #[test]
+    fn test_lookup_binding_returns_full_binding() {
+        let mut scope = Scope::new();
+        scope.define_mut("μ".to_string(), GlossaType::Number);
+
+        let binding = scope.lookup_binding("μ").unwrap();
+        assert_eq!(binding.name, "μ");
+        assert_eq!(binding.glossa_type, GlossaType::Number);
+        assert!(binding.mutable);
+    }
+
+    #[test]
+    fn test_lookup_binding_immutable() {
+        let mut scope = Scope::new();
+        scope.define("ξ".to_string(), GlossaType::String);
+
+        let binding = scope.lookup_binding("ξ").unwrap();
+        assert_eq!(binding.name, "ξ");
+        assert_eq!(binding.glossa_type, GlossaType::String);
+        assert!(!binding.mutable);
+    }
+
+    #[test]
+    fn test_lookup_binding_parent_scope() {
+        let mut parent = Scope::new();
+        parent.define_mut("π".to_string(), GlossaType::Number);
+
+        let child = parent.child();
+        let binding = child.lookup_binding("π").unwrap();
+        assert_eq!(binding.name, "π");
+        assert!(binding.mutable);
+    }
+
+    #[test]
+    fn test_lookup_binding_not_found() {
+        let scope = Scope::new();
+        assert!(scope.lookup_binding("ζ").is_none());
     }
 }
