@@ -1,25 +1,35 @@
 //! Semantic analysis for ΓΛΩΣΣΑ
 //!
-//! This module handles:
-//! - Slot-based sentence assembly (Greek-native word-order independence)
-//! - Name resolution and scope tracking
-//! - Gender/number/case agreement checking
-//! - Type inference from morphology
+//! This module implements the semantic analysis pipeline, which transforms the raw AST
+//! into a typed, resolved representation ready for intermediate code generation.
 //!
-//! ## The Assembler Approach
+//! # The Analysis Pipeline
 //!
-//! Unlike traditional parsers that rely on word position, ΓΛΩΣΣΑ uses a
-//! slot-based assembler that routes words to grammatical slots based on
-//! their case endings - just like Ancient Greek actually works.
+//! 1. **Morphological Analysis**: Raw words are analyzed for case, gender, number, etc.
+//!    (handled by the `morphology` module).
+//! 2. **Slot-Based Assembly**: The [`Assembler`] routes these words into grammatical slots
+//!    (Subject, Object, Verb) based on their case endings. This provides the
+//!    language's signature free word order.
+//! 3. **Pattern Recognition**: The assembled sentence is classified into a statement kind
+//!    (Binding, Print, If, etc.) based on the verb and constituents.
+//! 4. **Name Resolution**: Variables are looked up in the [`Scope`] to ensure they exist.
+//! 5. **Type Inference**: Types are inferred from usage and lexical definitions.
+//!
+//! # The Assembler Approach
+//!
+//! Unlike traditional parsers that rely on fixed word positions (e.g., "verb follows subject"),
+//! ΓΛΩΣΣΑ uses the `Assembler` to assemble sentences based on grammatical *roles*.
 //!
 //! ```text
-//! Nominative → Subject slot
-//! Accusative → Object slot
-//! Dative     → Indirect object slot
-//! Genitive   → Possession/attachment
+//! "ὁ ἄνθρωπος τὸν λόγον λέγει"
+//!      ↓           ↓       ↓
+//! [Nominative] [Accusative] [Verb]
+//!      ↓           ↓       ↓
+//!   Subject      Object   Action
 //! ```
 //!
-//! This means SOV, VSO, and OVS all produce the same result!
+//! This allows for authentic Greek syntax where emphasis is conveyed through word order
+//! without changing the semantic meaning.
 
 mod agreement;
 pub mod assembler;
