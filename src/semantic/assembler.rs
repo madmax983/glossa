@@ -278,10 +278,7 @@ impl Assembler {
     }
 
     /// Try to handle special forms (numerals, properties, ordinals)
-    fn try_handle_special_forms(
-        &mut self,
-        normalized: &str,
-    ) -> Result<bool, AssemblyError> {
+    fn try_handle_special_forms(&mut self, normalized: &str) -> Result<bool, AssemblyError> {
         // Check for numeral words (any case form) - these become literals
         // This catches numeral words regardless of how morphology parsed them
         if let Some(value) = crate::morphology::lexicon::numeral_value(normalized) {
