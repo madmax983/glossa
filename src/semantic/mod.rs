@@ -494,7 +494,8 @@ fn analyze_trait_definition(
                 }
                 // Properly analyze statements in the body
                 for body_stmt in body_stmts {
-                    if let Some(control_flow) = analyze_control_flow(body_stmt, &mut method_scope)? {
+                    if let Some(control_flow) = analyze_control_flow(body_stmt, &mut method_scope)?
+                    {
                         analyzed_body.push(control_flow);
                     } else if let Some(struct_inst) =
                         try_parse_struct_instantiation(body_stmt, &mut method_scope)?

@@ -400,59 +400,52 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
                 .collect(),
         }),
 
-        StatementKind::TraitDefinition { name, methods } => {
-            Some(HirStatement::TraitDef {
-                name: name.clone(),
-                methods: methods
-                    .iter()
-                    .map(|method| {
-                        HirTraitMethod {
-                            name: method.name.clone(),
-                            params: method
-                                .params
-                                .iter()
-                                .map(|(param_name, param_type)| {
-                                    (param_name.clone(), Some(param_type.to_rust().to_string()))
-                                })
-                                .collect(),
-                            return_type: method.return_type.as_ref().map(|ty| ty.to_rust()),
-                            has_default: method.is_default,
-                            body: method.body.as_ref().map(|body_stmts| {
-                                body_stmts.iter().filter_map(lower_statement).collect()
-                            }),
-                        }
-                    })
-                    .collect(),
-            })
-        }
+        StatementKind::TraitDefinition { name, methods } => Some(HirStatement::TraitDef {
+            name: name.clone(),
+            methods: methods
+                .iter()
+                .map(|method| HirTraitMethod {
+                    name: method.name.clone(),
+                    params: method
+                        .params
+                        .iter()
+                        .map(|(param_name, param_type)| {
+                            (param_name.clone(), Some(param_type.to_rust().to_string()))
+                        })
+                        .collect(),
+                    return_type: method.return_type.as_ref().map(|ty| ty.to_rust()),
+                    has_default: method.is_default,
+                    body: method
+                        .body
+                        .as_ref()
+                        .map(|body_stmts| body_stmts.iter().filter_map(lower_statement).collect()),
+                })
+                .collect(),
+        }),
 
         StatementKind::TraitImplementation {
             trait_name,
             type_name,
             methods,
-        } => {
-            Some(HirStatement::TraitImpl {
-                trait_name: trait_name.clone(),
-                type_name: type_name.clone(),
-                methods: methods
-                    .iter()
-                    .map(|method| {
-                        HirImplMethod {
-                            name: method.name.clone(),
-                            params: method
-                                .params
-                                .iter()
-                                .map(|(param_name, param_type)| {
-                                    (param_name.clone(), Some(param_type.to_rust().to_string()))
-                                })
-                                .collect(),
-                            return_type: method.return_type.as_ref().map(|ty| ty.to_rust()),
-                            body: method.body.iter().filter_map(lower_statement).collect(),
-                        }
-                    })
-                    .collect(),
-            })
-        }
+        } => Some(HirStatement::TraitImpl {
+            trait_name: trait_name.clone(),
+            type_name: type_name.clone(),
+            methods: methods
+                .iter()
+                .map(|method| HirImplMethod {
+                    name: method.name.clone(),
+                    params: method
+                        .params
+                        .iter()
+                        .map(|(param_name, param_type)| {
+                            (param_name.clone(), Some(param_type.to_rust().to_string()))
+                        })
+                        .collect(),
+                    return_type: method.return_type.as_ref().map(|ty| ty.to_rust()),
+                    body: method.body.iter().filter_map(lower_statement).collect(),
+                })
+                .collect(),
+        }),
     }
 }
 

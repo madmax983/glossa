@@ -1,7 +1,7 @@
 use glossa::ast::{Statement, build_ast};
-use glossa::semantic::analyze_program;
 use glossa::codegen::generate_rust;
 use glossa::ir::lower_to_hir;
+use glossa::semantic::analyze_program;
 
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> String {
@@ -689,9 +689,15 @@ fn test_repro_trait_default_method_return_type() {
     let code = compile(source);
 
     // FIXED: Code should contain explicit return and return type
-    assert!(code.contains("return 5"), "Should contain explicit return statement");
+    assert!(
+        code.contains("return 5"),
+        "Should contain explicit return statement"
+    );
     // quote! generates `-> i64` (with or without spaces depending on tokenizer)
-    assert!(code.contains("-> i64") || code.contains("->i64"), "Signature should contain return type");
+    assert!(
+        code.contains("-> i64") || code.contains("->i64"),
+        "Signature should contain return type"
+    );
 }
 
 #[test]
@@ -711,5 +717,8 @@ fn test_repro_trait_impl_return_type() {
 
     // FIXED: Impl should contain explicit return and return type
     assert!(code.contains("return 5"));
-    assert!(code.contains("-> i64") || code.contains("->i64"), "Impl signature should contain return type");
+    assert!(
+        code.contains("-> i64") || code.contains("->i64"),
+        "Impl signature should contain return type"
+    );
 }
