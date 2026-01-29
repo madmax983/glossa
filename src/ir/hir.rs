@@ -3,7 +3,8 @@
 //! A simplified IR that maps closely to Rust constructs.
 
 use crate::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, StatementKind,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedProgram, AnalyzedStatement,
+    StatementKind,
 };
 
 /// A HIR program ready for code generation
@@ -576,9 +577,25 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
         }
         AnalyzedExprKind::IteratorChain { collection, ops } => HirExpr::IteratorChain {
             collection: Box::new(lower_expr(collection)),
-            ops: ops.clone(),
+            ops: ops.iter().map(lower_iterator_op).collect(),
         },
         AnalyzedExprKind::Literal(n) => HirExpr::IntLit(*n),
+    }
+}
+
+fn lower_iterator_op(op: &AnalyzedIteratorOp) -> IteratorOp {
+    match op {
+        AnalyzedIteratorOp::Iter => IteratorOp::Iter,
+        AnalyzedIteratorOp::Map(expr) => IteratorOp::Map(Box::new(lower_expr(expr))),
+        AnalyzedIteratorOp::Filter(expr) => IteratorOp::Filter(Box::new(lower_expr(expr))),
+        AnalyzedIteratorOp::Find(expr) => IteratorOp::Find(Box::new(lower_expr(expr))),
+        AnalyzedIteratorOp::Fold { init, closure } => IteratorOp::Fold {
+            init: Box::new(lower_expr(init)),
+            closure: Box::new(lower_expr(closure)),
+        },
+        AnalyzedIteratorOp::Any(expr) => IteratorOp::Any(Box::new(lower_expr(expr))),
+        AnalyzedIteratorOp::All(expr) => IteratorOp::All(Box::new(lower_expr(expr))),
+        AnalyzedIteratorOp::Collect => IteratorOp::Collect,
     }
 }
 

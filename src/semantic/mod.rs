@@ -23,13 +23,15 @@
 
 mod agreement;
 pub mod assembler;
+pub mod constituents;
 pub mod disambiguation;
 mod resolver;
 mod types;
 
 pub use agreement::*;
-pub use assembler::{
-    AssembledStatement, Assembler, AssemblyError, Constituent, Literal, VerbConstituent,
+pub use assembler::Assembler;
+pub use constituents::{
+    AssembledStatement, AssemblyError, Constituent, Literal, VerbConstituent,
 };
 pub use disambiguation::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub use resolver::*;
@@ -1896,15 +1898,15 @@ fn classify_value_expression(
             // Get the right operand (from literals or object)
             let right = if !asm_stmt.literals.is_empty() {
                 match &asm_stmt.literals[0] {
-                    crate::semantic::assembler::Literal::Number(n) => AnalyzedExpr {
+                    Literal::Number(n) => AnalyzedExpr {
                         expr: AnalyzedExprKind::NumberLiteral(*n),
                         glossa_type: GlossaType::Number,
                     },
-                    crate::semantic::assembler::Literal::String(s) => AnalyzedExpr {
+                    Literal::String(s) => AnalyzedExpr {
                         expr: AnalyzedExprKind::StringLiteral(s.clone()),
                         glossa_type: GlossaType::String,
                     },
-                    crate::semantic::assembler::Literal::Boolean(b) => AnalyzedExpr {
+                    Literal::Boolean(b) => AnalyzedExpr {
                         expr: AnalyzedExprKind::BooleanLiteral(*b),
                         glossa_type: GlossaType::Boolean,
                     },
@@ -1949,15 +1951,15 @@ fn classify_value_expression(
     // Check for literal-only value
     if !asm_stmt.literals.is_empty() {
         return match &asm_stmt.literals[0] {
-            crate::semantic::assembler::Literal::Number(n) => Ok(AnalyzedExpr {
+            Literal::Number(n) => Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::NumberLiteral(*n),
                 glossa_type: GlossaType::Number,
             }),
-            crate::semantic::assembler::Literal::String(s) => Ok(AnalyzedExpr {
+            Literal::String(s) => Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::StringLiteral(s.clone()),
                 glossa_type: GlossaType::String,
             }),
-            crate::semantic::assembler::Literal::Boolean(b) => Ok(AnalyzedExpr {
+            Literal::Boolean(b) => Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::BooleanLiteral(*b),
                 glossa_type: GlossaType::Boolean,
             }),
@@ -2028,7 +2030,7 @@ fn detect_iterator_pattern(
     };
 
     // Start with the collection variable
-    let mut iterator_ops = vec![crate::ir::IteratorOp::Iter];
+    let mut iterator_ops = vec![AnalyzedIteratorOp::Iter];
 
     // Check for any/all quantifiers
     let mut is_any = false;
@@ -2092,7 +2094,7 @@ fn detect_iterator_pattern(
                 } else if let Some(literal) = asm_stmt.literals.first() {
                     // Literal comparison: πέντε μείζονα = "greater than five"
                     let value = match literal {
-                        crate::semantic::assembler::Literal::Number(n) => *n,
+                        Literal::Number(n) => *n,
                         _ => 0,
                     };
                     AnalyzedExpr {
@@ -2141,17 +2143,11 @@ fn detect_iterator_pattern(
 
                 // Determine which operation to use based on quantifier
                 if is_any {
-                    iterator_ops.push(crate::ir::IteratorOp::Any(Box::new(crate::ir::lower_expr(
-                        &filter_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(filter_closure)));
                 } else if is_all {
-                    iterator_ops.push(crate::ir::IteratorOp::All(Box::new(crate::ir::lower_expr(
-                        &filter_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::All(Box::new(filter_closure)));
                 } else {
-                    iterator_ops.push(crate::ir::IteratorOp::Filter(Box::new(
-                        crate::ir::lower_expr(&filter_closure),
-                    )));
+                    iterator_ops.push(AnalyzedIteratorOp::Filter(Box::new(filter_closure)));
                 }
             }
         }
@@ -2220,9 +2216,9 @@ fn detect_iterator_pattern(
                         glossa_type: GlossaType::Number,
                     };
 
-                    iterator_ops.push(crate::ir::IteratorOp::Fold {
-                        init: Box::new(crate::ir::lower_expr(&init_expr)),
-                        closure: Box::new(crate::ir::lower_expr(&fold_closure)),
+                    iterator_ops.push(AnalyzedIteratorOp::Fold {
+                        init: Box::new(init_expr),
+                        closure: Box::new(fold_closure),
                     });
 
                     is_fold = true;
@@ -2293,10 +2289,8 @@ fn detect_iterator_pattern(
                 },
             };
 
-            // Lower the closure to HIR and wrap in iterator op
-            iterator_ops.push(crate::ir::IteratorOp::Map(Box::new(crate::ir::lower_expr(
-                &closure,
-            ))));
+            // Wrap in iterator op
+            iterator_ops.push(AnalyzedIteratorOp::Map(Box::new(closure)));
         }
     }
 
@@ -2336,7 +2330,7 @@ fn detect_iterator_pattern(
                 } else if let Some(literal) = asm_stmt.literals.first() {
                     // Literal comparison
                     let value = match literal {
-                        crate::semantic::assembler::Literal::Number(n) => *n,
+                        Literal::Number(n) => *n,
                         _ => 0,
                     };
                     AnalyzedExpr {
@@ -2377,13 +2371,9 @@ fn detect_iterator_pattern(
                 };
 
                 if is_any {
-                    iterator_ops.push(crate::ir::IteratorOp::Any(Box::new(crate::ir::lower_expr(
-                        &any_all_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(any_all_closure)));
                 } else {
-                    iterator_ops.push(crate::ir::IteratorOp::All(Box::new(crate::ir::lower_expr(
-                        &any_all_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::All(Box::new(any_all_closure)));
                 }
 
                 // Build the iterator chain for any/all (returns boolean)
@@ -2440,7 +2430,7 @@ fn detect_iterator_pattern(
                     } else if let Some(literal) = asm_stmt.literals.first() {
                         // Literal comparison
                         let value = match literal {
-                            crate::semantic::assembler::Literal::Number(n) => *n,
+                            Literal::Number(n) => *n,
                             _ => 0,
                         };
                         AnalyzedExpr {
@@ -2480,9 +2470,7 @@ fn detect_iterator_pattern(
                         },
                     };
 
-                    iterator_ops.push(crate::ir::IteratorOp::Find(Box::new(
-                        crate::ir::lower_expr(&find_closure),
-                    )));
+                    iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(find_closure)));
                     break;
                 }
             }
@@ -2510,9 +2498,7 @@ fn detect_iterator_pattern(
                 },
             };
 
-            iterator_ops.push(crate::ir::IteratorOp::Find(Box::new(
-                crate::ir::lower_expr(&find_first_closure),
-            )));
+            iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(find_first_closure)));
         }
 
         // Build the iterator chain for find (no .collect())
@@ -2536,13 +2522,13 @@ fn detect_iterator_pattern(
     // Check if this is a fold/any/all operation (returns single value, not a collection)
     let has_fold = iterator_ops
         .iter()
-        .any(|op| matches!(op, crate::ir::IteratorOp::Fold { .. }));
+        .any(|op| matches!(op, AnalyzedIteratorOp::Fold { .. }));
     let has_any = iterator_ops
         .iter()
-        .any(|op| matches!(op, crate::ir::IteratorOp::Any(_)));
+        .any(|op| matches!(op, AnalyzedIteratorOp::Any(_)));
     let has_all = iterator_ops
         .iter()
-        .any(|op| matches!(op, crate::ir::IteratorOp::All(_)));
+        .any(|op| matches!(op, AnalyzedIteratorOp::All(_)));
 
     if has_fold {
         // Fold returns a single value, no .collect() needed
@@ -2569,7 +2555,7 @@ fn detect_iterator_pattern(
     }
 
     // Add .collect() at the end for map/filter operations
-    iterator_ops.push(crate::ir::IteratorOp::Collect);
+    iterator_ops.push(AnalyzedIteratorOp::Collect);
 
     // Build the iterator chain expression
     let iterator_chain = AnalyzedExpr {
@@ -3764,6 +3750,30 @@ pub struct AnalyzedExpr {
     pub glossa_type: GlossaType,
 }
 
+/// Iterator operation in analyzed form
+#[derive(Debug, Clone)]
+pub enum AnalyzedIteratorOp {
+    /// .iter() - create iterator
+    Iter,
+    /// .map(closure) - transform elements
+    Map(Box<AnalyzedExpr>),
+    /// .filter(closure) - select elements
+    Filter(Box<AnalyzedExpr>),
+    /// .find(closure) - find first matching element
+    Find(Box<AnalyzedExpr>),
+    /// .fold(init, closure) - reduce to single value
+    Fold {
+        init: Box<AnalyzedExpr>,
+        closure: Box<AnalyzedExpr>,
+    },
+    /// .any(closure) - test if any element matches
+    Any(Box<AnalyzedExpr>),
+    /// .all(closure) - test if all elements match
+    All(Box<AnalyzedExpr>),
+    /// .collect() - collect into collection
+    Collect,
+}
+
 /// Kind of analyzed expression
 #[derive(Debug, Clone)]
 pub enum AnalyzedExprKind {
@@ -3848,7 +3858,7 @@ pub enum AnalyzedExprKind {
     /// Iterator chain collection.iter().map(...).filter(...)
     IteratorChain {
         collection: Box<AnalyzedExpr>,
-        ops: Vec<crate::ir::IteratorOp>,
+        ops: Vec<AnalyzedIteratorOp>,
     },
     /// Literal value (used in iterator ops, different from specific literals above)
     Literal(i64),
