@@ -59,3 +59,39 @@ fn test_preserves_greek_in_strings() {
     let code = compile("«Ἑλλάς» λέγε.").unwrap();
     assert!(code.contains("Ἑλλάς"));
 }
+
+#[test]
+fn test_mutable_binding() {
+    let code = compile("μετά ξ πέντε ἔστω.").unwrap();
+    assert!(code.contains("let mut xi"));
+    assert!(code.contains("5"));
+}
+
+#[test]
+fn test_assignment_codegen() {
+    let code = compile("μετά ξ πέντε ἔστω. ξ δέκα γίγνεται.").unwrap();
+    assert!(code.contains("let mut xi = 5"));
+    assert!(code.contains("xi = 10"));
+}
+
+#[test]
+fn test_immutable_assignment_error() {
+    let result = compile("ξ πέντε ἔστω. ξ δέκα γίγνεται.");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("ἀμετάβλητόν"));
+}
+
+#[test]
+fn test_undefined_assignment_error() {
+    let result = compile("ξ δέκα γίγνεται.");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("οὐχ ὡρίσθη"));
+}
+
+#[test]
+fn test_mutable_binding_and_reassignment() {
+    let code = compile("μετά ξ πέντε ἔστω. ξ λέγε. ξ δέκα γίγνεται. ξ λέγε.").unwrap();
+    assert!(code.contains("let mut xi = 5"));
+    assert!(code.contains("xi = 10"));
+    assert!(code.matches("println").count() >= 2);
+}

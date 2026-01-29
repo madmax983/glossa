@@ -145,6 +145,42 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         },
     );
 
+    // γίγνεται - it becomes (assignment)
+    m.insert(
+        "γιγνεται",
+        LexiconEntry {
+            lemma: "γιγνομαι",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "becomes, is assigned",
+            rust_equiv: Some("="),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Middle),
+        },
+    );
+
+    // γίγνομαι - to become (assignment lemma)
+    m.insert(
+        "γιγνομαι",
+        LexiconEntry {
+            lemma: "γιγνομαι",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "to become, to be assigned",
+            rust_equiv: Some("="),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::First),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Middle),
+        },
+    );
+
     // γράφω - to write
     m.insert(
         "γραφω",
@@ -1016,6 +1052,24 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         },
     );
 
+    // μετά - mutable marker
+    m.insert(
+        "μετα",
+        LexiconEntry {
+            lemma: "μετα",
+            pos: PartOfSpeech::Preposition,
+            gender: None,
+            meaning: "mutable marker",
+            rust_equiv: Some("mut"),
+            case: None,
+            number: None,
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
     // καί - and
     m.insert(
         "και",
@@ -1711,6 +1765,16 @@ pub fn is_all_quantifier(normalized_word: &str) -> bool {
     matches!(normalized_word, "παντα" | "πας") // πάντα is the form, πας is the lemma
 }
 
+/// Check if a word is a mutable marker (μετά)
+pub fn is_mutable_marker(normalized_word: &str) -> bool {
+    normalized_word == "μετα"
+}
+
+/// Check if a word is an assignment verb (γίγνεται / γίγνομαι)
+pub fn is_assignment_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "γιγνεται" | "γιγνομαι")
+}
+
 /// Get the numeric value of a Greek numeral word
 /// Includes all case forms (nominative, genitive, dative, accusative)
 pub fn numeral_value(normalized_word: &str) -> Option<i64> {
@@ -2081,5 +2145,43 @@ mod tests {
         let entry = lookup("αθροισμα").unwrap();
         assert_eq!(entry.rust_equiv, Some("+"));
         assert_eq!(entry.pos, PartOfSpeech::Noun);
+    }
+
+    #[test]
+    fn test_meta_is_mutable_marker() {
+        assert!(is_mutable_marker("μετα"));
+    }
+
+    #[test]
+    fn test_meta_lexicon_entry() {
+        let entry = lookup("μετα").unwrap();
+        assert_eq!(entry.pos, PartOfSpeech::Preposition);
+        assert_eq!(entry.rust_equiv, Some("mut"));
+    }
+
+    #[test]
+    fn test_non_mutable_marker() {
+        assert!(!is_mutable_marker("εστω"));
+        assert!(!is_mutable_marker("λεγε"));
+    }
+
+    #[test]
+    fn test_gignetai_is_assignment_verb() {
+        assert!(is_assignment_verb("γιγνεται"));
+        assert!(is_assignment_verb("γιγνομαι"));
+    }
+
+    #[test]
+    fn test_gignetai_lexicon_entry() {
+        let entry = lookup("γιγνεται").unwrap();
+        assert_eq!(entry.pos, PartOfSpeech::Verb);
+        assert_eq!(entry.voice, Some(Voice::Middle));
+        assert_eq!(entry.lemma, "γιγνομαι");
+    }
+
+    #[test]
+    fn test_non_assignment_verb() {
+        assert!(!is_assignment_verb("εστω"));
+        assert!(!is_assignment_verb("λεγε"));
     }
 }
