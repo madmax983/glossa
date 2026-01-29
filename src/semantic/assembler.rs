@@ -280,31 +280,6 @@ impl ExpressionState {
 pub struct Assembler {
     sentence: SentenceState,
     expression: ExpressionState,
-    /// Slot for the subject (Nominative case)
-    pending_subject: Option<Constituent>,
-    /// Storage for extra nominatives (e.g. predicate nominatives)
-    pending_nominatives: Vec<Constituent>,
-    /// Slot for the direct object (Accusative case)
-    pending_object: Option<Constituent>,
-    /// Slot for the indirect object (Dative case)
-    pending_indirect: Option<Constituent>,
-    /// Slot for the main verb
-    pending_verb: Option<VerbConstituent>,
-    /// Accumulated genitives (possessors)
-    pending_genitives: Vec<Constituent>,
-    /// Accumulated adjectives
-    pending_adjectives: Vec<Constituent>,
-    /// Accumulated literals (numbers, strings)
-    pending_literals: Vec<Literal>,
-    /// Accumulated array literals
-    pending_arrays: Vec<Vec<Expr>>,
-    pending_index_accesses: Vec<(Expr, Expr)>,
-    pending_property_accesses: Vec<(String, String)>,
-    pending_operators: Vec<BinaryOp>,
-    pending_blocks: Vec<Vec<crate::ast::Statement>>,
-    pending_nested_phrases: Vec<Vec<Expr>>,
-    pending_participles: Vec<ParticipleConstituent>,
-    pending_unwraps: Vec<Expr>,
     is_query: bool,
     is_propagate: bool,
 }
