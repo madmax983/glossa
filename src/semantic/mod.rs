@@ -2078,7 +2078,7 @@ fn detect_iterator_pattern(
     };
 
     // Start with the collection variable
-    let mut iterator_ops = vec![crate::ir::IteratorOp::Iter];
+    let mut iterator_ops = vec![AnalyzedIteratorOp::Iter];
 
     // Check for any/all quantifiers
     let mut is_any = false;
@@ -2191,17 +2191,11 @@ fn detect_iterator_pattern(
 
                 // Determine which operation to use based on quantifier
                 if is_any {
-                    iterator_ops.push(crate::ir::IteratorOp::Any(Box::new(crate::ir::lower_expr(
-                        &filter_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(filter_closure.clone())));
                 } else if is_all {
-                    iterator_ops.push(crate::ir::IteratorOp::All(Box::new(crate::ir::lower_expr(
-                        &filter_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::All(Box::new(filter_closure.clone())));
                 } else {
-                    iterator_ops.push(crate::ir::IteratorOp::Filter(Box::new(
-                        crate::ir::lower_expr(&filter_closure),
-                    )));
+                    iterator_ops.push(AnalyzedIteratorOp::Filter(Box::new(filter_closure.clone())));
                 }
             }
         }
@@ -2270,9 +2264,9 @@ fn detect_iterator_pattern(
                         glossa_type: GlossaType::Number,
                     };
 
-                    iterator_ops.push(crate::ir::IteratorOp::Fold {
-                        init: Box::new(crate::ir::lower_expr(&init_expr)),
-                        closure: Box::new(crate::ir::lower_expr(&fold_closure)),
+                    iterator_ops.push(AnalyzedIteratorOp::Fold {
+                        init: Box::new(init_expr.clone()),
+                        closure: Box::new(fold_closure.clone()),
                     });
 
                     is_fold = true;
@@ -2344,9 +2338,7 @@ fn detect_iterator_pattern(
             };
 
             // Lower the closure to HIR and wrap in iterator op
-            iterator_ops.push(crate::ir::IteratorOp::Map(Box::new(crate::ir::lower_expr(
-                &closure,
-            ))));
+            iterator_ops.push(AnalyzedIteratorOp::Map(Box::new(closure.clone())));
         }
     }
 
@@ -2427,13 +2419,9 @@ fn detect_iterator_pattern(
                 };
 
                 if is_any {
-                    iterator_ops.push(crate::ir::IteratorOp::Any(Box::new(crate::ir::lower_expr(
-                        &any_all_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(any_all_closure.clone())));
                 } else {
-                    iterator_ops.push(crate::ir::IteratorOp::All(Box::new(crate::ir::lower_expr(
-                        &any_all_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::All(Box::new(any_all_closure.clone())));
                 }
 
                 // Build the iterator chain for any/all (returns boolean)
@@ -2530,9 +2518,7 @@ fn detect_iterator_pattern(
                         },
                     };
 
-                    iterator_ops.push(crate::ir::IteratorOp::Find(Box::new(
-                        crate::ir::lower_expr(&find_closure),
-                    )));
+                    iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(find_closure.clone())));
                     break;
                 }
             }
@@ -2560,8 +2546,8 @@ fn detect_iterator_pattern(
                 },
             };
 
-            iterator_ops.push(crate::ir::IteratorOp::Find(Box::new(
-                crate::ir::lower_expr(&find_first_closure),
+            iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(
+                find_first_closure.clone(),
             )));
         }
 
@@ -2586,13 +2572,13 @@ fn detect_iterator_pattern(
     // Check if this is a fold/any/all operation (returns single value, not a collection)
     let has_fold = iterator_ops
         .iter()
-        .any(|op| matches!(op, crate::ir::IteratorOp::Fold { .. }));
+        .any(|op| matches!(op, AnalyzedIteratorOp::Fold { .. }));
     let has_any = iterator_ops
         .iter()
-        .any(|op| matches!(op, crate::ir::IteratorOp::Any(_)));
+        .any(|op| matches!(op, AnalyzedIteratorOp::Any(_)));
     let has_all = iterator_ops
         .iter()
-        .any(|op| matches!(op, crate::ir::IteratorOp::All(_)));
+        .any(|op| matches!(op, AnalyzedIteratorOp::All(_)));
 
     if has_fold {
         // Fold returns a single value, no .collect() needed
@@ -2619,7 +2605,7 @@ fn detect_iterator_pattern(
     }
 
     // Add .collect() at the end for map/filter operations
-    iterator_ops.push(crate::ir::IteratorOp::Collect);
+    iterator_ops.push(AnalyzedIteratorOp::Collect);
 
     // Build the iterator chain expression
     let iterator_chain = AnalyzedExpr {
@@ -3809,6 +3795,30 @@ pub struct AnalyzedImplMethod {
     pub return_type: Option<GlossaType>,
 }
 
+/// Iterator operation for AnalyzedExpr
+#[derive(Debug, Clone)]
+pub enum AnalyzedIteratorOp {
+    /// .iter() - create iterator
+    Iter,
+    /// .map(closure) - transform elements
+    Map(Box<AnalyzedExpr>),
+    /// .filter(closure) - select elements
+    Filter(Box<AnalyzedExpr>),
+    /// .find(closure) - find first matching element
+    Find(Box<AnalyzedExpr>),
+    /// .fold(init, closure) - reduce to single value
+    Fold {
+        init: Box<AnalyzedExpr>,
+        closure: Box<AnalyzedExpr>,
+    },
+    /// .any(closure) - test if any element matches
+    Any(Box<AnalyzedExpr>),
+    /// .all(closure) - test if all elements match
+    All(Box<AnalyzedExpr>),
+    /// .collect() - collect into collection
+    Collect,
+}
+
 /// Analyzed expression with type information
 #[derive(Debug, Clone)]
 pub struct AnalyzedExpr {
@@ -3900,7 +3910,7 @@ pub enum AnalyzedExprKind {
     /// Iterator chain collection.iter().map(...).filter(...)
     IteratorChain {
         collection: Box<AnalyzedExpr>,
-        ops: Vec<crate::ir::IteratorOp>,
+        ops: Vec<AnalyzedIteratorOp>,
     },
     /// Literal value (used in iterator ops, different from specific literals above)
     Literal(i64),
