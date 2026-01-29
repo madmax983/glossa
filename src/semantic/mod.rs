@@ -504,7 +504,10 @@ fn analyze_trait_definition(
                 }
                 // Properly analyze statements in the body
                 for body_stmt in body_stmts {
-                    if let Some(struct_inst) =
+                    if let Some(control_flow) = analyze_control_flow(body_stmt, &mut method_scope)?
+                    {
+                        analyzed_body.push(control_flow);
+                    } else if let Some(struct_inst) =
                         try_parse_struct_instantiation(body_stmt, &mut method_scope)?
                     {
                         analyzed_body.push(struct_inst);
@@ -524,6 +527,12 @@ fn analyze_trait_definition(
                 Some(vec![])
             };
 
+            let return_type = if let Some(body) = &body {
+                infer_return_type_from_body(body)
+            } else {
+                None
+            };
+
             default_methods.push(crate::semantic::types::DefaultMethod {
                 signature: signature.clone(),
                 body: body.clone().unwrap_or_default(),
@@ -534,6 +543,7 @@ fn analyze_trait_definition(
                 params,
                 is_default: true,
                 body,
+                return_type,
             });
         } else {
             required_methods.push(signature);
@@ -543,6 +553,7 @@ fn analyze_trait_definition(
                 params,
                 is_default: false,
                 body: None,
+                return_type: None,
             });
         }
     }
@@ -615,8 +626,13 @@ fn analyze_trait_impl(
         // Analyze the method body
         let mut analyzed_body = Vec::new();
         for body_stmt in &method.body {
-            // Try struct instantiation pattern first
-            if let Some(struct_inst) = try_parse_struct_instantiation(body_stmt, &mut method_scope)?
+            // Try control flow first
+            if let Some(control_flow) = analyze_control_flow(body_stmt, &mut method_scope)? {
+                analyzed_body.push(control_flow);
+            }
+            // Try struct instantiation pattern
+            else if let Some(struct_inst) =
+                try_parse_struct_instantiation(body_stmt, &mut method_scope)?
             {
                 analyzed_body.push(struct_inst);
             }
@@ -633,11 +649,14 @@ fn analyze_trait_impl(
             }
         }
 
+        let return_type = infer_return_type_from_body(&analyzed_body);
+
         implemented_method_names.push(method_name.clone());
         analyzed_methods.push(AnalyzedImplMethod {
             name: method_name,
             params,
             body: analyzed_body,
+            return_type,
         });
     }
 
@@ -1442,29 +1461,50 @@ fn parse_return_expression(
         });
     }
 
-    // Simple heuristic: if single word, treat as variable or literal
-    if words.len() == 1
-        && let Expr::Word(w) = words[0]
-    {
-        let normalized = normalize_greek(&w.original);
+    // Simple heuristic: if single word or literal
+    if words.len() == 1 {
+        match words[0] {
+            Expr::Word(w) => {
+                let normalized = normalize_greek(&w.original);
 
-        // Check if it's a numeral
-        if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
-            return Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(val),
-                glossa_type: GlossaType::Number,
-            });
+                // Check if it's a numeral
+                if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
+                    return Ok(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(val),
+                        glossa_type: GlossaType::Number,
+                    });
+                }
+
+                // Treat as variable
+                let var_type = scope
+                    .lookup(&normalized)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(normalized),
+                    glossa_type: var_type,
+                });
+            }
+            Expr::NumberLiteral(n) => {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(*n),
+                    glossa_type: GlossaType::Number,
+                });
+            }
+            Expr::StringLiteral(s) => {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::StringLiteral(s.clone()),
+                    glossa_type: GlossaType::String,
+                });
+            }
+            Expr::BooleanLiteral(b) => {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(*b),
+                    glossa_type: GlossaType::Boolean,
+                });
+            }
+            _ => {}
         }
-
-        // Treat as variable
-        let var_type = scope
-            .lookup(&normalized)
-            .cloned()
-            .unwrap_or(GlossaType::Unknown);
-        return Ok(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(normalized),
-            glossa_type: var_type,
-        });
     }
 
     // For now, just return a number literal placeholder for complex expressions
@@ -3757,6 +3797,7 @@ pub struct AnalyzedTraitMethod {
     pub params: Vec<(String, GlossaType)>,
     pub is_default: bool,
     pub body: Option<Vec<AnalyzedStatement>>, // Some for default methods, None for required
+    pub return_type: Option<GlossaType>,
 }
 
 /// An analyzed method in a trait implementation
@@ -3765,6 +3806,7 @@ pub struct AnalyzedImplMethod {
     pub name: String,
     pub params: Vec<(String, GlossaType)>,
     pub body: Vec<AnalyzedStatement>,
+    pub return_type: Option<GlossaType>,
 }
 
 /// Analyzed expression with type information
