@@ -205,6 +205,16 @@ pub enum HirExpr {
         collection: Box<HirExpr>,
         ops: Vec<IteratorOp>,
     },
+
+    /// Collection constructor: HashSet::new() or HashMap::new()
+    CollectionNew { collection_type: String },
+
+    /// Collection contains check: set.contains(&x) or map.contains_key(&k)
+    CollectionContains {
+        collection: Box<HirExpr>,
+        element: Box<HirExpr>,
+        is_map: bool,
+    },
 }
 
 /// Closure capture mode
@@ -609,6 +619,18 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
                 .collect(),
         },
         AnalyzedExprKind::Literal(n) => HirExpr::IntLit(*n),
+        AnalyzedExprKind::CollectionNew { collection_type } => HirExpr::CollectionNew {
+            collection_type: collection_type.clone(),
+        },
+        AnalyzedExprKind::CollectionContains {
+            collection,
+            element,
+            is_map,
+        } => HirExpr::CollectionContains {
+            collection: Box::new(lower_expr(collection)),
+            element: Box::new(lower_expr(element)),
+            is_map: *is_map,
+        },
     }
 }
 

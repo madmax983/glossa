@@ -557,6 +557,28 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
         } => generate_closure(params, body, capture_mode),
 
         HirExpr::IteratorChain { collection, ops } => generate_iterator_chain(collection, ops),
+
+        HirExpr::CollectionNew { collection_type } => {
+            // Generate HashSet::new() or HashMap::new()
+            let type_ident = format_ident!("{}", collection_type);
+            quote! { #type_ident::new() }
+        }
+
+        HirExpr::CollectionContains {
+            collection,
+            element,
+            is_map,
+        } => {
+            let coll = generate_expr(collection);
+            let elem = generate_expr(element);
+            if *is_map {
+                // HashMap uses .contains_key(&key)
+                quote! { #coll.contains_key(&#elem) }
+            } else {
+                // HashSet uses .contains(&element)
+                quote! { #coll.contains(&#elem) }
+            }
+        }
     }
 }
 

@@ -658,6 +658,292 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     );
 
     // =========================================================================
+    // HashMap/HashSet/String verbs (Issue #77)
+    // =========================================================================
+
+    // τίθημι - to place/put (insert operation)
+    m.insert(
+        "τιθησι",
+        LexiconEntry {
+            lemma: "τιθημι",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "places, puts (insert)",
+            rust_equiv: Some(".insert"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+        },
+    );
+
+    m.insert(
+        "τιθημι",
+        LexiconEntry {
+            lemma: "τιθημι",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "I place, I put (insert)",
+            rust_equiv: Some(".insert"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::First),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+        },
+    );
+
+    m.insert(
+        "θες",
+        LexiconEntry {
+            lemma: "τιθημι",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "place! put! (imperative)",
+            rust_equiv: Some(".insert"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::Second),
+            tense: Some(Tense::Aorist),
+            mood: Some(Mood::Imperative),
+            voice: Some(Voice::Active),
+        },
+    );
+
+    // σχίζω - to split
+    m.insert(
+        "σχιζει",
+        LexiconEntry {
+            lemma: "σχιζω",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "splits",
+            rust_equiv: Some(".split"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+        },
+    );
+
+    m.insert(
+        "σχιζεται",
+        LexiconEntry {
+            lemma: "σχιζω",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "splits itself (middle voice)",
+            rust_equiv: Some(".split"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Middle),
+        },
+    );
+
+    m.insert(
+        "σχιζω",
+        LexiconEntry {
+            lemma: "σχιζω",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "I split",
+            rust_equiv: Some(".split"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::First),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+        },
+    );
+
+    // ἑνόω - to unite/join
+    m.insert(
+        "ενουνται",
+        LexiconEntry {
+            lemma: "ενοω",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "they unite (middle/passive)",
+            rust_equiv: Some(".join"),
+            case: None,
+            number: Some(Number::Plural),
+            person: Some(Person::Third),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Middle),
+        },
+    );
+
+    m.insert(
+        "ενουσι",
+        LexiconEntry {
+            lemma: "ενοω",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "they unite (active)",
+            rust_equiv: Some(".join"),
+            case: None,
+            number: Some(Number::Plural),
+            person: Some(Person::Third),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+        },
+    );
+
+    m.insert(
+        "ενοω",
+        LexiconEntry {
+            lemma: "ενοω",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "I unite",
+            rust_equiv: Some(".join"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::First),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+        },
+    );
+
+    // =========================================================================
+    // Declined collection noun forms (dative/genitive for operations)
+    // =========================================================================
+
+    // χάρτης (map) - declined forms
+    m.insert(
+        "χαρτη",
+        LexiconEntry {
+            lemma: "χαρτης",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "to the map (dative)",
+            rust_equiv: Some("HashMap"),
+            case: Some(Case::Dative),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    m.insert(
+        "χαρτου",
+        LexiconEntry {
+            lemma: "χαρτης",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "of the map (genitive)",
+            rust_equiv: Some("HashMap"),
+            case: Some(Case::Genitive),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // σύνολον (set) - declined forms
+    m.insert(
+        "συνολω",
+        LexiconEntry {
+            lemma: "συνολον",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Neuter),
+            meaning: "to the set (dative)",
+            rust_equiv: Some("HashSet"),
+            case: Some(Case::Dative),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    m.insert(
+        "συνολου",
+        LexiconEntry {
+            lemma: "συνολον",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Neuter),
+            meaning: "of the set (genitive)",
+            rust_equiv: Some("HashSet"),
+            case: Some(Case::Genitive),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // λόγος (string/word) - declined forms
+    m.insert(
+        "λογος",
+        LexiconEntry {
+            lemma: "λογος",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "word, string",
+            rust_equiv: Some("String"),
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    m.insert(
+        "λογω",
+        LexiconEntry {
+            lemma: "λογος",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "to the word/string (dative)",
+            rust_equiv: Some("String"),
+            case: Some(Case::Dative),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    m.insert(
+        "λογου",
+        LexiconEntry {
+            lemma: "λογος",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "of the word/string (genitive)",
+            rust_equiv: Some("String"),
+            case: Some(Case::Genitive),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // =========================================================================
     // Ordinal numbers (for array indexing)
     // =========================================================================
 
@@ -2046,6 +2332,40 @@ pub fn is_err_word(normalized_word: &str) -> bool {
     matches!(normalized_word, "σφαλμα")
 }
 
+// =============================================================================
+// HashMap/HashSet/String Operations (Issue #77)
+// =============================================================================
+
+/// Check if a word is an insert verb (τίθημι - to place/insert)
+/// Maps to `.insert()` for HashMap/HashSet
+pub fn is_insert_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "τιθησι" | "τιθημι" | "θες")
+}
+
+/// Check if a word is a split verb (σχίζω - to split)
+/// Maps to `.split()` for String
+pub fn is_split_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "σχιζει" | "σχιζεται" | "σχιζω")
+}
+
+/// Check if a word is a join verb (ἑνόω - to unite/join)
+/// Maps to `.join()` for iterators of strings
+pub fn is_join_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "ενουνται" | "ενουσι" | "ενοω")
+}
+
+/// Check if a word is a containment preposition (ἐν - in)
+/// Used for `.contains()` and `.contains_key()` patterns
+pub fn is_containment_preposition(normalized_word: &str) -> bool {
+    normalized_word == "εν"
+}
+
+/// Check if a word is a delimiter preposition (κατά - according to/by)
+/// Used for `.split()` and `.join()` patterns
+pub fn is_delimiter_preposition(normalized_word: &str) -> bool {
+    normalized_word == "κατα" || normalized_word == "κατ"
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2183,5 +2503,89 @@ mod tests {
     fn test_non_assignment_verb() {
         assert!(!is_assignment_verb("εστω"));
         assert!(!is_assignment_verb("λεγε"));
+    }
+
+    // =========================================================================
+    // HashMap/HashSet/String operation tests (Issue #77)
+    // =========================================================================
+
+    #[test]
+    fn test_is_insert_verb() {
+        assert!(is_insert_verb("τιθησι"));
+        assert!(is_insert_verb("τιθημι"));
+        assert!(is_insert_verb("θες"));
+        assert!(!is_insert_verb("λεγε"));
+        assert!(!is_insert_verb("ωθει"));
+    }
+
+    #[test]
+    fn test_is_split_verb() {
+        assert!(is_split_verb("σχιζει"));
+        assert!(is_split_verb("σχιζεται"));
+        assert!(is_split_verb("σχιζω"));
+        assert!(!is_split_verb("λεγε"));
+    }
+
+    #[test]
+    fn test_is_join_verb() {
+        assert!(is_join_verb("ενουνται"));
+        assert!(is_join_verb("ενουσι"));
+        assert!(is_join_verb("ενοω"));
+        assert!(!is_join_verb("λεγε"));
+    }
+
+    #[test]
+    fn test_is_containment_preposition() {
+        assert!(is_containment_preposition("εν"));
+        assert!(!is_containment_preposition("δια"));
+        assert!(!is_containment_preposition("εις"));
+    }
+
+    #[test]
+    fn test_insert_verb_lexicon_entries() {
+        let entry = lookup("τιθησι").unwrap();
+        assert_eq!(entry.pos, PartOfSpeech::Verb);
+        assert_eq!(entry.rust_equiv, Some(".insert"));
+        assert_eq!(entry.lemma, "τιθημι");
+
+        let entry = lookup("θες").unwrap();
+        assert_eq!(entry.mood, Some(Mood::Imperative));
+    }
+
+    #[test]
+    fn test_split_verb_lexicon_entries() {
+        let entry = lookup("σχιζεται").unwrap();
+        assert_eq!(entry.pos, PartOfSpeech::Verb);
+        assert_eq!(entry.rust_equiv, Some(".split"));
+        assert_eq!(entry.voice, Some(Voice::Middle));
+    }
+
+    #[test]
+    fn test_join_verb_lexicon_entries() {
+        let entry = lookup("ενουνται").unwrap();
+        assert_eq!(entry.pos, PartOfSpeech::Verb);
+        assert_eq!(entry.rust_equiv, Some(".join"));
+        assert_eq!(entry.voice, Some(Voice::Middle));
+    }
+
+    #[test]
+    fn test_declined_collection_nouns() {
+        // HashMap declined forms
+        let entry = lookup("χαρτη").unwrap();
+        assert_eq!(entry.case, Some(Case::Dative));
+        assert_eq!(entry.lemma, "χαρτης");
+
+        let entry = lookup("χαρτου").unwrap();
+        assert_eq!(entry.case, Some(Case::Genitive));
+
+        // HashSet declined forms
+        let entry = lookup("συνολω").unwrap();
+        assert_eq!(entry.case, Some(Case::Dative));
+        assert_eq!(entry.lemma, "συνολον");
+
+        // String declined forms
+        let entry = lookup("λογω").unwrap();
+        assert_eq!(entry.case, Some(Case::Dative));
+        assert_eq!(entry.lemma, "λογος");
     }
 }
