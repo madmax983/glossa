@@ -1,7 +1,50 @@
-//! ΓΛΩΣΣΑ - A compiler where Ancient Greek morphology encodes programming semantics
+//! ΓΛΩΣΣΑ (GLOSSA) - A compiler where Ancient Greek morphology encodes programming semantics
 //!
-//! Case endings determine semantic roles, verb aspects encode execution semantics,
-//! and grammatical agreement serves as type checking.
+//! # The Philosophy
+//!
+//! ΓΛΩΣΣΑ is not just a language with translated keywords. It is an exploration of how
+//! natural language grammar—specifically Ancient Greek—can map directly to programming
+//! language semantics.
+//!
+//! * **Case Endings** determine semantic roles (Nominative = Subject, Accusative = Object).
+//! * **Verb Aspects** encode execution semantics (Aorist = Immediate, Present = Continuous).
+//! * **Grammatical Agreement** serves as the type system.
+//!
+//! # The Compiler Pipeline
+//!
+//! The compiler follows a standard multi-pass architecture, but with a unique "Assembler" phase:
+//!
+//! 1. **Parsing** (`grammar`):
+//!    * Uses a PEG grammar (`glossa.pest`) to tokenize the input.
+//!    * Normalizes polytonic Greek (with accents/breathings) to monotonic forms.
+//!
+//! 2. **Morphological Analysis** (`morphology`):
+//!    * Analyzes each word to determine its part of speech, case, gender, number, etc.
+//!    * Uses a built-in `lexicon` for core vocabulary.
+//!    * Identifies participles for lambda formation.
+//!
+//! 3. **Semantic Assembly** (`semantic`):
+//!    * **The Core Innovation**: A slot-based assembler that mimics how the human brain processes Greek.
+//!    * Words are routed to "slots" (Subject, Object, Verb) based on case, allowing for free word order.
+//!    * Performs agreement checks (Subject-Verb, Adjective-Noun).
+//!
+//! 4. **Intermediate Representation** (`ir`):
+//!    * Lowers the linguistically-rich structure into a High-Level IR (HIR).
+//!    * This IR is imperative and maps closely to Rust constructs.
+//!
+//! 5. **Code Generation** (`codegen`):
+//!    * Transpiles the HIR into valid Rust code.
+//!    * Uses the `quote` crate to ensure syntactical correctness.
+//!
+//! # Module Guide
+//!
+//! * [`ast`]: Abstract Syntax Tree definitions.
+//! * [`codegen`]: Rust code generation logic.
+//! * [`errors`]: Greek-native error messages and diagnostics.
+//! * [`grammar`]: PEG parser and text normalization.
+//! * [`ir`]: High-Level Intermediate Representation.
+//! * [`morphology`]: Word analysis, lexicon, and participle parsing.
+//! * [`semantic`]: The slot-based assembler and semantic analysis.
 
 pub mod ast;
 pub mod codegen;

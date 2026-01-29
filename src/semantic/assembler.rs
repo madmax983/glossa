@@ -127,36 +127,82 @@ pub struct AssembledStatement {
 }
 
 /// A noun/pronoun constituent with its grammatical info
+///
+/// This represents a word that fills a nominal slot (Subject, Object, etc.).
+/// It carries both its original surface form and its normalized lemma.
 #[derive(Debug, Clone)]
 pub struct Constituent {
     /// The dictionary form
+    ///
+    /// Used for semantic analysis and code generation.
+    /// Example: "ανθρωπος" (from "ἄνθρωπος")
     pub lemma: String,
+
     /// Original text as it appeared
+    ///
+    /// Preserved for error messages and display purposes.
+    /// Example: "ἄνθρωπος"
     pub original: String,
+
     /// Grammatical case
+    ///
+    /// Determines which slot this constituent fills:
+    /// - `Nominative` -> Subject
+    /// - `Accusative` -> Object
+    /// - `Dative` -> Indirect Object
     pub case: Case,
+
     /// Grammatical number
+    ///
+    /// Used for subject-verb agreement checks.
     pub number: Option<Number>,
+
     /// Grammatical gender
+    ///
+    /// Used for adjective-noun agreement checks.
     pub gender: Option<Gender>,
 }
 
 /// A verb constituent with its grammatical info
+///
+/// This represents the main action of the sentence.
 #[derive(Debug, Clone)]
 pub struct VerbConstituent {
     /// The dictionary form (1st person singular present)
+    ///
+    /// Example: "λεγω" (from "λέγει")
     pub lemma: String,
+
     /// Original text as it appeared
+    ///
+    /// Example: "λέγει"
     pub original: String,
+
     /// Person (1st, 2nd, 3rd)
+    ///
+    /// Used for agreement with the subject.
     pub person: Option<Person>,
+
     /// Number (singular, plural)
+    ///
+    /// Used for agreement with the subject.
     pub number: Option<Number>,
+
     /// Tense (present, aorist, etc.)
+    ///
+    /// Determines execution semantics (e.g., Aorist = immediate, Present = continuous).
     pub tense: Option<Tense>,
+
     /// Mood (indicative, imperative, etc.)
+    ///
+    /// Determines sentence type (Statement vs Command).
     pub mood: Option<Mood>,
+
     /// Voice (active, middle, passive)
+    ///
+    /// Determines the relationship between subject and action.
+    /// - Active: Subject does action
+    /// - Middle: Subject acts on self/for self (often used for specific ops like `.pop()`)
     pub voice: Option<Voice>,
 }
 
@@ -237,24 +283,42 @@ pub struct Assembler {
 /// Errors that can occur during assembly
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum AssemblyError {
+    /// Two subjects found in the same statement (Nominative collision)
+    ///
+    /// Example: `ὁ ἄνθρωπος ὁ θεὸς λέγει` (The man the god says)
     #[error("Διπλοῦν ὑποκείμενον! Δύο βασιλεῖς οὐ δύνανται μιᾶς πόλεως ἄρχειν.")]
     DoubleSubject,
 
+    /// Two objects found in the same statement (Accusative collision)
+    ///
+    /// Example: `τὸν λόγον τὴν πόλιν βλέπω` (I see the word the city)
     #[error("Διπλοῦν ἀντικείμενον! Ἓν μόνον κατηγορεῖς.")]
     DoubleObject,
 
+    /// Two verbs found in the same statement
+    ///
+    /// Example: `λέγει γράφει ὁ ἄνθρωπος` (The man says writes)
     #[error("Διπλοῦν ῥῆμα! Μία πρᾶξις ἑκάστοτε.")]
     DoubleVerb,
 
+    /// No verb found in the statement
+    ///
+    /// Note: Pure expressions (like `5`) are allowed, but incomplete sentences trigger this.
     #[error("Ῥῆμα οὐχ εὑρέθη! Οὐδὲν ἐγένετο.")]
     MissingVerb,
 
+    /// Subject and Verb do not agree in number/person
+    ///
+    /// Example: `ὁ ἄνθρωπος (Singular) λέγουσιν (Plural)`
     #[error("Ἀσυμφωνία: ὑποκείμενον {subject:?} ἀλλὰ ῥῆμα {verb:?}")]
     SubjectVerbDisagreement {
         subject: (Option<Person>, Option<Number>),
         verb: (Option<Person>, Option<Number>),
     },
 
+    /// Adjective and Noun do not agree in gender
+    ///
+    /// Example: `ὁ καλὸς (Masc) γυνή (Fem)`
     #[error("Ἀσυμφωνία γένους: {word1} ({gender1:?}) πρὸς {word2} ({gender2:?})")]
     GenderMismatch {
         word1: String,
@@ -475,7 +539,7 @@ impl Assembler {
         self.pending_nested_phrases.push(terms);
     }
 
-    /// Feed an index access (array[index])
+    /// Feed an index access (`array[index]`)
     pub fn feed_index_access(&mut self, array: Expr, index: Expr) {
         self.pending_index_accesses.push((array, index));
     }

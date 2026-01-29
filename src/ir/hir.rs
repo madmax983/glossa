@@ -129,13 +129,13 @@ pub enum HirExpr {
     /// Array literal vec![...]
     ArrayLit(Vec<HirExpr>),
 
-    /// Some(value) - Option<T> constructor
+    /// Some(value) - `Option<T>` constructor
     Some(Box<HirExpr>),
 
-    /// None - Option<T> empty value
+    /// None - `Option<T>` empty value
     None,
 
-    /// Ok(value) - Result<T,E> success constructor
+    /// Ok(value) - `Result<T,E>` success constructor
     Ok(Box<HirExpr>),
 
     /// Err(error) - Result<T,E> error constructor
@@ -147,7 +147,7 @@ pub enum HirExpr {
     /// Unwrap operator (!) - confident extraction
     Unwrap(Box<HirExpr>),
 
-    /// Index access array[index]
+    /// Index access `array[index]`
     Index {
         array: Box<HirExpr>,
         index: Box<HirExpr>,

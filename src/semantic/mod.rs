@@ -3935,19 +3935,19 @@ pub enum AnalyzedExprKind {
     },
     /// Array literal [1, 2, 3]
     ArrayLiteral(Vec<AnalyzedExpr>),
-    /// Some(value) - Option<T> constructor
+    /// Some(value) - `Option<T>` constructor
     Some(Box<AnalyzedExpr>),
-    /// None - Option<T> empty value
+    /// None - `Option<T>` empty value
     None,
-    /// Ok(value) - Result<T,E> success constructor
+    /// Ok(value) - `Result<T,E>` success constructor
     Ok(Box<AnalyzedExpr>),
-    /// Err(error) - Result<T,E> error constructor
+    /// Err(error) - `Result<T,E>` error constructor
     Err(Box<AnalyzedExpr>),
-    /// Unwrap operator (!) - confident extraction from Option/Result
+    /// Unwrap operator (!) - confident extraction from `Option`/`Result`
     Unwrap(Box<AnalyzedExpr>),
-    /// Try operator (`;` after Option/Result) - propagates None/Err upward
+    /// Try operator (`;` after `Option`/`Result`) - propagates None/Err upward
     Try(Box<AnalyzedExpr>),
-    /// Index access array[index]
+    /// Index access `array[index]`
     IndexAccess {
         array: Box<AnalyzedExpr>,
         index: Box<AnalyzedExpr>,
