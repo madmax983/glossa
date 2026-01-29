@@ -144,10 +144,10 @@ pub enum Expr {
     /// A boolean literal: ἀληθές or ψεῦδος
     BooleanLiteral(bool),
 
-    /// An array literal: [1, 2, 3]
+    /// An array literal: `[1, 2, 3]`
     ArrayLiteral(Vec<Expr>),
 
-    /// Index access: array[index]
+    /// Index access: `array[index]`
     IndexAccess { array: Box<Expr>, index: Box<Expr> },
 
     /// A single Greek word with morphological information

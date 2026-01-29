@@ -7,8 +7,8 @@
 //! - λίστη (liste) → List/Vec
 //!
 //! Special types from Greek morphology:
-//! - Optative mood → Option<T> (value that "might be")
-//! - ἀποτέλεσμα (apotelasma) → Result<T,E> (outcome/result)
+//! - Optative mood → `Option<T>` (value that "might be")
+//! - ἀποτέλεσμα (apotelasma) → `Result<T,E>` (outcome/result)
 
 use crate::morphology::{Case, Gender, Tense};
 
@@ -27,7 +27,7 @@ pub enum GlossaType {
     /// λίστη - list of T
     List(Box<GlossaType>),
 
-    /// Option<T> - value that might not exist
+    /// `Option<T>` - value that might not exist
     ///
     /// Expressed in ΓΛΩΣΣΑ via the **optative mood** (εὑρεθείη "might be found").
     /// The optative mood in Ancient Greek expresses wish, possibility, or potential,
@@ -40,7 +40,7 @@ pub enum GlossaType {
     /// - `!` suffix → unwrap (confident extraction)
     Option(Box<GlossaType>),
 
-    /// Result<T, E> - value or error
+    /// `Result<T, E>` - value or error
     ///
     /// Expressed in ΓΛΩΣΣΑ via ἀποτέλεσμα (apotelasma) "result/outcome".
     /// Uses disjunctive patterns to distinguish success from failure.
