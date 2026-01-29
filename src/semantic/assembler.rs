@@ -232,41 +232,65 @@ impl Assembler {
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
         let normalized = normalize_greek(original);
 
-        // Check for operators first (before normal part-of-speech handling)
+        if self.try_handle_operator(&normalized, original)? {
+            return Ok(());
+        }
+
+        if self.try_handle_special_forms(&normalized)? {
+            return Ok(());
+        }
+
+        self.dispatch_part_of_speech(analysis, original)
+    }
+
+    /// Try to handle the token as an operator (boolean, comparison, arithmetic)
+    fn try_handle_operator(
+        &mut self,
+        normalized: &str,
+        original: &str,
+    ) -> Result<bool, AssemblyError> {
         // Boolean operators: καί (&&), ἤ (||)
         // IMPORTANT: Use original form for ἤ to distinguish from ᾖ (subjunctive)
         // ἤ has smooth breathing + acute, ᾖ has subscript iota + circumflex
         if matches!(original, "καί" | "και") {
             self.pending_operators.push(BinaryOp::And);
-            return Ok(());
+            return Ok(true);
         }
         if matches!(original, "ἤ" | "ή") {
             // ἤ with breathing+accent, but not ᾖ
             self.pending_operators.push(BinaryOp::Or);
-            return Ok(());
+            return Ok(true);
         }
 
         // Comparison operators: μεῖζον (>), ἔλαττον (<), ἴσον (==)
-        if let Some(op) = crate::morphology::lexicon::comparison_operator(&normalized) {
+        if let Some(op) = crate::morphology::lexicon::comparison_operator(normalized) {
             self.pending_operators.push(op);
-            return Ok(());
+            return Ok(true);
         }
 
         // Arithmetic operators: ἄθροισμα (+), διαφορά (-), γινόμενον (*)
-        if let Some(op) = crate::morphology::lexicon::arithmetic_operator(&normalized) {
+        if let Some(op) = crate::morphology::lexicon::arithmetic_operator(normalized) {
             self.pending_operators.push(op);
-            return Ok(());
+            return Ok(true);
         }
 
+        Ok(false)
+    }
+
+    /// Try to handle special forms (numerals, properties, ordinals)
+    fn try_handle_special_forms(
+        &mut self,
+        normalized: &str,
+    ) -> Result<bool, AssemblyError> {
         // Check for numeral words (any case form) - these become literals
         // This catches numeral words regardless of how morphology parsed them
-        if let Some(value) = crate::morphology::lexicon::numeral_value(&normalized) {
+        if let Some(value) = crate::morphology::lexicon::numeral_value(normalized) {
             self.pending_literals.push(Literal::Number(value));
-            return Ok(());
+            return Ok(true);
         }
 
         // Check for property nouns (μῆκος)
-        if crate::morphology::lexicon::is_length_property(&normalized) {
+        if crate::morphology::lexicon::is_length_property(normalized) {
             // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.pending_subject {
                 let normalized_original = crate::grammar::normalize_greek(&subj.original);
@@ -274,14 +298,14 @@ impl Assembler {
                     .push((normalized_original, "len".to_string()));
                 self.pending_subject = None; // Consume the subject
             }
-            return Ok(());
+            return Ok(true);
         }
 
         // Check for ordinal adjectives (πρῶτον, δεύτερον, τρίτον)
-        if crate::morphology::lexicon::is_ordinal(&normalized) {
+        if crate::morphology::lexicon::is_ordinal(normalized) {
             // If we have a subject, create an index access with the ordinal index
             if let Some(ref subj) = self.pending_subject
-                && let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized)
+                && let Some(index) = crate::morphology::lexicon::ordinal_to_index(normalized)
             {
                 // Create array and index expressions (use normalized original, not lemma)
                 let normalized_original = crate::grammar::normalize_greek(&subj.original);
@@ -294,9 +318,18 @@ impl Assembler {
                 self.pending_index_accesses.push((array, index_expr));
                 self.pending_subject = None; // Consume the subject
             }
-            return Ok(());
+            return Ok(true);
         }
 
+        Ok(false)
+    }
+
+    /// Dispatch token based on part of speech
+    fn dispatch_part_of_speech(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+    ) -> Result<(), AssemblyError> {
         match analysis.part_of_speech {
             PartOfSpeech::Noun | PartOfSpeech::Pronoun => self.handle_nominal(analysis, original),
             PartOfSpeech::Adjective => self.handle_adjective(analysis, original),
