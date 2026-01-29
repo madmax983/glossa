@@ -1,25 +1,35 @@
 //! Semantic analysis for ΓΛΩΣΣΑ
 //!
-//! This module handles:
-//! - Slot-based sentence assembly (Greek-native word-order independence)
-//! - Name resolution and scope tracking
-//! - Gender/number/case agreement checking
-//! - Type inference from morphology
+//! This module implements the semantic analysis pipeline, which transforms the raw AST
+//! into a typed, resolved representation ready for intermediate code generation.
 //!
-//! ## The Assembler Approach
+//! # The Analysis Pipeline
 //!
-//! Unlike traditional parsers that rely on word position, ΓΛΩΣΣΑ uses a
-//! slot-based assembler that routes words to grammatical slots based on
-//! their case endings - just like Ancient Greek actually works.
+//! 1. **Morphological Analysis**: Raw words are analyzed for case, gender, number, etc.
+//!    (handled by the `morphology` module).
+//! 2. **Slot-Based Assembly**: The [`Assembler`] routes these words into grammatical slots
+//!    (Subject, Object, Verb) based on their case endings. This provides the
+//!    language's signature free word order.
+//! 3. **Pattern Recognition**: The assembled sentence is classified into a statement kind
+//!    (Binding, Print, If, etc.) based on the verb and constituents.
+//! 4. **Name Resolution**: Variables are looked up in the [`Scope`] to ensure they exist.
+//! 5. **Type Inference**: Types are inferred from usage and lexical definitions.
+//!
+//! # The Assembler Approach
+//!
+//! Unlike traditional parsers that rely on fixed word positions (e.g., "verb follows subject"),
+//! ΓΛΩΣΣΑ uses the `Assembler` to assemble sentences based on grammatical *roles*.
 //!
 //! ```text
-//! Nominative → Subject slot
-//! Accusative → Object slot
-//! Dative     → Indirect object slot
-//! Genitive   → Possession/attachment
+//! "ὁ ἄνθρωπος τὸν λόγον λέγει"
+//!      ↓           ↓       ↓
+//! [Nominative] [Accusative] [Verb]
+//!      ↓           ↓       ↓
+//!   Subject      Object   Action
 //! ```
 //!
-//! This means SOV, VSO, and OVS all produce the same result!
+//! This allows for authentic Greek syntax where emphasis is conveyed through word order
+//! without changing the semantic meaning.
 
 mod agreement;
 pub mod assembler;
@@ -494,7 +504,10 @@ fn analyze_trait_definition(
                 }
                 // Properly analyze statements in the body
                 for body_stmt in body_stmts {
-                    if let Some(struct_inst) =
+                    if let Some(control_flow) = analyze_control_flow(body_stmt, &mut method_scope)?
+                    {
+                        analyzed_body.push(control_flow);
+                    } else if let Some(struct_inst) =
                         try_parse_struct_instantiation(body_stmt, &mut method_scope)?
                     {
                         analyzed_body.push(struct_inst);
@@ -514,6 +527,12 @@ fn analyze_trait_definition(
                 Some(vec![])
             };
 
+            let return_type = if let Some(body) = &body {
+                infer_return_type_from_body(body)
+            } else {
+                None
+            };
+
             default_methods.push(crate::semantic::types::DefaultMethod {
                 signature: signature.clone(),
                 body: body.clone().unwrap_or_default(),
@@ -524,6 +543,7 @@ fn analyze_trait_definition(
                 params,
                 is_default: true,
                 body,
+                return_type,
             });
         } else {
             required_methods.push(signature);
@@ -533,6 +553,7 @@ fn analyze_trait_definition(
                 params,
                 is_default: false,
                 body: None,
+                return_type: None,
             });
         }
     }
@@ -605,8 +626,13 @@ fn analyze_trait_impl(
         // Analyze the method body
         let mut analyzed_body = Vec::new();
         for body_stmt in &method.body {
-            // Try struct instantiation pattern first
-            if let Some(struct_inst) = try_parse_struct_instantiation(body_stmt, &mut method_scope)?
+            // Try control flow first
+            if let Some(control_flow) = analyze_control_flow(body_stmt, &mut method_scope)? {
+                analyzed_body.push(control_flow);
+            }
+            // Try struct instantiation pattern
+            else if let Some(struct_inst) =
+                try_parse_struct_instantiation(body_stmt, &mut method_scope)?
             {
                 analyzed_body.push(struct_inst);
             }
@@ -623,11 +649,14 @@ fn analyze_trait_impl(
             }
         }
 
+        let return_type = infer_return_type_from_body(&analyzed_body);
+
         implemented_method_names.push(method_name.clone());
         analyzed_methods.push(AnalyzedImplMethod {
             name: method_name,
             params,
             body: analyzed_body,
+            return_type,
         });
     }
 
@@ -1432,29 +1461,50 @@ fn parse_return_expression(
         });
     }
 
-    // Simple heuristic: if single word, treat as variable or literal
-    if words.len() == 1
-        && let Expr::Word(w) = words[0]
-    {
-        let normalized = normalize_greek(&w.original);
+    // Simple heuristic: if single word or literal
+    if words.len() == 1 {
+        match words[0] {
+            Expr::Word(w) => {
+                let normalized = normalize_greek(&w.original);
 
-        // Check if it's a numeral
-        if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
-            return Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(val),
-                glossa_type: GlossaType::Number,
-            });
+                // Check if it's a numeral
+                if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
+                    return Ok(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(val),
+                        glossa_type: GlossaType::Number,
+                    });
+                }
+
+                // Treat as variable
+                let var_type = scope
+                    .lookup(&normalized)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(normalized),
+                    glossa_type: var_type,
+                });
+            }
+            Expr::NumberLiteral(n) => {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(*n),
+                    glossa_type: GlossaType::Number,
+                });
+            }
+            Expr::StringLiteral(s) => {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::StringLiteral(s.clone()),
+                    glossa_type: GlossaType::String,
+                });
+            }
+            Expr::BooleanLiteral(b) => {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(*b),
+                    glossa_type: GlossaType::Boolean,
+                });
+            }
+            _ => {}
         }
-
-        // Treat as variable
-        let var_type = scope
-            .lookup(&normalized)
-            .cloned()
-            .unwrap_or(GlossaType::Unknown);
-        return Ok(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(normalized),
-            glossa_type: var_type,
-        });
     }
 
     // For now, just return a number literal placeholder for complex expressions
@@ -2028,7 +2078,7 @@ fn detect_iterator_pattern(
     };
 
     // Start with the collection variable
-    let mut iterator_ops = vec![crate::ir::IteratorOp::Iter];
+    let mut iterator_ops = vec![AnalyzedIteratorOp::Iter];
 
     // Check for any/all quantifiers
     let mut is_any = false;
@@ -2141,17 +2191,11 @@ fn detect_iterator_pattern(
 
                 // Determine which operation to use based on quantifier
                 if is_any {
-                    iterator_ops.push(crate::ir::IteratorOp::Any(Box::new(crate::ir::lower_expr(
-                        &filter_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(filter_closure.clone())));
                 } else if is_all {
-                    iterator_ops.push(crate::ir::IteratorOp::All(Box::new(crate::ir::lower_expr(
-                        &filter_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::All(Box::new(filter_closure.clone())));
                 } else {
-                    iterator_ops.push(crate::ir::IteratorOp::Filter(Box::new(
-                        crate::ir::lower_expr(&filter_closure),
-                    )));
+                    iterator_ops.push(AnalyzedIteratorOp::Filter(Box::new(filter_closure.clone())));
                 }
             }
         }
@@ -2220,9 +2264,9 @@ fn detect_iterator_pattern(
                         glossa_type: GlossaType::Number,
                     };
 
-                    iterator_ops.push(crate::ir::IteratorOp::Fold {
-                        init: Box::new(crate::ir::lower_expr(&init_expr)),
-                        closure: Box::new(crate::ir::lower_expr(&fold_closure)),
+                    iterator_ops.push(AnalyzedIteratorOp::Fold {
+                        init: Box::new(init_expr.clone()),
+                        closure: Box::new(fold_closure.clone()),
                     });
 
                     is_fold = true;
@@ -2294,9 +2338,7 @@ fn detect_iterator_pattern(
             };
 
             // Lower the closure to HIR and wrap in iterator op
-            iterator_ops.push(crate::ir::IteratorOp::Map(Box::new(crate::ir::lower_expr(
-                &closure,
-            ))));
+            iterator_ops.push(AnalyzedIteratorOp::Map(Box::new(closure.clone())));
         }
     }
 
@@ -2377,13 +2419,9 @@ fn detect_iterator_pattern(
                 };
 
                 if is_any {
-                    iterator_ops.push(crate::ir::IteratorOp::Any(Box::new(crate::ir::lower_expr(
-                        &any_all_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(any_all_closure.clone())));
                 } else {
-                    iterator_ops.push(crate::ir::IteratorOp::All(Box::new(crate::ir::lower_expr(
-                        &any_all_closure,
-                    ))));
+                    iterator_ops.push(AnalyzedIteratorOp::All(Box::new(any_all_closure.clone())));
                 }
 
                 // Build the iterator chain for any/all (returns boolean)
@@ -2480,9 +2518,7 @@ fn detect_iterator_pattern(
                         },
                     };
 
-                    iterator_ops.push(crate::ir::IteratorOp::Find(Box::new(
-                        crate::ir::lower_expr(&find_closure),
-                    )));
+                    iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(find_closure.clone())));
                     break;
                 }
             }
@@ -2510,8 +2546,8 @@ fn detect_iterator_pattern(
                 },
             };
 
-            iterator_ops.push(crate::ir::IteratorOp::Find(Box::new(
-                crate::ir::lower_expr(&find_first_closure),
+            iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(
+                find_first_closure.clone(),
             )));
         }
 
@@ -2536,13 +2572,13 @@ fn detect_iterator_pattern(
     // Check if this is a fold/any/all operation (returns single value, not a collection)
     let has_fold = iterator_ops
         .iter()
-        .any(|op| matches!(op, crate::ir::IteratorOp::Fold { .. }));
+        .any(|op| matches!(op, AnalyzedIteratorOp::Fold { .. }));
     let has_any = iterator_ops
         .iter()
-        .any(|op| matches!(op, crate::ir::IteratorOp::Any(_)));
+        .any(|op| matches!(op, AnalyzedIteratorOp::Any(_)));
     let has_all = iterator_ops
         .iter()
-        .any(|op| matches!(op, crate::ir::IteratorOp::All(_)));
+        .any(|op| matches!(op, AnalyzedIteratorOp::All(_)));
 
     if has_fold {
         // Fold returns a single value, no .collect() needed
@@ -2569,7 +2605,7 @@ fn detect_iterator_pattern(
     }
 
     // Add .collect() at the end for map/filter operations
-    iterator_ops.push(crate::ir::IteratorOp::Collect);
+    iterator_ops.push(AnalyzedIteratorOp::Collect);
 
     // Build the iterator chain expression
     let iterator_chain = AnalyzedExpr {
@@ -3747,6 +3783,7 @@ pub struct AnalyzedTraitMethod {
     pub params: Vec<(String, GlossaType)>,
     pub is_default: bool,
     pub body: Option<Vec<AnalyzedStatement>>, // Some for default methods, None for required
+    pub return_type: Option<GlossaType>,
 }
 
 /// An analyzed method in a trait implementation
@@ -3755,6 +3792,31 @@ pub struct AnalyzedImplMethod {
     pub name: String,
     pub params: Vec<(String, GlossaType)>,
     pub body: Vec<AnalyzedStatement>,
+    pub return_type: Option<GlossaType>,
+}
+
+/// Iterator operation for AnalyzedExpr
+#[derive(Debug, Clone)]
+pub enum AnalyzedIteratorOp {
+    /// .iter() - create iterator
+    Iter,
+    /// .map(closure) - transform elements
+    Map(Box<AnalyzedExpr>),
+    /// .filter(closure) - select elements
+    Filter(Box<AnalyzedExpr>),
+    /// .find(closure) - find first matching element
+    Find(Box<AnalyzedExpr>),
+    /// .fold(init, closure) - reduce to single value
+    Fold {
+        init: Box<AnalyzedExpr>,
+        closure: Box<AnalyzedExpr>,
+    },
+    /// .any(closure) - test if any element matches
+    Any(Box<AnalyzedExpr>),
+    /// .all(closure) - test if all elements match
+    All(Box<AnalyzedExpr>),
+    /// .collect() - collect into collection
+    Collect,
 }
 
 /// Analyzed expression with type information
@@ -3848,7 +3910,7 @@ pub enum AnalyzedExprKind {
     /// Iterator chain collection.iter().map(...).filter(...)
     IteratorChain {
         collection: Box<AnalyzedExpr>,
-        ops: Vec<crate::ir::IteratorOp>,
+        ops: Vec<AnalyzedIteratorOp>,
     },
     /// Literal value (used in iterator ops, different from specific literals above)
     Literal(i64),
