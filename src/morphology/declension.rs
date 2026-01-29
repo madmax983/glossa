@@ -502,10 +502,10 @@ mod tests {
         // We might also find First Declension Feminine (lemma "σωμα" from stem "σωμ" + "α")
         let found_feminine = analyses
             .iter()
-            .any(|a| a.gender == Some(Gender::Feminine) && a.lemma == "σωμα");
+            .any(|a| a.gender == Some(Gender::Feminine) && a.number == Some(Number::Singular) && a.lemma == "σωμα");
         assert!(
             found_feminine,
-            "Should find First Declension Feminine analysis (ambiguity)"
+            "Should find First Declension Feminine singular analysis (ambiguity)"
         );
     }
 
