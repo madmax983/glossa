@@ -485,8 +485,8 @@ mod tests {
 
         // Should have at least 3 analyses
         assert!(
-            analyses.len() >= 3,
-            "Expected at least 3 analyses, got {}",
+            analyses.len() >= 6,
+            "Expected at least 6 analyses for ambiguity, got {}",
             analyses.len()
         );
 
