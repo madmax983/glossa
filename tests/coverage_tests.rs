@@ -158,10 +158,6 @@ fn test_print_variants() {
     let source_op = "1 καὶ 2 λέγε.";
     compile_success(source_op);
 
-    // Note: Index access printing is covered in collection_tests.rs
-    // Removing here to avoid unexplained failure with "Binding without subject" error
-    // which might be due to test environment differences or subtle parser issues.
-
     // Print with unwrap (!)
     // "xi something 5 let" -> let xi = Some(5)
     let source_unwrap = "ξ τί 5 ἔστω. ξ! λέγε.";
@@ -176,5 +172,32 @@ fn test_function_call_patterns() {
     ἔργον φ(χ) δὸς χ.
     ξ φ(5) ἔστω.
     ";
+    compile_success(source);
+}
+
+#[test]
+fn test_binding_propagation() {
+    // Binding with propagation operator (;)
+    // "xi phi(5) let?" -> let xi = phi(5)?;
+    let source = "
+    ἔργον φ(χ) δὸς ἐπιτυχία χ.
+    ξ φ(5) ἔστω;
+    ";
+    compile_success(source);
+}
+
+#[test]
+fn test_print_string_split() {
+    // String split method call
+    let source = "ξ «α-β» ἔστω. ξ κατὰ «-» σχίζεται λέγε.";
+    compile_success(source);
+}
+
+#[test]
+fn test_comparison_unknown_var() {
+    // Comparison with unknown variable (fallback to false logic)
+    // "If unknown 5 greater be" -> should not panic, though semantics are weird
+    // The code generates BooleanLiteral(false) for unknown vars in this specific check
+    let source = "εἰ αγνωστον πέντε μεῖζον ᾖ, «ναι» λέγε.";
     compile_success(source);
 }
