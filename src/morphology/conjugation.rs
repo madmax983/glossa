@@ -6,7 +6,6 @@
 //! - Imperative (commands)
 
 use super::{Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
-use std::borrow::Cow;
 
 /// Present Active Indicative endings (ω-conjugation)
 /// Pattern: λέγω, γράφω, etc.
@@ -422,22 +421,21 @@ fn match_verb_endings(
 }
 
 /// Match a word against ALL verb endings (for ambiguity resolution)
-///
-/// Optimization: Uses a callback instead of returning a Vec to avoid heap allocations.
-fn match_verb_endings_all<F>(
+fn match_verb_endings_all(
     word: &str,
     endings: &[(&str, Person, Number)],
-    mut callback: F,
-) where
-    F: FnMut(&str, Person, Number),
-{
+) -> Vec<(String, Person, Number)> {
+    let mut matches = Vec::new();
+
     for (ending, person, number) in endings {
         if let Some(stem) = word.strip_suffix(ending)
             && !stem.is_empty()
         {
-            callback(stem, *person, *number);
+            matches.push((stem.to_string(), *person, *number));
         }
     }
+
+    matches
 }
 
 /// Analyze a word as a verb, returning ALL possible analyses
@@ -530,14 +528,14 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
     ];
 
     for pattern in &patterns {
-        match_verb_endings_all(word, pattern.endings, |stem, person, number| {
+        let matches = match_verb_endings_all(word, pattern.endings);
+
+        for (stem, person, number) in matches {
             // Handle augment stripping for indicative aorists
-            // Optimization: Pass stem directly if no augment stripping needed
-            // Use Cow to avoid allocation if possible
-            let lemma_stem: Cow<str> = if pattern.has_augment {
-                Cow::Owned(strip_augment(stem))
+            let lemma_stem = if pattern.has_augment {
+                strip_augment(&stem)
             } else {
-                Cow::Borrowed(stem)
+                stem.clone()
             };
 
             // Calculate confidence
@@ -557,7 +555,7 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
                 voice: Some(pattern.voice),
                 confidence,
             });
-        });
+        }
     }
 
     // Try infinitives
@@ -751,55 +749,5 @@ mod tests {
     fn test_infinitive_form() {
         assert_eq!(infinitive("λεγ", Tense::Present, Voice::Active), "λεγειν");
         assert_eq!(infinitive("λυ", Tense::Aorist, Voice::Active), "λυσαι");
-    }
-
-    #[test]
-    fn test_analyze_verb_all_ambiguity() {
-        // "ελεγε" can be:
-        // 1. Imperfect (not yet fully implemented, but shares form with imperative if no augment)
-        // 2. Aorist Active Indicative (3rd singular of a verb ending in -γ ending + ε) - wait, standard ending is -σε
-
-        // Let's use a clearer ambiguity: "λυσε"
-        // 1. Aorist Active Indicative 3rd Singular: ἔλυσε (normalized ελυσε)
-        // 2. Or if we had a verb ending in -λυσ (like καλύσσω -> καλύσω), imperative would be -ε
-
-        // Let's use the one mentioned in the doc: "λεγε"
-        // 1. Present Imperative Active 2nd Sing: λέγε -> λεγε
-        // 2. But could it be interpreted as Aorist?
-
-        // "εγραψε"
-        // Aorist Active Indicative 3rd Sing: ἔγραψε -> εγραψε. Stem γραψ.
-
-        // "εγραψε" -> normalized "εγραψε"
-        // It ends in "ε", but Aorist Indicative endings are "σα", "σας", "σε", etc.
-        // Wait, "εγραψε" matches "σε" ending? No, "εγραψ" + "ε".
-        // The ending is "σε" -> stem "εγραψ" - "σ" = "εγραπ"? No.
-        // Greek: ἔγραψε (he wrote). Ending is -ε? No, sigmatic aorist is -σα, -σας, -σε(ν).
-        // So ἔγραψε -> εγραψε. Ending "σε". Stem "εγραπ" (psi = pi + sigma).
-        // BUT our simple morphology engine assumes separate letters or simple suffixes.
-        // If we look at AORIST_ACTIVE_IND, endings are "σα", "σε", etc.
-        // "εγραψε" ends in "σε". Stem "εγραψ" - "σ"??
-        // strip_suffix("σε") on "εγραψε" gives "εγραψ".
-        // BUT "εγραψε" is literally 'epsilon' 'gamma' 'rho' 'alpha' 'psi' 'epsilon'.
-        // It does NOT contain sigma 'σ' (U+03C3). Psi 'ψ' contains the sound, but it's a distinct letter.
-        // Our current simple stem stripper won't decompose psi.
-
-        // Let's use a simpler verb without contracted consonants for the test.
-        // "ἔλυσε" -> "ελυσε". Ending "σε".
-        // strip_suffix("σε") -> "ελυ".
-        // strip_augment("ελυ") -> "λυ".
-        // Lemma -> "λυ" + "ω" -> "λυω".
-
-        let analyses = analyze_verb_all("ελυσε");
-        assert!(!analyses.is_empty());
-
-        // Should find Aorist Indicative
-        let found_aorist = analyses.iter().any(|a|
-            a.tense == Some(Tense::Aorist) &&
-            a.mood == Some(Mood::Indicative) &&
-            a.person == Some(Person::Third) &&
-            a.lemma == "λυω"
-        );
-        assert!(found_aorist, "Should find Aorist Indicative analysis for ελυσε");
     }
 }

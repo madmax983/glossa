@@ -201,20 +201,19 @@ fn match_endings(word: &str, endings: &[(&str, Case, Number)]) -> Option<(String
     None
 }
 
-/// Match a word against ALL possible endings, invoking a callback for each match
-///
-/// Optimization: Uses a callback instead of returning a Vec to avoid heap allocations.
-fn match_endings_all<F>(word: &str, endings: &[(&str, Case, Number)], mut callback: F)
-where
-    F: FnMut(&str, Case, Number),
-{
+/// Match a word against ALL possible endings, returning all matches
+fn match_endings_all(word: &str, endings: &[(&str, Case, Number)]) -> Vec<(String, Case, Number)> {
+    let mut matches = Vec::new();
+
     for (ending, case, number) in endings {
         if let Some(stem) = word.strip_suffix(ending)
             && !stem.is_empty()
         {
-            callback(stem, *case, *number);
+            matches.push((stem.to_string(), *case, *number));
         }
     }
+
+    matches
 }
 
 /// Analyze a word as a noun, returning ALL possible analyses
@@ -270,7 +269,9 @@ pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
     ];
 
     for decl in &declensions {
-        match_endings_all(word, decl.endings, |stem, case, number| {
+        let matches = match_endings_all(word, decl.endings);
+
+        for (stem, case, number) in matches {
             // Calculate confidence based on ending length and distinctiveness
             let ending_len = word.len() - stem.len();
             let length_bonus = (ending_len as f32 - 1.0) * 0.05; // Longer = better
@@ -288,7 +289,7 @@ pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
                 voice: None,
                 confidence,
             });
-        });
+        }
     }
 
     // Deduplicate identical analyses (same case/number/gender)
