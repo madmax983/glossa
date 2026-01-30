@@ -342,4 +342,31 @@ mod tests {
             assert!(analyses[i].confidence >= analyses[i + 1].confidence);
         }
     }
+
+    #[test]
+    fn test_analyze_all_coverage_forms() {
+        // Test various forms to ensure analyze_all (and underlying *_all functions) are covered
+
+        // Neuter plural (hits SECOND_DECLENSION_NEUT in analyze_noun_all?)
+        let analyses = analyze_all("δωρα");
+        assert!(analyses
+            .iter()
+            .any(|a| a.lemma == "δωρον" && a.gender == Some(Gender::Neuter)));
+
+        // Aorist Infinitive
+        let analyses = analyze_all("λυσαι");
+        assert!(analyses.iter().any(|a| a.mood == Some(Mood::Infinitive)));
+
+        // Aorist Passive Optative
+        let analyses = analyze_all("λυθειη");
+        assert!(analyses
+            .iter()
+            .any(|a| a.mood == Some(Mood::Optative) && a.voice == Some(Voice::Passive)));
+
+        // Aorist Indicative (with augment)
+        let analyses = analyze_all("ελυσα");
+        assert!(analyses
+            .iter()
+            .any(|a| a.tense == Some(Tense::Aorist) && a.lemma == "λυω"));
+    }
 }

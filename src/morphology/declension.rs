@@ -416,6 +416,18 @@ mod tests {
     }
 
     #[test]
+    fn test_second_declension_neuter_plural() {
+        // "δωρα" (gifts) - Neuter Plural (ends in -α)
+        // This should hit the SECOND_DECLENSION_NEUT fallback in analyze_noun
+        // because "α" is not in SECOND_DECLENSION_MASC
+        let analysis = analyze_noun("δωρα").unwrap();
+        assert_eq!(analysis.case, Some(Case::Nominative)); // or Accusative
+        assert_eq!(analysis.number, Some(Number::Plural));
+        assert_eq!(analysis.gender, Some(Gender::Neuter));
+        assert_eq!(analysis.lemma, "δωρον");
+    }
+
+    #[test]
     fn test_first_declension_eta() {
         let analysis = analyze_noun("λιστη").unwrap();
         assert_eq!(analysis.case, Some(Case::Nominative));

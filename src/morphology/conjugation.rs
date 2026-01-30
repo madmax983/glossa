@@ -752,4 +752,29 @@ mod tests {
         assert_eq!(infinitive("λεγ", Tense::Present, Voice::Active), "λεγειν");
         assert_eq!(infinitive("λυ", Tense::Aorist, Voice::Active), "λυσαι");
     }
+
+    #[test]
+    fn test_analyze_verb_coverage_forms() {
+        // Aorist Active Infinitive
+        let analysis = analyze_verb("λυσαι").unwrap();
+        assert_eq!(analysis.tense, Some(Tense::Aorist));
+        assert_eq!(analysis.mood, Some(Mood::Infinitive));
+        assert_eq!(analysis.lemma, "λυω"); // Constructed from stem "λυ" + "ω" (Aorist Infinitive ending is "σαι")
+
+        // Present Active Subjunctive
+        let analysis = analyze_verb("λυῃς").unwrap();
+        assert_eq!(analysis.mood, Some(Mood::Subjunctive));
+        assert_eq!(analysis.lemma, "λυω");
+
+        // Present Active Optative
+        let analysis = analyze_verb("λυοιμι").unwrap();
+        assert_eq!(analysis.mood, Some(Mood::Optative));
+        assert_eq!(analysis.lemma, "λυω");
+
+        // Aorist Passive Optative
+        let analysis = analyze_verb("λυθειη").unwrap();
+        assert_eq!(analysis.voice, Some(Voice::Passive));
+        assert_eq!(analysis.mood, Some(Mood::Optative));
+        assert_eq!(analysis.lemma, "λυω"); // Strip "θ" from "λυθ" -> "λυ"
+    }
 }
