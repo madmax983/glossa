@@ -1372,3 +1372,395 @@ fn detect_property_access_print(
     }
     Ok(None)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::ast::build_ast;
+    use crate::semantic::analyze_program;
+
+    /// Helper to compile source and check for specific error messages
+    fn compile_and_expect_error(source: &str, error_fragment: &str) {
+        let ast = build_ast(source).expect("AST build failed");
+        match analyze_program(&ast) {
+            Ok(_) => panic!(
+                "Expected error containing \"{}\", but analysis succeeded",
+                error_fragment
+            ),
+            Err(e) => {
+                let error_msg = format!("{}", e);
+                assert!(
+                    error_msg.contains(error_fragment),
+                    "Expected error \"{}\" to contain \"{}\"",
+                    error_msg,
+                    error_fragment
+                );
+            }
+        }
+    }
+
+    /// Helper to compile source successfully
+    fn compile_success(source: &str) {
+        let ast = build_ast(source).expect("AST build failed");
+        if let Err(e) = analyze_program(&ast) {
+            panic!("Analysis failed for \"{}\": {}", source, e);
+        }
+    }
+
+    #[test]
+    fn test_assignment_logic() {
+        let source = "ξ πέντε μετά ἔστω. ξ δέκα γίγνεται.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_assignment_error_undefined() {
+        let source = "ξ δέκα γίγνεται.";
+        compile_and_expect_error(source, "οὐχ ὡρίσθη");
+    }
+
+    #[test]
+    fn test_assignment_error_immutable() {
+        let source = "ξ πέντε ἔστω. ξ δέκα γίγνεται.";
+        compile_and_expect_error(source, "ξ");
+    }
+
+    #[test]
+    fn test_assignment_error_no_value() {
+        let source = "ξ πέντε μετά ἔστω. ξ γίγνεται.";
+        compile_and_expect_error(source, "δεῖ τιμῆς");
+    }
+
+    #[test]
+    fn test_binding_swapped_subject_object() {
+        let source = "ξ πέντε ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_collection_instantiation() {
+        let source = "σ νέον σύνολον ἔστω.";
+        compile_success(source);
+        let source = "χ νέον χάρτης ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_with_false_participle() {
+        let source = "τοπικον πέντε ἔστω. τοπικον λέγε.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_pop_push_insert() {
+        let source_pop = "ξ [1, 2] ἔστω. ξ ἕλκεται.";
+        compile_success(source_pop);
+        let source_push = "ξ [] ἔστω. ξ ὠθεῖ 1.";
+        compile_success(source_push);
+        let source_insert_set = "σ νέον σύνολον ἔστω. σ 1 τίθησι.";
+        compile_success(source_insert_set);
+        let source_insert_map = "χ νέον χάρτης ἔστω. χ «κλειδί» 2 τίθησι.";
+        compile_success(source_insert_map);
+    }
+
+    #[test]
+    fn test_comparison_subjunctive() {
+        let source = "ξ πέντε ἔστω. εἰ ξ πέντε μεῖζον ᾖ, «μείζον» λέγε.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_custom_struct_instantiation() {
+        let source = "
+        εἶδος Σημεῖον ὁρίζειν { χ ἀριθμοῦ. }.
+        π νέον Σημεῖον 1 ἔστω.
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_print_variants() {
+        let source_op = "1 καὶ 2 λέγε.";
+        compile_success(source_op);
+        let source_unwrap = "ξ τί 5 ἔστω. ξ! λέγε.";
+        compile_success(source_unwrap);
+    }
+
+    #[test]
+    fn test_function_call_patterns() {
+        let source = "
+        ἔργον φ(χ) δὸς χ.
+        ξ φ(5) ἔστω.
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_propagation() {
+        let source = "
+        ἔργον φ(χ) δὸς ἐπιτυχία χ.
+        ξ φ(5) ἔστω;
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_print_string_split() {
+        let source = "ξ «α-β» ἔστω. ξ κατὰ «-» σχίζεται λέγε.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_comparison_unknown_var() {
+        let source = "εἰ αγνωστον πέντε μεῖζον ᾖ, «ναι» λέγε.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_error_no_subject() {
+        let source = "ἔστω.";
+        compile_and_expect_error(source, "Binding without subject");
+    }
+
+    #[test]
+    fn test_struct_instantiation_fallthrough() {
+        let source = "ξ θετικά πέντε ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_print_with_operator_and_subject() {
+        let source = "ξ πέντε ἔστω. ξ καὶ 5 λέγε.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_default_zero() {
+        let source = "ξ ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_result_object() {
+        let source = "ξ ἐπιτυχία 5 ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_query_literals_only() {
+        let source = "5?";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_function_call_in_object_slot() {
+        let source = "
+        ἔργον φ(χ) δὸς χ.
+        ξ φ 5 ἔστω.
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_unwrap() {
+        let source = "ξ τί 5 ἔστω. ψ ξ! ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_array() {
+        let source = "ξ [1, 2] ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_property() {
+        let source = "
+        εἶδος Σημεῖον ὁρίζειν { χ ἀριθμοῦ. }.
+        π νέον Σημεῖον 1 ἔστω.
+        ξ που χ ἔστω.
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_result_nominative() {
+        let source = "ξ 5 ἐπιτυχία ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_function_call_genitive() {
+        let source = "
+        ἔργον λόγος(χ) δὸς χ.
+        ξ λόγου 5 ἔστω.
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_subject_special_words() {
+        let source_none = "ουδεν 5 ἔστω.";
+        compile_success(source_none);
+        let source_some = "τι 5 ἔστω.";
+        compile_success(source_some);
+    }
+
+    #[test]
+    fn test_binary_op_in_argument() {
+        let source = "
+        ἔργον φ(χ) δὸς χ.
+        ξ φ(1 καὶ 2) ἔστω.
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_property_access_on_non_struct() {
+        let source = "ξ 5 ἔστω. που ξ λέγε.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_struct_instantiation_unknown_type() {
+        let source = "ξ νέον ἄγνωστον 5 ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_print_subject_and_object() {
+        let source = "ξ 5 ἔστω. ψ 10 ἔστω. ξ ψ λέγε.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_expression_propagation() {
+        let source = "
+        ἔργον φ(χ) δὸς ἐπιτυχία χ.
+        φ(5);
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_extract_value_result_err() {
+        let source = "ξ σφάλμα 5 ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_function_call_nominative_extra() {
+        let source_safe = "
+        ἔργον φ(χ) δὸς χ.
+        ψ 10 ἔστω.
+        ξ ψ φ 5 ἔστω.
+        ";
+        compile_success(source_safe);
+    }
+
+    #[test]
+    fn test_extract_value_literals_ops() {
+        let source = "ξ 1 καὶ 2 ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_extract_value_object_literal_op() {
+        let source = "ψ 10 ἔστω. ξ ψ καὶ 2 ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_iterator_fallthrough() {
+        let source = "ξ 5 ἔστω. τοπικον λέγε.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_property_access_print_struct() {
+        let source = "
+        εἶδος Σημεῖον ὁρίζειν { χ ἀριθμοῦ. }.
+        σ νέον Σημεῖον 5 ἔστω.
+        σημείου χ λέγε.
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_struct_instantiation_collections() {
+        let source_set = "σ νέον σύνολον ἔστω.";
+        compile_success(source_set);
+        let source_map = "χ νέον χάρτης ἔστω.";
+        compile_success(source_map);
+    }
+
+    #[test]
+    fn test_struct_instantiation_failure() {
+        let source = "ξ νέον ΆγνωστοΤύπο 5 ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_from_index_access() {
+        let source = "
+        α [1, 2] ἔστω.
+        ξ α[0] ἔστω.
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_string_methods_join_len() {
+        let source = "
+        σ «α,β» ἔστω.
+        σ κατὰ «,» σχίζεται μὲ «-» ἑνώνεται λέγε.
+        ";
+        compile_success(source);
+        let source_len = "
+        σ «αβγ» ἔστω.
+        σ μῆκος λέγε.
+        ";
+        compile_success(source_len);
+    }
+
+    #[test]
+    fn test_nested_function_call_phrases() {
+        let source = "
+        ἔργον ψ(χ) δὸς χ.
+        ἔργον φ(χ) δὸς χ.
+        ξ φ( (ψ(5)) ) ἔστω.
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_empty_array() {
+        let source = "ξ [] ἔστω.";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_binding_swapped_identifiers() {
+        let source = "
+        ξ 5 ἔστω.
+        ξ ψ ἔστω.
+        ";
+        compile_success(source);
+    }
+
+    #[test]
+    fn test_array_literals_mixed() {
+        let source_bool = "ξ [«ναι»] ἔστω.";
+        compile_success(source_bool);
+        let source_str = "ξ [«κείμενον»] ἔστω.";
+        compile_success(source_str);
+    }
+
+    #[test]
+    fn test_struct_instantiation_multi_field() {
+        let source = "
+        εἶδος Σημεῖον ὁρίζειν { χ ἀριθμοῦ. ψ ἀριθμοῦ. }.
+        π νέον Σημεῖον 1 2 ἔστω.
+        ";
+        compile_success(source);
+    }
+}
