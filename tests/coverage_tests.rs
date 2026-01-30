@@ -335,3 +335,43 @@ fn test_binary_op_in_argument() {
     ";
     compile_success(source);
 }
+
+#[test]
+fn test_property_access_on_non_struct() {
+    // "xi 5 let. of-xi 5 say." -> owner is xi (number), not struct.
+    // Should NOT match property access logic.
+    // Should fall through to print default.
+    let source = "ξ 5 ἔστω. που ξ λέγε.";
+    compile_success(source);
+}
+
+#[test]
+fn test_struct_instantiation_unknown_type() {
+    // "xi new Unknown 5 let."
+    // Unknown type should fall through to variable binding.
+    // Variable "xi" bound to "new Unknown 5" (or whatever parts remain).
+    // Assembler might parse "Unknown" as a variable name or something.
+    // Important is that `detect_struct_instantiation` returns `Ok(None)`.
+    let source = "ξ νέον ἄγνωστον 5 ἔστω.";
+    compile_success(source);
+}
+
+#[test]
+fn test_print_subject_and_object() {
+    // "xi 5 let. psi 10 let. xi psi say."
+    // Print with both subject and object variables.
+    let source = "ξ 5 ἔστω. ψ 10 ἔστω. ξ ψ λέγε.";
+    compile_success(source);
+}
+
+#[test]
+fn test_expression_propagation() {
+    // Expression statement with propagation (semicolon)
+    // "phi(5);" -> `phi(5)?`
+    // Requires function returning Result.
+    let source = "
+    ἔργον φ(χ) δὸς ἐπιτυχία χ.
+    φ(5);
+    ";
+    compile_success(source);
+}
