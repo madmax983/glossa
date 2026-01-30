@@ -5,6 +5,7 @@
 
 use super::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
 use rustc_hash::FxHashMap;
+use std::borrow::Cow;
 use std::sync::LazyLock;
 
 /// A lexicon entry with full morphological information
@@ -34,7 +35,7 @@ pub struct LexiconEntry {
 impl LexiconEntry {
     pub fn to_analysis(&self) -> MorphAnalysis {
         MorphAnalysis {
-            lemma: self.lemma.to_string(),
+            lemma: Cow::Borrowed(self.lemma),
             part_of_speech: self.pos,
             case: self.case,
             number: self.number,

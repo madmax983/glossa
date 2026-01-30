@@ -31,12 +31,19 @@ pub use declension::*;
 pub use lexicon::*;
 pub use participle::*;
 
+use std::borrow::Cow;
+
 use crate::grammar::normalize_greek;
 
 /// Result of morphological analysis
 #[derive(Debug, Clone, PartialEq)]
 pub struct MorphAnalysis {
-    pub lemma: String,
+    /// The dictionary form (lemma)
+    ///
+    /// Optimization: Uses `Cow<'static, str>` to avoid allocations for lexicon entries
+    /// which are `&'static str`. Only dynamically generated lemmas (e.g. from
+    /// suffix stripping) use heap allocation.
+    pub lemma: Cow<'static, str>,
     pub part_of_speech: PartOfSpeech,
     pub case: Option<Case>,
     pub number: Option<Number>,
@@ -54,7 +61,7 @@ impl MorphAnalysis {
     /// Create a new analysis with default confidence
     pub fn new(lemma: String, pos: PartOfSpeech) -> Self {
         MorphAnalysis {
-            lemma,
+            lemma: Cow::Owned(lemma),
             part_of_speech: pos,
             case: None,
             number: None,
@@ -93,21 +100,8 @@ pub enum PartOfSpeech {
 /// Analyze a Greek word and return the most likely morphological analysis
 pub fn analyze(word: &str) -> MorphAnalysis {
     let analyses = analyze_all(word);
-    analyses.into_iter().next().unwrap_or_else(|| {
-        let normalized = normalize_greek(word);
-        MorphAnalysis {
-            lemma: normalized,
-            part_of_speech: PartOfSpeech::Unknown,
-            case: None,
-            number: None,
-            gender: None,
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 0.0,
-        }
-    })
+    // analyze_all is guaranteed to return at least one analysis (Unknown if nothing else)
+    analyses.into_iter().next().unwrap()
 }
 
 /// Analyze a Greek word and return ALL possible morphological analyses
@@ -159,7 +153,7 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
             analyses.insert(
                 0,
                 MorphAnalysis {
-                    lemma: normalized.clone(),
+                    lemma: Cow::Owned(normalized.clone()),
                     part_of_speech: PartOfSpeech::Noun,
                     case: Some(Case::Nominative),
                     number: Some(Number::Singular),
@@ -177,7 +171,7 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     // If still nothing, return unknown
     if analyses.is_empty() {
         analyses.push(MorphAnalysis {
-            lemma: normalized,
+            lemma: Cow::Owned(normalized),
             part_of_speech: PartOfSpeech::Unknown,
             case: None,
             number: None,
@@ -309,6 +303,31 @@ mod tests {
     }
 
     #[test]
+    fn test_unknown_word_fallback() {
+        // "gibberish" should trigger the unknown fallback path
+        let analysis = analyze("gibberish");
+        assert_eq!(analysis.part_of_speech, PartOfSpeech::Unknown);
+        assert_eq!(analysis.lemma, "gibberish"); // Should be Cow::Owned
+        assert!(matches!(analysis.lemma, Cow::Owned(_)));
+        assert_eq!(analysis.confidence, 0.0);
+    }
+
+    #[test]
+    fn test_single_greek_letter_fallback() {
+        // "α" should trigger the single greek letter fallback (mathematical variable)
+        let analysis = analyze("α");
+        assert_eq!(analysis.part_of_speech, PartOfSpeech::Noun);
+        assert_eq!(analysis.case, Some(Case::Nominative));
+        assert_eq!(analysis.lemma, "α"); // Should be Cow::Owned from clone
+        // Note: lexicon entries might also cover some letters, so we check if it works generally
+        // But specifically for a letter NOT in lexicon (if any), this fallback is key.
+        // "ξ" (xi) is likely not in lexicon as a word
+        let analysis_xi = analyze("ξ");
+        assert_eq!(analysis_xi.part_of_speech, PartOfSpeech::Noun);
+        assert_eq!(analysis_xi.lemma, "ξ");
+    }
+
+    #[test]
     fn test_ambiguous_word_analysis() {
         // "λόγον" is accusative singular, but let's check a word with multiple potential analyses
         // "α" is a good candidate: variable (noun), letter, etc.
@@ -322,5 +341,38 @@ mod tests {
         for i in 0..analyses.len() - 1 {
             assert!(analyses[i].confidence >= analyses[i + 1].confidence);
         }
+    }
+
+    #[test]
+    fn test_analyze_all_coverage_forms() {
+        // Test various forms to ensure analyze_all (and underlying *_all functions) are covered
+
+        // Neuter plural (hits SECOND_DECLENSION_NEUT in analyze_noun_all?)
+        let analyses = analyze_all("δωρα");
+        assert!(
+            analyses
+                .iter()
+                .any(|a| a.lemma == "δωρον" && a.gender == Some(Gender::Neuter))
+        );
+
+        // Aorist Infinitive
+        let analyses = analyze_all("λυσαι");
+        assert!(analyses.iter().any(|a| a.mood == Some(Mood::Infinitive)));
+
+        // Aorist Passive Optative
+        let analyses = analyze_all("λυθειη");
+        assert!(
+            analyses
+                .iter()
+                .any(|a| a.mood == Some(Mood::Optative) && a.voice == Some(Voice::Passive))
+        );
+
+        // Aorist Indicative (with augment)
+        let analyses = analyze_all("ελυσα");
+        assert!(
+            analyses
+                .iter()
+                .any(|a| a.tense == Some(Tense::Aorist) && a.lemma == "λυω")
+        );
     }
 }

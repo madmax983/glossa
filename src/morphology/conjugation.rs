@@ -5,6 +5,8 @@
 //! - Aorist Active Indicative (one-shot operations)
 //! - Imperative (commands)
 
+use std::borrow::Cow;
+
 use super::{Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
 
 /// Present Active Indicative endings (ω-conjugation)
@@ -206,7 +208,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     for (form, person, number) in EIMI_SUBJUNCTIVE {
         if word == *form {
             return Some(MorphAnalysis {
-                lemma: "ειμι".to_string(),
+                lemma: Cow::Borrowed("ειμι"),
                 part_of_speech: PartOfSpeech::Verb,
                 case: None,
                 number: Some(*number),
@@ -224,7 +226,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Note: -ω ending is ambiguous (indicative vs subjunctive), prefer indicative
     if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_IND) {
         return Some(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: Some(number),
@@ -240,7 +242,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Try present active imperative
     if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_IMP) {
         return Some(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: Some(number),
@@ -258,7 +260,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
         // Strip temporal augment to find true stem: ἔλυσα → ελυ → λυ
         let true_stem = strip_augment(&augmented_stem);
         return Some(MorphAnalysis {
-            lemma: format!("{}ω", true_stem),
+            lemma: Cow::Owned(format!("{}ω", true_stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: Some(number),
@@ -274,7 +276,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Try aorist active imperative (no augment in imperative, but keep consistent)
     if let Some((stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_IMP) {
         return Some(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: Some(number),
@@ -292,7 +294,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
         && !stem.is_empty()
     {
         return Some(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: None,
@@ -310,7 +312,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
         && !stem.is_empty()
     {
         return Some(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: None,
@@ -327,7 +329,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Only match distinctive subjunctive endings (ῃς, ῃ, ωμεν, ητε, ωσι)
     if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_SUBJ) {
         return Some(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: Some(number),
@@ -343,7 +345,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Try aorist active subjunctive
     if let Some((stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_SUBJ) {
         return Some(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: Some(number),
@@ -359,7 +361,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Try present active optative (for Option<T> semantics)
     if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_OPT) {
         return Some(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: Some(number),
@@ -385,7 +387,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
         };
 
         return Some(MorphAnalysis {
-            lemma,
+            lemma: Cow::Owned(lemma),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: Some(number),
@@ -452,7 +454,7 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
     for (form, person, number) in EIMI_SUBJUNCTIVE {
         if word == *form {
             analyses.push(MorphAnalysis {
-                lemma: "ειμι".to_string(),
+                lemma: Cow::Borrowed("ειμι"),
                 part_of_speech: PartOfSpeech::Verb,
                 case: None,
                 number: Some(*number),
@@ -544,7 +546,7 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
             let confidence = (pattern.base_confidence + length_bonus).min(0.95);
 
             analyses.push(MorphAnalysis {
-                lemma: format!("{}ω", lemma_stem),
+                lemma: Cow::Owned(format!("{}ω", lemma_stem)),
                 part_of_speech: PartOfSpeech::Verb,
                 case: None,
                 number: Some(number),
@@ -563,7 +565,7 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
         && !stem.is_empty()
     {
         analyses.push(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: None,
@@ -580,7 +582,7 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
         && !stem.is_empty()
     {
         analyses.push(MorphAnalysis {
-            lemma: format!("{}ω", stem),
+            lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
             number: None,
@@ -749,5 +751,30 @@ mod tests {
     fn test_infinitive_form() {
         assert_eq!(infinitive("λεγ", Tense::Present, Voice::Active), "λεγειν");
         assert_eq!(infinitive("λυ", Tense::Aorist, Voice::Active), "λυσαι");
+    }
+
+    #[test]
+    fn test_analyze_verb_coverage_forms() {
+        // Aorist Active Infinitive
+        let analysis = analyze_verb("λυσαι").unwrap();
+        assert_eq!(analysis.tense, Some(Tense::Aorist));
+        assert_eq!(analysis.mood, Some(Mood::Infinitive));
+        assert_eq!(analysis.lemma, "λυω"); // Constructed from stem "λυ" + "ω" (Aorist Infinitive ending is "σαι")
+
+        // Present Active Subjunctive
+        let analysis = analyze_verb("λυῃς").unwrap();
+        assert_eq!(analysis.mood, Some(Mood::Subjunctive));
+        assert_eq!(analysis.lemma, "λυω");
+
+        // Present Active Optative
+        let analysis = analyze_verb("λυοιμι").unwrap();
+        assert_eq!(analysis.mood, Some(Mood::Optative));
+        assert_eq!(analysis.lemma, "λυω");
+
+        // Aorist Passive Optative
+        let analysis = analyze_verb("λυθειη").unwrap();
+        assert_eq!(analysis.voice, Some(Voice::Passive));
+        assert_eq!(analysis.mood, Some(Mood::Optative));
+        assert_eq!(analysis.lemma, "λυω"); // Strip "θ" from "λυθ" -> "λυ"
     }
 }

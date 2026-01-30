@@ -5,6 +5,8 @@
 //! - Second declension: -ος/-ον masculine/neuter nouns
 //! - Third declension: -μα neuter nouns (and others)
 
+use std::borrow::Cow;
+
 use super::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
 
 /// Declension pattern
@@ -102,7 +104,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
     // Third declension -μα (check longer endings first)
     if let Some((stem, case, number)) = match_endings(word, THIRD_DECLENSION_MA) {
         return Some(MorphAnalysis {
-            lemma: format!("{}μα", stem),
+            lemma: Cow::Owned(format!("{}μα", stem)),
             part_of_speech: PartOfSpeech::Noun,
             case: Some(case),
             number: Some(number),
@@ -118,7 +120,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
     // Second declension masculine -ος
     if let Some((stem, case, number)) = match_endings(word, SECOND_DECLENSION_MASC) {
         return Some(MorphAnalysis {
-            lemma: format!("{}ος", stem),
+            lemma: Cow::Owned(format!("{}ος", stem)),
             part_of_speech: PartOfSpeech::Noun,
             case: Some(case),
             number: Some(number),
@@ -136,7 +138,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
         // Only if it doesn't match masculine (which has priority for -ον accusative)
         if !word.ends_with("ος") {
             return Some(MorphAnalysis {
-                lemma: format!("{}ον", stem),
+                lemma: Cow::Owned(format!("{}ον", stem)),
                 part_of_speech: PartOfSpeech::Noun,
                 case: Some(case),
                 number: Some(number),
@@ -153,7 +155,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
     // First declension -η
     if let Some((stem, case, number)) = match_endings(word, FIRST_DECLENSION_ETA) {
         return Some(MorphAnalysis {
-            lemma: format!("{}η", stem),
+            lemma: Cow::Owned(format!("{}η", stem)),
             part_of_speech: PartOfSpeech::Noun,
             case: Some(case),
             number: Some(number),
@@ -169,7 +171,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
     // First declension -α
     if let Some((stem, case, number)) = match_endings(word, FIRST_DECLENSION_ALPHA) {
         return Some(MorphAnalysis {
-            lemma: format!("{}α", stem),
+            lemma: Cow::Owned(format!("{}α", stem)),
             part_of_speech: PartOfSpeech::Noun,
             case: Some(case),
             number: Some(number),
@@ -278,7 +280,7 @@ pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
             let confidence = (decl.base_confidence + length_bonus).min(0.95);
 
             analyses.push(MorphAnalysis {
-                lemma: format!("{}{}", stem, decl.nom_ending),
+                lemma: Cow::Owned(format!("{}{}", stem, decl.nom_ending)),
                 part_of_speech: PartOfSpeech::Noun,
                 case: Some(case),
                 number: Some(number),
@@ -411,6 +413,18 @@ mod tests {
         let analysis = analyze_noun("χρηστων").unwrap();
         assert_eq!(analysis.case, Some(Case::Genitive));
         assert_eq!(analysis.number, Some(Number::Plural));
+    }
+
+    #[test]
+    fn test_second_declension_neuter_plural() {
+        // "δωρα" (gifts) - Neuter Plural (ends in -α)
+        // This should hit the SECOND_DECLENSION_NEUT fallback in analyze_noun
+        // because "α" is not in SECOND_DECLENSION_MASC
+        let analysis = analyze_noun("δωρα").unwrap();
+        assert_eq!(analysis.case, Some(Case::Nominative)); // or Accusative
+        assert_eq!(analysis.number, Some(Number::Plural));
+        assert_eq!(analysis.gender, Some(Gender::Neuter));
+        assert_eq!(analysis.lemma, "δωρον");
     }
 
     #[test]
