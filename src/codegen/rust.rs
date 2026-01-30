@@ -575,8 +575,23 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
                 // HashMap uses .contains_key(&key)
                 quote! { #coll.contains_key(&#elem) }
             } else {
-                // HashSet uses .contains(&element)
-                quote! { #coll.contains(&#elem) }
+                // For collections like HashSet we use a reference, but for
+                // String::contains we must avoid creating a &&str when the
+                // element is a string literal (which is already a &str).
+                match element {
+                    // When the element is a string literal, `generate_expr`
+                    // already yields a `&str`, so we call `.contains(elem)`
+                    // without adding another `&`.
+                    HirExpr::StringLiteral(_) => {
+                        quote! { #coll.contains(#elem) }
+                    }
+                    // In all other cases, keep the existing behavior and
+                    // pass a reference to the element.
+                    _ => {
+                        // HashSet uses .contains(&element)
+                        quote! { #coll.contains(&#elem) }
+                    }
+                }
             }
         }
     }
