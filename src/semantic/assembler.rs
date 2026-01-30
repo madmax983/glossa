@@ -443,118 +443,19 @@ impl Assembler {
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
         let normalized = normalize_greek(original);
 
-        // Check for mutable marker (μετά) first
-        if crate::morphology::lexicon::is_mutable_marker(&normalized) {
-            self.pending_mutable_marker = true;
+        if self.check_special_markers(&normalized) {
             return Ok(());
         }
 
-        // Check for containment preposition (ἐν) for contains patterns
-        if crate::morphology::lexicon::is_containment_preposition(&normalized) {
-            self.has_containment_preposition = true;
+        if self.check_method_verbs(&normalized) {
             return Ok(());
         }
 
-        // Check for delimiter preposition (κατά) for split/join patterns
-        if crate::morphology::lexicon::is_delimiter_preposition(&normalized) {
-            self.has_delimiter_preposition = true;
+        if self.check_operators(&normalized, original) {
             return Ok(());
         }
 
-        // Check for split verb - treat as method operation, not main verb
-        if crate::morphology::lexicon::is_split_verb(&normalized) {
-            // If we have a delimiter, create a split method
-            if self.has_delimiter_preposition
-                && let Some(Literal::String(delim)) = self.pending_literals.pop()
-                && let Some(ref subj) = self.pending_subject
-            {
-                let normalized_original = normalize_greek(&subj.original);
-                self.pending_string_method = Some(("split".to_string(), delim));
-                // Push back a property access for the split result
-                self.pending_property_accesses
-                    .push((normalized_original, "split".to_string()));
-            }
-            return Ok(());
-        }
-
-        // Check for join verb - treat as method operation, not main verb
-        if crate::morphology::lexicon::is_join_verb(&normalized) {
-            // If we have a delimiter, create a join method
-            if self.has_delimiter_preposition
-                && let Some(Literal::String(delim)) = self.pending_literals.pop()
-                && let Some(ref subj) = self.pending_subject
-            {
-                let normalized_original = normalize_greek(&subj.original);
-                self.pending_string_method = Some(("join".to_string(), delim));
-                // Push back a property access for the join result
-                self.pending_property_accesses
-                    .push((normalized_original, "join".to_string()));
-            }
-            return Ok(());
-        }
-
-        // Check for operators first (before normal part-of-speech handling)
-        // Boolean operators: καί (&&), ἤ (||)
-        // IMPORTANT: Use original form for ἤ to distinguish from ᾖ (subjunctive)
-        // ἤ has smooth breathing + acute, ᾖ has subscript iota + circumflex
-        if matches!(original, "καί" | "και") {
-            self.pending_operators.push(BinaryOp::And);
-            return Ok(());
-        }
-        if matches!(original, "ἤ" | "ή") {
-            // ἤ with breathing+accent, but not ᾖ
-            self.pending_operators.push(BinaryOp::Or);
-            return Ok(());
-        }
-
-        // Comparison operators: μεῖζον (>), ἔλαττον (<), ἴσον (==)
-        if let Some(op) = crate::morphology::lexicon::comparison_operator(&normalized) {
-            self.pending_operators.push(op);
-            return Ok(());
-        }
-
-        // Arithmetic operators: ἄθροισμα (+), διαφορά (-), γινόμενον (*)
-        if let Some(op) = crate::morphology::lexicon::arithmetic_operator(&normalized) {
-            self.pending_operators.push(op);
-            return Ok(());
-        }
-
-        // Check for numeral words (any case form) - these become literals
-        // This catches numeral words regardless of how morphology parsed them
-        if let Some(value) = crate::morphology::lexicon::numeral_value(&normalized) {
-            self.pending_literals.push(Literal::Number(value));
-            return Ok(());
-        }
-
-        // Check for property nouns (μῆκος)
-        if crate::morphology::lexicon::is_length_property(&normalized) {
-            // If we have a subject, create a property access (use normalized original, not lemma)
-            if let Some(ref subj) = self.pending_subject {
-                let normalized_original = crate::grammar::normalize_greek(&subj.original);
-                self.pending_property_accesses
-                    .push((normalized_original, "len".to_string()));
-                self.pending_subject = None; // Consume the subject
-            }
-            return Ok(());
-        }
-
-        // Check for ordinal adjectives (πρῶτον, δεύτερον, τρίτον)
-        if crate::morphology::lexicon::is_ordinal(&normalized) {
-            // If we have a subject, create an index access with the ordinal index
-            if let Some(ref subj) = self.pending_subject
-                && let Some(index) = crate::morphology::lexicon::ordinal_to_index(&normalized)
-            {
-                // Create array and index expressions (use normalized original, not lemma)
-                let normalized_original = crate::grammar::normalize_greek(&subj.original);
-                let array = Expr::Word(Word {
-                    original: subj.original.clone(),
-                    normalized: normalized_original,
-                });
-                let index_expr = Expr::NumberLiteral(index);
-
-                self.pending_index_accesses.push((array, index_expr));
-                self.pending_subject = None; // Consume the subject
-            }
+        if self.check_special_properties(&normalized) {
             return Ok(());
         }
 
@@ -815,6 +716,137 @@ impl Assembler {
 
         self.reset();
         Ok(statement)
+    }
+
+    /// Check for special markers (mutable, containment, delimiter)
+    fn check_special_markers(&mut self, normalized: &str) -> bool {
+        // Check for mutable marker (μετά)
+        if crate::morphology::lexicon::is_mutable_marker(normalized) {
+            self.pending_mutable_marker = true;
+            return true;
+        }
+
+        // Check for containment preposition (ἐν)
+        if crate::morphology::lexicon::is_containment_preposition(normalized) {
+            self.has_containment_preposition = true;
+            return true;
+        }
+
+        // Check for delimiter preposition (κατά)
+        if crate::morphology::lexicon::is_delimiter_preposition(normalized) {
+            self.has_delimiter_preposition = true;
+            return true;
+        }
+
+        false
+    }
+
+    /// Check for method verbs (split, join)
+    fn check_method_verbs(&mut self, normalized: &str) -> bool {
+        // Check for split verb
+        if crate::morphology::lexicon::is_split_verb(normalized) {
+            // If we have a delimiter, create a split method
+            if self.has_delimiter_preposition
+                && let Some(Literal::String(delim)) = self.pending_literals.pop()
+                && let Some(ref subj) = self.pending_subject
+            {
+                let normalized_original = normalize_greek(&subj.original);
+                self.pending_string_method = Some(("split".to_string(), delim));
+                // Push back a property access for the split result
+                self.pending_property_accesses
+                    .push((normalized_original, "split".to_string()));
+            }
+            return true;
+        }
+
+        // Check for join verb
+        if crate::morphology::lexicon::is_join_verb(normalized) {
+            // If we have a delimiter, create a join method
+            if self.has_delimiter_preposition
+                && let Some(Literal::String(delim)) = self.pending_literals.pop()
+                && let Some(ref subj) = self.pending_subject
+            {
+                let normalized_original = normalize_greek(&subj.original);
+                self.pending_string_method = Some(("join".to_string(), delim));
+                // Push back a property access for the join result
+                self.pending_property_accesses
+                    .push((normalized_original, "join".to_string()));
+            }
+            return true;
+        }
+
+        false
+    }
+
+    /// Check for operators (boolean, comparison, arithmetic)
+    fn check_operators(&mut self, normalized: &str, original: &str) -> bool {
+        // Boolean operators
+        if matches!(original, "καί" | "και") {
+            self.pending_operators.push(BinaryOp::And);
+            return true;
+        }
+        if matches!(original, "ἤ" | "ή") {
+            // ἤ with breathing+accent, but not ᾖ
+            self.pending_operators.push(BinaryOp::Or);
+            return true;
+        }
+
+        // Comparison operators
+        if let Some(op) = crate::morphology::lexicon::comparison_operator(normalized) {
+            self.pending_operators.push(op);
+            return true;
+        }
+
+        // Arithmetic operators
+        if let Some(op) = crate::morphology::lexicon::arithmetic_operator(normalized) {
+            self.pending_operators.push(op);
+            return true;
+        }
+
+        false
+    }
+
+    /// Check for special properties (numerals, length, ordinals)
+    fn check_special_properties(&mut self, normalized: &str) -> bool {
+        // Numeral words
+        if let Some(value) = crate::morphology::lexicon::numeral_value(normalized) {
+            self.pending_literals.push(Literal::Number(value));
+            return true;
+        }
+
+        // Property nouns (μῆκος)
+        if crate::morphology::lexicon::is_length_property(normalized) {
+            // If we have a subject, create a property access (use normalized original, not lemma)
+            if let Some(ref subj) = self.pending_subject {
+                let normalized_original = crate::grammar::normalize_greek(&subj.original);
+                self.pending_property_accesses
+                    .push((normalized_original, "len".to_string()));
+                self.pending_subject = None; // Consume the subject
+            }
+            return true;
+        }
+
+        // Ordinal adjectives
+        if crate::morphology::lexicon::is_ordinal(normalized) {
+            // If we have a subject, create an index access with the ordinal index
+            if let Some(ref subj) = self.pending_subject
+                && let Some(index) = crate::morphology::lexicon::ordinal_to_index(normalized)
+            {
+                // Create array and index expressions (use normalized original, not lemma)
+                let normalized_original = crate::grammar::normalize_greek(&subj.original);
+                let array = Expr::Word(Word {
+                    original: subj.original.clone(),
+                    normalized: normalized_original,
+                });
+                let index_expr = Expr::NumberLiteral(index);
+
+                self.pending_index_accesses.push((array, index_expr));
+                self.pending_subject = None; // Consume the subject
+            }
+            return true;
+        }
+
+        false
     }
 
     /// Check if the assembler has any pending content
