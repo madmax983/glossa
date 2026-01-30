@@ -100,21 +100,8 @@ pub enum PartOfSpeech {
 /// Analyze a Greek word and return the most likely morphological analysis
 pub fn analyze(word: &str) -> MorphAnalysis {
     let analyses = analyze_all(word);
-    analyses.into_iter().next().unwrap_or_else(|| {
-        let normalized = normalize_greek(word);
-        MorphAnalysis {
-            lemma: Cow::Owned(normalized),
-            part_of_speech: PartOfSpeech::Unknown,
-            case: None,
-            number: None,
-            gender: None,
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 0.0,
-        }
-    })
+    // analyze_all is guaranteed to return at least one analysis (Unknown if nothing else)
+    analyses.into_iter().next().unwrap()
 }
 
 /// Analyze a Greek word and return ALL possible morphological analyses
@@ -313,6 +300,31 @@ mod tests {
         // Verify ordering is preserved for valid items (or at least no panic)
         // NaN comparisons are undefined, but we just ensure it doesn't crash
         assert_eq!(analyses.len(), 2);
+    }
+
+    #[test]
+    fn test_unknown_word_fallback() {
+        // "gibberish" should trigger the unknown fallback path
+        let analysis = analyze("gibberish");
+        assert_eq!(analysis.part_of_speech, PartOfSpeech::Unknown);
+        assert_eq!(analysis.lemma, "gibberish"); // Should be Cow::Owned
+        assert!(matches!(analysis.lemma, Cow::Owned(_)));
+        assert_eq!(analysis.confidence, 0.0);
+    }
+
+    #[test]
+    fn test_single_greek_letter_fallback() {
+        // "α" should trigger the single greek letter fallback (mathematical variable)
+        let analysis = analyze("α");
+        assert_eq!(analysis.part_of_speech, PartOfSpeech::Noun);
+        assert_eq!(analysis.case, Some(Case::Nominative));
+        assert_eq!(analysis.lemma, "α"); // Should be Cow::Owned from clone
+        // Note: lexicon entries might also cover some letters, so we check if it works generally
+        // But specifically for a letter NOT in lexicon (if any), this fallback is key.
+        // "ξ" (xi) is likely not in lexicon as a word
+        let analysis_xi = analyze("ξ");
+        assert_eq!(analysis_xi.part_of_speech, PartOfSpeech::Noun);
+        assert_eq!(analysis_xi.lemma, "ξ");
     }
 
     #[test]
