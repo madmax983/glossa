@@ -1,13 +1,13 @@
 //! Expression analysis and helpers
 
+use super::disambiguation::{analyze_article, resolve_best};
+use super::{
+    AnalyzedExpr, AnalyzedExprKind, Assembler, DisambiguationContext, GlossaType, Literal, Scope,
+};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::grammar::normalize_greek;
 use crate::morphology::{self};
-use super::{
-    Assembler, DisambiguationContext, Scope, AnalyzedExpr, AnalyzedExprKind, GlossaType, Literal
-};
-use super::disambiguation::{analyze_article, resolve_best};
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
 pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {

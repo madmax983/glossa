@@ -1,14 +1,13 @@
 //! Declaration analysis (functions, types, traits)
 
+use super::{
+    AnalyzedImplMethod, AnalyzedStatement, AnalyzedTraitMethod, GlossaType, Scope, StatementKind,
+    analyze_single_statement_with_assembler, convert_assembled_to_analyzed,
+};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::grammar::normalize_greek;
 use crate::morphology;
-use super::{
-    analyze_single_statement_with_assembler, convert_assembled_to_analyzed,
-    AnalyzedImplMethod, AnalyzedStatement, AnalyzedTraitMethod,
-    GlossaType, Scope, StatementKind,
-};
 // Circular dependencies handled by crate structure
 use super::control_flow::analyze_control_flow;
 use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};

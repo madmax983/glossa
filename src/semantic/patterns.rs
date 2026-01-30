@@ -1,11 +1,12 @@
 //! Pattern detection (struct instantiation, trait calls, iterators)
 
+use super::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedStatement, AssembledStatement,
+    GlossaType, Scope, StatementKind,
+};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::grammar::normalize_greek;
-use super::{
-    Scope, AnalyzedStatement, StatementKind, AnalyzedExpr, AnalyzedExprKind, GlossaType, AnalyzedIteratorOp, AssembledStatement
-};
 
 /// Try to parse a trait method call: method_name receiver
 /// Returns Some(analyzed_statement) if this is a trait method call, None otherwise

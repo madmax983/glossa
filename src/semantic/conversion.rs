@@ -1,17 +1,18 @@
 //! Conversion from assembled statements to analyzed statements
 
+use super::expressions::{
+    analyze_argument_expr, build_binary_expr, build_expressions_from_literals_and_ops,
+    convert_array_elements, convert_expr_to_analyzed, literal_to_analyzed_expr, literal_to_type,
+};
+use super::patterns::detect_iterator_pattern;
+use super::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, AssembledStatement, GlossaType, Scope,
+    StatementKind,
+};
 use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::grammar::normalize_greek;
 use crate::morphology::{self};
-use super::{
-    Scope, AnalyzedStatement, StatementKind, AnalyzedExpr, AnalyzedExprKind, GlossaType, AssembledStatement
-};
-use super::expressions::{
-    literal_to_analyzed_expr, literal_to_type, convert_expr_to_analyzed, convert_array_elements,
-    build_expressions_from_literals_and_ops, build_binary_expr, analyze_argument_expr
-};
-use super::patterns::detect_iterator_pattern;
 
 /// Convert an AssembledStatement to an AnalyzedStatement
 /// This bridges the slot-based assembler output to the HIR lowering input

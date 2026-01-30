@@ -2,14 +2,14 @@
 //!
 //! Handles if, while, for, match, return, break, continue.
 
+use super::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, StatementKind,
+    analyze_single_statement_with_assembler, convert_assembled_to_analyzed,
+};
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
 use crate::grammar::normalize_greek;
 use crate::morphology::lexicon;
-use super::{
-    analyze_single_statement_with_assembler, convert_assembled_to_analyzed,
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, StatementKind,
-};
 // Circular dependencies handled by crate structure
 use super::declarations::parse_function_definition;
 use super::expressions::{contains_function_definition_verb, get_first_word};
@@ -468,10 +468,7 @@ fn parse_return_statement(
 }
 
 /// Parse return expression in a simple way (avoiding assembler issues with scoped variables)
-fn parse_return_expression(
-    clause: &Clause,
-    scope: &Scope,
-) -> Result<AnalyzedExpr, GlossaError> {
+fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
     // For Cycle 3, we'll do simple expression parsing
     // The expression after δός could be:
     // - A simple variable: ξ
