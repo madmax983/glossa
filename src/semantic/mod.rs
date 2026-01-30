@@ -335,7 +335,46 @@ fn try_parse_struct_instantiation(
             let var_name = &words[0].normalized;
             let type_name = &words[2].normalized;
 
-            // Check if type exists
+            // Check for built-in collection types first (HashSet, HashMap)
+            let collection_type = match type_name.as_str() {
+                "συνολον" => {
+                    Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown))))
+                }
+                "χαρτης" => Some((
+                    "HashMap",
+                    GlossaType::Map(Box::new(GlossaType::Unknown), Box::new(GlossaType::Unknown)),
+                )),
+                _ => None,
+            };
+
+            if let Some((rust_type, glossa_type)) = collection_type {
+                let collection_new = AnalyzedExpr {
+                    expr: AnalyzedExprKind::CollectionNew {
+                        collection_type: rust_type.to_string(),
+                    },
+                    glossa_type: glossa_type.clone(),
+                };
+
+                // Register variable in scope (collections are implicitly mutable for insert)
+                scope.define_mut(var_name.clone(), glossa_type.clone());
+
+                return Ok(Some(AnalyzedStatement {
+                    kind: StatementKind::Binding {
+                        name: var_name.clone(),
+                        value_type: glossa_type.clone(),
+                        mutable: true,
+                    },
+                    expressions: vec![
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(var_name.clone()),
+                            glossa_type: glossa_type.clone(),
+                        },
+                        collection_new,
+                    ],
+                }));
+            }
+
+            // Check if type exists as a user-defined struct
             if let Some(struct_type) = scope.lookup_type(type_name).cloned() {
                 // Extract field names from struct type
                 let field_names: Vec<String> =
@@ -2747,6 +2786,51 @@ fn classify_assembled_statement(
                         ],
                     ));
                 }
+
+                // Check for built-in collection types (HashSet, HashMap)
+                // Pattern: ξ νέον σύνολον ἔστω → let xi = HashSet::new()
+                // Pattern: ξ νέον χάρτης ἔστω → let xi = HashMap::new()
+                let collection_type = match type_name.as_str() {
+                    "συνολον" => {
+                        Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown))))
+                    }
+                    "χαρτης" => Some((
+                        "HashMap",
+                        GlossaType::Map(
+                            Box::new(GlossaType::Unknown),
+                            Box::new(GlossaType::Unknown),
+                        ),
+                    )),
+                    _ => None,
+                };
+
+                if let Some((rust_type, glossa_type)) = collection_type {
+                    let collection_new = AnalyzedExpr {
+                        expr: AnalyzedExprKind::CollectionNew {
+                            collection_type: rust_type.to_string(),
+                        },
+                        glossa_type: glossa_type.clone(),
+                    };
+
+                    // Register variable in scope (mutable for collection operations)
+                    // Collections are implicitly mutable for methods like push/pop/insert
+                    scope.define_mut(var_name.clone(), glossa_type.clone());
+
+                    return Ok((
+                        StatementKind::Binding {
+                            name: var_name.clone(),
+                            value_type: glossa_type.clone(),
+                            mutable: true, // Collections are implicitly mutable
+                        },
+                        vec![
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable(var_name),
+                                glossa_type: glossa_type.clone(),
+                            },
+                            collection_new,
+                        ],
+                    ));
+                }
             }
         }
     }
@@ -3090,6 +3174,69 @@ fn classify_assembled_statement(
             return Ok((StatementKind::Expression, vec![method_call]));
         }
 
+        // Check for insert pattern: subject value(s) τίθησι
+        // For HashSet: set element τίθησι → set.insert(element)
+        // For HashMap: map key value τίθησι → map.insert(key, value)
+        if crate::morphology::lexicon::is_insert_verb(&verb_lemma)
+            && let Some(ref subject) = asm_stmt.subject
+        {
+            // Use original form for the subject variable name
+            let subj_name = normalize_greek(&subject.original);
+            let subj_type = scope
+                .lookup(&subj_name)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown);
+
+            // Get the receiver (collection variable)
+            let receiver = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj_name.clone()),
+                glossa_type: subj_type.clone(),
+            };
+
+            // Check if it's a Map or Set to determine argument count
+            let is_map = matches!(subj_type, GlossaType::Map(_, _));
+
+            // Build arguments for insert
+            let args = if is_map && asm_stmt.literals.len() >= 2 {
+                // HashMap: insert(key, value)
+                vec![
+                    literal_to_analyzed_expr(&asm_stmt.literals[0]),
+                    literal_to_analyzed_expr(&asm_stmt.literals[1]),
+                ]
+            } else if let Some(lit) = asm_stmt.literals.first() {
+                // HashSet: insert(element)
+                vec![literal_to_analyzed_expr(lit)]
+            } else if let Some(ref obj) = asm_stmt.object {
+                vec![AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: scope
+                        .lookup(&obj.lemma)
+                        .cloned()
+                        .unwrap_or(GlossaType::Unknown),
+                }]
+            } else {
+                vec![]
+            };
+
+            // Return method call expression
+            // HashSet::insert returns bool, HashMap::insert returns Option<V>
+            let return_type = if is_map {
+                GlossaType::Option(Box::new(GlossaType::Unknown))
+            } else {
+                GlossaType::Boolean
+            };
+            let method_call = AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(receiver),
+                    method: "insert".to_string(),
+                    args,
+                },
+                glossa_type: return_type,
+            };
+
+            return Ok((StatementKind::Expression, vec![method_call]));
+        }
+
         // Check for print pattern
         if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
             // If we have operators, combine subject/variables with literals using operators
@@ -3123,13 +3270,33 @@ fn classify_assembled_statement(
                         expr: AnalyzedExprKind::Variable(owner.clone()),
                         glossa_type: scope.lookup(owner).cloned().unwrap_or(GlossaType::Unknown),
                     };
+                    // Check if this is a split/join method with a delimiter
+                    let method_args = if let Some((ref meth, ref delim)) = asm_stmt.string_method {
+                        if meth == method {
+                            vec![AnalyzedExpr {
+                                expr: AnalyzedExprKind::StringLiteral(delim.clone()),
+                                glossa_type: GlossaType::String,
+                            }]
+                        } else {
+                            vec![]
+                        }
+                    } else {
+                        vec![]
+                    };
+                    // Determine return type based on method
+                    let return_type = match method.as_str() {
+                        "len" => GlossaType::Number,
+                        "split" => GlossaType::List(Box::new(GlossaType::String)), // Iterator of &str
+                        "join" => GlossaType::String,
+                        _ => GlossaType::Unknown,
+                    };
                     args.push(AnalyzedExpr {
                         expr: AnalyzedExprKind::MethodCall {
                             receiver: Box::new(receiver),
                             method: method.clone(),
-                            args: vec![],
+                            args: method_args,
                         },
-                        glossa_type: GlossaType::Number, // len() returns usize
+                        glossa_type: return_type,
                     });
                 }
                 return Ok((StatementKind::Print, args));
@@ -3196,8 +3363,51 @@ fn classify_assembled_statement(
         }
     }
 
-    // Query pattern
+    // Query pattern - check for containment pattern first
     if asm_stmt.is_query {
+        // Containment pattern: element ἐν collection? → collection.contains(&element)
+        // For HashMap: key ἐν map? → map.contains_key(&key)
+        if asm_stmt.has_containment_preposition {
+            // The element is in literals, the collection is the subject
+            if let Some(ref subj) = asm_stmt.subject {
+                let subj_name = normalize_greek(&subj.original);
+                let subj_type = scope
+                    .lookup(&subj_name)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+
+                let collection = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj_name.clone()),
+                    glossa_type: subj_type.clone(),
+                };
+
+                // Get the element from literals
+                let element = if let Some(lit) = asm_stmt.literals.first() {
+                    literal_to_analyzed_expr(lit)
+                } else {
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(0),
+                        glossa_type: GlossaType::Number,
+                    }
+                };
+
+                // Check if it's a Map or Set
+                let is_map = matches!(subj_type, GlossaType::Map(_, _));
+
+                let contains_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::CollectionContains {
+                        collection: Box::new(collection),
+                        element: Box::new(element),
+                        is_map,
+                    },
+                    glossa_type: GlossaType::Boolean,
+                };
+
+                return Ok((StatementKind::Query, vec![contains_expr]));
+            }
+        }
+
+        // Regular query pattern
         let mut exprs = Vec::new();
         for lit in &asm_stmt.literals {
             exprs.push(literal_to_analyzed_expr(lit));
@@ -3989,6 +4199,16 @@ pub enum AnalyzedExprKind {
     },
     /// Literal value (used in iterator ops, different from specific literals above)
     Literal(i64),
+    /// Collection constructor (HashSet::new(), HashMap::new())
+    CollectionNew {
+        collection_type: String,
+    },
+    /// Collection contains check (set.contains(&x), map.contains_key(&k))
+    CollectionContains {
+        collection: Box<AnalyzedExpr>,
+        element: Box<AnalyzedExpr>,
+        is_map: bool,
+    },
 }
 
 /// Semantic analyzer state

@@ -221,3 +221,134 @@ fn test_array_iteration_with_body() {
         code
     );
 }
+
+// =============================================================================
+// Cycle 9: HashSet Insert
+// =============================================================================
+
+#[test]
+fn test_hashset_insert() {
+    // ξ νέον σύνολον ἔστω. ξ 42 τίθησι.
+    // "Let xi be a new set. Xi places 42 (into itself)."
+    let code = compile("ξ νέον σύνολον ἔστω. ξ 42 τίθησι.");
+    // quote! adds spaces, so check for "insert" and the value
+    assert!(
+        code.contains("insert") && code.contains("42"),
+        "Expected insert(42) in: {}",
+        code
+    );
+}
+
+#[test]
+fn test_hashset_insert_string() {
+    // Insert a string into a HashSet
+    let code = compile("ξ νέον σύνολον ἔστω. ξ «ἀλφα» τίθησι.");
+    // quote! adds spaces, so check for "insert"
+    assert!(
+        code.contains("insert") && code.contains("ἀλφα"),
+        "Expected insert with string in: {}",
+        code
+    );
+}
+
+// =============================================================================
+// Cycle 10: HashSet Contains
+// =============================================================================
+
+#[test]
+fn test_hashset_contains() {
+    // ξ νέον σύνολον ἔστω. ξ 42 τίθησι. 42 ἐν ξ?
+    // "Let xi be a new set. Xi places 42. 42 in xi?"
+    let code = compile("ξ νέον σύνολον ἔστω. ξ 42 τίθησι. 42 ἐν ξ?");
+    // quote! adds spaces, so check for "contains"
+    assert!(code.contains("contains"), "Expected contains in: {}", code);
+}
+
+// =============================================================================
+// Cycle 11: HashMap Insert
+// =============================================================================
+
+#[test]
+fn test_hashmap_insert() {
+    // ξ νέον χάρτης ἔστω. ξ «ὄνομα» «Σωκράτης» τίθησι.
+    // "Let xi be a new map. Xi places name->Socrates."
+    let code = compile("ξ νέον χάρτης ἔστω. ξ «ὄνομα» «Σωκράτης» τίθησι.");
+    assert!(
+        code.contains("insert") && code.contains("Σωκράτης"),
+        "Expected insert with value in: {}",
+        code
+    );
+}
+
+// =============================================================================
+// Cycle 12: HashMap Get
+// =============================================================================
+
+#[test]
+fn test_hashmap_get() {
+    // ξ νέον χάρτης ἔστω. ξ «ὄνομα» λέγε.
+    // "Let xi be a new map. Say xi's name."
+    let code = compile("ξ νέον χάρτης ἔστω. ξ «ὄνομα» «Σωκράτης» τίθησι. ξ «ὄνομα» λέγε.");
+    // For now, just check that it compiles - get pattern is complex
+    assert!(code.contains("HashMap"), "Expected HashMap in: {}", code);
+}
+
+// =============================================================================
+// Cycle 13: HashMap Contains Key
+// =============================================================================
+
+#[test]
+fn test_hashmap_contains_key() {
+    // ξ νέον χάρτης ἔστω. «ὄνομα» ἐν ξ?
+    // "Let xi be a new map. 'name' in xi?"
+    let code = compile("ξ νέον χάρτης ἔστω. ξ «ὄνομα» «Σωκράτης» τίθησι. «ὄνομα» ἐν ξ?");
+    assert!(
+        code.contains("contains_key"),
+        "Expected contains_key in: {}",
+        code
+    );
+}
+
+// =============================================================================
+// Cycle 14: String Contains
+// =============================================================================
+
+#[test]
+fn test_string_contains() {
+    // ξ «χαῖρε κόσμε» ἔστω. «κόσμε» ἐν ξ?
+    // "Let xi be 'hello world'. 'world' in xi?"
+    let code = compile("ξ «χαῖρε κόσμε» ἔστω. «κόσμε» ἐν ξ?");
+    assert!(code.contains("contains"), "Expected contains in: {}", code);
+}
+
+// =============================================================================
+// Cycle 15: String Split
+// =============================================================================
+
+#[test]
+fn test_string_split() {
+    // ξ «χαῖρε-κόσμε» ἔστω. ξ κατὰ «-» σχίζεται λέγε.
+    // "Let xi be 'hello-world'. Say xi split by dash."
+    let code = compile("ξ «χαῖρε-κόσμε» ἔστω. ξ κατὰ «-» σχίζεται λέγε.");
+    assert!(
+        code.contains("split") && code.contains("\"-\""),
+        "Expected split(\"-\") in: {}",
+        code
+    );
+}
+
+// =============================================================================
+// Cycle 16: String Join
+// =============================================================================
+
+#[test]
+fn test_string_join() {
+    // ξ [«α», «β», «γ»] ἔστω. ξ κατὰ «-» ἑνοῦνται λέγε.
+    // "Let xi be ['a', 'b', 'c']. Say xi joined with dash."
+    let code = compile("ξ [«α», «β», «γ»] ἔστω. ξ κατὰ «-» ἑνοῦνται λέγε.");
+    assert!(
+        code.contains("join") && code.contains("\"-\""),
+        "Expected join(\"-\") in: {}",
+        code
+    );
+}

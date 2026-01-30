@@ -124,6 +124,15 @@ pub struct AssembledStatement {
     pub is_propagate: bool,
     /// Whether this binding has the mutable marker (μετά)
     pub has_mutable_marker: bool,
+    /// Whether this statement has the containment preposition (ἐν)
+    /// Used for contains patterns: element ἐν set? → set.contains(&element)
+    pub has_containment_preposition: bool,
+    /// Whether this statement has the delimiter preposition (κατά)
+    /// Used for split/join patterns: string κατά delimiter σχίζεται → string.split(delimiter)
+    pub has_delimiter_preposition: bool,
+    /// String method call: (method_name, delimiter)
+    /// Used for split/join patterns
+    pub string_method: Option<(String, String)>,
 }
 
 /// A noun/pronoun constituent with its grammatical info
@@ -276,6 +285,12 @@ pub struct Assembler {
     pending_participles: Vec<ParticipleConstituent>,
     pending_unwraps: Vec<Expr>,
     pending_mutable_marker: bool,
+    /// Track containment preposition (ἐν) for contains patterns
+    has_containment_preposition: bool,
+    /// Track delimiter preposition (κατά) for split/join patterns
+    has_delimiter_preposition: bool,
+    /// Track split/join method call: (method_name, delimiter)
+    pending_string_method: Option<(String, String)>,
     is_query: bool,
     is_propagate: bool,
 }
@@ -357,6 +372,9 @@ impl Assembler {
             pending_participles: Vec::new(),
             pending_unwraps: Vec::new(),
             pending_mutable_marker: false,
+            has_containment_preposition: false,
+            has_delimiter_preposition: false,
+            pending_string_method: None,
             is_query: false,
             is_propagate: false,
         }
@@ -385,6 +403,9 @@ impl Assembler {
         self.pending_participles.clear();
         self.pending_unwraps.clear();
         self.pending_mutable_marker = false;
+        self.has_containment_preposition = false;
+        self.has_delimiter_preposition = false;
+        self.pending_string_method = None;
         self.is_query = false;
         self.is_propagate = false;
     }
@@ -425,6 +446,50 @@ impl Assembler {
         // Check for mutable marker (μετά) first
         if crate::morphology::lexicon::is_mutable_marker(&normalized) {
             self.pending_mutable_marker = true;
+            return Ok(());
+        }
+
+        // Check for containment preposition (ἐν) for contains patterns
+        if crate::morphology::lexicon::is_containment_preposition(&normalized) {
+            self.has_containment_preposition = true;
+            return Ok(());
+        }
+
+        // Check for delimiter preposition (κατά) for split/join patterns
+        if crate::morphology::lexicon::is_delimiter_preposition(&normalized) {
+            self.has_delimiter_preposition = true;
+            return Ok(());
+        }
+
+        // Check for split verb - treat as method operation, not main verb
+        if crate::morphology::lexicon::is_split_verb(&normalized) {
+            // If we have a delimiter, create a split method
+            if self.has_delimiter_preposition
+                && let Some(Literal::String(delim)) = self.pending_literals.pop()
+                && let Some(ref subj) = self.pending_subject
+            {
+                let normalized_original = normalize_greek(&subj.original);
+                self.pending_string_method = Some(("split".to_string(), delim));
+                // Push back a property access for the split result
+                self.pending_property_accesses
+                    .push((normalized_original, "split".to_string()));
+            }
+            return Ok(());
+        }
+
+        // Check for join verb - treat as method operation, not main verb
+        if crate::morphology::lexicon::is_join_verb(&normalized) {
+            // If we have a delimiter, create a join method
+            if self.has_delimiter_preposition
+                && let Some(Literal::String(delim)) = self.pending_literals.pop()
+                && let Some(ref subj) = self.pending_subject
+            {
+                let normalized_original = normalize_greek(&subj.original);
+                self.pending_string_method = Some(("join".to_string(), delim));
+                // Push back a property access for the join result
+                self.pending_property_accesses
+                    .push((normalized_original, "join".to_string()));
+            }
             return Ok(());
         }
 
@@ -743,6 +808,9 @@ impl Assembler {
             has_mutable_marker: self.pending_mutable_marker,
             is_query: self.is_query,
             is_propagate: self.is_propagate,
+            has_containment_preposition: self.has_containment_preposition,
+            has_delimiter_preposition: self.has_delimiter_preposition,
+            string_method: self.pending_string_method.take(),
         };
 
         self.reset();

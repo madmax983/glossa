@@ -27,6 +27,12 @@ pub enum GlossaType {
     /// λίστη - list of T
     List(Box<GlossaType>),
 
+    /// σύνολον - set of T (HashSet)
+    Set(Box<GlossaType>),
+
+    /// χάρτης - map from K to V (HashMap)
+    Map(Box<GlossaType>, Box<GlossaType>),
+
     /// `Option<T>` - value that might not exist
     ///
     /// Expressed in ΓΛΩΣΣΑ via the **optative mood** (εὑρεθείη "might be found").
@@ -79,6 +85,10 @@ impl GlossaType {
             GlossaType::String => "String".to_string(),
             GlossaType::Boolean => "bool".to_string(),
             GlossaType::List(inner) => format!("Vec<{}>", inner.to_rust()),
+            GlossaType::Set(inner) => format!("HashSet<{}>", inner.to_rust()),
+            GlossaType::Map(key, value) => {
+                format!("HashMap<{}, {}>", key.to_rust(), value.to_rust())
+            }
             GlossaType::Option(inner) => format!("Option<{}>", inner.to_rust()),
             GlossaType::Result(ok, err) => format!("Result<{}, {}>", ok.to_rust(), err.to_rust()),
             GlossaType::Unit => "()".to_string(),
@@ -95,6 +105,8 @@ impl GlossaType {
             GlossaType::String => "ὄνομα",
             GlossaType::Boolean => "ἀληθές",
             GlossaType::List(_) => "λίστη",
+            GlossaType::Set(_) => "σύνολον",
+            GlossaType::Map(_, _) => "χάρτης",
             GlossaType::Option(_) => "εὑρεθείη", // "might be found" (optative)
             GlossaType::Result(_, _) => "ἀποτέλεσμα", // "result/outcome"
             GlossaType::Unit => "οὐδέν",
@@ -109,6 +121,10 @@ impl GlossaType {
         match (self, other) {
             (GlossaType::Unknown, _) | (_, GlossaType::Unknown) => true,
             (GlossaType::List(a), GlossaType::List(b)) => a.is_compatible(b),
+            (GlossaType::Set(a), GlossaType::Set(b)) => a.is_compatible(b),
+            (GlossaType::Map(k1, v1), GlossaType::Map(k2, v2)) => {
+                k1.is_compatible(k2) && v1.is_compatible(v2)
+            }
             (GlossaType::Option(a), GlossaType::Option(b)) => a.is_compatible(b),
             (GlossaType::Result(ok1, err1), GlossaType::Result(ok2, err2)) => {
                 ok1.is_compatible(ok2) && err1.is_compatible(err2)
