@@ -83,7 +83,7 @@ pub fn analyze_trait_definition(
             params.push((param_name, GlossaType::Unknown));
         }
 
-        let signature = crate::semantic::types::MethodSignature {
+        let signature = crate::semantic::model::MethodSignature {
             name: method_name.clone(),
             params: params.clone(),
             return_type: None,
@@ -131,7 +131,7 @@ pub fn analyze_trait_definition(
                 None
             };
 
-            default_methods.push(crate::semantic::types::DefaultMethod {
+            default_methods.push(crate::semantic::model::DefaultMethod {
                 signature: signature.clone(),
                 body: body.clone().unwrap_or_default(),
             });
@@ -157,7 +157,7 @@ pub fn analyze_trait_definition(
     }
 
     // Create the trait definition
-    let trait_def_semantic = crate::semantic::types::TraitDef {
+    let trait_def_semantic = crate::semantic::model::TraitDef {
         name: trait_name.clone(),
         required_methods,
         default_methods,
@@ -267,7 +267,7 @@ pub fn analyze_trait_impl(
     }
 
     // Create the trait implementation
-    let trait_impl_semantic = crate::semantic::types::TraitImpl {
+    let trait_impl_semantic = crate::semantic::model::TraitImpl {
         trait_name: trait_name.clone(),
         type_name: type_name.clone(),
         methods: vec![], // Semantic tracking only needs names for now

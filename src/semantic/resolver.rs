@@ -2,7 +2,7 @@
 //!
 //! Manages variable bindings and scope for ΓΛΩΣΣΑ programs.
 
-use crate::semantic::GlossaType;
+use crate::semantic::types::GlossaType;
 use rustc_hash::FxHashMap;
 
 /// A scope containing variable bindings
@@ -15,9 +15,9 @@ pub struct Scope {
     /// Type definitions in this scope
     types: FxHashMap<String, GlossaType>,
     /// Trait definitions in this scope
-    traits: FxHashMap<String, crate::semantic::types::TraitDef>,
+    traits: FxHashMap<String, crate::semantic::model::TraitDef>,
     /// Trait implementations in this scope
-    trait_impls: Vec<crate::semantic::types::TraitImpl>,
+    trait_impls: Vec<crate::semantic::model::TraitImpl>,
     /// Parent scope (for nested scopes)
     parent: Option<Box<Scope>>,
 }
@@ -127,12 +127,12 @@ impl Scope {
     }
 
     /// Define a trait in this scope
-    pub fn define_trait(&mut self, name: String, trait_def: crate::semantic::types::TraitDef) {
+    pub fn define_trait(&mut self, name: String, trait_def: crate::semantic::model::TraitDef) {
         self.traits.insert(name, trait_def);
     }
 
     /// Look up a trait by name
-    pub fn lookup_trait(&self, name: &str) -> Option<&crate::semantic::types::TraitDef> {
+    pub fn lookup_trait(&self, name: &str) -> Option<&crate::semantic::model::TraitDef> {
         if let Some(trait_def) = self.traits.get(name) {
             Some(trait_def)
         } else if let Some(parent) = &self.parent {
@@ -143,7 +143,7 @@ impl Scope {
     }
 
     /// Register a trait implementation
-    pub fn register_trait_impl(&mut self, impl_def: crate::semantic::types::TraitImpl) {
+    pub fn register_trait_impl(&mut self, impl_def: crate::semantic::model::TraitImpl) {
         self.trait_impls.push(impl_def);
     }
 
@@ -152,7 +152,7 @@ impl Scope {
         &self,
         type_name: &str,
         trait_name: &str,
-    ) -> Option<&crate::semantic::types::TraitImpl> {
+    ) -> Option<&crate::semantic::model::TraitImpl> {
         for impl_def in &self.trait_impls {
             if impl_def.type_name == type_name && impl_def.trait_name == trait_name {
                 return Some(impl_def);
