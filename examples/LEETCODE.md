@@ -136,7 +136,7 @@ cargo run -- examples/leetcode_working.γλ
 
 ### Arrays
 ```glossa
-ξ [1, 2, 3] ἔστω.                // let mut xi = vec![1, 2, 3]
+ξ [1, 2, 3] ἔστω.                // let xi = vec![1, 2, 3]
 ξ πρῶτον                         // xi[0]
 ξ[0]                             // xi[0] (bracket notation)
 ξ μῆκος                          // xi.len()
