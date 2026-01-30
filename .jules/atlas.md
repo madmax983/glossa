@@ -6,3 +6,7 @@
 3. Stop calling `ir::lower_expr` inside `semantic`.
 4. Update `ir` to map `AnalyzedIteratorOp` to `ir::IteratorOp` during lowering.
 **Stability:** Decouples semantic analysis from IR generation details. `semantic` becomes strictly upstream of `ir`.
+
+## 2024-05-23 - [Splitting The Blob: Semantic Module]
+**Tangle:** `src/semantic/mod.rs` had grown to over 4600 lines, mixing high-level orchestration, control flow parsing, pattern matching, and expression analysis. This violated the Single Responsibility Principle and made navigation difficult.
+**Blueprint:** Split `src/semantic/mod.rs` into `control_flow.rs`, `declarations.rs`, `expressions.rs`, `patterns.rs`, and `conversion.rs`. `mod.rs` now acts as an orchestrator and facade.
