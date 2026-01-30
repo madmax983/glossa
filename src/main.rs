@@ -15,6 +15,29 @@ use glossa::errors::GlossaError;
 use glossa::ir::lower_to_hir;
 use glossa::semantic::analyze_program;
 
+/// Print the ΓΛΩΣΣΑ banner with ionic columns
+fn print_banner() {
+    println!(r#"
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║                      ΓΛΩΣΣΑ  v{}                        ║
+    ║          Ancient Greek Morphology as Programming Semantics    ║
+    ╚═══════════════════════════════════════════════════════════════╝
+         ║     ║     ║     ║     ║     ║     ║     ║     ║     ║
+         ║     ║     ║     ║     ║     ║     ║     ║     ║     ║
+        ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗
+        ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝
+"#, env!("CARGO_PKG_VERSION"));
+}
+
+/// Print success message with columns
+fn print_success(message: &str) {
+    println!(r#"
+        ║     ║     ║     ║
+        ║  ✓  {}
+        ║     ║     ║     ║
+"#, message);
+}
+
 #[derive(Parser)]
 #[command(name = "glossa")]
 #[command(about = "ΓΛΩΣΣΑ - Ancient Greek morphology as programming semantics")]
@@ -135,7 +158,7 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     fs::write(&output_path, &rust_code).into_diagnostic()?;
 
-    println!("✓ Ἐγράφη: {}", output_path.display());
+    print_success(&format!("Ἐγράφη: {}", output_path.display()));
 
     Ok(())
 }
@@ -209,13 +232,13 @@ fn check_file(input: &Path) -> Result<()> {
     let ast = build_ast(&source).map_err(|e| miette::miette!("{}", e))?;
     let _analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
 
-    println!("✓ {} - ὀρθόν", input.display());
+    print_success(&format!("{} - ὀρθόν", input.display()));
 
     Ok(())
 }
 
 fn run_repl() -> Result<()> {
-    println!("ΓΛΩΣΣΑ v{}", env!("CARGO_PKG_VERSION"));
+    print_banner();
     println!("Γράψον .βοήθεια διὰ βοήθειαν, .ἔξοδος διὰ ἔξοδον.");
     println!();
 

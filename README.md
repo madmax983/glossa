@@ -1,9 +1,23 @@
-# ΓΛΩΣΣΑ (GLOSSA)
+```
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║                                                               ║
+    ║     ╔═╗ ╦   ╔═╗ ╔═╗ ╔═╗ ╔═╗        ΓΛΩΣΣΑ                   ║
+    ║     ║ ╦ ║   ║ ║ ╚═╗ ╚═╗ ╠═╣                                  ║
+    ║     ╚═╝ ╩═╝ ╚═╝ ╚═╝ ╚═╝ ╩ ╩        Ancient Greek Meets Rust  ║
+    ║                                                               ║
+    ╚═══════════════════════════════════════════════════════════════╝
+         ║     ║     ║     ║     ║     ║     ║     ║     ║     ║
+         ║     ║     ║     ║     ║     ║     ║     ║     ║     ║
+        ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗
+        ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝
+```
 
 [![CI](https://github.com/madmax983/glossa/actions/workflows/ci.yml/badge.svg)](https://github.com/madmax983/glossa/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/madmax983/glossa/branch/trunk/graph/badge.svg)](https://codecov.io/gh/madmax983/glossa)
 
-A programming language using Ancient Greek syntax that compiles to Rust.
+**A programming language where Ancient Greek morphology encodes programming semantics.**
+
+Compile Greek syntax directly to Rust. Write code like Aristotle, compile like ferris 🦀
 
 ## Features
 

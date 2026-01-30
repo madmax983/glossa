@@ -1,7 +1,12 @@
-// LeetCode Medium: Working Demo
-// Demonstrates: HashMap, HashSet, Arrays, Mutable Variables
+// ╔═══════════════════════════════════════════════════════════════╗
+// ║           LeetCode Patterns in ΓΛΩΣΣΑ                         ║
+// ║   HashMap • HashSet • Arrays • Mutability                     ║
+// ╚═══════════════════════════════════════════════════════════════╝
+//      ║     ║     ║     ║     ║     ║     ║     ║     ║     ║
+//     ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗   ╔╩╗
+//     ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝   ╚═╝
 //
-// This example shows common algorithmic patterns using GLOSSA's new features
+// Common algorithmic patterns demonstrating GLOSSA's collection features
 
 // ════════════════════════════════════════
 // Pattern 1: Two Sum (HashMap)
