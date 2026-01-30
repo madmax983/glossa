@@ -295,10 +295,43 @@ fn test_binding_property() {
 #[test]
 fn test_binding_result_nominative() {
     // Binding with Result in nominative slot (extra nominative)
-    // "xi success 5 let" -> xi=sub, success=nom?
-    // We need "success" to NOT be object.
-    // Maybe "xi 5 success let"? "success" is nominative noun.
-    // "xi 5" -> xi=sub, 5=lit. "success" -> nom?
+    // "xi 5 success let" -> xi=sub, 5=lit, success=nom
     let source = "ξ 5 ἐπιτυχία ἔστω.";
+    compile_success(source);
+}
+
+#[test]
+fn test_function_call_genitive() {
+    // Function call with name in genitive
+    // "xi phi-of 5 let" -> xi=sub, phi=gen, 5=lit
+    let source = "
+    ἔργον λόγος(χ) δὸς χ.
+    ξ λόγου 5 ἔστω.
+    ";
+    compile_success(source);
+}
+
+#[test]
+fn test_binding_subject_special_words() {
+    // "ouden 5 let" -> let ouden = None (ignoring 5?)
+    // This hits `extract_value` subject check for None/Some
+    // "ouden" (nothing) as a variable name is allowed by parser?
+    let source_none = "ουδεν 5 ἔστω.";
+    compile_success(source_none);
+
+    // "ti 5 let" -> let ti = Some(5)
+    let source_some = "τι 5 ἔστω.";
+    compile_success(source_some);
+}
+
+#[test]
+fn test_binary_op_in_argument() {
+    // Function call with binary expression arg
+    // "phi(1 + 2) let"
+    // This calls `classify_value_expression` recursively
+    let source = "
+    ἔργον φ(χ) δὸς χ.
+    ξ φ(1 καὶ 2) ἔστω.
+    ";
     compile_success(source);
 }
