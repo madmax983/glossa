@@ -31,10 +31,12 @@ pub struct LexiconEntry {
     pub voice: Option<Voice>,
 }
 
+use std::borrow::Cow;
+
 impl LexiconEntry {
     pub fn to_analysis(&self) -> MorphAnalysis {
         MorphAnalysis {
-            lemma: self.lemma.to_string(),
+            lemma: Cow::Borrowed(self.lemma),
             part_of_speech: self.pos,
             case: self.case,
             number: self.number,

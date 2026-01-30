@@ -540,7 +540,7 @@ impl Assembler {
         original: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
-            lemma: analysis.lemma.clone(),
+            lemma: analysis.lemma.to_string(),
             original: original.to_string(),
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
@@ -599,7 +599,7 @@ impl Assembler {
         }
 
         self.pending_verb = Some(VerbConstituent {
-            lemma: analysis.lemma.clone(),
+            lemma: analysis.lemma.to_string(),
             original: original.to_string(),
             person: analysis.person,
             number: analysis.number,
@@ -618,7 +618,7 @@ impl Assembler {
         original: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
-            lemma: analysis.lemma.clone(),
+            lemma: analysis.lemma.to_string(),
             original: original.to_string(),
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,

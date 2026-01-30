@@ -31,12 +31,19 @@ pub use declension::*;
 pub use lexicon::*;
 pub use participle::*;
 
+use std::borrow::Cow;
+
 use crate::grammar::normalize_greek;
 
 /// Result of morphological analysis
 #[derive(Debug, Clone, PartialEq)]
 pub struct MorphAnalysis {
-    pub lemma: String,
+    /// The dictionary form (lemma)
+    ///
+    /// Optimization: Uses `Cow<'static, str>` to avoid allocations for lexicon entries
+    /// which are `&'static str`. Only dynamically generated lemmas (e.g. from
+    /// suffix stripping) use heap allocation.
+    pub lemma: Cow<'static, str>,
     pub part_of_speech: PartOfSpeech,
     pub case: Option<Case>,
     pub number: Option<Number>,
@@ -54,7 +61,7 @@ impl MorphAnalysis {
     /// Create a new analysis with default confidence
     pub fn new(lemma: String, pos: PartOfSpeech) -> Self {
         MorphAnalysis {
-            lemma,
+            lemma: Cow::Owned(lemma),
             part_of_speech: pos,
             case: None,
             number: None,
@@ -96,7 +103,7 @@ pub fn analyze(word: &str) -> MorphAnalysis {
     analyses.into_iter().next().unwrap_or_else(|| {
         let normalized = normalize_greek(word);
         MorphAnalysis {
-            lemma: normalized,
+            lemma: Cow::Owned(normalized),
             part_of_speech: PartOfSpeech::Unknown,
             case: None,
             number: None,
@@ -159,7 +166,7 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
             analyses.insert(
                 0,
                 MorphAnalysis {
-                    lemma: normalized.clone(),
+                    lemma: Cow::Owned(normalized.clone()),
                     part_of_speech: PartOfSpeech::Noun,
                     case: Some(Case::Nominative),
                     number: Some(Number::Singular),
@@ -177,7 +184,7 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     // If still nothing, return unknown
     if analyses.is_empty() {
         analyses.push(MorphAnalysis {
-            lemma: normalized,
+            lemma: Cow::Owned(normalized),
             part_of_speech: PartOfSpeech::Unknown,
             case: None,
             number: None,
