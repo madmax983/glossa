@@ -530,3 +530,40 @@ fn test_binding_empty_array() {
     let source = "ξ [] ἔστω.";
     compile_success(source);
 }
+
+#[test]
+fn test_binding_swapped_identifiers() {
+    // Test the heuristic for swapped subject/object
+    // "xi yi let" where one is defined and one is not
+    // If 'xi' is defined and 'yi' is not, it might assume 'yi' is the variable
+    // "xi 5 let. xi yi let." -> let yi = xi
+    let source = "
+    ξ 5 ἔστω.
+    ξ ψ ἔστω.
+    ";
+    compile_success(source);
+}
+
+#[test]
+fn test_array_literals_mixed() {
+    // "xi [true, 'str'] let."
+    // Hits classify_value_expression literal branches
+    // Note: Glossa might not support mixed arrays easily, but `classify_value_expression` handles individual literals.
+    // Let's test them separately to be safe.
+    let source_bool = "ξ [«ναι»] ἔστω.";
+    compile_success(source_bool);
+
+    let source_str = "ξ [«κείμενον»] ἔστω.";
+    compile_success(source_str);
+}
+
+#[test]
+fn test_struct_instantiation_multi_field() {
+    // Struct with multiple fields
+    // "struct P {x num. y num.} let p = new P 1 2."
+    let source = "
+    εἶδος Σημεῖον ὁρίζειν { χ ἀριθμοῦ. ψ ἀριθμοῦ. }.
+    π νέον Σημεῖον 1 2 ἔστω.
+    ";
+    compile_success(source);
+}
