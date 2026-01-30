@@ -747,9 +747,16 @@ impl Assembler {
         if crate::morphology::lexicon::is_split_verb(normalized) {
             // If we have a delimiter, create a split method
             if self.has_delimiter_preposition
-                && let Some(Literal::String(delim)) = self.pending_literals.pop()
-                && let Some(ref subj) = self.pending_subject
+                && self.pending_subject.is_some()
+                && matches!(self.pending_literals.last(), Some(Literal::String(_)))
             {
+                // Safe to unwrap here because of the checks above
+                let delim = match self.pending_literals.pop() {
+                    Some(Literal::String(s)) => s,
+                    _ => unreachable!(),
+                };
+                let subj = self.pending_subject.as_ref().unwrap();
+
                 let normalized_original = normalize_greek(&subj.original);
                 self.pending_string_method = Some(("split".to_string(), delim));
                 // Push back a property access for the split result
@@ -763,9 +770,16 @@ impl Assembler {
         if crate::morphology::lexicon::is_join_verb(normalized) {
             // If we have a delimiter, create a join method
             if self.has_delimiter_preposition
-                && let Some(Literal::String(delim)) = self.pending_literals.pop()
-                && let Some(ref subj) = self.pending_subject
+                && self.pending_subject.is_some()
+                && matches!(self.pending_literals.last(), Some(Literal::String(_)))
             {
+                // Safe to unwrap here because of the checks above
+                let delim = match self.pending_literals.pop() {
+                    Some(Literal::String(s)) => s,
+                    _ => unreachable!(),
+                };
+                let subj = self.pending_subject.as_ref().unwrap();
+
                 let normalized_original = normalize_greek(&subj.original);
                 self.pending_string_method = Some(("join".to_string(), delim));
                 // Push back a property access for the join result
