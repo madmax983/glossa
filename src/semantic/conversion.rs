@@ -1373,10 +1373,16 @@ fn detect_property_access_print(
     Ok(None)
 }
 
+
+
 #[cfg(test)]
 mod tests {
     use crate::ast::build_ast;
-    use crate::semantic::analyze_program;
+    use crate::semantic::{analyze_program, Scope, StatementKind};
+    use crate::semantic::conversion::classify_assembled_statement;
+    use crate::semantic::assembler::{AssembledStatement, Constituent, VerbConstituent};
+    use crate::morphology::{Case, Number, Gender, Person, Tense, Mood, Voice};
+    use crate::morphology::lexicon::BinaryOp;
 
     /// Helper to compile source and check for specific error messages
     fn compile_and_expect_error(source: &str, error_fragment: &str) {
@@ -1406,6 +1412,119 @@ mod tests {
         }
     }
 
+    fn mock_stmt() -> AssembledStatement {
+        AssembledStatement {
+            subject: None,
+            nominatives: vec![],
+            verb: None,
+            object: None,
+            indirect: None,
+            genitives: vec![],
+            adjectives: vec![],
+            literals: vec![],
+            arrays: vec![],
+            index_accesses: vec![],
+            property_accesses: vec![],
+            operators: vec![],
+            blocks: vec![],
+            nested_phrases: vec![],
+            participles: vec![],
+            unwraps: vec![],
+            is_query: false,
+            is_propagate: false,
+            has_mutable_marker: false,
+            has_containment_preposition: false,
+            has_delimiter_preposition: false,
+            string_method: None,
+        }
+    }
+
+    fn mock_constituent(original: &str, lemma: &str) -> Constituent {
+        Constituent {
+            original: original.to_string(),
+            lemma: lemma.to_string(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: Some(Gender::Neuter),
+        }
+    }
+
+    #[test]
+    fn test_mock_binary_op_missing_operand() {
+        // Trigger "Binary operation missing right operand"
+        // Subject + Operator + NO literals + NO object
+        // Must call classify_value_expression directly
+        use super::classify_value_expression;
+
+        let mut stmt = mock_stmt();
+        stmt.subject = Some(mock_constituent("xi", "xi"));
+        stmt.operators = vec![BinaryOp::Add];
+        // literals empty, object None
+
+        let mut scope = Scope::default();
+        let result = classify_value_expression(&stmt, &mut scope);
+
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("Binary operation missing right operand"));
+    }
+
+    #[test]
+    fn test_mock_assignment_without_subject() {
+        // Trigger "Assignment without subject"
+        let mut stmt = mock_stmt();
+        stmt.verb = Some(VerbConstituent {
+            original: "gignetai".to_string(),
+            lemma: "γιγνομαι".to_string(), // Assignment verb
+            person: Some(Person::Third),
+            number: Some(Number::Singular),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Middle),
+        });
+        // Subject None
+
+        let mut scope = Scope::default();
+        let result = classify_assembled_statement(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("Assignment without subject"));
+    }
+
+    #[test]
+    fn test_mock_pop_without_subject() {
+        // Trigger pop pattern but without subject
+        let mut stmt = mock_stmt();
+        stmt.verb = Some(VerbConstituent {
+            original: "elketai".to_string(),
+            lemma: "ελκω".to_string(), // Pop verb
+            person: Some(Person::Third),
+            number: Some(Number::Singular),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Middle), // Middle voice required
+        });
+        // Subject None
+
+        let mut scope = Scope::default();
+        // Should fall through
+        let result = classify_assembled_statement(&stmt, &mut scope);
+        assert!(result.is_ok());
+        let (kind, _) = result.unwrap();
+        assert!(matches!(kind, StatementKind::Expression));
+    }
+
+    #[test]
+    fn test_mock_classify_value_expression_fallback() {
+        // Trigger "Unable to classify value expression"
+        use super::classify_value_expression;
+
+        let stmt = mock_stmt();
+        let mut scope = Scope::default();
+        let result = classify_value_expression(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("Unable to classify value expression"));
+    }
+
+    // Keep existing tests...
     #[test]
     fn test_assignment_logic() {
         let source = "ξ πέντε μετά ἔστω. ξ δέκα γίγνεται.";
