@@ -1,4 +1,31 @@
 //! Conversion from assembled statements to analyzed statements
+//!
+//! This module acts as the "interpreter" of the assembled semantic structure.
+//! While the [`Assembler`](crate::semantic::Assembler) ensures grammatical correctness (Subject-Verb agreement),
+//! this module assigns *meaning* to the grammatical structures.
+//!
+//! # Pattern Detection Strategy
+//!
+//! The [`classify_assembled_statement`] function uses a combination of strategies to
+//! understand the statement's intent:
+//!
+//! 1. **Pattern Delegation**: Complex patterns are delegated to specialized detectors in `patterns.rs`.
+//!    - Iterator chains (map/filter/fold)
+//!    - Struct instantiation (via `try_parse_struct_instantiation`)
+//!    - Trait method calls (via `try_parse_trait_method_call`)
+//!
+//! 2. **Verb-Based Classification**: The main verb determines the primary statement kind.
+//!    - **Binding** (`ἔστω`): Variable definition (`let x = ...`)
+//!    - **Assignment** (`γίγνεται`): Variable mutation (`x = ...`)
+//!    - **Collection Ops** (`ὠθεῖ`, `ἕλκεται`, `τίθησι`): `push`, `pop`, `insert`
+//!    - **Print** (`λέγε`, `γράφε`): Output (`println!`)
+//!    - **Query** (`?`): Expressions ending in a question mark
+//!
+//! 3. **Constituent Analysis**:
+//!    - **Subject**: Usually the target or agent (e.g., the collection being pushed to).
+//!    - **Object/Literals**: The value or argument.
+//!    - **Nominatives**: Extra nominatives often denote function names or predicate values.
+//!    - **Genitives**: Used for property access (`pi.xi`) or ownership.
 
 use super::expressions::{
     analyze_argument_expr, build_binary_expr, build_expressions_from_literals_and_ops,
