@@ -10,7 +10,10 @@ use glossa::semantic::analyze_program;
 fn compile_and_expect_error(source: &str, error_fragment: &str) {
     let ast = build_ast(source).expect("AST build failed");
     match analyze_program(&ast) {
-        Ok(_) => panic!("Expected error containing '{}', but analysis succeeded", error_fragment),
+        Ok(_) => panic!(
+            "Expected error containing '{}', but analysis succeeded",
+            error_fragment
+        ),
         Err(e) => {
             let error_msg = format!("{}", e);
             assert!(
