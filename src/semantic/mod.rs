@@ -3219,13 +3219,19 @@ fn classify_assembled_statement(
             };
 
             // Return method call expression
+            // HashSet::insert returns bool, HashMap::insert returns Option<V>
+            let return_type = if is_map {
+                GlossaType::Option(Box::new(GlossaType::Unknown))
+            } else {
+                GlossaType::Boolean
+            };
             let method_call = AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
                     receiver: Box::new(receiver),
                     method: "insert".to_string(),
                     args,
                 },
-                glossa_type: GlossaType::Boolean, // insert returns bool for HashSet
+                glossa_type: return_type,
             };
 
             return Ok((StatementKind::Expression, vec![method_call]));
@@ -3277,13 +3283,20 @@ fn classify_assembled_statement(
                     } else {
                         vec![]
                     };
+                    // Determine return type based on method
+                    let return_type = match method.as_str() {
+                        "len" => GlossaType::Number,
+                        "split" => GlossaType::List(Box::new(GlossaType::String)), // Iterator of &str
+                        "join" => GlossaType::String,
+                        _ => GlossaType::Unknown,
+                    };
                     args.push(AnalyzedExpr {
                         expr: AnalyzedExprKind::MethodCall {
                             receiver: Box::new(receiver),
                             method: method.clone(),
                             args: method_args,
                         },
-                        glossa_type: GlossaType::Number, // len() returns usize
+                        glossa_type: return_type,
                     });
                 }
                 return Ok((StatementKind::Print, args));

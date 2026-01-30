@@ -9,6 +9,9 @@ use quote::{format_ident, quote};
 
 /// Generate Rust code from a HIR program
 pub fn generate_rust(hir: &HirProgram) -> String {
+    // Check if we need collection imports
+    let needs_collections = uses_collections(hir);
+
     // Separate trait defs, struct defs, trait impls, function defs, and main body statements
     let mut trait_defs = Vec::new();
     let mut struct_defs = Vec::new();
@@ -26,7 +29,16 @@ pub fn generate_rust(hir: &HirProgram) -> String {
         }
     }
 
+    // Generate imports if needed
+    let imports = if needs_collections {
+        quote! { use std::collections::{HashMap, HashSet}; }
+    } else {
+        quote! {}
+    };
+
     let output = quote! {
+        #imports
+
         #(#trait_defs)*
 
         #(#struct_defs)*
@@ -41,6 +53,43 @@ pub fn generate_rust(hir: &HirProgram) -> String {
     };
 
     output.to_string()
+}
+
+/// Check if the HIR program uses collection types (HashMap, HashSet)
+fn uses_collections(hir: &HirProgram) -> bool {
+    for stmt in &hir.statements {
+        if statement_uses_collections(stmt) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Check if a statement uses collection types
+fn statement_uses_collections(stmt: &HirStatement) -> bool {
+    match stmt {
+        HirStatement::Let { value, .. } => expr_uses_collections(value),
+        HirStatement::Print { args } => args.iter().any(expr_uses_collections),
+        HirStatement::Expr(expr) => expr_uses_collections(expr),
+        _ => false,
+    }
+}
+
+/// Check if an expression uses collection types
+fn expr_uses_collections(expr: &HirExpr) -> bool {
+    match expr {
+        HirExpr::CollectionNew { .. } | HirExpr::CollectionContains { .. } => true,
+        HirExpr::MethodCall { receiver, args, .. } => {
+            expr_uses_collections(receiver) || args.iter().any(expr_uses_collections)
+        }
+        HirExpr::BinOp { left, right, .. } => {
+            expr_uses_collections(left) || expr_uses_collections(right)
+        }
+        HirExpr::Index { array, index } => {
+            expr_uses_collections(array) || expr_uses_collections(index)
+        }
+        _ => false,
+    }
 }
 
 /// Generate a complete Rust file with proper formatting
@@ -578,11 +627,11 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
                 // For collections like HashSet we use a reference, but for
                 // String::contains we must avoid creating a &&str when the
                 // element is a string literal (which is already a &str).
-                match element {
+                match element.as_ref() {
                     // When the element is a string literal, `generate_expr`
                     // already yields a `&str`, so we call `.contains(elem)`
                     // without adding another `&`.
-                    HirExpr::StringLiteral(_) => {
+                    HirExpr::StringLit(_) => {
                         quote! { #coll.contains(#elem) }
                     }
                     // In all other cases, keep the existing behavior and

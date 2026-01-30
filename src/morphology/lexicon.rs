@@ -2542,6 +2542,14 @@ mod tests {
     }
 
     #[test]
+    fn test_is_delimiter_preposition() {
+        assert!(is_delimiter_preposition("κατα"));
+        assert!(is_delimiter_preposition("κατ"));
+        assert!(!is_delimiter_preposition("εν"));
+        assert!(!is_delimiter_preposition("δια"));
+    }
+
+    #[test]
     fn test_insert_verb_lexicon_entries() {
         let entry = lookup("τιθησι").unwrap();
         assert_eq!(entry.pos, PartOfSpeech::Verb);
