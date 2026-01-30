@@ -201,3 +201,34 @@ fn test_comparison_unknown_var() {
     let source = "εἰ αγνωστον πέντε μεῖζον ᾖ, «ναι» λέγε.";
     compile_success(source);
 }
+
+#[test]
+fn test_binding_error_no_subject() {
+    // Binding verb without subject
+    // "let."
+    let source = "ἔστω.";
+    compile_and_expect_error(source, "Binding without subject");
+}
+
+#[test]
+fn test_struct_instantiation_fallthrough() {
+    // Structure that looks like struct instantiation but adjective isn't "new"
+    // "xi good psi let." -> Should be treated as normal binding "xi = good psi"
+    // Assuming "kalos" (good) is an adjective in the lexicon
+    // If not in lexicon, might be treated as noun/name?
+    // Let's use a known adjective if possible, or just a word that parses as one.
+    // "positive" (θετικά) is in lexicon.
+    // "xi positive five let." -> xi = 5 (ignoring positive? or treating as value?)
+    // Actually, detect_struct_instantiation checks for "νεος".
+    // If it fails, it falls through to binding.
+    // Binding takes "positive five" as value.
+    let source = "ξ θετικά πέντε ἔστω.";
+    compile_success(source);
+}
+
+#[test]
+fn test_print_with_operator_and_subject() {
+    // Print "xi + 5"
+    let source = "ξ πέντε ἔστω. ξ καὶ 5 λέγε.";
+    compile_success(source);
+}
