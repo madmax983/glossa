@@ -145,7 +145,11 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     analyses.extend(verb_analyses);
 
     // Sort by confidence (highest first)
-    analyses.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
+    analyses.sort_by(|a, b| {
+        b.confidence
+            .partial_cmp(&a.confidence)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     // If we found nothing, check if it's a single Greek letter (mathematical variable)
     if analyses.is_empty() || analyses.iter().all(|a| a.confidence < 0.5) {
@@ -283,5 +287,40 @@ mod tests {
         let analysis = analyze("ἔστω");
         assert_eq!(analysis.part_of_speech, PartOfSpeech::Verb);
         assert_eq!(analysis.mood, Some(Mood::Imperative));
+    }
+
+    #[test]
+    fn test_sort_safety_with_nan() {
+        let mut analyses = [
+            MorphAnalysis::new("test1".to_string(), PartOfSpeech::Noun).with_confidence(1.0),
+            MorphAnalysis::new("test2".to_string(), PartOfSpeech::Noun).with_confidence(f32::NAN),
+        ];
+
+        // This uses the safe logic and should NOT panic
+        analyses.sort_by(|a, b| {
+            b.confidence
+                .partial_cmp(&a.confidence)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        // Verify ordering is preserved for valid items (or at least no panic)
+        // NaN comparisons are undefined, but we just ensure it doesn't crash
+        assert_eq!(analyses.len(), 2);
+    }
+
+    #[test]
+    fn test_ambiguous_word_analysis() {
+        // "λόγον" is accusative singular, but let's check a word with multiple potential analyses
+        // "α" is a good candidate: variable (noun), letter, etc.
+        // Or "νέα": nominative singular feminine OR nominative plural neuter (if it was an adjective)
+
+        // Let's use "λόγον" and ensure we get analyses
+        let analyses = analyze_all("λόγον");
+        assert!(!analyses.is_empty());
+
+        // Ensure sorted by confidence
+        for i in 0..analyses.len() - 1 {
+            assert!(analyses[i].confidence >= analyses[i + 1].confidence);
+        }
     }
 }
