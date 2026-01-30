@@ -447,25 +447,12 @@ fn test_property_access_print_struct() {
 
 #[test]
 fn test_classify_value_expr_error() {
-    // Trigger "Binary operation missing right operand" in classify_value_expression
-    // This is hard to trigger from parser because parser enforces binary op structure.
-    // But we can try "1 + ." (if parser allows) or similar.
-    // Or we rely on assembler construction which might be loose.
-    // Actually, `classify_value_expression` is used for function arguments.
-    // "phi(1 + ) let" -> parser error probably.
-    // "phi(1 + nothing) let" -> "nothing" might be missing object?
-    // Let's try: "phi(1 and)"
-    // The parser might catch this. If so, we might not be able to hit this line easily
-    // via integration tests without constructing AST manually.
-    // But let's try a case where assembler produces a weird state.
-    // "phi(1 καὶ)" -> Syntax error.
-
     // Attempt: "Binary operation missing right operand"
-    // asm_stmt.operators is not empty, but literals is empty and object is None.
-    // Hard to construct from valid source.
-    // If we can't hit it via source, unit tests on `conversion.rs` internal functions might be needed,
-    // but `conversion.rs` functions are public-ish crate internal.
-    // Let's skip valid-source restricted tests for this specific line if hard.
+    // "phi(1 + ) let"
+    // Parser likely catches this, but if we can create a state where it passes:
+    // "phi(1 +) let"
+    // If we use a trailing operator in a place where an expression is expected?
+    // Hard to construct. Skipped for now.
 }
 
 #[test]
@@ -478,4 +465,68 @@ fn test_struct_instantiation_collections() {
     // HashMap
     let source_map = "χ νέον χάρτης ἔστω.";
     compile_success(source_map);
+}
+
+#[test]
+fn test_struct_instantiation_failure() {
+    // Valid binding verb, "new" adjective, but unknown type
+    // Should fall through to variable binding
+    // "xi new UnknownType 5 let"
+    let source = "ξ νέον ΆγνωστοΤύπο 5 ἔστω.";
+    compile_success(source);
+}
+
+#[test]
+fn test_binding_from_index_access() {
+    // "xi arr[0] let"
+    let source = "
+    α [1, 2] ἔστω.
+    ξ α[0] ἔστω.
+    ";
+    compile_success(source);
+}
+
+#[test]
+fn test_string_methods_join_len() {
+    // "s 'a,b' let. s split ',' join '-' say."
+    // Split returns iterator (list), join works on list.
+    // Wait, split returns List<String>. Join is a method on List<String>?
+    // Or is join a method on String that takes a list?
+    // In Rust: `s.split(",").collect::<Vec<_>>().join("-")`
+    // Glossa mapping:
+    // split -> `split` method on String.
+    // join -> `join` method on List<String>.
+    // "s split ',' join '-' say."
+    let source = "
+    σ «α,β» ἔστω.
+    σ κατὰ «,» σχίζεται μὲ «-» ἑνώνεται λέγε.
+    ";
+    compile_success(source);
+
+    // len
+    // "s len say."
+    let source_len = "
+    σ «αβγ» ἔστω.
+    σ μῆκος λέγε.
+    ";
+    compile_success(source_len);
+}
+
+#[test]
+fn test_nested_function_call_phrases() {
+    // "xi phi((psi(5))) let."
+    // Nested parenthesis
+    let source = "
+    ἔργον ψ(χ) δὸς χ.
+    ἔργον φ(χ) δὸς χ.
+    ξ φ( (ψ(5)) ) ἔστω.
+    ";
+    compile_success(source);
+}
+
+#[test]
+fn test_binding_empty_array() {
+    // "xi [] let."
+    let source = "ξ [] ἔστω.";
+    compile_success(source);
 }
