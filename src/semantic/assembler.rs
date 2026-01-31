@@ -695,7 +695,9 @@ impl Assembler {
                 let subj_person = subject.person.unwrap_or(Person::Third);
 
                 // Check person agreement
-                if subj_person != verb_person {
+                // Exception: Allow Imperative verbs to disagree (e.g. "User, print!" uses 2nd person verb with 3rd person subject)
+                let is_imperative = verb.mood == Some(Mood::Imperative);
+                if !is_imperative && subj_person != verb_person {
                     return Err(AssemblyError::SubjectVerbDisagreement {
                         subject: (Some(subj_person), Some(subj_number)),
                         verb: (Some(verb_person), Some(verb_number)),
