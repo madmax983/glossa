@@ -3,6 +3,7 @@
 //! Converts polytonic Greek (with breathings, accents, iota subscript) to
 //! a normalized monotonic form for easier processing.
 
+use smol_str::SmolStr;
 use unicode_normalization::UnicodeNormalization;
 
 /// Normalize polytonic Greek to monotonic form
@@ -24,11 +25,12 @@ use unicode_normalization::UnicodeNormalization;
 /// assert_eq!(normalize_greek("Ἀθῆναι"), "αθηναι");
 /// assert_eq!(normalize_greek("χαῖρε"), "χαιρε");
 /// ```
-pub fn normalize_greek(text: &str) -> String {
+pub fn normalize_greek(text: &str) -> SmolStr {
     text.nfd() // Decompose into base + combining marks
         .filter(|c| !is_greek_diacritic(*c))
         .collect::<String>()
         .to_lowercase()
+        .into()
 }
 
 /// Check if a character is a Greek diacritical mark to be stripped
@@ -53,7 +55,7 @@ fn is_greek_diacritic(c: char) -> bool {
 
 /// Normalize a single Greek word for lexicon lookup
 #[allow(dead_code)]
-pub fn normalize_word(word: &str) -> String {
+pub fn normalize_word(word: &str) -> SmolStr {
     normalize_greek(word)
 }
 

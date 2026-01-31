@@ -3,6 +3,8 @@
 //! These nodes capture the structure of a GLOSSA program,
 //! preserving both original Greek text and normalized forms.
 
+use smol_str::SmolStr;
+
 /// A complete GLOSSA program
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
@@ -276,14 +278,14 @@ pub enum UnaryOperator {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Word {
     /// Original text with diacritics
-    pub original: String,
+    pub original: SmolStr,
     /// Normalized (lowercase, no diacritics)
-    pub normalized: String,
+    pub normalized: SmolStr,
 }
 
 impl Word {
     /// Create a new word, automatically generating the normalized form
-    pub fn new(original: impl Into<String>) -> Self {
+    pub fn new(original: impl Into<SmolStr>) -> Self {
         let original = original.into();
         let normalized = crate::grammar::normalize_greek(&original);
         Word {

@@ -153,7 +153,7 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
             analyses.insert(
                 0,
                 MorphAnalysis {
-                    lemma: Cow::Owned(normalized.clone()),
+                    lemma: Cow::Owned(normalized.to_string()),
                     part_of_speech: PartOfSpeech::Noun,
                     case: Some(Case::Nominative),
                     number: Some(Number::Singular),
@@ -171,7 +171,7 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     // If still nothing, return unknown
     if analyses.is_empty() {
         analyses.push(MorphAnalysis {
-            lemma: Cow::Owned(normalized),
+            lemma: Cow::Owned(normalized.to_string()),
             part_of_speech: PartOfSpeech::Unknown,
             case: None,
             number: None,

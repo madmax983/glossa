@@ -7,6 +7,7 @@ use super::{
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::grammar::normalize_greek;
+use smol_str::SmolStr;
 
 /// Try to parse a trait method call: method_name receiver
 /// Returns Some(analyzed_statement) if this is a trait method call, None otherwise
@@ -160,7 +161,7 @@ pub fn try_parse_struct_instantiation(
             // Check if type exists as a user-defined struct
             if let Some(struct_type) = scope.lookup_type(type_name).cloned() {
                 // Extract field names from struct type
-                let field_names: Vec<String> =
+                let field_names: Vec<SmolStr> =
                     if let GlossaType::Struct { fields, .. } = &struct_type {
                         fields.iter().map(|(name, _)| name.clone()).collect()
                     } else {
@@ -349,10 +350,10 @@ pub fn detect_iterator_pattern(
                         normalized.trim_end_matches("ων").to_string()
                     } else {
                         // Use as-is (shouldn't happen for valid genitives)
-                        normalized
+                        normalized.to_string()
                     };
                     AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(var_name),
+                        expr: AnalyzedExprKind::Variable(var_name.into()),
                         glossa_type: GlossaType::Number,
                     }
                 } else if let Some(literal) = asm_stmt.literals.first() {
@@ -385,7 +386,7 @@ pub fn detect_iterator_pattern(
                     expr: AnalyzedExprKind::BinOp {
                         op: bin_op,
                         left: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable("x".to_string()),
+                            expr: AnalyzedExprKind::Variable("x".into()),
                             glossa_type: GlossaType::Number,
                         }),
                         right: Box::new(comparison_expr),
@@ -395,7 +396,7 @@ pub fn detect_iterator_pattern(
 
                 let filter_closure = AnalyzedExpr {
                     expr: AnalyzedExprKind::Lambda {
-                        params: vec!["x".to_string()],
+                        params: vec!["x".into()],
                         body: Box::new(predicate_body),
                         capture_mode: crate::ast::CaptureMode::Borrow,
                     },
@@ -452,11 +453,11 @@ pub fn detect_iterator_pattern(
                         expr: AnalyzedExprKind::BinOp {
                             op: bin_op,
                             left: Box::new(AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable("acc".to_string()),
+                                expr: AnalyzedExprKind::Variable("acc".into()),
                                 glossa_type: GlossaType::Number,
                             }),
                             right: Box::new(AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable("x".to_string()),
+                                expr: AnalyzedExprKind::Variable("x".into()),
                                 glossa_type: GlossaType::Number,
                             }),
                         },
@@ -465,7 +466,7 @@ pub fn detect_iterator_pattern(
 
                     let fold_closure = AnalyzedExpr {
                         expr: AnalyzedExprKind::Lambda {
-                            params: vec!["acc".to_string(), "x".to_string()],
+                            params: vec!["acc".into(), "x".into()],
                             body: Box::new(fold_body),
                             capture_mode,
                         },
@@ -512,7 +513,7 @@ pub fn detect_iterator_pattern(
                     expr: AnalyzedExprKind::BinOp {
                         op: crate::morphology::lexicon::BinaryOp::Mul,
                         left: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable("x".to_string()),
+                            expr: AnalyzedExprKind::Variable("x".into()),
                             glossa_type: GlossaType::Number,
                         }),
                         right: Box::new(AnalyzedExpr {
@@ -525,7 +526,7 @@ pub fn detect_iterator_pattern(
             } else {
                 // Default: just return x
                 AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable("x".to_string()),
+                    expr: AnalyzedExprKind::Variable("x".into()),
                     glossa_type: GlossaType::Unknown,
                 }
             };
@@ -543,7 +544,7 @@ pub fn detect_iterator_pattern(
             // Create closure: |x| body
             let closure = AnalyzedExpr {
                 expr: AnalyzedExprKind::Lambda {
-                    params: vec!["x".to_string()],
+                    params: vec!["x".into()],
                     body: Box::new(closure_body),
                     capture_mode,
                 },
@@ -585,10 +586,10 @@ pub fn detect_iterator_pattern(
                         normalized.trim_end_matches("ων").to_string()
                     } else {
                         // Use as-is
-                        normalized
+                        normalized.to_string()
                     };
                     AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(var_name),
+                        expr: AnalyzedExprKind::Variable(var_name.into()),
                         glossa_type: GlossaType::Number,
                     }
                 } else if let Some(literal) = asm_stmt.literals.first() {
@@ -614,7 +615,7 @@ pub fn detect_iterator_pattern(
                     expr: AnalyzedExprKind::BinOp {
                         op: bin_op,
                         left: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable("x".to_string()),
+                            expr: AnalyzedExprKind::Variable("x".into()),
                             glossa_type: GlossaType::Number,
                         }),
                         right: Box::new(comparison_expr),
@@ -624,7 +625,7 @@ pub fn detect_iterator_pattern(
 
                 let any_all_closure = AnalyzedExpr {
                     expr: AnalyzedExprKind::Lambda {
-                        params: vec!["x".to_string()],
+                        params: vec!["x".into()],
                         body: Box::new(predicate_body),
                         capture_mode: crate::ast::CaptureMode::Borrow,
                     },
@@ -685,10 +686,10 @@ pub fn detect_iterator_pattern(
                             normalized.trim_end_matches("ων").to_string()
                         } else {
                             // Use as-is
-                            normalized
+                            normalized.to_string()
                         };
                         AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(var_name),
+                            expr: AnalyzedExprKind::Variable(var_name.into()),
                             glossa_type: GlossaType::Number,
                         }
                     } else if let Some(literal) = asm_stmt.literals.first() {
@@ -714,7 +715,7 @@ pub fn detect_iterator_pattern(
                         expr: AnalyzedExprKind::BinOp {
                             op: bin_op,
                             left: Box::new(AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable("x".to_string()),
+                                expr: AnalyzedExprKind::Variable("x".into()),
                                 glossa_type: GlossaType::Number,
                             }),
                             right: Box::new(comparison_expr),
@@ -724,7 +725,7 @@ pub fn detect_iterator_pattern(
 
                     let find_closure = AnalyzedExpr {
                         expr: AnalyzedExprKind::Lambda {
-                            params: vec!["x".to_string()],
+                            params: vec!["x".into()],
                             body: Box::new(predicate_body),
                             capture_mode: crate::ast::CaptureMode::Borrow,
                         },
@@ -752,7 +753,7 @@ pub fn detect_iterator_pattern(
 
             let find_first_closure = AnalyzedExpr {
                 expr: AnalyzedExprKind::Lambda {
-                    params: vec!["_".to_string()],
+                    params: vec!["_".into()],
                     body: Box::new(always_true_body),
                     capture_mode: crate::ast::CaptureMode::Borrow,
                 },

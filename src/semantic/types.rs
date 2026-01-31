@@ -11,6 +11,7 @@
 //! - ἀποτέλεσμα (apotelasma) → `Result<T,E>` (outcome/result)
 
 use crate::morphology::{Case, Gender, Tense};
+use smol_str::SmolStr;
 
 /// Types in ΓΛΩΣΣΑ
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -59,9 +60,9 @@ pub enum GlossaType {
 
     /// Custom struct type (from noun)
     Struct {
-        name: std::string::String,
+        name: SmolStr,
         gender: Gender,
-        fields: Vec<(std::string::String, GlossaType)>,
+        fields: Vec<(SmolStr, GlossaType)>,
     },
 
     /// Function type
