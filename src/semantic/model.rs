@@ -197,7 +197,7 @@ pub enum AnalyzedExprKind {
         method: String,
         args: Vec<AnalyzedExpr>,
     },
-    /// Trait method call receiverου method args (from trait impl)
+    /// Trait method call `receiver.<TraitName>::method(args)` (from trait impl)
     TraitMethodCall {
         receiver: Box<AnalyzedExpr>,
         trait_name: String,
