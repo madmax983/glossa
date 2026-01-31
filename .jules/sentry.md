@@ -9,7 +9,3 @@
 ## [State Modification in Condition Evaluation]
 **Learning:** In `src/semantic/assembler.rs`, `check_method_verbs` was popping from `pending_literals` inside a complex `if` condition using `&&`. If subsequent conditions (like `pending_subject` check) failed, the literal was already consumed and lost, causing a logic bug.
 **Action:** Always verify all preconditions (using `peek` or `last()`) before performing state-modifying operations (like `pop()`), especially in `if` conditions.
-
-## 2024-05-22 - [Recurring Panic Pattern in Sort]
-**Learning:** Found another instance of `unwrap()` on `partial_cmp` in `src/semantic/disambiguation.rs`. This confirms that manual implementation of `Ord` for floats or sorting by float fields is a recurring risk.
-**Action:** Audit all `partial_cmp` usages. Consider using a helper function or wrapper type `OrderedFloat` for confidence scores to prevent this everywhere.
