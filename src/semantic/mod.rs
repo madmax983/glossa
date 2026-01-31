@@ -38,7 +38,7 @@ pub(crate) mod conversion;
 pub(crate) mod declarations;
 pub mod disambiguation;
 pub(crate) mod expressions;
-pub mod model;
+pub(crate) mod model;
 pub(crate) mod patterns;
 mod resolver;
 mod types;
