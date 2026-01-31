@@ -824,13 +824,15 @@ pub fn classify_assembled_statement(
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
     // Propagation pattern: wrap the last expression in Try (converts to `?` in Rust)
-    if asm_stmt.is_propagate && !exprs.is_empty() {
-        let last_expr = exprs.pop().unwrap();
-        let try_expr = AnalyzedExpr {
-            glossa_type: last_expr.glossa_type.clone(),
-            expr: AnalyzedExprKind::Try(Box::new(last_expr)),
-        };
-        exprs.push(try_expr);
+    if asm_stmt.is_propagate {
+        #[allow(clippy::collapsible_if)]
+        if let Some(last_expr) = exprs.pop() {
+            let try_expr = AnalyzedExpr {
+                glossa_type: last_expr.glossa_type.clone(),
+                expr: AnalyzedExprKind::Try(Box::new(last_expr)),
+            };
+            exprs.push(try_expr);
+        }
     }
 
     Ok((StatementKind::Expression, exprs))
