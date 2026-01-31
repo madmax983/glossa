@@ -292,6 +292,27 @@ impl From<crate::morphology::lexicon::BinaryOp> for BinOp {
 }
 
 /// Lower analyzed program to HIR
+///
+/// This function transforms a semantically analyzed program (where Greek grammatical
+/// constructs like case and word order have been resolved) into the High-Level
+/// Intermediate Representation (HIR), which maps closely to imperative Rust code.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::ast::build_ast;
+/// use glossa::semantic::analyze_program;
+/// use glossa::ir::{lower_to_hir, HirStatement};
+///
+/// let ast = build_ast("ξ πέντε ἔστω.").unwrap();
+/// let analyzed = analyze_program(&ast).unwrap();
+/// let hir = lower_to_hir(&analyzed);
+///
+/// // The binding "ξ πέντε ἔστω" becomes "let ξ = 5;"
+/// if let HirStatement::Let { name, value, .. } = &hir.statements[0] {
+///     assert_eq!(name, "ξ");
+/// }
+/// ```
 pub fn lower_to_hir(analyzed: &AnalyzedProgram) -> HirProgram {
     let mut statements = Vec::new();
 
@@ -485,6 +506,11 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
     }
 }
 
+/// Lower a single analyzed expression to HIR expression
+///
+/// Converts a semantically rich `AnalyzedExpr` into a simplified `HirExpr`.
+/// For example, it converts Greek operators like `μείζον` into standard binary
+/// operators (`>`), and resolves complex method calls.
 pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => HirExpr::StringLit(s.clone()),

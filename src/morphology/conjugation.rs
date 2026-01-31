@@ -190,7 +190,6 @@ fn strip_augment(augmented_stem: &str) -> String {
     augmented_stem.to_string()
 }
 
-/// Try to analyze a word as a verb
 /// Subjunctive forms of εἰμί (to be) - irregular but essential for conditionals
 const EIMI_SUBJUNCTIVE: &[(&str, Person, Number)] = &[
     ("ω", Person::First, Number::Singular),   // ὦ
@@ -202,6 +201,37 @@ const EIMI_SUBJUNCTIVE: &[(&str, Person, Number)] = &[
     ("ωσιν", Person::Third, Number::Plural),  // with movable nu
 ];
 
+/// Try to analyze a word as a verb
+///
+/// Returns the most likely morphological analysis for the given verb form.
+/// This function checks various conjugation patterns including:
+/// - Present Active Indicative (-ω)
+/// - Present Active Imperative (-ε)
+/// - Aorist Active Indicative (-σα)
+/// - Aorist Active Imperative (-σον)
+/// - Infinitives (-ειν, -σαι)
+/// - Subjunctives and Optatives
+///
+/// # Examples
+///
+/// ```
+/// use glossa::morphology::{analyze_verb, Tense, Mood, Person, Number};
+///
+/// // Present Indicative
+/// let analysis = analyze_verb("λέγω").unwrap();
+/// assert_eq!(analysis.tense, Some(Tense::Present));
+/// assert_eq!(analysis.mood, Some(Mood::Indicative));
+///
+/// // Aorist Indicative (with augment stripping)
+/// // ἔλυσα -> lemma λύω
+/// let analysis = analyze_verb("ἔλυσα").unwrap();
+/// assert_eq!(analysis.tense, Some(Tense::Aorist));
+/// assert_eq!(analysis.lemma, "λύω");
+///
+/// // Imperative
+/// let analysis = analyze_verb("λέγε").unwrap();
+/// assert_eq!(analysis.mood, Some(Mood::Imperative));
+/// ```
 pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Special handling for εἰμί (to be) subjunctive forms
     // These are irregular and essential for conditionals (εἰ ... ᾖ)
