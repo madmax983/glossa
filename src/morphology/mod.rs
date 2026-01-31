@@ -188,6 +188,10 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
 }
 
 /// Check if the word is a single Greek letter (used as mathematical variable)
+///
+/// Single letters like `α`, `β`, `π` are often used as variable names in ΓΛΩΣΣΑ.
+/// This function identifies them so the fallback logic can treat them as
+/// nominative nouns even if they aren't in the lexicon.
 fn is_single_greek_letter(word: &str) -> bool {
     let chars: Vec<char> = word.chars().collect();
     if chars.len() != 1 {
@@ -204,6 +208,24 @@ fn is_single_greek_letter(word: &str) -> bool {
 }
 
 /// Check if two analyses are compatible (could refer to the same word in context)
+///
+/// Returns `true` if the analyses do not have conflicting grammatical features.
+/// Used during disambiguation to check if a word's potential analysis fits
+/// with the surrounding context (e.g., article agreement).
+///
+/// # Examples
+///
+/// ```
+/// use glossa::morphology::{analyses_compatible, MorphAnalysis, PartOfSpeech, Case};
+///
+/// let mut a = MorphAnalysis::new("λογος".to_string(), PartOfSpeech::Noun);
+/// a.case = Some(Case::Nominative);
+///
+/// let mut b = MorphAnalysis::new("λογος".to_string(), PartOfSpeech::Noun);
+/// b.case = Some(Case::Accusative);
+///
+/// assert!(!analyses_compatible(&a, &b));
+/// ```
 pub fn analyses_compatible(a: &MorphAnalysis, b: &MorphAnalysis) -> bool {
     // Check case agreement if both have cases
     if let (Some(case_a), Some(case_b)) = (a.case, b.case)

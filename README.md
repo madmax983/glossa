@@ -3,7 +3,52 @@
 [![CI](https://github.com/madmax983/glossa/actions/workflows/ci.yml/badge.svg)](https://github.com/madmax983/glossa/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/madmax983/glossa/branch/trunk/graph/badge.svg)](https://codecov.io/gh/madmax983/glossa)
 
-A programming language using Ancient Greek syntax that compiles to Rust.
+> *Code as the ancients intended.*
+
+ΓΛΩΣΣΑ is a compiled programming language where Ancient Greek morphology determines semantics. It compiles directly to Rust, offering type safety with authentic linguistic structure.
+
+## The Philosophy
+
+In modern languages, meaning is determined by word order: `func(a, b)` is different from `func(b, a)`.
+In Ancient Greek, meaning is determined by **case endings**.
+
+ΓΛΩΣΣΑ embraces this paradigm:
+
+* **Nominative Case** (-ος, -η, -α) marks the **Subject** (Agent).
+* **Accusative Case** (-ον, -ην, -αν) marks the **Object** (Patient).
+* **Verb Endings** (-ω, -ει, -ετε) encode Person, Number, and Aspect.
+
+This allows for **Free Word Order**:
+
+```glossa
+// All of these are identical:
+ὁ ἄνθρωπος τὸν λόγον λέγει.  // The man says the word.
+τὸν λόγον λέγει ὁ ἄνθρωπος.  // The word says the man.
+λέγει ὁ ἄνθρωπος τὸν λόγον.  // Says the man the word.
+```
+
+## Quick Start: The Hero's Journey
+
+Here is a simple program that defines a user struct and greets them.
+
+```glossa
+// Define a type (struct)
+εἶδος Χρήστης ὁρίζειν {
+    ὄνομα ὄνομα.      // field: String
+    ἡλικία ἀριθμός.   // field: i64
+}
+
+// Create a new user instance
+// "user" (nominative) "new" (adjective) "User" (type) ...
+χρήστης νέον Χρήστης
+    «Σωκράτης»
+    70
+ἔστω.
+
+// Access property and print
+// "of the user" (genitive) "name" (nominative) "say" (verb)
+χρήστου ὄνομα λέγε.
+```
 
 ## Features
 
