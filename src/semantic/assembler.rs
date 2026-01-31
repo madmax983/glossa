@@ -170,6 +170,12 @@ pub struct Constituent {
     ///
     /// Used for adjective-noun agreement checks.
     pub gender: Option<Gender>,
+
+    /// Grammatical person (1st, 2nd, 3rd)
+    ///
+    /// Used for subject-verb agreement checks.
+    /// Nouns are typically 3rd person, but pronouns can be 1st/2nd.
+    pub person: Option<Person>,
 }
 
 /// A verb constituent with its grammatical info
@@ -553,6 +559,7 @@ impl Assembler {
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
+            person: analysis.person,
         };
 
         match analysis.case {
@@ -631,6 +638,7 @@ impl Assembler {
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
+            person: None, // Adjectives don't really have person
         };
 
         self.pending_adjectives.push(constituent);
@@ -683,13 +691,24 @@ impl Assembler {
             if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number)
                 && let Some(subj_number) = subject.number
             {
+                // Determine subject person (default to 3rd for nouns if not specified)
+                let subj_person = subject.person.unwrap_or(Person::Third);
+
+                // Check person agreement
+                if subj_person != verb_person {
+                    return Err(AssemblyError::SubjectVerbDisagreement {
+                        subject: (Some(subj_person), Some(subj_number)),
+                        verb: (Some(verb_person), Some(verb_number)),
+                    });
+                }
+
                 // Special rule: Neuter plural nouns take singular verbs in Greek!
                 let is_neuter_plural =
                     subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
 
                 if !is_neuter_plural && subj_number != verb_number {
                     return Err(AssemblyError::SubjectVerbDisagreement {
-                        subject: (Some(Person::Third), Some(subj_number)),
+                        subject: (Some(subj_person), Some(subj_number)),
                         verb: (Some(verb_person), Some(verb_number)),
                     });
                 }
@@ -1100,5 +1119,49 @@ mod tests {
         assert!(stmt.verb.is_some());
         let verb_const = stmt.verb.unwrap();
         assert_eq!(verb_const.voice, Some(Voice::Middle));
+    }
+
+    #[test]
+    fn test_subject_verb_person_agreement() {
+        let mut asm = Assembler::new();
+
+        // Feed subject "ἐγώ" (I) - First Person Singular
+        // Manually construct analysis since "ego" might not be in the simple lexicon used in tests
+        let ego_analysis = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("εγω"),
+            part_of_speech: PartOfSpeech::Pronoun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: None,
+            person: Some(Person::First), // KEY: First Person
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&ego_analysis, "ἐγώ").unwrap();
+
+        // Feed verb "λέγει" (He says) - Third Person Singular
+        let verb_analysis = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("λεγω"),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(Number::Singular),
+            gender: None,
+            person: Some(Person::Third), // KEY: Third Person
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+            confidence: 1.0,
+        };
+
+        // This fails: we feed it, and finalize should error
+        asm.feed(&verb_analysis, "λέγει").unwrap(); // feeding is fine
+
+        let result = asm.finalize();
+
+        // Currently this will PASS (Ok) because person is ignored.
+        // We WANT it to fail with SubjectVerbDisagreement.
+        assert!(matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })));
     }
 }
