@@ -291,7 +291,6 @@ pub enum Literal {
 ///
 /// This allows tokens to arrive in any order (Subject-Verb-Object, Verb-Object-Subject, etc.)
 /// and still fill the correct semantic roles.
-#[derive(Debug)]
 pub struct Assembler {
     /// Slot for the subject (Nominative case)
     pending_subject: Option<Constituent>,
@@ -614,8 +613,8 @@ impl Assembler {
     ///
     /// let mut asm = Assembler::new();
     /// let array = Expr::Word(Word {
-    ///     original: "πίναξ".into(),
-    ///     normalized: "πιναξ".into(),
+    ///     original: "πίναξ".to_string(),
+    ///     normalized: "πιναξ".to_string(),
     /// });
     /// let index = Expr::NumberLiteral(0);
     /// asm.feed_index_access(array, index);
@@ -634,8 +633,8 @@ impl Assembler {
     ///
     /// let mut asm = Assembler::new();
     /// let expr = Expr::Word(Word {
-    ///     original: "τιμή".into(),
-    ///     normalized: "τιμη".into(),
+    ///     original: "τιμή".to_string(),
+    ///     normalized: "τιμη".to_string(),
     /// });
     /// asm.feed_unwrap(expr);
     /// ```
