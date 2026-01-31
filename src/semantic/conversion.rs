@@ -1353,10 +1353,12 @@ mod tests {
         let result = classify_binding(&asm_stmt, &mut scope);
         assert!(result.is_err());
         // GlossaError prefixes SemanticError with "Σφάλμα σημασίας: "
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Binding without subject"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Binding without subject")
+        );
     }
 
     #[test]
@@ -1368,10 +1370,12 @@ mod tests {
 
         let result = classify_assignment(&asm_stmt, &mut scope);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Assignment without subject"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Assignment without subject")
+        );
     }
 
     #[test]
@@ -1390,10 +1394,12 @@ mod tests {
 
         let result = classify_assignment(&asm_stmt, &mut scope);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Τὸ «αγνωστος» οὐχ ὡρίσθη"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Τὸ «αγνωστος» οὐχ ὡρίσθη")
+        );
     }
 
     #[test]
@@ -1415,10 +1421,12 @@ mod tests {
 
         let result = classify_assignment(&asm_stmt, &mut scope);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Τῇ πράξει «χ γίγνεται» δεῖ τιμῆς"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Τῇ πράξει «χ γίγνεται» δεῖ τιμῆς")
+        );
     }
 
     #[test]
@@ -1440,9 +1448,159 @@ mod tests {
 
         let result = classify_assignment(&asm_stmt, &mut scope);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Τὸ «κ» ἀμετάβλητόν ἐστιν"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Τὸ «κ» ἀμετάβλητόν ἐστιν")
+        );
+    }
+
+    fn create_print_verb() -> VerbConstituent {
+        VerbConstituent {
+            lemma: "λεγω".into(),
+            original: "λέγε".to_string(),
+            person: Some(Person::Second),
+            number: Some(Number::Singular),
+            tense: Some(Tense::Present),
+            voice: Some(Voice::Active),
+            mood: Some(Mood::Imperative),
+        }
+    }
+
+    fn create_push_verb() -> VerbConstituent {
+        VerbConstituent {
+            lemma: "ωθεω".into(),
+            original: "ὠθεῖ".to_string(),
+            person: Some(Person::Third),
+            number: Some(Number::Singular),
+            tense: Some(Tense::Present),
+            voice: Some(Voice::Active),
+            mood: Some(Mood::Indicative),
+        }
+    }
+
+    fn create_pop_verb() -> VerbConstituent {
+        VerbConstituent {
+            lemma: "ελκω".into(),
+            original: "ἕλκεται".to_string(),
+            person: Some(Person::Third),
+            number: Some(Number::Singular),
+            tense: Some(Tense::Present),
+            voice: Some(Voice::Middle),
+            mood: Some(Mood::Indicative),
+        }
+    }
+
+    #[test]
+    fn test_print_classification() {
+        let mut scope = Scope::new();
+        let mut asm_stmt = default_assembled_statement();
+        asm_stmt.verb = Some(create_print_verb());
+        asm_stmt.literals = vec![Literal::String("hello".to_string())];
+
+        let result = classify_print(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        let classification = result.unwrap();
+        assert!(classification.is_some());
+        let (kind, exprs) = classification.unwrap();
+        assert!(matches!(kind, StatementKind::Print));
+        assert_eq!(exprs.len(), 1);
+    }
+
+    #[test]
+    fn test_push_classification() {
+        let mut scope = Scope::new();
+        let mut asm_stmt = default_assembled_statement();
+        asm_stmt.verb = Some(create_push_verb());
+        // Subject: array variable
+        asm_stmt.subject = Some(Constituent {
+            lemma: "λι".to_string(),
+            original: "λίστα".to_string(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: None,
+        });
+        scope.define("λι".to_string(), GlossaType::List(Box::new(GlossaType::Number)));
+
+        // Literal to push
+        asm_stmt.literals = vec![Literal::Number(42)];
+
+        let result = classify_collection_op(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        let classification = result.unwrap();
+        assert!(classification.is_some());
+        let (kind, exprs) = classification.unwrap();
+        assert!(matches!(kind, StatementKind::Expression));
+        // Should be a method call
+        assert!(matches!(exprs[0].expr, AnalyzedExprKind::MethodCall { .. }));
+    }
+
+    #[test]
+    fn test_pop_classification() {
+        let mut scope = Scope::new();
+        let mut asm_stmt = default_assembled_statement();
+        asm_stmt.verb = Some(create_pop_verb());
+        // Subject: array variable
+        asm_stmt.subject = Some(Constituent {
+            lemma: "λι".to_string(),
+            original: "λίστα".to_string(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: None,
+        });
+        scope.define("λι".to_string(), GlossaType::List(Box::new(GlossaType::Number)));
+
+        let result = classify_collection_op(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        let classification = result.unwrap();
+        assert!(classification.is_some());
+        let (kind, exprs) = classification.unwrap();
+        assert!(matches!(kind, StatementKind::Expression));
+        // Should be a method call
+        if let AnalyzedExprKind::MethodCall { method, .. } = &exprs[0].expr {
+            assert_eq!(method, "pop");
+        } else {
+            panic!("Expected method call");
+        }
+    }
+
+    #[test]
+    fn test_function_call_classification() {
+        let mut scope = Scope::new();
+        let mut asm_stmt = default_assembled_statement();
+        asm_stmt.verb = Some(create_binding_verb());
+
+        // Subject: result variable
+        asm_stmt.subject = Some(Constituent {
+            lemma: "α".to_string(),
+            original: "α".to_string(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: None,
+        });
+
+        // Object: function name
+        asm_stmt.object = Some(Constituent {
+            lemma: "συναρτησις".to_string(),
+            original: "συνάρτησις".to_string(),
+            case: Case::Accusative,
+            number: Some(Number::Singular),
+            gender: None,
+        });
+
+        // Define function in scope
+        scope.define_function(
+            "συναρτησις".to_string(),
+            vec![],
+            Some(GlossaType::Number)
+        );
+
+        let result = classify_function_call(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        let classification = result.unwrap();
+        assert!(classification.is_some());
+        let (kind, _) = classification.unwrap();
+        assert!(matches!(kind, StatementKind::Binding { .. }));
     }
 }
