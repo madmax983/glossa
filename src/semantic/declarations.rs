@@ -1,7 +1,8 @@
 //! Declaration analysis (functions, types, traits)
 
 use super::{
-    AnalyzedImplMethod, AnalyzedStatement, AnalyzedTraitMethod, GlossaType, Scope, StatementKind,
+    AnalyzedImplMethod, AnalyzedStatement, AnalyzedTraitMethod, DefaultMethod, GlossaType,
+    MethodSignature, Scope, StatementKind, TraitDef, TraitImpl,
     analyze_single_statement_with_assembler, convert_assembled_to_analyzed,
 };
 use crate::ast::{Expr, Statement};
@@ -83,7 +84,7 @@ pub fn analyze_trait_definition(
             params.push((param_name, GlossaType::Unknown));
         }
 
-        let signature = crate::semantic::types::MethodSignature {
+        let signature = MethodSignature {
             name: method_name.clone(),
             params: params.clone(),
             return_type: None,
@@ -131,7 +132,7 @@ pub fn analyze_trait_definition(
                 None
             };
 
-            default_methods.push(crate::semantic::types::DefaultMethod {
+            default_methods.push(DefaultMethod {
                 signature: signature.clone(),
                 body: body.clone().unwrap_or_default(),
             });
@@ -157,7 +158,7 @@ pub fn analyze_trait_definition(
     }
 
     // Create the trait definition
-    let trait_def_semantic = crate::semantic::types::TraitDef {
+    let trait_def_semantic = TraitDef {
         name: trait_name.clone(),
         required_methods,
         default_methods,
@@ -267,7 +268,7 @@ pub fn analyze_trait_impl(
     }
 
     // Create the trait implementation
-    let trait_impl_semantic = crate::semantic::types::TraitImpl {
+    let trait_impl_semantic = TraitImpl {
         trait_name: trait_name.clone(),
         type_name: type_name.clone(),
         methods: vec![], // Semantic tracking only needs names for now
