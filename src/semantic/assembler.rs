@@ -655,8 +655,8 @@ impl Assembler {
     ///
     /// let mut asm = Assembler::new();
     /// let array = Expr::Word(Word {
-    ///     original: "πίναξ".to_string(),
-    ///     normalized: "πιναξ".to_string(),
+    ///     original: "πίναξ".into(),
+    ///     normalized: "πιναξ".into(),
     /// });
     /// let index = Expr::NumberLiteral(0);
     /// asm.feed_index_access(array, index);
@@ -675,8 +675,8 @@ impl Assembler {
     ///
     /// let mut asm = Assembler::new();
     /// let expr = Expr::Word(Word {
-    ///     original: "τιμή".to_string(),
-    ///     normalized: "τιμη".to_string(),
+    ///     original: "τιμή".into(),
+    ///     normalized: "τιμη".into(),
     /// });
     /// asm.feed_unwrap(expr);
     /// ```
