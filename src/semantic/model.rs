@@ -204,7 +204,7 @@ pub enum AnalyzedExprKind {
         method_name: String,
         args: Vec<AnalyzedExpr>,
     },
-    /// Struct instantiation Type { field: value, ... }
+    /// Struct instantiation: `variable νέον type_name args... ἔστω`
     StructInstantiation {
         type_name: String,
         fields: Vec<String>, // Field names from struct definition
