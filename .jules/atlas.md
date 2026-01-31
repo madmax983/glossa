@@ -20,3 +20,12 @@
 4. Refactored `mod.rs` to re-export `model` contents.
 5. Removed legacy `SemanticAnalyzer` code that was duplicating logic.
 **Stability:** Strictly separates Data (Model), Types (Type System), and Logic (Analysis). `model.rs` depends on `types.rs`, but `types.rs` is now leaf-level with no dependencies on the AST.
+
+## 2026-01-31 - [Splitting The Blob: Assembler]
+**Tangle:** `src/semantic/assembler.rs` was a single file mixing data models, error definitions, and complex state machine logic, making it a "God Struct" candidate and difficult to maintain.
+**Blueprint:**
+1. Created `src/semantic/assembler/` directory.
+2. Extracted data models (`AssembledStatement`, `Constituent`, etc.) to `src/semantic/assembler/model.rs`.
+3. Extracted errors (`AssemblyError`) to `src/semantic/assembler/errors.rs`.
+4. Moved core logic and tests to `src/semantic/assembler/mod.rs`.
+**Stability:** Improves cohesion by separating data, errors, and logic. Reduces the size of the assembler module file and makes types easier to find.
