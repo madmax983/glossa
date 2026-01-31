@@ -12,90 +12,90 @@ use super::{Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
 /// Present Active Indicative endings (ω-conjugation)
 /// Pattern: λέγω, γράφω, etc.
 const PRESENT_ACTIVE_IND: &[(&str, Person, Number)] = &[
-    ("ω", Person::First, Number::Singular),
-    ("εις", Person::Second, Number::Singular),
-    ("ει", Person::Third, Number::Singular),
+    ("ουσιν", Person::Third, Number::Plural),
     ("ομεν", Person::First, Number::Plural),
-    ("ετε", Person::Second, Number::Plural),
     ("ουσι", Person::Third, Number::Plural),
-    ("ουσιν", Person::Third, Number::Plural), // with movable nu
+    ("εις", Person::Second, Number::Singular),
+    ("ετε", Person::Second, Number::Plural),
+    ("ει", Person::Third, Number::Singular),
+    ("ω", Person::First, Number::Singular),
 ];
 
 /// Present Active Imperative endings
 const PRESENT_ACTIVE_IMP: &[(&str, Person, Number)] = &[
-    ("ε", Person::Second, Number::Singular),
+    ("οντων", Person::Third, Number::Plural),
     ("ετω", Person::Third, Number::Singular),
     ("ετε", Person::Second, Number::Plural),
-    ("οντων", Person::Third, Number::Plural),
+    ("ε", Person::Second, Number::Singular),
 ];
 
 /// Aorist Active Indicative endings (first/sigmatic aorist)
 /// Pattern: ἔλυσα, ἔγραψα, etc.
 const AORIST_ACTIVE_IND: &[(&str, Person, Number)] = &[
-    ("σα", Person::First, Number::Singular),
-    ("σας", Person::Second, Number::Singular),
-    ("σε", Person::Third, Number::Singular),
-    ("σεν", Person::Third, Number::Singular), // with movable nu
     ("σαμεν", Person::First, Number::Plural),
     ("σατε", Person::Second, Number::Plural),
+    ("σας", Person::Second, Number::Singular),
+    ("σεν", Person::Third, Number::Singular),
     ("σαν", Person::Third, Number::Plural),
+    ("σα", Person::First, Number::Singular),
+    ("σε", Person::Third, Number::Singular),
 ];
 
 /// Aorist Active Imperative endings
 const AORIST_ACTIVE_IMP: &[(&str, Person, Number)] = &[
-    ("σον", Person::Second, Number::Singular),
+    ("σαντων", Person::Third, Number::Plural),
     ("σατω", Person::Third, Number::Singular),
     ("σατε", Person::Second, Number::Plural),
-    ("σαντων", Person::Third, Number::Plural),
+    ("σον", Person::Second, Number::Singular),
 ];
 
 /// Present Active Subjunctive endings (long vowel theme)
 /// Pattern: λύω → λύω (identical to present indicative in form, but subjunctive in meaning)
 /// The subjunctive has lengthened thematic vowel: ω/η instead of ο/ε
 const PRESENT_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
-    ("ω", Person::First, Number::Singular),
-    ("ῃς", Person::Second, Number::Singular), // Note: η + ς
-    ("ῃ", Person::Third, Number::Singular),   // Long vowel ῃ
     ("ωμεν", Person::First, Number::Plural),
+    ("ωσιν", Person::Third, Number::Plural),
     ("ητε", Person::Second, Number::Plural),
     ("ωσι", Person::Third, Number::Plural),
-    ("ωσιν", Person::Third, Number::Plural), // with movable nu
+    ("ῃς", Person::Second, Number::Singular),
+    ("ῃ", Person::Third, Number::Singular),
+    ("ω", Person::First, Number::Singular),
 ];
 
 /// Aorist Active Subjunctive endings
 /// Pattern: λύσω (σ + subjunctive endings)
 const AORIST_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
-    ("σω", Person::First, Number::Singular),
-    ("σῃς", Person::Second, Number::Singular),
-    ("σῃ", Person::Third, Number::Singular),
     ("σωμεν", Person::First, Number::Plural),
+    ("σωσιν", Person::Third, Number::Plural),
     ("σητε", Person::Second, Number::Plural),
     ("σωσι", Person::Third, Number::Plural),
-    ("σωσιν", Person::Third, Number::Plural),
+    ("σῃς", Person::Second, Number::Singular),
+    ("σῃ", Person::Third, Number::Singular),
+    ("σω", Person::First, Number::Singular),
 ];
 
 /// Present Active Optative endings
 /// Pattern: γράφοιμι "I might write"
 /// The optative mood expresses possibility, wish, or potential - natural for Option<T>
 const PRESENT_ACTIVE_OPT: &[(&str, Person, Number)] = &[
-    ("οιμι", Person::First, Number::Singular),
-    ("οις", Person::Second, Number::Singular),
-    ("οι", Person::Third, Number::Singular),
     ("οιμεν", Person::First, Number::Plural),
+    ("οιμι", Person::First, Number::Singular),
     ("οιτε", Person::Second, Number::Plural),
     ("οιεν", Person::Third, Number::Plural),
+    ("οις", Person::Second, Number::Singular),
+    ("οι", Person::Third, Number::Singular),
 ];
 
 /// Aorist Passive Optative endings
 /// Pattern: εὑρεθείη "might be found"
 /// Used for values that "might exist" (Option<T> semantics)
 const AORIST_PASSIVE_OPT: &[(&str, Person, Number)] = &[
+    ("θειημεν", Person::First, Number::Plural),
+    ("θειησαν", Person::Third, Number::Plural),
+    ("θειητε", Person::Second, Number::Plural),
     ("θειην", Person::First, Number::Singular),
     ("θειης", Person::Second, Number::Singular),
     ("θειη", Person::Third, Number::Singular),
-    ("θειημεν", Person::First, Number::Plural),
-    ("θειητε", Person::Second, Number::Plural),
-    ("θειησαν", Person::Third, Number::Plural),
 ];
 
 /// Present Active Infinitive ending
@@ -193,13 +193,13 @@ fn strip_augment(augmented_stem: &str) -> String {
 /// Try to analyze a word as a verb
 /// Subjunctive forms of εἰμί (to be) - irregular but essential for conditionals
 const EIMI_SUBJUNCTIVE: &[(&str, Person, Number)] = &[
-    ("ω", Person::First, Number::Singular),   // ὦ
-    ("ης", Person::Second, Number::Singular), // ᾖς (normalized)
-    ("η", Person::Third, Number::Singular),   // ᾖ (normalized) - most common in conditionals
-    ("ωμεν", Person::First, Number::Plural),  // ὦμεν
-    ("ητε", Person::Second, Number::Plural),  // ἦτε
-    ("ωσι", Person::Third, Number::Plural),   // ὦσι
-    ("ωσιν", Person::Third, Number::Plural),  // with movable nu
+    ("ωμεν", Person::First, Number::Plural),
+    ("ωσιν", Person::Third, Number::Plural),
+    ("ητε", Person::Second, Number::Plural),
+    ("ωσι", Person::Third, Number::Plural),
+    ("ης", Person::Second, Number::Singular),
+    ("ω", Person::First, Number::Singular),
+    ("η", Person::Third, Number::Singular),
 ];
 
 pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
@@ -258,7 +258,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Try aorist active indicative
     if let Some((augmented_stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_IND) {
         // Strip temporal augment to find true stem: ἔλυσα → ελυ → λυ
-        let true_stem = strip_augment(&augmented_stem);
+        let true_stem = strip_augment(augmented_stem);
         return Some(MorphAnalysis {
             lemma: Cow::Owned(format!("{}ω", true_stem)),
             part_of_speech: PartOfSpeech::Verb,
@@ -404,40 +404,36 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
 }
 
 /// Match a word against verb endings
-fn match_verb_endings(
-    word: &str,
+///
+/// Endings MUST be pre-sorted by length descending to ensure longest match logic.
+fn match_verb_endings<'a>(
+    word: &'a str,
     endings: &[(&str, Person, Number)],
-) -> Option<(String, Person, Number)> {
-    // Sort by ending length (longest first)
-    let mut sorted: Vec<_> = endings.iter().collect();
-    sorted.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
-
-    for (ending, person, number) in sorted {
+) -> Option<(&'a str, Person, Number)> {
+    for (ending, person, number) in endings {
         if let Some(stem) = word.strip_suffix(ending)
             && !stem.is_empty()
         {
-            return Some((stem.to_string(), *person, *number));
+            return Some((stem, *person, *number));
         }
     }
     None
 }
 
 /// Match a word against ALL verb endings (for ambiguity resolution)
-fn match_verb_endings_all(
-    word: &str,
-    endings: &[(&str, Person, Number)],
-) -> Vec<(String, Person, Number)> {
-    let mut matches = Vec::new();
-
+///
+/// Endings MUST be pre-sorted by length descending.
+fn match_verb_endings_all<F>(word: &str, endings: &[(&str, Person, Number)], mut callback: F)
+where
+    F: FnMut(&str, Person, Number),
+{
     for (ending, person, number) in endings {
         if let Some(stem) = word.strip_suffix(ending)
             && !stem.is_empty()
         {
-            matches.push((stem.to_string(), *person, *number));
+            callback(stem, *person, *number);
         }
     }
-
-    matches
 }
 
 /// Analyze a word as a verb, returning ALL possible analyses
@@ -530,14 +526,12 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
     ];
 
     for pattern in &patterns {
-        let matches = match_verb_endings_all(word, pattern.endings);
-
-        for (stem, person, number) in matches {
+        match_verb_endings_all(word, pattern.endings, |stem, person, number| {
             // Handle augment stripping for indicative aorists
             let lemma_stem = if pattern.has_augment {
-                strip_augment(&stem)
+                Cow::Owned(strip_augment(stem))
             } else {
-                stem.clone()
+                Cow::Borrowed(stem)
             };
 
             // Calculate confidence
@@ -557,7 +551,7 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
                 voice: Some(pattern.voice),
                 confidence,
             });
-        }
+        });
     }
 
     // Try infinitives
