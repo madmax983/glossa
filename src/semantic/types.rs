@@ -11,6 +11,7 @@
 //! - ἀποτέλεσμα (apotelasma) → `Result<T,E>` (outcome/result)
 
 use crate::morphology::{Case, Gender, Tense};
+use smol_str::SmolStr;
 
 /// Types in ΓΛΩΣΣΑ
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -59,9 +60,9 @@ pub enum GlossaType {
 
     /// Custom struct type (from noun)
     Struct {
-        name: std::string::String,
+        name: SmolStr,
         gender: Gender,
-        fields: Vec<(std::string::String, GlossaType)>,
+        fields: Vec<(SmolStr, GlossaType)>,
     },
 
     /// Function type
@@ -220,7 +221,7 @@ pub fn infer_type(word: &str) -> GlossaType {
 /// Trait definition for semantic analysis
 #[derive(Debug, Clone)]
 pub struct TraitDef {
-    pub name: std::string::String,
+    pub name: SmolStr,
     pub required_methods: Vec<MethodSignature>,
     pub default_methods: Vec<DefaultMethod>,
 }
@@ -228,8 +229,8 @@ pub struct TraitDef {
 /// Method signature in a trait
 #[derive(Debug, Clone, PartialEq)]
 pub struct MethodSignature {
-    pub name: std::string::String,
-    pub params: Vec<(std::string::String, GlossaType)>,
+    pub name: SmolStr,
+    pub params: Vec<(SmolStr, GlossaType)>,
     pub return_type: Option<GlossaType>,
     pub has_default: bool,
 }

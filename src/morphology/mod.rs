@@ -96,7 +96,7 @@ pub fn analyze(word: &str) -> MorphAnalysis {
     analyses.into_iter().next().unwrap_or_else(|| {
         let normalized = normalize_greek(word);
         MorphAnalysis {
-            lemma: normalized,
+            lemma: normalized.to_string(),
             part_of_speech: PartOfSpeech::Unknown,
             case: None,
             number: None,
@@ -159,7 +159,7 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
             analyses.insert(
                 0,
                 MorphAnalysis {
-                    lemma: normalized.clone(),
+                    lemma: normalized.to_string(),
                     part_of_speech: PartOfSpeech::Noun,
                     case: Some(Case::Nominative),
                     number: Some(Number::Singular),
@@ -177,7 +177,7 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     // If still nothing, return unknown
     if analyses.is_empty() {
         analyses.push(MorphAnalysis {
-            lemma: normalized,
+            lemma: normalized.to_string(),
             part_of_speech: PartOfSpeech::Unknown,
             case: None,
             number: None,

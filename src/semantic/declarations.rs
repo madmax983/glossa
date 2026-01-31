@@ -8,6 +8,7 @@ use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::grammar::normalize_greek;
 use crate::morphology;
+use smol_str::SmolStr;
 // Circular dependencies handled by crate structure
 use super::control_flow::analyze_control_flow;
 use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
@@ -39,7 +40,7 @@ pub fn analyze_type_definition(
     };
 
     // Store the type in scope
-    scope.define_type(type_name.clone(), struct_type);
+    scope.define_type(type_name.to_string(), struct_type);
 
     Ok(AnalyzedStatement {
         kind: StatementKind::TypeDefinition {
@@ -98,7 +99,7 @@ pub fn analyze_trait_definition(
                 let mut method_scope = scope.child();
                 // Add method parameters to scope (including self)
                 for (param_name, param_type) in &params {
-                    method_scope.define(param_name.clone(), param_type.clone());
+                    method_scope.define(param_name.to_string(), param_type.clone());
                 }
                 // Properly analyze statements in the body
                 for body_stmt in body_stmts {
@@ -164,7 +165,7 @@ pub fn analyze_trait_definition(
     };
 
     // Store the trait in scope
-    scope.define_trait(trait_name.clone(), trait_def_semantic);
+    scope.define_trait(trait_name.to_string(), trait_def_semantic);
 
     Ok(AnalyzedStatement {
         kind: StatementKind::TraitDefinition {
@@ -268,8 +269,8 @@ pub fn analyze_trait_impl(
 
     // Create the trait implementation
     let trait_impl_semantic = crate::semantic::types::TraitImpl {
-        trait_name: trait_name.clone(),
-        type_name: type_name.clone(),
+        trait_name: trait_name.to_string(),
+        type_name: type_name.to_string(),
         methods: vec![], // Semantic tracking only needs names for now
     };
 
@@ -374,7 +375,7 @@ pub fn parse_function_definition(
 
     Ok(Some(AnalyzedStatement {
         kind: StatementKind::FunctionDef {
-            name: function_name,
+            name: function_name.into(),
             params,
             body: body_statements,
             return_type,
@@ -408,7 +409,7 @@ fn extract_function_name_from_expr(expr: &Expr) -> Result<String, GlossaError> {
             && analysis.part_of_speech != morphology::PartOfSpeech::Verb
         {
             // This could be the function name
-            function_name = Some(normalized);
+            function_name = Some(normalized.to_string());
         }
     }
 
@@ -419,7 +420,7 @@ fn extract_function_name_from_expr(expr: &Expr) -> Result<String, GlossaError> {
 /// Parameters are words after dative article τῷ, optionally followed by genitive type annotations
 fn extract_parameters_from_expr(
     expr: &Expr,
-) -> Result<Vec<(String, Option<GlossaType>)>, GlossaError> {
+) -> Result<Vec<(SmolStr, Option<GlossaType>)>, GlossaError> {
     let mut params = Vec::new();
 
     // Collect all words from the expression

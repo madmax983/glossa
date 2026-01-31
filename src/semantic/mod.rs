@@ -52,6 +52,7 @@ pub use types::*;
 
 use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
+use smol_str::SmolStr;
 
 use self::control_flow::analyze_control_flow;
 use self::conversion::{classify_value_expression, convert_assembled_to_analyzed};
@@ -98,7 +99,7 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
                     .iter()
                     .map(|(_, ty)| ty.clone().unwrap_or(GlossaType::Unknown))
                     .collect();
-                scope.define_function(name.clone(), param_types, return_type.clone());
+                scope.define_function(name.to_string(), param_types, return_type.clone());
             }
             analyzed_statements.push(control_flow_stmt);
         } else {
@@ -178,13 +179,13 @@ pub struct AnalyzedStatement {
 pub enum StatementKind {
     /// Variable binding: ξ πέντε ἔστω
     Binding {
-        name: String,
+        name: SmolStr,
         value_type: GlossaType,
         mutable: bool,
     },
     /// Assignment: ξ δέκα γίγνεται
     Assignment {
-        name: String,
+        name: SmolStr,
         value_type: GlossaType,
     },
     /// Print statement: «χαῖρε» λέγε
@@ -206,7 +207,7 @@ pub enum StatementKind {
     },
     /// For loop: διά/ἀπό...μέχρι
     For {
-        variable: String,
+        variable: SmolStr,
         iterator: Box<AnalyzedExpr>,
         body: Vec<AnalyzedStatement>,
     },
@@ -223,25 +224,25 @@ pub enum StatementKind {
     Return { value: Option<Box<AnalyzedExpr>> },
     /// Function definition: name ὁρίζειν params· body
     FunctionDef {
-        name: String,
-        params: Vec<(String, Option<GlossaType>)>,
+        name: SmolStr,
+        params: Vec<(SmolStr, Option<GlossaType>)>,
         body: Vec<AnalyzedStatement>,
         return_type: Option<GlossaType>,
     },
     /// Type definition: εἶδος name ὁρίζειν { fields }
     TypeDefinition {
-        name: String,
-        fields: Vec<(String, GlossaType)>,
+        name: SmolStr,
+        fields: Vec<(SmolStr, GlossaType)>,
     },
     /// Trait definition: χαρακτήρ name ὁρίζειν { methods }
     TraitDefinition {
-        name: String,
+        name: SmolStr,
         methods: Vec<AnalyzedTraitMethod>,
     },
     /// Trait implementation: εἶδος Type τῷ Trait ἐμπίπτειν { methods }
     TraitImplementation {
-        trait_name: String,
-        type_name: String,
+        trait_name: SmolStr,
+        type_name: SmolStr,
         methods: Vec<AnalyzedImplMethod>,
     },
 }
@@ -249,8 +250,8 @@ pub enum StatementKind {
 /// An analyzed method in a trait definition
 #[derive(Debug, Clone)]
 pub struct AnalyzedTraitMethod {
-    pub name: String,
-    pub params: Vec<(String, GlossaType)>,
+    pub name: SmolStr,
+    pub params: Vec<(SmolStr, GlossaType)>,
     pub is_default: bool,
     pub body: Option<Vec<AnalyzedStatement>>, // Some for default methods, None for required
     pub return_type: Option<GlossaType>,
@@ -259,8 +260,8 @@ pub struct AnalyzedTraitMethod {
 /// An analyzed method in a trait implementation
 #[derive(Debug, Clone)]
 pub struct AnalyzedImplMethod {
-    pub name: String,
-    pub params: Vec<(String, GlossaType)>,
+    pub name: SmolStr,
+    pub params: Vec<(SmolStr, GlossaType)>,
     pub body: Vec<AnalyzedStatement>,
     pub return_type: Option<GlossaType>,
 }
@@ -302,13 +303,13 @@ pub enum AnalyzedExprKind {
     StringLiteral(String),
     NumberLiteral(i64),
     BooleanLiteral(bool),
-    Variable(String),
+    Variable(SmolStr),
     PropertyAccess {
         owner: Box<AnalyzedExpr>,
-        property: String,
+        property: SmolStr,
     },
     VerbCall {
-        verb: String,
+        verb: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
     /// Binary operation (arithmetic, comparison, boolean)
@@ -349,31 +350,31 @@ pub enum AnalyzedExprKind {
     },
     /// Function call to user-defined function
     FunctionCall {
-        func: String,
+        func: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
     /// Method call receiver.method(args)
     MethodCall {
         receiver: Box<AnalyzedExpr>,
-        method: String,
+        method: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
     /// Trait method call receiverου method args (from trait impl)
     TraitMethodCall {
         receiver: Box<AnalyzedExpr>,
-        trait_name: String,
-        method_name: String,
+        trait_name: SmolStr,
+        method_name: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
     /// Struct instantiation Type { field: value, ... }
     StructInstantiation {
-        type_name: String,
-        fields: Vec<String>, // Field names from struct definition
+        type_name: SmolStr,
+        fields: Vec<SmolStr>, // Field names from struct definition
         args: Vec<AnalyzedExpr>,
     },
     /// Lambda/closure |params| body
     Lambda {
-        params: Vec<String>,
+        params: Vec<SmolStr>,
         body: Box<AnalyzedExpr>,
         capture_mode: crate::ast::CaptureMode,
     },
@@ -499,7 +500,7 @@ impl SemanticAnalyzer {
                             // Check if the type exists
                             if let Some(struct_type) = self.scope.lookup_type(type_name).cloned() {
                                 // Extract field names from struct type
-                                let field_names: Vec<String> =
+                                let field_names: Vec<SmolStr> =
                                     if let GlossaType::Struct { fields, .. } = &struct_type {
                                         fields.iter().map(|(name, _)| name.clone()).collect()
                                     } else {
@@ -523,7 +524,7 @@ impl SemanticAnalyzer {
                                 };
 
                                 // Register variable in scope with correct type
-                                self.scope.define(var_name.clone(), struct_type.clone());
+                                self.scope.define(var_name.to_string(), struct_type.clone());
 
                                 return Ok((
                                     StatementKind::Binding {
@@ -664,13 +665,13 @@ impl SemanticAnalyzer {
 
                 return Ok((
                     StatementKind::Binding {
-                        name: name.clone(),
+                        name: name.clone().into(),
                         value_type: value_expr.glossa_type.clone(),
                         mutable: is_mutable,
                     },
                     vec![
                         AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(name),
+                            expr: AnalyzedExprKind::Variable(name.into()),
                             glossa_type: value_expr.glossa_type.clone(),
                         },
                         value_expr,
@@ -757,7 +758,7 @@ impl SemanticAnalyzer {
             }
 
             _ => Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable("_".to_string()),
+                expr: AnalyzedExprKind::Variable("_".into()),
                 glossa_type: GlossaType::Unknown,
             }),
         }
@@ -765,7 +766,7 @@ impl SemanticAnalyzer {
 
     fn extract_name(&self, expr: &Expr) -> Result<String, GlossaError> {
         match expr {
-            Expr::Word(w) => Ok(w.normalized.clone()),
+            Expr::Word(w) => Ok(w.normalized.to_string()),
             _ => Err(GlossaError::semantic("Expected a word for variable name")),
         }
     }

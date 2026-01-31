@@ -145,13 +145,13 @@ pub struct Constituent {
     ///
     /// Used for semantic analysis and code generation.
     /// Example: "ανθρωπος" (from "ἄνθρωπος")
-    pub lemma: String,
+    pub lemma: smol_str::SmolStr,
 
     /// Original text as it appeared
     ///
     /// Preserved for error messages and display purposes.
     /// Example: "ἄνθρωπος"
-    pub original: String,
+    pub original: smol_str::SmolStr,
 
     /// Grammatical case
     ///
@@ -180,12 +180,12 @@ pub struct VerbConstituent {
     /// The dictionary form (1st person singular present)
     ///
     /// Example: "λεγω" (from "λέγει")
-    pub lemma: String,
+    pub lemma: smol_str::SmolStr,
 
     /// Original text as it appeared
     ///
     /// Example: "λέγει"
-    pub original: String,
+    pub original: smol_str::SmolStr,
 
     /// Person (1st, 2nd, 3rd)
     ///
@@ -540,8 +540,8 @@ impl Assembler {
         original: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
-            lemma: analysis.lemma.clone(),
-            original: original.to_string(),
+            lemma: analysis.lemma.clone().into(),
+            original: original.into(),
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
@@ -599,8 +599,8 @@ impl Assembler {
         }
 
         self.pending_verb = Some(VerbConstituent {
-            lemma: analysis.lemma.clone(),
-            original: original.to_string(),
+            lemma: analysis.lemma.clone().into(),
+            original: original.into(),
             person: analysis.person,
             number: analysis.number,
             tense: analysis.tense,
@@ -618,8 +618,8 @@ impl Assembler {
         original: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
-            lemma: analysis.lemma.clone(),
-            original: original.to_string(),
+            lemma: analysis.lemma.clone().into(),
+            original: original.into(),
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
@@ -754,7 +754,7 @@ impl Assembler {
                 self.pending_string_method = Some(("split".to_string(), delim));
                 // Push back a property access for the split result
                 self.pending_property_accesses
-                    .push((normalized_original, "split".to_string()));
+                    .push((normalized_original.to_string(), "split".to_string()));
             }
             return true;
         }
@@ -770,7 +770,7 @@ impl Assembler {
                 self.pending_string_method = Some(("join".to_string(), delim));
                 // Push back a property access for the join result
                 self.pending_property_accesses
-                    .push((normalized_original, "join".to_string()));
+                    .push((normalized_original.to_string(), "join".to_string()));
             }
             return true;
         }
@@ -820,7 +820,7 @@ impl Assembler {
             if let Some(ref subj) = self.pending_subject {
                 let normalized_original = crate::grammar::normalize_greek(&subj.original);
                 self.pending_property_accesses
-                    .push((normalized_original, "len".to_string()));
+                    .push((normalized_original.to_string(), "len".to_string()));
                 self.pending_subject = None; // Consume the subject
             }
             return true;

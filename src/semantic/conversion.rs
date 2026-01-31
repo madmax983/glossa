@@ -13,6 +13,7 @@ use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::grammar::normalize_greek;
 use crate::morphology::{self};
+use smol_str::SmolStr;
 
 /// Convert an AssembledStatement to an AnalyzedStatement
 /// This bridges the slot-based assembler output to the HIR lowering input
@@ -203,7 +204,7 @@ pub fn classify_assembled_statement(
                 // Check if type exists in scope
                 if let Some(struct_type) = scope.lookup_type(&type_name).cloned() {
                     // Extract field names from struct type
-                    let field_names: Vec<String> =
+                    let field_names: Vec<SmolStr> =
                         if let GlossaType::Struct { fields, .. } = &struct_type {
                             fields.iter().map(|(name, _)| name.clone()).collect()
                         } else {
@@ -228,7 +229,7 @@ pub fn classify_assembled_statement(
                     };
 
                     // Register variable in scope
-                    scope.define(var_name.clone(), struct_type.clone());
+                    scope.define(var_name.to_string(), struct_type.clone());
 
                     return Ok((
                         StatementKind::Binding {
@@ -273,7 +274,7 @@ pub fn classify_assembled_statement(
 
                     // Register variable in scope (mutable for collection operations)
                     // Collections are implicitly mutable for methods like push/pop/insert
-                    scope.define_mut(var_name.clone(), glossa_type.clone());
+                    scope.define_mut(var_name.to_string(), glossa_type.clone());
 
                     return Ok((
                         StatementKind::Binding {
@@ -367,7 +368,7 @@ pub fn classify_assembled_statement(
 
                 // Register subject as variable (use original form, not lemma)
                 let var_name = normalize_greek(&subject.original);
-                scope.define(var_name.clone(), return_type.clone());
+                scope.define(var_name.to_string(), return_type.clone());
 
                 return Ok((
                     StatementKind::Binding {
@@ -482,9 +483,9 @@ pub fn classify_assembled_statement(
             // Register binding in scope (mutable if μετά marker present)
             let is_mutable = asm_stmt.has_mutable_marker;
             if is_mutable {
-                scope.define_mut(var_name.clone(), value_type.clone());
+                scope.define_mut(var_name.to_string(), value_type.clone());
             } else {
-                scope.define(var_name.clone(), value_type.clone());
+                scope.define(var_name.to_string(), value_type.clone());
             }
 
             return Ok((
@@ -580,7 +581,7 @@ pub fn classify_assembled_statement(
             let method_call = AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
                     receiver: Box::new(receiver),
-                    method: "pop".to_string(),
+                    method: "pop".into(),
                     args: vec![],
                 },
                 glossa_type: GlossaType::Unknown, // Option<T>
@@ -624,7 +625,7 @@ pub fn classify_assembled_statement(
             let method_call = AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
                     receiver: Box::new(receiver),
-                    method: "push".to_string(),
+                    method: "push".into(),
                     args: vec![arg],
                 },
                 glossa_type: GlossaType::Unit,
@@ -687,7 +688,7 @@ pub fn classify_assembled_statement(
             let method_call = AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
                     receiver: Box::new(receiver),
-                    method: "insert".to_string(),
+                    method: "insert".into(),
                     args,
                 },
                 glossa_type: return_type,
@@ -726,7 +727,7 @@ pub fn classify_assembled_statement(
                 let mut args = Vec::new();
                 for (owner, method) in &asm_stmt.property_accesses {
                     let receiver = AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(owner.clone()),
+                        expr: AnalyzedExprKind::Variable(owner.clone().into()),
                         glossa_type: scope.lookup(owner).cloned().unwrap_or(GlossaType::Unknown),
                     };
                     // Check if this is a split/join method with a delimiter
@@ -752,7 +753,7 @@ pub fn classify_assembled_statement(
                     args.push(AnalyzedExpr {
                         expr: AnalyzedExprKind::MethodCall {
                             receiver: Box::new(receiver),
-                            method: method.clone(),
+                            method: method.clone().into(),
                             args: method_args,
                         },
                         glossa_type: return_type,
@@ -1040,14 +1041,14 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
     // If we have property accesses, use the first one
     if let Some((owner, method)) = asm_stmt.property_accesses.first() {
         let receiver = AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(owner.clone()),
+            expr: AnalyzedExprKind::Variable(owner.clone().into()),
             glossa_type: GlossaType::Unknown,
         };
         return (
             AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
                     receiver: Box::new(receiver),
-                    method: method.clone(),
+                    method: method.clone().into(),
                     args: vec![],
                 },
                 glossa_type: GlossaType::Number,

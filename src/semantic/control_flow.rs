@@ -238,15 +238,15 @@ fn parse_for_range_loop(
             if let Some(Expr::Word(w)) = terms.first() {
                 w.normalized.clone()
             } else {
-                "i".to_string()
+                "i".into()
             }
         } else if let Expr::Word(w) = first_expr {
             w.normalized.clone()
         } else {
-            "i".to_string()
+            "i".into()
         }
     } else {
-        "i".to_string()
+        "i".into()
     };
 
     // Parse body as a multi-clause statement (handles if/else/etc)
@@ -335,15 +335,15 @@ fn parse_for_iteration_loop(
             if let Some(Expr::Word(w)) = terms.first() {
                 w.normalized.clone()
             } else {
-                "x".to_string()
+                "x".into()
             }
         } else if let Expr::Word(w) = first_expr {
             w.normalized.clone()
         } else {
-            "x".to_string()
+            "x".into()
         }
     } else {
-        "x".to_string()
+        "x".into()
     };
 
     // Parse body as multi-clause statement
@@ -757,7 +757,7 @@ fn check_else_pattern_in_expression(expr: &Expr) -> bool {
             .take(3)
             .filter_map(|term| {
                 if let Expr::Word(w) = term {
-                    Some(normalize_greek(&w.original))
+                    Some(normalize_greek(&w.original).to_string())
                 } else {
                     None
                 }

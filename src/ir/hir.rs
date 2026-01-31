@@ -6,6 +6,7 @@ use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedProgram, AnalyzedStatement,
     StatementKind,
 };
+use smol_str::SmolStr;
 
 /// A HIR program ready for code generation
 #[derive(Debug, Clone)]
@@ -18,13 +19,13 @@ pub struct HirProgram {
 pub enum HirStatement {
     /// let name = value;
     Let {
-        name: String,
+        name: SmolStr,
         value: HirExpr,
         mutable: bool,
     },
 
     /// name = value;
-    Assign { name: String, value: HirExpr },
+    Assign { name: SmolStr, value: HirExpr },
 
     /// println!(...);
     Print { args: Vec<HirExpr> },
@@ -47,7 +48,7 @@ pub enum HirStatement {
 
     /// for var in iterator { body }
     For {
-        variable: String,
+        variable: SmolStr,
         iterator: HirExpr,
         body: Vec<HirStatement>,
     },
@@ -69,28 +70,28 @@ pub enum HirStatement {
 
     /// fn name(params) -> ret { body }
     FnDef {
-        name: String,
-        params: Vec<(String, Option<String>)>, // (name, type)
+        name: SmolStr,
+        params: Vec<(SmolStr, Option<String>)>, // (name, type)
         body: Vec<HirStatement>,
         return_type: Option<String>,
     },
 
     /// struct name { fields }
     StructDef {
-        name: String,
-        fields: Vec<(String, String)>, // (field_name, field_type)
+        name: SmolStr,
+        fields: Vec<(SmolStr, String)>, // (field_name, field_type)
     },
 
     /// trait name { methods }
     TraitDef {
-        name: String,
+        name: SmolStr,
         methods: Vec<HirTraitMethod>,
     },
 
     /// impl Trait for Type { methods }
     TraitImpl {
-        trait_name: String,
-        type_name: String,
+        trait_name: SmolStr,
+        type_name: SmolStr,
         methods: Vec<HirImplMethod>,
     },
 }
@@ -98,8 +99,8 @@ pub enum HirStatement {
 /// A method in a trait definition
 #[derive(Debug, Clone)]
 pub struct HirTraitMethod {
-    pub name: String,
-    pub params: Vec<(String, Option<String>)>, // (name, type)
+    pub name: SmolStr,
+    pub params: Vec<(SmolStr, Option<String>)>, // (name, type)
     pub return_type: Option<String>,
     pub has_default: bool,
     pub body: Option<Vec<HirStatement>>,
@@ -108,8 +109,8 @@ pub struct HirTraitMethod {
 /// A method in a trait implementation
 #[derive(Debug, Clone)]
 pub struct HirImplMethod {
-    pub name: String,
-    pub params: Vec<(String, Option<String>)>, // (name, type)
+    pub name: SmolStr,
+    pub params: Vec<(SmolStr, Option<String>)>, // (name, type)
     pub return_type: Option<String>,
     pub body: Vec<HirStatement>,
 }
@@ -154,20 +155,23 @@ pub enum HirExpr {
     },
 
     /// Variable reference
-    Var(String),
+    Var(SmolStr),
 
     /// Field access: expr.field
-    Field { object: Box<HirExpr>, field: String },
+    Field {
+        object: Box<HirExpr>,
+        field: SmolStr,
+    },
 
     /// Method call: expr.method(args)
     MethodCall {
         receiver: Box<HirExpr>,
-        method: String,
+        method: SmolStr,
         args: Vec<HirExpr>,
     },
 
     /// Function call: func(args)
-    Call { func: String, args: Vec<HirExpr> },
+    Call { func: SmolStr, args: Vec<HirExpr> },
 
     /// Binary operation
     BinOp {
@@ -573,8 +577,8 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
             fields,
             args,
         } => HirExpr::StructLit {
-            type_name: type_name.clone(),
-            fields: fields.clone(),
+            type_name: type_name.to_string(),
+            fields: fields.iter().map(|f| f.to_string()).collect(),
             args: args.iter().map(lower_expr).collect(),
         },
         AnalyzedExprKind::Lambda {
@@ -592,7 +596,7 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
             };
 
             HirExpr::Closure {
-                params: params.clone(),
+                params: params.iter().map(|p| p.to_string()).collect(),
                 body: Box::new(lower_expr(body)),
                 capture_mode: hir_capture_mode,
             }

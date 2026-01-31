@@ -117,10 +117,10 @@ pub fn get_first_word(stmt: &Statement) -> Result<String, GlossaError> {
             if let Some(first_term) = terms.first()
                 && let Expr::Word(word) = first_term
             {
-                return Ok(word.original.clone());
+                return Ok(word.original.to_string());
             }
         } else if let Expr::Word(word) = first_expr {
-            return Ok(word.original.clone());
+            return Ok(word.original.to_string());
         }
     }
     Err(GlossaError::semantic("Empty statement"))

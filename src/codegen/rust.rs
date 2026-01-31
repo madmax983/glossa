@@ -275,7 +275,7 @@ fn generate_match(scrutinee: &HirExpr, arms: &[(HirExpr, Vec<HirStatement>)]) ->
 
 fn generate_fn_def(
     name: &str,
-    params: &[(String, Option<String>)],
+    params: &[(smol_str::SmolStr, Option<String>)],
     body: &[HirStatement],
     return_type: &Option<String>,
 ) -> TokenStream {
@@ -313,7 +313,7 @@ fn generate_fn_def(
     }
 }
 
-fn generate_struct_def(name: &str, fields: &[(String, String)]) -> TokenStream {
+fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, String)]) -> TokenStream {
     // Capitalize struct name for Rust conventions
     let struct_name = format_ident!("{}", capitalize(&sanitize_name(name)));
 
