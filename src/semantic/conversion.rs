@@ -1167,3 +1167,54 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
         GlossaType::Number,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::semantic::assembler::Assembler;
+
+    #[test]
+    fn test_propagate_safely_ignores_empty_exprs() {
+        // Construct an empty assembled statement with propagate flag set
+        // This simulates a scenario where parser might produce a weird state
+        // or a statement like just ";" (semicolon)
+        let mut asm = Assembler::new();
+        asm.set_propagate(true);
+        let assembled = asm.finalize().unwrap();
+
+        // This should not panic
+        let mut scope = Scope::new();
+        let (kind, exprs) = classify_assembled_statement(&assembled, &mut scope).unwrap();
+
+        // Should return Expression statement with empty expressions
+        assert!(matches!(kind, StatementKind::Expression));
+        assert!(exprs.is_empty());
+    }
+
+    #[test]
+    fn test_propagate_wraps_expression() {
+        // Construct an assembled statement with propagate flag set and a literal
+        let mut asm = Assembler::new();
+        asm.set_propagate(true);
+        asm.feed_number(42);
+        let assembled = asm.finalize().unwrap();
+
+        let mut scope = Scope::new();
+        let (kind, exprs) = classify_assembled_statement(&assembled, &mut scope).unwrap();
+
+        assert!(matches!(kind, StatementKind::Expression));
+        assert_eq!(exprs.len(), 1);
+
+        // Should be a Try expression
+        match &exprs[0].expr {
+            AnalyzedExprKind::Try(inner) => {
+                // Inner should be the number 42
+                match inner.expr {
+                    AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 42),
+                    _ => panic!("Expected NumberLiteral inside Try"),
+                }
+            }
+            _ => panic!("Expected Try expression"),
+        }
+    }
+}
