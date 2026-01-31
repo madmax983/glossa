@@ -1164,6 +1164,9 @@ mod tests {
 
         // Currently this will PASS (Ok) because person is ignored.
         // We WANT it to fail with SubjectVerbDisagreement.
-        assert!(matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })));
+        assert!(matches!(
+            result,
+            Err(AssemblyError::SubjectVerbDisagreement { .. })
+        ));
     }
 }
