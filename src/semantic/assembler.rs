@@ -102,22 +102,48 @@ pub struct AssembledStatement {
     pub adjectives: Vec<Constituent>,
 
     /// Literal values (strings, numbers) that appeared
+    ///
+    /// Example: `«χαῖρε»` (String), `42` (Number)
     pub literals: Vec<Literal>,
+
     /// Array literals that appeared
+    ///
+    /// Example: `[1, 2, 3]`
     pub arrays: Vec<Vec<Expr>>,
+
     /// Index accesses (array, index)
+    ///
+    /// Example: `πίναξ[0]`
     pub index_accesses: Vec<(Expr, Expr)>,
+
     /// Property accesses (owner, property)
+    ///
+    /// Example: `χρήστου ὄνομα` (user.name)
     pub property_accesses: Vec<(String, String)>,
+
     /// Binary operators found between expressions
+    ///
+    /// Example: `καί` (AND), `ἤ` (OR), `μείζον` (>)
     pub operators: Vec<BinaryOp>,
+
     /// Parenthesized blocks (nested expressions)
+    ///
+    /// Example: `{ ... }` blocks used in control flow bodies
     pub blocks: Vec<Vec<crate::ast::Statement>>,
+
     /// Nested phrases (parenthesized function calls)
+    ///
+    /// Example: `( ... )` groupings
     pub nested_phrases: Vec<Vec<Expr>>,
+
     /// Participles (used for lambdas/closures)
+    ///
+    /// Example: `διπλασιαζόμενα` (doubling/mapping)
     pub participles: Vec<ParticipleConstituent>,
+
     /// Unwrap expressions (expr!)
+    ///
+    /// Example: `τιμή!`
     pub unwraps: Vec<Expr>,
     /// Whether this is a query (ends with ?)
     pub is_query: bool,
@@ -491,46 +517,151 @@ impl Assembler {
     }
 
     /// Feed a string literal
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    ///
+    /// let mut asm = Assembler::new();
+    /// asm.feed_string("χαῖρε".to_string());
+    /// ```
     pub fn feed_string(&mut self, value: String) {
         self.pending_literals.push(Literal::String(value));
     }
 
     /// Feed a number literal
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    ///
+    /// let mut asm = Assembler::new();
+    /// asm.feed_number(42);
+    /// ```
     pub fn feed_number(&mut self, value: i64) {
         self.pending_literals.push(Literal::Number(value));
     }
 
     /// Feed a boolean literal
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    ///
+    /// let mut asm = Assembler::new();
+    /// asm.feed_boolean(true);
+    /// ```
     pub fn feed_boolean(&mut self, value: bool) {
         self.pending_literals.push(Literal::Boolean(value));
     }
 
     /// Feed an array literal
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    /// use glossa::ast::{Expr, Word};
+    ///
+    /// let mut asm = Assembler::new();
+    /// let elements = vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)];
+    /// asm.feed_array(elements);
+    /// ```
     pub fn feed_array(&mut self, elements: Vec<Expr>) {
         self.pending_arrays.push(elements);
     }
 
     /// Feed a parenthesized block (nested expression)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    ///
+    /// let mut asm = Assembler::new();
+    /// asm.feed_block(vec![]); // Empty block
+    /// ```
     pub fn feed_block(&mut self, statements: Vec<crate::ast::Statement>) {
         self.pending_blocks.push(statements);
     }
 
     /// Feed a nested phrase (parenthesized function call)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    /// use glossa::ast::Expr;
+    ///
+    /// let mut asm = Assembler::new();
+    /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]);
+    /// ```
     pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) {
         self.pending_nested_phrases.push(terms);
     }
 
     /// Feed an index access (`array[index]`)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    /// use glossa::ast::{Expr, Word};
+    ///
+    /// let mut asm = Assembler::new();
+    /// let array = Expr::Word(Word {
+    ///     original: "πίναξ".to_string(),
+    ///     normalized: "πιναξ".to_string(),
+    /// });
+    /// let index = Expr::NumberLiteral(0);
+    /// asm.feed_index_access(array, index);
+    /// ```
     pub fn feed_index_access(&mut self, array: Expr, index: Expr) {
         self.pending_index_accesses.push((array, index));
     }
 
     /// Feed an unwrap expression (expr!)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    /// use glossa::ast::{Expr, Word};
+    ///
+    /// let mut asm = Assembler::new();
+    /// let expr = Expr::Word(Word {
+    ///     original: "τιμή".to_string(),
+    ///     normalized: "τιμη".to_string(),
+    /// });
+    /// asm.feed_unwrap(expr);
+    /// ```
     pub fn feed_unwrap(&mut self, expr: Expr) {
         self.pending_unwraps.push(expr);
     }
 
     /// Feed a participle (for lambda construction)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::Assembler;
+    /// use glossa::morphology::{ParticipleAnalysis, Tense, Voice, Case, Gender, Number};
+    ///
+    /// let mut asm = Assembler::new();
+    /// let analysis = ParticipleAnalysis {
+    ///     stem: "διπλασιαζ".to_string(),
+    ///     tense: Tense::Present,
+    ///     voice: Voice::Middle,
+    ///     case: Case::Nominative,
+    ///     gender: Gender::Neuter,
+    ///     number: Number::Plural,
+    ///     confidence: 1.0,
+    /// };
+    /// asm.feed_participle(&analysis, "διπλασιαζόμενα");
+    /// ```
     pub fn feed_participle(
         &mut self,
         analysis: &crate::morphology::ParticipleAnalysis,
