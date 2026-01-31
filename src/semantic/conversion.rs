@@ -1285,3 +1285,164 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
         GlossaType::Number,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::morphology::{Case, Mood, Number, Person, Tense, Voice};
+    use crate::semantic::{AssembledStatement, Constituent, Literal, Scope, VerbConstituent};
+
+    fn default_assembled_statement() -> AssembledStatement {
+        AssembledStatement {
+            subject: None,
+            nominatives: vec![],
+            verb: None,
+            object: None,
+            indirect: None,
+            genitives: vec![],
+            adjectives: vec![],
+            literals: vec![],
+            arrays: vec![],
+            index_accesses: vec![],
+            property_accesses: vec![],
+            operators: vec![],
+            blocks: vec![],
+            nested_phrases: vec![],
+            participles: vec![],
+            unwraps: vec![],
+            is_query: false,
+            is_propagate: false,
+            has_mutable_marker: false,
+            has_containment_preposition: false,
+            has_delimiter_preposition: false,
+            string_method: None,
+        }
+    }
+
+    fn create_binding_verb() -> VerbConstituent {
+        VerbConstituent {
+            lemma: "ειμι".into(),
+            original: "ἔστω".to_string(),
+            person: Some(Person::Third),
+            number: Some(Number::Singular),
+            tense: Some(Tense::Present),
+            voice: Some(Voice::Active),
+            mood: Some(Mood::Imperative),
+        }
+    }
+
+    fn create_assignment_verb() -> VerbConstituent {
+        VerbConstituent {
+            lemma: "γιγνομαι".into(),
+            original: "γίγνεται".to_string(),
+            person: Some(Person::Third),
+            number: Some(Number::Singular),
+            tense: Some(Tense::Present),
+            voice: Some(Voice::Middle),
+            mood: Some(Mood::Indicative),
+        }
+    }
+
+    #[test]
+    fn test_binding_without_subject_error() {
+        let mut scope = Scope::new();
+        let mut asm_stmt = default_assembled_statement();
+        asm_stmt.verb = Some(create_binding_verb());
+        // Subject is None
+
+        let result = classify_binding(&asm_stmt, &mut scope);
+        assert!(result.is_err());
+        // GlossaError prefixes SemanticError with "Σφάλμα σημασίας: "
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Binding without subject"));
+    }
+
+    #[test]
+    fn test_assignment_without_subject_error() {
+        let mut scope = Scope::new();
+        let mut asm_stmt = default_assembled_statement();
+        asm_stmt.verb = Some(create_assignment_verb());
+        // Subject is None
+
+        let result = classify_assignment(&asm_stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Assignment without subject"));
+    }
+
+    #[test]
+    fn test_assignment_to_undefined_variable() {
+        let mut scope = Scope::new();
+        let mut asm_stmt = default_assembled_statement();
+        asm_stmt.verb = Some(create_assignment_verb());
+        asm_stmt.subject = Some(Constituent {
+            lemma: "αγνωστος".to_string(),
+            original: "ἄγνωστος".to_string(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: None,
+        });
+        asm_stmt.literals = vec![Literal::Number(1)];
+
+        let result = classify_assignment(&asm_stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Τὸ «αγνωστος» οὐχ ὡρίσθη"));
+    }
+
+    #[test]
+    fn test_assignment_without_value() {
+        let mut scope = Scope::new();
+        // Define variable first
+        scope.define_mut("χ".to_string(), GlossaType::Number);
+
+        let mut asm_stmt = default_assembled_statement();
+        asm_stmt.verb = Some(create_assignment_verb());
+        asm_stmt.subject = Some(Constituent {
+            lemma: "χ".to_string(),
+            original: "χ".to_string(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: None,
+        });
+        // No value provided (no literals, objects, etc.)
+
+        let result = classify_assignment(&asm_stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Τῇ πράξει «χ γίγνεται» δεῖ τιμῆς"));
+    }
+
+    #[test]
+    fn test_immutable_assignment_error() {
+        let mut scope = Scope::new();
+        // Define immutable variable
+        scope.define("κ".to_string(), GlossaType::Number);
+
+        let mut asm_stmt = default_assembled_statement();
+        asm_stmt.verb = Some(create_assignment_verb());
+        asm_stmt.subject = Some(Constituent {
+            lemma: "κ".to_string(),
+            original: "κ".to_string(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: None,
+        });
+        asm_stmt.literals = vec![Literal::Number(5)];
+
+        let result = classify_assignment(&asm_stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Τὸ «κ» ἀμετάβλητόν ἐστιν"));
+    }
+}
