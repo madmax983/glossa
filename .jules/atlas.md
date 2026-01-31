@@ -20,3 +20,12 @@
 4. Refactored `mod.rs` to re-export `model` contents.
 5. Removed legacy `SemanticAnalyzer` code that was duplicating logic.
 **Stability:** Strictly separates Data (Model), Types (Type System), and Logic (Analysis). `model.rs` depends on `types.rs`, but `types.rs` is now leaf-level with no dependencies on the AST.
+
+## 2026-01-31 - [Splitting The Blob: Assembler]
+**Tangle:** The `Assembler` struct in `src/semantic/assembler.rs` had become a "God Struct" (1100+ lines), managing both grammatical sentence structure (SentenceState) and AST expression accumulation (ExpressionState), along with various control flags and complex cross-cutting logic.
+**Blueprint:**
+1. Created `src/semantic/assembler/` directory module.
+2. Extracted data models to `model.rs`.
+3. Split state management into `SentenceState` (`sentence.rs`) for grammatical slots and `ExpressionState` (`expression.rs`) for AST components.
+4. Refactored `Assembler` into a Facade in `mod.rs` that coordinates these two states.
+**Stability:** `Assembler` is now a thin coordinator. Grammatical logic and Expression logic are separated, making the code more cohesive and easier to test/maintain.
