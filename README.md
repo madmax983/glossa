@@ -50,6 +50,23 @@ Here is a simple program that defines a user struct and greets them.
 χρήστου ὄνομα λέγε.
 ```
 
+## Control Flow
+
+### Conditionals
+
+```glossa
+εἰ ξ πέντε μείζον,
+    «μείζον» λέγε.
+```
+
+### Loops
+
+```glossa
+// While loop
+ἕως ξ δέκα ἔλασσον,
+    ξ ξ ἕνα ἄθροισμα γίγνεται. // x = x + 1
+```
+
 ## Features
 
 - **Greek Syntax**: Write code using authentic Ancient Greek grammatical constructs
