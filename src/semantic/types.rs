@@ -217,46 +217,6 @@ pub fn infer_type(word: &str) -> GlossaType {
     GlossaType::Unknown
 }
 
-/// Trait definition for semantic analysis
-#[derive(Debug, Clone)]
-pub struct TraitDef {
-    pub name: std::string::String,
-    pub required_methods: Vec<MethodSignature>,
-    pub default_methods: Vec<DefaultMethod>,
-}
-
-/// Method signature in a trait
-#[derive(Debug, Clone, PartialEq)]
-pub struct MethodSignature {
-    pub name: std::string::String,
-    pub params: Vec<(std::string::String, GlossaType)>,
-    pub return_type: Option<GlossaType>,
-    pub has_default: bool,
-}
-
-/// Default method with implementation
-#[derive(Debug, Clone)]
-pub struct DefaultMethod {
-    pub signature: MethodSignature,
-    pub body: Vec<crate::semantic::AnalyzedStatement>,
-}
-
-/// Trait implementation for a type
-#[derive(Debug, Clone)]
-pub struct TraitImpl {
-    pub trait_name: std::string::String,
-    pub type_name: std::string::String,
-    pub methods: Vec<ImplMethod>,
-}
-
-/// Method implementation in a trait impl
-#[derive(Debug, Clone)]
-pub struct ImplMethod {
-    pub name: std::string::String,
-    pub params: Vec<(std::string::String, GlossaType)>,
-    pub body: Vec<crate::semantic::AnalyzedStatement>,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
