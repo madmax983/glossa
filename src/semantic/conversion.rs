@@ -1169,3 +1169,27 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
         GlossaType::Number,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::semantic::assembler::Assembler;
+
+    #[test]
+    fn test_propagate_safely_ignores_empty_exprs() {
+        // Construct an empty assembled statement with propagate flag set
+        // This simulates a scenario where parser might produce a weird state
+        // or a statement like just ";" (semicolon)
+        let mut asm = Assembler::new();
+        asm.set_propagate(true);
+        let assembled = asm.finalize().unwrap();
+
+        // This should not panic
+        let mut scope = Scope::new();
+        let (kind, exprs) = classify_assembled_statement(&assembled, &mut scope).unwrap();
+
+        // Should return Expression statement with empty expressions
+        assert!(matches!(kind, StatementKind::Expression));
+        assert!(exprs.is_empty());
+    }
+}
