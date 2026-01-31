@@ -4,6 +4,7 @@
 //! It decouples the data from the logic to prevent circular dependencies.
 
 use crate::semantic::types::GlossaType;
+use smol_str::SmolStr;
 
 /// Analyzed statement
 #[derive(Debug, Clone)]
@@ -17,13 +18,13 @@ pub struct AnalyzedStatement {
 pub enum StatementKind {
     /// Variable binding: ξ πέντε ἔστω
     Binding {
-        name: String,
+        name: SmolStr,
         value_type: GlossaType,
         mutable: bool,
     },
     /// Assignment: ξ δέκα γίγνεται
     Assignment {
-        name: String,
+        name: SmolStr,
         value_type: GlossaType,
     },
     /// Print statement: «χαῖρε» λέγε
@@ -45,7 +46,7 @@ pub enum StatementKind {
     },
     /// For loop: διά/ἀπό...μέχρι
     For {
-        variable: String,
+        variable: SmolStr,
         iterator: Box<AnalyzedExpr>,
         body: Vec<AnalyzedStatement>,
     },
@@ -62,25 +63,25 @@ pub enum StatementKind {
     Return { value: Option<Box<AnalyzedExpr>> },
     /// Function definition: name ὁρίζειν params· body
     FunctionDef {
-        name: String,
-        params: Vec<(String, Option<GlossaType>)>,
+        name: SmolStr,
+        params: Vec<(SmolStr, Option<GlossaType>)>,
         body: Vec<AnalyzedStatement>,
         return_type: Option<GlossaType>,
     },
     /// Type definition: εἶδος name ὁρίζειν { fields }
     TypeDefinition {
-        name: String,
-        fields: Vec<(String, GlossaType)>,
+        name: SmolStr,
+        fields: Vec<(SmolStr, GlossaType)>,
     },
     /// Trait definition: χαρακτήρ name ὁρίζειν { methods }
     TraitDefinition {
-        name: String,
+        name: SmolStr,
         methods: Vec<AnalyzedTraitMethod>,
     },
     /// Trait implementation: εἶδος Type τῷ Trait ἐμπίπτειν { methods }
     TraitImplementation {
-        trait_name: String,
-        type_name: String,
+        trait_name: SmolStr,
+        type_name: SmolStr,
         methods: Vec<AnalyzedImplMethod>,
     },
 }
@@ -88,8 +89,8 @@ pub enum StatementKind {
 /// An analyzed method in a trait definition (AST node)
 #[derive(Debug, Clone)]
 pub struct AnalyzedTraitMethod {
-    pub name: String,
-    pub params: Vec<(String, GlossaType)>,
+    pub name: SmolStr,
+    pub params: Vec<(SmolStr, GlossaType)>,
     pub is_default: bool,
     pub body: Option<Vec<AnalyzedStatement>>, // Some for default methods, None for required
     pub return_type: Option<GlossaType>,
@@ -98,8 +99,8 @@ pub struct AnalyzedTraitMethod {
 /// An analyzed method in a trait implementation (AST node)
 #[derive(Debug, Clone)]
 pub struct AnalyzedImplMethod {
-    pub name: String,
-    pub params: Vec<(String, GlossaType)>,
+    pub name: SmolStr,
+    pub params: Vec<(SmolStr, GlossaType)>,
     pub body: Vec<AnalyzedStatement>,
     pub return_type: Option<GlossaType>,
 }
@@ -141,13 +142,13 @@ pub enum AnalyzedExprKind {
     StringLiteral(String),
     NumberLiteral(i64),
     BooleanLiteral(bool),
-    Variable(String),
+    Variable(SmolStr),
     PropertyAccess {
         owner: Box<AnalyzedExpr>,
-        property: String,
+        property: SmolStr,
     },
     VerbCall {
-        verb: String,
+        verb: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
     /// Binary operation (arithmetic, comparison, boolean)
@@ -188,31 +189,31 @@ pub enum AnalyzedExprKind {
     },
     /// Function call to user-defined function
     FunctionCall {
-        func: String,
+        func: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
     /// Method call receiver.method(args)
     MethodCall {
         receiver: Box<AnalyzedExpr>,
-        method: String,
+        method: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
     /// Trait method call `receiver.<TraitName>::method(args)` (from trait impl)
     TraitMethodCall {
         receiver: Box<AnalyzedExpr>,
-        trait_name: String,
-        method_name: String,
+        trait_name: SmolStr,
+        method_name: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
     /// Struct instantiation: `variable νέον type_name args... ἔστω`
     StructInstantiation {
-        type_name: String,
-        fields: Vec<String>, // Field names from struct definition
+        type_name: SmolStr,
+        fields: Vec<SmolStr>, // Field names from struct definition
         args: Vec<AnalyzedExpr>,
     },
     /// Lambda/closure |params| body
     Lambda {
-        params: Vec<String>,
+        params: Vec<SmolStr>,
         body: Box<AnalyzedExpr>,
         capture_mode: crate::ast::CaptureMode,
     },
@@ -240,7 +241,7 @@ pub enum AnalyzedExprKind {
 /// Trait definition for semantic analysis
 #[derive(Debug, Clone)]
 pub struct TraitDef {
-    pub name: String,
+    pub name: SmolStr,
     pub required_methods: Vec<MethodSignature>,
     pub default_methods: Vec<DefaultMethod>,
 }
@@ -248,8 +249,8 @@ pub struct TraitDef {
 /// Method signature in a trait
 #[derive(Debug, Clone, PartialEq)]
 pub struct MethodSignature {
-    pub name: String,
-    pub params: Vec<(String, GlossaType)>,
+    pub name: SmolStr,
+    pub params: Vec<(SmolStr, GlossaType)>,
     pub return_type: Option<GlossaType>,
     pub has_default: bool,
 }
@@ -264,15 +265,15 @@ pub struct DefaultMethod {
 /// Trait implementation for a type
 #[derive(Debug, Clone)]
 pub struct TraitImpl {
-    pub trait_name: String,
-    pub type_name: String,
+    pub trait_name: SmolStr,
+    pub type_name: SmolStr,
     pub methods: Vec<ImplMethod>,
 }
 
 /// Method implementation in a trait impl
 #[derive(Debug, Clone)]
 pub struct ImplMethod {
-    pub name: String,
-    pub params: Vec<(String, GlossaType)>,
+    pub name: SmolStr,
+    pub params: Vec<(SmolStr, GlossaType)>,
     pub body: Vec<AnalyzedStatement>,
 }

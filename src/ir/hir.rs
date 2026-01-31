@@ -318,7 +318,7 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
             let is_array = matches!(value, HirExpr::ArrayLit(_));
 
             Some(HirStatement::Let {
-                name: name.clone(),
+                name: name.to_string(),
                 value,
                 mutable: *mutable || is_array,
             })
@@ -335,7 +335,7 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
             let value = lower_expr(&stmt.expressions[1]);
 
             Some(HirStatement::Assign {
-                name: name.clone(),
+                name: name.to_string(),
                 value,
             })
         }
@@ -380,7 +380,7 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
             iterator,
             body,
         } => Some(HirStatement::For {
-            variable: variable.clone(),
+            variable: variable.to_string(),
             iterator: lower_expr(iterator),
             body: body.iter().filter_map(lower_statement).collect(),
         }),
@@ -411,36 +411,39 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
             body,
             return_type,
         } => Some(HirStatement::FnDef {
-            name: name.clone(),
+            name: name.to_string(),
             params: params
                 .iter()
-                .map(|(n, t)| (n.clone(), t.as_ref().map(|ty| ty.to_rust().to_string())))
+                .map(|(n, t)| (n.to_string(), t.as_ref().map(|ty| ty.to_rust().to_string())))
                 .collect(),
             body: body.iter().filter_map(lower_statement).collect(),
             return_type: return_type.as_ref().map(|ty| ty.to_rust().to_string()),
         }),
 
         StatementKind::TypeDefinition { name, fields } => Some(HirStatement::StructDef {
-            name: name.clone(),
+            name: name.to_string(),
             fields: fields
                 .iter()
                 .map(|(field_name, field_type)| {
-                    (field_name.clone(), field_type.to_rust().to_string())
+                    (field_name.to_string(), field_type.to_rust().to_string())
                 })
                 .collect(),
         }),
 
         StatementKind::TraitDefinition { name, methods } => Some(HirStatement::TraitDef {
-            name: name.clone(),
+            name: name.to_string(),
             methods: methods
                 .iter()
                 .map(|method| HirTraitMethod {
-                    name: method.name.clone(),
+                    name: method.name.to_string(),
                     params: method
                         .params
                         .iter()
                         .map(|(param_name, param_type)| {
-                            (param_name.clone(), Some(param_type.to_rust().to_string()))
+                            (
+                                param_name.to_string(),
+                                Some(param_type.to_rust().to_string()),
+                            )
                         })
                         .collect(),
                     return_type: method.return_type.as_ref().map(|ty| ty.to_rust()),
@@ -458,17 +461,20 @@ fn lower_statement(stmt: &AnalyzedStatement) -> Option<HirStatement> {
             type_name,
             methods,
         } => Some(HirStatement::TraitImpl {
-            trait_name: trait_name.clone(),
-            type_name: type_name.clone(),
+            trait_name: trait_name.to_string(),
+            type_name: type_name.to_string(),
             methods: methods
                 .iter()
                 .map(|method| HirImplMethod {
-                    name: method.name.clone(),
+                    name: method.name.to_string(),
                     params: method
                         .params
                         .iter()
                         .map(|(param_name, param_type)| {
-                            (param_name.clone(), Some(param_type.to_rust().to_string()))
+                            (
+                                param_name.to_string(),
+                                Some(param_type.to_rust().to_string()),
+                            )
                         })
                         .collect(),
                     return_type: method.return_type.as_ref().map(|ty| ty.to_rust()),
@@ -503,7 +509,7 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
             args,
         } => HirExpr::MethodCall {
             receiver: Box::new(lower_expr(receiver)),
-            method: method.clone(),
+            method: method.to_string(),
             args: args.iter().map(lower_expr).collect(),
         },
         AnalyzedExprKind::TraitMethodCall {
@@ -515,21 +521,21 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
             // Trait method calls lower to regular method calls in Rust
             HirExpr::MethodCall {
                 receiver: Box::new(lower_expr(receiver)),
-                method: method_name.clone(),
+                method: method_name.to_string(),
                 args: args.iter().map(lower_expr).collect(),
             }
         }
-        AnalyzedExprKind::Variable(name) => HirExpr::Var(name.clone()),
+        AnalyzedExprKind::Variable(name) => HirExpr::Var(name.to_string()),
         AnalyzedExprKind::PropertyAccess { owner, property } => HirExpr::Field {
             object: Box::new(lower_expr(owner)),
-            field: property.clone(),
+            field: property.to_string(),
         },
         AnalyzedExprKind::VerbCall { verb, args } => HirExpr::Call {
-            func: verb.clone(),
+            func: verb.to_string(),
             args: args.iter().map(lower_expr).collect(),
         },
         AnalyzedExprKind::FunctionCall { func, args } => HirExpr::Call {
-            func: func.clone(),
+            func: func.to_string(),
             args: args.iter().map(lower_expr).collect(),
         },
         AnalyzedExprKind::BinOp { left, op, right } => HirExpr::BinOp {
@@ -573,8 +579,8 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
             fields,
             args,
         } => HirExpr::StructLit {
-            type_name: type_name.clone(),
-            fields: fields.clone(),
+            type_name: type_name.to_string(),
+            fields: fields.iter().map(|f| f.to_string()).collect(),
             args: args.iter().map(lower_expr).collect(),
         },
         AnalyzedExprKind::Lambda {
@@ -592,7 +598,7 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
             };
 
             HirExpr::Closure {
-                params: params.clone(),
+                params: params.iter().map(|p| p.to_string()).collect(),
                 body: Box::new(lower_expr(body)),
                 capture_mode: hir_capture_mode,
             }

@@ -4,18 +4,19 @@
 
 use crate::semantic::GlossaType;
 use rustc_hash::FxHashMap;
+use smol_str::SmolStr;
 
 /// A scope containing variable bindings
 #[derive(Debug, Clone, Default)]
 pub struct Scope {
     /// Variable bindings in this scope
-    bindings: FxHashMap<String, Binding>,
+    bindings: FxHashMap<SmolStr, Binding>,
     /// Function definitions in this scope
-    functions: FxHashMap<String, FunctionSignature>,
+    functions: FxHashMap<SmolStr, FunctionSignature>,
     /// Type definitions in this scope
-    types: FxHashMap<String, GlossaType>,
+    types: FxHashMap<SmolStr, GlossaType>,
     /// Trait definitions in this scope
-    traits: FxHashMap<String, crate::semantic::model::TraitDef>,
+    traits: FxHashMap<SmolStr, crate::semantic::model::TraitDef>,
     /// Trait implementations in this scope
     trait_impls: Vec<crate::semantic::model::TraitImpl>,
     /// Parent scope (for nested scopes)
@@ -26,7 +27,7 @@ pub struct Scope {
 #[derive(Debug, Clone)]
 pub struct FunctionSignature {
     /// The function name (normalized)
-    pub name: String,
+    pub name: SmolStr,
     /// Parameter types
     pub param_types: Vec<GlossaType>,
     /// Return type (None for void)
@@ -37,7 +38,7 @@ pub struct FunctionSignature {
 #[derive(Debug, Clone)]
 pub struct Binding {
     /// The variable name (normalized)
-    pub name: String,
+    pub name: SmolStr,
     /// The type of the variable
     pub glossa_type: GlossaType,
     /// Whether this binding is mutable
@@ -74,10 +75,11 @@ impl Scope {
     /// Define a function in this scope
     pub fn define_function(
         &mut self,
-        name: String,
+        name: impl Into<SmolStr>,
         param_types: Vec<GlossaType>,
         return_type: Option<GlossaType>,
     ) {
+        let name = name.into();
         self.functions.insert(
             name.clone(),
             FunctionSignature {
@@ -111,8 +113,8 @@ impl Scope {
     }
 
     /// Define a type in this scope
-    pub fn define_type(&mut self, name: String, glossa_type: GlossaType) {
-        self.types.insert(name, glossa_type);
+    pub fn define_type(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
+        self.types.insert(name.into(), glossa_type);
     }
 
     /// Look up a type by name
@@ -127,8 +129,12 @@ impl Scope {
     }
 
     /// Define a trait in this scope
-    pub fn define_trait(&mut self, name: String, trait_def: crate::semantic::model::TraitDef) {
-        self.traits.insert(name, trait_def);
+    pub fn define_trait(
+        &mut self,
+        name: impl Into<SmolStr>,
+        trait_def: crate::semantic::model::TraitDef,
+    ) {
+        self.traits.insert(name.into(), trait_def);
     }
 
     /// Look up a trait by name
@@ -195,7 +201,8 @@ impl Scope {
     }
 
     /// Define a new binding in this scope
-    pub fn define(&mut self, name: String, glossa_type: GlossaType) {
+    pub fn define(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
+        let name = name.into();
         self.bindings.insert(
             name.clone(),
             Binding {
@@ -208,7 +215,8 @@ impl Scope {
     }
 
     /// Define a mutable binding
-    pub fn define_mut(&mut self, name: String, glossa_type: GlossaType) {
+    pub fn define_mut(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
+        let name = name.into();
         self.bindings.insert(
             name.clone(),
             Binding {
@@ -249,7 +257,7 @@ impl Scope {
     }
 
     /// Get all bindings in this scope
-    pub fn bindings(&self) -> impl Iterator<Item = (&String, &Binding)> {
+    pub fn bindings(&self) -> impl Iterator<Item = (&SmolStr, &Binding)> {
         self.bindings.iter()
     }
 

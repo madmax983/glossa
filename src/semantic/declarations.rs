@@ -8,6 +8,7 @@ use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::grammar::normalize_greek;
 use crate::morphology;
+use smol_str::SmolStr;
 // Circular dependencies handled by crate structure
 use super::control_flow::analyze_control_flow;
 use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
@@ -384,7 +385,7 @@ pub fn parse_function_definition(
 }
 
 /// Extract the function name from a function definition header expression
-fn extract_function_name_from_expr(expr: &Expr) -> Result<String, GlossaError> {
+fn extract_function_name_from_expr(expr: &Expr) -> Result<SmolStr, GlossaError> {
     // Collect all words and find the nominative word before ὁρίζειν
     let words = collect_words_from_expr(expr);
 
@@ -419,7 +420,7 @@ fn extract_function_name_from_expr(expr: &Expr) -> Result<String, GlossaError> {
 /// Parameters are words after dative article τῷ, optionally followed by genitive type annotations
 fn extract_parameters_from_expr(
     expr: &Expr,
-) -> Result<Vec<(String, Option<GlossaType>)>, GlossaError> {
+) -> Result<Vec<(SmolStr, Option<GlossaType>)>, GlossaError> {
     let mut params = Vec::new();
 
     // Collect all words from the expression
