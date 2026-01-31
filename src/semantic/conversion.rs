@@ -1398,10 +1398,12 @@ mod tests {
 
         let result = classify_binding(&asm_stmt, &mut scope);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Binding without subject"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Binding without subject")
+        );
     }
 
     #[test]
@@ -1413,10 +1415,12 @@ mod tests {
 
         let result = classify_assignment(&asm_stmt, &mut scope);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Assignment without subject"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Assignment without subject")
+        );
     }
 
     #[test]
@@ -1430,16 +1434,17 @@ mod tests {
             case: Case::Nominative,
             number: Some(Number::Singular),
             gender: None,
-
         });
         asm_stmt.literals = vec![Literal::Number(1)];
 
         let result = classify_assignment(&asm_stmt, &mut scope);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Τὸ «αγνωστος» οὐχ ὡρίσθη"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Τὸ «αγνωστος» οὐχ ὡρίσθη")
+        );
     }
 
     #[test]
@@ -1456,16 +1461,17 @@ mod tests {
             case: Case::Nominative,
             number: Some(Number::Singular),
             gender: None,
-
         });
         // No value provided (no literals, objects, etc.)
 
         let result = classify_assignment(&asm_stmt, &mut scope);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Τῇ πράξει «χ γίγνεται» δεῖ τιμῆς"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Τῇ πράξει «χ γίγνεται» δεῖ τιμῆς")
+        );
     }
 
     #[test]
@@ -1482,16 +1488,17 @@ mod tests {
             case: Case::Nominative,
             number: Some(Number::Singular),
             gender: None,
-
         });
         asm_stmt.literals = vec![Literal::Number(5)];
 
         let result = classify_assignment(&asm_stmt, &mut scope);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Τὸ «κ» ἀμετάβλητόν ἐστιν"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Τὸ «κ» ἀμετάβλητόν ἐστιν")
+        );
     }
 
     #[test]
@@ -1522,7 +1529,6 @@ mod tests {
             case: Case::Nominative,
             number: Some(Number::Singular),
             gender: None,
-
         });
         scope.define(
             "λι".to_string(),
@@ -1554,9 +1560,11 @@ mod tests {
             case: Case::Nominative,
             number: Some(Number::Singular),
             gender: None,
-
         });
-        scope.define("λι".to_string(), GlossaType::List(Box::new(GlossaType::Number)));
+        scope.define(
+            "λι".to_string(),
+            GlossaType::List(Box::new(GlossaType::Number)),
+        );
 
         let result = classify_collection_op(&asm_stmt, &mut scope);
         assert!(result.is_ok());
@@ -1585,7 +1593,6 @@ mod tests {
             case: Case::Nominative,
             number: Some(Number::Singular),
             gender: None,
-
         });
 
         // Object: function name
@@ -1595,15 +1602,10 @@ mod tests {
             case: Case::Accusative,
             number: Some(Number::Singular),
             gender: None,
-
         });
 
         // Define function in scope
-        scope.define_function(
-            "συναρτησις".to_string(),
-            vec![],
-            Some(GlossaType::Number)
-        );
+        scope.define_function("συναρτησις".to_string(), vec![], Some(GlossaType::Number));
 
         let result = classify_function_call(&asm_stmt, &mut scope);
         assert!(result.is_ok());
@@ -1626,7 +1628,6 @@ mod tests {
             case: Case::Nominative,
             number: Some(Number::Singular),
             gender: None,
-
         });
         // Comparison adjective
         asm_stmt.adjectives = vec![Constituent {
@@ -1640,7 +1641,10 @@ mod tests {
         asm_stmt.literals = vec![Literal::Number(3)];
 
         // Define iterable in scope
-        scope.define("ξ".to_string(), GlossaType::List(Box::new(GlossaType::Number)));
+        scope.define(
+            "ξ".to_string(),
+            GlossaType::List(Box::new(GlossaType::Number)),
+        );
 
         let result = classify_iterator_pattern(&asm_stmt, &mut scope);
         assert!(result.is_ok());
@@ -1661,7 +1665,6 @@ mod tests {
             case: Case::Nominative,
             number: Some(Number::Singular),
             gender: None,
-
         });
         asm_stmt.object = Some(Constituent {
             lemma: "σημειον".to_string(),
@@ -1686,7 +1689,6 @@ mod tests {
                 name: "σημειον".to_string(),
                 fields: vec![("χ".to_string(), GlossaType::Number)],
                 gender: Gender::Neuter,
-
             },
         );
 
@@ -1713,7 +1715,6 @@ mod tests {
             case: Case::Nominative,
             number: Some(Number::Singular),
             gender: None,
-
         });
         asm_stmt.literals = vec![Literal::Number(10)];
         asm_stmt.operators = vec![crate::morphology::lexicon::BinaryOp::Eq];
