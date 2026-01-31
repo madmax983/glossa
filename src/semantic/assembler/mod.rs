@@ -88,9 +88,13 @@ impl Assembler {
             return Ok(());
         }
 
-        let (handled, consume_subject) = self
-            .expression
-            .check_special_properties(&normalized, self.sentence.pending_subject.as_ref().map(|s| s.original.as_str()));
+        let (handled, consume_subject) = self.expression.check_special_properties(
+            &normalized,
+            self.sentence
+                .pending_subject
+                .as_ref()
+                .map(|s| s.original.as_str()),
+        );
 
         if handled {
             if consume_subject {
@@ -100,7 +104,9 @@ impl Assembler {
         }
 
         match analysis.part_of_speech {
-            PartOfSpeech::Noun | PartOfSpeech::Pronoun => self.sentence.handle_nominal(analysis, original),
+            PartOfSpeech::Noun | PartOfSpeech::Pronoun => {
+                self.sentence.handle_nominal(analysis, original)
+            }
             PartOfSpeech::Adjective => self.sentence.handle_adjective(analysis, original),
             PartOfSpeech::Verb => self.sentence.handle_verb(analysis, original),
             PartOfSpeech::Numeral => {
@@ -168,7 +174,9 @@ impl Assembler {
         }
 
         // Check subject-verb agreement if both present
-        if let (Some(subject), Some(verb)) = (&self.sentence.pending_subject, &self.sentence.pending_verb) {
+        if let (Some(subject), Some(verb)) =
+            (&self.sentence.pending_subject, &self.sentence.pending_verb)
+        {
             // In Greek, 3rd person subjects agree with 3rd person verbs
             // 1st/2nd person verbs often don't have explicit subjects (pro-drop)
             if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number)
@@ -252,7 +260,10 @@ impl Assembler {
             // If we have a delimiter, create a split method
             #[allow(clippy::collapsible_if)]
             if self.has_delimiter_preposition
-                && matches!(self.expression.pending_literals.last(), Some(Literal::String(_)))
+                && matches!(
+                    self.expression.pending_literals.last(),
+                    Some(Literal::String(_))
+                )
             {
                 if let Some(ref subj) = self.sentence.pending_subject {
                     // Safe to unwrap here because of the checks above
@@ -264,7 +275,8 @@ impl Assembler {
                     let normalized_original = normalize_greek(&subj.original);
                     self.pending_string_method = Some(("split".to_string(), delim));
                     // Push back a property access for the split result
-                    self.expression.pending_property_accesses
+                    self.expression
+                        .pending_property_accesses
                         .push((normalized_original, "split".to_string()));
                 }
             }
@@ -276,7 +288,10 @@ impl Assembler {
             // If we have a delimiter, create a join method
             #[allow(clippy::collapsible_if)]
             if self.has_delimiter_preposition
-                && matches!(self.expression.pending_literals.last(), Some(Literal::String(_)))
+                && matches!(
+                    self.expression.pending_literals.last(),
+                    Some(Literal::String(_))
+                )
             {
                 if let Some(ref subj) = self.sentence.pending_subject {
                     // Safe to unwrap here because of the checks above
@@ -288,7 +303,8 @@ impl Assembler {
                     let normalized_original = normalize_greek(&subj.original);
                     self.pending_string_method = Some(("join".to_string(), delim));
                     // Push back a property access for the join result
-                    self.expression.pending_property_accesses
+                    self.expression
+                        .pending_property_accesses
                         .push((normalized_original, "join".to_string()));
                 }
             }
@@ -309,7 +325,7 @@ impl Default for Assembler {
 mod tests {
     use super::*;
     use crate::morphology::lexicon::BinaryOp;
-    use crate::morphology::{analyze, Voice};
+    use crate::morphology::{Voice, analyze};
 
     #[test]
     fn test_operator_detection() {
