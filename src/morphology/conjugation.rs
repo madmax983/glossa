@@ -12,91 +12,99 @@ use crate::grammar::normalize_greek;
 
 /// Present Active Indicative endings (ω-conjugation)
 /// Pattern: λέγω, γράφω, etc.
+/// NOTE: Must be sorted by length descending!
 const PRESENT_ACTIVE_IND: &[(&str, Person, Number)] = &[
-    ("ω", Person::First, Number::Singular),
-    ("εις", Person::Second, Number::Singular),
-    ("ει", Person::Third, Number::Singular),
-    ("ομεν", Person::First, Number::Plural),
-    ("ετε", Person::Second, Number::Plural),
-    ("ουσι", Person::Third, Number::Plural),
     ("ουσιν", Person::Third, Number::Plural), // with movable nu
+    ("ομεν", Person::First, Number::Plural),
+    ("ουσι", Person::Third, Number::Plural),
+    ("εις", Person::Second, Number::Singular),
+    ("ετε", Person::Second, Number::Plural),
+    ("ει", Person::Third, Number::Singular),
+    ("ω", Person::First, Number::Singular),
 ];
 
 /// Present Active Imperative endings
+/// NOTE: Must be sorted by length descending!
 const PRESENT_ACTIVE_IMP: &[(&str, Person, Number)] = &[
-    ("ε", Person::Second, Number::Singular),
-    ("ετω", Person::Third, Number::Singular),
-    ("ετε", Person::Second, Number::Plural),
     ("οντων", Person::Third, Number::Plural),
+    ("ετε", Person::Second, Number::Plural),
+    ("ετω", Person::Third, Number::Singular),
+    ("ε", Person::Second, Number::Singular),
 ];
 
 /// Aorist Active Indicative endings (first/sigmatic aorist)
 /// Pattern: ἔλυσα, ἔγραψα, etc.
+/// NOTE: Must be sorted by length descending!
 const AORIST_ACTIVE_IND: &[(&str, Person, Number)] = &[
-    ("σα", Person::First, Number::Singular),
-    ("σας", Person::Second, Number::Singular),
-    ("σε", Person::Third, Number::Singular),
-    ("σεν", Person::Third, Number::Singular), // with movable nu
     ("σαμεν", Person::First, Number::Plural),
     ("σατε", Person::Second, Number::Plural),
     ("σαν", Person::Third, Number::Plural),
+    ("σας", Person::Second, Number::Singular),
+    ("σεν", Person::Third, Number::Singular), // with movable nu
+    ("σα", Person::First, Number::Singular),
+    ("σε", Person::Third, Number::Singular),
 ];
 
 /// Aorist Active Imperative endings
+/// NOTE: Must be sorted by length descending!
 const AORIST_ACTIVE_IMP: &[(&str, Person, Number)] = &[
-    ("σον", Person::Second, Number::Singular),
-    ("σατω", Person::Third, Number::Singular),
-    ("σατε", Person::Second, Number::Plural),
     ("σαντων", Person::Third, Number::Plural),
+    ("σατε", Person::Second, Number::Plural),
+    ("σατω", Person::Third, Number::Singular),
+    ("σον", Person::Second, Number::Singular),
 ];
 
 /// Present Active Subjunctive endings (long vowel theme)
 /// Pattern: λύω → λύω (identical to present indicative in form, but subjunctive in meaning)
 /// The subjunctive has lengthened thematic vowel: ω/η instead of ο/ε
+/// NOTE: Must be sorted by length descending!
 const PRESENT_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
-    ("ω", Person::First, Number::Singular),
-    ("ης", Person::Second, Number::Singular), // Note: η + ς (normalized)
-    ("η", Person::Third, Number::Singular),   // Long vowel ῃ (normalized)
     ("ωμεν", Person::First, Number::Plural),
+    ("ωσιν", Person::Third, Number::Plural), // with movable nu
     ("ητε", Person::Second, Number::Plural),
     ("ωσι", Person::Third, Number::Plural),
-    ("ωσιν", Person::Third, Number::Plural), // with movable nu
+    ("ης", Person::Second, Number::Singular), // Note: η + ς (normalized)
+    ("η", Person::Third, Number::Singular),   // Long vowel ῃ (normalized)
+    ("ω", Person::First, Number::Singular),
 ];
 
 /// Aorist Active Subjunctive endings
 /// Pattern: λύσω (σ + subjunctive endings)
+/// NOTE: Must be sorted by length descending!
 const AORIST_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
-    ("σω", Person::First, Number::Singular),
-    ("σης", Person::Second, Number::Singular),
-    ("ση", Person::Third, Number::Singular),
     ("σωμεν", Person::First, Number::Plural),
+    ("σωσιν", Person::Third, Number::Plural),
     ("σητε", Person::Second, Number::Plural),
     ("σωσι", Person::Third, Number::Plural),
-    ("σωσιν", Person::Third, Number::Plural),
+    ("σης", Person::Second, Number::Singular),
+    ("ση", Person::Third, Number::Singular),
+    ("σω", Person::First, Number::Singular),
 ];
 
 /// Present Active Optative endings
 /// Pattern: γράφοιμι "I might write"
 /// The optative mood expresses possibility, wish, or potential - natural for Option<T>
+/// NOTE: Must be sorted by length descending!
 const PRESENT_ACTIVE_OPT: &[(&str, Person, Number)] = &[
+    ("οιμεν", Person::First, Number::Plural),
+    ("οιεν", Person::Third, Number::Plural),
     ("οιμι", Person::First, Number::Singular),
+    ("οιτε", Person::Second, Number::Plural),
     ("οις", Person::Second, Number::Singular),
     ("οι", Person::Third, Number::Singular),
-    ("οιμεν", Person::First, Number::Plural),
-    ("οιτε", Person::Second, Number::Plural),
-    ("οιεν", Person::Third, Number::Plural),
 ];
 
 /// Aorist Passive Optative endings
 /// Pattern: εὑρεθείη "might be found"
 /// Used for values that "might exist" (Option<T> semantics)
+/// NOTE: Must be sorted by length descending!
 const AORIST_PASSIVE_OPT: &[(&str, Person, Number)] = &[
+    ("θειημεν", Person::First, Number::Plural),
+    ("θειησαν", Person::Third, Number::Plural),
+    ("θειητε", Person::Second, Number::Plural),
     ("θειην", Person::First, Number::Singular),
     ("θειης", Person::Second, Number::Singular),
     ("θειη", Person::Third, Number::Singular),
-    ("θειημεν", Person::First, Number::Plural),
-    ("θειητε", Person::Second, Number::Plural),
-    ("θειησαν", Person::Third, Number::Plural),
 ];
 
 /// Present Active Infinitive ending
@@ -439,15 +447,14 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
 }
 
 /// Match a word against verb endings
+///
+/// Note: The `endings` slice MUST be sorted by length descending.
 fn match_verb_endings(
     word: &str,
     endings: &[(&str, Person, Number)],
 ) -> Option<(String, Person, Number)> {
-    // Sort by ending length (longest first)
-    let mut sorted: Vec<_> = endings.iter().collect();
-    sorted.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
-
-    for (ending, person, number) in sorted {
+    // Endings are pre-sorted by length (longest first)
+    for (ending, person, number) in endings {
         if let Some(stem) = word.strip_suffix(ending)
             && !stem.is_empty()
         {
@@ -811,5 +818,41 @@ mod tests {
         assert_eq!(analysis.voice, Some(Voice::Passive));
         assert_eq!(analysis.mood, Some(Mood::Optative));
         assert_eq!(analysis.lemma, "λυω"); // Strip "θ" from "λυθ" -> "λυ"
+    }
+
+    #[test]
+    fn test_constants_sorted() {
+        // Enforce that ending constants are sorted by length descending
+        // This is required for the zero-allocation match_verb_endings optimization
+        let constant_lists = vec![
+            ("PRESENT_ACTIVE_IND", PRESENT_ACTIVE_IND),
+            ("PRESENT_ACTIVE_IMP", PRESENT_ACTIVE_IMP),
+            ("AORIST_ACTIVE_IND", AORIST_ACTIVE_IND),
+            ("AORIST_ACTIVE_IMP", AORIST_ACTIVE_IMP),
+            ("PRESENT_ACTIVE_SUBJ", PRESENT_ACTIVE_SUBJ),
+            ("AORIST_ACTIVE_SUBJ", AORIST_ACTIVE_SUBJ),
+            ("PRESENT_ACTIVE_OPT", PRESENT_ACTIVE_OPT),
+            ("AORIST_PASSIVE_OPT", AORIST_PASSIVE_OPT),
+        ];
+
+        for (name, list) in constant_lists {
+            for (i, window) in list.windows(2).enumerate() {
+                let current = window[0].0;
+                let next = window[1].0;
+                let current_len = current.len();
+                let next_len = next.len();
+                assert!(
+                    current_len >= next_len,
+                    "{} is not sorted by length descending! Element at {} ('{}', len {}) is shorter than element at {} ('{}', len {})",
+                    name,
+                    i,
+                    current,
+                    current_len,
+                    i + 1,
+                    next,
+                    next_len
+                );
+            }
+        }
     }
 }
