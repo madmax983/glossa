@@ -163,17 +163,8 @@ fn analyze_expression(
         Expr::Lambda { verb_lemma, .. } => {
             // Lambda is formed from a participle, which acts as a verb
             stats.total_words += 1;
-            // The verb_lemma itself is the lemma, but we want to analyze the original form
-            // Wait, we don't have the original participle form here easily in Expr::Lambda unless we stored it?
-            // ast::Expr::Lambda has `verb_lemma: String`.
-            // We can try to analyze the lemma itself, but it's already a lemma.
-            // Let's just count it as a verb.
             unique_lemmas.insert(verb_lemma.clone());
             stats.total_verbs += 1;
-
-            // We can't easily guess tense/mood from just the lemma without the original participle ending.
-            // But we know it's a participle.
-            // Let's skip specific tense/mood counting for now unless we change AST.
         }
         _ => {} // Literals, etc.
     }
@@ -248,5 +239,118 @@ mod tests {
             stats_high.eloquence_score,
             stats_low.eloquence_score
         );
+    }
+
+    #[test]
+    fn test_silent_tone() {
+        let code = "«σιγή»."; // String literal only
+        let program = parse(code).expect("Failed to parse");
+        let stats = analyze_rhetoric(&program);
+
+        assert_eq!(stats.total_verbs, 0);
+        assert_eq!(stats.tone, "Silent");
+    }
+
+    #[test]
+    fn test_binding_coverage() {
+        let code = "ξ πέντε ἔστω."; // Binding
+        let program = parse(code).expect("Failed to parse");
+        let stats = analyze_rhetoric(&program);
+
+        // "ἔστω" is the verb (imperative)
+        assert!(stats.total_verbs >= 1);
+        // "ξ" should be counted as a word
+        assert!(stats.total_words >= 2);
+    }
+
+    #[test]
+    fn test_array_and_index_coverage() {
+        // [ξ, ψ][0]
+        let code = "[ξ, ψ][0].";
+        let program = parse(code).expect("Failed to parse array/index");
+        let stats = analyze_rhetoric(&program);
+
+        // ξ and ψ are words
+        assert!(stats.total_words >= 2);
+    }
+
+    #[test]
+    fn test_binop_coverage() {
+        // ξ καί ψ
+        let code = "ξ καί ψ.";
+        let program = parse(code).expect("Failed to parse");
+        let stats = analyze_rhetoric(&program);
+
+        // ξ and ψ are words
+        assert!(stats.total_words >= 2);
+    }
+
+    #[test]
+    fn test_property_access_coverage() {
+        // χρήστου ὄνομα
+        let code = "χρήστου ὄνομα.";
+        let program = parse(code).expect("Failed to parse");
+        let stats = analyze_rhetoric(&program);
+
+        // Should count both words
+        assert!(stats.total_words >= 2);
+    }
+
+    #[test]
+    fn test_lambda_coverage() {
+        // Manual AST construction to ensure Expr::Lambda is tested
+        use crate::ast::{Clause, LambdaKind};
+
+        let lambda = Expr::Lambda {
+            kind: LambdaKind::Streaming,
+            verb_lemma: "γράφω".to_string(),
+            implicit_param: true,
+        };
+
+        let stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![lambda],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let program = Program {
+            statements: vec![stmt],
+        };
+        let stats = analyze_rhetoric(&program);
+
+        assert!(stats.total_verbs >= 1);
+        assert!(stats.total_words >= 1);
+    }
+
+    #[test]
+    fn test_phrase_and_unary_coverage() {
+        // "οὐκ ἀληθές." triggers UnaryOp
+        // "map διπλασιαζόμενα." triggers Phrase (as seen in previous debug)
+
+        let code_unary = "οὐκ ἀληθές.";
+        let prog_unary = parse(code_unary).expect("Failed to parse unary");
+        let stats_unary = analyze_rhetoric(&prog_unary);
+        assert!(stats_unary.total_words >= 1); // ἀληθές might be word/literal. οὐκ is operator?
+
+        // Check Phrase coverage explicitly via manual construction if needed,
+        // or just rely on the fact that parser produces phrases for sequences.
+        let code_phrase = "α β.";
+        let prog_phrase = parse(code_phrase).expect("Failed to parse phrase");
+        // This likely parses as Phrase(Word(α), Word(β))
+        let stats_phrase = analyze_rhetoric(&prog_phrase);
+        assert!(stats_phrase.total_words >= 2);
+    }
+
+    #[test]
+    fn test_block_coverage() {
+        // { «χαῖρε» λέγε. }
+        let code = "{ «χαῖρε» λέγε. }.";
+        let program = parse(code).expect("Failed to parse block");
+        let stats = analyze_rhetoric(&program);
+
+        // Should recurse into block and find the verb
+        assert!(stats.total_verbs >= 1);
     }
 }
