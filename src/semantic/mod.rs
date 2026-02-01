@@ -35,7 +35,6 @@ pub mod assembler;
 pub(crate) mod control_flow;
 pub(crate) mod conversion;
 pub(crate) mod declarations;
-pub mod disambiguation;
 pub(crate) mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
@@ -45,7 +44,9 @@ mod types;
 pub use assembler::{
     AssembledStatement, Assembler, AssemblyError, Constituent, Literal, VerbConstituent,
 };
-pub use disambiguation::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
+pub use crate::morphology::{
+    analyze_article, disambiguate, resolve_best, DisambiguationContext,
+};
 pub use model::*;
 pub use resolver::*;
 pub use types::*;

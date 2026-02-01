@@ -22,12 +22,14 @@
 mod case;
 mod conjugation;
 mod declension;
+pub mod disambiguation;
 pub mod lexicon;
 pub mod participle;
 
 pub use case::*;
 pub use conjugation::*;
 pub use declension::*;
+pub use disambiguation::*;
 pub use lexicon::*;
 pub use participle::*;
 
