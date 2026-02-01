@@ -50,6 +50,36 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
             glossa_type: GlossaType::Boolean,
         }),
 
+        Expr::ArrayLiteral(elements) => {
+            let mut analyzed_elements = Vec::with_capacity(elements.len());
+            for el in elements {
+                analyzed_elements.push(analyze_argument_expr(el, scope)?);
+            }
+
+            let element_type = analyzed_elements
+                .first()
+                .map(|e| e.glossa_type.clone())
+                .unwrap_or(GlossaType::Unknown);
+
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
+                glossa_type: GlossaType::List(Box::new(element_type)),
+            })
+        }
+
+        Expr::IndexAccess { array, index } => {
+            let array_analyzed = analyze_argument_expr(array, scope)?;
+            let index_analyzed = analyze_argument_expr(index, scope)?;
+
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::IndexAccess {
+                    array: Box::new(array_analyzed),
+                    index: Box::new(index_analyzed),
+                },
+                glossa_type: GlossaType::Unknown,
+            })
+        }
+
         Expr::Phrase(terms) => {
             // A phrase could be a function call: function_name arg1 arg2 ...
             if terms.is_empty() {
@@ -97,6 +127,62 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
                 return analyze_argument_expr(expr, scope);
             }
             Err(GlossaError::semantic("Empty or invalid block expression"))
+        }
+
+        Expr::BinOp { left, op, right } => {
+            let left_analyzed = analyze_argument_expr(left, scope)?;
+            let right_analyzed = analyze_argument_expr(right, scope)?;
+            // Map AST op to semantic op
+            let sem_op = match op {
+                crate::ast::BinOperator::Add => crate::morphology::lexicon::BinaryOp::Add,
+                crate::ast::BinOperator::Sub => crate::morphology::lexicon::BinaryOp::Sub,
+                crate::ast::BinOperator::Mul => crate::morphology::lexicon::BinaryOp::Mul,
+                crate::ast::BinOperator::Div => crate::morphology::lexicon::BinaryOp::Div,
+                crate::ast::BinOperator::Mod => crate::morphology::lexicon::BinaryOp::Mod,
+                crate::ast::BinOperator::Eq => crate::morphology::lexicon::BinaryOp::Eq,
+                crate::ast::BinOperator::Ne => crate::morphology::lexicon::BinaryOp::Ne,
+                crate::ast::BinOperator::Lt => crate::morphology::lexicon::BinaryOp::Lt,
+                crate::ast::BinOperator::Le => crate::morphology::lexicon::BinaryOp::Le,
+                crate::ast::BinOperator::Gt => crate::morphology::lexicon::BinaryOp::Gt,
+                crate::ast::BinOperator::Ge => crate::morphology::lexicon::BinaryOp::Ge,
+                crate::ast::BinOperator::And => crate::morphology::lexicon::BinaryOp::And,
+                crate::ast::BinOperator::Or => crate::morphology::lexicon::BinaryOp::Or,
+            };
+
+            Ok(build_binary_expr(left_analyzed, sem_op, right_analyzed))
+        }
+
+        Expr::UnaryOp { op, operand } => {
+            match op {
+                 crate::ast::UnaryOperator::Unwrap => {
+                     let inner = analyze_argument_expr(operand, scope)?;
+                     Ok(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Unwrap(Box::new(inner)),
+                        glossa_type: GlossaType::Unknown,
+                     })
+                 }
+                 // TODO: Handle Neg and Not
+                 _ => Err(GlossaError::semantic("Unsupported unary operator in expression"))
+            }
+        }
+
+        Expr::PropertyAccess { owner, property } => {
+             // Treat property access as variable lookup or method call preparation
+             // This is simplified; usually property access is handled by the assembler context
+             // But if we encounter it directly as an expression, we try to resolve it.
+             // For now, if it's a simple property access, we might need more context or just return it as PropertyAccess
+             let owner_analyzed = analyze_argument_expr(owner, scope)?;
+             if let Expr::Word(prop_word) = property.as_ref() {
+                  Ok(AnalyzedExpr {
+                      expr: AnalyzedExprKind::PropertyAccess {
+                          owner: Box::new(owner_analyzed),
+                          property: normalize_greek(&prop_word.original),
+                      },
+                      glossa_type: GlossaType::Unknown,
+                  })
+             } else {
+                  Err(GlossaError::semantic("Property must be a word"))
+             }
         }
 
         _ => Err(GlossaError::semantic(
@@ -286,101 +372,6 @@ pub fn feed_expr_to_assembler_with_context(
     Ok(())
 }
 
-/// Convert an Expr to an AnalyzedExpr
-pub fn convert_expr_to_analyzed(expr: &Expr) -> AnalyzedExpr {
-    match expr {
-        Expr::StringLiteral(s) => AnalyzedExpr {
-            expr: AnalyzedExprKind::StringLiteral(s.clone()),
-            glossa_type: GlossaType::String,
-        },
-        Expr::NumberLiteral(n) => AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(*n),
-            glossa_type: GlossaType::Number,
-        },
-        Expr::BooleanLiteral(b) => AnalyzedExpr {
-            expr: AnalyzedExprKind::BooleanLiteral(*b),
-            glossa_type: GlossaType::Boolean,
-        },
-        Expr::Word(w) => {
-            // Check if it's a numeral
-            if let Some(val) = crate::morphology::lexicon::numeral_value(&w.normalized) {
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(val),
-                    glossa_type: GlossaType::Number,
-                }
-            } else {
-                // Variable reference
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(w.normalized.clone()),
-                    glossa_type: GlossaType::Unknown,
-                }
-            }
-        }
-        Expr::ArrayLiteral(elements) => {
-            let analyzed_elements = convert_array_elements(elements);
-            let element_type = analyzed_elements
-                .first()
-                .map(|e| e.glossa_type.clone())
-                .unwrap_or(GlossaType::Unknown);
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
-                glossa_type: GlossaType::List(Box::new(element_type)),
-            }
-        }
-        Expr::IndexAccess { array, index } => AnalyzedExpr {
-            expr: AnalyzedExprKind::IndexAccess {
-                array: Box::new(convert_expr_to_analyzed(array)),
-                index: Box::new(convert_expr_to_analyzed(index)),
-            },
-            glossa_type: GlossaType::Unknown,
-        },
-        _ => AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(0),
-            glossa_type: GlossaType::Number,
-        },
-    }
-}
-
-/// Convert array elements from Expr to AnalyzedExpr
-pub fn convert_array_elements(elements: &[Expr]) -> Vec<AnalyzedExpr> {
-    elements
-        .iter()
-        .map(|e| match e {
-            Expr::StringLiteral(s) => AnalyzedExpr {
-                expr: AnalyzedExprKind::StringLiteral(s.clone()),
-                glossa_type: GlossaType::String,
-            },
-            Expr::NumberLiteral(n) => AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(*n),
-                glossa_type: GlossaType::Number,
-            },
-            Expr::BooleanLiteral(b) => AnalyzedExpr {
-                expr: AnalyzedExprKind::BooleanLiteral(*b),
-                glossa_type: GlossaType::Boolean,
-            },
-            Expr::Word(w) => {
-                // Check if it's a numeral
-                if let Some(val) = crate::morphology::lexicon::numeral_value(&w.normalized) {
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(val),
-                        glossa_type: GlossaType::Number,
-                    }
-                } else {
-                    // Variable reference
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(w.normalized.clone()),
-                        glossa_type: GlossaType::Unknown,
-                    }
-                }
-            }
-            _ => AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(0),
-                glossa_type: GlossaType::Number,
-            },
-        })
-        .collect()
-}
-
 /// Convert a Literal to an AnalyzedExpr
 pub fn literal_to_analyzed_expr(lit: &Literal) -> AnalyzedExpr {
     match lit {
@@ -483,5 +474,29 @@ pub fn infer_binop_type(
         }
         // Boolean operations return booleans
         BinaryOp::And | BinaryOp::Or => GlossaType::Boolean,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::UnaryOperator;
+
+    #[test]
+    fn test_analyze_argument_expr_handles_unwrap() {
+        let expr = Expr::UnaryOp {
+            op: UnaryOperator::Unwrap,
+            operand: Box::new(Expr::BooleanLiteral(true)),
+        };
+
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::Unwrap(_) => {
+                // Success - correctly identified as Unwrap
+            }
+            _ => panic!("Expected Unwrap, got {:?}", result),
+        }
     }
 }

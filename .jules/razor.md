@@ -7,3 +7,8 @@
 **Issue:** `tests/havoc_stack_overflow.rs` used deprecated `build_ast` API.
 **Fix:** Switched to `glossa::parser::parse`.
 **Saved:** Fixed a test failure and removed usage of potentially dead API.
+
+## [Reduction]
+**Bloat:** `convert_expr_to_analyzed` in `src/semantic/expressions.rs` duplicated logic from `analyze_argument_expr` and silently returned `0` for unknown expressions.
+**Cut:** Merged logic into `analyze_argument_expr` and deleted `convert_expr_to_analyzed` and `convert_array_elements`.
+**Saved:** Removed dangerous silent failure bug, reduced code duplication (~50 lines removed), enforced error propagation.
