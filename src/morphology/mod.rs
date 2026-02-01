@@ -559,4 +559,49 @@ mod tests {
                 .any(|a| a.tense == Some(Tense::Aorist) && a.lemma == "λυω")
         );
     }
+
+    #[test]
+    fn test_score_analysis_coverage() {
+        // Test score_analysis branches via disambiguate (since score_analysis is private)
+
+        let mut base_analysis = MorphAnalysis::new("test".to_string(), PartOfSpeech::Noun);
+        base_analysis.confidence = 0.5;
+
+        // 1. Case mismatch
+        let mut mismatch_case = base_analysis.clone();
+        mismatch_case.case = Some(Case::Nominative);
+        let ctx_case = DisambiguationContext::expecting_case(Case::Accusative);
+        let res = disambiguate(vec![mismatch_case.clone()], &ctx_case);
+        assert!(res[0].confidence < 0.5); // Penalized
+
+        // 2. Case match
+        let mut match_case = base_analysis.clone();
+        match_case.case = Some(Case::Accusative);
+        let res = disambiguate(vec![match_case], &ctx_case);
+        assert!(res[0].confidence > 0.5); // Boosted
+
+        // 3. Number mismatch
+        let mut mismatch_num = base_analysis.clone();
+        mismatch_num.number = Some(Number::Singular);
+        let mut ctx_num = DisambiguationContext::default();
+        ctx_num.expected_number = Some(Number::Plural);
+        let res = disambiguate(vec![mismatch_num], &ctx_num);
+        assert!(res[0].confidence < 0.5);
+
+        // 4. Gender mismatch
+        let mut mismatch_gen = base_analysis.clone();
+        mismatch_gen.gender = Some(Gender::Masculine);
+        let mut ctx_gen = DisambiguationContext::default();
+        ctx_gen.expected_gender = Some(Gender::Feminine);
+        let res = disambiguate(vec![mismatch_gen], &ctx_gen);
+        assert!(res[0].confidence < 0.5);
+
+        // 5. Person mismatch
+        let mut mismatch_pers = base_analysis.clone();
+        mismatch_pers.person = Some(Person::First);
+        let mut ctx_pers = DisambiguationContext::default();
+        ctx_pers.expected_person = Some(Person::Third);
+        let res = disambiguate(vec![mismatch_pers], &ctx_pers);
+        assert!(res[0].confidence < 0.5);
+    }
 }

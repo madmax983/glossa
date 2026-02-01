@@ -2718,4 +2718,99 @@ mod tests {
         assert_eq!(entry.case, Some(Case::Dative));
         assert_eq!(entry.lemma, "λογος");
     }
+
+    #[test]
+    fn test_analyze_article_coverage() {
+        // Test all articles to ensure coverage of the match statement
+        // Masculine
+        let ctx = analyze_article("ὁ").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Nominative));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_gender, Some(Gender::Masculine));
+
+        let ctx = analyze_article("τοῦ").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Genitive));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_gender, Some(Gender::Masculine));
+
+        let ctx = analyze_article("τῷ").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Dative));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_gender, Some(Gender::Masculine));
+
+        let ctx = analyze_article("τόν").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Accusative));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_gender, Some(Gender::Masculine));
+
+        let ctx = analyze_article("οἱ").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Nominative));
+        assert_eq!(ctx.expected_number, Some(Number::Plural));
+        assert_eq!(ctx.expected_gender, Some(Gender::Masculine));
+
+        let ctx = analyze_article("τῶν").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Genitive));
+        assert_eq!(ctx.expected_number, Some(Number::Plural));
+        assert!(ctx.expected_gender.is_none());
+
+        let ctx = analyze_article("τοῖς").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Dative));
+        assert_eq!(ctx.expected_number, Some(Number::Plural));
+        assert_eq!(ctx.expected_gender, Some(Gender::Masculine));
+
+        let ctx = analyze_article("τούς").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Accusative));
+        assert_eq!(ctx.expected_number, Some(Number::Plural));
+        assert_eq!(ctx.expected_gender, Some(Gender::Masculine));
+
+        // Feminine
+        let ctx = analyze_article("ἡ").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Nominative));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_gender, Some(Gender::Feminine));
+
+        let ctx = analyze_article("τῆς").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Genitive));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_gender, Some(Gender::Feminine));
+
+        let ctx = analyze_article("τῇ").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Dative));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_gender, Some(Gender::Feminine));
+
+        let ctx = analyze_article("τήν").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Accusative));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_gender, Some(Gender::Feminine));
+
+        let ctx = analyze_article("αἱ").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Nominative));
+        assert_eq!(ctx.expected_number, Some(Number::Plural));
+        assert_eq!(ctx.expected_gender, Some(Gender::Feminine));
+
+        let ctx = analyze_article("ταῖς").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Dative));
+        assert_eq!(ctx.expected_number, Some(Number::Plural));
+        assert_eq!(ctx.expected_gender, Some(Gender::Feminine));
+
+        let ctx = analyze_article("τάς").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Accusative));
+        assert_eq!(ctx.expected_number, Some(Number::Plural));
+        assert_eq!(ctx.expected_gender, Some(Gender::Feminine));
+
+        // Neuter
+        let ctx = analyze_article("τό").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Nominative));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_gender, Some(Gender::Neuter));
+
+        let ctx = analyze_article("τά").unwrap();
+        assert_eq!(ctx.expected_case, Some(Case::Nominative));
+        assert_eq!(ctx.expected_number, Some(Number::Plural));
+        assert_eq!(ctx.expected_gender, Some(Gender::Neuter));
+
+        // Non-article
+        assert!(analyze_article("λόγος").is_none());
+    }
 }
