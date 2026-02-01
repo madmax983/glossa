@@ -1,6 +1,46 @@
 //! Rust code generation
 //!
-//! Translates HIR to Rust source code using the `quote` crate.
+//! This module handles the final step of the compilation pipeline: translating
+//! the High-Level Intermediate Representation (HIR) into executable Rust code.
+//!
+//! # The CodeGen Strategy
+//!
+//! Instead of concatenating strings (which is error-prone and unsafe), we use the
+//! [`quote`] crate to construct a valid Rust TokenStream. This ensures that the
+//! generated code is syntactically correct and handles edge cases like escaping strings.
+//!
+//! # Name Sanitization
+//!
+//! Ancient Greek characters cannot be used directly as Rust identifiers (mostly).
+//! This module performs **Transliteration** to convert Greek names into valid ASCII Rust identifiers.
+//!
+//! * `ξ` (xi) -> `xi`
+//! * `χρήστος` -> `chrestos`
+//! * `λόγος` -> `logos`
+//!
+//! See [`sanitize_name`] for details.
+//!
+//! # Example
+//!
+//! ```
+//! use glossa::ir::{HirProgram, HirStatement, HirExpr};
+//! use glossa::codegen::generate_rust;
+//!
+//! // Construct a simple HIR: let x = 42;
+//! let hir = HirProgram {
+//!     statements: vec![
+//!         HirStatement::Let {
+//!             name: "ξ".to_string(), // "xi"
+//!             value: HirExpr::IntLit(42),
+//!             mutable: false,
+//!         }
+//!     ]
+//! };
+//!
+//! let rust_code = generate_rust(&hir);
+//! // TokenStream::to_string() may add spaces around punctuation
+//! assert!(rust_code.contains("let xi = 42"));
+//! ```
 
 use crate::grammar::normalize_greek;
 use crate::ir::{BinOp, HirExpr, HirProgram, HirStatement};
@@ -796,7 +836,13 @@ fn is_self_parameter(param_name: &str, idx: usize) -> bool {
 
 /// Sanitize a Greek name for use as a Rust identifier
 ///
-/// Greek letters are mapped to Latin equivalents or transliterated
+/// Rust identifiers must be ASCII (mostly). This function transliterates
+/// Greek characters into their Latin phonetic equivalents.
+///
+/// * Single letters are mapped to their names: `α` -> `alpha`
+/// * Words are transliterated letter-by-letter: `λόγος` -> `logos`
+///
+/// If the resulting name starts with a number, it is prefixed with `_`.
 fn sanitize_name(name: &str) -> String {
     // Map single Greek letters to their names
     if name.len() <= 2 {

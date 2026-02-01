@@ -1,6 +1,32 @@
-//! High-level Intermediate Representation
+//! High-level Intermediate Representation (HIR)
 //!
-//! A simplified IR that maps closely to Rust constructs.
+//! This module defines the bridge between the linguistic world of ΓΛΩΣΣΑ (Semantics)
+//! and the imperative world of Rust (CodeGen).
+//!
+//! # The "Why" of HIR
+//!
+//! The Semantic Analysis phase (`AnalyzedProgram`) is rich in Greek-specific concepts:
+//! * Case-based assembly (Subject, Object)
+//! * Aspect-based verb semantics (Aorist vs Present)
+//! * Word-order independence
+//!
+//! Rust, however, is an imperative language with fixed syntax. We need a way to
+//! "lower" the high-level Greek concepts into something that looks like Rust,
+//! but is still abstract enough to manipulate easily.
+//!
+//! Enter **HIR**.
+//!
+//! HIR strips away the "Greekness" and leaves us with pure imperative logic:
+//! * `let` bindings
+//! * `while` loops
+//! * `match` expressions
+//! * `struct` definitions
+//!
+//! # The Transformation
+//!
+//! `AnalyzedProgram` (Greek Semantics) → `lower_to_hir` → `HirProgram` (Imperative Logic)
+//!
+//! From here, the `codegen` module simply has to "print" this HIR as Rust syntax tokens.
 
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedProgram, AnalyzedStatement,
@@ -14,60 +40,71 @@ pub struct HirProgram {
 }
 
 /// A HIR statement
+///
+/// Represents a single imperative action or control flow construct.
+/// These map 1-to-1 with Rust statements.
 #[derive(Debug, Clone)]
 pub enum HirStatement {
-    /// let name = value;
+    /// Variable binding: `let name = value;` or `let mut name = value;`
+    ///
+    /// Corresponds to `StatementKind::Binding`.
     Let {
         name: String,
         value: HirExpr,
         mutable: bool,
     },
 
-    /// name = value;
+    /// Variable assignment: `name = value;`
+    ///
+    /// Corresponds to `StatementKind::Assignment`.
     Assign { name: String, value: HirExpr },
 
-    /// println!(...);
+    /// Print to stdout: `println!(...);`
+    ///
+    /// Corresponds to `StatementKind::Print` or `StatementKind::Query`.
     Print { args: Vec<HirExpr> },
 
-    /// expression;
+    /// A bare expression: `expr;`
+    ///
+    /// Used for function calls, method calls, or block return values.
     Expr(HirExpr),
 
-    /// if condition { then_body } else { else_body }
+    /// Conditional: `if condition { ... } else { ... }`
     If {
         condition: HirExpr,
         then_body: Vec<HirStatement>,
         else_body: Option<Vec<HirStatement>>,
     },
 
-    /// while condition { body }
+    /// While loop: `while condition { ... }`
     While {
         condition: HirExpr,
         body: Vec<HirStatement>,
     },
 
-    /// for var in iterator { body }
+    /// For loop: `for variable in iterator { ... }`
     For {
         variable: String,
         iterator: HirExpr,
         body: Vec<HirStatement>,
     },
 
-    /// match scrutinee { arms }
+    /// Pattern matching: `match scrutinee { ... }`
     Match {
         scrutinee: HirExpr,
         arms: Vec<(HirExpr, Vec<HirStatement>)>,
     },
 
-    /// break;
+    /// Loop control: `break;`
     Break,
 
-    /// continue;
+    /// Loop control: `continue;`
     Continue,
 
-    /// return expr;
+    /// Return from function: `return expr;` or `return;`
     Return(Option<HirExpr>),
 
-    /// fn name(params) -> ret { body }
+    /// Function definition: `fn name(...) -> ... { ... }`
     FnDef {
         name: String,
         params: Vec<(String, Option<String>)>, // (name, type)
@@ -75,19 +112,19 @@ pub enum HirStatement {
         return_type: Option<String>,
     },
 
-    /// struct name { fields }
+    /// Struct definition: `struct Name { ... }`
     StructDef {
         name: String,
         fields: Vec<(String, String)>, // (field_name, field_type)
     },
 
-    /// trait name { methods }
+    /// Trait definition: `trait Name { ... }`
     TraitDef {
         name: String,
         methods: Vec<HirTraitMethod>,
     },
 
-    /// impl Trait for Type { methods }
+    /// Trait implementation: `impl Trait for Type { ... }`
     TraitImpl {
         trait_name: String,
         type_name: String,
@@ -115,101 +152,107 @@ pub struct HirImplMethod {
 }
 
 /// A HIR expression
+///
+/// Represents a value-producing construct.
 #[derive(Debug, Clone)]
 pub enum HirExpr {
-    /// String literal
+    /// String literal: `"text"`
     StringLit(String),
 
-    /// Integer literal
+    /// Integer literal: `42`
     IntLit(i64),
 
-    /// Boolean literal
+    /// Boolean literal: `true` / `false`
     BoolLit(bool),
 
-    /// Array literal vec![...]
+    /// Array literal: `vec![1, 2, 3]`
     ArrayLit(Vec<HirExpr>),
 
-    /// Some(value) - `Option<T>` constructor
+    /// `Some(x)` constructor
     Some(Box<HirExpr>),
 
-    /// None - `Option<T>` empty value
+    /// `None` constructor
     None,
 
-    /// Ok(value) - `Result<T,E>` success constructor
+    /// `Ok(x)` constructor
     Ok(Box<HirExpr>),
 
-    /// Err(error) - Result<T,E> error constructor
+    /// `Err(e)` constructor
     Err(Box<HirExpr>),
 
-    /// Try operator (?) - propagates None/Err
+    /// The `?` operator: `expr?`
     Try(Box<HirExpr>),
 
-    /// Unwrap operator (!) - confident extraction
+    /// The `.unwrap()` method: `expr.unwrap()`
     Unwrap(Box<HirExpr>),
 
-    /// Index access `array[index]`
+    /// Array indexing: `array[index]`
     Index {
         array: Box<HirExpr>,
         index: Box<HirExpr>,
     },
 
-    /// Variable reference
+    /// Variable usage: `name`
     Var(String),
 
-    /// Field access: expr.field
+    /// Field access: `object.field`
     Field { object: Box<HirExpr>, field: String },
 
-    /// Method call: expr.method(args)
+    /// Method call: `receiver.method(args)`
     MethodCall {
         receiver: Box<HirExpr>,
         method: String,
         args: Vec<HirExpr>,
     },
 
-    /// Function call: func(args)
+    /// Function call: `func(args)`
     Call { func: String, args: Vec<HirExpr> },
 
-    /// Binary operation
+    /// Binary operation: `left + right`
     BinOp {
         op: BinOp,
         left: Box<HirExpr>,
         right: Box<HirExpr>,
     },
 
-    /// Reference: &expr or &mut expr
+    /// Reference: `&expr` or `&mut expr`
     Ref { mutable: bool, expr: Box<HirExpr> },
 
-    /// Range for loops: start..end or start..=end
+    /// Range: `start..end` or `start..=end`
     Range {
         start: Box<HirExpr>,
         end: Box<HirExpr>,
         inclusive: bool,
     },
 
-    /// Struct literal: TypeName { field: value, ... }
+    /// Struct instantiation: `Type { field: value, ... }`
     StructLit {
         type_name: String,
         fields: Vec<String>,
         args: Vec<HirExpr>,
     },
 
-    /// Closure: |params| body
+    /// Closure: `|params| body`
     Closure {
         params: Vec<String>,
         body: Box<HirExpr>,
         capture_mode: CaptureMode,
     },
 
-    /// Iterator chain: collection.iter().map(...).filter(...)
+    /// Iterator chain: `collection.iter().map(...).collect()`
+    ///
+    /// This is a high-level construct that maps to a chain of Rust iterator method calls.
     IteratorChain {
         collection: Box<HirExpr>,
         ops: Vec<IteratorOp>,
     },
 
-    /// Collection constructor: HashSet::new() or HashMap::new()
+    /// Collection constructor: `HashSet::new()`
     CollectionNew { collection_type: String },
 
-    /// Collection contains check: set.contains(&x) or map.contains_key(&k)
+    /// Collection membership check
+    ///
+    /// Maps to `.contains(&x)` or `.contains_key(&x)`
     CollectionContains {
         collection: Box<HirExpr>,
         element: Box<HirExpr>,
