@@ -1,4 +1,4 @@
-use glossa::ast::build_ast;
+use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
 #[test]
@@ -24,7 +24,7 @@ fn test_stack_overflow_recursion() {
 
     // 3. Build AST
     println!("Building AST with depth {}...", depth);
-    let ast = build_ast(&source).expect("Failed to build AST");
+    let ast = parse(&source).expect("Failed to build AST");
 
     // 4. Analyze (this should crash)
     println!("Analyzing program...");
