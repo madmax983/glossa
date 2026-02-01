@@ -701,15 +701,16 @@ Greek numerals are supported alongside Arabic:
 
 ### 16.1 Compilation Pipeline
 
-```
-Source (.γλ) 
-    → Lexer (Unicode normalization, breathing/accent handling)
-    → Parser (flexible word order, case-driven AST)
-    → Declension Resolver (agreement checking, case assignment)
-    → Aspect/Voice Analyzer (ownership, mutability inference)
-    → Type Checker (gender/number agreement)
-    → IR Generation (case-normalized, positional)
-    → Backend (LLVM / Cranelift / WASM)
+```mermaid
+flowchart TD
+    Source["Source (.γλ)"] --> Lexer
+    Lexer["Lexer<br/>(Unicode normalization, breathing/accent handling)"] --> Parser
+    Parser["Parser<br/>(flexible word order, case-driven AST)"] --> DeclensionResolver
+    DeclensionResolver["Declension Resolver<br/>(agreement checking, case assignment)"] --> AspectVoiceAnalyzer
+    AspectVoiceAnalyzer["Aspect/Voice Analyzer<br/>(ownership, mutability inference)"] --> TypeChecker
+    TypeChecker["Type Checker<br/>(gender/number agreement)"] --> IRGeneration
+    IRGeneration["IR Generation<br/>(case-normalized, positional)"] --> Backend
+    Backend["Backend<br/>(LLVM / Cranelift / WASM)"]
 ```
 
 ### 16.2 Target: Rust Backend
