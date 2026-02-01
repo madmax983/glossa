@@ -96,31 +96,29 @@ pub fn analyze_trait_definition(
             let body = if let Some(body_stmts) = &method.body {
                 let mut analyzed_body = Vec::new();
                 // Create a child scope for the method
-                let mut method_scope = scope.child();
+                scope.enter();
                 // Add method parameters to scope (including self)
                 for (param_name, param_type) in &params {
-                    method_scope.define(param_name.clone(), param_type.clone());
+                    scope.define(param_name.clone(), param_type.clone());
                 }
                 // Properly analyze statements in the body
                 for body_stmt in body_stmts {
-                    if let Some(control_flow) = analyze_control_flow(body_stmt, &mut method_scope)?
-                    {
+                    if let Some(control_flow) = analyze_control_flow(body_stmt, scope)? {
                         analyzed_body.push(control_flow);
                     } else if let Some(struct_inst) =
-                        try_parse_struct_instantiation(body_stmt, &mut method_scope)?
+                        try_parse_struct_instantiation(body_stmt, scope)?
                     {
                         analyzed_body.push(struct_inst);
-                    } else if let Some(method_call) =
-                        try_parse_trait_method_call(body_stmt, &mut method_scope)?
+                    } else if let Some(method_call) = try_parse_trait_method_call(body_stmt, scope)?
                     {
                         analyzed_body.push(method_call);
                     } else {
                         let assembled = analyze_single_statement_with_assembler(body_stmt)?;
-                        let analyzed =
-                            convert_assembled_to_analyzed(&assembled, &mut method_scope)?;
+                        let analyzed = convert_assembled_to_analyzed(&assembled, scope)?;
                         analyzed_body.push(analyzed);
                     }
                 }
+                scope.exit();
                 Some(analyzed_body)
             } else {
                 Some(vec![])
@@ -188,6 +186,7 @@ pub fn analyze_trait_impl(
     // Validate: trait must exist
     let trait_def = scope
         .lookup_trait(&trait_name)
+        .cloned()
         .ok_or_else(|| GlossaError::semantic(format!("Trait {} is not defined", trait_name)))?;
 
     // Validate: type must exist
@@ -212,39 +211,36 @@ pub fn analyze_trait_impl(
         }
 
         // Create a child scope for the method body with self bound
-        let mut method_scope = scope.child();
-        method_scope.define("self".to_string(), struct_type.clone());
+        scope.enter();
+        scope.define("self".to_string(), struct_type.clone());
 
         // Also bind parameters
         for (param_name, param_type) in &params {
-            method_scope.define(param_name.clone(), param_type.clone());
+            scope.define(param_name.clone(), param_type.clone());
         }
 
         // Analyze the method body
         let mut analyzed_body = Vec::new();
         for body_stmt in &method.body {
             // Try control flow first
-            if let Some(control_flow) = analyze_control_flow(body_stmt, &mut method_scope)? {
+            if let Some(control_flow) = analyze_control_flow(body_stmt, scope)? {
                 analyzed_body.push(control_flow);
             }
             // Try struct instantiation pattern
-            else if let Some(struct_inst) =
-                try_parse_struct_instantiation(body_stmt, &mut method_scope)?
-            {
+            else if let Some(struct_inst) = try_parse_struct_instantiation(body_stmt, scope)? {
                 analyzed_body.push(struct_inst);
             }
             // Try trait method call pattern
-            else if let Some(method_call) =
-                try_parse_trait_method_call(body_stmt, &mut method_scope)?
-            {
+            else if let Some(method_call) = try_parse_trait_method_call(body_stmt, scope)? {
                 analyzed_body.push(method_call);
             } else {
                 // Use assembler for regular statements
                 let assembled = analyze_single_statement_with_assembler(body_stmt)?;
-                let analyzed = convert_assembled_to_analyzed(&assembled, &mut method_scope)?;
+                let analyzed = convert_assembled_to_analyzed(&assembled, scope)?;
                 analyzed_body.push(analyzed);
             }
         }
+        scope.exit();
 
         let return_type = infer_return_type_from_body(&analyzed_body);
 
@@ -310,7 +306,7 @@ pub fn map_genitive_to_type(genitive_name: &str, scope: &Scope) -> GlossaType {
 /// Parse a function definition: name ὁρίζειν [params]· body
 pub fn parse_function_definition(
     stmt: &Statement,
-    _scope: &mut Scope,
+    scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // The middle dot (·) separates expressions within a clause
     // Structure: expr1 · expr2 where expr1 is "name ὁρίζειν [params]" and expr2 is the body
@@ -337,10 +333,10 @@ pub fn parse_function_definition(
     let params = extract_parameters_from_expr(header_expr)?;
 
     // Create a new scope for the function body and add parameters to it
-    let mut function_scope = Scope::new();
+    scope.enter();
     for (param_name, param_type) in &params {
         let glossa_type = param_type.clone().unwrap_or(GlossaType::Unknown);
-        function_scope.define(param_name.clone(), glossa_type);
+        scope.define(param_name.clone(), glossa_type);
     }
 
     // Parse body (remaining expressions after middle dot)
@@ -361,14 +357,15 @@ pub fn parse_function_definition(
         };
 
         // Analyze each body expression as a statement with the function scope
-        if let Some(cf) = analyze_control_flow(&clause_stmt, &mut function_scope)? {
+        if let Some(cf) = analyze_control_flow(&clause_stmt, scope)? {
             body_statements.push(cf);
         } else {
             let assembled = analyze_single_statement_with_assembler(&clause_stmt)?;
-            let analyzed = convert_assembled_to_analyzed(&assembled, &mut function_scope)?;
+            let analyzed = convert_assembled_to_analyzed(&assembled, scope)?;
             body_statements.push(analyzed);
         }
     }
+    scope.exit();
 
     // Infer return type from return statements
     let return_type = infer_return_type_from_body(&body_statements);

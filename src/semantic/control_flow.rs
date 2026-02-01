@@ -257,6 +257,7 @@ fn parse_for_range_loop(
     };
 
     // Add loop variable to scope temporarily while parsing body
+    scope.enter();
     scope.define(variable.clone(), GlossaType::Number);
 
     // Check if body is control flow, otherwise parse as regular statement
@@ -266,9 +267,7 @@ fn parse_for_range_loop(
         let assembled = analyze_single_statement_with_assembler(&body_stmt)?;
         convert_assembled_to_analyzed(&assembled, scope)?
     };
-
-    // Note: We don't remove the variable from scope since Scope doesn't support that
-    // In a real implementation, we'd use nested scopes
+    scope.exit();
 
     Ok(Some(AnalyzedStatement {
         kind: StatementKind::For {
@@ -355,6 +354,7 @@ fn parse_for_iteration_loop(
 
     // Add loop variable to scope temporarily
     // TODO: Infer element type from collection type
+    scope.enter();
     scope.define(variable.clone(), GlossaType::String);
 
     let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
@@ -363,6 +363,7 @@ fn parse_for_iteration_loop(
         let assembled = analyze_single_statement_with_assembler(&body_stmt)?;
         convert_assembled_to_analyzed(&assembled, scope)?
     };
+    scope.exit();
 
     Ok(Some(AnalyzedStatement {
         kind: StatementKind::For {

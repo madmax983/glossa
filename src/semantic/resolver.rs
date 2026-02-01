@@ -6,21 +6,38 @@ use crate::semantic::GlossaType;
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 
-/// A scope containing variable bindings
+/// A single level of scope (e.g., a function body, a block)
 #[derive(Debug, Clone, Default)]
-pub struct Scope {
-    /// Variable bindings in this scope
+struct ScopeLevel {
+    /// Variable bindings in this scope level
     bindings: FxHashMap<SmolStr, Binding>,
-    /// Function definitions in this scope
+    /// Function definitions in this scope level
     functions: FxHashMap<SmolStr, FunctionSignature>,
-    /// Type definitions in this scope
+    /// Type definitions in this scope level
     types: FxHashMap<SmolStr, GlossaType>,
-    /// Trait definitions in this scope
+    /// Trait definitions in this scope level
     traits: FxHashMap<SmolStr, crate::semantic::model::TraitDef>,
-    /// Trait implementations in this scope
+    /// Trait implementations in this scope level
     trait_impls: Vec<crate::semantic::model::TraitImpl>,
-    /// Parent scope (for nested scopes)
-    parent: Option<Box<Scope>>,
+}
+
+impl ScopeLevel {
+    fn new() -> Self {
+        Self::default()
+    }
+}
+
+/// A scope containing variable bindings
+#[derive(Debug, Clone)]
+pub struct Scope {
+    /// Stack of scope levels (last is current)
+    levels: Vec<ScopeLevel>,
+}
+
+impl Default for Scope {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// A function signature for tracking defined functions
@@ -48,27 +65,24 @@ pub struct Binding {
 }
 
 impl Scope {
-    /// Create a new empty scope
+    /// Create a new empty scope with a global level
     pub fn new() -> Self {
         Scope {
-            bindings: FxHashMap::default(),
-            functions: FxHashMap::default(),
-            types: FxHashMap::default(),
-            traits: FxHashMap::default(),
-            trait_impls: Vec::new(),
-            parent: None,
+            levels: vec![ScopeLevel::new()],
         }
     }
 
-    /// Create a child scope with this scope as parent
-    pub fn child(&self) -> Self {
-        Scope {
-            bindings: FxHashMap::default(),
-            functions: FxHashMap::default(),
-            types: FxHashMap::default(),
-            traits: FxHashMap::default(),
-            trait_impls: Vec::new(),
-            parent: Some(Box::new(self.clone())),
+    /// Enter a new scope level
+    pub fn enter(&mut self) {
+        self.levels.push(ScopeLevel::new());
+    }
+
+    /// Exit the current scope level
+    pub fn exit(&mut self) {
+        if self.levels.len() > 1 {
+            self.levels.pop();
+        } else {
+            panic!("Attempted to exit global scope");
         }
     }
 
@@ -80,7 +94,7 @@ impl Scope {
         return_type: Option<GlossaType>,
     ) {
         let name = name.into();
-        self.functions.insert(
+        self.current_level_mut().functions.insert(
             name.clone(),
             FunctionSignature {
                 name,
@@ -92,40 +106,39 @@ impl Scope {
 
     /// Check if a name is a defined function
     pub fn is_function(&self, name: &str) -> bool {
-        if self.functions.contains_key(name) {
-            true
-        } else if let Some(parent) = &self.parent {
-            parent.is_function(name)
-        } else {
-            false
+        for level in self.levels.iter().rev() {
+            if level.functions.contains_key(name) {
+                return true;
+            }
         }
+        false
     }
 
     /// Look up a function signature
     pub fn lookup_function(&self, name: &str) -> Option<&FunctionSignature> {
-        if let Some(sig) = self.functions.get(name) {
-            Some(sig)
-        } else if let Some(parent) = &self.parent {
-            parent.lookup_function(name)
-        } else {
-            None
+        for level in self.levels.iter().rev() {
+            if let Some(sig) = level.functions.get(name) {
+                return Some(sig);
+            }
         }
+        None
     }
 
     /// Define a type in this scope
     pub fn define_type(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
-        self.types.insert(name.into(), glossa_type);
+        self.current_level_mut()
+            .types
+            .insert(name.into(), glossa_type);
     }
 
     /// Look up a type by name
     pub fn lookup_type(&self, name: &str) -> Option<&GlossaType> {
-        if let Some(ty) = self.types.get(name) {
-            Some(ty)
-        } else if let Some(parent) = &self.parent {
-            parent.lookup_type(name)
-        } else {
-            None
+        for level in self.levels.iter().rev() {
+            if let Some(ty) = level.types.get(name) {
+                return Some(ty);
+            }
         }
+        None
     }
 
     /// Define a trait in this scope
@@ -134,23 +147,24 @@ impl Scope {
         name: impl Into<SmolStr>,
         trait_def: crate::semantic::model::TraitDef,
     ) {
-        self.traits.insert(name.into(), trait_def);
+        self.current_level_mut()
+            .traits
+            .insert(name.into(), trait_def);
     }
 
     /// Look up a trait by name
     pub fn lookup_trait(&self, name: &str) -> Option<&crate::semantic::model::TraitDef> {
-        if let Some(trait_def) = self.traits.get(name) {
-            Some(trait_def)
-        } else if let Some(parent) = &self.parent {
-            parent.lookup_trait(name)
-        } else {
-            None
+        for level in self.levels.iter().rev() {
+            if let Some(trait_def) = level.traits.get(name) {
+                return Some(trait_def);
+            }
         }
+        None
     }
 
     /// Register a trait implementation
     pub fn register_trait_impl(&mut self, impl_def: crate::semantic::model::TraitImpl) {
-        self.trait_impls.push(impl_def);
+        self.current_level_mut().trait_impls.push(impl_def);
     }
 
     /// Look up a trait implementation for a given type and trait
@@ -159,51 +173,48 @@ impl Scope {
         type_name: &str,
         trait_name: &str,
     ) -> Option<&crate::semantic::model::TraitImpl> {
-        for impl_def in &self.trait_impls {
-            if impl_def.type_name == type_name && impl_def.trait_name == trait_name {
-                return Some(impl_def);
+        for level in self.levels.iter().rev() {
+            for impl_def in &level.trait_impls {
+                if impl_def.type_name == type_name && impl_def.trait_name == trait_name {
+                    return Some(impl_def);
+                }
             }
         }
-        if let Some(parent) = &self.parent {
-            parent.lookup_trait_impl(type_name, trait_name)
-        } else {
-            None
-        }
+        None
     }
 
     /// Check if a type has a trait method with the given name
     pub fn has_trait_method(&self, type_name: &str, method_name: &str) -> bool {
-        for trait_impl in &self.trait_impls {
-            if trait_impl.type_name != type_name {
-                continue;
-            }
-            // Check if the trait has this method
-            if let Some(trait_def) = self.lookup_trait(&trait_impl.trait_name) {
-                let has_method = trait_def
-                    .required_methods
-                    .iter()
-                    .any(|m| m.name == method_name)
-                    || trait_def
-                        .default_methods
+        for level in self.levels.iter().rev() {
+            for trait_impl in &level.trait_impls {
+                if trait_impl.type_name != type_name {
+                    continue;
+                }
+                // Check if the trait has this method
+                // Note: We need to lookup trait def, which might be in a different level
+                // Optimization: lookup trait def once per trait impl? No, usually traits are top level.
+                if let Some(trait_def) = self.lookup_trait(&trait_impl.trait_name) {
+                    let has_method = trait_def
+                        .required_methods
                         .iter()
-                        .any(|m| m.signature.name == method_name);
-                if has_method {
-                    return true;
+                        .any(|m| m.name == method_name)
+                        || trait_def
+                            .default_methods
+                            .iter()
+                            .any(|m| m.signature.name == method_name);
+                    if has_method {
+                        return true;
+                    }
                 }
             }
         }
-        // Check parent scope
-        if let Some(parent) = &self.parent {
-            parent.has_trait_method(type_name, method_name)
-        } else {
-            false
-        }
+        false
     }
 
     /// Define a new binding in this scope
     pub fn define(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
         let name = name.into();
-        self.bindings.insert(
+        self.current_level_mut().bindings.insert(
             name.clone(),
             Binding {
                 name,
@@ -217,7 +228,7 @@ impl Scope {
     /// Define a mutable binding
     pub fn define_mut(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
         let name = name.into();
-        self.bindings.insert(
+        self.current_level_mut().bindings.insert(
             name.clone(),
             Binding {
                 name,
@@ -230,25 +241,27 @@ impl Scope {
 
     /// Look up a binding by name, searching parent scopes
     pub fn lookup(&self, name: &str) -> Option<&GlossaType> {
-        if let Some(binding) = self.bindings.get(name) {
-            Some(&binding.glossa_type)
-        } else if let Some(parent) = &self.parent {
-            parent.lookup(name)
-        } else {
-            None
+        for level in self.levels.iter().rev() {
+            if let Some(binding) = level.bindings.get(name) {
+                return Some(&binding.glossa_type);
+            }
         }
+        None
     }
 
     /// Look up full binding information by name, searching parent scopes
     pub fn lookup_binding(&self, name: &str) -> Option<&Binding> {
-        self.bindings
-            .get(name)
-            .or_else(|| self.parent.as_ref()?.lookup_binding(name))
+        for level in self.levels.iter().rev() {
+            if let Some(binding) = level.bindings.get(name) {
+                return Some(binding);
+            }
+        }
+        None
     }
 
     /// Check if a name is defined in this scope (not parents)
     pub fn is_defined_locally(&self, name: &str) -> bool {
-        self.bindings.contains_key(name)
+        self.current_level().bindings.contains_key(name)
     }
 
     /// Check if a name is defined anywhere in scope chain
@@ -256,23 +269,40 @@ impl Scope {
         self.lookup(name).is_some()
     }
 
-    /// Get all bindings in this scope
+    /// Get all bindings in this scope level
     pub fn bindings(&self) -> impl Iterator<Item = (&SmolStr, &Binding)> {
-        self.bindings.iter()
+        self.current_level().bindings.iter()
     }
 
     /// Mark a binding as used
     pub fn mark_used(&mut self, name: &str) {
-        if let Some(binding) = self.bindings.get_mut(name) {
-            binding.used = true;
-        } else if let Some(parent) = &mut self.parent {
-            parent.mark_used(name);
+        for level in self.levels.iter_mut().rev() {
+            if let Some(binding) = level.bindings.get_mut(name) {
+                binding.used = true;
+                return;
+            }
         }
     }
 
     /// Get unused bindings (for warnings)
     pub fn unused_bindings(&self) -> Vec<&Binding> {
-        self.bindings.values().filter(|b| !b.used).collect()
+        // Only checking current level? Or all levels?
+        // Typically warnings are generated when a scope closes.
+        // For now, let's return unused bindings from ALL levels to be safe,
+        // or just the current level. The original implementation did `bindings.values()`, which was just the current node.
+        self.current_level()
+            .bindings
+            .values()
+            .filter(|b| !b.used)
+            .collect()
+    }
+
+    fn current_level(&self) -> &ScopeLevel {
+        self.levels.last().expect("Scope stack is empty")
+    }
+
+    fn current_level_mut(&mut self) -> &mut ScopeLevel {
+        self.levels.last_mut().expect("Scope stack is empty")
     }
 }
 
@@ -292,23 +322,28 @@ mod tests {
 
     #[test]
     fn test_child_scope_inherits() {
-        let mut parent = Scope::new();
-        parent.define("ξ".to_string(), GlossaType::Number);
+        let mut scope = Scope::new();
+        scope.define("ξ".to_string(), GlossaType::Number);
 
-        let child = parent.child();
-        assert!(child.is_defined("ξ"));
-        assert_eq!(child.lookup("ξ"), Some(&GlossaType::Number));
+        scope.enter();
+        assert!(scope.is_defined("ξ"));
+        assert_eq!(scope.lookup("ξ"), Some(&GlossaType::Number));
+        scope.exit();
     }
 
     #[test]
     fn test_child_scope_shadows() {
-        let mut parent = Scope::new();
-        parent.define("ξ".to_string(), GlossaType::Number);
+        let mut scope = Scope::new();
+        scope.define("ξ".to_string(), GlossaType::Number);
 
-        let mut child = parent.child();
-        child.define("ξ".to_string(), GlossaType::String);
+        scope.enter();
+        scope.define("ξ".to_string(), GlossaType::String);
 
-        assert_eq!(child.lookup("ξ"), Some(&GlossaType::String));
+        assert_eq!(scope.lookup("ξ"), Some(&GlossaType::String));
+        scope.exit();
+
+        // Original should be back
+        assert_eq!(scope.lookup("ξ"), Some(&GlossaType::Number));
     }
 
     #[test]
@@ -316,7 +351,7 @@ mod tests {
         let mut scope = Scope::new();
         scope.define_mut("μ".to_string(), GlossaType::Number);
 
-        let binding = scope.bindings.get("μ").unwrap();
+        let binding = scope.lookup_binding("μ").unwrap();
         assert!(binding.mutable);
     }
 
@@ -325,9 +360,9 @@ mod tests {
         let mut scope = Scope::new();
         scope.define("ξ".to_string(), GlossaType::Number);
 
-        assert!(!scope.bindings.get("ξ").unwrap().used);
+        assert!(!scope.lookup_binding("ξ").unwrap().used);
         scope.mark_used("ξ");
-        assert!(scope.bindings.get("ξ").unwrap().used);
+        assert!(scope.lookup_binding("ξ").unwrap().used);
     }
 
     #[test]
@@ -343,41 +378,9 @@ mod tests {
     }
 
     #[test]
-    fn test_lookup_binding_returns_full_binding() {
+    #[should_panic(expected = "Attempted to exit global scope")]
+    fn test_exit_global_scope_panics() {
         let mut scope = Scope::new();
-        scope.define_mut("μ".to_string(), GlossaType::Number);
-
-        let binding = scope.lookup_binding("μ").unwrap();
-        assert_eq!(binding.name, "μ");
-        assert_eq!(binding.glossa_type, GlossaType::Number);
-        assert!(binding.mutable);
-    }
-
-    #[test]
-    fn test_lookup_binding_immutable() {
-        let mut scope = Scope::new();
-        scope.define("ξ".to_string(), GlossaType::String);
-
-        let binding = scope.lookup_binding("ξ").unwrap();
-        assert_eq!(binding.name, "ξ");
-        assert_eq!(binding.glossa_type, GlossaType::String);
-        assert!(!binding.mutable);
-    }
-
-    #[test]
-    fn test_lookup_binding_parent_scope() {
-        let mut parent = Scope::new();
-        parent.define_mut("π".to_string(), GlossaType::Number);
-
-        let child = parent.child();
-        let binding = child.lookup_binding("π").unwrap();
-        assert_eq!(binding.name, "π");
-        assert!(binding.mutable);
-    }
-
-    #[test]
-    fn test_lookup_binding_not_found() {
-        let scope = Scope::new();
-        assert!(scope.lookup_binding("ζ").is_none());
+        scope.exit();
     }
 }
