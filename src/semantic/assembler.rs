@@ -965,9 +965,9 @@ impl Assembler {
                     // Push back a property access for the split result
                     self.pending_property_accesses
                         .push((normalized_original.to_string(), "split".to_string()));
+                    return true;
                 }
             }
-            return true;
         }
 
         // Check for join verb
@@ -989,9 +989,9 @@ impl Assembler {
                     // Push back a property access for the join result
                     self.pending_property_accesses
                         .push((normalized_original.to_string(), "join".to_string()));
+                    return true;
                 }
             }
-            return true;
         }
 
         false
@@ -1041,8 +1041,8 @@ impl Assembler {
                 self.pending_property_accesses
                     .push((normalized_original.to_string(), "len".to_string()));
                 self.pending_subject = None; // Consume the subject
+                return true;
             }
-            return true;
         }
 
         // Ordinal adjectives
@@ -1061,8 +1061,8 @@ impl Assembler {
 
                 self.pending_index_accesses.push((array, index_expr));
                 self.pending_subject = None; // Consume the subject
+                return true;
             }
-            return true;
         }
 
         false
