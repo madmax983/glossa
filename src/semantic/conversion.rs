@@ -1031,7 +1031,7 @@ pub fn extract_value(
     if let Some(array_elements) = asm_stmt.arrays.first() {
         let mut analyzed_elements = Vec::with_capacity(array_elements.len());
         for e in array_elements {
-             analyzed_elements.push(analyze_argument_expr(e, scope)?);
+            analyzed_elements.push(analyze_argument_expr(e, scope)?);
         }
 
         let element_type = analyzed_elements
