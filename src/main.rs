@@ -9,6 +9,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::SystemTime;
 
+mod cli_ui;
+use cli_ui::GlossaUi;
+
 use glossa::ast::build_ast;
 use glossa::codegen::{generate_rust, generate_rust_file};
 use glossa::errors::GlossaError;
@@ -135,7 +138,8 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     fs::write(&output_path, &rust_code).into_diagnostic()?;
 
-    println!("✓ Ἐγράφη: {}", output_path.display());
+    let ui = GlossaUi::new();
+    ui.success(&format!("Ἐγράφη: {}", output_path.display()));
 
     Ok(())
 }
@@ -145,6 +149,8 @@ fn run_file(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
+
+    let ui = GlossaUi::new();
 
     // Set up cache directory
     let cache = cache_dir();
@@ -160,6 +166,7 @@ fn run_file(input: &Path) -> Result<()> {
 
     // Check if we can use cached binary
     if cache_valid(input, &cached_exe) && cached_exe.exists() {
+        ui.info(&format!("Τρέχων (cached): {}", input.display()));
         // Run cached binary directly
         let status = Command::new(&cached_exe).status().into_diagnostic()?;
 
@@ -177,23 +184,27 @@ fn run_file(input: &Path) -> Result<()> {
     fs::write(&cached_rs, &rust_code).into_diagnostic()?;
 
     // Compile with rustc (hide output)
-    let rustc_output = Command::new("rustc")
-        .arg(&cached_rs)
-        .arg("-o")
-        .arg(&cached_exe)
-        .arg("-O") // Optimize for speed
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .into_diagnostic()?;
+    ui.step("Compiling native binary", || {
+        let rustc_output = Command::new("rustc")
+            .arg(&cached_rs)
+            .arg("-o")
+            .arg(&cached_exe)
+            .arg("-O") // Optimize for speed
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .into_diagnostic()?;
 
-    if !rustc_output.status.success() {
-        // Show rustc errors only on failure
-        let stderr = String::from_utf8_lossy(&rustc_output.stderr);
-        return Err(miette::miette!("Σφάλμα μεταγλωττίσεως:\n{}", stderr));
-    }
+        if !rustc_output.status.success() {
+            // Show rustc errors only on failure
+            let stderr = String::from_utf8_lossy(&rustc_output.stderr);
+            return Err(miette::miette!("Σφάλμα μεταγλωττίσεως:\n{}", stderr));
+        }
+        Ok(())
+    })?;
 
     // Run the compiled program
+    ui.info(&format!("Τρέχων: {}", input.display()));
     let status = Command::new(&cached_exe).status().into_diagnostic()?;
 
     if !status.success() {
@@ -209,12 +220,14 @@ fn check_file(input: &Path) -> Result<()> {
     let ast = build_ast(&source).map_err(|e| miette::miette!("{}", e))?;
     let _analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
 
-    println!("✓ {} - ὀρθόν", input.display());
+    let ui = GlossaUi::new();
+    ui.success(&format!("{} - ὀρθόν", input.display()));
 
     Ok(())
 }
 
 fn run_repl() -> Result<()> {
+    let ui = GlossaUi::new();
     println!("ΓΛΩΣΣΑ v{}", env!("CARGO_PKG_VERSION"));
     println!("Γράψον .βοήθεια διὰ βοήθειαν, .ἔξοδος διὰ ἔξοδον.");
     println!();
@@ -222,12 +235,16 @@ fn run_repl() -> Result<()> {
     let mut context = ReplContext::new();
 
     loop {
-        print!("γλ> ");
-        use std::io::Write;
-        std::io::stdout().flush().into_diagnostic()?;
+        ui.prompt();
 
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input).into_diagnostic()?;
+        let bytes = std::io::stdin().read_line(&mut input).into_diagnostic()?;
+
+        // Handle EOF (Ctrl+D)
+        if bytes == 0 {
+            println!();
+            break;
+        }
 
         let input = input.trim();
 

@@ -16,6 +16,7 @@ quote = "1"
 proc-macro2 = "1"
 smol_str = "0.3"
 rustc-hash = "2"
+crossterm = "0.29.0"
 
 [dev-dependencies]
 insta = "1"
