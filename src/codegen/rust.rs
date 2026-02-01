@@ -678,7 +678,12 @@ fn generate_struct_lit(type_name: &str, fields: &[String], args: &[HirExpr]) -> 
         .map(|(field_name, arg)| {
             let field_ident = format_ident!("{}", sanitize_name(field_name));
             let arg_token = generate_expr(arg);
-            quote! { #field_ident: #arg_token }
+            // Glossa structs use String for text fields, so convert string literals
+            if matches!(arg, HirExpr::StringLit(_)) {
+                quote! { #field_ident: #arg_token.to_string() }
+            } else {
+                quote! { #field_ident: #arg_token }
+            }
         })
         .collect();
 

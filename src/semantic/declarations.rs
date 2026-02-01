@@ -297,6 +297,13 @@ pub fn map_genitive_to_type(genitive_name: &str, scope: &Scope) -> GlossaType {
     if genitive_name == "ονοματος" {
         return GlossaType::String;
     }
+
+    // Try to infer type (handles nominative forms like ἀριθμός)
+    let inferred = crate::semantic::types::infer_type(genitive_name);
+    if inferred != GlossaType::Unknown {
+        return inferred;
+    }
+
     // Check for user-defined types
     // Strip genitive ending and look up the nominative form
     // For now, just try the name as-is
