@@ -166,7 +166,9 @@ fn analyze_expression(
             unique_lemmas.insert(verb_lemma.clone());
             stats.total_verbs += 1;
         }
-        _ => {} // Literals, etc.
+        Expr::StringLiteral(_) | Expr::NumberLiteral(_) | Expr::BooleanLiteral(_) => {
+            // Literals don't count as "rhetorical words" in this analysis
+        }
     }
 }
 
@@ -353,4 +355,47 @@ mod tests {
         // Should recurse into block and find the verb
         assert!(stats.total_verbs >= 1);
     }
+}
+
+#[test]
+fn test_call_manual_coverage() {
+    use crate::ast::{Clause, Word};
+
+    // Construct a Call manually since parser might not produce it easily
+    let call = Expr::Call {
+        verb: Word::new("λέγε"),
+        arguments: vec![Expr::StringLiteral("test".to_string())],
+    };
+
+    let stmt = Statement::Regular {
+        clauses: vec![Clause {
+            expressions: vec![call],
+        }],
+        is_query: false,
+        is_propagate: false,
+    };
+
+    let program = Program {
+        statements: vec![stmt],
+    };
+    let stats = analyze_rhetoric(&program);
+
+    // "λέγε" is a verb
+    assert!(stats.total_verbs >= 1);
+    assert!(stats.total_words >= 1);
+}
+
+#[test]
+fn test_literals_coverage() {
+    let code = "«string» 42 ἀληθές.";
+    use crate::parser::parse;
+    let program = parse(code).expect("Failed to parse literals");
+    let stats = analyze_rhetoric(&program);
+
+    // Literals are handled but don't increment word count
+    // "ἀληθές" (true) might be parsed as BooleanLiteral OR Word depending on parser?
+    // In Ast, BooleanLiteral exists. Parser likely produces it for specific keywords.
+    // Assuming they don't count as words.
+    // But we just want to ensure code runs without panic and hits the branches.
+    assert_eq!(stats.total_verbs, 0);
 }
