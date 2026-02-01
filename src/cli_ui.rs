@@ -1,8 +1,8 @@
 use crossterm::{
-    style::{Color, Print, ResetColor, SetForegroundColor},
     ExecutableCommand,
+    style::{Color, Print, ResetColor, SetForegroundColor},
 };
-use std::io::{stderr, stdout, Write};
+use std::io::{Write, stderr, stdout};
 
 pub struct GlossaUi;
 
