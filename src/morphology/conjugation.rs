@@ -74,8 +74,8 @@ const PRESENT_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
 const AORIST_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
     ("σωμεν", Person::First, Number::Plural),
     ("σωσιν", Person::Third, Number::Plural),
-    ("σητε", Person::Second, Number::Plural),
     ("σωσι", Person::Third, Number::Plural),
+    ("σητε", Person::Second, Number::Plural),
     ("σης", Person::Second, Number::Singular),
     ("ση", Person::Third, Number::Singular),
     ("σω", Person::First, Number::Singular),
