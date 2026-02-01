@@ -842,7 +842,13 @@ mod tests {
                 assert!(
                     current_len >= next_len,
                     "{} is not sorted by length descending! Element at {} ('{}', len {}) is shorter than element at {} ('{}', len {})",
-                    name, i, list[i].0, current_len, i + 1, list[i + 1].0, next_len
+                    name,
+                    i,
+                    list[i].0,
+                    current_len,
+                    i + 1,
+                    list[i + 1].0,
+                    next_len
                 );
             }
         }
