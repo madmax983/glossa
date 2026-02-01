@@ -465,21 +465,17 @@ fn match_verb_endings(
 }
 
 /// Match a word against ALL verb endings (for ambiguity resolution)
-fn match_verb_endings_all(
-    word: &str,
-    endings: &[(&str, Person, Number)],
-) -> Vec<(String, Person, Number)> {
-    let mut matches = Vec::new();
-
+fn match_verb_endings_all<F>(word: &str, endings: &[(&str, Person, Number)], mut callback: F)
+where
+    F: FnMut(&str, Person, Number),
+{
     for (ending, person, number) in endings {
         if let Some(stem) = word.strip_suffix(ending)
             && !stem.is_empty()
         {
-            matches.push((stem.to_string(), *person, *number));
+            callback(stem, *person, *number);
         }
     }
-
-    matches
 }
 
 /// Analyze a word as a verb, returning ALL possible analyses
@@ -572,14 +568,12 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
     ];
 
     for pattern in &patterns {
-        let matches = match_verb_endings_all(word, pattern.endings);
-
-        for (stem, person, number) in matches {
+        match_verb_endings_all(word, pattern.endings, |stem, person, number| {
             // Handle augment stripping for indicative aorists
             let lemma_stem = if pattern.has_augment {
-                strip_augment(&stem)
+                Cow::Owned(strip_augment(stem))
             } else {
-                stem.clone()
+                Cow::Borrowed(stem)
             };
 
             // Calculate confidence
@@ -599,7 +593,7 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
                 voice: Some(pattern.voice),
                 confidence,
             });
-        }
+        });
     }
 
     // Try infinitives
