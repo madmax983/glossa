@@ -59,23 +59,35 @@ pub fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
-    let classifiers: &[fn(&AssembledStatement, &mut Scope) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError>] = &[
-        classify_iterator_pattern,
-        classify_property_access_print,
-        classify_struct_instantiation,
-        classify_function_call,
-        classify_subjunctive_comparison,
-        classify_variable_binding,
-        classify_assignment,
-        classify_collection_mutation,
-        classify_print,
-        classify_query,
-    ];
-
-    for classifier in classifiers {
-        if let Some(res) = classifier(asm_stmt, scope)? {
-            return Ok(res);
-        }
+    if let Some(res) = classify_iterator_pattern(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_property_access_print(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_struct_instantiation(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_function_call(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_subjunctive_comparison(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_variable_binding(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_assignment(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_collection_mutation(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_print(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_query(asm_stmt, scope)? {
+        return Ok(res);
     }
 
     classify_expression(asm_stmt)
