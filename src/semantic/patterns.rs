@@ -339,15 +339,15 @@ pub fn detect_iterator_pattern(
                     // Genitive of comparison: θου μείζονα = "greater than theta"
                     // For single-letter variables, strip genitive ending
                     let normalized = normalize_greek(&genitive.original);
-                    let var_name = if normalized.ends_with("ου") {
+                    let var_name = if let Some(stem) = normalized.strip_suffix("ου") {
                         // Strip -ου genitive ending (θου → θ)
-                        normalized.trim_end_matches("ου").to_string()
-                    } else if normalized.ends_with("ης") {
+                        stem.to_string()
+                    } else if let Some(stem) = normalized.strip_suffix("ης") {
                         // Strip -ης genitive ending
-                        normalized.trim_end_matches("ης").to_string()
-                    } else if normalized.ends_with("ων") {
+                        stem.to_string()
+                    } else if let Some(stem) = normalized.strip_suffix("ων") {
                         // Strip -ων genitive plural ending
-                        normalized.trim_end_matches("ων").to_string()
+                        stem.to_string()
                     } else {
                         // Use as-is (shouldn't happen for valid genitives)
                         normalized.to_string()
@@ -575,15 +575,15 @@ pub fn detect_iterator_pattern(
                     // Genitive of comparison: θου μείζον = "greater than theta"
                     // For single-letter variables, strip genitive ending
                     let normalized = normalize_greek(&genitive.original);
-                    let var_name = if normalized.ends_with("ου") {
+                    let var_name = if let Some(stem) = normalized.strip_suffix("ου") {
                         // Strip -ου genitive ending (θου → θ)
-                        normalized.trim_end_matches("ου").to_string()
-                    } else if normalized.ends_with("ης") {
+                        stem.to_string()
+                    } else if let Some(stem) = normalized.strip_suffix("ης") {
                         // Strip -ης genitive ending
-                        normalized.trim_end_matches("ης").to_string()
-                    } else if normalized.ends_with("ων") {
+                        stem.to_string()
+                    } else if let Some(stem) = normalized.strip_suffix("ων") {
                         // Strip -ων genitive plural ending
-                        normalized.trim_end_matches("ων").to_string()
+                        stem.to_string()
                     } else {
                         // Use as-is
                         normalized.to_string()
@@ -675,15 +675,15 @@ pub fn detect_iterator_pattern(
                         // Genitive of comparison: θου μείζον = "greater than theta"
                         // For single-letter variables, strip genitive ending
                         let normalized = normalize_greek(&genitive.original);
-                        let var_name = if normalized.ends_with("ου") {
+                        let var_name = if let Some(stem) = normalized.strip_suffix("ου") {
                             // Strip -ου genitive ending (θου → θ)
-                            normalized.trim_end_matches("ου").to_string()
-                        } else if normalized.ends_with("ης") {
+                            stem.to_string()
+                        } else if let Some(stem) = normalized.strip_suffix("ης") {
                             // Strip -ης genitive ending
-                            normalized.trim_end_matches("ης").to_string()
-                        } else if normalized.ends_with("ων") {
+                            stem.to_string()
+                        } else if let Some(stem) = normalized.strip_suffix("ων") {
                             // Strip -ων genitive plural ending
-                            normalized.trim_end_matches("ων").to_string()
+                            stem.to_string()
                         } else {
                             // Use as-is
                             normalized.to_string()
