@@ -162,11 +162,11 @@ pub struct AnalyzedProgram {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::build_ast;
+    use crate::parser::parse;
 
     #[test]
     fn test_analyze_hello() {
-        let ast = build_ast("«χαῖρε» λέγε.").unwrap();
+        let ast = parse("«χαῖρε» λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
 
         assert_eq!(analyzed.statements.len(), 1);
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_analyze_binding() {
-        let ast = build_ast("ξ πέντε ἔστω.").unwrap();
+        let ast = parse("ξ πέντε ἔστω.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
 
         assert!(matches!(
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_analyze_variable_use() {
-        let ast = build_ast("ξ πέντε ἔστω. ξ λέγε.").unwrap();
+        let ast = parse("ξ πέντε ἔστω. ξ λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
 
         assert_eq!(analyzed.statements.len(), 2);
@@ -199,7 +199,7 @@ mod tests {
 
     #[test]
     fn test_analyze_string_literal() {
-        let ast = build_ast("«χαῖρε κόσμε» λέγε.").unwrap();
+        let ast = parse("«χαῖρε κόσμε» λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
 
         let first_expr = &analyzed.statements[0].expressions[0];
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn test_analyze_number_literal() {
-        let ast = build_ast("42 λέγε.").unwrap();
+        let ast = parse("42 λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
 
         let first_expr = &analyzed.statements[0].expressions[0];

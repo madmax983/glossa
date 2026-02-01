@@ -1,10 +1,10 @@
-use glossa::ast::build_ast;
 use glossa::codegen::generate_rust;
 use glossa::ir::lower_to_hir;
+use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
 fn compile(source: &str) {
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
     let hir = lower_to_hir(&analyzed);
     let _ = generate_rust(&hir);

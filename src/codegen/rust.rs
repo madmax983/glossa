@@ -888,12 +888,12 @@ fn transliterate(greek: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::build_ast;
     use crate::ir::lower_to_hir;
+    use crate::parser::parse;
     use crate::semantic::analyze_program;
 
     fn compile(source: &str) -> String {
-        let ast = build_ast(source).unwrap();
+        let ast = parse(source).unwrap();
         let analyzed = analyze_program(&ast).unwrap();
         let hir = lower_to_hir(&analyzed);
         generate_rust(&hir)

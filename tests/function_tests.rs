@@ -1,11 +1,11 @@
-use glossa::ast::build_ast;
 use glossa::codegen::generate_rust;
 use glossa::ir::lower_to_hir;
+use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> String {
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
     let hir = lower_to_hir(&analyzed);
     generate_rust(&hir)
@@ -17,7 +17,7 @@ fn compile(source: &str) -> String {
 
 #[test]
 fn test_parse_simple_function_no_params() {
-    let ast = build_ast("χαιρετισμος ὁρίζειν· «χαῖρε» λέγε.").unwrap();
+    let ast = parse("χαιρετισμος ὁρίζειν· «χαῖρε» λέγε.").unwrap();
     assert_eq!(ast.statements.len(), 1);
     // Debug: print clause structure
     eprintln!("Clauses: {}", ast.statements[0].clauses().len());

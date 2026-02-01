@@ -90,7 +90,7 @@ mod cycle4_map_operation {
     #[test]
     fn test_map_with_participle_simple() {
         // Start with just the binding statement
-        let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
+        let ast = parser::parse("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
         assert!(
             analyzed.is_ok(),
@@ -103,7 +103,7 @@ mod cycle4_map_operation {
     fn test_map_with_participle() {
         // Test with two separate programs to isolate the issue
         // First: bind the variable
-        let ast1 = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
+        let ast1 = parser::parse("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed1 = semantic::analyze_program(&ast1);
         assert!(
             analyzed1.is_ok(),
@@ -113,7 +113,7 @@ mod cycle4_map_operation {
 
         // Second: just the participle pattern (simplified - no variable binding first)
         // We need a collection that already exists, but for now let's use a literal
-        let ast2 = ast::build_ast("[1, 2, 3] διπλασιαζόμενα λέγε.").unwrap();
+        let ast2 = parser::parse("[1, 2, 3] διπλασιαζόμενα λέγε.").unwrap();
         let analyzed2 = semantic::analyze_program(&ast2);
 
         if let Ok(analyzed) = analyzed2 {
@@ -146,7 +146,7 @@ mod cycle5_filter_operation {
     fn test_comparative_adjective_detection() {
         // μείζονα = "greater" (comparative of μέγας)
         // This should be detected as a comparative adjective
-        let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
+        let ast = parser::parse("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
         assert!(
             analyzed.is_ok(),
@@ -160,7 +160,7 @@ mod cycle5_filter_operation {
         // πέντε μείζονα = "greater than five"
         // Genitive of comparison: πέντε (five) + μείζονα (greater)
         // Should filter [1, 10, 3, 8] to get [10, 8]
-        let ast = ast::build_ast("[1, 10, 3, 8] πέντε μείζονα λέγε.").unwrap();
+        let ast = parser::parse("[1, 10, 3, 8] πέντε μείζονα λέγε.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
@@ -186,7 +186,7 @@ mod cycle5_filter_operation {
     fn test_filter_less_than() {
         // δέκα ἐλάττονα = "less than ten"
         // Should filter [5, 15, 3, 20] to get [5, 3]
-        let ast = ast::build_ast("[5, 15, 3, 20] δέκα ἐλάττονα λέγε.").unwrap();
+        let ast = parser::parse("[5, 15, 3, 20] δέκα ἐλάττονα λέγε.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
         assert!(
             analyzed.is_ok(),
@@ -204,7 +204,7 @@ mod cycle6_find_operation {
     fn test_find_verb_detection() {
         // εὑρέ = "find" (imperative of εὑρίσκω)
         // Just test that the verb is recognized
-        let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
+        let ast = parser::parse("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
         assert!(
             analyzed.is_ok(),
@@ -220,7 +220,7 @@ mod cycle6_find_operation {
         // μείζον is neuter nominative singular comparative
         let code = "[1, 5, 3] τριῶν μείζον εὑρέ.";
         println!("Testing: {}", code);
-        let ast = ast::build_ast(code).unwrap();
+        let ast = parser::parse(code).unwrap();
         println!("AST: {:?}", ast);
         let analyzed = semantic::analyze_program(&ast);
 
@@ -247,7 +247,7 @@ mod cycle6_find_operation {
     fn test_find_first_element() {
         // [10, 5, 20] πρῶτον εὑρέ = "find the first"
         // This should just return the first element
-        let ast = ast::build_ast("[10, 5, 20] εὑρέ.").unwrap();
+        let ast = parser::parse("[10, 5, 20] εὑρέ.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
@@ -273,7 +273,7 @@ mod cycle7_fold_operation {
     fn test_fold_verb_detection() {
         // συλλεγόμενα = "being-collected" (present middle participle)
         // Just test that the participle is recognized
-        let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
+        let ast = parser::parse("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
         assert!(
             analyzed.is_ok(),
@@ -290,7 +290,7 @@ mod cycle7_fold_operation {
         // ἄθροισμα = "sum" (neuter noun, accusative)
         let code = "[1, 2, 3] συλλεγόμενα εἰς ἄθροισμα λέγε.";
         println!("Testing: {}", code);
-        let ast = ast::build_ast(code).unwrap();
+        let ast = parser::parse(code).unwrap();
         println!("AST: {:?}", ast);
         let analyzed = semantic::analyze_program(&ast);
 
@@ -315,7 +315,7 @@ mod cycle7_fold_operation {
         // [2, 3, 4] συλλεγόμενα εἰς γινόμενον = "being-collected into product"
         // γινόμενον = "product" (neuter noun, accusative)
         // Should fold with * operation starting from 1
-        let ast = ast::build_ast("[2, 3, 4] συλλεγόμενα εἰς γινόμενον λέγε.").unwrap();
+        let ast = parser::parse("[2, 3, 4] συλλεγόμενα εἰς γινόμενον λέγε.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
@@ -343,7 +343,7 @@ mod cycle8_any_all_operations {
     fn test_any_quantifier_detection() {
         // τι = "any, some" (interrogative pronoun)
         // Just test that basic parsing works
-        let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
+        let ast = parser::parse("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
         assert!(
             analyzed.is_ok(),
@@ -361,7 +361,7 @@ mod cycle8_any_all_operations {
         // Should generate .any(|x| x > 5)
         let code = "[1, 5, 3] τι πέντε μείζον λέγε.";
         println!("Testing: {}", code);
-        let ast = ast::build_ast(code).unwrap();
+        let ast = parser::parse(code).unwrap();
         println!("AST: {:?}", ast);
         let analyzed = semantic::analyze_program(&ast);
 
@@ -388,7 +388,7 @@ mod cycle8_any_all_operations {
     fn test_all_quantifier() {
         // πάντα = "all" (plural neuter nominative)
         // Just test basic parsing
-        let ast = ast::build_ast("ξ [1, 2, 3] ἔστω.").unwrap();
+        let ast = parser::parse("ξ [1, 2, 3] ἔστω.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
         assert!(
             analyzed.is_ok(),
@@ -405,7 +405,7 @@ mod cycle8_any_all_operations {
         // Should generate .all(|x| x > 0)
         let code = "[1, 2, 3] πάντα θετικά λέγε.";
         println!("Testing: {}", code);
-        let ast = ast::build_ast(code).unwrap();
+        let ast = parser::parse(code).unwrap();
         println!("AST: {:?}", ast);
         let analyzed = semantic::analyze_program(&ast);
 
@@ -432,7 +432,7 @@ mod cycle8_any_all_operations {
     fn test_any_less_than() {
         // [1, 10, 3] τι πέντε ἐλάττον λέγε = "say whether any (are) less-than-five"
         // Should generate .any(|x| x < 5)
-        let ast = ast::build_ast("[1, 10, 3] τι πέντε ἐλάττον λέγε.").unwrap();
+        let ast = parser::parse("[1, 10, 3] τι πέντε ἐλάττον λέγε.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
@@ -462,7 +462,7 @@ mod cycle9_combined_operations {
         // Should generate .filter(|x| x > 5).map(|x| x * 2)
         let code = "[1, 5, 3, 8] πέντε μείζονα διπλασιαζόμενα λέγε.";
         println!("Testing: {}", code);
-        let ast = ast::build_ast(code).unwrap();
+        let ast = parser::parse(code).unwrap();
         println!("AST: {:?}", ast);
         let analyzed = semantic::analyze_program(&ast);
 
@@ -495,7 +495,7 @@ mod cycle9_combined_operations {
         // Should generate .map(|x| x * 2).fold(0, |acc, x| acc + x)
         let code = "[1, 2, 3] διπλασιαζόμενα συλλεγόμενα εἰς ἄθροισμα λέγε.";
         println!("Testing: {}", code);
-        let ast = ast::build_ast(code).unwrap();
+        let ast = parser::parse(code).unwrap();
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
@@ -559,7 +559,7 @@ mod cycle11_variable_capture {
         // Should capture theta in the filter closure
         let code = "θ 5 ἔστω. ξ [1, 6, 3, 8] ἔστω. ξ θου μείζονα λέγε.";
         println!("Testing: {}", code);
-        let ast = ast::build_ast(code).unwrap();
+        let ast = parser::parse(code).unwrap();
         println!("AST: {:?}", ast);
         let analyzed = semantic::analyze_program(&ast);
 
@@ -589,7 +589,7 @@ mod cycle11_variable_capture {
         // Should capture theta in the any closure
         let code = "θ 10 ἔστω. ξ [5, 15, 3] ἔστω. ξ τι θου μείζον λέγε.";
         println!("Testing: {}", code);
-        let ast = ast::build_ast(code).unwrap();
+        let ast = parser::parse(code).unwrap();
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
@@ -617,7 +617,7 @@ mod cycle11_variable_capture {
         // Should NOT capture anything, just use literal 5
         let code = "ξ [1, 6, 3] ἔστω. ξ πέντε μείζονα λέγε.";
         println!("Testing: {}", code);
-        let ast = ast::build_ast(code).unwrap();
+        let ast = parser::parse(code).unwrap();
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
@@ -691,7 +691,7 @@ mod cycle12_aorist_participles {
 
         // Present participle: διπλασιαζόμενα (present middle)
         let code1 = "[1, 2, 3] διπλασιαζόμενα λέγε.";
-        let ast1 = ast::build_ast(code1).unwrap();
+        let ast1 = parser::parse(code1).unwrap();
         let analyzed1 = semantic::analyze_program(&ast1);
 
         if let Ok(analyzed) = analyzed1 {

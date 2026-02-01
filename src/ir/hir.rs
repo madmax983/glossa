@@ -300,11 +300,11 @@ impl From<crate::morphology::lexicon::BinaryOp> for BinOp {
 /// # Examples
 ///
 /// ```
-/// use glossa::ast::build_ast;
+/// use glossa::parser::parse;
 /// use glossa::semantic::analyze_program;
 /// use glossa::ir::{lower_to_hir, HirStatement};
 ///
-/// let ast = build_ast("ξ πέντε ἔστω.").unwrap();
+/// let ast = parse("ξ πέντε ἔστω.").unwrap();
 /// let analyzed = analyze_program(&ast).unwrap();
 /// let hir = lower_to_hir(&analyzed);
 ///
@@ -669,12 +669,12 @@ pub fn lower_expr(expr: &AnalyzedExpr) -> HirExpr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::build_ast;
+    use crate::parser::parse;
     use crate::semantic::analyze_program;
 
     #[test]
     fn test_lower_hello() {
-        let ast = build_ast("«χαῖρε» λέγε.").unwrap();
+        let ast = parse("«χαῖρε» λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
         let hir = lower_to_hir(&analyzed);
 
@@ -684,7 +684,7 @@ mod tests {
 
     #[test]
     fn test_lower_binding() {
-        let ast = build_ast("ξ πέντε ἔστω.").unwrap();
+        let ast = parse("ξ πέντε ἔστω.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
         let hir = lower_to_hir(&analyzed);
 
@@ -696,7 +696,7 @@ mod tests {
 
     #[test]
     fn test_lower_number_literal() {
-        let ast = build_ast("42 λέγε.").unwrap();
+        let ast = parse("42 λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
         let hir = lower_to_hir(&analyzed);
 
@@ -709,7 +709,7 @@ mod tests {
 
     #[test]
     fn test_lower_assignment() {
-        let ast = build_ast("μετά ξ πέντε ἔστω. ξ δέκα γίγνεται.").unwrap();
+        let ast = parse("μετά ξ πέντε ἔστω. ξ δέκα γίγνεται.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
         let hir = lower_to_hir(&analyzed);
 

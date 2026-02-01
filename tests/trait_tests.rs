@@ -1,11 +1,12 @@
-use glossa::ast::{Statement, build_ast};
+use glossa::ast::Statement;
 use glossa::codegen::generate_rust;
 use glossa::ir::lower_to_hir;
+use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> String {
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
     let hir = lower_to_hir(&analyzed);
     generate_rust(&hir)
@@ -18,7 +19,7 @@ fn compile(source: &str) -> String {
 #[test]
 fn test_parse_empty_trait() {
     let input = "χαρακτήρ Showable ὁρίζειν { }.";
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
 
     assert_eq!(ast.statements.len(), 1);
     match &ast.statements[0] {
@@ -33,7 +34,7 @@ fn test_parse_empty_trait() {
 #[test]
 fn test_parse_trait_with_required_method() {
     let input = "χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.";
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
 
     assert_eq!(ast.statements.len(), 1);
     match &ast.statements[0] {
@@ -54,7 +55,7 @@ fn test_parse_trait_with_required_method() {
 #[test]
 fn test_parse_trait_with_default_method() {
     let input = "χαρακτήρ Math ὁρίζειν { ἤδη double τῷ self· δός selfου add self. }.";
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
 
     assert_eq!(ast.statements.len(), 1);
     match &ast.statements[0] {
@@ -79,7 +80,7 @@ fn test_parse_trait_multiple_methods() {
             ἤδη double τῷ self· δός selfου add self.
         }.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
 
     assert_eq!(ast.statements.len(), 1);
     match &ast.statements[0] {
@@ -108,7 +109,7 @@ fn test_parse_trait_multiple_methods() {
 #[test]
 fn test_analyze_trait_definition() {
     let input = "χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.";
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(
         result.is_ok(),
@@ -122,7 +123,7 @@ fn test_trait_stored_in_scope() {
     // This test will need access to the scope after analysis
     // For now, we'll just check that analysis succeeds
     let input = "χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.";
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(
         result.is_ok(),
@@ -137,7 +138,7 @@ fn test_duplicate_trait_error() {
         χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.
         χαρακτήρ Showable ὁρίζειν { δεῖ display τῷ self. }.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(result.is_err(), "Should error on duplicate trait name");
     let err_msg = result.unwrap_err().to_string();
@@ -151,7 +152,7 @@ fn test_duplicate_trait_error() {
 #[test]
 fn test_default_method_body_analysis() {
     let input = "χαρακτήρ Math ὁρίζειν { ἤδη double τῷ self· δός πέντε. }.";
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(
         result.is_ok(),
@@ -167,7 +168,7 @@ fn test_default_method_body_analysis() {
 #[test]
 fn test_parse_empty_trait_impl() {
     let input = "εἶδος Point τῷ Showable ἐμπίπτειν { }.";
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
 
     assert_eq!(ast.statements.len(), 1);
     match &ast.statements[0] {
@@ -187,7 +188,7 @@ fn test_parse_trait_impl_with_method() {
             show τῷ self· selfου ξ λέγε.
         }.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
 
     assert_eq!(ast.statements.len(), 1);
     match &ast.statements[0] {
@@ -212,7 +213,7 @@ fn test_parse_impl_multiple_methods() {
             subtract τῷ self τῷ other· δός νέον Number (selfου v otherou v διαφορά).
         }.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
 
     assert_eq!(ast.statements.len(), 1);
     match &ast.statements[0] {
@@ -241,7 +242,7 @@ fn test_analyze_trait_impl() {
             show τῷ self· selfου ξ λέγε.
         }.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(
         result.is_ok(),
@@ -258,7 +259,7 @@ fn test_impl_for_undefined_trait_error() {
             show τῷ self· selfου ξ λέγε.
         }.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(result.is_err(), "Should error when trait doesn't exist");
     let err_msg = result.unwrap_err().to_string();
@@ -279,7 +280,7 @@ fn test_impl_for_undefined_type_error() {
             show τῷ self· selfου ξ λέγε.
         }.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(result.is_err(), "Should error when type doesn't exist");
     let err_msg = result.unwrap_err().to_string();
@@ -304,7 +305,7 @@ fn test_missing_required_method_error() {
             add τῷ self τῷ other· δός πέντε.
         }.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(
         result.is_err(),
@@ -332,7 +333,7 @@ fn test_impl_with_default_method_not_required() {
             add τῷ self τῷ other· δός τρία.
         }.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(
         result.is_ok(),
@@ -356,7 +357,7 @@ fn test_call_trait_method() {
         π νέον Point πέντε ἔστω.
         που show.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(
         result.is_ok(),
@@ -377,7 +378,7 @@ fn test_call_trait_method_with_args() {
         β νέον Number τρία ἔστω.
         γ αου add β ἔστω.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(
         result.is_ok(),
@@ -400,7 +401,7 @@ fn test_call_default_method() {
         α νέον Number πέντε ἔστω.
         β αου double ἔστω.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     assert!(
         result.is_ok(),
@@ -417,7 +418,7 @@ fn test_trait_method_call_error_not_implemented() {
         π νέον Point πέντε ἔστω.
         που show.
     "#;
-    let ast = build_ast(input).expect("Parsing failed");
+    let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
     // This should actually compile - the error would be at runtime
     // Or we could make it a compile-time error if we track which types implement which traits

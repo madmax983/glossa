@@ -10,12 +10,12 @@ use glossa::semantic::GlossaType;
 
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> Result<String, String> {
-    use glossa::ast::build_ast;
     use glossa::codegen::generate_rust;
     use glossa::ir::lower_to_hir;
+    use glossa::parser::parse;
     use glossa::semantic::analyze_program;
 
-    let ast = build_ast(source).map_err(|e| e.to_string())?;
+    let ast = parse(source).map_err(|e| e.to_string())?;
     let analyzed = analyze_program(&ast).map_err(|e| e.to_string())?;
     let hir = lower_to_hir(&analyzed);
     Ok(generate_rust(&hir))
@@ -223,12 +223,12 @@ fn test_hir_unwrap_variant() {
 
 #[test]
 fn test_none_expression_analyzed() {
-    use glossa::ast::build_ast;
+    use glossa::parser::parse;
     use glossa::semantic::analyze_program;
 
     // ξ οὐδέν ἔστω. → let x = None;
     let source = "ξ ουδεν εστω.";
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
 
     // Should have one binding statement
@@ -237,12 +237,12 @@ fn test_none_expression_analyzed() {
 
 #[test]
 fn test_some_expression_analyzed() {
-    use glossa::ast::build_ast;
+    use glossa::parser::parse;
     use glossa::semantic::analyze_program;
 
     // ξ τί πέντε ἔστω. → let x = Some(5);
     let source = "ξ τι πεντε εστω.";
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
 
     // Should have one binding statement
@@ -251,12 +251,12 @@ fn test_some_expression_analyzed() {
 
 #[test]
 fn test_ok_expression_analyzed() {
-    use glossa::ast::build_ast;
+    use glossa::parser::parse;
     use glossa::semantic::analyze_program;
 
     // ξ ἐπιτυχία πέντε ἔστω. → let x = Ok(5);
     let source = "ξ επιτυχια πεντε εστω.";
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
 
     // Should have one binding statement
@@ -265,12 +265,12 @@ fn test_ok_expression_analyzed() {
 
 #[test]
 fn test_err_expression_analyzed() {
-    use glossa::ast::build_ast;
+    use glossa::parser::parse;
     use glossa::semantic::analyze_program;
 
     // ξ σφάλμα «πρόβλημα» ἔστω. → let x = Err("problem");
     let source = "ξ σφαλμα «προβλημα» εστω.";
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
 
     // Should have one binding statement
@@ -337,12 +337,12 @@ fn test_err_codegen() {
 
 #[test]
 fn test_unwrap_operator_codegen() {
-    use glossa::ast::build_ast;
+    use glossa::parser::parse;
     use glossa::semantic::analyze_program;
 
     // ξ τί πέντε ἔστω. ξ! λέγε. → let x = Some(5); println!("{}", x.unwrap());
     let source = "ξ τι πεντε εστω. ξ! λεγε.";
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast);
 
     // Should analyze without errors

@@ -9,10 +9,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::SystemTime;
 
-use glossa::ast::build_ast;
 use glossa::codegen::{generate_rust, generate_rust_file};
 use glossa::errors::GlossaError;
 use glossa::ir::lower_to_hir;
+use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
 #[derive(Parser)]
@@ -86,7 +86,7 @@ fn main() -> Result<()> {
 }
 
 fn compile(source: &str) -> std::result::Result<String, GlossaError> {
-    let ast = build_ast(source)?;
+    let ast = parse(source)?;
     let analyzed = analyze_program(&ast)?;
     let hir = lower_to_hir(&analyzed);
     Ok(generate_rust_file(&hir))
@@ -206,7 +206,7 @@ fn run_file(input: &Path) -> Result<()> {
 fn check_file(input: &Path) -> Result<()> {
     let source = fs::read_to_string(input).into_diagnostic()?;
 
-    let ast = build_ast(&source).map_err(|e| miette::miette!("{}", e))?;
+    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
     let _analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
 
     println!("✓ {} - ὀρθόν", input.display());
@@ -300,7 +300,7 @@ impl ReplContext {
         full_source.push_str(input);
 
         // Try to compile
-        let ast = build_ast(&full_source)?;
+        let ast = parse(&full_source)?;
         let analyzed = analyze_program(&ast)?;
         let hir = lower_to_hir(&analyzed);
 

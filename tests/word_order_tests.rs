@@ -4,14 +4,14 @@
 //! all major Greek word orders, producing identical output regardless
 //! of constituent order.
 
-use glossa::ast::build_ast;
 use glossa::codegen::generate_rust;
 use glossa::ir::lower_to_hir;
+use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
 /// Helper to compile source and get the Rust output
 fn compile_to_rust(source: &str) -> String {
-    let ast = build_ast(source).expect("AST build failed");
+    let ast = parse(source).expect("AST build failed");
     let analyzed = analyze_program(&ast).expect("Analysis failed");
     let hir = lower_to_hir(&analyzed);
     generate_rust(&hir)
@@ -71,7 +71,7 @@ fn test_article_disambiguation_context() {
     // ὁ ἄνθρωπος should be recognized as masculine nominative singular
     // τὸν λόγον should be recognized as masculine accusative singular
     // These don't produce Rust code yet, but they should parse without error
-    let ast = build_ast("ὁ ἄνθρωπος λέγει.").expect("Should parse");
+    let ast = parse("ὁ ἄνθρωπος λέγει.").expect("Should parse");
     let _analyzed = analyze_program(&ast).expect("Should analyze");
 }
 
