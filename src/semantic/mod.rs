@@ -41,11 +41,9 @@ pub(crate) mod patterns;
 mod resolver;
 mod types;
 
+pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub use assembler::{
     AssembledStatement, Assembler, AssemblyError, Constituent, Literal, VerbConstituent,
-};
-pub use crate::morphology::{
-    analyze_article, disambiguate, resolve_best, DisambiguationContext,
 };
 pub use model::*;
 pub use resolver::*;

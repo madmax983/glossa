@@ -4,7 +4,7 @@ use super::{AnalyzedExpr, AnalyzedExprKind, Assembler, GlossaType, Literal, Scop
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::grammar::normalize_greek;
-use crate::morphology::{self, analyze_article, resolve_best, DisambiguationContext};
+use crate::morphology::{self, DisambiguationContext, analyze_article, resolve_best};
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
 pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
