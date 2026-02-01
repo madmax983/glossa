@@ -65,13 +65,16 @@ fn test_split_verb_not_ignored_without_delimiter() {
     match stmt {
         Ok(s) => {
             // Now we expect the verb to be present!
-            assert!(s.verb.is_some(), "Verb should be present (treated as normal verb) when split pattern fails");
+            assert!(
+                s.verb.is_some(),
+                "Verb should be present (treated as normal verb) when split pattern fails"
+            );
             let verb = s.verb.unwrap();
             assert_eq!(verb.original, "σχίζει");
             assert!(s.string_method.is_none(), "String method should be None");
-        },
+        }
         Err(e) => {
-             panic!("Should not error: {:?}", e);
+            panic!("Should not error: {:?}", e);
         }
     }
 }
@@ -100,10 +103,16 @@ fn test_ordinal_not_ignored_without_subject() {
     assert_eq!(stmt.subject.unwrap().original, "ἄνθρωπος");
 
     // "first" should be in adjectives now!
-    assert!(!stmt.adjectives.is_empty(), "Adjectives should NOT be empty; 'first' should be captured");
+    assert!(
+        !stmt.adjectives.is_empty(),
+        "Adjectives should NOT be empty; 'first' should be captured"
+    );
     assert_eq!(stmt.adjectives[0].original, "πρῶτον");
 
-    assert!(stmt.index_accesses.is_empty(), "Index accesses should be empty");
+    assert!(
+        stmt.index_accesses.is_empty(),
+        "Index accesses should be empty"
+    );
 }
 
 #[test]
@@ -129,5 +138,8 @@ fn test_length_property_not_ignored_without_subject() {
     assert!(stmt.subject.is_some(), "Subject should be present (length)");
     assert_eq!(stmt.subject.unwrap().lemma, "μηκος");
 
-    assert!(stmt.property_accesses.is_empty(), "Property accesses should be empty");
+    assert!(
+        stmt.property_accesses.is_empty(),
+        "Property accesses should be empty"
+    );
 }
