@@ -59,10 +59,49 @@ pub fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
-    // Check for iterator pattern with participles, comparative adjectives, or find verbs
-    // Pattern 1: ξ διπλασιαζόμενα λέγε → ξ.iter().map(|x| x * 2).collect()
-    // Pattern 2: ξ πέντε μείζονα λέγε → ξ.iter().filter(|x| x > 5).collect()
-    // Pattern 3: ξ τριῶν μείζον εὑρέ → ξ.iter().find(|x| x > 3)
+    if let Some(res) = classify_iterator_pattern(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_property_access_print(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_struct_instantiation(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_function_call(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_subjunctive_comparison(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_variable_binding(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_assignment(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_collection_mutation(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_print(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_query(asm_stmt, scope)? {
+        return Ok(res);
+    }
+
+    classify_expression(asm_stmt)
+}
+
+// -------------------------------------------------------------------------------------------------
+// Helper functions for classify_assembled_statement
+// -------------------------------------------------------------------------------------------------
+
+/// Helper: Detect iterator pattern
+fn classify_iterator_pattern(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
     let has_find_or_print_verb = if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
         crate::morphology::lexicon::is_print_verb(&verb_lemma)
@@ -76,12 +115,17 @@ pub fn classify_assembled_statement(
         || has_find_or_print_verb)
         && let Some(analyzed) = detect_iterator_pattern(asm_stmt, scope)?
     {
-        return Ok((StatementKind::Print, vec![analyzed]));
+        return Ok(Some((StatementKind::Print, vec![analyzed])));
     }
 
-    // Check for property access pattern: genitive + nominative + verb
-    // Pattern: genitive_var nominative_field λέγε
-    // Example: που ξ λέγε → pi.xi
+    Ok(None)
+}
+
+/// Helper: Detect property access print pattern (pi.xi)
+fn classify_property_access_print(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -111,15 +155,18 @@ pub fn classify_assembled_statement(
                     glossa_type: GlossaType::Unknown, // TODO: Look up field type
                 };
 
-                return Ok((StatementKind::Print, vec![prop_access]));
+                return Ok(Some((StatementKind::Print, vec![prop_access])));
             }
         }
     }
+    Ok(None)
+}
 
-    // Check for struct instantiation pattern (assembler-based, for Greek type names)
-    // Pattern: subject νέον type_name args... ἔστω
-    // Example: π νέον σημεῖον πέντε ἔστω
-    // Note: Latin identifier type names are handled before the assembler
+/// Helper: Detect struct instantiation or collection creation
+fn classify_struct_instantiation(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -166,7 +213,7 @@ pub fn classify_assembled_statement(
                     // Register variable in scope
                     scope.define(var_name.clone(), struct_type.clone());
 
-                    return Ok((
+                    return Ok(Some((
                         StatementKind::Binding {
                             name: var_name.clone(),
                             value_type: struct_type.clone(),
@@ -179,12 +226,10 @@ pub fn classify_assembled_statement(
                             },
                             struct_inst,
                         ],
-                    ));
+                    )));
                 }
 
                 // Check for built-in collection types (HashSet, HashMap)
-                // Pattern: ξ νέον σύνολον ἔστω → let xi = HashSet::new()
-                // Pattern: ξ νέον χάρτης ἔστω → let xi = HashMap::new()
                 let collection_type = match type_name.as_str() {
                     "συνολον" => {
                         Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown))))
@@ -208,10 +253,9 @@ pub fn classify_assembled_statement(
                     };
 
                     // Register variable in scope (mutable for collection operations)
-                    // Collections are implicitly mutable for methods like push/pop/insert
                     scope.define_mut(var_name.clone(), glossa_type.clone());
 
-                    return Ok((
+                    return Ok(Some((
                         StatementKind::Binding {
                             name: var_name.clone(),
                             value_type: glossa_type.clone(),
@@ -224,25 +268,25 @@ pub fn classify_assembled_statement(
                             },
                             collection_new,
                         ],
-                    ));
+                    )));
                 }
             }
         }
     }
+    Ok(None)
+}
 
-    // Check for function call pattern
-    // Pattern: subject function_name args... ἔστω
-    // Where function_name is not a built-in verb but a user-defined function
+/// Helper: Detect user-defined function call
+fn classify_function_call(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
-        // Check if verb is a binding verb and if there's an object or genitive that could be a function call
+        // Check if verb is a binding verb
         if crate::morphology::lexicon::is_binding_verb(&verb_lemma) {
-            // Check if object is a user-defined function
-            // Pattern: subject = function(args)
-            // The function name might be in the object slot or genitives
-
-            // Try nominatives first (function names are nominative)
+            // Check if object/nominative/genitive is a user-defined function
             let mut func_name = None;
             for nominative in &asm_stmt.nominatives {
                 if scope.is_function(&nominative.lemma) {
@@ -251,7 +295,6 @@ pub fn classify_assembled_statement(
                 }
             }
 
-            // Try object slot if not found in nominatives
             if func_name.is_none()
                 && let Some(ref object) = asm_stmt.object
                 && scope.is_function(&object.lemma)
@@ -259,7 +302,6 @@ pub fn classify_assembled_statement(
                 func_name = Some(object.lemma.clone());
             }
 
-            // Try genitives if still not found
             if func_name.is_none() {
                 for genitive in &asm_stmt.genitives {
                     if scope.is_function(&genitive.lemma) {
@@ -273,21 +315,18 @@ pub fn classify_assembled_statement(
             if let Some(func) = func_name
                 && let Some(ref subject) = asm_stmt.subject
             {
-                // Build function call arguments from literals and blocks
                 let mut args: Vec<AnalyzedExpr> = asm_stmt
                     .literals
                     .iter()
                     .map(literal_to_analyzed_expr)
                     .collect();
 
-                // Add nested function calls from nested phrases (parenthesized expressions)
                 for nested_terms in &asm_stmt.nested_phrases {
                     let phrase_expr = Expr::Phrase(nested_terms.clone());
                     let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
                     args.push(analyzed);
                 }
 
-                // Get return type from function signature
                 let return_type = scope
                     .lookup_function(&func)
                     .and_then(|sig| sig.return_type.clone())
@@ -301,11 +340,10 @@ pub fn classify_assembled_statement(
                     glossa_type: return_type.clone(),
                 };
 
-                // Register subject as variable (use original form, not lemma)
                 let var_name = normalize_greek(&subject.original);
                 scope.define(var_name.clone(), return_type.clone());
 
-                return Ok((
+                return Ok(Some((
                     StatementKind::Binding {
                         name: var_name.clone(),
                         value_type: return_type.clone(),
@@ -318,56 +356,62 @@ pub fn classify_assembled_statement(
                         },
                         func_call,
                     ],
-                ));
+                )));
             }
         }
+    }
+    Ok(None)
+}
+
+/// Helper: Detect subjunctive comparison (which looks like binding verb but isn't)
+fn classify_subjunctive_comparison(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+    if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
+
+        if crate::morphology::lexicon::is_binding_verb(&verb_lemma)
+            && !asm_stmt.operators.is_empty()
+            && !asm_stmt.literals.is_empty()
+            && verb.mood == Some(crate::morphology::Mood::Subjunctive)
+            && let Some(ref subject) = asm_stmt.subject
+        {
+            let left = if let Some(var_type) = scope.lookup(&subject.lemma) {
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                }
+            } else {
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(false),
+                    glossa_type: GlossaType::Boolean,
+                }
+            };
+
+            let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+            let op = asm_stmt.operators[0];
+            let comparison = build_binary_expr(left, op, right);
+
+            return Ok(Some((StatementKind::Expression, vec![comparison])));
+        }
+    }
+    Ok(None)
+}
+
+/// Helper: Detect variable binding (let x = ...)
+fn classify_variable_binding(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+    if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
 
         if crate::morphology::lexicon::is_binding_verb(&verb_lemma) {
-            // Check if this is actually a comparison with subjunctive (εἰ condition)
-            // Pattern: subject operator literal subjunctive-verb
-            if !asm_stmt.operators.is_empty()
-                && !asm_stmt.literals.is_empty()
-                && verb.mood == Some(crate::morphology::Mood::Subjunctive)
-            {
-                // This is a comparison expression, not a binding
-                // Build: subject op literal
-                if let Some(ref subject) = asm_stmt.subject {
-                    // Get left operand (subject variable)
-                    let left = if let Some(var_type) = scope.lookup(&subject.lemma) {
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
-                            glossa_type: var_type.clone(),
-                        }
-                    } else {
-                        // Variable not in scope, treat as boolean literal false
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::BooleanLiteral(false),
-                            glossa_type: GlossaType::Boolean,
-                        }
-                    };
-
-                    // Get right operand (first literal)
-                    let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
-
-                    // Build binary expression
-                    let op = asm_stmt.operators[0];
-                    let comparison = build_binary_expr(left, op, right);
-
-                    return Ok((StatementKind::Expression, vec![comparison]));
-                }
-            }
-
-            // Check if there's a participle that's actually a user-defined variable name
-            // Heuristic: if there's a participle with an unknown verb stem, it's probably
-            // a false positive (e.g., "τοπικον" parsed as participle but really a variable name)
             let has_false_participle = !asm_stmt.participles.is_empty()
                 && morphology::lexicon::lookup(&asm_stmt.participles[0].verb_lemma).is_none();
 
-            // Binding: subject is the variable name, literals are the value
-            // BUT: check for ambiguous case where subject/object might be swapped
-            // Heuristic: if subject is in scope and object is not, they're probably swapped
             let (var_name, actual_asm) = if has_false_participle {
-                // Use the first participle as the variable name and remove it from participles list
                 let first_participle = &asm_stmt.participles[0];
                 let mut fixed_asm = asm_stmt.clone();
                 fixed_asm.participles = asm_stmt.participles[1..].to_vec();
@@ -377,8 +421,6 @@ pub fn classify_assembled_statement(
                 let object_name = normalize_greek(&object.original);
 
                 if scope.is_defined(&subject.lemma) && !scope.is_defined(&object.lemma) {
-                    // Subject is in scope, object is not → they're swapped
-                    // Create a new asm_stmt with swapped subject/object
                     let mut swapped = asm_stmt.clone();
                     swapped.subject = Some(object.clone());
                     swapped.object = Some(subject.clone());
@@ -389,23 +431,16 @@ pub fn classify_assembled_statement(
             } else if let Some(subject) = &asm_stmt.subject {
                 (normalize_greek(&subject.original), asm_stmt.clone())
             } else if !asm_stmt.participles.is_empty() {
-                // Special case: first word was incorrectly identified as a participle
-                // This happens with user-defined names like "τοπικον" that have participle-like endings
-                // Use the first participle's original form as the variable name
                 let first_participle = &asm_stmt.participles[0];
                 let mut fixed_asm = asm_stmt.clone();
-                // Remove the first participle and don't add it as subject (it's not a valid constituent)
                 fixed_asm.participles = asm_stmt.participles[1..].to_vec();
                 (normalize_greek(&first_participle.original), fixed_asm)
             } else {
                 return Err(GlossaError::semantic("Binding without subject"));
             };
 
-            // Get value from literals or object
-            // Delegate Option/Result constructor detection to extract_value
             let (value_expr, value_type) = extract_value(&actual_asm);
 
-            // Wrap in Try if this is a propagation statement (ends with `;`)
             let final_value_expr = if asm_stmt.is_propagate {
                 AnalyzedExpr {
                     glossa_type: value_type.clone(),
@@ -415,7 +450,6 @@ pub fn classify_assembled_statement(
                 value_expr
             };
 
-            // Register binding in scope (mutable if μετά marker present)
             let is_mutable = asm_stmt.has_mutable_marker;
             if is_mutable {
                 scope.define_mut(var_name.clone(), value_type.clone());
@@ -423,7 +457,7 @@ pub fn classify_assembled_statement(
                 scope.define(var_name.clone(), value_type.clone());
             }
 
-            return Ok((
+            return Ok(Some((
                 StatementKind::Binding {
                     name: var_name.clone(),
                     value_type: value_type.clone(),
@@ -436,19 +470,27 @@ pub fn classify_assembled_statement(
                     },
                     final_value_expr,
                 ],
-            ));
+            )));
         }
+    }
+    Ok(None)
+}
 
-        // Check for assignment: ξ δέκα γίγνεται (middle voice)
+/// Helper: Detect variable assignment (x = ...)
+fn classify_assignment(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+    if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
+
         if crate::morphology::lexicon::is_assignment_verb(&verb_lemma) {
-            // Get the variable name from the subject
             let var_name = if let Some(ref subject) = asm_stmt.subject {
                 normalize_greek(&subject.original)
             } else {
                 return Err(GlossaError::semantic("Assignment without subject"));
             };
 
-            // Check if variable is defined and mutable
             let binding = scope.lookup_binding(&var_name);
             match binding {
                 None => {
@@ -463,7 +505,6 @@ pub fn classify_assembled_statement(
                     )));
                 }
                 Some(b) => {
-                    // An assignment must have a value
                     let has_value = !asm_stmt.literals.is_empty()
                         || asm_stmt.object.is_some()
                         || !asm_stmt.arrays.is_empty()
@@ -482,7 +523,7 @@ pub fn classify_assembled_statement(
                     let value_type = b.glossa_type.clone();
                     let (value_expr, _) = extract_value(asm_stmt);
                     scope.mark_used(&var_name);
-                    return Ok((
+                    return Ok(Some((
                         StatementKind::Assignment {
                             name: var_name.clone(),
                             value_type: value_type.clone(),
@@ -494,16 +535,26 @@ pub fn classify_assembled_statement(
                             },
                             value_expr,
                         ],
-                    ));
+                    )));
                 }
             }
         }
+    }
+    Ok(None)
+}
 
-        // Check for pop pattern: subject ἕλκεται (middle voice)
+/// Helper: Detect collection mutation (pop, push, insert)
+fn classify_collection_mutation(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+    if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
+
+        // Pop
         if crate::morphology::lexicon::is_pop_verb(&verb_lemma)
             && let Some(ref subject) = asm_stmt.subject
         {
-            // Get the receiver (array variable)
             let receiver = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
                 glossa_type: scope
@@ -512,24 +563,22 @@ pub fn classify_assembled_statement(
                     .unwrap_or(GlossaType::Unknown),
             };
 
-            // Return method call expression with no arguments
             let method_call = AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
                     receiver: Box::new(receiver),
                     method: "pop".into(),
                     args: vec![],
                 },
-                glossa_type: GlossaType::Unknown, // Option<T>
+                glossa_type: GlossaType::Unknown,
             };
 
-            return Ok((StatementKind::Expression, vec![method_call]));
+            return Ok(Some((StatementKind::Expression, vec![method_call])));
         }
 
-        // Check for push pattern: subject ὠθεῖ value
+        // Push
         if crate::morphology::lexicon::is_push_verb(&verb_lemma)
             && let Some(ref subject) = asm_stmt.subject
         {
-            // Get the receiver (array variable)
             let receiver = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
                 glossa_type: scope
@@ -538,7 +587,6 @@ pub fn classify_assembled_statement(
                     .unwrap_or(GlossaType::Unknown),
             };
 
-            // Get the argument to push (from literals or object)
             let arg = if let Some(lit) = asm_stmt.literals.first() {
                 literal_to_analyzed_expr(lit)
             } else if let Some(ref obj) = asm_stmt.object {
@@ -556,7 +604,6 @@ pub fn classify_assembled_statement(
                 }
             };
 
-            // Return method call expression
             let method_call = AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
                     receiver: Box::new(receiver),
@@ -566,40 +613,32 @@ pub fn classify_assembled_statement(
                 glossa_type: GlossaType::Unit,
             };
 
-            return Ok((StatementKind::Expression, vec![method_call]));
+            return Ok(Some((StatementKind::Expression, vec![method_call])));
         }
 
-        // Check for insert pattern: subject value(s) τίθησι
-        // For HashSet: set element τίθησι → set.insert(element)
-        // For HashMap: map key value τίθησι → map.insert(key, value)
+        // Insert
         if crate::morphology::lexicon::is_insert_verb(&verb_lemma)
             && let Some(ref subject) = asm_stmt.subject
         {
-            // Use original form for the subject variable name
             let subj_name = normalize_greek(&subject.original);
             let subj_type = scope
                 .lookup(&subj_name)
                 .cloned()
                 .unwrap_or(GlossaType::Unknown);
 
-            // Get the receiver (collection variable)
             let receiver = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj_name.clone()),
                 glossa_type: subj_type.clone(),
             };
 
-            // Check if it's a Map or Set to determine argument count
             let is_map = matches!(subj_type, GlossaType::Map(_, _));
 
-            // Build arguments for insert
             let args = if is_map && asm_stmt.literals.len() >= 2 {
-                // HashMap: insert(key, value)
                 vec![
                     literal_to_analyzed_expr(&asm_stmt.literals[0]),
                     literal_to_analyzed_expr(&asm_stmt.literals[1]),
                 ]
             } else if let Some(lit) = asm_stmt.literals.first() {
-                // HashSet: insert(element)
                 vec![literal_to_analyzed_expr(lit)]
             } else if let Some(ref obj) = asm_stmt.object {
                 vec![AnalyzedExpr {
@@ -613,8 +652,6 @@ pub fn classify_assembled_statement(
                 vec![]
             };
 
-            // Return method call expression
-            // HashSet::insert returns bool, HashMap::insert returns Option<V>
             let return_type = if is_map {
                 GlossaType::Option(Box::new(GlossaType::Unknown))
             } else {
@@ -629,14 +666,23 @@ pub fn classify_assembled_statement(
                 glossa_type: return_type,
             };
 
-            return Ok((StatementKind::Expression, vec![method_call]));
+            return Ok(Some((StatementKind::Expression, vec![method_call])));
         }
+    }
+    Ok(None)
+}
 
-        // Check for print pattern
+/// Helper: Detect print statement
+fn classify_print(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+    if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
+
         if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
-            // If we have operators, combine subject/variables with literals using operators
+            // Binary expr with operator
             if !asm_stmt.operators.is_empty() {
-                // Get left operand (subject variable)
                 let left = if let Some(ref subj) = asm_stmt.subject {
                     scope.lookup(&subj.lemma).map(|var_type| AnalyzedExpr {
                         expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
@@ -646,18 +692,16 @@ pub fn classify_assembled_statement(
                     None
                 };
 
-                // Get right operand (first literal)
                 let right = asm_stmt.literals.first().map(literal_to_analyzed_expr);
 
-                // If we have both operands and an operator, build a binary expression
                 if let (Some(left_expr), Some(right_expr)) = (left, right) {
                     let op = asm_stmt.operators[0];
                     let bin_expr = build_binary_expr(left_expr, op, right_expr);
-                    return Ok((StatementKind::Print, vec![bin_expr]));
+                    return Ok(Some((StatementKind::Print, vec![bin_expr])));
                 }
             }
 
-            // Check if we have property accesses to print (e.g., ξ μῆκος λέγε)
+            // Property access
             if !asm_stmt.property_accesses.is_empty() {
                 let mut args = Vec::new();
                 for (owner, method) in &asm_stmt.property_accesses {
@@ -665,7 +709,6 @@ pub fn classify_assembled_statement(
                         expr: AnalyzedExprKind::Variable(owner.clone().into()),
                         glossa_type: scope.lookup(owner).cloned().unwrap_or(GlossaType::Unknown),
                     };
-                    // Check if this is a split/join method with a delimiter
                     let method_args = if let Some((ref meth, ref delim)) = asm_stmt.string_method {
                         if meth == method {
                             vec![AnalyzedExpr {
@@ -678,10 +721,9 @@ pub fn classify_assembled_statement(
                     } else {
                         vec![]
                     };
-                    // Determine return type based on method
                     let return_type = match method.as_str() {
                         "len" => GlossaType::Number,
-                        "split" => GlossaType::List(Box::new(GlossaType::String)), // Iterator of &str
+                        "split" => GlossaType::List(Box::new(GlossaType::String)),
                         "join" => GlossaType::String,
                         _ => GlossaType::Unknown,
                     };
@@ -694,10 +736,10 @@ pub fn classify_assembled_statement(
                         glossa_type: return_type,
                     });
                 }
-                return Ok((StatementKind::Print, args));
+                return Ok(Some((StatementKind::Print, args)));
             }
 
-            // Check if we have index accesses to print
+            // Index access
             if !asm_stmt.index_accesses.is_empty() {
                 let mut args = Vec::new();
                 for (array_expr, index_expr) in &asm_stmt.index_accesses {
@@ -711,28 +753,26 @@ pub fn classify_assembled_statement(
                         glossa_type: GlossaType::Unknown,
                     });
                 }
-                return Ok((StatementKind::Print, args));
+                return Ok(Some((StatementKind::Print, args)));
             }
 
-            // Check if we have unwrap expressions to print
+            // Unwrap
             if !asm_stmt.unwraps.is_empty() {
                 let mut args = Vec::new();
                 for unwrap_expr in &asm_stmt.unwraps {
                     let inner_analyzed = convert_expr_to_analyzed(unwrap_expr);
                     args.push(AnalyzedExpr {
                         expr: AnalyzedExprKind::Unwrap(Box::new(inner_analyzed)),
-                        glossa_type: GlossaType::Unknown, // Type will be inferred
+                        glossa_type: GlossaType::Unknown,
                     });
                 }
-                return Ok((StatementKind::Print, args));
+                return Ok(Some((StatementKind::Print, args)));
             }
 
-            // Build binary expressions from literals and operators if available
-            // This handles cases like: true || false
+            // Default
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-            // Also include subject/object if present (variable references)
             if let Some(ref subj) = asm_stmt.subject
                 && let Some(var_type) = scope.lookup(&subj.lemma)
             {
@@ -754,55 +794,57 @@ pub fn classify_assembled_statement(
                 });
             }
 
-            return Ok((StatementKind::Print, args));
+            return Ok(Some((StatementKind::Print, args)));
         }
     }
+    Ok(None)
+}
 
-    // Query pattern - check for containment pattern first
+/// Helper: Detect query statement
+fn classify_query(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
     if asm_stmt.is_query {
-        // Containment pattern: element ἐν collection? → collection.contains(&element)
-        // For HashMap: key ἐν map? → map.contains_key(&key)
-        if asm_stmt.has_containment_preposition {
-            // The element is in literals, the collection is the subject
-            if let Some(ref subj) = asm_stmt.subject {
-                let subj_name = normalize_greek(&subj.original);
-                let subj_type = scope
-                    .lookup(&subj_name)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown);
+        // Containment pattern
+        if asm_stmt.has_containment_preposition
+            && let Some(ref subj) = asm_stmt.subject
+        {
+            let subj_name = normalize_greek(&subj.original);
+            let subj_type = scope
+                .lookup(&subj_name)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown);
 
-                let collection = AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(subj_name.clone()),
-                    glossa_type: subj_type.clone(),
-                };
+            let collection = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj_name.clone()),
+                glossa_type: subj_type.clone(),
+            };
 
-                // Get the element from literals
-                let element = if let Some(lit) = asm_stmt.literals.first() {
-                    literal_to_analyzed_expr(lit)
-                } else {
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(0),
-                        glossa_type: GlossaType::Number,
-                    }
-                };
+            let element = if let Some(lit) = asm_stmt.literals.first() {
+                literal_to_analyzed_expr(lit)
+            } else {
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(0),
+                    glossa_type: GlossaType::Number,
+                }
+            };
 
-                // Check if it's a Map or Set
-                let is_map = matches!(subj_type, GlossaType::Map(_, _));
+            let is_map = matches!(subj_type, GlossaType::Map(_, _));
 
-                let contains_expr = AnalyzedExpr {
-                    expr: AnalyzedExprKind::CollectionContains {
-                        collection: Box::new(collection),
-                        element: Box::new(element),
-                        is_map,
-                    },
-                    glossa_type: GlossaType::Boolean,
-                };
+            let contains_expr = AnalyzedExpr {
+                expr: AnalyzedExprKind::CollectionContains {
+                    collection: Box::new(collection),
+                    element: Box::new(element),
+                    is_map,
+                },
+                glossa_type: GlossaType::Boolean,
+            };
 
-                return Ok((StatementKind::Query, vec![contains_expr]));
-            }
+            return Ok(Some((StatementKind::Query, vec![contains_expr])));
         }
 
-        // Regular query pattern
+        // Regular query
         let mut exprs = Vec::new();
         for lit in &asm_stmt.literals {
             exprs.push(literal_to_analyzed_expr(lit));
@@ -817,14 +859,18 @@ pub fn classify_assembled_statement(
                 glossa_type: var_type,
             });
         }
-        return Ok((StatementKind::Query, exprs));
+        return Ok(Some((StatementKind::Query, exprs)));
     }
+    Ok(None)
+}
 
-    // Default: expression statement
+/// Helper: Default expression
+fn classify_expression(
+    asm_stmt: &AssembledStatement,
+) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
     let mut exprs =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-    // Propagation pattern: wrap the last expression in Try (converts to `?` in Rust)
     if asm_stmt.is_propagate && !exprs.is_empty() {
         let last_expr = exprs.pop().unwrap();
         let try_expr = AnalyzedExpr {
@@ -835,6 +881,84 @@ pub fn classify_assembled_statement(
     }
 
     Ok((StatementKind::Expression, exprs))
+}
+
+/// Helper: Detect Enum variant (None, Some, Ok, Err)
+fn detect_enum_variant(
+    word: &crate::semantic::assembler::Constituent,
+    literals: &[crate::semantic::assembler::Literal],
+) -> Option<(AnalyzedExpr, GlossaType)> {
+    let lemma = normalize_greek(&word.lemma);
+    let original = normalize_greek(&word.original);
+
+    // None
+    if crate::morphology::lexicon::is_none_word(&lemma)
+        || crate::morphology::lexicon::is_none_word(&original)
+    {
+        return Some((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
+            },
+            GlossaType::Option(Box::new(GlossaType::Unknown)),
+        ));
+    }
+
+    // Some
+    if (crate::morphology::lexicon::is_some_word(&lemma)
+        || crate::morphology::lexicon::is_some_word(&original))
+        && let Some(lit) = literals.first()
+    {
+        let inner_expr = literal_to_analyzed_expr(lit);
+        let inner_type = inner_expr.glossa_type.clone();
+        return Some((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Some(Box::new(inner_expr)),
+                glossa_type: GlossaType::Option(Box::new(inner_type.clone())),
+            },
+            GlossaType::Option(Box::new(inner_type)),
+        ));
+    }
+
+    // Ok
+    if (crate::morphology::lexicon::is_ok_word(&lemma)
+        || crate::morphology::lexicon::is_ok_word(&original))
+        && let Some(lit) = literals.first()
+    {
+        let inner_expr = literal_to_analyzed_expr(lit);
+        let inner_type = inner_expr.glossa_type.clone();
+        return Some((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Ok(Box::new(inner_expr)),
+                glossa_type: GlossaType::Result(
+                    Box::new(inner_type.clone()),
+                    Box::new(GlossaType::String),
+                ),
+            },
+            GlossaType::Result(Box::new(inner_type), Box::new(GlossaType::String)),
+        ));
+    }
+
+    // Err
+    if (crate::morphology::lexicon::is_err_word(&lemma)
+        || crate::morphology::lexicon::is_err_word(&original))
+        && let Some(lit) = literals.first()
+    {
+        let inner_expr = literal_to_analyzed_expr(lit);
+        let inner_type = inner_expr.glossa_type.clone();
+        return Some((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Err(Box::new(inner_expr)),
+                glossa_type: GlossaType::Result(
+                    Box::new(GlossaType::Unknown),
+                    Box::new(inner_type.clone()),
+                ),
+            },
+            GlossaType::Result(Box::new(GlossaType::Unknown), Box::new(inner_type)),
+        ));
+    }
+
+    None
 }
 
 /// Extract value from assembled statement (literals or constituents)
@@ -851,125 +975,17 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
         );
     }
 
-    // Check subject for Option/Result words (pronouns often land here)
-    if let Some(ref subj) = asm_stmt.subject {
-        let subj_lemma = normalize_greek(&subj.lemma);
-        let subj_original = normalize_greek(&subj.original);
-
-        // Check for None (οὐδέν) - check both lemma and original form
-        if crate::morphology::lexicon::is_none_word(&subj_lemma)
-            || crate::morphology::lexicon::is_none_word(&subj_original)
-        {
-            return (
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::None,
-                    glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
-                },
-                GlossaType::Option(Box::new(GlossaType::Unknown)),
-            );
-        }
-
-        // Check for Some (τί) with a value - check both lemma and original form
-        if crate::morphology::lexicon::is_some_word(&subj_lemma)
-            || crate::morphology::lexicon::is_some_word(&subj_original)
-        {
-            // Get the inner value from literals
-            if let Some(lit) = asm_stmt.literals.first() {
-                let inner_expr = literal_to_analyzed_expr(lit);
-                let inner_type = inner_expr.glossa_type.clone();
-                return (
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Some(Box::new(inner_expr)),
-                        glossa_type: GlossaType::Option(Box::new(inner_type.clone())),
-                    },
-                    GlossaType::Option(Box::new(inner_type)),
-                );
-            }
-        }
+    // Check subject for Option/Result words
+    if let Some(ref subj) = asm_stmt.subject
+        && let Some(result) = detect_enum_variant(subj, &asm_stmt.literals)
+    {
+        return result;
     }
 
-    // Check nominatives for Option/Result words first (they might land here due to case)
+    // Check nominatives for Option/Result words
     for nom in &asm_stmt.nominatives {
-        let nom_lemma = normalize_greek(&nom.lemma);
-        let nom_original = normalize_greek(&nom.original);
-
-        // Check for None (οὐδέν)
-        if crate::morphology::lexicon::is_none_word(&nom_lemma)
-            || crate::morphology::lexicon::is_none_word(&nom_original)
-        {
-            return (
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::None,
-                    glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
-                },
-                GlossaType::Option(Box::new(GlossaType::Unknown)),
-            );
-        }
-
-        // Check for Some (τί) with a value
-        if crate::morphology::lexicon::is_some_word(&nom_lemma)
-            || crate::morphology::lexicon::is_some_word(&nom_original)
-        {
-            // Get the inner value from literals
-            if let Some(lit) = asm_stmt.literals.first() {
-                let inner_expr = literal_to_analyzed_expr(lit);
-                let inner_type = inner_expr.glossa_type.clone();
-                return (
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Some(Box::new(inner_expr)),
-                        glossa_type: GlossaType::Option(Box::new(inner_type.clone())),
-                    },
-                    GlossaType::Option(Box::new(inner_type)),
-                );
-            }
-        }
-
-        // Check for Ok (ἐπιτυχία) with a value
-        if crate::morphology::lexicon::is_ok_word(&nom_lemma)
-            || crate::morphology::lexicon::is_ok_word(&nom_original)
-        {
-            // Get the inner value from literals
-            if let Some(lit) = asm_stmt.literals.first() {
-                let inner_expr = literal_to_analyzed_expr(lit);
-                let inner_type = inner_expr.glossa_type.clone();
-                // LIMITATION: Error type defaults to String when only Ok variant is provided.
-                // Full Result<T,E> inference would require type context from function signatures.
-                // Future enhancement: infer E from usage or allow explicit type annotations.
-                return (
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Ok(Box::new(inner_expr)),
-                        glossa_type: GlossaType::Result(
-                            Box::new(inner_type.clone()),
-                            Box::new(GlossaType::String),
-                        ),
-                    },
-                    GlossaType::Result(Box::new(inner_type), Box::new(GlossaType::String)),
-                );
-            }
-        }
-
-        // Check for Err (σφάλμα) with a value
-        if crate::morphology::lexicon::is_err_word(&nom_lemma)
-            || crate::morphology::lexicon::is_err_word(&nom_original)
-        {
-            // Get the error value from literals
-            if let Some(lit) = asm_stmt.literals.first() {
-                let inner_expr = literal_to_analyzed_expr(lit);
-                let inner_type = inner_expr.glossa_type.clone();
-                // LIMITATION: Success type defaults to Unknown when only Err variant is provided.
-                // Full Result<T,E> inference would require type context from function signatures.
-                // Future enhancement: infer T from usage or allow explicit type annotations.
-                return (
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Err(Box::new(inner_expr)),
-                        glossa_type: GlossaType::Result(
-                            Box::new(GlossaType::Unknown),
-                            Box::new(inner_type.clone()),
-                        ),
-                    },
-                    GlossaType::Result(Box::new(GlossaType::Unknown), Box::new(inner_type)),
-                );
-            }
+        if let Some(result) = detect_enum_variant(nom, &asm_stmt.literals) {
+            return result;
         }
     }
 
