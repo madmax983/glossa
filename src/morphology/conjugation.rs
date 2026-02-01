@@ -8,6 +8,7 @@
 use std::borrow::Cow;
 
 use super::{Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
+use crate::grammar::normalize_greek;
 
 /// Present Active Indicative endings (ω-conjugation)
 /// Pattern: λέγω, γράφω, etc.
@@ -54,8 +55,8 @@ const AORIST_ACTIVE_IMP: &[(&str, Person, Number)] = &[
 /// The subjunctive has lengthened thematic vowel: ω/η instead of ο/ε
 const PRESENT_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
     ("ω", Person::First, Number::Singular),
-    ("ῃς", Person::Second, Number::Singular), // Note: η + ς
-    ("ῃ", Person::Third, Number::Singular),   // Long vowel ῃ
+    ("ης", Person::Second, Number::Singular), // Note: η + ς (normalized)
+    ("η", Person::Third, Number::Singular),   // Long vowel ῃ (normalized)
     ("ωμεν", Person::First, Number::Plural),
     ("ητε", Person::Second, Number::Plural),
     ("ωσι", Person::Third, Number::Plural),
@@ -66,8 +67,8 @@ const PRESENT_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
 /// Pattern: λύσω (σ + subjunctive endings)
 const AORIST_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
     ("σω", Person::First, Number::Singular),
-    ("σῃς", Person::Second, Number::Singular),
-    ("σῃ", Person::Third, Number::Singular),
+    ("σης", Person::Second, Number::Singular),
+    ("ση", Person::Third, Number::Singular),
     ("σωμεν", Person::First, Number::Plural),
     ("σητε", Person::Second, Number::Plural),
     ("σωσι", Person::Third, Number::Plural),
@@ -190,7 +191,6 @@ fn strip_augment(augmented_stem: &str) -> String {
     augmented_stem.to_string()
 }
 
-/// Try to analyze a word as a verb
 /// Subjunctive forms of εἰμί (to be) - irregular but essential for conditionals
 const EIMI_SUBJUNCTIVE: &[(&str, Person, Number)] = &[
     ("ω", Person::First, Number::Singular),   // ὦ
@@ -202,7 +202,41 @@ const EIMI_SUBJUNCTIVE: &[(&str, Person, Number)] = &[
     ("ωσιν", Person::Third, Number::Plural),  // with movable nu
 ];
 
+/// Try to analyze a word as a verb
+///
+/// Returns the most likely morphological analysis for the given verb form.
+/// This function checks various conjugation patterns including:
+/// - Present Active Indicative (-ω)
+/// - Present Active Imperative (-ε)
+/// - Aorist Active Indicative (-σα)
+/// - Aorist Active Imperative (-σον)
+/// - Infinitives (-ειν, -σαι)
+/// - Subjunctives and Optatives
+///
+/// # Examples
+///
+/// ```
+/// use glossa::morphology::{analyze_verb, Tense, Mood, Person, Number};
+///
+/// // Present Indicative
+/// let analysis = analyze_verb("λέγω").unwrap();
+/// assert_eq!(analysis.tense, Some(Tense::Present));
+/// assert_eq!(analysis.mood, Some(Mood::Indicative));
+///
+/// // Aorist Indicative (with augment stripping)
+/// // ἔλυσα -> lemma λυω
+/// let analysis = analyze_verb("ἔλυσα").unwrap();
+/// assert_eq!(analysis.tense, Some(Tense::Aorist));
+/// assert_eq!(analysis.lemma, "λυω");
+///
+/// // Imperative
+/// let analysis = analyze_verb("λέγε").unwrap();
+/// assert_eq!(analysis.mood, Some(Mood::Imperative));
+/// ```
 pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
+    let word_string = normalize_greek(word);
+    let word = word_string.as_str();
+
     // Special handling for εἰμί (to be) subjunctive forms
     // These are irregular and essential for conditionals (εἰ ... ᾖ)
     for (form, person, number) in EIMI_SUBJUNCTIVE {
@@ -325,6 +359,33 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
         });
     }
 
+    // Try aorist passive optative (εὑρεθείη "might be found")
+    // Checked before subjunctive because "θειη" overlaps with normalized "η" (subjunctive)
+    if let Some((stem, person, number)) = match_verb_endings(word, AORIST_PASSIVE_OPT) {
+        // Aorist passive stem typically ends in θ (from -θη-)
+        // For θειη ending, the stem before θ is what we want
+        let lemma = if stem.ends_with('θ') {
+            // Strip the θη passive marker to get base stem, then add -ω for lemma
+            let base_stem = stem.trim_end_matches('θ');
+            format!("{}ω", base_stem)
+        } else {
+            format!("{}ω", stem)
+        };
+
+        return Some(MorphAnalysis {
+            lemma: Cow::Owned(lemma),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(number),
+            gender: None,
+            person: Some(person),
+            tense: Some(Tense::Aorist),
+            mood: Some(Mood::Optative),
+            voice: Some(Voice::Passive),
+            confidence: 0.75,
+        });
+    }
+
     // Try present active subjunctive (checked after indicative due to -ω overlap)
     // Only match distinctive subjunctive endings (ῃς, ῃ, ωμεν, ητε, ωσι)
     if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_SUBJ) {
@@ -370,32 +431,6 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
             tense: Some(Tense::Present),
             mood: Some(Mood::Optative),
             voice: Some(Voice::Active),
-            confidence: 0.75,
-        });
-    }
-
-    // Try aorist passive optative (εὑρεθείη "might be found")
-    if let Some((stem, person, number)) = match_verb_endings(word, AORIST_PASSIVE_OPT) {
-        // Aorist passive stem typically ends in θ (from -θη-)
-        // For θειη ending, the stem before θ is what we want
-        let lemma = if stem.ends_with('θ') {
-            // Strip the θη passive marker to get base stem, then add -ω for lemma
-            let base_stem = stem.trim_end_matches('θ');
-            format!("{}ω", base_stem)
-        } else {
-            format!("{}ω", stem)
-        };
-
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(lemma),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: Some(number),
-            gender: None,
-            person: Some(person),
-            tense: Some(Tense::Aorist),
-            mood: Some(Mood::Optative),
-            voice: Some(Voice::Passive),
             confidence: 0.75,
         });
     }

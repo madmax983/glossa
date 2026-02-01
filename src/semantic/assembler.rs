@@ -50,6 +50,48 @@
 //! * **OVS**: `τὸν λόγον λέγει ὁ ἄνθρωπος` (The man says the word — with the object fronted)
 //!
 //! The assembler handles all of these correctly, producing the same assembled semantic representation.
+//!
+//! ## The Hero's Journey: A Sentence's Path
+//!
+//! Consider the sentence: `ὁ ἄνθρωπος τὸν λόγον λέγει` (The man says the word).
+//!
+//! 1. **Parsing**: The raw text is tokenized and parsed into an AST.
+//! 2. **Analysis**: Each word is morphologically analyzed:
+//!    - `ἄνθρωπος`: Noun, Nominative, Singular, Masculine
+//!    - `λόγον`: Noun, Accusative, Singular, Masculine
+//!    - `λέγει`: Verb, Present, Indicative, Active, 3rd Person, Singular
+//! 3. **Assembly**: The `Assembler` receives these analyses:
+//!    - `feed("ἄνθρωπος")` -> Sees Nominative -> Places in **Subject** slot.
+//!    - `feed("λόγον")` -> Sees Accusative -> Places in **Object** slot.
+//!    - `feed("λέγει")` -> Sees Verb -> Places in **Verb** slot.
+//! 4. **Finalization**: `finalize()` is called. It checks:
+//!    - Does the Subject (Singular) agree with the Verb (Singular)? **Yes.**
+//!    - Are there any conflicts? **No.**
+//! 5. **Result**: An `AssembledStatement` is born, ready for the next phase.
+//!
+//! This same process works regardless of the input order.
+//!
+//! ```
+//! use glossa::semantic::{Assembler, AssembledStatement};
+//! use glossa::morphology::{analyze, Case, PartOfSpeech};
+//!
+//! let mut asm = Assembler::new();
+//!
+//! // "λέγει" (Verb)
+//! asm.feed(&analyze("λέγει"), "λέγει").unwrap();
+//!
+//! // "τὸν λόγον" (Object)
+//! asm.feed(&analyze("λόγον"), "λόγον").unwrap();
+//!
+//! // "ὁ ἄνθρωπος" (Subject)
+//! asm.feed(&analyze("ἄνθρωπος"), "ἄνθρωπος").unwrap();
+//!
+//! let stmt = asm.finalize().unwrap();
+//!
+//! assert!(stmt.subject.is_some());
+//! assert!(stmt.verb.is_some());
+//! assert!(stmt.object.is_some());
+//! ```
 
 use crate::ast::{Expr, Word};
 use crate::grammar::normalize_greek;
@@ -613,8 +655,8 @@ impl Assembler {
     ///
     /// let mut asm = Assembler::new();
     /// let array = Expr::Word(Word {
-    ///     original: "πίναξ".to_string(),
-    ///     normalized: "πιναξ".to_string(),
+    ///     original: "πίναξ".into(),
+    ///     normalized: "πιναξ".into(),
     /// });
     /// let index = Expr::NumberLiteral(0);
     /// asm.feed_index_access(array, index);
@@ -633,8 +675,8 @@ impl Assembler {
     ///
     /// let mut asm = Assembler::new();
     /// let expr = Expr::Word(Word {
-    ///     original: "τιμή".to_string(),
-    ///     normalized: "τιμη".to_string(),
+    ///     original: "τιμή".into(),
+    ///     normalized: "τιμη".into(),
     /// });
     /// asm.feed_unwrap(expr);
     /// ```
