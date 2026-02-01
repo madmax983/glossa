@@ -3,14 +3,14 @@
 //! Tests for arithmetic, comparison, and boolean operators.
 //! Following TDD: these tests are written BEFORE implementation.
 
-use glossa::ast::build_ast;
 use glossa::codegen::generate_rust;
 use glossa::ir::lower_to_hir;
+use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
 /// Helper to compile source and get the Rust output
 fn compile_to_rust(source: &str) -> String {
-    let ast = build_ast(source).expect("AST build failed");
+    let ast = parse(source).expect("AST build failed");
     let analyzed = analyze_program(&ast).expect("Analysis failed");
     let hir = lower_to_hir(&analyzed);
     generate_rust(&hir)

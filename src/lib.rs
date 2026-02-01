@@ -44,6 +44,7 @@
 //! * [`grammar`]: PEG parser and text normalization.
 //! * [`ir`]: High-Level Intermediate Representation.
 //! * [`morphology`]: Word analysis, lexicon, and participle parsing.
+//! * [`parser`]: AST Builder and parsing logic.
 //! * [`semantic`]: The slot-based assembler and semantic analysis.
 
 pub mod ast;
@@ -52,4 +53,5 @@ pub mod errors;
 pub mod grammar;
 pub mod ir;
 pub mod morphology;
+pub mod parser;
 pub mod semantic;

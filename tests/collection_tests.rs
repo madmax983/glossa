@@ -2,14 +2,14 @@
 //!
 //! Tests array literals, indexing, and collection operations.
 
-use glossa::ast::build_ast;
 use glossa::codegen::generate_rust;
 use glossa::ir::lower_to_hir;
+use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> String {
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
     let hir = lower_to_hir(&analyzed);
     generate_rust(&hir)
@@ -22,7 +22,7 @@ fn compile(source: &str) -> String {
 #[test]
 fn test_parse_array_literal() {
     // Array literal [1, 2, 3] should parse successfully
-    let ast = build_ast("[1, 2, 3] ἔστω ἀριθμοί.").unwrap();
+    let ast = parse("[1, 2, 3] ἔστω ἀριθμοί.").unwrap();
     assert_eq!(ast.statements.len(), 1);
     // The first expression should contain an array literal
 }
@@ -30,7 +30,7 @@ fn test_parse_array_literal() {
 #[test]
 fn test_parse_empty_array() {
     // Empty array [] should parse without error
-    let ast = build_ast("[] ἔστω κενός.").unwrap();
+    let ast = parse("[] ἔστω κενός.").unwrap();
     assert_eq!(ast.statements.len(), 1);
 }
 
@@ -38,7 +38,7 @@ fn test_parse_empty_array() {
 fn test_parse_array_with_variables() {
     // Array can contain variable references
     let source = "ξ πέντε ἔστω. [ξ, 10, ξ] ἔστω πίναξ.";
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     assert_eq!(ast.statements.len(), 2);
 }
 

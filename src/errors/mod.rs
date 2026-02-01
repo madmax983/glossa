@@ -131,9 +131,9 @@ impl GlossaError {
 /// Result type for ΓΛΩΣΣΑ operations
 pub type GlossaResult<T> = Result<T, GlossaError>;
 
-// Conversion from AST errors
-impl From<crate::ast::AstError> for GlossaError {
-    fn from(err: crate::ast::AstError) -> Self {
+// Conversion from Parser errors
+impl From<crate::parser::ParseError> for GlossaError {
+    fn from(err: crate::parser::ParseError) -> Self {
         GlossaError::parse(err.to_string())
     }
 }

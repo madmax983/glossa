@@ -1,11 +1,11 @@
-use glossa::ast::build_ast;
 use glossa::codegen::generate_rust;
 use glossa::ir::lower_to_hir;
+use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> String {
-    let ast = build_ast(source).unwrap();
+    let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
     let hir = lower_to_hir(&analyzed);
     generate_rust(&hir)
@@ -14,13 +14,13 @@ fn compile(source: &str) -> String {
 // Cycle 1: Type Declaration Parsing
 #[test]
 fn test_parse_empty_type() {
-    let ast = build_ast("εἶδος μονάς ὁρίζειν { }.").unwrap();
+    let ast = parse("εἶδος μονάς ὁρίζειν { }.").unwrap();
     assert_eq!(ast.statements.len(), 1);
 }
 
 #[test]
 fn test_parse_type_with_field() {
-    let ast = build_ast("εἶδος σημεῖον ὁρίζειν { ξ ἀριθμοῦ. }.").unwrap();
+    let ast = parse("εἶδος σημεῖον ὁρίζειν { ξ ἀριθμοῦ. }.").unwrap();
     assert_eq!(ast.statements.len(), 1);
 }
 
