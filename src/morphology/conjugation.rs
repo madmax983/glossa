@@ -74,8 +74,8 @@ const PRESENT_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
 const AORIST_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
     ("σωμεν", Person::First, Number::Plural),
     ("σωσιν", Person::Third, Number::Plural),
-    ("σωσι", Person::Third, Number::Plural),
     ("σητε", Person::Second, Number::Plural),
+    ("σωσι", Person::Third, Number::Plural),
     ("σης", Person::Second, Number::Singular),
     ("ση", Person::Third, Number::Singular),
     ("σω", Person::First, Number::Singular),
@@ -836,18 +836,20 @@ mod tests {
         ];
 
         for (name, list) in constant_lists {
-            for i in 0..list.len() - 1 {
-                let current_len = list[i].0.len();
-                let next_len = list[i + 1].0.len();
+            for (i, window) in list.windows(2).enumerate() {
+                let current = window[0].0;
+                let next = window[1].0;
+                let current_len = current.len();
+                let next_len = next.len();
                 assert!(
                     current_len >= next_len,
                     "{} is not sorted by length descending! Element at {} ('{}', len {}) is shorter than element at {} ('{}', len {})",
                     name,
                     i,
-                    list[i].0,
+                    current,
                     current_len,
                     i + 1,
-                    list[i + 1].0,
+                    next,
                     next_len
                 );
             }
