@@ -31,7 +31,6 @@
 //! This allows for authentic Greek syntax where emphasis is conveyed through word order
 //! without changing the semantic meaning.
 
-mod agreement;
 pub mod assembler;
 pub(crate) mod control_flow;
 pub(crate) mod conversion;
@@ -43,7 +42,6 @@ pub(crate) mod patterns;
 mod resolver;
 mod types;
 
-pub use agreement::*;
 pub use assembler::{
     AssembledStatement, Assembler, AssemblyError, Constituent, Literal, VerbConstituent,
 };
