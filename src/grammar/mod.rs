@@ -1,6 +1,38 @@
 //! Grammar parsing module using PEG grammar
 //!
-//! This module contains the pest grammar definition and parser for ΓΛΩΣΣΑ.
+//! This module is the entry point for text processing in ΓΛΩΣΣΑ.
+//! It handles the initial stage of the compiler pipeline: converting raw source code
+//! into a Concrete Syntax Tree (via [`pest`]) or an Abstract Syntax Tree (via the `ast` module).
+//!
+//! # The Parsing Pipeline
+//!
+//! 1. **Text Normalization** (`normalize.rs`):
+//!    Greek is polytonic (has accents/breathings: ἄ, ῆ, ῶ).
+//!    We normalize everything to monotonic lowercase to simplify processing.
+//!    `ἄνθρωπος` -> `ανθρωπος`.
+//!
+//! 2. **PEG Parsing** (`glossa.pest`):
+//!    We use a Parsing Expression Grammar (PEG) defined in `glossa.pest`.
+//!    This grammar handles the raw tokenization and structure of the language.
+//!
+//! 3. **AST Construction**:
+//!    The `parse` function returns a `pest` Pair iterator, which is then typically
+//!    converted into our AST (see `crate::ast::build_ast`).
+//!
+//! # Example
+//!
+//! ```
+//! use glossa::grammar::parse;
+//!
+//! let source = "«χαῖρε» λέγε.";
+//! let pairs = parse(source).unwrap();
+//!
+//! // Inspect the parse tree
+//! for pair in pairs {
+//!     println!("Rule: {:?}", pair.as_rule());
+//!     println!("Text: {}", pair.as_str());
+//! }
+//! ```
 
 mod normalize;
 
@@ -14,6 +46,9 @@ use pest_derive::Parser;
 pub struct GlossaParser;
 
 /// Parse a ΓΛΩΣΣΑ source string into a pest parse tree
+///
+/// This function invokes the generated PEG parser on the input source.
+/// It expects a complete `program` rule as the root.
 pub fn parse(source: &str) -> Result<pest::iterators::Pairs<'_, Rule>, pest::error::Error<Rule>> {
     GlossaParser::parse(Rule::program, source)
 }
