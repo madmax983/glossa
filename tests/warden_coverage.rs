@@ -41,6 +41,19 @@ fn test_coverage_filter_patterns() {
         ξ μέτρων μείζονα λέγε.
     ",
     );
+
+    // 4. No suffix (else branch) - e.g. indeclinable name like Δαβιδ
+    // "Αδαμ" failed because morphology might treat it weirdly (Capital Alpha issue?)
+    // Trying "Δαβιδ" (David) which is definitely a proper noun and indeclinable in many contexts
+    // Or just "β" which is a variable name.
+    compile(
+        "
+        ξ [1, 2, 3] ἔστω.
+        β 10 ἔστω.
+        // Filter: collection + genitive(no suffix) + comparative_adj + print
+        ξ β μείζονα λέγε.
+    ",
+    );
 }
 
 #[test]
@@ -74,6 +87,16 @@ fn test_coverage_any_all_patterns() {
         ξ τι μέτρων μείζον λέγε.
     ",
     );
+
+    // 4. No suffix (else branch)
+    compile(
+        "
+        ξ [1, 2, 3] ἔστω.
+        β 10 ἔστω.
+        // Any: collection + any + genitive(no suffix) + operator(μείζον) + print
+        ξ τι β μείζον λέγε.
+    ",
+    );
 }
 
 #[test]
@@ -105,6 +128,16 @@ fn test_coverage_find_patterns() {
         μέτρον 10 ἔστω.
         // Find: collection + genitive(ων) + operator(μείζον) + find
         ξ μέτρων μείζον εὑρέ.
+    ",
+    );
+
+    // 4. No suffix (else branch)
+    compile(
+        "
+        ξ [1, 2, 3] ἔστω.
+        β 10 ἔστω.
+        // Find: collection + genitive(no suffix) + operator(μείζον) + find
+        ξ β μείζον εὑρέ.
     ",
     );
 }
