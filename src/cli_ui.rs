@@ -77,3 +77,24 @@ impl GlossaUi {
         result
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ui_methods() {
+        // Just verify these don't panic
+        let ui = GlossaUi::new();
+        ui.success("Success message");
+        ui.info("Info message");
+        ui.error("Error message");
+        ui.prompt();
+
+        let result = ui.step("Step message", || Ok::<(), ()>(()));
+        assert!(result.is_ok());
+
+        let result = ui.step("Failing step", || Err::<(), ()>(()));
+        assert!(result.is_err());
+    }
+}

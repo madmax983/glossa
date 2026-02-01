@@ -343,6 +343,7 @@ impl ReplContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_compile_hello() {
@@ -368,5 +369,32 @@ mod tests {
         let source = "ξ πέντε ἔστω. ξ λέγε.";
         let result = compile(source);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cli_check_file() {
+        let mut file = NamedTempFile::new().unwrap();
+        use std::io::Write;
+        write!(file, "«δοκιμή» λέγε.").unwrap();
+
+        let path = file.path().to_path_buf();
+        assert!(check_file(&path).is_ok());
+    }
+
+    #[test]
+    fn test_cli_build_file() {
+        let mut file = NamedTempFile::new().unwrap();
+        use std::io::Write;
+        write!(file, "«δοκιμή» λέγε.").unwrap();
+
+        let input_path = file.path().to_path_buf();
+        let output_file = NamedTempFile::new().unwrap();
+        let output_path = output_file.path().to_path_buf();
+
+        // build_file writes to output_path
+        assert!(build_file(&input_path, Some(&output_path)).is_ok());
+
+        let generated = std::fs::read_to_string(&output_path).unwrap();
+        assert!(generated.contains("println"));
     }
 }
