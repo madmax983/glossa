@@ -911,7 +911,13 @@ fn transliterate(greek: &str) -> String {
             'ψ' => "ps",
             'ω' => "o",
             _ => {
-                result.push(c);
+                // Keep only ASCII alphanumeric characters and underscore
+                if c.is_ascii_alphanumeric() || c == '_' {
+                    result.push(c);
+                } else {
+                    // Replace invalid characters with underscore to prevent panic in format_ident!
+                    result.push('_');
+                }
                 continue;
             }
         };
