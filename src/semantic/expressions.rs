@@ -70,6 +70,20 @@ use crate::morphology::{self, DisambiguationContext, analyze_article, resolve_be
 /// }
 /// ```
 pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
+    analyze_argument_expr_recursive(expr, scope, 0)
+}
+
+fn analyze_argument_expr_recursive(
+    expr: &Expr,
+    scope: &Scope,
+    depth: usize,
+) -> Result<AnalyzedExpr, GlossaError> {
+    if depth > 50 {
+        return Err(GlossaError::semantic(
+            "Recursion limit exceeded in expression analysis",
+        ));
+    }
+
     match expr {
         Expr::Word(w) => {
             let normalized = normalize_greek(&w.original);
@@ -115,7 +129,7 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
         Expr::ArrayLiteral(elements) => {
             let mut analyzed_elements = Vec::with_capacity(elements.len());
             for el in elements {
-                analyzed_elements.push(analyze_argument_expr(el, scope)?);
+                analyzed_elements.push(analyze_argument_expr_recursive(el, scope, depth + 1)?);
             }
 
             let element_type = analyzed_elements
@@ -130,8 +144,8 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
         }
 
         Expr::IndexAccess { array, index } => {
-            let array_analyzed = analyze_argument_expr(array, scope)?;
-            let index_analyzed = analyze_argument_expr(index, scope)?;
+            let array_analyzed = analyze_argument_expr_recursive(array, scope, depth + 1)?;
+            let index_analyzed = analyze_argument_expr_recursive(index, scope, depth + 1)?;
 
             Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::IndexAccess {
@@ -156,7 +170,7 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
                     // It's a function call - recursively analyze arguments
                     let mut args = Vec::new();
                     for arg_expr in &terms[1..] {
-                        args.push(analyze_argument_expr(arg_expr, scope)?);
+                        args.push(analyze_argument_expr_recursive(arg_expr, scope, depth + 1)?);
                     }
 
                     let return_type = scope
@@ -176,7 +190,7 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
 
             // Not a function call - could be a complex expression
             // For now, just analyze the first term
-            analyze_argument_expr(&terms[0], scope)
+            analyze_argument_expr_recursive(&terms[0], scope, depth + 1)
         }
 
         Expr::Block(statements) => {
@@ -186,14 +200,14 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
                 && let Some(clause) = stmt.clauses().first()
                 && let Some(expr) = clause.expressions.first()
             {
-                return analyze_argument_expr(expr, scope);
+                return analyze_argument_expr_recursive(expr, scope, depth + 1);
             }
             Err(GlossaError::semantic("Empty or invalid block expression"))
         }
 
         Expr::BinOp { left, op, right } => {
-            let left_analyzed = analyze_argument_expr(left, scope)?;
-            let right_analyzed = analyze_argument_expr(right, scope)?;
+            let left_analyzed = analyze_argument_expr_recursive(left, scope, depth + 1)?;
+            let right_analyzed = analyze_argument_expr_recursive(right, scope, depth + 1)?;
             // Map AST op to semantic op
             let sem_op = match op {
                 crate::ast::BinOperator::Add => crate::morphology::lexicon::BinaryOp::Add,
@@ -217,7 +231,7 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
         Expr::UnaryOp { op, operand } => {
             match op {
                 crate::ast::UnaryOperator::Unwrap => {
-                    let inner = analyze_argument_expr(operand, scope)?;
+                    let inner = analyze_argument_expr_recursive(operand, scope, depth + 1)?;
                     Ok(AnalyzedExpr {
                         expr: AnalyzedExprKind::Unwrap(Box::new(inner)),
                         glossa_type: GlossaType::Unknown,
@@ -235,7 +249,7 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
             // This is simplified; usually property access is handled by the assembler context
             // But if we encounter it directly as an expression, we try to resolve it.
             // For now, if it's a simple property access, we might need more context or just return it as PropertyAccess
-            let owner_analyzed = analyze_argument_expr(owner, scope)?;
+            let owner_analyzed = analyze_argument_expr_recursive(owner, scope, depth + 1)?;
             if let Expr::Word(prop_word) = property.as_ref() {
                 Ok(AnalyzedExpr {
                     expr: AnalyzedExprKind::PropertyAccess {
