@@ -729,10 +729,7 @@ mod tests {
             AnalyzedExprKind::FunctionCall { func, args } => {
                 assert_eq!(func, "add");
                 assert_eq!(args.len(), 2);
-                assert!(matches!(
-                    args[0].expr,
-                    AnalyzedExprKind::NumberLiteral(1)
-                ));
+                assert!(matches!(args[0].expr, AnalyzedExprKind::NumberLiteral(1)));
             }
             _ => panic!("Expected FunctionCall"),
         }
@@ -777,6 +774,34 @@ mod tests {
     #[test]
     fn test_analyze_argument_expr_errors_on_empty_block() {
         let expr = Expr::Block(vec![]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_errors_on_invalid_block_structure() {
+        // Block with a statement that has no clauses (should trigger error)
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        };
+        let expr = Expr::Block(vec![stmt]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_errors_on_block_with_empty_clause() {
+        // Block with a statement that has a clause with no expressions
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![crate::ast::Clause { expressions: vec![] }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let expr = Expr::Block(vec![stmt]);
         let scope = Scope::new();
         let result = analyze_argument_expr(&expr, &scope);
         assert!(result.is_err());
