@@ -413,30 +413,30 @@ mod tests {
 
     #[test]
     fn test_cache_validity() {
+        use filetime::{FileTime, set_file_mtime};
         use std::fs::File;
-        use std::thread::sleep;
-        use std::time::Duration;
         use tempfile::TempDir;
 
         let temp_dir = TempDir::new().unwrap();
         let source_path = temp_dir.path().join("source.gl");
         let exe_path = temp_dir.path().join("source.exe");
 
-        // Create source file
+        // Create files
         File::create(&source_path).unwrap();
-
-        // Sleep to ensure different mtimes
-        // Windows filesystem time resolution can be up to 10-15ms, or even seconds depending on config
-        sleep(Duration::from_millis(1000));
-
-        // Create exe file (newer than source)
         File::create(&exe_path).unwrap();
+
+        // Set exe time > source time
+        let t1 = FileTime::from_unix_time(1000, 0);
+        let t2 = FileTime::from_unix_time(2000, 0);
+
+        set_file_mtime(&source_path, t1).unwrap();
+        set_file_mtime(&exe_path, t2).unwrap();
 
         assert!(cache_valid(&source_path, &exe_path));
 
-        // Update source (now newer than exe)
-        sleep(Duration::from_millis(1000));
-        File::create(&source_path).unwrap();
+        // Set source time > exe time
+        set_file_mtime(&source_path, t2).unwrap();
+        set_file_mtime(&exe_path, t1).unwrap();
 
         assert!(!cache_valid(&source_path, &exe_path));
     }
