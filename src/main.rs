@@ -426,7 +426,8 @@ mod tests {
         File::create(&source_path).unwrap();
 
         // Sleep to ensure different mtimes
-        sleep(Duration::from_millis(10));
+        // Windows filesystem time resolution can be up to 10-15ms, or even seconds depending on config
+        sleep(Duration::from_millis(1000));
 
         // Create exe file (newer than source)
         File::create(&exe_path).unwrap();
@@ -434,7 +435,7 @@ mod tests {
         assert!(cache_valid(&source_path, &exe_path));
 
         // Update source (now newer than exe)
-        sleep(Duration::from_millis(10));
+        sleep(Duration::from_millis(1000));
         File::create(&source_path).unwrap();
 
         assert!(!cache_valid(&source_path, &exe_path));
