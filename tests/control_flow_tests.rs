@@ -1,5 +1,4 @@
 use glossa::codegen::generate_rust;
-use glossa::ir::lower_to_hir;
 /// Phase 2: Control Flow Tests
 /// TDD RED phase - these tests define the expected behavior
 ///
@@ -14,8 +13,7 @@ use glossa::semantic::analyze_program;
 fn compile_to_rust(source: &str) -> String {
     let ast = parse(source).expect("AST build failed");
     let analyzed = analyze_program(&ast).expect("Analysis failed");
-    let hir = lower_to_hir(&analyzed);
-    generate_rust(&hir)
+        generate_rust(&analyzed)
 }
 
 // =============================================================================

@@ -11,14 +11,12 @@ use glossa::semantic::GlossaType;
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> Result<String, String> {
     use glossa::codegen::generate_rust;
-    use glossa::ir::lower_to_hir;
-    use glossa::parser::parse;
+        use glossa::parser::parse;
     use glossa::semantic::analyze_program;
 
     let ast = parse(source).map_err(|e| e.to_string())?;
     let analyzed = analyze_program(&ast).map_err(|e| e.to_string())?;
-    let hir = lower_to_hir(&analyzed);
-    Ok(generate_rust(&hir))
+        Ok(generate_rust(&analyzed))
 }
 
 // ============================================================================
@@ -169,53 +167,7 @@ fn test_is_err_word_helper() {
 // Phase 4: HIR Extensions Tests
 // ============================================================================
 
-#[test]
-fn test_hir_some_variant() {
-    use glossa::ir::HirExpr;
-
-    let some_expr = HirExpr::Some(Box::new(HirExpr::IntLit(42)));
-    assert!(matches!(some_expr, HirExpr::Some(_)));
-}
-
-#[test]
-fn test_hir_none_variant() {
-    use glossa::ir::HirExpr;
-
-    let none_expr = HirExpr::None;
-    assert!(matches!(none_expr, HirExpr::None));
-}
-
-#[test]
-fn test_hir_ok_variant() {
-    use glossa::ir::HirExpr;
-
-    let ok_expr = HirExpr::Ok(Box::new(HirExpr::IntLit(42)));
-    assert!(matches!(ok_expr, HirExpr::Ok(_)));
-}
-
-#[test]
-fn test_hir_err_variant() {
-    use glossa::ir::HirExpr;
-
-    let err_expr = HirExpr::Err(Box::new(HirExpr::StringLit("error".to_string())));
-    assert!(matches!(err_expr, HirExpr::Err(_)));
-}
-
-#[test]
-fn test_hir_try_variant() {
-    use glossa::ir::HirExpr;
-
-    let try_expr = HirExpr::Try(Box::new(HirExpr::Var("x".to_string())));
-    assert!(matches!(try_expr, HirExpr::Try(_)));
-}
-
-#[test]
-fn test_hir_unwrap_variant() {
-    use glossa::ir::HirExpr;
-
-    let unwrap_expr = HirExpr::Unwrap(Box::new(HirExpr::Var("x".to_string())));
-    assert!(matches!(unwrap_expr, HirExpr::Unwrap(_)));
-}
+// HIR tests removed as HIR layer was removed.
 
 // ============================================================================
 // Phase 5: Semantic Analysis Tests

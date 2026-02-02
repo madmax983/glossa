@@ -1,7 +1,7 @@
 //! Rust code generation
 //!
 //! This module handles the final step of the compilation pipeline: translating
-//! the High-Level Intermediate Representation (HIR) into executable Rust code.
+//! the Analyzed Semantic Model into executable Rust code.
 //!
 //! # The CodeGen Strategy
 //!
@@ -19,38 +19,20 @@
 //! * `λόγος` -> `logos`
 //!
 //! See [`sanitize_name`] for details.
-//!
-//! # Example
-//!
-//! ```
-//! use glossa::ir::{HirProgram, HirStatement, HirExpr};
-//! use glossa::codegen::generate_rust;
-//!
-//! // Construct a simple HIR: let x = 42;
-//! let hir = HirProgram {
-//!     statements: vec![
-//!         HirStatement::Let {
-//!             name: "ξ".to_string(), // "xi"
-//!             value: HirExpr::IntLit(42),
-//!             mutable: false,
-//!         }
-//!     ]
-//! };
-//!
-//! let rust_code = generate_rust(&hir);
-//! // TokenStream::to_string() may add spaces around punctuation
-//! assert!(rust_code.contains("let xi = 42"));
-//! ```
 
 use crate::grammar::normalize_greek;
-use crate::ir::{BinOp, HirExpr, HirProgram, HirStatement};
+use crate::semantic::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedImplMethod, AnalyzedIteratorOp, AnalyzedProgram,
+    AnalyzedStatement, AnalyzedTraitMethod, StatementKind, GlossaType,
+};
+use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-/// Generate Rust code from a HIR program
-pub fn generate_rust(hir: &HirProgram) -> String {
+/// Generate Rust code from an Analyzed Program
+pub fn generate_rust(program: &AnalyzedProgram) -> String {
     // Check if we need collection imports
-    let needs_collections = uses_collections(hir);
+    let needs_collections = uses_collections(program);
 
     // Separate trait defs, struct defs, trait impls, function defs, and main body statements
     let mut trait_defs = Vec::new();
@@ -59,12 +41,12 @@ pub fn generate_rust(hir: &HirProgram) -> String {
     let mut fn_defs = Vec::new();
     let mut main_stmts = Vec::new();
 
-    for stmt in &hir.statements {
-        match stmt {
-            HirStatement::TraitDef { .. } => trait_defs.push(generate_statement(stmt)),
-            HirStatement::StructDef { .. } => struct_defs.push(generate_statement(stmt)),
-            HirStatement::TraitImpl { .. } => trait_impls.push(generate_statement(stmt)),
-            HirStatement::FnDef { .. } => fn_defs.push(generate_statement(stmt)),
+    for stmt in &program.statements {
+        match &stmt.kind {
+            StatementKind::TraitDefinition { .. } => trait_defs.push(generate_statement(stmt)),
+            StatementKind::TypeDefinition { .. } => struct_defs.push(generate_statement(stmt)),
+            StatementKind::TraitImplementation { .. } => trait_impls.push(generate_statement(stmt)),
+            StatementKind::FunctionDef { .. } => fn_defs.push(generate_statement(stmt)),
             _ => main_stmts.push(generate_statement(stmt)),
         }
     }
@@ -95,9 +77,9 @@ pub fn generate_rust(hir: &HirProgram) -> String {
     output.to_string()
 }
 
-/// Check if the HIR program uses collection types (HashMap, HashSet)
-fn uses_collections(hir: &HirProgram) -> bool {
-    for stmt in &hir.statements {
+/// Check if the program uses collection types (HashMap, HashSet)
+fn uses_collections(program: &AnalyzedProgram) -> bool {
+    for stmt in &program.statements {
         if statement_uses_collections(stmt) {
             return true;
         }
@@ -106,35 +88,57 @@ fn uses_collections(hir: &HirProgram) -> bool {
 }
 
 /// Check if a statement uses collection types
-fn statement_uses_collections(stmt: &HirStatement) -> bool {
-    match stmt {
-        HirStatement::Let { value, .. } => expr_uses_collections(value),
-        HirStatement::Print { args } => args.iter().any(expr_uses_collections),
-        HirStatement::Expr(expr) => expr_uses_collections(expr),
+fn statement_uses_collections(stmt: &AnalyzedStatement) -> bool {
+    match &stmt.kind {
+        StatementKind::Binding { value_type: _, .. } | StatementKind::Assignment { value_type: _, .. } => {
+             // Also check expressions
+             stmt.expressions.iter().any(expr_uses_collections)
+        }
+        StatementKind::Print | StatementKind::Query => stmt.expressions.iter().any(expr_uses_collections),
+        StatementKind::Expression => stmt.expressions.iter().any(expr_uses_collections),
+        StatementKind::If { condition, then_body, else_body } => {
+            expr_uses_collections(condition) ||
+            then_body.iter().any(statement_uses_collections) ||
+            else_body.as_ref().map(|b| b.iter().any(statement_uses_collections)).unwrap_or(false)
+        }
+        StatementKind::While { condition, body } => {
+            expr_uses_collections(condition) || body.iter().any(statement_uses_collections)
+        }
+        StatementKind::For { iterator, body, .. } => {
+            expr_uses_collections(iterator) || body.iter().any(statement_uses_collections)
+        }
+        StatementKind::Match { scrutinee, arms } => {
+            expr_uses_collections(scrutinee) ||
+            arms.iter().any(|(pat, body)| expr_uses_collections(pat) || body.iter().any(statement_uses_collections))
+        }
+        StatementKind::FunctionDef { body, .. } => body.iter().any(statement_uses_collections),
+        StatementKind::TraitImplementation { methods, .. } => methods.iter().any(|m| m.body.iter().any(statement_uses_collections)),
+        StatementKind::TraitDefinition { methods, .. } => methods.iter().any(|m| m.body.as_ref().map(|b| b.iter().any(statement_uses_collections)).unwrap_or(false)),
         _ => false,
     }
 }
 
 /// Check if an expression uses collection types
-fn expr_uses_collections(expr: &HirExpr) -> bool {
-    match expr {
-        HirExpr::CollectionNew { .. } | HirExpr::CollectionContains { .. } => true,
-        HirExpr::MethodCall { receiver, args, .. } => {
+fn expr_uses_collections(expr: &AnalyzedExpr) -> bool {
+    match &expr.expr {
+        AnalyzedExprKind::CollectionNew { .. } | AnalyzedExprKind::CollectionContains { .. } => true,
+        AnalyzedExprKind::MethodCall { receiver, args, .. } => {
             expr_uses_collections(receiver) || args.iter().any(expr_uses_collections)
         }
-        HirExpr::BinOp { left, right, .. } => {
+        AnalyzedExprKind::BinOp { left, right, .. } => {
             expr_uses_collections(left) || expr_uses_collections(right)
         }
-        HirExpr::Index { array, index } => {
+        AnalyzedExprKind::IndexAccess { array, index } => {
             expr_uses_collections(array) || expr_uses_collections(index)
         }
+        // Check types inside Struct Instantiation if needed, but usually explicit new/contains is enough
         _ => false,
     }
 }
 
 /// Generate a complete Rust file with proper formatting
-pub fn generate_rust_file(hir: &HirProgram) -> String {
-    let code = generate_rust(hir);
+pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
+    let code = generate_rust(program);
 
     // Add a comment header
     format!(
@@ -143,67 +147,92 @@ pub fn generate_rust_file(hir: &HirProgram) -> String {
     )
 }
 
-fn generate_statement(stmt: &HirStatement) -> TokenStream {
-    match stmt {
-        HirStatement::Let {
+fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
+    match &stmt.kind {
+        StatementKind::Binding {
             name,
-            value,
             mutable,
-        } => generate_let(name, value, *mutable),
+            ..
+        } => {
+            // Get the value expression (second expression in the list, first is usually name or type info which is unused here)
+            // Wait, AnalyzedStatement.expressions structure depends on how it was built.
+            // Semantic analyzer puts value at index 1 for Binding (index 0 is name/type).
+            let value = if stmt.expressions.len() > 1 {
+                &stmt.expressions[1]
+            } else {
+                // Should not happen in valid program, but provide fallback
+                let name_ident = format_ident!("{}", sanitize_name(name));
+                return quote! { let #name_ident = 0; };
+            };
 
-        HirStatement::Assign { name, value } => {
-            let name_ident = format_ident!("{}", sanitize_name(name));
-            let value_tokens = generate_expr(value);
-            quote! { #name_ident = #value_tokens; }
-        }
+            // Check if it's an array to force mutable
+            let is_array = matches!(value.expr, AnalyzedExprKind::ArrayLiteral(_));
+            generate_let(name, value, *mutable || is_array)
+        },
 
-        HirStatement::Print { args } => generate_print(args),
+        StatementKind::Assignment { name, .. } => {
+            if stmt.expressions.len() > 1 {
+                let name_ident = format_ident!("{}", sanitize_name(name));
+                let value_tokens = generate_expr(&stmt.expressions[1]);
+                quote! { #name_ident = #value_tokens; }
+            } else {
+                quote! {}
+            }
+        },
 
-        HirStatement::Expr(expr) => {
-            let expr_tokens = generate_expr(expr);
-            quote! { #expr_tokens; }
-        }
+        StatementKind::Print | StatementKind::Query => {
+            generate_print(&stmt.expressions)
+        },
 
-        HirStatement::If {
+        StatementKind::Expression => {
+            if let Some(first) = stmt.expressions.first() {
+                let expr_tokens = generate_expr(first);
+                quote! { #expr_tokens; }
+            } else {
+                quote! {}
+            }
+        },
+
+        StatementKind::If {
             condition,
             then_body,
             else_body,
         } => generate_if(condition, then_body, else_body),
 
-        HirStatement::While { condition, body } => generate_while(condition, body),
+        StatementKind::While { condition, body } => generate_while(condition, body),
 
-        HirStatement::For {
+        StatementKind::For {
             variable,
             iterator,
             body,
         } => generate_for(variable, iterator, body),
 
-        HirStatement::Match { scrutinee, arms } => generate_match(scrutinee, arms),
+        StatementKind::Match { scrutinee, arms } => generate_match(scrutinee, arms),
 
-        HirStatement::Break => quote! { break; },
+        StatementKind::Break => quote! { break; },
 
-        HirStatement::Continue => quote! { continue; },
+        StatementKind::Continue => quote! { continue; },
 
-        HirStatement::Return(expr) => match expr {
+        StatementKind::Return { value } => match value {
             Some(e) => {
-                let value = generate_expr(e);
-                quote! { return #value; }
+                let value_tokens = generate_expr(e);
+                quote! { return #value_tokens; }
             }
             None => quote! { return; },
         },
 
-        HirStatement::FnDef {
+        StatementKind::FunctionDef {
             name,
             params,
             body,
             return_type,
         } => generate_fn_def(name, params, body, return_type),
 
-        HirStatement::StructDef { name, fields } => generate_struct_def(name, fields),
+        StatementKind::TypeDefinition { name, fields } => generate_struct_def(name, fields),
 
-        HirStatement::TraitDef { name, methods } => generate_trait_def(name, methods),
+        StatementKind::TraitDefinition { name, methods } => generate_trait_def(name, methods),
 
-        HirStatement::TraitImpl {
+        StatementKind::TraitImplementation {
             trait_name,
             type_name,
             methods,
@@ -211,7 +240,7 @@ fn generate_statement(stmt: &HirStatement) -> TokenStream {
     }
 }
 
-fn generate_let(name: &str, value: &HirExpr, mutable: bool) -> TokenStream {
+fn generate_let(name: &str, value: &AnalyzedExpr, mutable: bool) -> TokenStream {
     let name_ident = format_ident!("{}", sanitize_name(name));
     let value_tokens = generate_expr(value);
 
@@ -222,17 +251,13 @@ fn generate_let(name: &str, value: &HirExpr, mutable: bool) -> TokenStream {
     }
 }
 
-fn generate_print(args: &[HirExpr]) -> TokenStream {
+fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
     if args.is_empty() {
         quote! { println!(); }
     } else if args.len() == 1 {
         let arg = generate_expr(&args[0]);
-        // Use Display formatting for the argument
-        match &args[0] {
-            HirExpr::StringLit(_) => quote! { println!("{}", #arg); },
-            HirExpr::Var(_) => quote! { println!("{}", #arg); },
-            _ => quote! { println!("{}", #arg); },
-        }
+        // Use Display formatting
+        quote! { println!("{}", #arg); }
     } else {
         // Multiple args - join with space
         let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
@@ -241,9 +266,9 @@ fn generate_print(args: &[HirExpr]) -> TokenStream {
 }
 
 fn generate_if(
-    condition: &HirExpr,
-    then_body: &[HirStatement],
-    else_body: &Option<Vec<HirStatement>>,
+    condition: &AnalyzedExpr,
+    then_body: &[AnalyzedStatement],
+    else_body: &Option<Vec<AnalyzedStatement>>,
 ) -> TokenStream {
     let cond = generate_expr(condition);
     let then_stmts: Vec<TokenStream> = then_body.iter().map(generate_statement).collect();
@@ -269,7 +294,7 @@ fn generate_if(
     }
 }
 
-fn generate_while(condition: &HirExpr, body: &[HirStatement]) -> TokenStream {
+fn generate_while(condition: &AnalyzedExpr, body: &[AnalyzedStatement]) -> TokenStream {
     let cond = generate_expr(condition);
     let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
     quote! {
@@ -279,7 +304,7 @@ fn generate_while(condition: &HirExpr, body: &[HirStatement]) -> TokenStream {
     }
 }
 
-fn generate_for(variable: &str, iterator: &HirExpr, body: &[HirStatement]) -> TokenStream {
+fn generate_for(variable: &str, iterator: &AnalyzedExpr, body: &[AnalyzedStatement]) -> TokenStream {
     let var_ident = format_ident!("{}", sanitize_name(variable));
     let iter = generate_expr(iterator);
     let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
@@ -290,13 +315,13 @@ fn generate_for(variable: &str, iterator: &HirExpr, body: &[HirStatement]) -> To
     }
 }
 
-fn generate_match(scrutinee: &HirExpr, arms: &[(HirExpr, Vec<HirStatement>)]) -> TokenStream {
+fn generate_match(scrutinee: &AnalyzedExpr, arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)]) -> TokenStream {
     let scrut = generate_expr(scrutinee);
     let arm_tokens: Vec<TokenStream> = arms
         .iter()
         .map(|(pattern, body)| {
-            // Check if pattern is wildcard (represented as BoolLit(true))
-            let pat = if matches!(pattern, HirExpr::BoolLit(true)) {
+            // Check if pattern is wildcard (represented as BooleanLiteral(true))
+            let pat = if matches!(pattern.expr, AnalyzedExprKind::BooleanLiteral(true)) {
                 // Generate wildcard pattern
                 quote! { _ }
             } else {
@@ -315,9 +340,9 @@ fn generate_match(scrutinee: &HirExpr, arms: &[(HirExpr, Vec<HirStatement>)]) ->
 
 fn generate_fn_def(
     name: &str,
-    params: &[(String, Option<String>)],
-    body: &[HirStatement],
-    return_type: &Option<String>,
+    params: &[(smol_str::SmolStr, Option<GlossaType>)],
+    body: &[AnalyzedStatement],
+    return_type: &Option<GlossaType>,
 ) -> TokenStream {
     let fn_name = format_ident!("{}", sanitize_name(name));
     let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
@@ -327,9 +352,10 @@ fn generate_fn_def(
         .iter()
         .map(|(param_name, param_type)| {
             let param_ident = format_ident!("{}", sanitize_name(param_name));
-            if let Some(type_str) = param_type {
-                let ty = format_ident!("{}", type_str);
-                quote! { #param_ident: #ty }
+            if let Some(ty) = param_type {
+                let ty_str = type_to_rust_string(ty);
+                let ty_ident = format_ident!("{}", ty_str);
+                quote! { #param_ident: #ty_ident }
             } else {
                 quote! { #param_ident }
             }
@@ -338,7 +364,8 @@ fn generate_fn_def(
 
     // Generate return type
     if let Some(ret_type) = return_type {
-        let ret_ty = format_ident!("{}", ret_type);
+        let ret_str = type_to_rust_string(ret_type);
+        let ret_ty = format_ident!("{}", ret_str);
         quote! {
             fn #fn_name(#(#param_tokens),*) -> #ret_ty {
                 #(#body_stmts)*
@@ -353,7 +380,7 @@ fn generate_fn_def(
     }
 }
 
-fn generate_struct_def(name: &str, fields: &[(String, String)]) -> TokenStream {
+fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -> TokenStream {
     // Capitalize struct name for Rust conventions
     let struct_name = format_ident!("{}", capitalize(&sanitize_name(name)));
 
@@ -362,7 +389,8 @@ fn generate_struct_def(name: &str, fields: &[(String, String)]) -> TokenStream {
         .iter()
         .map(|(field_name, field_type)| {
             let field_ident = format_ident!("{}", sanitize_name(field_name));
-            let type_ident = format_ident!("{}", field_type);
+            let type_str = type_to_rust_string(field_type);
+            let type_ident = format_ident!("{}", type_str);
             quote! { #field_ident: #type_ident }
         })
         .collect();
@@ -375,7 +403,7 @@ fn generate_struct_def(name: &str, fields: &[(String, String)]) -> TokenStream {
     }
 }
 
-fn generate_trait_def(name: &str, methods: &[crate::ir::HirTraitMethod]) -> TokenStream {
+fn generate_trait_def(name: &str, methods: &[AnalyzedTraitMethod]) -> TokenStream {
     // Capitalize trait name for Rust conventions
     let trait_name = format_ident!("{}", capitalize(&sanitize_name(name)));
 
@@ -396,21 +424,19 @@ fn generate_trait_def(name: &str, methods: &[crate::ir::HirTraitMethod]) -> Toke
                         quote! { &self }
                     } else {
                         let param_ident = format_ident!("{}", sanitize_name(param_name));
-                        if let Some(type_str) = param_type {
-                            let ty = format_ident!("{}", type_str);
-                            quote! { #param_ident: #ty }
-                        } else {
-                            quote! { #param_ident }
-                        }
+                        let type_str = type_to_rust_string(param_type);
+                        let ty = format_ident!("{}", type_str);
+                        quote! { #param_ident: #ty }
                     }
                 })
                 .collect();
 
             // Generate return type
             if let Some(ret_type) = &method.return_type {
-                let ret_ty = format_ident!("{}", ret_type);
-                if method.has_default {
-                    // Default method with body
+                let ret_str = type_to_rust_string(ret_type);
+                let ret_ty = format_ident!("{}", ret_str);
+
+                if method.is_default {
                     if let Some(body) = &method.body {
                         let body_stmts: Vec<TokenStream> =
                             body.iter().map(generate_statement).collect();
@@ -420,19 +446,17 @@ fn generate_trait_def(name: &str, methods: &[crate::ir::HirTraitMethod]) -> Toke
                             }
                         }
                     } else {
-                        quote! {
+                         quote! {
                             fn #method_name(#(#param_tokens),*) -> #ret_ty;
                         }
                     }
                 } else {
-                    // Required method signature only
                     quote! {
                         fn #method_name(#(#param_tokens),*) -> #ret_ty;
                     }
                 }
-            } else if method.has_default {
-                // Default method with body
-                if let Some(body) = &method.body {
+            } else if method.is_default {
+                 if let Some(body) = &method.body {
                     let body_stmts: Vec<TokenStream> =
                         body.iter().map(generate_statement).collect();
                     quote! {
@@ -440,13 +464,12 @@ fn generate_trait_def(name: &str, methods: &[crate::ir::HirTraitMethod]) -> Toke
                             #(#body_stmts)*
                         }
                     }
-                } else {
-                    quote! {
+                 } else {
+                     quote! {
                         fn #method_name(#(#param_tokens),*);
                     }
-                }
+                 }
             } else {
-                // Required method signature only
                 quote! {
                     fn #method_name(#(#param_tokens),*);
                 }
@@ -464,7 +487,7 @@ fn generate_trait_def(name: &str, methods: &[crate::ir::HirTraitMethod]) -> Toke
 fn generate_trait_impl(
     trait_name: &str,
     type_name: &str,
-    methods: &[crate::ir::HirImplMethod],
+    methods: &[AnalyzedImplMethod],
 ) -> TokenStream {
     // Capitalize trait and type names for Rust conventions
     let trait_ident = format_ident!("{}", capitalize(&sanitize_name(trait_name)));
@@ -482,17 +505,13 @@ fn generate_trait_impl(
                 .iter()
                 .enumerate()
                 .map(|(idx, (param_name, param_type))| {
-                    // Special case: first parameter named "self" becomes &self
                     if is_self_parameter(param_name, idx) {
                         quote! { &self }
                     } else {
                         let param_ident = format_ident!("{}", sanitize_name(param_name));
-                        if let Some(type_str) = param_type {
-                            let ty = format_ident!("{}", type_str);
-                            quote! { #param_ident: #ty }
-                        } else {
-                            quote! { #param_ident }
-                        }
+                        let type_str = type_to_rust_string(param_type);
+                        let ty = format_ident!("{}", type_str);
+                        quote! { #param_ident: #ty }
                     }
                 })
                 .collect();
@@ -502,7 +521,8 @@ fn generate_trait_impl(
 
             // Generate return type
             if let Some(ret_type) = &method.return_type {
-                let ret_ty = format_ident!("{}", ret_type);
+                let ret_str = type_to_rust_string(ret_type);
+                let ret_ty = format_ident!("{}", ret_str);
                 quote! {
                     fn #method_name(#(#param_tokens),*) -> #ret_ty {
                         #(#body_stmts)*
@@ -525,73 +545,77 @@ fn generate_trait_impl(
     }
 }
 
-fn generate_expr(expr: &HirExpr) -> TokenStream {
-    match expr {
-        HirExpr::StringLit(s) => {
+fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
+    match &expr.expr {
+        AnalyzedExprKind::StringLiteral(s) => {
             quote! { #s }
         }
 
-        HirExpr::IntLit(n) => {
+        AnalyzedExprKind::NumberLiteral(n) => {
             quote! { #n }
         }
 
-        HirExpr::BoolLit(b) => {
+        AnalyzedExprKind::Literal(n) => {
+             quote! { #n }
+        }
+
+        AnalyzedExprKind::BooleanLiteral(b) => {
             quote! { #b }
         }
 
-        HirExpr::ArrayLit(elements) => {
+        AnalyzedExprKind::ArrayLiteral(elements) => {
             let elem_tokens: Vec<TokenStream> = elements.iter().map(generate_expr).collect();
             quote! { vec![#(#elem_tokens),*] }
         }
 
-        HirExpr::Some(inner) => {
+        AnalyzedExprKind::Some(inner) => {
             let inner_tokens = generate_expr(inner);
             quote! { Some(#inner_tokens) }
         }
 
-        HirExpr::None => {
+        AnalyzedExprKind::None => {
             quote! { None }
         }
 
-        HirExpr::Ok(inner) => {
+        AnalyzedExprKind::Ok(inner) => {
             let inner_tokens = generate_expr(inner);
             quote! { Ok(#inner_tokens) }
         }
 
-        HirExpr::Err(inner) => {
+        AnalyzedExprKind::Err(inner) => {
             let inner_tokens = generate_expr(inner);
             quote! { Err(#inner_tokens) }
         }
 
-        HirExpr::Try(inner) => {
+        AnalyzedExprKind::Try(inner) => {
             let inner_tokens = generate_expr(inner);
             quote! { #inner_tokens? }
         }
 
-        HirExpr::Unwrap(inner) => {
+        AnalyzedExprKind::Unwrap(inner) => {
             let inner_tokens = generate_expr(inner);
             quote! { #inner_tokens.unwrap() }
         }
 
-        HirExpr::Index { array, index } => {
+        AnalyzedExprKind::IndexAccess { array, index } => {
             let array_tokens = generate_expr(array);
             let index_tokens = generate_expr(index);
             // Cast index to usize for Rust array indexing
             quote! { #array_tokens[(#index_tokens) as usize] }
         }
 
-        HirExpr::Var(name) => {
+        AnalyzedExprKind::Variable(name) => {
             let name_ident = format_ident!("{}", sanitize_name(name));
             quote! { #name_ident }
         }
 
-        HirExpr::Field { object, field } => {
-            let obj = generate_expr(object);
-            let field_ident = format_ident!("{}", sanitize_name(field));
+        AnalyzedExprKind::PropertyAccess { owner, property } => {
+            let obj = generate_expr(owner);
+            let field_ident = format_ident!("{}", sanitize_name(property));
             quote! { #obj.#field_ident }
         }
 
-        HirExpr::MethodCall {
+        AnalyzedExprKind::MethodCall {
             receiver,
             method,
             args,
@@ -602,24 +626,37 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             quote! { #recv.#method_ident(#(#arg_tokens),*) }
         }
 
-        HirExpr::Call { func, args } => {
-            let func_ident = format_ident!("{}", sanitize_name(func));
+        AnalyzedExprKind::TraitMethodCall { receiver, method_name, args, .. } => {
+            // Treat as regular method call
+            let recv = generate_expr(receiver);
+            let method_ident = format_ident!("{}", sanitize_name(method_name));
+            let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+            quote! { #recv.#method_ident(#(#arg_tokens),*) }
+        }
+
+        AnalyzedExprKind::VerbCall { verb, args } | AnalyzedExprKind::FunctionCall { func: verb, args } => {
+            let func_ident = format_ident!("{}", sanitize_name(verb));
             let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
             quote! { #func_ident(#(#arg_tokens),*) }
         }
 
-        HirExpr::BinOp { op, left, right } => generate_bin_op(op, left, right),
+        AnalyzedExprKind::BinOp { op, left, right } => generate_bin_op(*op, left, right),
 
-        HirExpr::Ref { mutable, expr } => {
-            let inner = generate_expr(expr);
-            if *mutable {
-                quote! { &mut #inner }
-            } else {
-                quote! { &#inner }
+        AnalyzedExprKind::UnaryOp { op, operand } => {
+            match op {
+                UnaryOp::Not => {
+                    let operand_tokens = generate_expr(operand);
+                    // Standard Rust logical not or bitwise not
+                    quote! { !#operand_tokens }
+                },
+                UnaryOp::Neg => {
+                     let operand_tokens = generate_expr(operand);
+                     quote! { -#operand_tokens }
+                }
             }
         }
 
-        HirExpr::Range {
+        AnalyzedExprKind::Range {
             start,
             end,
             inclusive,
@@ -633,27 +670,27 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
             }
         }
 
-        HirExpr::StructLit {
+        AnalyzedExprKind::StructInstantiation {
             type_name,
             fields,
             args,
         } => generate_struct_lit(type_name, fields, args),
 
-        HirExpr::Closure {
+        AnalyzedExprKind::Lambda {
             params,
             body,
             capture_mode,
         } => generate_closure(params, body, capture_mode),
 
-        HirExpr::IteratorChain { collection, ops } => generate_iterator_chain(collection, ops),
+        AnalyzedExprKind::IteratorChain { collection, ops } => generate_iterator_chain(collection, ops),
 
-        HirExpr::CollectionNew { collection_type } => {
+        AnalyzedExprKind::CollectionNew { collection_type } => {
             // Generate HashSet::new() or HashMap::new()
             let type_ident = format_ident!("{}", collection_type);
             quote! { #type_ident::new() }
         }
 
-        HirExpr::CollectionContains {
+        AnalyzedExprKind::CollectionContains {
             collection,
             element,
             is_map,
@@ -664,14 +701,11 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
                 // HashMap uses .contains_key(&key)
                 quote! { #coll.contains_key(&#elem) }
             } else {
-                // For collections like HashSet we use a reference, but for
-                // String::contains we must avoid creating a &&str when the
-                // element is a string literal (which is already a &str).
-                match element.as_ref() {
+                 match &element.expr {
                     // When the element is a string literal, `generate_expr`
                     // already yields a `&str`, so we call `.contains(elem)`
                     // without adding another `&`.
-                    HirExpr::StringLit(_) => {
+                    AnalyzedExprKind::StringLiteral(_) => {
                         quote! { #coll.contains(#elem) }
                     }
                     // In all other cases, keep the existing behavior and
@@ -686,28 +720,28 @@ fn generate_expr(expr: &HirExpr) -> TokenStream {
     }
 }
 
-fn generate_bin_op(op: &BinOp, left: &HirExpr, right: &HirExpr) -> TokenStream {
+fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> TokenStream {
     let left_tokens = generate_expr(left);
     let right_tokens = generate_expr(right);
 
     match op {
-        BinOp::Add => quote! { (#left_tokens + #right_tokens) },
-        BinOp::Sub => quote! { (#left_tokens - #right_tokens) },
-        BinOp::Mul => quote! { (#left_tokens * #right_tokens) },
-        BinOp::Div => quote! { (#left_tokens / #right_tokens) },
-        BinOp::Mod => quote! { (#left_tokens % #right_tokens) },
-        BinOp::Eq => quote! { (#left_tokens == #right_tokens) },
-        BinOp::Ne => quote! { (#left_tokens != #right_tokens) },
-        BinOp::Lt => quote! { (#left_tokens < #right_tokens) },
-        BinOp::Le => quote! { (#left_tokens <= #right_tokens) },
-        BinOp::Gt => quote! { (#left_tokens > #right_tokens) },
-        BinOp::Ge => quote! { (#left_tokens >= #right_tokens) },
-        BinOp::And => quote! { (#left_tokens && #right_tokens) },
-        BinOp::Or => quote! { (#left_tokens || #right_tokens) },
+        BinaryOp::Add => quote! { (#left_tokens + #right_tokens) },
+        BinaryOp::Sub => quote! { (#left_tokens - #right_tokens) },
+        BinaryOp::Mul => quote! { (#left_tokens * #right_tokens) },
+        BinaryOp::Div => quote! { (#left_tokens / #right_tokens) },
+        BinaryOp::Mod => quote! { (#left_tokens % #right_tokens) },
+        BinaryOp::Eq => quote! { (#left_tokens == #right_tokens) },
+        BinaryOp::Ne => quote! { (#left_tokens != #right_tokens) },
+        BinaryOp::Lt => quote! { (#left_tokens < #right_tokens) },
+        BinaryOp::Le => quote! { (#left_tokens <= #right_tokens) },
+        BinaryOp::Gt => quote! { (#left_tokens > #right_tokens) },
+        BinaryOp::Ge => quote! { (#left_tokens >= #right_tokens) },
+        BinaryOp::And => quote! { (#left_tokens && #right_tokens) },
+        BinaryOp::Or => quote! { (#left_tokens || #right_tokens) },
     }
 }
 
-fn generate_struct_lit(type_name: &str, fields: &[String], args: &[HirExpr]) -> TokenStream {
+fn generate_struct_lit(type_name: &str, fields: &[smol_str::SmolStr], args: &[AnalyzedExpr]) -> TokenStream {
     // Capitalize struct name for Rust conventions
     let struct_name = format_ident!("{}", capitalize(&sanitize_name(type_name)));
 
@@ -726,11 +760,11 @@ fn generate_struct_lit(type_name: &str, fields: &[String], args: &[HirExpr]) -> 
 }
 
 fn generate_closure(
-    params: &[String],
-    body: &HirExpr,
-    capture_mode: &crate::ir::CaptureMode,
+    params: &[smol_str::SmolStr],
+    body: &AnalyzedExpr,
+    capture_mode: &crate::ast::CaptureMode,
 ) -> TokenStream {
-    use crate::ir::CaptureMode;
+    use crate::ast::CaptureMode;
 
     let body_tokens = generate_expr(body);
     let params_idents: Vec<_> = params
@@ -747,11 +781,7 @@ fn generate_closure(
         }
         CaptureMode::Memoize => {
             // Perfect participle: lazy evaluation with caching
-            // Each closure instance caches its first computed value and returns it for all subsequent calls
-            // Limitation: This shares a single cached value for all inputs (not true per-input memoization)
-            // Use case: Constant computations or operations that should only execute once
-            // Future: Implement HashMap-based memoization for per-input caching
-            quote! {
+             quote! {
                 {
                     use std::cell::RefCell;
                     let cache = RefCell::new(None);
@@ -768,42 +798,40 @@ fn generate_closure(
     }
 }
 
-fn generate_iterator_chain(collection: &HirExpr, ops: &[crate::ir::IteratorOp]) -> TokenStream {
-    use crate::ir::IteratorOp;
-
+fn generate_iterator_chain(collection: &AnalyzedExpr, ops: &[AnalyzedIteratorOp]) -> TokenStream {
     let mut current = generate_expr(collection);
 
     for op in ops {
         current = match op {
-            IteratorOp::Iter => {
+            AnalyzedIteratorOp::Iter => {
                 quote! { #current.iter() }
             }
-            IteratorOp::Map(closure) => {
+            AnalyzedIteratorOp::Map(closure) => {
                 let closure_tokens = generate_expr(closure);
                 quote! { #current.map(#closure_tokens) }
             }
-            IteratorOp::Filter(closure) => {
+            AnalyzedIteratorOp::Filter(closure) => {
                 let closure_tokens = generate_expr(closure);
                 quote! { #current.filter(#closure_tokens) }
             }
-            IteratorOp::Find(closure) => {
+            AnalyzedIteratorOp::Find(closure) => {
                 let closure_tokens = generate_expr(closure);
                 quote! { #current.find(#closure_tokens) }
             }
-            IteratorOp::Fold { init, closure } => {
+            AnalyzedIteratorOp::Fold { init, closure } => {
                 let init_tokens = generate_expr(init);
                 let closure_tokens = generate_expr(closure);
                 quote! { #current.fold(#init_tokens, #closure_tokens) }
             }
-            IteratorOp::Any(closure) => {
+            AnalyzedIteratorOp::Any(closure) => {
                 let closure_tokens = generate_expr(closure);
                 quote! { #current.any(#closure_tokens) }
             }
-            IteratorOp::All(closure) => {
+            AnalyzedIteratorOp::All(closure) => {
                 let closure_tokens = generate_expr(closure);
                 quote! { #current.all(#closure_tokens) }
             }
-            IteratorOp::Collect => {
+            AnalyzedIteratorOp::Collect => {
                 quote! { #current.collect() }
             }
         };
@@ -835,14 +863,6 @@ fn is_self_parameter(param_name: &str, idx: usize) -> bool {
 }
 
 /// Sanitize a Greek name for use as a Rust identifier
-///
-/// Rust identifiers must be ASCII (mostly). This function transliterates
-/// Greek characters into their Latin phonetic equivalents.
-///
-/// * Single letters are mapped to their names: `α` -> `alpha`
-/// * Words are transliterated letter-by-letter: `λόγος` -> `logos`
-///
-/// If the resulting name starts with a number, it is prefixed with `_`.
 fn sanitize_name(name: &str) -> String {
     // Map single Greek letters to their names
     if name.len() <= 2 {
@@ -937,18 +957,24 @@ fn transliterate(greek: &str) -> String {
     }
 }
 
+/// Helper to get Rust type string, working around GlossaType::to_rust issues
+fn type_to_rust_string(ty: &GlossaType) -> String {
+    match ty {
+        GlossaType::Struct { name, .. } => capitalize(&sanitize_name(name)),
+        _ => ty.to_rust(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ir::lower_to_hir;
     use crate::parser::parse;
     use crate::semantic::analyze_program;
 
     fn compile(source: &str) -> String {
         let ast = parse(source).unwrap();
         let analyzed = analyze_program(&ast).unwrap();
-        let hir = lower_to_hir(&analyzed);
-        generate_rust(&hir)
+        generate_rust(&analyzed)
     }
 
     #[test]
