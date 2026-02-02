@@ -34,9 +34,9 @@ Here is a simple program that defines a user struct and greets them.
 ```glossa
 // Define a type (struct)
 εἶδος Χρήστης ὁρίζειν {
-    ὄνομα ὄνομα.      // field: String
-    ἡλικία ἀριθμός.   // field: i64
-}
+    ὄνομα ὀνόματος.      // field: String
+    ἡλικία ἀριθμοῦ.   // field: i64
+}.
 
 // Create a new user instance
 // "user" (nominative) "new" (adjective) "User" (type) ...

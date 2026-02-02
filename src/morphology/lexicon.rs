@@ -257,6 +257,24 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         },
     );
 
+    // χρήστου - of user (genitive)
+    m.insert(
+        "χρηστου",
+        LexiconEntry {
+            lemma: "χρηστης",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "of user (genitive)",
+            rust_equiv: Some("user"),
+            case: Some(Case::Genitive),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
     // ὄνομα - name/string
     m.insert(
         "ονομα",
