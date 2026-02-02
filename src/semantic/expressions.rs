@@ -539,19 +539,37 @@ mod tests {
 
     #[test]
     fn test_analyze_argument_expr_handles_binop() {
-        let expr = Expr::BinOp {
-            left: Box::new(Expr::NumberLiteral(1)),
-            op: crate::ast::BinOperator::Add,
-            right: Box::new(Expr::NumberLiteral(2)),
-        };
         let scope = Scope::new();
-        let result = analyze_argument_expr(&expr, &scope).unwrap();
+        let ops = vec![
+            (crate::ast::BinOperator::Add, crate::morphology::lexicon::BinaryOp::Add),
+            (crate::ast::BinOperator::Sub, crate::morphology::lexicon::BinaryOp::Sub),
+            (crate::ast::BinOperator::Mul, crate::morphology::lexicon::BinaryOp::Mul),
+            (crate::ast::BinOperator::Div, crate::morphology::lexicon::BinaryOp::Div),
+            (crate::ast::BinOperator::Mod, crate::morphology::lexicon::BinaryOp::Mod),
+            (crate::ast::BinOperator::Eq, crate::morphology::lexicon::BinaryOp::Eq),
+            (crate::ast::BinOperator::Ne, crate::morphology::lexicon::BinaryOp::Ne),
+            (crate::ast::BinOperator::Lt, crate::morphology::lexicon::BinaryOp::Lt),
+            (crate::ast::BinOperator::Le, crate::morphology::lexicon::BinaryOp::Le),
+            (crate::ast::BinOperator::Gt, crate::morphology::lexicon::BinaryOp::Gt),
+            (crate::ast::BinOperator::Ge, crate::morphology::lexicon::BinaryOp::Ge),
+            (crate::ast::BinOperator::And, crate::morphology::lexicon::BinaryOp::And),
+            (crate::ast::BinOperator::Or, crate::morphology::lexicon::BinaryOp::Or),
+        ];
 
-        match result.expr {
-            AnalyzedExprKind::BinOp { op, .. } => {
-                assert_eq!(op, crate::morphology::lexicon::BinaryOp::Add);
+        for (ast_op, expected_sem_op) in ops {
+            let expr = Expr::BinOp {
+                left: Box::new(Expr::NumberLiteral(1)),
+                op: ast_op,
+                right: Box::new(Expr::NumberLiteral(2)),
+            };
+            let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+            match result.expr {
+                AnalyzedExprKind::BinOp { op, .. } => {
+                    assert_eq!(op, expected_sem_op, "Mismatch for AST operator {:?}", ast_op);
+                }
+                _ => panic!("Expected BinOp"),
             }
-            _ => panic!("Expected BinOp"),
         }
     }
 
@@ -797,7 +815,9 @@ mod tests {
     fn test_analyze_argument_expr_errors_on_block_with_empty_clause() {
         // Block with a statement that has a clause with no expressions
         let stmt = crate::ast::Statement::Regular {
-            clauses: vec![crate::ast::Clause { expressions: vec![] }],
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![],
+            }],
             is_query: false,
             is_propagate: false,
         };
