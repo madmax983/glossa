@@ -82,7 +82,7 @@ fn execute_cli(cli: Cli) -> Result<()> {
         }
 
         Some(Commands::Repl) | None => {
-            run_repl()?;
+            run_repl(std::io::stdin().lock(), std::io::stdout())?;
         }
     }
 
@@ -221,28 +221,37 @@ fn check_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
-fn run_repl() -> Result<()> {
-    println!(
+fn run_repl<R: std::io::BufRead, W: std::io::Write>(
+    mut input_reader: R,
+    mut output: W,
+) -> Result<()> {
+    writeln!(
+        output,
         "{}",
         format!("ΓΛΩΣΣΑ v{}", env!("CARGO_PKG_VERSION"))
             .cyan()
             .bold()
-    );
-    println!(
+    )
+    .into_diagnostic()?;
+    writeln!(
+        output,
         "{}",
         "Γράψον .βοήθεια διὰ βοήθειαν, .ἔξοδος διὰ ἔξοδον.".dark_grey()
-    );
-    println!();
+    )
+    .into_diagnostic()?;
+    writeln!(output).into_diagnostic()?;
 
     let mut context = ReplContext::new();
 
     loop {
-        print!("{}", "γλ> ".green().bold());
-        use std::io::Write;
-        std::io::stdout().flush().into_diagnostic()?;
+        write!(output, "{}", "γλ> ".green().bold()).into_diagnostic()?;
+        output.flush().into_diagnostic()?;
 
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input).into_diagnostic()?;
+        if input_reader.read_line(&mut input).into_diagnostic()? == 0 {
+            // EOF
+            break;
+        }
 
         let input = input.trim();
 
@@ -253,29 +262,32 @@ fn run_repl() -> Result<()> {
         // Handle special commands
         match input {
             ".ἔξοδος" | ".exit" | ".quit" => {
-                println!("{}", "Χαῖρε!".cyan());
+                writeln!(output, "{}", "Χαῖρε!".cyan()).into_diagnostic()?;
                 break;
             }
             ".βοήθεια" | ".help" => {
-                print_help();
+                print_help(&mut output)?;
                 continue;
             }
             ".καθαρός" | ".clear" => {
                 context = ReplContext::new();
-                println!("{}", "Ἐκαθαρίσθη.".green());
+                writeln!(output, "{}", "Ἐκαθαρίσθη.".green()).into_diagnostic()?;
                 continue;
             }
             _ => {}
         }
 
         match context.execute(input) {
-            Ok(output) => {
-                if !output.is_empty() {
-                    println!("{}", output);
+            Ok(result) => {
+                if !result.is_empty() {
+                    writeln!(output, "{}", result).into_diagnostic()?;
                 }
             }
             Err(e) => {
-                eprintln!("{}", format!("Σφάλμα: {}", e).red());
+                // In a REPL, errors should go to the output stream (user interface),
+                // but std::eprintln goes to stderr. For testing, we might want to capture this too.
+                // For now, we'll write to the output stream to make it testable and unified.
+                writeln!(output, "{}", format!("Σφάλμα: {}", e).red()).into_diagnostic()?;
             }
         }
     }
@@ -283,16 +295,17 @@ fn run_repl() -> Result<()> {
     Ok(())
 }
 
-fn print_help() {
-    println!("{}", "Ἐντολαί:".bold());
-    println!("  .βοήθεια  - δεῖξαι τήνδε τὴν βοήθειαν");
-    println!("  .ἔξοδος   - ἐξελθεῖν");
-    println!("  .καθαρός  - καθαρίσαι τὸ περιβάλλον");
-    println!();
-    println!("{}", "Παραδείγματα:".bold());
-    println!("  «χαῖρε κόσμε» λέγε.");
-    println!("  ξ πέντε ἔστω.");
-    println!("  ξ λέγε.");
+fn print_help<W: std::io::Write>(output: &mut W) -> Result<()> {
+    writeln!(output, "{}", "Ἐντολαί:".bold()).into_diagnostic()?;
+    writeln!(output, "  .βοήθεια  - δεῖξαι τήνδε τὴν βοήθειαν").into_diagnostic()?;
+    writeln!(output, "  .ἔξοδος   - ἐξελθεῖν").into_diagnostic()?;
+    writeln!(output, "  .καθαρός  - καθαρίσαι τὸ περιβάλλον").into_diagnostic()?;
+    writeln!(output).into_diagnostic()?;
+    writeln!(output, "{}", "Παραδείγματα:".bold()).into_diagnostic()?;
+    writeln!(output, "  «χαῖρε κόσμε» λέγε.").into_diagnostic()?;
+    writeln!(output, "  ξ πέντε ἔστω.").into_diagnostic()?;
+    writeln!(output, "  ξ λέγε.").into_diagnostic()?;
+    Ok(())
 }
 
 struct ReplContext {
@@ -559,5 +572,20 @@ mod tests {
         };
 
         assert!(execute_cli(cli).is_err());
+    }
+
+    #[test]
+    fn test_run_repl_io() {
+        let input_data = b".help\n.clear\n.exit\n";
+        let mut output = Vec::new();
+
+        let result = run_repl(&input_data[..], &mut output);
+        assert!(result.is_ok());
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("ΓΛΩΣΣΑ v"));
+        assert!(output_str.contains("Παραδείγματα:")); // from .help
+        assert!(output_str.contains("Ἐκαθαρίσθη.")); // from .clear
+        assert!(output_str.contains("Χαῖρε!")); // from .exit
     }
 }
