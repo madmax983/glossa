@@ -35,7 +35,10 @@ impl<'a> Oracle<'a> {
         for var in defined {
             if !used.contains(&var) {
                 prophecies.push(Prophecy {
-                    message: format!("The Silent Echo: Variable '{}' is summoned but never speaks.", var),
+                    message: format!(
+                        "The Silent Echo: Variable '{}' is summoned but never speaks.",
+                        var
+                    ),
                     severity: Severity::Warning,
                 });
             }
@@ -49,24 +52,10 @@ impl<'a> Oracle<'a> {
                 defined.insert(name.clone());
             }
             StatementKind::FunctionDef {
-                name,
-                params,
-                body,
-                ..
+                name, params, body, ..
             } => {
                 // Function name is defined
                 defined.insert(name.clone());
-                // Params are defined within the function scope (handled locally ideally, but for now global set)
-                // Note: This simple approach merges all scopes. For a proper check we need scoped analysis.
-                // However, Nova is "Unslop" but "Prototype". Merging scopes might produce false positives if same name used in different scopes.
-                // But unused binding check usually implies unique names or careful scoping.
-                // Let's refine: We should only check bindings that are unused.
-                // If I define 'x' in main and 'x' in func, they are different 'x'.
-                // A flat set approach is flawed.
-                // Let's try to do it per-scope or just ignore shadowing for the MVP?
-                // "Nova's Philosophy: Innovation is connecting two existing modules... even wild ideas must compile and have basic tests."
-                // I'll stick to a simpler version: Just traverse and check. If I can't easily handle scopes, I'll just check "globally unique names" assumption or accept false positives.
-                // actually, let's just collect all definitions.
                 for (param_name, _) in params {
                     defined.insert(param_name.clone());
                 }
@@ -97,6 +86,28 @@ impl<'a> Oracle<'a> {
                 defined.insert(variable.clone());
                 for s in body {
                     self.collect_definitions(s, defined);
+                }
+            }
+            StatementKind::TraitImplementation { methods, .. } => {
+                for method in methods {
+                    for (param_name, _) in &method.params {
+                        defined.insert(param_name.clone());
+                    }
+                    for s in &method.body {
+                        self.collect_definitions(s, defined);
+                    }
+                }
+            }
+            StatementKind::TraitDefinition { methods, .. } => {
+                for method in methods {
+                    for (param_name, _) in &method.params {
+                        defined.insert(param_name.clone());
+                    }
+                    if let Some(body) = &method.body {
+                        for s in body {
+                            self.collect_definitions(s, defined);
+                        }
+                    }
                 }
             }
             _ => {}
@@ -160,10 +171,8 @@ impl<'a> Oracle<'a> {
                     self.collect_usages(s, used);
                 }
             }
-            StatementKind::Return { value } => {
-                if let Some(v) = value {
-                    self.collect_usages_in_expr(v, used);
-                }
+            StatementKind::Return { value: Some(v) } => {
+                self.collect_usages_in_expr(v, used);
             }
             StatementKind::Match { scrutinee, arms } => {
                 self.collect_usages_in_expr(scrutinee, used);
@@ -171,6 +180,22 @@ impl<'a> Oracle<'a> {
                     self.collect_usages_in_expr(pat, used);
                     for s in body {
                         self.collect_usages(s, used);
+                    }
+                }
+            }
+            StatementKind::TraitImplementation { methods, .. } => {
+                for method in methods {
+                    for s in &method.body {
+                        self.collect_usages(s, used);
+                    }
+                }
+            }
+            StatementKind::TraitDefinition { methods, .. } => {
+                for method in methods {
+                    if let Some(body) = &method.body {
+                        for s in body {
+                            self.collect_usages(s, used);
+                        }
                     }
                 }
             }
@@ -267,7 +292,12 @@ impl<'a> Oracle<'a> {
                 self.collect_usages_in_expr(collection, used);
                 self.collect_usages_in_expr(element, used);
             }
-            _ => {}
+            AnalyzedExprKind::CollectionNew { .. } => {}
+            AnalyzedExprKind::StringLiteral(_)
+            | AnalyzedExprKind::NumberLiteral(_)
+            | AnalyzedExprKind::BooleanLiteral(_)
+            | AnalyzedExprKind::None
+            | AnalyzedExprKind::Literal(_) => {}
         }
     }
 
@@ -335,7 +365,10 @@ impl<'a> Oracle<'a> {
                 // Function def resets depth? Or adds? Usually top level functions are depth 1 (or 0).
                 // But if nested, it adds.
                 // Since we iterate top level statements, this will measure depth of function body.
-                body.iter().map(|s| self.measure_depth(s)).max().unwrap_or(0)
+                body.iter()
+                    .map(|s| self.measure_depth(s))
+                    .max()
+                    .unwrap_or(0)
             }
             _ => 0,
         }
@@ -350,7 +383,11 @@ impl<'a> Oracle<'a> {
         prophecies
     }
 
-    fn check_empty_blocks_recursive(&self, stmt: &AnalyzedStatement, prophecies: &mut Vec<Prophecy>) {
+    fn check_empty_blocks_recursive(
+        &self,
+        stmt: &AnalyzedStatement,
+        prophecies: &mut Vec<Prophecy>,
+    ) {
         match &stmt.kind {
             StatementKind::If {
                 then_body,
@@ -359,7 +396,8 @@ impl<'a> Oracle<'a> {
             } => {
                 if then_body.is_empty() {
                     prophecies.push(Prophecy {
-                        message: "The Void: An 'if' block is empty. It speaks of nothing.".to_string(),
+                        message: "The Void: An 'if' block is empty. It speaks of nothing."
+                            .to_string(),
                         severity: Severity::Warning,
                     });
                 } else {
@@ -446,7 +484,16 @@ mod tests {
                 value_type: GlossaType::Number,
                 mutable: false,
             },
-            expressions: vec![],
+            expressions: vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(name.into()),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(5),
+                    glossa_type: GlossaType::Number,
+                },
+            ],
         }
     }
 
@@ -504,5 +551,118 @@ mod tests {
         let prophecies = oracle.consult();
 
         assert!(prophecies.iter().any(|p| p.message.contains("empty shell")));
+    }
+
+    #[test]
+    fn test_nested_usage_in_if() {
+        let binding = mock_binding("ξ");
+        let if_stmt = AnalyzedStatement {
+            kind: StatementKind::If {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                then_body: vec![mock_print_var("ξ")],
+                else_body: None,
+            },
+            expressions: vec![],
+        };
+
+        let prog = mock_program(vec![binding, if_stmt]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        assert!(
+            !prophecies.iter().any(|p| p.message.contains("ξ")),
+            "Variable used in if block should be marked used"
+        );
+    }
+
+    #[test]
+    fn test_complexity_check() {
+        // Create deep nesting: If -> While -> For -> If (Depth 4)
+        let deep_stmt = AnalyzedStatement {
+            kind: StatementKind::If {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                then_body: vec![AnalyzedStatement {
+                    kind: StatementKind::While {
+                        condition: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::BooleanLiteral(true),
+                            glossa_type: GlossaType::Boolean,
+                        }),
+                        body: vec![AnalyzedStatement {
+                            kind: StatementKind::For {
+                                variable: "i".into(),
+                                iterator: Box::new(AnalyzedExpr {
+                                    expr: AnalyzedExprKind::Range {
+                                        start: Box::new(AnalyzedExpr {
+                                            expr: AnalyzedExprKind::NumberLiteral(0),
+                                            glossa_type: GlossaType::Number,
+                                        }),
+                                        end: Box::new(AnalyzedExpr {
+                                            expr: AnalyzedExprKind::NumberLiteral(10),
+                                            glossa_type: GlossaType::Number,
+                                        }),
+                                        inclusive: false,
+                                    },
+                                    glossa_type: GlossaType::Unknown,
+                                }),
+                                body: vec![AnalyzedStatement {
+                                    kind: StatementKind::If {
+                                        condition: Box::new(AnalyzedExpr {
+                                            expr: AnalyzedExprKind::BooleanLiteral(true),
+                                            glossa_type: GlossaType::Boolean,
+                                        }),
+                                        then_body: vec![], // Empty to also trigger void check
+                                        else_body: None,
+                                    },
+                                    expressions: vec![],
+                                }],
+                            },
+                            expressions: vec![],
+                        }],
+                    },
+                    expressions: vec![],
+                }],
+                else_body: None,
+            },
+            expressions: vec![],
+        };
+
+        let prog = mock_program(vec![deep_stmt]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        assert!(
+            prophecies.iter().any(|p| p.message.contains("Labyrinth")),
+            "Should detect high complexity"
+        );
+    }
+
+    #[test]
+    fn test_unused_function_param() {
+        let func = AnalyzedStatement {
+            kind: StatementKind::FunctionDef {
+                name: "f".into(),
+                params: vec![("unused_param".into(), Some(GlossaType::Number))],
+                body: vec![mock_print_var("other_var")], // Using something else
+                return_type: None,
+            },
+            expressions: vec![],
+        };
+
+        let prog = mock_program(vec![func]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        assert!(
+            prophecies
+                .iter()
+                .any(|p| p.message.contains("unused_param")),
+            "Should detect unused function parameter"
+        );
     }
 }
