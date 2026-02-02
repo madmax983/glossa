@@ -927,4 +927,62 @@ mod tests {
         assert!(!prophecies.iter().any(|p| p.message.contains("'x'")));
         assert!(!prophecies.iter().any(|p| p.message.contains("'y'")));
     }
+
+    #[test]
+    fn test_exhaustive_control_flow() {
+        // Test If, While, For to ensure their definitions and usages are collected
+        let var_used = mock_binding("used_var");
+        let var_unused = mock_binding("unused_var");
+
+        // IF
+        let if_stmt = AnalyzedStatement {
+            kind: StatementKind::If {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("used_var".into()),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                then_body: vec![mock_print_var("used_var")],
+                else_body: Some(vec![mock_print_var("used_var")]),
+            },
+            expressions: vec![],
+        };
+
+        // WHILE
+        let while_stmt = AnalyzedStatement {
+            kind: StatementKind::While {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("used_var".into()),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                body: vec![mock_print_var("used_var")],
+            },
+            expressions: vec![],
+        };
+
+        // FOR
+        let for_stmt = AnalyzedStatement {
+            kind: StatementKind::For {
+                variable: "loop_var".into(),
+                iterator: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("used_var".into()),
+                    glossa_type: GlossaType::Unknown,
+                }),
+                body: vec![mock_print_var("loop_var")],
+            },
+            expressions: vec![],
+        };
+
+        let prog = mock_program(vec![var_used, var_unused, if_stmt, while_stmt, for_stmt]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        // used_var should be used
+        assert!(!prophecies.iter().any(|p| p.message.contains("'used_var'")));
+
+        // unused_var should be unused
+        assert!(prophecies.iter().any(|p| p.message.contains("'unused_var'")));
+
+        // loop_var is defined in For and used in body. Should NOT be unused.
+        assert!(!prophecies.iter().any(|p| p.message.contains("'loop_var'")));
+    }
 }
