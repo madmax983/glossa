@@ -59,10 +59,14 @@ enum Commands {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    execute_cli(cli)
+    execute_cli(cli, std::io::stdin().lock(), std::io::stdout())
 }
 
-fn execute_cli(cli: Cli) -> Result<()> {
+fn execute_cli<R: std::io::BufRead, W: std::io::Write>(
+    cli: Cli,
+    input_reader: R,
+    output_writer: W,
+) -> Result<()> {
     // If a file is provided without a subcommand, run it
     if let Some(file) = cli.file {
         return run_file(&file);
@@ -82,7 +86,7 @@ fn execute_cli(cli: Cli) -> Result<()> {
         }
 
         Some(Commands::Repl) | None => {
-            run_repl(std::io::stdin().lock(), std::io::stdout())?;
+            run_repl(input_reader, output_writer)?;
         }
     }
 
@@ -527,7 +531,9 @@ mod tests {
             file: None,
         };
 
-        assert!(execute_cli(cli).is_ok());
+        let input = b"";
+        let mut output = Vec::new();
+        assert!(execute_cli(cli, &input[..], &mut output).is_ok());
     }
 
     #[test]
@@ -545,7 +551,9 @@ mod tests {
             file: None,
         };
 
-        assert!(execute_cli(cli).is_ok());
+        let input = b"";
+        let mut output = Vec::new();
+        assert!(execute_cli(cli, &input[..], &mut output).is_ok());
     }
 
     #[test]
@@ -558,7 +566,9 @@ mod tests {
             file: None,
         };
 
-        assert!(execute_cli(cli).is_err());
+        let input = b"";
+        let mut output = Vec::new();
+        assert!(execute_cli(cli, &input[..], &mut output).is_err());
     }
 
     #[test]
@@ -571,7 +581,24 @@ mod tests {
             file: Some(input_path),
         };
 
-        assert!(execute_cli(cli).is_err());
+        let input = b"";
+        let mut output = Vec::new();
+        assert!(execute_cli(cli, &input[..], &mut output).is_err());
+    }
+
+    #[test]
+    fn test_execute_cli_repl() {
+        let cli = Cli {
+            command: None,
+            file: None,
+        };
+
+        let input_data = b".exit\n";
+        let mut output = Vec::new();
+        assert!(execute_cli(cli, &input_data[..], &mut output).is_ok());
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("ΓΛΩΣΣΑ v"));
     }
 
     #[test]
