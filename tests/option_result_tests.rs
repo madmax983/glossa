@@ -11,12 +11,12 @@ use glossa::semantic::GlossaType;
 /// Helper to compile GLOSSA source to Rust code
 fn compile(source: &str) -> Result<String, String> {
     use glossa::codegen::generate_rust;
-        use glossa::parser::parse;
+    use glossa::parser::parse;
     use glossa::semantic::analyze_program;
 
     let ast = parse(source).map_err(|e| e.to_string())?;
     let analyzed = analyze_program(&ast).map_err(|e| e.to_string())?;
-        Ok(generate_rust(&analyzed))
+    Ok(generate_rust(&analyzed))
 }
 
 // ============================================================================

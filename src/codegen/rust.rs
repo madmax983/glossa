@@ -21,11 +21,11 @@
 //! See [`sanitize_name`] for details.
 
 use crate::grammar::normalize_greek;
+use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedImplMethod, AnalyzedIteratorOp, AnalyzedProgram,
-    AnalyzedStatement, AnalyzedTraitMethod, StatementKind, GlossaType,
+    AnalyzedStatement, AnalyzedTraitMethod, GlossaType, StatementKind,
 };
-use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
@@ -90,16 +90,26 @@ fn uses_collections(program: &AnalyzedProgram) -> bool {
 /// Check if a statement uses collection types
 fn statement_uses_collections(stmt: &AnalyzedStatement) -> bool {
     match &stmt.kind {
-        StatementKind::Binding { value_type: _, .. } | StatementKind::Assignment { value_type: _, .. } => {
-             // Also check expressions
-             stmt.expressions.iter().any(expr_uses_collections)
+        StatementKind::Binding { value_type: _, .. }
+        | StatementKind::Assignment { value_type: _, .. } => {
+            // Also check expressions
+            stmt.expressions.iter().any(expr_uses_collections)
         }
-        StatementKind::Print | StatementKind::Query => stmt.expressions.iter().any(expr_uses_collections),
+        StatementKind::Print | StatementKind::Query => {
+            stmt.expressions.iter().any(expr_uses_collections)
+        }
         StatementKind::Expression => stmt.expressions.iter().any(expr_uses_collections),
-        StatementKind::If { condition, then_body, else_body } => {
-            expr_uses_collections(condition) ||
-            then_body.iter().any(statement_uses_collections) ||
-            else_body.as_ref().map(|b| b.iter().any(statement_uses_collections)).unwrap_or(false)
+        StatementKind::If {
+            condition,
+            then_body,
+            else_body,
+        } => {
+            expr_uses_collections(condition)
+                || then_body.iter().any(statement_uses_collections)
+                || else_body
+                    .as_ref()
+                    .map(|b| b.iter().any(statement_uses_collections))
+                    .unwrap_or(false)
         }
         StatementKind::While { condition, body } => {
             expr_uses_collections(condition) || body.iter().any(statement_uses_collections)
@@ -108,12 +118,21 @@ fn statement_uses_collections(stmt: &AnalyzedStatement) -> bool {
             expr_uses_collections(iterator) || body.iter().any(statement_uses_collections)
         }
         StatementKind::Match { scrutinee, arms } => {
-            expr_uses_collections(scrutinee) ||
-            arms.iter().any(|(pat, body)| expr_uses_collections(pat) || body.iter().any(statement_uses_collections))
+            expr_uses_collections(scrutinee)
+                || arms.iter().any(|(pat, body)| {
+                    expr_uses_collections(pat) || body.iter().any(statement_uses_collections)
+                })
         }
         StatementKind::FunctionDef { body, .. } => body.iter().any(statement_uses_collections),
-        StatementKind::TraitImplementation { methods, .. } => methods.iter().any(|m| m.body.iter().any(statement_uses_collections)),
-        StatementKind::TraitDefinition { methods, .. } => methods.iter().any(|m| m.body.as_ref().map(|b| b.iter().any(statement_uses_collections)).unwrap_or(false)),
+        StatementKind::TraitImplementation { methods, .. } => methods
+            .iter()
+            .any(|m| m.body.iter().any(statement_uses_collections)),
+        StatementKind::TraitDefinition { methods, .. } => methods.iter().any(|m| {
+            m.body
+                .as_ref()
+                .map(|b| b.iter().any(statement_uses_collections))
+                .unwrap_or(false)
+        }),
         _ => false,
     }
 }
@@ -121,7 +140,9 @@ fn statement_uses_collections(stmt: &AnalyzedStatement) -> bool {
 /// Check if an expression uses collection types
 fn expr_uses_collections(expr: &AnalyzedExpr) -> bool {
     match &expr.expr {
-        AnalyzedExprKind::CollectionNew { .. } | AnalyzedExprKind::CollectionContains { .. } => true,
+        AnalyzedExprKind::CollectionNew { .. } | AnalyzedExprKind::CollectionContains { .. } => {
+            true
+        }
         AnalyzedExprKind::MethodCall { receiver, args, .. } => {
             expr_uses_collections(receiver) || args.iter().any(expr_uses_collections)
         }
@@ -149,11 +170,7 @@ pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
 
 fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
     match &stmt.kind {
-        StatementKind::Binding {
-            name,
-            mutable,
-            ..
-        } => {
+        StatementKind::Binding { name, mutable, .. } => {
             // Get the value expression (second expression in the list, first is usually name or type info which is unused here)
             // Wait, AnalyzedStatement.expressions structure depends on how it was built.
             // Semantic analyzer puts value at index 1 for Binding (index 0 is name/type).
@@ -168,7 +185,7 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             // Check if it's an array to force mutable
             let is_array = matches!(value.expr, AnalyzedExprKind::ArrayLiteral(_));
             generate_let(name, value, *mutable || is_array)
-        },
+        }
 
         StatementKind::Assignment { name, .. } => {
             if stmt.expressions.len() > 1 {
@@ -178,11 +195,9 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             } else {
                 quote! {}
             }
-        },
+        }
 
-        StatementKind::Print | StatementKind::Query => {
-            generate_print(&stmt.expressions)
-        },
+        StatementKind::Print | StatementKind::Query => generate_print(&stmt.expressions),
 
         StatementKind::Expression => {
             if let Some(first) = stmt.expressions.first() {
@@ -191,7 +206,7 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             } else {
                 quote! {}
             }
-        },
+        }
 
         StatementKind::If {
             condition,
@@ -304,7 +319,11 @@ fn generate_while(condition: &AnalyzedExpr, body: &[AnalyzedStatement]) -> Token
     }
 }
 
-fn generate_for(variable: &str, iterator: &AnalyzedExpr, body: &[AnalyzedStatement]) -> TokenStream {
+fn generate_for(
+    variable: &str,
+    iterator: &AnalyzedExpr,
+    body: &[AnalyzedStatement],
+) -> TokenStream {
     let var_ident = format_ident!("{}", sanitize_name(variable));
     let iter = generate_expr(iterator);
     let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
@@ -315,7 +334,10 @@ fn generate_for(variable: &str, iterator: &AnalyzedExpr, body: &[AnalyzedStateme
     }
 }
 
-fn generate_match(scrutinee: &AnalyzedExpr, arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)]) -> TokenStream {
+fn generate_match(
+    scrutinee: &AnalyzedExpr,
+    arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
+) -> TokenStream {
     let scrut = generate_expr(scrutinee);
     let arm_tokens: Vec<TokenStream> = arms
         .iter()
@@ -446,7 +468,7 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedTraitMethod]) -> TokenStrea
                             }
                         }
                     } else {
-                         quote! {
+                        quote! {
                             fn #method_name(#(#param_tokens),*) -> #ret_ty;
                         }
                     }
@@ -456,7 +478,7 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedTraitMethod]) -> TokenStrea
                     }
                 }
             } else if method.is_default {
-                 if let Some(body) = &method.body {
+                if let Some(body) = &method.body {
                     let body_stmts: Vec<TokenStream> =
                         body.iter().map(generate_statement).collect();
                     quote! {
@@ -464,11 +486,11 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedTraitMethod]) -> TokenStrea
                             #(#body_stmts)*
                         }
                     }
-                 } else {
-                     quote! {
+                } else {
+                    quote! {
                         fn #method_name(#(#param_tokens),*);
                     }
-                 }
+                }
             } else {
                 quote! {
                     fn #method_name(#(#param_tokens),*);
@@ -556,7 +578,7 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
         }
 
         AnalyzedExprKind::Literal(n) => {
-             quote! { #n }
+            quote! { #n }
         }
 
         AnalyzedExprKind::BooleanLiteral(b) => {
@@ -626,7 +648,12 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             quote! { #recv.#method_ident(#(#arg_tokens),*) }
         }
 
-        AnalyzedExprKind::TraitMethodCall { receiver, method_name, args, .. } => {
+        AnalyzedExprKind::TraitMethodCall {
+            receiver,
+            method_name,
+            args,
+            ..
+        } => {
             // Treat as regular method call
             let recv = generate_expr(receiver);
             let method_ident = format_ident!("{}", sanitize_name(method_name));
@@ -634,7 +661,8 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             quote! { #recv.#method_ident(#(#arg_tokens),*) }
         }
 
-        AnalyzedExprKind::VerbCall { verb, args } | AnalyzedExprKind::FunctionCall { func: verb, args } => {
+        AnalyzedExprKind::VerbCall { verb, args }
+        | AnalyzedExprKind::FunctionCall { func: verb, args } => {
             let func_ident = format_ident!("{}", sanitize_name(verb));
             let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
             quote! { #func_ident(#(#arg_tokens),*) }
@@ -648,10 +676,10 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
                     let operand_tokens = generate_expr(operand);
                     // Standard Rust logical not or bitwise not
                     quote! { !#operand_tokens }
-                },
+                }
                 UnaryOp::Neg => {
-                     let operand_tokens = generate_expr(operand);
-                     quote! { -#operand_tokens }
+                    let operand_tokens = generate_expr(operand);
+                    quote! { -#operand_tokens }
                 }
             }
         }
@@ -682,7 +710,9 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             capture_mode,
         } => generate_closure(params, body, capture_mode),
 
-        AnalyzedExprKind::IteratorChain { collection, ops } => generate_iterator_chain(collection, ops),
+        AnalyzedExprKind::IteratorChain { collection, ops } => {
+            generate_iterator_chain(collection, ops)
+        }
 
         AnalyzedExprKind::CollectionNew { collection_type } => {
             // Generate HashSet::new() or HashMap::new()
@@ -701,7 +731,7 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
                 // HashMap uses .contains_key(&key)
                 quote! { #coll.contains_key(&#elem) }
             } else {
-                 match &element.expr {
+                match &element.expr {
                     // When the element is a string literal, `generate_expr`
                     // already yields a `&str`, so we call `.contains(elem)`
                     // without adding another `&`.
@@ -741,7 +771,11 @@ fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> T
     }
 }
 
-fn generate_struct_lit(type_name: &str, fields: &[smol_str::SmolStr], args: &[AnalyzedExpr]) -> TokenStream {
+fn generate_struct_lit(
+    type_name: &str,
+    fields: &[smol_str::SmolStr],
+    args: &[AnalyzedExpr],
+) -> TokenStream {
     // Capitalize struct name for Rust conventions
     let struct_name = format_ident!("{}", capitalize(&sanitize_name(type_name)));
 
@@ -781,7 +815,7 @@ fn generate_closure(
         }
         CaptureMode::Memoize => {
             // Perfect participle: lazy evaluation with caching
-             quote! {
+            quote! {
                 {
                     use std::cell::RefCell;
                     let cache = RefCell::new(None);

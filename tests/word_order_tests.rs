@@ -12,7 +12,7 @@ use glossa::semantic::analyze_program;
 fn compile_to_rust(source: &str) -> String {
     let ast = parse(source).expect("AST build failed");
     let analyzed = analyze_program(&ast).expect("Analysis failed");
-        generate_rust(&analyzed)
+    generate_rust(&analyzed)
 }
 
 /// Test that binding works with different word orders

@@ -10,7 +10,7 @@ use glossa::semantic::analyze_program;
 fn compile(source: &str) -> String {
     let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
-        generate_rust(&analyzed)
+    generate_rust(&analyzed)
 }
 
 // =============================================================================

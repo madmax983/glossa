@@ -8,7 +8,7 @@ use glossa::semantic::analyze_program;
 fn compile(source: &str) -> Result<String, String> {
     let ast = parse(source).map_err(|e| e.to_string())?;
     let analyzed = analyze_program(&ast).map_err(|e| e.to_string())?;
-        Ok(generate_rust(&analyzed))
+    Ok(generate_rust(&analyzed))
 }
 
 #[test]

@@ -117,7 +117,7 @@ mod cycle4_map_operation {
         let analyzed2 = semantic::analyze_program(&ast2);
 
         if let Ok(analyzed) = analyzed2 {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             // Should contain iterator chain with map
             println!("Generated code:\n{}", code_str);
@@ -163,7 +163,7 @@ mod cycle5_filter_operation {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -223,7 +223,7 @@ mod cycle6_find_operation {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -248,7 +248,7 @@ mod cycle6_find_operation {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -291,7 +291,7 @@ mod cycle7_fold_operation {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -314,7 +314,7 @@ mod cycle7_fold_operation {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -360,7 +360,7 @@ mod cycle8_any_all_operations {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -403,7 +403,7 @@ mod cycle8_any_all_operations {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -428,7 +428,7 @@ mod cycle8_any_all_operations {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -458,7 +458,7 @@ mod cycle9_combined_operations {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -489,7 +489,7 @@ mod cycle9_combined_operations {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -553,7 +553,7 @@ mod cycle11_variable_capture {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -581,7 +581,7 @@ mod cycle11_variable_capture {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -608,7 +608,7 @@ mod cycle11_variable_capture {
         let analyzed = semantic::analyze_program(&ast);
 
         if let Ok(analyzed) = analyzed {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             println!("Generated code:\n{}", code_str);
 
@@ -681,7 +681,7 @@ mod cycle12_aorist_participles {
         let analyzed1 = semantic::analyze_program(&ast1);
 
         if let Ok(analyzed) = analyzed1 {
-                        let code_str = codegen::generate_rust(&analyzed);
+            let code_str = codegen::generate_rust(&analyzed);
 
             // Present participles should NOT have "move" keyword
             assert!(
