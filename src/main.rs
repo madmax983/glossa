@@ -476,4 +476,29 @@ mod tests {
         let content = fs::read_to_string(output_path).unwrap();
         assert!(content.contains("println"));
     }
+
+    #[test]
+    fn test_run_file_not_found() {
+        let path = PathBuf::from("non_existent.gl");
+        let result = run_file(&path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον οὐχ εὑρέθη")
+        );
+    }
+
+    #[test]
+    fn test_build_file_error() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let input_path = temp_dir.path().join("error.gl");
+
+        fs::write(&input_path, "λάθος").unwrap();
+
+        let result = build_file(&input_path, None);
+        assert!(result.is_err());
+    }
 }
