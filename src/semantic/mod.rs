@@ -210,4 +210,5 @@ mod tests {
         let first_expr = &analyzed.statements[0].expressions[0];
         assert_eq!(first_expr.glossa_type, GlossaType::Number);
     }
+
 }

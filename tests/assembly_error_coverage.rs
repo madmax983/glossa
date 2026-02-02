@@ -64,6 +64,22 @@ fn test_glossa_error_conversion() {
 }
 
 #[test]
+fn test_assembly_error_diagnostic_code() {
+    use miette::Diagnostic;
+    let err = AssemblyError::DoubleSubject;
+    assert_eq!(
+        err.code().map(|c| c.to_string()),
+        Some("glossa::assembly::double_subject".to_string())
+    );
+}
+
+#[test]
+fn test_category_greek_assembly() {
+    let err = GlossaError::AssemblyError(AssemblyError::DoubleSubject);
+    assert_eq!(err.category_greek(), "Συναρμογή");
+}
+
+#[test]
 fn test_unused_variants_coverage() {
     // These errors are currently not thrown by Assembler logic or are unreachable,
     // but we want to ensure their definitions are compiled and covered.
