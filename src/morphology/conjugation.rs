@@ -148,19 +148,19 @@ const VERBS_STARTING_WITH_EPSILON: &[&str] = &[
 /// Without stripping, "ελυσα" would give lemma "ελυω" instead of "λυω"
 ///
 /// Note: Input should already be normalized (monotonic, lowercase)
-fn strip_augment(augmented_stem: &str) -> String {
+fn strip_augment(augmented_stem: &str) -> Cow<'_, str> {
     // First, check the irregular aorists lookup table
     for (aorist, present) in IRREGULAR_AORISTS {
         if augmented_stem.starts_with(*aorist) {
             let rest = &augmented_stem[aorist.len()..];
-            return format!("{}{}", present, rest);
+            return Cow::Owned(format!("{}{}", present, rest));
         }
     }
 
     // Check if this verb naturally starts with ε (don't strip!)
     for prefix in VERBS_STARTING_WITH_EPSILON {
         if augmented_stem.starts_with(*prefix) {
-            return augmented_stem.to_string();
+            return Cow::Borrowed(augmented_stem);
         }
     }
 
@@ -170,7 +170,7 @@ fn strip_augment(augmented_stem: &str) -> String {
         // Make sure we're not stripping from a vowel-initial stem
         // that received ε → η or ε → ει augment
         if !stripped.is_empty() {
-            return stripped.to_string();
+            return Cow::Borrowed(stripped);
         }
     }
 
@@ -180,7 +180,7 @@ fn strip_augment(augmented_stem: &str) -> String {
         // Could be α → η augment, restore α
         // But η could also be original (1st decl stem), so this is heuristic
         if !rest.is_empty() {
-            return format!("α{}", rest);
+            return Cow::Owned(format!("α{}", rest));
         }
     }
 
@@ -188,7 +188,7 @@ fn strip_augment(augmented_stem: &str) -> String {
     if let Some(rest) = augmented_stem.strip_prefix("ω")
         && !rest.is_empty()
     {
-        return format!("ο{}", rest);
+        return Cow::Owned(format!("ο{}", rest));
     }
 
     // ε → η (ε-contract verbs)
@@ -196,7 +196,7 @@ fn strip_augment(augmented_stem: &str) -> String {
     // For MVP, we handle the common cases
 
     // No augment found, return as-is
-    augmented_stem.to_string()
+    Cow::Borrowed(augmented_stem)
 }
 
 /// Subjunctive forms of εἰμί (to be) - irregular but essential for conditionals
@@ -300,7 +300,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Try aorist active indicative
     if let Some((augmented_stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_IND) {
         // Strip temporal augment to find true stem: ἔλυσα → ελυ → λυ
-        let true_stem = strip_augment(&augmented_stem);
+        let true_stem = strip_augment(augmented_stem);
         return Some(MorphAnalysis {
             lemma: Cow::Owned(format!("{}ω", true_stem)),
             part_of_speech: PartOfSpeech::Verb,
@@ -449,16 +449,16 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
 /// Match a word against verb endings
 ///
 /// Note: The `endings` slice MUST be sorted by length descending.
-fn match_verb_endings(
-    word: &str,
+fn match_verb_endings<'a>(
+    word: &'a str,
     endings: &[(&str, Person, Number)],
-) -> Option<(String, Person, Number)> {
+) -> Option<(&'a str, Person, Number)> {
     // Endings are pre-sorted by length (longest first)
     for (ending, person, number) in endings {
         if let Some(stem) = word.strip_suffix(ending)
             && !stem.is_empty()
         {
-            return Some((stem.to_string(), *person, *number));
+            return Some((stem, *person, *number));
         }
     }
     None
@@ -571,7 +571,7 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
         match_verb_endings_all(word, pattern.endings, |stem, person, number| {
             // Handle augment stripping for indicative aorists
             let lemma_stem = if pattern.has_augment {
-                Cow::Owned(strip_augment(stem))
+                strip_augment(stem)
             } else {
                 Cow::Borrowed(stem)
             };
