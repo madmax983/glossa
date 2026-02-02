@@ -594,4 +594,100 @@ mod tests {
 
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_array() {
+        // Array with an invalid element (empty phrase)
+        let expr = Expr::ArrayLiteral(vec![Expr::NumberLiteral(1), Expr::Phrase(vec![])]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_index_access() {
+        // Index access with invalid array
+        let expr = Expr::IndexAccess {
+            array: Box::new(Expr::Phrase(vec![])),
+            index: Box::new(Expr::NumberLiteral(0)),
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+
+        assert!(result.is_err());
+
+        // Index access with invalid index
+        let expr2 = Expr::IndexAccess {
+            array: Box::new(Expr::ArrayLiteral(vec![])),
+            index: Box::new(Expr::Phrase(vec![])),
+        };
+        let result2 = analyze_argument_expr(&expr2, &scope);
+        assert!(result2.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_binop() {
+        // BinOp with invalid left
+        let expr = Expr::BinOp {
+            left: Box::new(Expr::Phrase(vec![])),
+            op: crate::ast::BinOperator::Add,
+            right: Box::new(Expr::NumberLiteral(1)),
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+
+        // BinOp with invalid right
+        let expr2 = Expr::BinOp {
+            left: Box::new(Expr::NumberLiteral(1)),
+            op: crate::ast::BinOperator::Add,
+            right: Box::new(Expr::Phrase(vec![])),
+        };
+        let result2 = analyze_argument_expr(&expr2, &scope);
+        assert!(result2.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_unary_op() {
+        // UnaryOp with invalid operand
+        let expr = Expr::UnaryOp {
+            op: crate::ast::UnaryOperator::Unwrap,
+            operand: Box::new(Expr::Phrase(vec![])),
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_property_owner() {
+        // Property access with invalid owner
+        let expr = Expr::PropertyAccess {
+            owner: Box::new(Expr::Phrase(vec![])),
+            property: Box::new(Expr::Word(crate::ast::Word::new("y"))),
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_errors_on_unsupported_variant() {
+        // Lambda is currently unsupported in analyze_argument_expr
+        let expr = Expr::Lambda {
+            kind: crate::ast::LambdaKind::Streaming,
+            verb_lemma: "run".to_string(),
+            implicit_param: false,
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::SemanticError { message } => {
+                assert_eq!(message, "Unsupported argument expression type");
+            }
+            _ => panic!("Expected SemanticError"),
+        }
+    }
 }
