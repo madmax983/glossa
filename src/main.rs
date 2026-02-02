@@ -501,4 +501,63 @@ mod tests {
         let result = build_file(&input_path, None);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_execute_cli_check() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let input_path = temp_dir.path().join("check.gl");
+        fs::write(&input_path, "«χαῖρε» λέγε.").unwrap();
+
+        let cli = Cli {
+            command: Some(Commands::Check { input: input_path }),
+            file: None,
+        };
+
+        assert!(execute_cli(cli).is_ok());
+    }
+
+    #[test]
+    fn test_execute_cli_build() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let input_path = temp_dir.path().join("build.gl");
+        fs::write(&input_path, "«χαῖρε» λέγε.").unwrap();
+
+        let cli = Cli {
+            command: Some(Commands::Build {
+                input: input_path,
+                output: None,
+            }),
+            file: None,
+        };
+
+        assert!(execute_cli(cli).is_ok());
+    }
+
+    #[test]
+    fn test_execute_cli_run() {
+        // Since run involves compiling and executing a binary,
+        // we test the error case (file not found) to be safe and fast
+        let input_path = PathBuf::from("does_not_exist.gl");
+        let cli = Cli {
+            command: Some(Commands::Run { input: input_path }),
+            file: None,
+        };
+
+        assert!(execute_cli(cli).is_err());
+    }
+
+    #[test]
+    fn test_execute_cli_default_file() {
+        // Test providing a file without a subcommand (like `glossa file.gl`)
+        // Again, testing error case for safety/speed
+        let input_path = PathBuf::from("does_not_exist.gl");
+        let cli = Cli {
+            command: None,
+            file: Some(input_path),
+        };
+
+        assert!(execute_cli(cli).is_err());
+    }
 }
