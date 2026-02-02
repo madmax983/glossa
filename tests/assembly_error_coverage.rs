@@ -1,5 +1,5 @@
-use glossa::errors::GlossaError;
 use glossa::errors::AssemblyError;
+use glossa::errors::GlossaError;
 use glossa::morphology::{Case, Gender, Number, Person, analyze};
 use glossa::semantic::assembler::Assembler;
 
