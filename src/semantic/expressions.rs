@@ -690,4 +690,95 @@ mod tests {
             _ => panic!("Expected SemanticError"),
         }
     }
+
+    #[test]
+    fn test_analyze_argument_expr_handles_phrase_recursion() {
+        // Phrase that is not a function call -> recursive analysis of first term
+        // "((1))" -> Phrase(vec![Phrase(vec![Number(1)])])
+        let inner = Expr::Phrase(vec![Expr::NumberLiteral(1)]);
+        let outer = Expr::Phrase(vec![inner]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&outer, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 1),
+            _ => panic!("Expected NumberLiteral"),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_handles_function_call() {
+        // Mock a function in scope
+        let mut scope = Scope::new();
+        scope.define_function(
+            "add",
+            vec![GlossaType::Number, GlossaType::Number],
+            Some(GlossaType::Number),
+        );
+
+        // "add 1 2"
+        let expr = Expr::Phrase(vec![
+            Expr::Word(crate::ast::Word::new("add")),
+            Expr::NumberLiteral(1),
+            Expr::NumberLiteral(2),
+        ]);
+
+        let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::FunctionCall { func, args } => {
+                assert_eq!(func, "add");
+                assert_eq!(args.len(), 2);
+                assert!(matches!(
+                    args[0].expr,
+                    AnalyzedExprKind::NumberLiteral(1)
+                ));
+            }
+            _ => panic!("Expected FunctionCall"),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_function_args() {
+        let mut scope = Scope::new();
+        scope.define_function("add", vec![GlossaType::Number], Some(GlossaType::Number));
+
+        // "add (error)"
+        let expr = Expr::Phrase(vec![
+            Expr::Word(crate::ast::Word::new("add")),
+            Expr::Phrase(vec![]), // Invalid arg
+        ]);
+
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_handles_block() {
+        // Block containing a statement with a clause with an expression
+        // { 1. }
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![Expr::NumberLiteral(1)],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let expr = Expr::Block(vec![stmt]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 1),
+            _ => panic!("Expected NumberLiteral"),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_errors_on_empty_block() {
+        let expr = Expr::Block(vec![]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
 }
