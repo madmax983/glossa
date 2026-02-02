@@ -194,25 +194,9 @@ pub enum GlossaError {
     #[diagnostic(code(glossa::semantic))]
     SemanticError { message: String },
 
-    #[error("Σφάλμα τύπου: {message}")]
-    #[diagnostic(code(glossa::type_error))]
-    TypeError { message: String },
-
     #[error("Ἄγνωστον ὄνομα: {name}")]
     #[diagnostic(code(glossa::undefined))]
     UndefinedName { name: String },
-
-    #[error("Σφάλμα συμφωνίας: {message}")]
-    #[diagnostic(code(glossa::agreement))]
-    AgreementError { message: String },
-
-    #[error("Σφάλμα κώδικος: {message}")]
-    #[diagnostic(code(glossa::codegen))]
-    CodegenError { message: String },
-
-    #[error("Σφάλμα ἀρχείου: {message}")]
-    #[diagnostic(code(glossa::io))]
-    IoError { message: String },
 
     #[error(transparent)]
     #[diagnostic(transparent)]
@@ -249,37 +233,9 @@ impl GlossaError {
         }
     }
 
-    /// Create a type error
-    pub fn type_error(message: impl Into<String>) -> Self {
-        GlossaError::TypeError {
-            message: message.into(),
-        }
-    }
-
     /// Create an undefined name error
     pub fn undefined(name: impl Into<String>) -> Self {
         GlossaError::UndefinedName { name: name.into() }
-    }
-
-    /// Create an agreement error
-    pub fn agreement(message: impl Into<String>) -> Self {
-        GlossaError::AgreementError {
-            message: message.into(),
-        }
-    }
-
-    /// Create a codegen error
-    pub fn codegen(message: impl Into<String>) -> Self {
-        GlossaError::CodegenError {
-            message: message.into(),
-        }
-    }
-
-    /// Create an IO error
-    pub fn io(message: impl Into<String>) -> Self {
-        GlossaError::IoError {
-            message: message.into(),
-        }
     }
 
     /// Get the Greek error category
@@ -287,11 +243,7 @@ impl GlossaError {
         match self {
             GlossaError::ParseError { .. } => "Σύνταξις",
             GlossaError::SemanticError { .. } => "Σημασία",
-            GlossaError::TypeError { .. } => "Τύπος",
             GlossaError::UndefinedName { .. } => "Ὄνομα",
-            GlossaError::AgreementError { .. } => "Συμφωνία",
-            GlossaError::CodegenError { .. } => "Κῶδιξ",
-            GlossaError::IoError { .. } => "Ἀρχεῖον",
             GlossaError::AssemblyError(_) => "Συναρμογή",
         }
     }
