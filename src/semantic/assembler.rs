@@ -94,7 +94,7 @@
 //! ```
 
 use crate::ast::{Expr, Word};
-pub use crate::errors::assembly::AssemblyError;
+pub use crate::errors::AssemblyError;
 use crate::grammar::normalize_greek;
 use crate::morphology::lexicon::BinaryOp;
 use crate::morphology::{

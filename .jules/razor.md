@@ -22,3 +22,13 @@
 **Bloat:** `src/ir` module (HIR) was a mirror of `AnalyzedProgram` with English names but identical structure.
 **Cut:** Deleted `src/ir` (~600 lines). Updated `codegen` to consume `AnalyzedProgram` directly.
 **Saved:** Removed an entire compiler pass and module. Flattened architecture: Parser -> Semantic -> Codegen.
+
+## [Reduction]
+**Bloat:** Nested directory hierarchies for single-concept modules (, , ).
+**Cut:** Flattened into , , .
+**Saved:** Removed 3 directories, reduced file count by 6, simplified imports.
+
+## [Reduction]
+**Bloat:** Nested directory hierarchies for single-concept modules (src/errors/, src/codegen/, src/grammar/).
+**Cut:** Flattened into src/errors.rs, src/codegen.rs, src/grammar.rs.
+**Saved:** Removed 3 directories, reduced file count by 6, simplified imports.
