@@ -20,3 +20,11 @@
 4. Refactored `mod.rs` to re-export `model` contents.
 5. Removed legacy `SemanticAnalyzer` code that was duplicating logic.
 **Stability:** Strictly separates Data (Model), Types (Type System), and Logic (Analysis). `model.rs` depends on `types.rs`, but `types.rs` is now leaf-level with no dependencies on the AST.
+
+## [Breaking The Leak: Semantic Assembly Error]
+**Tangle:** `src/semantic/assembler.rs` defined `AssemblyError`, but `src/semantic/mod.rs` was stringifying it into `GlossaError::SemanticError` to avoid circular dependencies (since `errors` depends on `semantic` if `GlossaError` wraps `AssemblyError`). This caused loss of structured error information.
+**Blueprint:**
+1. Created `src/errors/assembly.rs` and moved `AssemblyError` there.
+2. Updated `GlossaError` to include `AssemblyError` as a transparent variant.
+3. Updated `src/semantic/assembler.rs` to use the shared error type.
+**Stability:** Centralizes error definition, preserves error structure for better diagnostics, and maintains acyclic graph (`errors` -> `morphology`, `semantic` -> `errors`).
