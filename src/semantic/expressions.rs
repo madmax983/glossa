@@ -541,19 +541,58 @@ mod tests {
     fn test_analyze_argument_expr_handles_binop() {
         let scope = Scope::new();
         let ops = vec![
-            (crate::ast::BinOperator::Add, crate::morphology::lexicon::BinaryOp::Add),
-            (crate::ast::BinOperator::Sub, crate::morphology::lexicon::BinaryOp::Sub),
-            (crate::ast::BinOperator::Mul, crate::morphology::lexicon::BinaryOp::Mul),
-            (crate::ast::BinOperator::Div, crate::morphology::lexicon::BinaryOp::Div),
-            (crate::ast::BinOperator::Mod, crate::morphology::lexicon::BinaryOp::Mod),
-            (crate::ast::BinOperator::Eq, crate::morphology::lexicon::BinaryOp::Eq),
-            (crate::ast::BinOperator::Ne, crate::morphology::lexicon::BinaryOp::Ne),
-            (crate::ast::BinOperator::Lt, crate::morphology::lexicon::BinaryOp::Lt),
-            (crate::ast::BinOperator::Le, crate::morphology::lexicon::BinaryOp::Le),
-            (crate::ast::BinOperator::Gt, crate::morphology::lexicon::BinaryOp::Gt),
-            (crate::ast::BinOperator::Ge, crate::morphology::lexicon::BinaryOp::Ge),
-            (crate::ast::BinOperator::And, crate::morphology::lexicon::BinaryOp::And),
-            (crate::ast::BinOperator::Or, crate::morphology::lexicon::BinaryOp::Or),
+            (
+                crate::ast::BinOperator::Add,
+                crate::morphology::lexicon::BinaryOp::Add,
+            ),
+            (
+                crate::ast::BinOperator::Sub,
+                crate::morphology::lexicon::BinaryOp::Sub,
+            ),
+            (
+                crate::ast::BinOperator::Mul,
+                crate::morphology::lexicon::BinaryOp::Mul,
+            ),
+            (
+                crate::ast::BinOperator::Div,
+                crate::morphology::lexicon::BinaryOp::Div,
+            ),
+            (
+                crate::ast::BinOperator::Mod,
+                crate::morphology::lexicon::BinaryOp::Mod,
+            ),
+            (
+                crate::ast::BinOperator::Eq,
+                crate::morphology::lexicon::BinaryOp::Eq,
+            ),
+            (
+                crate::ast::BinOperator::Ne,
+                crate::morphology::lexicon::BinaryOp::Ne,
+            ),
+            (
+                crate::ast::BinOperator::Lt,
+                crate::morphology::lexicon::BinaryOp::Lt,
+            ),
+            (
+                crate::ast::BinOperator::Le,
+                crate::morphology::lexicon::BinaryOp::Le,
+            ),
+            (
+                crate::ast::BinOperator::Gt,
+                crate::morphology::lexicon::BinaryOp::Gt,
+            ),
+            (
+                crate::ast::BinOperator::Ge,
+                crate::morphology::lexicon::BinaryOp::Ge,
+            ),
+            (
+                crate::ast::BinOperator::And,
+                crate::morphology::lexicon::BinaryOp::And,
+            ),
+            (
+                crate::ast::BinOperator::Or,
+                crate::morphology::lexicon::BinaryOp::Or,
+            ),
         ];
 
         for (ast_op, expected_sem_op) in ops {
@@ -566,7 +605,11 @@ mod tests {
 
             match result.expr {
                 AnalyzedExprKind::BinOp { op, .. } => {
-                    assert_eq!(op, expected_sem_op, "Mismatch for AST operator {:?}", ast_op);
+                    assert_eq!(
+                        op, expected_sem_op,
+                        "Mismatch for AST operator {:?}",
+                        ast_op
+                    );
                 }
                 _ => panic!("Expected BinOp"),
             }
