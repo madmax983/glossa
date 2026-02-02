@@ -738,6 +738,19 @@ mod tests {
         assert_eq!(strip_augment("εγραψ"), "γραψ");
         assert_eq!(strip_augment("ηγαγ"), "αγαγ"); // η → α restoration
         assert_eq!(strip_augment("λυ"), "λυ"); // no augment
+
+        // Coverage for irregular aorists
+        assert_eq!(strip_augment("ηκουσ"), "ακου"); // ἤκουσα -> ἀκούω
+        assert_eq!(strip_augment("ωνομασ"), "ονομαζ"); // ὠνόμασα -> ὀνομάζω
+
+        // Coverage for verbs starting with epsilon (should not be stripped)
+        assert_eq!(strip_augment("ελπιζ"), "ελπιζ"); // ἐλπίζω
+        assert_eq!(strip_augment("εχ"), "εχ"); // ἔχω
+
+        // Coverage for omega augment (ο -> ω)
+        // Using a synthetic case or one not in irregular list
+        // ὠρίσθην -> ὁρίζω (stem ωρισ -> ορισ)
+        assert_eq!(strip_augment("ωρισ"), "ορισ");
     }
 
     #[test]
