@@ -1395,7 +1395,11 @@ mod tests {
 
         // Should succeed despite Plural Subject + Singular Verb
         let stmt = asm.finalize();
-        assert!(stmt.is_ok(), "Neuter plural subject should agree with singular verb, got {:?}", stmt.err());
+        assert!(
+            stmt.is_ok(),
+            "Neuter plural subject should agree with singular verb, got {:?}",
+            stmt.err()
+        );
     }
 
     #[test]
@@ -1434,7 +1438,11 @@ mod tests {
 
         // Should succeed
         let stmt = asm.finalize();
-        assert!(stmt.is_ok(), "Imperative verb should allow person mismatch, got {:?}", stmt.err());
+        assert!(
+            stmt.is_ok(),
+            "Imperative verb should allow person mismatch, got {:?}",
+            stmt.err()
+        );
     }
 
     #[test]
@@ -1547,10 +1555,16 @@ mod tests {
         let stmt = asm.finalize().unwrap();
 
         // Check if property access was created
-        assert!(!stmt.property_accesses.is_empty(), "Should generate property access for split");
+        assert!(
+            !stmt.property_accesses.is_empty(),
+            "Should generate property access for split"
+        );
         assert_eq!(stmt.property_accesses[0].1, "split");
 
         // Check if string method info was captured
-        assert_eq!(stmt.string_method, Some(("split".to_string(), ",".to_string())));
+        assert_eq!(
+            stmt.string_method,
+            Some(("split".to_string(), ",".to_string()))
+        );
     }
 }
