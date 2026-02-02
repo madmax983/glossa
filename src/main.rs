@@ -3,6 +3,7 @@
 //! A compiler for ΓΛΩΣΣΑ - where Ancient Greek morphology encodes programming semantics.
 
 use clap::{Parser, Subcommand};
+use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -135,7 +136,7 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     fs::write(&output_path, &rust_code).into_diagnostic()?;
 
-    println!("✓ Ἐγράφη: {}", output_path.display());
+    println!("{}", format!("✓ Ἐγράφη: {}", output_path.display()).green());
 
     Ok(())
 }
@@ -161,6 +162,7 @@ fn run_file(input: &Path) -> Result<()> {
     // Check if we can use cached binary
     if cache_valid(input, &cached_exe) && cached_exe.exists() {
         // Run cached binary directly
+        println!("{}", "🚀 Εκτέλεσις...".dim());
         let status = Command::new(&cached_exe).status().into_diagnostic()?;
 
         if !status.success() {
@@ -170,6 +172,7 @@ fn run_file(input: &Path) -> Result<()> {
     }
 
     // Compile source
+    println!("{}", "🔨 Μεταγλώττισις...".dim());
     let source = fs::read_to_string(input).into_diagnostic()?;
     let rust_code = compile(&source).map_err(|e| miette::miette!("{}", e))?;
 
@@ -194,6 +197,7 @@ fn run_file(input: &Path) -> Result<()> {
     }
 
     // Run the compiled program
+    println!("{}", "🚀 Εκτέλεσις...".dim());
     let status = Command::new(&cached_exe).status().into_diagnostic()?;
 
     if !status.success() {
@@ -209,20 +213,20 @@ fn check_file(input: &Path) -> Result<()> {
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
     let _analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
 
-    println!("✓ {} - ὀρθόν", input.display());
+    println!("{}", format!("✓ {} - ὀρθόν", input.display()).green());
 
     Ok(())
 }
 
 fn run_repl() -> Result<()> {
-    println!("ΓΛΩΣΣΑ v{}", env!("CARGO_PKG_VERSION"));
-    println!("Γράψον .βοήθεια διὰ βοήθειαν, .ἔξοδος διὰ ἔξοδον.");
+    println!("{}", format!("ΓΛΩΣΣΑ v{}", env!("CARGO_PKG_VERSION")).cyan().bold());
+    println!("{}", "Γράψον .βοήθεια διὰ βοήθειαν, .ἔξοδος διὰ ἔξοδον.".dark_grey());
     println!();
 
     let mut context = ReplContext::new();
 
     loop {
-        print!("γλ> ");
+        print!("{}", "γλ> ".green().bold());
         use std::io::Write;
         std::io::stdout().flush().into_diagnostic()?;
 
@@ -238,7 +242,7 @@ fn run_repl() -> Result<()> {
         // Handle special commands
         match input {
             ".ἔξοδος" | ".exit" | ".quit" => {
-                println!("Χαῖρε!");
+                println!("{}", "Χαῖρε!".cyan());
                 break;
             }
             ".βοήθεια" | ".help" => {
@@ -247,7 +251,7 @@ fn run_repl() -> Result<()> {
             }
             ".καθαρός" | ".clear" => {
                 context = ReplContext::new();
-                println!("Ἐκαθαρίσθη.");
+                println!("{}", "Ἐκαθαρίσθη.".green());
                 continue;
             }
             _ => {}
@@ -260,7 +264,7 @@ fn run_repl() -> Result<()> {
                 }
             }
             Err(e) => {
-                eprintln!("Σφάλμα: {}", e);
+                eprintln!("{}", format!("Σφάλμα: {}", e).red());
             }
         }
     }
@@ -269,12 +273,12 @@ fn run_repl() -> Result<()> {
 }
 
 fn print_help() {
-    println!("Ἐντολαί:");
+    println!("{}", "Ἐντολαί:".bold());
     println!("  .βοήθεια  - δεῖξαι τήνδε τὴν βοήθειαν");
     println!("  .ἔξοδος   - ἐξελθεῖν");
     println!("  .καθαρός  - καθαρίσαι τὸ περιβάλλον");
     println!();
-    println!("Παραδείγματα:");
+    println!("{}", "Παραδείγματα:".bold());
     println!("  «χαῖρε κόσμε» λέγε.");
     println!("  ξ πέντε ἔστω.");
     println!("  ξ λέγε.");
@@ -312,7 +316,8 @@ impl ReplContext {
         // Generate and return the code (for now, just show the Rust)
         let rust_code = generate_rust(&hir);
         Ok(format!(
-            "→ {}",
+            "{} {}",
+            "→".blue().bold(),
             rust_code
                 .lines()
                 .skip(1)
