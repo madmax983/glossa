@@ -12,3 +12,8 @@
 **Bloat:** `convert_expr_to_analyzed` in `src/semantic/expressions.rs` duplicated logic from `analyze_argument_expr` and silently returned `0` for unknown expressions.
 **Cut:** Merged logic into `analyze_argument_expr` and deleted `convert_expr_to_analyzed` and `convert_array_elements`.
 **Saved:** Removed dangerous silent failure bug, reduced code duplication (~50 lines removed), enforced error propagation.
+
+## [Reduction]
+**Bloat:** `ExecutionMode`, `AnalyzedWord`, `LambdaKind`, `Expr::Lambda` were dead or duplicated abstractions.
+**Cut:** Deleted them.
+**Saved:** Simplified AST and type system. Removed zombie code that wasn't used by the parser or semantic analyzer.

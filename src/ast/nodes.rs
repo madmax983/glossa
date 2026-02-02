@@ -191,30 +191,6 @@ pub enum Expr {
 
     /// A block of statements in braces { ... }
     Block(Vec<Statement>),
-
-    /// A lambda/closure constructed from a participle
-    /// e.g., γράφων → |x| x.write()
-    Lambda {
-        kind: LambdaKind,
-        verb_lemma: String,
-        implicit_param: bool, // true if parameter inferred from context
-    },
-}
-
-/// Lambda kind derived from participle tense/voice
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LambdaKind {
-    /// Present participle - streaming/borrowing closure
-    /// e.g., γράφων → |x| body
-    Streaming,
-
-    /// Aorist participle - one-shot/consuming closure
-    /// e.g., γράψας → move |x| body
-    OneShot,
-
-    /// Perfect participle - memoized/cached closure
-    /// e.g., γεγραμμένος → cached |x| body
-    Memoized,
 }
 
 /// Capture mode for closures
@@ -291,34 +267,6 @@ impl Word {
         Word {
             original,
             normalized,
-        }
-    }
-}
-
-/// Analyzed word with morphological information
-#[derive(Debug, Clone, PartialEq)]
-pub struct AnalyzedWord {
-    pub word: Word,
-    pub case: Option<crate::morphology::Case>,
-    pub number: Option<crate::morphology::Number>,
-    pub gender: Option<crate::morphology::Gender>,
-    pub person: Option<crate::morphology::Person>,
-    pub tense: Option<crate::morphology::Tense>,
-    pub mood: Option<crate::morphology::Mood>,
-    pub voice: Option<crate::morphology::Voice>,
-}
-
-impl From<Word> for AnalyzedWord {
-    fn from(word: Word) -> Self {
-        AnalyzedWord {
-            word,
-            case: None,
-            number: None,
-            gender: None,
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
         }
     }
 }

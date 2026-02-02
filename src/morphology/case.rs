@@ -74,32 +74,6 @@ pub enum Tense {
     Pluperfect,
 }
 
-impl Tense {
-    /// Convert tense to execution semantics
-    pub fn execution_mode(&self) -> ExecutionMode {
-        match self {
-            Tense::Present => ExecutionMode::Streaming,
-            Tense::Aorist => ExecutionMode::OneShot,
-            Tense::Perfect => ExecutionMode::Cached,
-            Tense::Future => ExecutionMode::Lazy,
-            _ => ExecutionMode::OneShot,
-        }
-    }
-}
-
-/// Execution mode derived from verbal aspect
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExecutionMode {
-    /// Streaming/iterative - process elements one by one
-    Streaming,
-    /// One-shot - execute once, consume input
-    OneShot,
-    /// Cached - compute once, reuse result
-    Cached,
-    /// Lazy - defer until needed
-    Lazy,
-}
-
 /// Mood - encodes modality
 ///
 /// In ΓΛΩΣΣΑ:
@@ -141,12 +115,5 @@ mod tests {
         assert_eq!(Case::Genitive.to_rust_ownership(), "&");
         assert_eq!(Case::Dative.to_rust_ownership(), "&mut");
         assert_eq!(Case::Accusative.to_rust_ownership(), "");
-    }
-
-    #[test]
-    fn test_tense_execution_mode() {
-        assert_eq!(Tense::Present.execution_mode(), ExecutionMode::Streaming);
-        assert_eq!(Tense::Aorist.execution_mode(), ExecutionMode::OneShot);
-        assert_eq!(Tense::Perfect.execution_mode(), ExecutionMode::Cached);
     }
 }

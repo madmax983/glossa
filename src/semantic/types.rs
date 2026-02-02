@@ -10,7 +10,7 @@
 //! - Optative mood → `Option<T>` (value that "might be")
 //! - ἀποτέλεσμα (apotelasma) → `Result<T,E>` (outcome/result)
 
-use crate::morphology::{Case, Gender, Tense};
+use crate::morphology::{Case, Gender};
 use smol_str::SmolStr;
 
 /// Types in ΓΛΩΣΣΑ
@@ -166,31 +166,6 @@ impl Ownership {
             Ownership::Borrow => "&",
             Ownership::BorrowMut => "&mut ",
             Ownership::Copy => "",
-        }
-    }
-}
-
-/// Execution mode derived from verbal aspect
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExecutionMode {
-    /// Present tense: streaming/iterative
-    Streaming,
-    /// Aorist tense: one-shot/complete
-    OneShot,
-    /// Perfect tense: cached/memoized
-    Cached,
-    /// Future tense: lazy/deferred
-    Lazy,
-}
-
-impl ExecutionMode {
-    pub fn from_tense(tense: Tense) -> Self {
-        match tense {
-            Tense::Present => ExecutionMode::Streaming,
-            Tense::Aorist => ExecutionMode::OneShot,
-            Tense::Perfect => ExecutionMode::Cached,
-            Tense::Future => ExecutionMode::Lazy,
-            _ => ExecutionMode::OneShot,
         }
     }
 }

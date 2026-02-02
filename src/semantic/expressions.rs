@@ -361,15 +361,6 @@ pub fn feed_expr_to_assembler_with_context(
             // Feed index access to assembler
             asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone());
         }
-        Expr::Lambda {
-            kind,
-            verb_lemma,
-            implicit_param,
-        } => {
-            // TODO: Implement lambda handling in Cycle 3+
-            // For now, just acknowledge the lambda exists
-            let _ = (kind, verb_lemma, implicit_param);
-        }
     }
     Ok(())
 }
@@ -731,25 +722,6 @@ mod tests {
         let scope = Scope::new();
         let result = analyze_argument_expr(&expr, &scope);
         assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_analyze_argument_expr_errors_on_unsupported_variant() {
-        // Lambda is currently unsupported in analyze_argument_expr
-        let expr = Expr::Lambda {
-            kind: crate::ast::LambdaKind::Streaming,
-            verb_lemma: "run".to_string(),
-            implicit_param: false,
-        };
-        let scope = Scope::new();
-        let result = analyze_argument_expr(&expr, &scope);
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            GlossaError::SemanticError { message } => {
-                assert_eq!(message, "Unsupported argument expression type");
-            }
-            _ => panic!("Expected SemanticError"),
-        }
     }
 
     #[test]
