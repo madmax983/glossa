@@ -1,7 +1,6 @@
 //! Integration tests for the ΓΛΩΣΣΑ compiler pipeline
 
 use glossa::codegen::generate_rust;
-use glossa::ir::lower_to_hir;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
@@ -9,8 +8,7 @@ use glossa::semantic::analyze_program;
 fn compile(source: &str) -> Result<String, String> {
     let ast = parse(source).map_err(|e| e.to_string())?;
     let analyzed = analyze_program(&ast).map_err(|e| e.to_string())?;
-    let hir = lower_to_hir(&analyzed);
-    Ok(generate_rust(&hir))
+    Ok(generate_rust(&analyzed))
 }
 
 #[test]

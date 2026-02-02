@@ -28,12 +28,8 @@
 //!    * Words are routed to "slots" (Subject, Object, Verb) based on case, allowing for free word order.
 //!    * Performs agreement checks (Subject-Verb, Adjective-Noun).
 //!
-//! 4. **Intermediate Representation** (`ir`):
-//!    * Lowers the linguistically-rich structure into a High-Level IR (HIR).
-//!    * This IR is imperative and maps closely to Rust constructs.
-//!
-//! 5. **Code Generation** (`codegen`):
-//!    * Transpiles the HIR into valid Rust code.
+//! 4. **Code Generation** (`codegen`):
+//!    * Transpiles the Analyzed Program into valid Rust code.
 //!    * Uses the `quote` crate to ensure syntactical correctness.
 //!
 //! # Module Guide
@@ -42,7 +38,6 @@
 //! * [`codegen`]: Rust code generation logic.
 //! * [`errors`]: Greek-native error messages and diagnostics.
 //! * [`grammar`]: PEG parser and text normalization.
-//! * [`ir`]: High-Level Intermediate Representation.
 //! * [`morphology`]: Word analysis, lexicon, and participle parsing.
 //! * [`parser`]: AST Builder and parsing logic.
 //! * [`semantic`]: The slot-based assembler and semantic analysis.
@@ -51,7 +46,6 @@ pub mod ast;
 pub mod codegen;
 pub mod errors;
 pub mod grammar;
-pub mod ir;
 pub mod morphology;
 pub mod parser;
 pub mod semantic;

@@ -31,12 +31,10 @@ C4Container
     Container(parser, "Parser", "src/grammar", "Constructs AST from tokens, handling flexible word order")
     Container(morphology, "Declension Resolver", "src/morphology", "Analyzes case, gender, number, and resolves agreement")
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
-    Container(ir, "IR Generator", "src/ir", "Lowers AST to Intermediate Representation")
     Container(codegen, "Code Generator", "src/codegen", "Generates Rust source code")
 
     Rel(lexer, parser, "Stream<Token>")
     Rel(parser, morphology, "AST (Unresolved)")
     Rel(morphology, semantic, "AST (Resolved Morphology)")
-    Rel(semantic, ir, "Typed AST")
-    Rel(ir, codegen, "IR")
+    Rel(semantic, codegen, "Analyzed Program")
 ```

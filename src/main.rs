@@ -11,7 +11,6 @@ use std::time::SystemTime;
 
 use glossa::codegen::{generate_rust, generate_rust_file};
 use glossa::errors::GlossaError;
-use glossa::ir::lower_to_hir;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
@@ -88,8 +87,7 @@ fn main() -> Result<()> {
 fn compile(source: &str) -> std::result::Result<String, GlossaError> {
     let ast = parse(source)?;
     let analyzed = analyze_program(&ast)?;
-    let hir = lower_to_hir(&analyzed);
-    Ok(generate_rust_file(&hir))
+    Ok(generate_rust_file(&analyzed))
 }
 
 /// Get the cache directory for compiled programs
@@ -302,7 +300,6 @@ impl ReplContext {
         // Try to compile
         let ast = parse(&full_source)?;
         let analyzed = analyze_program(&ast)?;
-        let hir = lower_to_hir(&analyzed);
 
         // Check if input contains a binding
         if input.contains("ἔστω") || input.contains("εστω") {
@@ -310,7 +307,7 @@ impl ReplContext {
         }
 
         // Generate and return the code (for now, just show the Rust)
-        let rust_code = generate_rust(&hir);
+        let rust_code = generate_rust(&analyzed);
         Ok(format!(
             "→ {}",
             rust_code

@@ -17,3 +17,8 @@
 **Bloat:** `ExecutionMode`, `AnalyzedWord`, `LambdaKind`, `Expr::Lambda` were dead or duplicated abstractions.
 **Cut:** Deleted them.
 **Saved:** Simplified AST and type system. Removed zombie code that wasn't used by the parser or semantic analyzer.
+
+## [Reduction]
+**Bloat:** `src/ir` module (HIR) was a mirror of `AnalyzedProgram` with English names but identical structure.
+**Cut:** Deleted `src/ir` (~600 lines). Updated `codegen` to consume `AnalyzedProgram` directly.
+**Saved:** Removed an entire compiler pass and module. Flattened architecture: Parser -> Semantic -> Codegen.

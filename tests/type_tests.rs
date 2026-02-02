@@ -1,5 +1,4 @@
 use glossa::codegen::generate_rust;
-use glossa::ir::lower_to_hir;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
@@ -7,8 +6,7 @@ use glossa::semantic::analyze_program;
 fn compile(source: &str) -> String {
     let ast = parse(source).unwrap();
     let analyzed = analyze_program(&ast).unwrap();
-    let hir = lower_to_hir(&analyzed);
-    generate_rust(&hir)
+    generate_rust(&analyzed)
 }
 
 // Cycle 1: Type Declaration Parsing

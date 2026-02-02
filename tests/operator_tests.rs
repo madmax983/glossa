@@ -4,7 +4,6 @@
 //! Following TDD: these tests are written BEFORE implementation.
 
 use glossa::codegen::generate_rust;
-use glossa::ir::lower_to_hir;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
@@ -12,8 +11,7 @@ use glossa::semantic::analyze_program;
 fn compile_to_rust(source: &str) -> String {
     let ast = parse(source).expect("AST build failed");
     let analyzed = analyze_program(&ast).expect("Analysis failed");
-    let hir = lower_to_hir(&analyzed);
-    generate_rust(&hir)
+    generate_rust(&analyzed)
 }
 
 // =============================================================================
