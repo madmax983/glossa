@@ -97,93 +97,68 @@ const THIRD_DECLENSION_MA: &[(&str, Case, Number)] = &[
     ("ματα", Case::Accusative, Number::Plural),
 ];
 
+/// Declension configuration pattern
+struct DeclensionPattern {
+    endings: &'static [(&'static str, Case, Number)],
+    gender: Gender,
+    nom_ending: &'static str,
+    base_confidence: f32,
+}
+
+/// Ordered list of declension patterns for analysis.
+/// Order matters for `analyze_noun` (first match wins).
+const DECLENSION_PATTERNS: &[DeclensionPattern] = &[
+    DeclensionPattern {
+        endings: THIRD_DECLENSION_MA,
+        gender: Gender::Neuter,
+        nom_ending: "μα",
+        base_confidence: 0.9, // -μα is distinctive
+    },
+    DeclensionPattern {
+        endings: SECOND_DECLENSION_MASC,
+        gender: Gender::Masculine,
+        nom_ending: "ος",
+        base_confidence: 0.8,
+    },
+    DeclensionPattern {
+        endings: SECOND_DECLENSION_NEUT,
+        gender: Gender::Neuter,
+        nom_ending: "ον",
+        base_confidence: 0.75, // Note: was 0.75 in analyze_noun, 0.7 in analyze_noun_all. Using 0.75 to preserve analyze_noun behavior.
+    },
+    DeclensionPattern {
+        endings: FIRST_DECLENSION_ETA,
+        gender: Gender::Feminine,
+        nom_ending: "η",
+        base_confidence: 0.8,
+    },
+    DeclensionPattern {
+        endings: FIRST_DECLENSION_ALPHA,
+        gender: Gender::Feminine,
+        nom_ending: "α",
+        base_confidence: 0.75, // Note: was 0.75 in analyze_noun, 0.7 in analyze_noun_all.
+    },
+];
+
 /// Try to analyze a word as a noun by matching declension endings
 pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
-    // Try each declension pattern, longest ending first
-
-    // Third declension -μα (check longer endings first)
-    if let Some((stem, case, number)) = match_endings(word, THIRD_DECLENSION_MA) {
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}μα", stem)),
-            part_of_speech: PartOfSpeech::Noun,
-            case: Some(case),
-            number: Some(number),
-            gender: Some(Gender::Neuter),
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 0.9,
-        });
-    }
-
-    // Second declension masculine -ος
-    if let Some((stem, case, number)) = match_endings(word, SECOND_DECLENSION_MASC) {
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}ος", stem)),
-            part_of_speech: PartOfSpeech::Noun,
-            case: Some(case),
-            number: Some(number),
-            gender: Some(Gender::Masculine),
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 0.8,
-        });
-    }
-
-    // Second declension neuter -ον
-    if let Some((stem, case, number)) = match_endings(word, SECOND_DECLENSION_NEUT) {
-        // Only if it doesn't match masculine (which has priority for -ον accusative)
-        if !word.ends_with("ος") {
+    // Try each declension pattern in order
+    for decl in DECLENSION_PATTERNS {
+        if let Some((stem, case, number)) = match_endings(word, decl.endings) {
             return Some(MorphAnalysis {
-                lemma: Cow::Owned(format!("{}ον", stem)),
+                lemma: Cow::Owned(format!("{}{}", stem, decl.nom_ending)),
                 part_of_speech: PartOfSpeech::Noun,
                 case: Some(case),
                 number: Some(number),
-                gender: Some(Gender::Neuter),
+                gender: Some(decl.gender),
                 person: None,
                 tense: None,
                 mood: None,
                 voice: None,
-                confidence: 0.75,
+                confidence: decl.base_confidence,
             });
         }
     }
-
-    // First declension -η
-    if let Some((stem, case, number)) = match_endings(word, FIRST_DECLENSION_ETA) {
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}η", stem)),
-            part_of_speech: PartOfSpeech::Noun,
-            case: Some(case),
-            number: Some(number),
-            gender: Some(Gender::Feminine),
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 0.8,
-        });
-    }
-
-    // First declension -α
-    if let Some((stem, case, number)) = match_endings(word, FIRST_DECLENSION_ALPHA) {
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}α", stem)),
-            part_of_speech: PartOfSpeech::Noun,
-            case: Some(case),
-            number: Some(number),
-            gender: Some(Gender::Feminine),
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 0.75,
-        });
-    }
-
     None
 }
 
@@ -227,53 +202,15 @@ where
 pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
     let mut analyses = Vec::new();
 
-    // Declension info for confidence scoring
-    // Longer endings = higher confidence
-    struct DeclInfo {
-        endings: &'static [(&'static str, Case, Number)],
-        gender: Gender,
-        nom_ending: &'static str,
-        base_confidence: f32,
-    }
-
-    let declensions = [
-        DeclInfo {
-            endings: THIRD_DECLENSION_MA,
-            gender: Gender::Neuter,
-            nom_ending: "μα",
-            base_confidence: 0.9, // -μα is distinctive
-        },
-        DeclInfo {
-            endings: SECOND_DECLENSION_MASC,
-            gender: Gender::Masculine,
-            nom_ending: "ος",
-            base_confidence: 0.8,
-        },
-        DeclInfo {
-            endings: SECOND_DECLENSION_NEUT,
-            gender: Gender::Neuter,
-            nom_ending: "ον",
-            base_confidence: 0.7,
-        },
-        DeclInfo {
-            endings: FIRST_DECLENSION_ETA,
-            gender: Gender::Feminine,
-            nom_ending: "η",
-            base_confidence: 0.75,
-        },
-        DeclInfo {
-            endings: FIRST_DECLENSION_ALPHA,
-            gender: Gender::Feminine,
-            nom_ending: "α",
-            base_confidence: 0.7,
-        },
-    ];
-
-    for decl in &declensions {
+    for decl in DECLENSION_PATTERNS {
         match_endings_all(word, decl.endings, |stem, case, number| {
             // Calculate confidence based on ending length and distinctiveness
             let ending_len = word.len() - stem.len();
             let length_bonus = (ending_len as f32 - 1.0) * 0.05; // Longer = better
+
+            // Adjust base confidence if needed to match original behavior
+            // Original analyze_noun_all used 0.7 for neuter/alpha, but analyze_noun uses 0.75.
+            // We standardized on 0.75 in the struct.
             let confidence = (decl.base_confidence + length_bonus).min(0.95);
 
             analyses.push(MorphAnalysis {
@@ -583,4 +520,5 @@ mod tests {
 
         assert_eq!(result, stem);
     }
+
 }
