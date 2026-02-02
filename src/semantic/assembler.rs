@@ -1288,4 +1288,228 @@ mod tests {
             Err(AssemblyError::SubjectVerbDisagreement { .. })
         ));
     }
+
+    #[test]
+    fn test_double_object_error() {
+        let mut asm = Assembler::new();
+
+        // First object: λόγον
+        let obj1 = analyze("λόγον");
+        asm.feed(&obj1, "λόγον").unwrap();
+
+        // Second object: λόγον (again)
+        let obj2 = analyze("λόγον");
+        let result = asm.feed(&obj2, "λόγον");
+
+        assert!(matches!(result, Err(AssemblyError::DoubleObject)));
+    }
+
+    #[test]
+    fn test_neuter_plural_subject_singular_verb() {
+        let mut asm = Assembler::new();
+
+        // Subject: τὰ ζῷα (The animals) - Neuter Plural
+        let subj = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("ζωον"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Plural),
+            gender: Some(Gender::Neuter),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&subj, "ζῷα").unwrap();
+
+        // Verb: τρέχει (runs) - Singular
+        let verb = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("τρεχω"),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(Number::Singular), // Singular!
+            gender: None,
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&verb, "τρέχει").unwrap();
+
+        // Should succeed despite Plural Subject + Singular Verb
+        let stmt = asm.finalize();
+        assert!(
+            stmt.is_ok(),
+            "Neuter plural subject should agree with singular verb, got {:?}",
+            stmt.err()
+        );
+    }
+
+    #[test]
+    fn test_imperative_mismatch() {
+        let mut asm = Assembler::new();
+
+        // Subject: "User" (3rd person)
+        let subj = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("User"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: Some(Gender::Masculine),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&subj, "User").unwrap();
+
+        // Verb: "Print!" (Imperative, 2nd person)
+        let verb = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("print"),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(Number::Singular),
+            gender: None,
+            person: Some(Person::Second), // 2nd person
+            tense: None,
+            mood: Some(Mood::Imperative), // Imperative
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&verb, "Print").unwrap();
+
+        // Should succeed
+        let stmt = asm.finalize();
+        assert!(
+            stmt.is_ok(),
+            "Imperative verb should allow person mismatch, got {:?}",
+            stmt.err()
+        );
+    }
+
+    #[test]
+    fn test_gender_mismatch_ignored() {
+        // This test verifies that Gender Mismatch is CURRENTLY IGNORED.
+        let mut asm = Assembler::new();
+
+        // Adjective: καλός (Masculine)
+        let adj = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("καλος"),
+            part_of_speech: PartOfSpeech::Adjective,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: Some(Gender::Masculine),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&adj, "καλός").unwrap();
+
+        // Noun: γυνή (Feminine)
+        let noun = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("γυνη"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: Some(Gender::Feminine),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&noun, "γυνή").unwrap();
+
+        // Verb (to complete the sentence)
+        let verb = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("λεγω"),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(Number::Singular),
+            gender: None,
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&verb, "λέγει").unwrap();
+
+        let stmt = asm.finalize();
+        // Currently expecting OK because the check is missing
+        assert!(stmt.is_ok(), "Gender mismatch is currently ignored");
+    }
+
+    #[test]
+    fn test_split_method_generation() {
+        let mut asm = Assembler::new();
+
+        // 1. Subject: "text"
+        let subj = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("text"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: Some(Gender::Neuter),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&subj, "text").unwrap();
+
+        // 2. Delimiter Preposition: "κατά"
+        let marker_analysis = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("κατα"),
+            part_of_speech: PartOfSpeech::Preposition,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&marker_analysis, "κατά").unwrap();
+
+        // 3. Delimiter Literal: ","
+        asm.feed_string(",".to_string());
+
+        // 4. Split Verb: "σχίζεται" (is split)
+        let split_verb = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("σχιζω"), // assuming lemma for split verb
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&split_verb, "σχίζεται").unwrap();
+
+        let stmt = asm.finalize().unwrap();
+
+        // Check if property access was created
+        assert!(
+            !stmt.property_accesses.is_empty(),
+            "Should generate property access for split"
+        );
+        assert_eq!(stmt.property_accesses[0].1, "split");
+
+        // Check if string method info was captured
+        assert_eq!(
+            stmt.string_method,
+            Some(("split".to_string(), ",".to_string()))
+        );
+    }
 }
