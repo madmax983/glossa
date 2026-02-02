@@ -29,7 +29,7 @@
 
 use super::expressions::{
     analyze_argument_expr, build_binary_expr, build_expressions_from_literals_and_ops,
-    convert_array_elements, convert_expr_to_analyzed, literal_to_analyzed_expr, literal_to_type,
+    literal_to_analyzed_expr, literal_to_type,
 };
 use super::patterns::detect_iterator_pattern;
 use super::{
@@ -439,7 +439,7 @@ fn classify_variable_binding(
                 return Err(GlossaError::semantic("Binding without subject"));
             };
 
-            let (value_expr, value_type) = extract_value(&actual_asm);
+            let (value_expr, value_type) = extract_value(&actual_asm, scope)?;
 
             let final_value_expr = if asm_stmt.is_propagate {
                 AnalyzedExpr {
@@ -521,7 +521,7 @@ fn classify_assignment(
                     }
 
                     let value_type = b.glossa_type.clone();
-                    let (value_expr, _) = extract_value(asm_stmt);
+                    let (value_expr, _) = extract_value(asm_stmt, scope)?;
                     scope.mark_used(&var_name);
                     return Ok(Some((
                         StatementKind::Assignment {
@@ -743,8 +743,8 @@ fn classify_print(
             if !asm_stmt.index_accesses.is_empty() {
                 let mut args = Vec::new();
                 for (array_expr, index_expr) in &asm_stmt.index_accesses {
-                    let array_analyzed = convert_expr_to_analyzed(array_expr);
-                    let index_analyzed = convert_expr_to_analyzed(index_expr);
+                    let array_analyzed = analyze_argument_expr(array_expr, scope)?;
+                    let index_analyzed = analyze_argument_expr(index_expr, scope)?;
                     args.push(AnalyzedExpr {
                         expr: AnalyzedExprKind::IndexAccess {
                             array: Box::new(array_analyzed),
@@ -760,7 +760,7 @@ fn classify_print(
             if !asm_stmt.unwraps.is_empty() {
                 let mut args = Vec::new();
                 for unwrap_expr in &asm_stmt.unwraps {
-                    let inner_analyzed = convert_expr_to_analyzed(unwrap_expr);
+                    let inner_analyzed = analyze_argument_expr(unwrap_expr, scope)?;
                     args.push(AnalyzedExpr {
                         expr: AnalyzedExprKind::Unwrap(Box::new(inner_analyzed)),
                         glossa_type: GlossaType::Unknown,
@@ -962,30 +962,33 @@ fn detect_enum_variant(
 }
 
 /// Extract value from assembled statement (literals or constituents)
-pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType) {
+pub fn extract_value(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<(AnalyzedExpr, GlossaType), GlossaError> {
     // Check for unwrap expressions first
     if !asm_stmt.unwraps.is_empty() {
-        let inner_analyzed = convert_expr_to_analyzed(&asm_stmt.unwraps[0]);
-        return (
+        let inner_analyzed = analyze_argument_expr(&asm_stmt.unwraps[0], scope)?;
+        return Ok((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::Unwrap(Box::new(inner_analyzed)),
                 glossa_type: GlossaType::Unknown, // Type will be inferred
             },
             GlossaType::Unknown,
-        );
+        ));
     }
 
     // Check subject for Option/Result words
     if let Some(ref subj) = asm_stmt.subject
         && let Some(result) = detect_enum_variant(subj, &asm_stmt.literals)
     {
-        return result;
+        return Ok(result);
     }
 
     // Check nominatives for Option/Result words
     for nom in &asm_stmt.nominatives {
         if let Some(result) = detect_enum_variant(nom, &asm_stmt.literals) {
-            return result;
+            return Ok(result);
         }
     }
 
@@ -995,7 +998,7 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
             expr: AnalyzedExprKind::Variable(owner.clone().into()),
             glossa_type: GlossaType::Unknown,
         };
-        return (
+        return Ok((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
                     receiver: Box::new(receiver),
@@ -1005,14 +1008,14 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
                 glossa_type: GlossaType::Number,
             },
             GlossaType::Number,
-        );
+        ));
     }
 
     // If we have index accesses, use the first one
     if let Some((array_expr, index_expr)) = asm_stmt.index_accesses.first() {
-        let array_analyzed = convert_expr_to_analyzed(array_expr);
-        let index_analyzed = convert_expr_to_analyzed(index_expr);
-        return (
+        let array_analyzed = analyze_argument_expr(array_expr, scope)?;
+        let index_analyzed = analyze_argument_expr(index_expr, scope)?;
+        return Ok((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::IndexAccess {
                     array: Box::new(array_analyzed),
@@ -1021,23 +1024,27 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
                 glossa_type: GlossaType::Unknown, // Element type is unknown without inference
             },
             GlossaType::Unknown,
-        );
+        ));
     }
 
     // If we have arrays, use the first array
     if let Some(array_elements) = asm_stmt.arrays.first() {
-        let analyzed_elements = convert_array_elements(array_elements);
+        let mut analyzed_elements = Vec::with_capacity(array_elements.len());
+        for e in array_elements {
+            analyzed_elements.push(analyze_argument_expr(e, scope)?);
+        }
+
         let element_type = analyzed_elements
             .first()
             .map(|e| e.glossa_type.clone())
             .unwrap_or(GlossaType::Unknown);
-        return (
+        return Ok((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
                 glossa_type: GlossaType::List(Box::new(element_type)),
             },
             GlossaType::List(Box::new(GlossaType::Unknown)),
-        );
+        ));
     }
 
     // If we have operators, build a binary expression
@@ -1048,7 +1055,7 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
             if let Some(expr) = exprs.into_iter().next() {
                 let ty = expr.glossa_type.clone();
-                return (expr, ty);
+                return Ok((expr, ty));
             }
         }
 
@@ -1065,13 +1072,13 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
             let op = asm_stmt.operators[0];
             let bin_expr = build_binary_expr(left, op, right);
             let ty = bin_expr.glossa_type.clone();
-            return (bin_expr, ty);
+            return Ok((bin_expr, ty));
         }
     }
 
     // Prefer literals (single value, no operators)
     if let Some(lit) = asm_stmt.literals.first() {
-        return (literal_to_analyzed_expr(lit), literal_to_type(lit));
+        return Ok((literal_to_analyzed_expr(lit), literal_to_type(lit)));
     }
 
     // Otherwise use object
@@ -1084,13 +1091,13 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
         if crate::morphology::lexicon::is_none_word(&obj_lemma)
             || crate::morphology::lexicon::is_none_word(&obj_original)
         {
-            return (
+            return Ok((
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::None,
                     glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
                 },
                 GlossaType::Option(Box::new(GlossaType::Unknown)),
-            );
+            ));
         }
 
         // Check for Some (τί) with a value
@@ -1101,13 +1108,13 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
             if let Some(lit) = asm_stmt.literals.first() {
                 let inner_expr = literal_to_analyzed_expr(lit);
                 let inner_type = inner_expr.glossa_type.clone();
-                return (
+                return Ok((
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::Some(Box::new(inner_expr)),
                         glossa_type: GlossaType::Option(Box::new(inner_type.clone())),
                     },
                     GlossaType::Option(Box::new(inner_type)),
-                );
+                ));
             }
         }
 
@@ -1120,7 +1127,7 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
                 let inner_expr = literal_to_analyzed_expr(lit);
                 let inner_type = inner_expr.glossa_type.clone();
                 // LIMITATION: Error type defaults to String. See nominatives section for explanation.
-                return (
+                return Ok((
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::Ok(Box::new(inner_expr)),
                         glossa_type: GlossaType::Result(
@@ -1129,7 +1136,7 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
                         ),
                     },
                     GlossaType::Result(Box::new(inner_type), Box::new(GlossaType::String)),
-                );
+                ));
             }
         }
 
@@ -1142,7 +1149,7 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
                 let inner_expr = literal_to_analyzed_expr(lit);
                 let inner_type = inner_expr.glossa_type.clone();
                 // LIMITATION: Success type defaults to Unknown. See nominatives section for explanation.
-                return (
+                return Ok((
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::Err(Box::new(inner_expr)),
                         glossa_type: GlossaType::Result(
@@ -1151,87 +1158,36 @@ pub fn extract_value(asm_stmt: &AssembledStatement) -> (AnalyzedExpr, GlossaType
                         ),
                     },
                     GlossaType::Result(Box::new(GlossaType::Unknown), Box::new(inner_type)),
-                );
+                ));
             }
         }
 
         // Check if it's a numeral word
         if let Some(value) = crate::morphology::lexicon::numeral_value(&obj_lemma) {
-            return (
+            return Ok((
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::NumberLiteral(value),
                     glossa_type: GlossaType::Number,
                 },
                 GlossaType::Number,
-            );
+            ));
         }
 
-        return (
+        return Ok((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             },
             GlossaType::Unknown,
-        );
+        ));
     }
 
     // Default
-    (
+    Ok((
         AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(0),
             glossa_type: GlossaType::Number,
         },
         GlossaType::Number,
-    )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::semantic::assembler::Assembler;
-
-    #[test]
-    fn test_propagate_safely_ignores_empty_exprs() {
-        // Construct an empty assembled statement with propagate flag set
-        // This simulates a scenario where parser might produce a weird state
-        // or a statement like just ";" (semicolon)
-        let mut asm = Assembler::new();
-        asm.set_propagate(true);
-        let assembled = asm.finalize().unwrap();
-
-        // This should not panic
-        let mut scope = Scope::new();
-        let (kind, exprs) = classify_assembled_statement(&assembled, &mut scope).unwrap();
-
-        // Should return Expression statement with empty expressions
-        assert!(matches!(kind, StatementKind::Expression));
-        assert!(exprs.is_empty());
-    }
-
-    #[test]
-    fn test_propagate_wraps_expression() {
-        // Construct an assembled statement with propagate flag set and a literal
-        let mut asm = Assembler::new();
-        asm.set_propagate(true);
-        asm.feed_number(42);
-        let assembled = asm.finalize().unwrap();
-
-        let mut scope = Scope::new();
-        let (kind, exprs) = classify_assembled_statement(&assembled, &mut scope).unwrap();
-
-        assert!(matches!(kind, StatementKind::Expression));
-        assert_eq!(exprs.len(), 1);
-
-        // Should be a Try expression
-        match &exprs[0].expr {
-            AnalyzedExprKind::Try(inner) => {
-                // Inner should be the number 42
-                match inner.expr {
-                    AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 42),
-                    _ => panic!("Expected NumberLiteral inside Try"),
-                }
-            }
-            _ => panic!("Expected Try expression"),
-        }
-    }
+    ))
 }

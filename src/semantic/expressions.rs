@@ -50,6 +50,36 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
             glossa_type: GlossaType::Boolean,
         }),
 
+        Expr::ArrayLiteral(elements) => {
+            let mut analyzed_elements = Vec::with_capacity(elements.len());
+            for el in elements {
+                analyzed_elements.push(analyze_argument_expr(el, scope)?);
+            }
+
+            let element_type = analyzed_elements
+                .first()
+                .map(|e| e.glossa_type.clone())
+                .unwrap_or(GlossaType::Unknown);
+
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
+                glossa_type: GlossaType::List(Box::new(element_type)),
+            })
+        }
+
+        Expr::IndexAccess { array, index } => {
+            let array_analyzed = analyze_argument_expr(array, scope)?;
+            let index_analyzed = analyze_argument_expr(index, scope)?;
+
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::IndexAccess {
+                    array: Box::new(array_analyzed),
+                    index: Box::new(index_analyzed),
+                },
+                glossa_type: GlossaType::Unknown,
+            })
+        }
+
         Expr::Phrase(terms) => {
             // A phrase could be a function call: function_name arg1 arg2 ...
             if terms.is_empty() {
@@ -97,6 +127,64 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
                 return analyze_argument_expr(expr, scope);
             }
             Err(GlossaError::semantic("Empty or invalid block expression"))
+        }
+
+        Expr::BinOp { left, op, right } => {
+            let left_analyzed = analyze_argument_expr(left, scope)?;
+            let right_analyzed = analyze_argument_expr(right, scope)?;
+            // Map AST op to semantic op
+            let sem_op = match op {
+                crate::ast::BinOperator::Add => crate::morphology::lexicon::BinaryOp::Add,
+                crate::ast::BinOperator::Sub => crate::morphology::lexicon::BinaryOp::Sub,
+                crate::ast::BinOperator::Mul => crate::morphology::lexicon::BinaryOp::Mul,
+                crate::ast::BinOperator::Div => crate::morphology::lexicon::BinaryOp::Div,
+                crate::ast::BinOperator::Mod => crate::morphology::lexicon::BinaryOp::Mod,
+                crate::ast::BinOperator::Eq => crate::morphology::lexicon::BinaryOp::Eq,
+                crate::ast::BinOperator::Ne => crate::morphology::lexicon::BinaryOp::Ne,
+                crate::ast::BinOperator::Lt => crate::morphology::lexicon::BinaryOp::Lt,
+                crate::ast::BinOperator::Le => crate::morphology::lexicon::BinaryOp::Le,
+                crate::ast::BinOperator::Gt => crate::morphology::lexicon::BinaryOp::Gt,
+                crate::ast::BinOperator::Ge => crate::morphology::lexicon::BinaryOp::Ge,
+                crate::ast::BinOperator::And => crate::morphology::lexicon::BinaryOp::And,
+                crate::ast::BinOperator::Or => crate::morphology::lexicon::BinaryOp::Or,
+            };
+
+            Ok(build_binary_expr(left_analyzed, sem_op, right_analyzed))
+        }
+
+        Expr::UnaryOp { op, operand } => {
+            match op {
+                crate::ast::UnaryOperator::Unwrap => {
+                    let inner = analyze_argument_expr(operand, scope)?;
+                    Ok(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Unwrap(Box::new(inner)),
+                        glossa_type: GlossaType::Unknown,
+                    })
+                }
+                // TODO: Handle Neg and Not
+                _ => Err(GlossaError::semantic(
+                    "Unsupported unary operator in expression",
+                )),
+            }
+        }
+
+        Expr::PropertyAccess { owner, property } => {
+            // Treat property access as variable lookup or method call preparation
+            // This is simplified; usually property access is handled by the assembler context
+            // But if we encounter it directly as an expression, we try to resolve it.
+            // For now, if it's a simple property access, we might need more context or just return it as PropertyAccess
+            let owner_analyzed = analyze_argument_expr(owner, scope)?;
+            if let Expr::Word(prop_word) = property.as_ref() {
+                Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::PropertyAccess {
+                        owner: Box::new(owner_analyzed),
+                        property: normalize_greek(&prop_word.original),
+                    },
+                    glossa_type: GlossaType::Unknown,
+                })
+            } else {
+                Err(GlossaError::semantic("Property must be a word"))
+            }
         }
 
         _ => Err(GlossaError::semantic(
@@ -286,101 +374,6 @@ pub fn feed_expr_to_assembler_with_context(
     Ok(())
 }
 
-/// Convert an Expr to an AnalyzedExpr
-pub fn convert_expr_to_analyzed(expr: &Expr) -> AnalyzedExpr {
-    match expr {
-        Expr::StringLiteral(s) => AnalyzedExpr {
-            expr: AnalyzedExprKind::StringLiteral(s.clone()),
-            glossa_type: GlossaType::String,
-        },
-        Expr::NumberLiteral(n) => AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(*n),
-            glossa_type: GlossaType::Number,
-        },
-        Expr::BooleanLiteral(b) => AnalyzedExpr {
-            expr: AnalyzedExprKind::BooleanLiteral(*b),
-            glossa_type: GlossaType::Boolean,
-        },
-        Expr::Word(w) => {
-            // Check if it's a numeral
-            if let Some(val) = crate::morphology::lexicon::numeral_value(&w.normalized) {
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(val),
-                    glossa_type: GlossaType::Number,
-                }
-            } else {
-                // Variable reference
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(w.normalized.clone()),
-                    glossa_type: GlossaType::Unknown,
-                }
-            }
-        }
-        Expr::ArrayLiteral(elements) => {
-            let analyzed_elements = convert_array_elements(elements);
-            let element_type = analyzed_elements
-                .first()
-                .map(|e| e.glossa_type.clone())
-                .unwrap_or(GlossaType::Unknown);
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
-                glossa_type: GlossaType::List(Box::new(element_type)),
-            }
-        }
-        Expr::IndexAccess { array, index } => AnalyzedExpr {
-            expr: AnalyzedExprKind::IndexAccess {
-                array: Box::new(convert_expr_to_analyzed(array)),
-                index: Box::new(convert_expr_to_analyzed(index)),
-            },
-            glossa_type: GlossaType::Unknown,
-        },
-        _ => AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(0),
-            glossa_type: GlossaType::Number,
-        },
-    }
-}
-
-/// Convert array elements from Expr to AnalyzedExpr
-pub fn convert_array_elements(elements: &[Expr]) -> Vec<AnalyzedExpr> {
-    elements
-        .iter()
-        .map(|e| match e {
-            Expr::StringLiteral(s) => AnalyzedExpr {
-                expr: AnalyzedExprKind::StringLiteral(s.clone()),
-                glossa_type: GlossaType::String,
-            },
-            Expr::NumberLiteral(n) => AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(*n),
-                glossa_type: GlossaType::Number,
-            },
-            Expr::BooleanLiteral(b) => AnalyzedExpr {
-                expr: AnalyzedExprKind::BooleanLiteral(*b),
-                glossa_type: GlossaType::Boolean,
-            },
-            Expr::Word(w) => {
-                // Check if it's a numeral
-                if let Some(val) = crate::morphology::lexicon::numeral_value(&w.normalized) {
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(val),
-                        glossa_type: GlossaType::Number,
-                    }
-                } else {
-                    // Variable reference
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(w.normalized.clone()),
-                        glossa_type: GlossaType::Unknown,
-                    }
-                }
-            }
-            _ => AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(0),
-                glossa_type: GlossaType::Number,
-            },
-        })
-        .collect()
-}
-
 /// Convert a Literal to an AnalyzedExpr
 pub fn literal_to_analyzed_expr(lit: &Literal) -> AnalyzedExpr {
     match lit {
@@ -483,5 +476,397 @@ pub fn infer_binop_type(
         }
         // Boolean operations return booleans
         BinaryOp::And | BinaryOp::Or => GlossaType::Boolean,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::UnaryOperator;
+
+    #[test]
+    fn test_analyze_argument_expr_handles_unwrap() {
+        let expr = Expr::UnaryOp {
+            op: UnaryOperator::Unwrap,
+            operand: Box::new(Expr::BooleanLiteral(true)),
+        };
+
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::Unwrap(_) => {
+                // Success - correctly identified as Unwrap
+            }
+            _ => panic!("Expected Unwrap, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_handles_array() {
+        let expr = Expr::ArrayLiteral(vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::ArrayLiteral(elements) => {
+                assert_eq!(elements.len(), 2);
+                assert!(matches!(
+                    elements[0].expr,
+                    AnalyzedExprKind::NumberLiteral(1)
+                ));
+            }
+            _ => panic!("Expected ArrayLiteral"),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_handles_index_access() {
+        let expr = Expr::IndexAccess {
+            array: Box::new(Expr::ArrayLiteral(vec![])),
+            index: Box::new(Expr::NumberLiteral(0)),
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::IndexAccess { array: _, index } => {
+                assert!(matches!(index.expr, AnalyzedExprKind::NumberLiteral(0)));
+            }
+            _ => panic!("Expected IndexAccess"),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_handles_binop() {
+        let scope = Scope::new();
+        let ops = vec![
+            (
+                crate::ast::BinOperator::Add,
+                crate::morphology::lexicon::BinaryOp::Add,
+            ),
+            (
+                crate::ast::BinOperator::Sub,
+                crate::morphology::lexicon::BinaryOp::Sub,
+            ),
+            (
+                crate::ast::BinOperator::Mul,
+                crate::morphology::lexicon::BinaryOp::Mul,
+            ),
+            (
+                crate::ast::BinOperator::Div,
+                crate::morphology::lexicon::BinaryOp::Div,
+            ),
+            (
+                crate::ast::BinOperator::Mod,
+                crate::morphology::lexicon::BinaryOp::Mod,
+            ),
+            (
+                crate::ast::BinOperator::Eq,
+                crate::morphology::lexicon::BinaryOp::Eq,
+            ),
+            (
+                crate::ast::BinOperator::Ne,
+                crate::morphology::lexicon::BinaryOp::Ne,
+            ),
+            (
+                crate::ast::BinOperator::Lt,
+                crate::morphology::lexicon::BinaryOp::Lt,
+            ),
+            (
+                crate::ast::BinOperator::Le,
+                crate::morphology::lexicon::BinaryOp::Le,
+            ),
+            (
+                crate::ast::BinOperator::Gt,
+                crate::morphology::lexicon::BinaryOp::Gt,
+            ),
+            (
+                crate::ast::BinOperator::Ge,
+                crate::morphology::lexicon::BinaryOp::Ge,
+            ),
+            (
+                crate::ast::BinOperator::And,
+                crate::morphology::lexicon::BinaryOp::And,
+            ),
+            (
+                crate::ast::BinOperator::Or,
+                crate::morphology::lexicon::BinaryOp::Or,
+            ),
+        ];
+
+        for (ast_op, expected_sem_op) in ops {
+            let expr = Expr::BinOp {
+                left: Box::new(Expr::NumberLiteral(1)),
+                op: ast_op,
+                right: Box::new(Expr::NumberLiteral(2)),
+            };
+            let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+            match result.expr {
+                AnalyzedExprKind::BinOp { op, .. } => {
+                    assert_eq!(
+                        op, expected_sem_op,
+                        "Mismatch for AST operator {:?}",
+                        ast_op
+                    );
+                }
+                _ => panic!("Expected BinOp"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_handles_property_access() {
+        let expr = Expr::PropertyAccess {
+            owner: Box::new(Expr::Word(crate::ast::Word::new("x"))),
+            property: Box::new(Expr::Word(crate::ast::Word::new("y"))),
+        };
+        let mut scope = Scope::new();
+        scope.define("x", GlossaType::Unknown);
+        let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::PropertyAccess { property, .. } => {
+                assert_eq!(property, "y");
+            }
+            _ => panic!("Expected PropertyAccess"),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_errors_on_invalid_property() {
+        let expr = Expr::PropertyAccess {
+            owner: Box::new(Expr::Word(crate::ast::Word::new("x"))),
+            property: Box::new(Expr::NumberLiteral(1)),
+        };
+        let mut scope = Scope::new();
+        scope.define("x", GlossaType::Unknown);
+        let result = analyze_argument_expr(&expr, &scope);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_errors_on_empty_phrase() {
+        let expr = Expr::Phrase(vec![]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_array() {
+        // Array with an invalid element (empty phrase)
+        let expr = Expr::ArrayLiteral(vec![Expr::NumberLiteral(1), Expr::Phrase(vec![])]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_index_access() {
+        // Index access with invalid array
+        let expr = Expr::IndexAccess {
+            array: Box::new(Expr::Phrase(vec![])),
+            index: Box::new(Expr::NumberLiteral(0)),
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+
+        assert!(result.is_err());
+
+        // Index access with invalid index
+        let expr2 = Expr::IndexAccess {
+            array: Box::new(Expr::ArrayLiteral(vec![])),
+            index: Box::new(Expr::Phrase(vec![])),
+        };
+        let result2 = analyze_argument_expr(&expr2, &scope);
+        assert!(result2.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_binop() {
+        // BinOp with invalid left
+        let expr = Expr::BinOp {
+            left: Box::new(Expr::Phrase(vec![])),
+            op: crate::ast::BinOperator::Add,
+            right: Box::new(Expr::NumberLiteral(1)),
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+
+        // BinOp with invalid right
+        let expr2 = Expr::BinOp {
+            left: Box::new(Expr::NumberLiteral(1)),
+            op: crate::ast::BinOperator::Add,
+            right: Box::new(Expr::Phrase(vec![])),
+        };
+        let result2 = analyze_argument_expr(&expr2, &scope);
+        assert!(result2.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_unary_op() {
+        // UnaryOp with invalid operand
+        let expr = Expr::UnaryOp {
+            op: crate::ast::UnaryOperator::Unwrap,
+            operand: Box::new(Expr::Phrase(vec![])),
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_property_owner() {
+        // Property access with invalid owner
+        let expr = Expr::PropertyAccess {
+            owner: Box::new(Expr::Phrase(vec![])),
+            property: Box::new(Expr::Word(crate::ast::Word::new("y"))),
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_errors_on_unsupported_variant() {
+        // Lambda is currently unsupported in analyze_argument_expr
+        let expr = Expr::Lambda {
+            kind: crate::ast::LambdaKind::Streaming,
+            verb_lemma: "run".to_string(),
+            implicit_param: false,
+        };
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::SemanticError { message } => {
+                assert_eq!(message, "Unsupported argument expression type");
+            }
+            _ => panic!("Expected SemanticError"),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_handles_phrase_recursion() {
+        // Phrase that is not a function call -> recursive analysis of first term
+        // "((1))" -> Phrase(vec![Phrase(vec![Number(1)])])
+        let inner = Expr::Phrase(vec![Expr::NumberLiteral(1)]);
+        let outer = Expr::Phrase(vec![inner]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&outer, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 1),
+            _ => panic!("Expected NumberLiteral"),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_handles_function_call() {
+        // Mock a function in scope
+        let mut scope = Scope::new();
+        scope.define_function(
+            "add",
+            vec![GlossaType::Number, GlossaType::Number],
+            Some(GlossaType::Number),
+        );
+
+        // "add 1 2"
+        let expr = Expr::Phrase(vec![
+            Expr::Word(crate::ast::Word::new("add")),
+            Expr::NumberLiteral(1),
+            Expr::NumberLiteral(2),
+        ]);
+
+        let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::FunctionCall { func, args } => {
+                assert_eq!(func, "add");
+                assert_eq!(args.len(), 2);
+                assert!(matches!(args[0].expr, AnalyzedExprKind::NumberLiteral(1)));
+            }
+            _ => panic!("Expected FunctionCall"),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_propagates_error_in_function_args() {
+        let mut scope = Scope::new();
+        scope.define_function("add", vec![GlossaType::Number], Some(GlossaType::Number));
+
+        // "add (error)"
+        let expr = Expr::Phrase(vec![
+            Expr::Word(crate::ast::Word::new("add")),
+            Expr::Phrase(vec![]), // Invalid arg
+        ]);
+
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_handles_block() {
+        // Block containing a statement with a clause with an expression
+        // { 1. }
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![Expr::NumberLiteral(1)],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let expr = Expr::Block(vec![stmt]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+        match result.expr {
+            AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 1),
+            _ => panic!("Expected NumberLiteral"),
+        }
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_errors_on_empty_block() {
+        let expr = Expr::Block(vec![]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_errors_on_invalid_block_structure() {
+        // Block with a statement that has no clauses (should trigger error)
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        };
+        let expr = Expr::Block(vec![stmt]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_argument_expr_errors_on_block_with_empty_clause() {
+        // Block with a statement that has a clause with no expressions
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let expr = Expr::Block(vec![stmt]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+        assert!(result.is_err());
     }
 }
