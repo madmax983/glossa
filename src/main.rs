@@ -59,7 +59,10 @@ enum Commands {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    execute_cli(cli)
+}
 
+fn execute_cli(cli: Cli) -> Result<()> {
     // If a file is provided without a subcommand, run it
     if let Some(file) = cli.file {
         return run_file(&file);
@@ -393,5 +396,83 @@ mod tests {
         let input = "λάθος"; // Syntax error
         let result = context.execute(input);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_cache_key_consistency() {
+        let path1 = PathBuf::from("test.gl");
+        let path2 = PathBuf::from("test.gl");
+        let path3 = PathBuf::from("other.gl");
+
+        // Same path should produce same key
+        assert_eq!(cache_key(&path1), cache_key(&path2));
+
+        // Different paths should produce different keys
+        assert_ne!(cache_key(&path1), cache_key(&path3));
+    }
+
+    #[test]
+    fn test_cache_validity() {
+        use std::fs::File;
+        use std::thread::sleep;
+        use std::time::Duration;
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let source_path = temp_dir.path().join("source.gl");
+        let exe_path = temp_dir.path().join("source.exe");
+
+        // Create source file
+        File::create(&source_path).unwrap();
+
+        // Sleep to ensure different mtimes
+        sleep(Duration::from_millis(10));
+
+        // Create exe file (newer than source)
+        File::create(&exe_path).unwrap();
+
+        assert!(cache_valid(&source_path, &exe_path));
+
+        // Update source (now newer than exe)
+        sleep(Duration::from_millis(10));
+        File::create(&source_path).unwrap();
+
+        assert!(!cache_valid(&source_path, &exe_path));
+    }
+
+    #[test]
+    fn test_check_file_valid() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("valid.gl");
+        fs::write(&file_path, "«χαῖρε» λέγε.").unwrap();
+
+        assert!(check_file(&file_path).is_ok());
+    }
+
+    #[test]
+    fn test_check_file_invalid() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("invalid.gl");
+        fs::write(&file_path, "λάθος").unwrap();
+
+        assert!(check_file(&file_path).is_err());
+    }
+
+    #[test]
+    fn test_build_file() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let input_path = temp_dir.path().join("test.gl");
+        let output_path = temp_dir.path().join("test.rs");
+
+        fs::write(&input_path, "«χαῖρε» λέγε.").unwrap();
+
+        assert!(build_file(&input_path, Some(&output_path)).is_ok());
+        assert!(output_path.exists());
+
+        let content = fs::read_to_string(output_path).unwrap();
+        assert!(content.contains("println"));
     }
 }
