@@ -145,10 +145,7 @@ fn analyze_single_statement_with_assembler(
     }
 
     // Finalize the statement
-    match asm.finalize() {
-        Ok(assembled) => Ok(assembled),
-        Err(e) => Err(GlossaError::semantic(e.to_string())),
-    }
+    Ok(asm.finalize()?)
 }
 
 /// Analyzed program with resolved names and types

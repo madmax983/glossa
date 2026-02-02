@@ -4,8 +4,10 @@
 
 #![allow(unused_assignments)]
 
+pub mod assembly;
 mod messages;
 
+pub use assembly::*;
 pub use messages::*;
 
 use miette::{Diagnostic, SourceSpan};
@@ -49,6 +51,10 @@ pub enum GlossaError {
     #[error("Σφάλμα ἀρχείου: {message}")]
     #[diagnostic(code(glossa::io))]
     IoError { message: String },
+
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    AssemblyError(#[from] assembly::AssemblyError),
 }
 
 impl GlossaError {
@@ -124,6 +130,7 @@ impl GlossaError {
             GlossaError::AgreementError { .. } => "Συμφωνία",
             GlossaError::CodegenError { .. } => "Κῶδιξ",
             GlossaError::IoError { .. } => "Ἀρχεῖον",
+            GlossaError::AssemblyError(_) => "Συναρμογή",
         }
     }
 }
