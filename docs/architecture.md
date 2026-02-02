@@ -40,3 +40,15 @@ C4Container
     Rel(semantic, ir, "Typed AST")
     Rel(ir, codegen, "IR")
 ```
+
+## Core-Storage Decoupling (Class Level)
+
+The following diagram illustrates the decoupled relationship between Core and Storage.
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+  %% Removed the circular dependency arrow
+```
