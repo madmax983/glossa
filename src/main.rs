@@ -588,4 +588,43 @@ mod tests {
         assert!(output_str.contains("Ἐκαθαρίσθη.")); // from .clear
         assert!(output_str.contains("Χαῖρε!")); // from .exit
     }
+
+    #[test]
+    fn test_run_repl_empty_line() {
+        let input_data = b"\n.exit\n";
+        let mut output = Vec::new();
+
+        let result = run_repl(&input_data[..], &mut output);
+        assert!(result.is_ok());
+        // Should just prompt again and exit
+    }
+
+    #[test]
+    fn test_run_repl_compile_error() {
+        // Use byte string literal for UTF-8 input
+        let input_data = "λάθος\n.exit\n".as_bytes();
+        let mut output = Vec::new();
+
+        let result = run_repl(&input_data[..], &mut output);
+        assert!(result.is_ok());
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("Σφάλμα"));
+    }
+
+    #[test]
+    fn test_run_file_success() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let input_path = temp_dir.path().join("run_success.gl");
+        fs::write(&input_path, "«χαῖρε» λέγε.").unwrap();
+
+        // This actually compiles and runs the binary, so it requires rustc to be available
+        // which it is in the environment.
+        let result = run_file(&input_path);
+
+        // If this fails (e.g. no rustc), we might need to skip or mock,
+        // but for now let's assume it works as build_file worked.
+        assert!(result.is_ok());
+    }
 }
