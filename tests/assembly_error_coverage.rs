@@ -1,6 +1,6 @@
 use glossa::errors::GlossaError;
 use glossa::errors::assembly::AssemblyError;
-use glossa::morphology::{analyze, Case, Gender, Number, Person};
+use glossa::morphology::{Case, Gender, Number, Person, analyze};
 use glossa::semantic::assembler::Assembler;
 
 #[test]
@@ -43,7 +43,10 @@ fn test_subject_verb_disagreement_error() {
     asm.feed(&verb, "λέγει").unwrap();
 
     let result = asm.finalize();
-    assert!(matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })));
+    assert!(matches!(
+        result,
+        Err(AssemblyError::SubjectVerbDisagreement { .. })
+    ));
 }
 
 #[test]
