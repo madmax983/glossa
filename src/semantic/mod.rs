@@ -35,7 +35,8 @@ pub mod assembler;
 pub(crate) mod control_flow;
 pub(crate) mod conversion;
 pub(crate) mod declarations;
-pub(crate) mod expressions;
+#[doc(hidden)]
+pub mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
 mod resolver;

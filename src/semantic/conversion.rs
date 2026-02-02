@@ -4,28 +4,35 @@
 //! While the [`Assembler`](crate::semantic::Assembler) ensures grammatical correctness (Subject-Verb agreement),
 //! this module assigns *meaning* to the grammatical structures.
 //!
+//! # The Interpreter Pattern
+//!
+//! The conversion process is essentially an interpretation step. It takes a
+//! grammatically valid but semantically ambiguous "Assembled Statement" and
+//! converts it into a typed, unambiguous "Analyzed Statement" (part of the HIR).
+//!
+//! This is where "word order independence" meets "semantic meaning".
+//!
 //! # Pattern Detection Strategy
 //!
 //! The [`classify_assembled_statement`] function uses a combination of strategies to
-//! understand the statement's intent:
+//! understand the statement's intent, checking patterns in a specific heuristic order:
 //!
-//! 1. **Pattern Delegation**: Complex patterns are delegated to specialized detectors in `patterns.rs`.
-//!    - Iterator chains (map/filter/fold)
-//!    - Struct instantiation (via `try_parse_struct_instantiation`)
-//!    - Trait method calls (via `try_parse_trait_method_call`)
+//! 1. **Pattern Delegation**: Complex patterns are delegated first.
+//!    - **Iterator Chains**: `detect_iterator_pattern` (e.g., `list doubling print`).
+//!    - **Property Access**: `classify_property_access_print` (e.g., `user.name print`).
+//!    - **Struct Instantiation**: `try_parse_struct_instantiation` (e.g., `x new User ... let`).
+//!    - **Function Calls**: `classify_function_call` (e.g., `my_func arg1 arg2 call`).
 //!
-//! 2. **Verb-Based Classification**: The main verb determines the primary statement kind.
-//!    - **Binding** (`ἔστω`): Variable definition (`let x = ...`)
-//!    - **Assignment** (`γίγνεται`): Variable mutation (`x = ...`)
-//!    - **Collection Ops** (`ὠθεῖ`, `ἕλκεται`, `τίθησι`): `push`, `pop`, `insert`
-//!    - **Print** (`λέγε`, `γράφε`): Output (`println!`)
-//!    - **Query** (`?`): Expressions ending in a question mark
+//! 2. **Verb-Based Classification**: If no complex pattern matches, the main verb drives the logic.
+//!    - **Binding** (`ἔστω`): `let x = value`.
+//!    - **Assignment** (`γίγνεται`): `x = value`.
+//!    - **Collection Ops** (`ὠθεῖ`, `ἕλκεται`, `τίθησι`): `push`, `pop`, `insert`.
+//!    - **Print** (`λέγε`, `γράφε`): `println!`.
+//!    - **Query** (`?`): Expressions ending in `?`.
 //!
-//! 3. **Constituent Analysis**:
-//!    - **Subject**: Usually the target or agent (e.g., the collection being pushed to).
-//!    - **Object/Literals**: The value or argument.
-//!    - **Nominatives**: Extra nominatives often denote function names or predicate values.
-//!    - **Genitives**: Used for property access (`pi.xi`) or ownership.
+//! 3. **Expression Fallback**: If no verb implies a statement, it's treated as a pure expression.
+//!    - **Operations**: `1 + 2`.
+//!    - **Try/Propagate**: `expr;` (becomes `expr?`).
 
 use super::expressions::{
     analyze_argument_expr, build_binary_expr, build_expressions_from_literals_and_ops,
@@ -43,7 +50,14 @@ use crate::morphology::{self};
 use smol_str::SmolStr;
 
 /// Convert an AssembledStatement to an AnalyzedStatement
-/// This bridges the slot-based assembler output to the HIR lowering input
+///
+/// This is the main entry point for lowering the "Assembled" semantic model (slot-based)
+/// to the "Analyzed" model (HIR/AST-like).
+///
+/// # Arguments
+///
+/// * `asm_stmt` - The assembled statement from the `Assembler`.
+/// * `scope` - The current semantic scope (for variable lookup and definition).
 pub fn convert_assembled_to_analyzed(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
@@ -55,6 +69,8 @@ pub fn convert_assembled_to_analyzed(
 }
 
 /// Classify an assembled statement and extract analyzed expressions
+///
+/// This function implements the heuristic priority list described in the module-level documentation.
 pub fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
@@ -961,7 +977,24 @@ fn detect_enum_variant(
     None
 }
 
-/// Extract value from assembled statement (literals or constituents)
+/// Extract value from assembled statement
+///
+/// This function looks at the fields of the [`AssembledStatement`] and tries
+/// to extract a single meaningful value from it. It prioritizes different kinds
+/// of expressions in the following order:
+///
+/// 1. **Unwraps**: `expr!`
+/// 2. **Enum Variants**: `Some(val)`, `Ok(val)`, `None` (on subject or nominatives)
+/// 3. **Property Access**: `user.name`
+/// 4. **Index Access**: `arr[0]`
+/// 5. **Array Literals**: `[1, 2]`
+/// 6. **Binary Operations**: `1 + 2`
+/// 7. **Literals**: `42`, `"hello"`
+/// 8. **Variables (Object)**: `x`
+///
+/// # Returns
+///
+/// Returns a tuple of `(AnalyzedExpr, GlossaType)`.
 pub fn extract_value(
     asm_stmt: &AssembledStatement,
     scope: &Scope,

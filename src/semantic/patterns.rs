@@ -70,6 +70,18 @@ pub fn try_parse_trait_method_call(
 
 /// Try to parse a struct instantiation: variable νέον type_name args ἔστω
 /// Returns Some(analyzed_statement) if this is a struct instantiation, None otherwise
+///
+/// # Pattern
+///
+/// `[variable] νέον [TypeName] [arg1] [arg2] ... ἔστω`
+///
+/// # Example
+///
+/// ```text
+/// ξ νέον Ἀριθμός πέντε ἔστω.
+/// ```
+///
+/// This translates to: `let xi = Number { value: 5 };`
 pub fn try_parse_struct_instantiation(
     stmt: &Statement,
     scope: &mut Scope,
@@ -235,8 +247,22 @@ pub fn try_parse_struct_instantiation(
 }
 
 /// Detect iterator patterns with participles
-/// Pattern: collection + participle(s) + verb
-/// Example: ξ διπλασιαζόμενα λέγε → ξ.iter().map(|x| x * 2).collect()
+///
+/// # Pattern
+/// `collection` + `participle(s)` + `verb`
+///
+/// # Example
+/// `ξ διπλασιαζόμενα λέγε`
+///
+/// Translates to: `xi.iter().map(|x| x * 2).collect::<Vec<_>>()` (which is then printed)
+///
+/// This function analyzes the `AssembledStatement` to detect functional programming chains
+/// expressed through Greek participles.
+///
+/// * **Present Participle (Middle)**: Maps to `.map()` (e.g., `διπλασιαζόμενα` -> doubling).
+/// * **Comparative Adjective**: Maps to `.filter()` (e.g., `πέντε μείζονα` -> greater than 5).
+/// * **Quantifiers (τι/πάντα)**: Maps to `.any()` or `.all()`.
+/// * **Find Verb (εὑρέ)**: Maps to `.find()`.
 pub fn detect_iterator_pattern(
     asm_stmt: &AssembledStatement,
     _scope: &mut Scope,
