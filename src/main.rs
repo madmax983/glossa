@@ -627,4 +627,15 @@ mod tests {
         // but for now let's assume it works as build_file worked.
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_run_file_compile_error() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let input_path = temp_dir.path().join("run_error.gl");
+        fs::write(&input_path, "λάθος").unwrap();
+
+        let result = run_file(&input_path);
+        assert!(result.is_err());
+    }
 }
