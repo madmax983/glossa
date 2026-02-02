@@ -326,11 +326,7 @@ impl ReplContext {
         Ok(format!(
             "{} {}",
             "→".blue().bold(),
-            rust_code
-                .lines()
-                .take(5)
-                .collect::<Vec<_>>()
-                .join("\n")
+            rust_code.lines().take(5).collect::<Vec<_>>().join("\n")
         ))
     }
 }
@@ -375,5 +371,27 @@ mod tests {
         // Check for the blue arrow and some content
         assert!(output.contains("→"));
         assert!(output.contains("println"));
+    }
+
+    #[test]
+    fn test_repl_binding_and_use() {
+        let mut context = ReplContext::new();
+        let binding = "ξ πέντε ἔστω.";
+        let _ = context.execute(binding);
+
+        let usage = "ξ λέγε.";
+        let result = context.execute(usage);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("let xi = 5"));
+        assert!(output.contains("println"));
+    }
+
+    #[test]
+    fn test_repl_error() {
+        let mut context = ReplContext::new();
+        let input = "λάθος"; // Syntax error
+        let result = context.execute(input);
+        assert!(result.is_err());
     }
 }
