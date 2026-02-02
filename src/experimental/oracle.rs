@@ -665,4 +665,266 @@ mod tests {
             "Should detect unused function parameter"
         );
     }
+
+    #[test]
+    fn test_exhaustive_usages() {
+        // This test aims to hit every match arm in collect_usages_in_expr
+        // We create a statement that uses a variable 'x' in every possible way.
+        // If the oracle counts 'x' as used, we know the visitor worked.
+
+        let var_x = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable("x".into()),
+            glossa_type: GlossaType::Number,
+        };
+        let var_y = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable("y".into()),
+            glossa_type: GlossaType::Number,
+        };
+
+        let expressions = vec![
+            // PropertyAccess
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::PropertyAccess {
+                    owner: Box::new(var_x.clone()),
+                    property: "prop".into(),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            // VerbCall
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::VerbCall {
+                    verb: "run".into(),
+                    args: vec![var_x.clone()],
+                },
+                glossa_type: GlossaType::Unit,
+            },
+            // BinOp
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    left: Box::new(var_x.clone()),
+                    op: crate::morphology::lexicon::BinaryOp::Add,
+                    right: Box::new(var_y.clone()),
+                },
+                glossa_type: GlossaType::Number,
+            },
+            // UnaryOp
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::UnaryOp {
+                    op: crate::morphology::lexicon::UnaryOp::Neg,
+                    operand: Box::new(var_x.clone()),
+                },
+                glossa_type: GlossaType::Number,
+            },
+            // Range
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Range {
+                    start: Box::new(var_x.clone()),
+                    end: Box::new(var_y.clone()),
+                    inclusive: true,
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            // ArrayLiteral
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(vec![var_x.clone()]),
+                glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
+            },
+            // Wrappers
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Some(Box::new(var_x.clone())),
+                glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
+            },
+            // IndexAccess
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::IndexAccess {
+                    array: Box::new(var_y.clone()),
+                    index: Box::new(var_x.clone()),
+                },
+                glossa_type: GlossaType::Number,
+            },
+            // FunctionCall
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::FunctionCall {
+                    func: "f".into(),
+                    args: vec![var_x.clone()],
+                },
+                glossa_type: GlossaType::Unit,
+            },
+            // MethodCall
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(var_y.clone()),
+                    method: "m".into(),
+                    args: vec![var_x.clone()],
+                },
+                glossa_type: GlossaType::Unit,
+            },
+            // TraitMethodCall
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::TraitMethodCall {
+                    receiver: Box::new(var_y.clone()),
+                    trait_name: "T".into(),
+                    method_name: "m".into(),
+                    args: vec![var_x.clone()],
+                },
+                glossa_type: GlossaType::Unit,
+            },
+            // StructInstantiation
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::StructInstantiation {
+                    type_name: "S".into(),
+                    fields: vec!["f".into()],
+                    args: vec![var_x.clone()],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            // Lambda
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Lambda {
+                    params: vec![],
+                    body: Box::new(var_x.clone()),
+                    capture_mode: crate::ast::CaptureMode::Move,
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            // IteratorChain
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::IteratorChain {
+                    collection: Box::new(var_y.clone()),
+                    ops: vec![crate::semantic::AnalyzedIteratorOp::Map(Box::new(
+                        var_x.clone(),
+                    ))],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            // CollectionContains
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::CollectionContains {
+                    collection: Box::new(var_y.clone()),
+                    element: Box::new(var_x.clone()),
+                    is_map: false,
+                },
+                glossa_type: GlossaType::Boolean,
+            },
+        ];
+
+        // Define 'x' and 'y' and usage
+        let binding_x = mock_binding("x");
+        let binding_y = mock_binding("y");
+
+        let usage_stmt = AnalyzedStatement {
+            kind: StatementKind::Expression,
+            expressions,
+        };
+
+        let prog = mock_program(vec![binding_x, binding_y, usage_stmt]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        // If 'x' or 'y' were unused, we'd get a warning.
+        // We assert NO warnings about x or y.
+        assert!(
+            !prophecies.iter().any(|p| p.message.contains("'x'")),
+            "Variable x should be considered used"
+        );
+        assert!(
+            !prophecies.iter().any(|p| p.message.contains("'y'")),
+            "Variable y should be considered used"
+        );
+    }
+
+    #[test]
+    fn test_exhaustive_definitions() {
+        // Test Trait definitions and implementations
+        use crate::semantic::{AnalyzedImplMethod, AnalyzedTraitMethod};
+
+        let trait_def = AnalyzedStatement {
+            kind: StatementKind::TraitDefinition {
+                name: "T".into(),
+                methods: vec![AnalyzedTraitMethod {
+                    name: "m".into(),
+                    params: vec![("p1".into(), GlossaType::Number)],
+                    is_default: true,
+                    body: Some(vec![mock_print_var("p1")]),
+                    return_type: None,
+                }],
+            },
+            expressions: vec![],
+        };
+
+        let trait_impl = AnalyzedStatement {
+            kind: StatementKind::TraitImplementation {
+                trait_name: "T".into(),
+                type_name: "S".into(),
+                methods: vec![AnalyzedImplMethod {
+                    name: "m".into(),
+                    params: vec![("p2".into(), GlossaType::Number)],
+                    body: vec![mock_print_var("p2")],
+                    return_type: None,
+                }],
+            },
+            expressions: vec![],
+        };
+
+        let prog = mock_program(vec![trait_def, trait_impl]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        // p1 and p2 are defined and used. Should be no warnings.
+        assert!(
+            !prophecies.iter().any(|p| p.message.contains("'p1'")),
+            "Param p1 should be detected as used"
+        );
+        assert!(
+            !prophecies.iter().any(|p| p.message.contains("'p2'")),
+            "Param p2 should be detected as used"
+        );
+    }
+
+    #[test]
+    fn test_assignment_and_match_usage() {
+        let binding_x = mock_binding("x");
+        let binding_y = mock_binding("y");
+
+        let assign = AnalyzedStatement {
+            kind: StatementKind::Assignment {
+                name: "x".into(),
+                value_type: GlossaType::Number,
+            },
+            expressions: vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".into()),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("y".into()), // Use y
+                    glossa_type: GlossaType::Number,
+                },
+            ],
+        };
+
+        let match_stmt = AnalyzedStatement {
+            kind: StatementKind::Match {
+                scrutinee: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".into()), // Use x
+                    glossa_type: GlossaType::Number,
+                }),
+                arms: vec![(
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    },
+                    vec![],
+                )],
+            },
+            expressions: vec![],
+        };
+
+        let prog = mock_program(vec![binding_x, binding_y, assign, match_stmt]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        assert!(!prophecies.iter().any(|p| p.message.contains("'x'")));
+        assert!(!prophecies.iter().any(|p| p.message.contains("'y'")));
+    }
 }
