@@ -86,38 +86,53 @@ pub fn try_parse_struct_instantiation(
             return Ok(None);
         }
 
-        // Should be a Phrase with at least 4 words
+        // Should be a Phrase with at least 4 terms
         if let Expr::Phrase(terms) = &clause.expressions[0] {
             if terms.len() < 4 {
                 return Ok(None);
             }
 
-            // Extract words
-            let mut words = Vec::new();
-            for term in terms {
-                if let Expr::Word(w) = term {
-                    words.push(w);
-                } else {
-                    return Ok(None); // Not all words
-                }
-            }
+            // Verify structural words (0, 1, 2, Last) are Words
+            let var_word = if let Expr::Word(w) = &terms[0] {
+                w
+            } else {
+                return Ok(None);
+            };
+
+            let adj_word = if let Expr::Word(w) = &terms[1] {
+                w
+            } else {
+                return Ok(None);
+            };
+
+            let type_word = if let Expr::Word(w) = &terms[2] {
+                w
+            } else {
+                return Ok(None);
+            };
+
+            let last_word = if let Expr::Word(w) = terms.last().unwrap() {
+                w
+            } else {
+                return Ok(None);
+            };
 
             // Check pattern: var_name νέον TypeName args... ἔστω
             // Last word should be ἔστω (binding verb)
-            if !crate::morphology::lexicon::is_binding_verb(&words.last().unwrap().normalized) {
+            if !crate::morphology::lexicon::is_binding_verb(&last_word.normalized) {
                 return Ok(None);
             }
 
             // Second word should be νέον (new) - check both normalized form and if it's "new" via morphology
-            let normalized_adj = crate::grammar::normalize_greek(&words[1].normalized);
+            let normalized_adj = crate::grammar::normalize_greek(&adj_word.normalized);
             // Check if it's "new" - could be νέον, νεον, etc.
             if normalized_adj != "νεον" && normalized_adj != "νεος" {
                 return Ok(None);
             }
 
             // Extract components
-            let var_name = &words[0].normalized;
-            let type_name = &words[2].normalized;
+            let var_name = &var_word.normalized;
+            let type_name = &type_word.normalized;
 
             // Check for built-in collection types first (HashSet, HashMap)
             let collection_type = match type_name.as_str() {
@@ -160,42 +175,83 @@ pub fn try_parse_struct_instantiation(
 
             // Check if type exists as a user-defined struct
             if let Some(struct_type) = scope.lookup_type(type_name).cloned() {
-                // Extract field names from struct type
-                let field_names: Vec<SmolStr> =
+                // Extract fields from struct type
+                let fields_info: Vec<(SmolStr, GlossaType)> =
                     if let GlossaType::Struct { fields, .. } = &struct_type {
-                        fields.iter().map(|(name, _)| name.clone()).collect()
+                        fields.clone()
                     } else {
                         vec![]
                     };
 
+                let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
+
                 // Collect constructor arguments (everything between type_name and ἔστω)
                 let mut args = Vec::new();
-                for word in &words[3..words.len() - 1] {
-                    // Convert word to analyzed expression
-                    let analyzed_arg = if let Ok(num) = word.original.parse::<i64>() {
-                        // Direct numeric literal like "5"
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::NumberLiteral(num),
-                            glossa_type: GlossaType::Number,
-                        }
-                    } else if let Some(num) =
-                        crate::morphology::lexicon::numeral_value(&word.normalized)
-                    {
-                        // Greek numeral word like πέντε -> 5
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::NumberLiteral(num),
-                            glossa_type: GlossaType::Number,
-                        }
+                for (i, term) in terms[3..terms.len() - 1].iter().enumerate() {
+                    let expected_type = if i < fields_info.len() {
+                        &fields_info[i].1
                     } else {
-                        // Variable reference
-                        let var_type = scope
-                            .lookup(&word.normalized)
-                            .cloned()
-                            .unwrap_or(GlossaType::Unknown);
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(word.normalized.clone()),
-                            glossa_type: var_type,
+                        &GlossaType::Unknown
+                    };
+
+                    let analyzed_arg = match term {
+                        Expr::Word(word) => {
+                        // Convert word to analyzed expression
+                        if let Ok(num) = word.original.parse::<i64>() {
+                            // Direct numeric literal like "5" stored as word
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::NumberLiteral(num),
+                                glossa_type: GlossaType::Number,
+                            }
+                        } else if let Some(num) =
+                            crate::morphology::lexicon::numeral_value(&word.normalized)
+                        {
+                            // Greek numeral word like πέντε -> 5
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::NumberLiteral(num),
+                                glossa_type: GlossaType::Number,
+                            }
+                        } else {
+                            // Variable reference
+                            let var_type = scope
+                                .lookup(&word.normalized)
+                                .cloned()
+                                .unwrap_or(GlossaType::Unknown);
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable(word.normalized.clone()),
+                                glossa_type: var_type,
+                            }
                         }
+                        }
+                    Expr::StringLiteral(s) => {
+                        let lit_expr = AnalyzedExpr {
+                            expr: AnalyzedExprKind::StringLiteral(s.clone()),
+                            glossa_type: GlossaType::String,
+                        };
+
+                        if matches!(expected_type, GlossaType::String) {
+                            // Wrap in .to_string() for struct fields expecting String
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::MethodCall {
+                                    receiver: Box::new(lit_expr),
+                                    method: "to_string".into(),
+                                    args: vec![],
+                                },
+                                glossa_type: GlossaType::String,
+                            }
+                        } else {
+                            lit_expr
+                        }
+                    }
+                    Expr::NumberLiteral(n) => AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(*n),
+                            glossa_type: GlossaType::Number,
+                    },
+                    Expr::BooleanLiteral(b) => AnalyzedExpr {
+                        expr: AnalyzedExprKind::BooleanLiteral(*b),
+                        glossa_type: GlossaType::Boolean,
+                    },
+                    _ => return Ok(None), // Unsupported argument type
                     };
                     args.push(analyzed_arg);
                 }

@@ -85,3 +85,19 @@ fn test_field_access_multiple_fields() {
     assert!(code.contains(". xi") || code.contains(".xi"));
     assert!(code.contains(". psi") || code.contains(".psi"));
 }
+
+#[test]
+fn test_instantiation_with_literals() {
+    let source = r#"
+        εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος· ἡλικία ἀριθμοῦ. }.
+        χρήστης νέον Χρήστης «Σωκράτης» 70 ἔστω.
+    "#;
+    let code = compile(source);
+    eprintln!("Generated code:\n{}", code);
+    // It should generate struct instantiation, not string assignment
+    // We expect: let chrestes = Chrestes { onoma: "Σωκράτης".to_string(), elikia: 70 };
+    assert!(code.contains("struct Chrestes"));
+    assert!(code.contains("let chrestes = Chrestes"));
+    assert!(code.contains("Σωκράτης"));
+    assert!(code.contains("70"));
+}
