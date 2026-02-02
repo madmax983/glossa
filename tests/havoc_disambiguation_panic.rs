@@ -1,13 +1,13 @@
-use glossa::morphology::{disambiguate, Case, DisambiguationContext, MorphAnalysis, PartOfSpeech};
+use glossa::morphology::{Case, DisambiguationContext, MorphAnalysis, PartOfSpeech, disambiguate};
 
 #[test]
 // #[should_panic] // No longer should panic
 fn test_disambiguate_nan_panic() {
-    let nan_analysis = MorphAnalysis::new("test".to_string(), PartOfSpeech::Noun)
-        .with_confidence(f32::NAN);
+    let nan_analysis =
+        MorphAnalysis::new("test".to_string(), PartOfSpeech::Noun).with_confidence(f32::NAN);
 
-    let valid_analysis = MorphAnalysis::new("valid".to_string(), PartOfSpeech::Noun)
-        .with_confidence(1.0);
+    let valid_analysis =
+        MorphAnalysis::new("valid".to_string(), PartOfSpeech::Noun).with_confidence(1.0);
 
     let analyses = vec![nan_analysis, valid_analysis];
 
