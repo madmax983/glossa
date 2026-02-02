@@ -51,12 +51,6 @@ enum Commands {
         input: PathBuf,
     },
 
-    /// Consult the Oracle for divine wisdom (static analysis)
-    Oracle {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
-
     /// Start the interactive REPL
     Repl,
 }
@@ -80,10 +74,6 @@ fn main() -> Result<()> {
 
         Some(Commands::Check { input }) => {
             check_file(&input)?;
-        }
-
-        Some(Commands::Oracle { input }) => {
-            run_oracle(&input)?;
         }
 
         Some(Commands::Repl) | None => {
@@ -218,38 +208,6 @@ fn check_file(input: &Path) -> Result<()> {
     let _analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
 
     println!("✓ {} - ὀρθόν", input.display());
-
-    Ok(())
-}
-
-fn run_oracle(input: &Path) -> Result<()> {
-    use glossa::experimental::oracle::{Oracle, Severity};
-
-    // Validate file exists
-    if !input.exists() {
-        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
-    }
-
-    let source = fs::read_to_string(input).into_diagnostic()?;
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
-
-    let oracle = Oracle::new(&analyzed);
-    let prophecies = oracle.consult();
-
-    if prophecies.is_empty() {
-        println!("The Oracle is silent. Your code pleases the gods.");
-    } else {
-        println!("The Oracle speaks:");
-        for prophecy in prophecies {
-            let prefix = match prophecy.severity {
-                Severity::Info => "ℹ️  Info",
-                Severity::Warning => "⚠️  Warning",
-                Severity::Error => "🔥 Error",
-            };
-            println!("  {} - {}", prefix, prophecy.message);
-        }
-    }
 
     Ok(())
 }

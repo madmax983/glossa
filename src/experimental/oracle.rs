@@ -841,13 +841,36 @@ mod tests {
         let trait_def = AnalyzedStatement {
             kind: StatementKind::TraitDefinition {
                 name: "T".into(),
-                methods: vec![AnalyzedTraitMethod {
-                    name: "m".into(),
-                    params: vec![("p1".into(), GlossaType::Number)],
-                    is_default: true,
-                    body: Some(vec![mock_print_var("p1")]),
-                    return_type: None,
-                }],
+                methods: vec![
+                    AnalyzedTraitMethod {
+                        name: "m".into(),
+                        params: vec![("p1".into(), GlossaType::Number)],
+                        is_default: true,
+                        body: Some(vec![
+                            // Nested usage to test recursion
+                            AnalyzedStatement {
+                                kind: StatementKind::If {
+                                    condition: Box::new(AnalyzedExpr {
+                                        expr: AnalyzedExprKind::BooleanLiteral(true),
+                                        glossa_type: GlossaType::Boolean,
+                                    }),
+                                    then_body: vec![mock_print_var("p1")],
+                                    else_body: None,
+                                },
+                                expressions: vec![],
+                            },
+                        ]),
+                        return_type: None,
+                    },
+                    // Method with no body (abstract)
+                    AnalyzedTraitMethod {
+                        name: "abs".into(),
+                        params: vec![("p3".into(), GlossaType::Number)],
+                        is_default: false,
+                        body: None,
+                        return_type: None,
+                    },
+                ],
             },
             expressions: vec![],
         };
@@ -878,6 +901,12 @@ mod tests {
         assert!(
             !prophecies.iter().any(|p| p.message.contains("'p2'")),
             "Param p2 should be detected as used"
+        );
+        // p3 is defined (abstract method param) but has no body to use it in.
+        // It technically counts as "unused" in this simple model.
+        assert!(
+            prophecies.iter().any(|p| p.message.contains("'p3'")),
+            "Abstract param p3 should be detected as unused (since it has no body)"
         );
     }
 
@@ -980,7 +1009,11 @@ mod tests {
         assert!(!prophecies.iter().any(|p| p.message.contains("'used_var'")));
 
         // unused_var should be unused
-        assert!(prophecies.iter().any(|p| p.message.contains("'unused_var'")));
+        assert!(
+            prophecies
+                .iter()
+                .any(|p| p.message.contains("'unused_var'"))
+        );
 
         // loop_var is defined in For and used in body. Should NOT be unused.
         assert!(!prophecies.iter().any(|p| p.message.contains("'loop_var'")));
