@@ -219,8 +219,16 @@ fn check_file(input: &Path) -> Result<()> {
 }
 
 fn run_repl() -> Result<()> {
-    println!("{}", format!("ΓΛΩΣΣΑ v{}", env!("CARGO_PKG_VERSION")).cyan().bold());
-    println!("{}", "Γράψον .βοήθεια διὰ βοήθειαν, .ἔξοδος διὰ ἔξοδον.".dark_grey());
+    println!(
+        "{}",
+        format!("ΓΛΩΣΣΑ v{}", env!("CARGO_PKG_VERSION"))
+            .cyan()
+            .bold()
+    );
+    println!(
+        "{}",
+        "Γράψον .βοήθεια διὰ βοήθειαν, .ἔξοδος διὰ ἔξοδον.".dark_grey()
+    );
     println!();
 
     let mut context = ReplContext::new();
@@ -320,7 +328,6 @@ impl ReplContext {
             "→".blue().bold(),
             rust_code
                 .lines()
-                .skip(1)
                 .take(5)
                 .collect::<Vec<_>>()
                 .join("\n")
@@ -356,5 +363,17 @@ mod tests {
         let source = "ξ πέντε ἔστω. ξ λέγε.";
         let result = compile(source);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_repl_execute() {
+        let mut context = ReplContext::new();
+        let input = "«δοκιμή» λέγε.";
+        let result = context.execute(input);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // Check for the blue arrow and some content
+        assert!(output.contains("→"));
+        assert!(output.contains("println"));
     }
 }
