@@ -1,7 +1,7 @@
-use glossa::ast::{Expr, Word, BinOperator, UnaryOperator, Statement, Clause};
-use glossa::semantic::expressions::feed_expr_to_assembler_with_context;
-use glossa::semantic::Assembler;
+use glossa::ast::{BinOperator, Clause, Expr, Statement, UnaryOperator, Word};
 use glossa::morphology::DisambiguationContext;
+use glossa::semantic::Assembler;
+use glossa::semantic::expressions::feed_expr_to_assembler_with_context;
 
 #[test]
 fn test_assembler_coverage_variants() {
@@ -10,18 +10,13 @@ fn test_assembler_coverage_variants() {
 
     // 1. Phrase (non-nested)
     // "1 2"
-    let phrase_expr = Expr::Phrase(vec![
-        Expr::NumberLiteral(1),
-        Expr::NumberLiteral(2),
-    ]);
+    let phrase_expr = Expr::Phrase(vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)]);
     let res = feed_expr_to_assembler_with_context(&mut asm, &phrase_expr, &mut ctx);
     assert!(res.is_ok());
 
     // 2. Phrase (nested)
     // "(1)" - nested phrase handling
-    let nested_phrase = Expr::Phrase(vec![
-        Expr::Phrase(vec![Expr::NumberLiteral(1)])
-    ]);
+    let nested_phrase = Expr::Phrase(vec![Expr::Phrase(vec![Expr::NumberLiteral(1)])]);
     let res = feed_expr_to_assembler_with_context(&mut asm, &nested_phrase, &mut ctx);
     assert!(res.is_ok());
 
@@ -63,13 +58,13 @@ fn test_assembler_coverage_variants() {
     assert!(res.is_ok());
 
     // 7. Block
-    let block_expr = Expr::Block(vec![
-        Statement::Regular {
-            clauses: vec![Clause { expressions: vec![Expr::NumberLiteral(1)] }],
-            is_query: false,
-            is_propagate: false,
-        }
-    ]);
+    let block_expr = Expr::Block(vec![Statement::Regular {
+        clauses: vec![Clause {
+            expressions: vec![Expr::NumberLiteral(1)],
+        }],
+        is_query: false,
+        is_propagate: false,
+    }]);
     let res = feed_expr_to_assembler_with_context(&mut asm, &block_expr, &mut ctx);
     assert!(res.is_ok());
 

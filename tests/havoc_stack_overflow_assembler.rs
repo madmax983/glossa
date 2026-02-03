@@ -1,7 +1,7 @@
 use glossa::ast::{Expr, Word};
-use glossa::semantic::expressions::feed_expr_to_assembler_with_context;
-use glossa::semantic::Assembler;
 use glossa::morphology::DisambiguationContext;
+use glossa::semantic::Assembler;
+use glossa::semantic::expressions::feed_expr_to_assembler_with_context;
 
 #[test]
 fn test_stack_overflow_in_assembler_feed() {
