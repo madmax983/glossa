@@ -15,3 +15,17 @@
 **Defense:** Enforced strict ASCII allowlist in `transliterate`. Any character not matching `is_ascii_alphanumeric()` or `_` is replaced with `_`.
 
 **Severity:** Medium (DoS via compiler crash).
+
+## 2025-05-22 - Variable Collision & Index Wrapping
+
+**Threat:**
+1. **Identifier Collision:** `transliterate` mapped all invalid characters to `_`, causing variable shadowing/collision for distinct Greek characters (e.g. `ϟ` and `ϛ` both became `_`).
+2. **Index Wrapping:** Generated Rust code cast `i64` indices to `usize` without checking for negativity. `-1` wrapped to `usize::MAX`, causing a panic.
+3. **DoS Vectors:** Unbounded file reading and unbounded sentence assembly allowed memory exhaustion.
+
+**Defense:**
+1. **Unique Transliteration:** Map invalid characters to `_u{hex}_` to ensure uniqueness.
+2. **Checked Indexing:** Injected runtime check `if idx < 0 { panic!(...) }` before indexing.
+3. **Resource Limits:** Enforced `MAX_FILE_SIZE` (1MB) and `MAX_TOKENS` (1000/stmt).
+
+**Severity:** Medium (DoS & Logic bugs).

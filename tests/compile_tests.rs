@@ -100,3 +100,15 @@ fn test_assignment_missing_value_error() {
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("δεῖ τιμῆς"));
 }
+
+#[test]
+fn test_array_index_codegen() {
+    // This test ensures that the code generation for IndexAccess (including the negative check)
+    // is executed and covered.
+    // Use 'λίστη' (list) which is a known variable/type in the lexicon
+    let code = compile("λίστη [1, 2] ἔστω. λίστη[0] λέγε.").unwrap();
+    // The generated code should contain the panic check
+    assert!(code.contains("Negative index access"));
+    // quote! may insert spaces, so just check for "panic"
+    assert!(code.contains("panic"));
+}

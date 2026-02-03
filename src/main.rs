@@ -55,6 +55,9 @@ enum Commands {
     Repl,
 }
 
+/// Maximum source file size (1MB) to prevent memory exhaustion
+const MAX_FILE_SIZE: u64 = 1024 * 1024;
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -122,7 +125,22 @@ fn cache_valid(input: &Path, cached_exe: &Path) -> bool {
     exe_modified > source_modified
 }
 
+/// Check file size to prevent DoS
+fn check_file_size(input: &Path) -> Result<()> {
+    let metadata = fs::metadata(input).into_diagnostic()?;
+    if metadata.len() > MAX_FILE_SIZE {
+        return Err(miette::miette!(
+            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
+            metadata.len(),
+            MAX_FILE_SIZE
+        ));
+    }
+    Ok(())
+}
+
 fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    check_file_size(input)?;
+
     let source = fs::read_to_string(input).into_diagnostic()?;
 
     let rust_code = compile(&source).map_err(|e| miette::miette!("{}", e))?;
@@ -143,6 +161,8 @@ fn run_file(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
+
+    check_file_size(input)?;
 
     // Set up cache directory
     let cache = cache_dir();
@@ -202,6 +222,8 @@ fn run_file(input: &Path) -> Result<()> {
 }
 
 fn check_file(input: &Path) -> Result<()> {
+    check_file_size(input)?;
+
     let source = fs::read_to_string(input).into_diagnostic()?;
 
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
@@ -323,6 +345,7 @@ impl ReplContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
 
     #[test]
     fn test_compile_hello() {
@@ -348,5 +371,71 @@ mod tests {
         let source = "ξ πέντε ἔστω. ξ λέγε.";
         let result = compile(source);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_file_size_check_internal() {
+        // Create large file
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("large_internal.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
+            f.write_all(&data).unwrap();
+        }
+
+        // Call check_file_size directly
+        let result = check_file_size(&file_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον λίαν μέγα")
+        );
+    }
+
+    #[test]
+    fn test_build_file_size_limit() {
+        // Create large file
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("large_build.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
+            f.write_all(&data).unwrap();
+        }
+
+        // Call build_file
+        let result = build_file(&file_path, None);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον λίαν μέγα")
+        );
+    }
+
+    #[test]
+    fn test_run_file_size_limit() {
+        // Create large file
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("large_run.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
+            f.write_all(&data).unwrap();
+        }
+
+        // Call run_file (should fail at size check before running rustc)
+        let result = run_file(&file_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον λίαν μέγα")
+        );
     }
 }
