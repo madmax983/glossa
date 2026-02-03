@@ -1110,4 +1110,82 @@ mod tests {
         let prophecies = oracle.consult();
         assert!(prophecies.is_empty());
     }
+
+    #[test]
+    fn test_trait_definition_no_body() {
+        use crate::semantic::AnalyzedTraitMethod;
+        let trait_def = AnalyzedStatement {
+            kind: StatementKind::TraitDefinition {
+                name: "T".into(),
+                methods: vec![AnalyzedTraitMethod {
+                    name: "m".into(),
+                    params: vec![("p".into(), GlossaType::Number)],
+                    is_default: false,
+                    body: None, // No body
+                    return_type: None,
+                }],
+            },
+            expressions: vec![],
+        };
+        let prog = mock_program(vec![trait_def]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        // p is defined but has no usage (no body). Should be unused.
+        assert!(prophecies.iter().any(|p| p.message.contains("'p'")));
+    }
+
+    #[test]
+    fn test_malformed_binding() {
+        // Binding with missing value expression (shouldn't happen in valid AST, but defensive check exists)
+        let binding = AnalyzedStatement {
+            kind: StatementKind::Binding {
+                name: "x".into(),
+                value_type: GlossaType::Number,
+                mutable: false,
+            },
+            expressions: vec![
+                // Only target, no value
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".into()),
+                    glossa_type: GlossaType::Number,
+                },
+            ],
+        };
+        let prog = mock_program(vec![binding]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        // x is defined. Usage check skips expressions[1] because it doesn't exist.
+        // So x is unused.
+        assert!(prophecies.iter().any(|p| p.message.contains("'x'")));
+    }
+
+    #[test]
+    fn test_malformed_assignment() {
+        // Assignment with missing value expression
+        let assign = AnalyzedStatement {
+            kind: StatementKind::Assignment {
+                name: "x".into(),
+                value_type: GlossaType::Number,
+            },
+            expressions: vec![
+                // Only target, no value
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".into()),
+                    glossa_type: GlossaType::Number,
+                },
+            ],
+        };
+        let prog = mock_program(vec![assign]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        // Assignment doesn't define x. It tries to use x (in target) but assignment logic
+        // typically treats target as definition or mutation, not read usage.
+        // In collect_usages: Assignment: expressions[0] (target) is skipped, expressions[1] (value) is read.
+        // Since expressions[1] is missing, NO usage is recorded.
+        // Since x isn't defined here, no "unused variable" warning.
+        assert!(prophecies.is_empty());
+    }
 }
