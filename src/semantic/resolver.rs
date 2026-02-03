@@ -115,7 +115,9 @@ impl Scope {
     }
 
     fn current_level(&mut self) -> &mut ScopeLevel {
-        self.levels.last_mut().expect("Scope must have at least one level")
+        self.levels
+            .last_mut()
+            .expect("Scope must have at least one level")
     }
 
     /// Define a function in this scope
@@ -407,8 +409,8 @@ mod tests {
         scope.define("ξ".to_string(), GlossaType::Number);
 
         {
-             let binding = scope.lookup_binding("ξ").unwrap();
-             assert!(!binding.used);
+            let binding = scope.lookup_binding("ξ").unwrap();
+            assert!(!binding.used);
         }
 
         scope.mark_used("ξ");

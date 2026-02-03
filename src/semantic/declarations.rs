@@ -230,11 +230,15 @@ pub fn analyze_trait_impl(
                     analyzed_body.push(control_flow);
                 }
                 // Try struct instantiation pattern
-                else if let Some(struct_inst) = try_parse_struct_instantiation(body_stmt, &mut scope)? {
+                else if let Some(struct_inst) =
+                    try_parse_struct_instantiation(body_stmt, &mut scope)?
+                {
                     analyzed_body.push(struct_inst);
                 }
                 // Try trait method call pattern
-                else if let Some(method_call) = try_parse_trait_method_call(body_stmt, &mut scope)? {
+                else if let Some(method_call) =
+                    try_parse_trait_method_call(body_stmt, &mut scope)?
+                {
                     analyzed_body.push(method_call);
                 } else {
                     // Use assembler for regular statements
