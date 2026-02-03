@@ -1,4 +1,4 @@
-use glossa::ast::{Clause, Expr, Statement, Word, Program};
+use glossa::ast::{Clause, Expr, Program, Statement, Word};
 use glossa::semantic::analyze_program;
 
 #[test]
