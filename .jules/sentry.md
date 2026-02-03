@@ -17,3 +17,7 @@
 ## [Silent Token Swallowing in Special Checks]
 **Learning:** Functions like `check_method_verbs` and `check_special_properties` were returning `true` (indicating "handled") even when they failed to match the full pattern (e.g., missing subject), causing tokens like "split" or "length" to be silently ignored instead of falling back to normal verb/noun processing.
 **Action:** Ensure that special handling functions only return `true` when they *successfully* handle the token. If prerequisites aren't met, return `false` to allow fallback to standard processing.
+
+## [Recursion Safety in Assembler]
+**Learning:** `feed_expr_to_assembler_with_context` was recursing indefinitely on deeply nested structures like `PropertyAccess` or `Phrase`, causing a stack overflow.
+**Action:** Added a `depth` parameter and recursion limit (50) to all recursive semantic analysis functions. Always validate recursion depth when processing untrusted AST structures.

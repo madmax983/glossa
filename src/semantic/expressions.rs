@@ -314,6 +314,21 @@ pub fn feed_expr_to_assembler_with_context(
     expr: &Expr,
     context: &mut DisambiguationContext,
 ) -> Result<(), GlossaError> {
+    feed_expr_recursive(asm, expr, context, 0)
+}
+
+fn feed_expr_recursive(
+    asm: &mut Assembler,
+    expr: &Expr,
+    context: &mut DisambiguationContext,
+    depth: usize,
+) -> Result<(), GlossaError> {
+    if depth > 50 {
+        return Err(GlossaError::semantic(
+            "Recursion limit exceeded in assembler feed",
+        ));
+    }
+
     match expr {
         Expr::StringLiteral(s) => {
             asm.feed_string(s.clone());
@@ -373,14 +388,14 @@ pub fn feed_expr_to_assembler_with_context(
                         asm.feed_nested_phrase(nested_terms.clone());
                     }
                 } else {
-                    feed_expr_to_assembler_with_context(asm, term, context)?;
+                    feed_expr_recursive(asm, term, context, depth + 1)?;
                 }
             }
         }
         Expr::PropertyAccess { owner, property } => {
             // Owner is genitive, property is what it attaches to
-            feed_expr_to_assembler_with_context(asm, owner, context)?;
-            feed_expr_to_assembler_with_context(asm, property, context)?;
+            feed_expr_recursive(asm, owner, context, depth + 1)?;
+            feed_expr_recursive(asm, property, context, depth + 1)?;
         }
         Expr::Call { verb, arguments } => {
             // Feed the verb - verbs can set context for subjects
@@ -396,7 +411,7 @@ pub fn feed_expr_to_assembler_with_context(
 
             // Feed arguments
             for arg in arguments {
-                feed_expr_to_assembler_with_context(asm, arg, context)?;
+                feed_expr_recursive(asm, arg, context, depth + 1)?;
             }
         }
         Expr::Binding { name, value } => {
@@ -407,12 +422,12 @@ pub fn feed_expr_to_assembler_with_context(
             if let Err(e) = asm.feed(&best_name, &name.original) {
                 return Err(GlossaError::semantic(e.to_string()));
             }
-            feed_expr_to_assembler_with_context(asm, value, context)?;
+            feed_expr_recursive(asm, value, context, depth + 1)?;
         }
         Expr::BinOp { left, op: _, right } => {
             // TODO: Implement binary operation handling
-            feed_expr_to_assembler_with_context(asm, left, context)?;
-            feed_expr_to_assembler_with_context(asm, right, context)?;
+            feed_expr_recursive(asm, left, context, depth + 1)?;
+            feed_expr_recursive(asm, right, context, depth + 1)?;
         }
         Expr::UnaryOp { op, operand } => {
             // Handle unwrap operator specially - it's a postfix operator that doesn't need word-order handling
@@ -421,7 +436,7 @@ pub fn feed_expr_to_assembler_with_context(
                 asm.feed_unwrap(operand.as_ref().clone());
             } else {
                 // TODO: Implement other unary operations (Not, Neg)
-                feed_expr_to_assembler_with_context(asm, operand, context)?;
+                feed_expr_recursive(asm, operand, context, depth + 1)?;
             }
         }
         Expr::Block(statements) => {
