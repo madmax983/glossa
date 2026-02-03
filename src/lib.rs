@@ -47,5 +47,6 @@ pub mod codegen;
 pub mod errors;
 pub mod grammar;
 pub mod morphology;
+pub mod oracle;
 pub mod parser;
 pub mod semantic;
