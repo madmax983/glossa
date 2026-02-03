@@ -1188,4 +1188,106 @@ mod tests {
         // Since x isn't defined here, no "unused variable" warning.
         assert!(prophecies.is_empty());
     }
+
+    #[test]
+    fn test_collection_new_and_literals() {
+        // Test CollectionNew and literals to ensure their match arms are hit
+        let exprs = vec![
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::CollectionNew {
+                    collection_type: "HashSet".into(),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("s".into()),
+                glossa_type: GlossaType::String,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: GlossaType::Boolean,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Literal(1), // Internal literal
+                glossa_type: GlossaType::Number,
+            },
+        ];
+
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Expression,
+            expressions: exprs,
+        };
+
+        let prog = mock_program(vec![stmt]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+        assert!(prophecies.is_empty());
+    }
+
+    #[test]
+    fn test_trait_impl_empty() {
+        // Test TraitImplementation with no methods
+        let trait_impl = AnalyzedStatement {
+            kind: StatementKind::TraitImplementation {
+                trait_name: "T".into(),
+                type_name: "S".into(),
+                methods: vec![],
+            },
+            expressions: vec![],
+        };
+        let prog = mock_program(vec![trait_impl]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+        assert!(prophecies.is_empty());
+    }
+
+    #[test]
+    fn test_binding_with_extra_expressions() {
+        // Binding usually has 2 exprs (target, value). Add a 3rd to hit defensive loop if any.
+        // Wait, binding logic in `collect_usages` is:
+        // if stmt.expressions.len() >= 2 { self.collect_usages_in_expr(&stmt.expressions[1], used); }
+        // It DOES NOT iterate over the rest. It only checks index 1.
+        // So extra expressions are ignored by `collect_usages`.
+        // BUT, we should verify that this logic holds and doesn't crash.
+        let binding = AnalyzedStatement {
+            kind: StatementKind::Binding {
+                name: "x".into(),
+                value_type: GlossaType::Number,
+                mutable: false,
+            },
+            expressions: vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".into()),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("y".into()), // Extra expression using y
+                    glossa_type: GlossaType::Number,
+                },
+            ],
+        };
+
+        // If 'y' is ignored, it will be unused if we define it.
+        // Let's define 'y' and see if it's unused.
+        let binding_y = mock_binding("y");
+
+        let prog = mock_program(vec![binding, binding_y]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        // Expect 'y' to be unused because Binding logic only looks at expression[1].
+        assert!(prophecies.iter().any(|p| p.message.contains("'y'")));
+    }
 }
