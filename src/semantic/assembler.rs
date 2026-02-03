@@ -1589,4 +1589,41 @@ mod tests {
             Err(AssemblyError::StatementTooLong { .. })
         ));
     }
+
+    #[test]
+    fn test_assembler_reset_token_count() {
+        let mut asm = Assembler::new();
+        let word = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("λογος"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: Some(Gender::Masculine),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+
+        // Feed some tokens
+        for _ in 0..10 {
+            asm.feed(&word, "λόγος").unwrap();
+        }
+
+        // Reset
+        asm.reset();
+
+        // Feed MAX_TOKENS
+        for _ in 0..MAX_TOKENS {
+            asm.feed(&word, "λόγος").unwrap();
+        }
+
+        // Should be at limit now, not limit + 10
+        let result = asm.feed(&word, "λόγος");
+        assert!(matches!(
+            result,
+            Err(AssemblyError::StatementTooLong { .. })
+        ));
+    }
 }

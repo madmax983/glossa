@@ -345,6 +345,7 @@ impl ReplContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
 
     #[test]
     fn test_compile_hello() {
@@ -370,5 +371,71 @@ mod tests {
         let source = "ξ πέντε ἔστω. ξ λέγε.";
         let result = compile(source);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_file_size_check_internal() {
+        // Create large file
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("large_internal.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
+            f.write_all(&data).unwrap();
+        }
+
+        // Call check_file_size directly
+        let result = check_file_size(&file_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον λίαν μέγα")
+        );
+    }
+
+    #[test]
+    fn test_build_file_size_limit() {
+        // Create large file
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("large_build.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
+            f.write_all(&data).unwrap();
+        }
+
+        // Call build_file
+        let result = build_file(&file_path, None);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον λίαν μέγα")
+        );
+    }
+
+    #[test]
+    fn test_run_file_size_limit() {
+        // Create large file
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("large_run.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
+            f.write_all(&data).unwrap();
+        }
+
+        // Call run_file (should fail at size check before running rustc)
+        let result = run_file(&file_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον λίαν μέγα")
+        );
     }
 }
