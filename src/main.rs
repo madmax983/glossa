@@ -125,8 +125,8 @@ fn cache_valid(input: &Path, cached_exe: &Path) -> bool {
     exe_modified > source_modified
 }
 
-fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
-    // Check file size
+/// Check file size to prevent DoS
+fn check_file_size(input: &Path) -> Result<()> {
     let metadata = fs::metadata(input).into_diagnostic()?;
     if metadata.len() > MAX_FILE_SIZE {
         return Err(miette::miette!(
@@ -135,6 +135,11 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
             MAX_FILE_SIZE
         ));
     }
+    Ok(())
+}
+
+fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    check_file_size(input)?;
 
     let source = fs::read_to_string(input).into_diagnostic()?;
 
@@ -157,15 +162,7 @@ fn run_file(input: &Path) -> Result<()> {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
 
-    // Check file size
-    let metadata = fs::metadata(input).into_diagnostic()?;
-    if metadata.len() > MAX_FILE_SIZE {
-        return Err(miette::miette!(
-            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
-            metadata.len(),
-            MAX_FILE_SIZE
-        ));
-    }
+    check_file_size(input)?;
 
     // Set up cache directory
     let cache = cache_dir();
@@ -225,15 +222,7 @@ fn run_file(input: &Path) -> Result<()> {
 }
 
 fn check_file(input: &Path) -> Result<()> {
-    // Check file size
-    let metadata = fs::metadata(input).into_diagnostic()?;
-    if metadata.len() > MAX_FILE_SIZE {
-        return Err(miette::miette!(
-            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
-            metadata.len(),
-            MAX_FILE_SIZE
-        ));
-    }
+    check_file_size(input)?;
 
     let source = fs::read_to_string(input).into_diagnostic()?;
 
