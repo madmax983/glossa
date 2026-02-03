@@ -1066,7 +1066,10 @@ mod tests {
         let t_koppa = transliterate(koppa);
         let t_stigma = transliterate(stigma);
 
-        assert_ne!(t_koppa, t_stigma, "Different invalid chars should not collide");
+        assert_ne!(
+            t_koppa, t_stigma,
+            "Different invalid chars should not collide"
+        );
         assert!(t_koppa.contains("_u3df_")); // Koppa is 0x3DF
         assert!(t_stigma.contains("_u3db_")); // Stigma is 0x3DB
     }

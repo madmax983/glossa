@@ -1552,6 +1552,9 @@ mod tests {
 
         // Feed one more
         let result = asm.feed(&word, "λόγος");
-        assert!(matches!(result, Err(AssemblyError::StatementTooLong { .. })));
+        assert!(matches!(
+            result,
+            Err(AssemblyError::StatementTooLong { .. })
+        ));
     }
 }

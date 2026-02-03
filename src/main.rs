@@ -129,7 +129,11 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     // Check file size
     let metadata = fs::metadata(input).into_diagnostic()?;
     if metadata.len() > MAX_FILE_SIZE {
-        return Err(miette::miette!("Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes", metadata.len(), MAX_FILE_SIZE));
+        return Err(miette::miette!(
+            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
+            metadata.len(),
+            MAX_FILE_SIZE
+        ));
     }
 
     let source = fs::read_to_string(input).into_diagnostic()?;
@@ -156,7 +160,11 @@ fn run_file(input: &Path) -> Result<()> {
     // Check file size
     let metadata = fs::metadata(input).into_diagnostic()?;
     if metadata.len() > MAX_FILE_SIZE {
-        return Err(miette::miette!("Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes", metadata.len(), MAX_FILE_SIZE));
+        return Err(miette::miette!(
+            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
+            metadata.len(),
+            MAX_FILE_SIZE
+        ));
     }
 
     // Set up cache directory
@@ -220,7 +228,11 @@ fn check_file(input: &Path) -> Result<()> {
     // Check file size
     let metadata = fs::metadata(input).into_diagnostic()?;
     if metadata.len() > MAX_FILE_SIZE {
-        return Err(miette::miette!("Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes", metadata.len(), MAX_FILE_SIZE));
+        return Err(miette::miette!(
+            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
+            metadata.len(),
+            MAX_FILE_SIZE
+        ));
     }
 
     let source = fs::read_to_string(input).into_diagnostic()?;
