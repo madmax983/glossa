@@ -1415,4 +1415,22 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_severity_variants_and_debug() {
+        // Cover Severity enum variants and Debug implementations
+        let info = Severity::Info;
+        let warning = Severity::Warning;
+        let error = Severity::Error;
+
+        assert_eq!(format!("{:?}", info), "Info");
+        assert_eq!(format!("{:?}", warning), "Warning");
+        assert_eq!(format!("{:?}", error), "Error");
+
+        let p = Prophecy {
+            message: "msg".into(),
+            severity: Severity::Info,
+        };
+        assert_eq!(format!("{:?}", p), "Prophecy { message: \"msg\", severity: Info }");
+    }
 }
