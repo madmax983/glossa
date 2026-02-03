@@ -1290,4 +1290,129 @@ mod tests {
         // Expect 'y' to be unused because Binding logic only looks at expression[1].
         assert!(prophecies.iter().any(|p| p.message.contains("'y'")));
     }
+
+    #[test]
+    fn test_return_some() {
+        let ret = AnalyzedStatement {
+            kind: StatementKind::Return {
+                value: Some(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".into()),
+                    glossa_type: GlossaType::Number,
+                })),
+            },
+            expressions: vec![],
+        };
+        let binding = mock_binding("x");
+        let prog = mock_program(vec![binding, ret]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        // x is used in return value.
+        assert!(!prophecies.iter().any(|p| p.message.contains("'x'")));
+    }
+
+    #[test]
+    fn test_match_arm_body_usage() {
+        let match_stmt = AnalyzedStatement {
+            kind: StatementKind::Match {
+                scrutinee: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+                arms: vec![(
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    },
+                    vec![mock_print_var("x")], // Use x in arm body
+                )],
+            },
+            expressions: vec![],
+        };
+        let binding = mock_binding("x");
+        let prog = mock_program(vec![binding, match_stmt]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        // x is used in match arm.
+        assert!(!prophecies.iter().any(|p| p.message.contains("'x'")));
+    }
+
+    #[test]
+    fn test_exhaustive_iterator_ops() {
+        use crate::semantic::AnalyzedIteratorOp;
+        let ops = vec![
+            AnalyzedIteratorOp::Iter,
+            AnalyzedIteratorOp::Map(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("v1".into()),
+                glossa_type: GlossaType::Unknown,
+            })),
+            AnalyzedIteratorOp::Filter(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("v2".into()),
+                glossa_type: GlossaType::Unknown,
+            })),
+            AnalyzedIteratorOp::Find(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("v3".into()),
+                glossa_type: GlossaType::Unknown,
+            })),
+            AnalyzedIteratorOp::Fold {
+                init: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("v4".into()),
+                    glossa_type: GlossaType::Unknown,
+                }),
+                closure: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("v5".into()),
+                    glossa_type: GlossaType::Unknown,
+                }),
+            },
+            AnalyzedIteratorOp::Any(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("v6".into()),
+                glossa_type: GlossaType::Unknown,
+            })),
+            AnalyzedIteratorOp::All(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("v7".into()),
+                glossa_type: GlossaType::Unknown,
+            })),
+            AnalyzedIteratorOp::Collect,
+        ];
+
+        let iter_chain = AnalyzedExpr {
+            expr: AnalyzedExprKind::IteratorChain {
+                collection: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::ArrayLiteral(vec![]),
+                    glossa_type: GlossaType::Unknown,
+                }),
+                ops,
+            },
+            glossa_type: GlossaType::Unknown,
+        };
+
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Expression,
+            expressions: vec![iter_chain],
+        };
+
+        // Define all used variables
+        let bindings: Vec<AnalyzedStatement> = (1..=7)
+            .map(|i| mock_binding(&format!("v{}", i)))
+            .collect();
+
+        let mut all_stmts = bindings;
+        all_stmts.push(stmt);
+
+        let prog = mock_program(all_stmts);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        // Check that all variables v1..v7 are used
+        for i in 1..=7 {
+            assert!(
+                !prophecies
+                    .iter()
+                    .any(|p| p.message.contains(&format!("'v{}'", i))),
+                "Variable v{} should be detected as used in iterator op",
+                i
+            );
+        }
+    }
 }
