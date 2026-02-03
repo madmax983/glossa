@@ -50,6 +50,24 @@ Here is a simple program that defines a user struct and greets them.
 χρήστου ὄνομα λέγε.
 ```
 
+### Running the Code
+
+Save the code above as `hero.glossa` and run it:
+
+```bash
+cargo run -- hero.glossa
+```
+
+## Syntax Notes
+
+### String Literals
+ΓΛΩΣΣΑ supports both Greek guillemets (`«...»`) and standard ASCII quotes (`"..."`).
+
+```glossa
+«Σωκράτης»  // Traditional
+"Σωκράτης"  // Modern
+```
+
 ## Control Flow
 
 ### Conditionals

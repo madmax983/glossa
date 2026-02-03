@@ -270,14 +270,36 @@ fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
     if args.is_empty() {
         quote! { println!(); }
     } else if args.len() == 1 {
-        let arg = generate_expr(&args[0]);
-        // Use Display formatting
-        quote! { println!("{}", #arg); }
+        let arg = &args[0];
+        let arg_token = generate_expr(arg);
+
+        if is_primitive_type(&arg.glossa_type) {
+            quote! { println!("{}", #arg_token); }
+        } else {
+            quote! { println!("{:?}", #arg_token); }
+        }
     } else {
         // Multiple args - join with space
-        let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-        quote! { println!("{}", vec![#(format!("{}", #arg_tokens)),*].join(" ")); }
+        let arg_tokens: Vec<TokenStream> = args
+            .iter()
+            .map(|arg| {
+                let token = generate_expr(arg);
+                if is_primitive_type(&arg.glossa_type) {
+                    quote! { format!("{}", #token) }
+                } else {
+                    quote! { format!("{:?}", #token) }
+                }
+            })
+            .collect();
+        quote! { println!("{}", vec![#(#arg_tokens),*].join(" ")); }
     }
+}
+
+fn is_primitive_type(ty: &GlossaType) -> bool {
+    matches!(
+        ty,
+        GlossaType::String | GlossaType::Number | GlossaType::Boolean
+    )
 }
 
 fn generate_if(
