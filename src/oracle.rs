@@ -1018,4 +1018,96 @@ mod tests {
         // loop_var is defined in For and used in body. Should NOT be unused.
         assert!(!prophecies.iter().any(|p| p.message.contains("'loop_var'")));
     }
+
+    #[test]
+    fn test_type_definitions() {
+        let type_def = AnalyzedStatement {
+            kind: StatementKind::TypeDefinition {
+                name: "User".into(),
+                fields: vec![("name".into(), GlossaType::String)],
+            },
+            expressions: vec![],
+        };
+
+        // Type definitions don't define variables in the runtime binding sense for this Oracle,
+        // but we should ensure it doesn't crash or falsely report.
+        // Actually, the current oracle ignores TypeDefinition in collect_definitions.
+        // So this test mainly ensures we hit the catch-all `_ => {}` or similar branches safely.
+
+        let prog = mock_program(vec![type_def]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        assert!(prophecies.is_empty());
+    }
+
+    #[test]
+    fn test_return_none_and_break_continue() {
+        let ret = AnalyzedStatement {
+            kind: StatementKind::Return { value: None },
+            expressions: vec![],
+        };
+        let brk = AnalyzedStatement {
+            kind: StatementKind::Break,
+            expressions: vec![],
+        };
+        let cont = AnalyzedStatement {
+            kind: StatementKind::Continue,
+            expressions: vec![],
+        };
+
+        let prog = mock_program(vec![ret, brk, cont]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+
+        assert!(prophecies.is_empty());
+    }
+
+    #[test]
+    fn test_print_statement() {
+        let print = AnalyzedStatement {
+            kind: StatementKind::Print,
+            expressions: vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("hello".into()),
+                glossa_type: GlossaType::String,
+            }],
+        };
+        let prog = mock_program(vec![print]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+        assert!(prophecies.is_empty());
+    }
+
+    #[test]
+    fn test_expression_statement() {
+        let expr_stmt = AnalyzedStatement {
+            kind: StatementKind::Expression,
+            expressions: vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(42),
+                glossa_type: GlossaType::Number,
+            }],
+        };
+        let prog = mock_program(vec![expr_stmt]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+        assert!(prophecies.is_empty());
+    }
+
+    #[test]
+    fn test_query_statement() {
+        let query = AnalyzedStatement {
+            kind: StatementKind::Query,
+            expressions: vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("x".into()),
+                glossa_type: GlossaType::Number,
+            }],
+        };
+        // x is used here. If x was defined, it would be marked used.
+        // Since x isn't defined, we get no "unused variable" warning.
+        // And no other warnings.
+        let prog = mock_program(vec![query]);
+        let oracle = Oracle::new(&prog);
+        let prophecies = oracle.consult();
+        assert!(prophecies.is_empty());
+    }
 }
