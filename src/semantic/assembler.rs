@@ -1557,4 +1557,36 @@ mod tests {
             Err(AssemblyError::StatementTooLong { .. })
         ));
     }
+
+    #[test]
+    fn test_assembler_limit_boundary() {
+        let mut asm = Assembler::new();
+        let word = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("λογος"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: Some(Gender::Masculine),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+
+        // Feed MAX_TOKENS - 1
+        for _ in 0..(MAX_TOKENS - 1) {
+            asm.feed(&word, "λόγος").unwrap();
+        }
+
+        // Feed MAX_TOKENS (should succeed)
+        asm.feed(&word, "λόγος").unwrap();
+
+        // Feed MAX_TOKENS + 1 (should fail)
+        let result = asm.feed(&word, "λόγος");
+        assert!(matches!(
+            result,
+            Err(AssemblyError::StatementTooLong { .. })
+        ));
+    }
 }

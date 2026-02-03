@@ -1075,6 +1075,14 @@ mod tests {
     }
 
     #[test]
+    fn test_transliterate_mixed_valid_invalid() {
+        // Test mixing valid and invalid characters
+        let input = "αϟβ";
+        let output = transliterate(input);
+        assert_eq!(output, "a_u3df_b");
+    }
+
+    #[test]
     fn test_generate_full_program() {
         let code = compile("ξ πέντε ἔστω. ξ λέγε.");
         assert!(code.contains("let xi = 5"), "Expected binding in: {}", code);
