@@ -96,29 +96,29 @@ pub fn analyze_trait_definition(
             let body = if let Some(body_stmts) = &method.body {
                 let mut analyzed_body = Vec::new();
                 // Create a child scope for the method
-                let mut method_scope = scope.child();
-                // Add method parameters to scope (including self)
-                for (param_name, param_type) in &params {
-                    method_scope.define(param_name.clone(), param_type.clone());
-                }
-                // Properly analyze statements in the body
-                for body_stmt in body_stmts {
-                    if let Some(control_flow) = analyze_control_flow(body_stmt, &mut method_scope)?
-                    {
-                        analyzed_body.push(control_flow);
-                    } else if let Some(struct_inst) =
-                        try_parse_struct_instantiation(body_stmt, &mut method_scope)?
-                    {
-                        analyzed_body.push(struct_inst);
-                    } else if let Some(method_call) =
-                        try_parse_trait_method_call(body_stmt, &mut method_scope)?
-                    {
-                        analyzed_body.push(method_call);
-                    } else {
-                        let assembled = analyze_single_statement_with_assembler(body_stmt)?;
-                        let analyzed =
-                            convert_assembled_to_analyzed(&assembled, &mut method_scope)?;
-                        analyzed_body.push(analyzed);
+                {
+                    let mut scope = scope.enter_scope();
+                    // Add method parameters to scope (including self)
+                    for (param_name, param_type) in &params {
+                        scope.define(param_name.clone(), param_type.clone());
+                    }
+                    // Properly analyze statements in the body
+                    for body_stmt in body_stmts {
+                        if let Some(control_flow) = analyze_control_flow(body_stmt, &mut scope)? {
+                            analyzed_body.push(control_flow);
+                        } else if let Some(struct_inst) =
+                            try_parse_struct_instantiation(body_stmt, &mut scope)?
+                        {
+                            analyzed_body.push(struct_inst);
+                        } else if let Some(method_call) =
+                            try_parse_trait_method_call(body_stmt, &mut scope)?
+                        {
+                            analyzed_body.push(method_call);
+                        } else {
+                            let assembled = analyze_single_statement_with_assembler(body_stmt)?;
+                            let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
+                            analyzed_body.push(analyzed);
+                        }
                     }
                 }
                 Some(analyzed_body)
@@ -188,6 +188,7 @@ pub fn analyze_trait_impl(
     // Validate: trait must exist
     let trait_def = scope
         .lookup_trait(&trait_name)
+        .cloned()
         .ok_or_else(|| GlossaError::semantic(format!("Trait {} is not defined", trait_name)))?;
 
     // Validate: type must exist
@@ -212,37 +213,35 @@ pub fn analyze_trait_impl(
         }
 
         // Create a child scope for the method body with self bound
-        let mut method_scope = scope.child();
-        method_scope.define("self".to_string(), struct_type.clone());
-
-        // Also bind parameters
-        for (param_name, param_type) in &params {
-            method_scope.define(param_name.clone(), param_type.clone());
-        }
-
-        // Analyze the method body
         let mut analyzed_body = Vec::new();
-        for body_stmt in &method.body {
-            // Try control flow first
-            if let Some(control_flow) = analyze_control_flow(body_stmt, &mut method_scope)? {
-                analyzed_body.push(control_flow);
+        {
+            let mut scope = scope.enter_scope();
+            scope.define("self".to_string(), struct_type.clone());
+
+            // Also bind parameters
+            for (param_name, param_type) in &params {
+                scope.define(param_name.clone(), param_type.clone());
             }
-            // Try struct instantiation pattern
-            else if let Some(struct_inst) =
-                try_parse_struct_instantiation(body_stmt, &mut method_scope)?
-            {
-                analyzed_body.push(struct_inst);
-            }
-            // Try trait method call pattern
-            else if let Some(method_call) =
-                try_parse_trait_method_call(body_stmt, &mut method_scope)?
-            {
-                analyzed_body.push(method_call);
-            } else {
-                // Use assembler for regular statements
-                let assembled = analyze_single_statement_with_assembler(body_stmt)?;
-                let analyzed = convert_assembled_to_analyzed(&assembled, &mut method_scope)?;
-                analyzed_body.push(analyzed);
+
+            // Analyze the method body
+            for body_stmt in &method.body {
+                // Try control flow first
+                if let Some(control_flow) = analyze_control_flow(body_stmt, &mut scope)? {
+                    analyzed_body.push(control_flow);
+                }
+                // Try struct instantiation pattern
+                else if let Some(struct_inst) = try_parse_struct_instantiation(body_stmt, &mut scope)? {
+                    analyzed_body.push(struct_inst);
+                }
+                // Try trait method call pattern
+                else if let Some(method_call) = try_parse_trait_method_call(body_stmt, &mut scope)? {
+                    analyzed_body.push(method_call);
+                } else {
+                    // Use assembler for regular statements
+                    let assembled = analyze_single_statement_with_assembler(body_stmt)?;
+                    let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
+                    analyzed_body.push(analyzed);
+                }
             }
         }
 
