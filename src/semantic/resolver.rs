@@ -222,14 +222,7 @@ impl Scope {
                 }
                 // Check if the trait has this method
                 if let Some(trait_def) = self.lookup_trait(&trait_impl.trait_name) {
-                    let has_method = trait_def
-                        .required_methods
-                        .iter()
-                        .any(|m| m.name == method_name)
-                        || trait_def
-                            .default_methods
-                            .iter()
-                            .any(|m| m.signature.name == method_name);
+                    let has_method = trait_def.methods.iter().any(|m| m.name == method_name);
                     if has_method {
                         return true;
                     }
