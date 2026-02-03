@@ -242,24 +242,7 @@ pub enum AnalyzedExprKind {
 #[derive(Debug, Clone)]
 pub struct TraitDef {
     pub name: SmolStr,
-    pub required_methods: Vec<MethodSignature>,
-    pub default_methods: Vec<DefaultMethod>,
-}
-
-/// Method signature in a trait
-#[derive(Debug, Clone, PartialEq)]
-pub struct MethodSignature {
-    pub name: SmolStr,
-    pub params: Vec<(SmolStr, GlossaType)>,
-    pub return_type: Option<GlossaType>,
-    pub has_default: bool,
-}
-
-/// Default method with implementation
-#[derive(Debug, Clone)]
-pub struct DefaultMethod {
-    pub signature: MethodSignature,
-    pub body: Vec<AnalyzedStatement>,
+    pub methods: Vec<AnalyzedTraitMethod>,
 }
 
 /// Trait implementation for a type
@@ -267,13 +250,4 @@ pub struct DefaultMethod {
 pub struct TraitImpl {
     pub trait_name: SmolStr,
     pub type_name: SmolStr,
-    pub methods: Vec<ImplMethod>,
-}
-
-/// Method implementation in a trait impl
-#[derive(Debug, Clone)]
-pub struct ImplMethod {
-    pub name: SmolStr,
-    pub params: Vec<(SmolStr, GlossaType)>,
-    pub body: Vec<AnalyzedStatement>,
 }

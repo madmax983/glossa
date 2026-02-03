@@ -27,3 +27,8 @@
 **Bloat:** Duplicated logic for extracting comparison values and creating predicates in iterator patterns (`filter`, `any`, `all`, `find`).
 **Cut:** Extracted `extract_comparison_value` and `create_comparison_predicate` helper functions.
 **Saved:** ~150 lines of duplicated code. Reduced cognitive load for understanding iterator pattern logic.
+
+## [Reduction]
+**Bloat:** `MethodSignature`, `DefaultMethod`, `ImplMethod`, and redundant `TraitDef` fields in `src/semantic/model.rs`.
+**Cut:** Consolidated into `TraitDef` using `Vec<AnalyzedTraitMethod>` and simplified `TraitImpl`. Deleted redundant structs.
+**Saved:** Reduced code duplication and complexity in semantic model and declarations. ~50 lines removed.

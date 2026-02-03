@@ -68,8 +68,6 @@ pub fn analyze_trait_definition(
     }
 
     // Analyze methods
-    let mut required_methods = Vec::new();
-    let mut default_methods = Vec::new();
     let mut analyzed_methods = Vec::new();
 
     for method in &trait_def.methods {
@@ -83,13 +81,6 @@ pub fn analyze_trait_definition(
             // They'll be inferred based on the impl
             params.push((param_name, GlossaType::Unknown));
         }
-
-        let signature = crate::semantic::model::MethodSignature {
-            name: method_name.clone(),
-            params: params.clone(),
-            return_type: None,
-            has_default: method.is_default,
-        };
 
         if method.is_default {
             // Analyze default method body
@@ -132,11 +123,6 @@ pub fn analyze_trait_definition(
                 None
             };
 
-            default_methods.push(crate::semantic::model::DefaultMethod {
-                signature: signature.clone(),
-                body: body.clone().unwrap_or_default(),
-            });
-
             analyzed_methods.push(AnalyzedTraitMethod {
                 name: method_name,
                 params,
@@ -145,8 +131,6 @@ pub fn analyze_trait_definition(
                 return_type,
             });
         } else {
-            required_methods.push(signature);
-
             analyzed_methods.push(AnalyzedTraitMethod {
                 name: method_name,
                 params,
@@ -160,8 +144,7 @@ pub fn analyze_trait_definition(
     // Create the trait definition
     let trait_def_semantic = crate::semantic::model::TraitDef {
         name: trait_name.clone(),
-        required_methods,
-        default_methods,
+        methods: analyzed_methods.clone(),
     };
 
     // Store the trait in scope
@@ -261,11 +244,11 @@ pub fn analyze_trait_impl(
     }
 
     // Validate: all required methods must be implemented
-    for required_method in &trait_def.required_methods {
-        if !implemented_method_names.contains(&required_method.name) {
+    for method in &trait_def.methods {
+        if !method.is_default && !implemented_method_names.contains(&method.name) {
             return Err(GlossaError::semantic(format!(
                 "Type {} does not implement required method {} from trait {}",
-                type_name, required_method.name, trait_name
+                type_name, method.name, trait_name
             )));
         }
     }
@@ -274,7 +257,6 @@ pub fn analyze_trait_impl(
     let trait_impl_semantic = crate::semantic::model::TraitImpl {
         trait_name: trait_name.clone(),
         type_name: type_name.clone(),
-        methods: vec![], // Semantic tracking only needs names for now
     };
 
     // Register the trait impl in scope
