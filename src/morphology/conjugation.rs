@@ -199,6 +199,93 @@ fn strip_augment(augmented_stem: &str) -> Cow<'_, str> {
     Cow::Borrowed(augmented_stem)
 }
 
+/// Strategy for lemma generation
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LemmaStrategy {
+    Standard,
+    StripAugment,
+    PassiveOptative,
+}
+
+/// Helper struct for conjugation patterns
+struct ConjugationPattern {
+    endings: &'static [(&'static str, Person, Number)],
+    tense: Tense,
+    mood: Mood,
+    voice: Voice,
+    lemma_strategy: LemmaStrategy,
+    base_confidence: f32,
+}
+
+/// Ordered list of conjugation patterns for analysis.
+/// Order matters for `analyze_verb` (first match wins).
+const CONJUGATION_PATTERNS: &[ConjugationPattern] = &[
+    ConjugationPattern {
+        endings: PRESENT_ACTIVE_IND,
+        tense: Tense::Present,
+        mood: Mood::Indicative,
+        voice: Voice::Active,
+        lemma_strategy: LemmaStrategy::Standard,
+        base_confidence: 0.8,
+    },
+    ConjugationPattern {
+        endings: PRESENT_ACTIVE_IMP,
+        tense: Tense::Present,
+        mood: Mood::Imperative,
+        voice: Voice::Active,
+        lemma_strategy: LemmaStrategy::Standard,
+        base_confidence: 0.75,
+    },
+    ConjugationPattern {
+        endings: AORIST_ACTIVE_IND,
+        tense: Tense::Aorist,
+        mood: Mood::Indicative,
+        voice: Voice::Active,
+        lemma_strategy: LemmaStrategy::StripAugment,
+        base_confidence: 0.85,
+    },
+    ConjugationPattern {
+        endings: AORIST_ACTIVE_IMP,
+        tense: Tense::Aorist,
+        mood: Mood::Imperative,
+        voice: Voice::Active,
+        lemma_strategy: LemmaStrategy::Standard,
+        base_confidence: 0.75,
+    },
+    ConjugationPattern {
+        endings: AORIST_PASSIVE_OPT,
+        tense: Tense::Aorist,
+        mood: Mood::Optative,
+        voice: Voice::Passive,
+        lemma_strategy: LemmaStrategy::PassiveOptative,
+        base_confidence: 0.75,
+    },
+    ConjugationPattern {
+        endings: PRESENT_ACTIVE_SUBJ,
+        tense: Tense::Present,
+        mood: Mood::Subjunctive,
+        voice: Voice::Active,
+        lemma_strategy: LemmaStrategy::Standard,
+        base_confidence: 0.70,
+    },
+    ConjugationPattern {
+        endings: AORIST_ACTIVE_SUBJ,
+        tense: Tense::Aorist,
+        mood: Mood::Subjunctive,
+        voice: Voice::Active,
+        lemma_strategy: LemmaStrategy::Standard,
+        base_confidence: 0.70,
+    },
+    ConjugationPattern {
+        endings: PRESENT_ACTIVE_OPT,
+        tense: Tense::Present,
+        mood: Mood::Optative,
+        voice: Voice::Active,
+        lemma_strategy: LemmaStrategy::Standard,
+        base_confidence: 0.75,
+    },
+];
+
 /// Subjunctive forms of εἰμί (to be) - irregular but essential for conditionals
 const EIMI_SUBJUNCTIVE: &[(&str, Person, Number)] = &[
     ("ω", Person::First, Number::Singular),   // ὦ
@@ -264,71 +351,39 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
         }
     }
 
-    // Try present active indicative FIRST (most common mood)
-    // Note: -ω ending is ambiguous (indicative vs subjunctive), prefer indicative
-    if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_IND) {
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}ω", stem)),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: Some(number),
-            gender: None,
-            person: Some(person),
-            tense: Some(Tense::Present),
-            mood: Some(Mood::Indicative),
-            voice: Some(Voice::Active),
-            confidence: 0.8,
-        });
-    }
+    // Try conjugation patterns in order
+    for pattern in CONJUGATION_PATTERNS {
+        if let Some((stem, person, number)) = match_verb_endings(word, pattern.endings) {
+            let lemma = match pattern.lemma_strategy {
+                LemmaStrategy::Standard => Cow::Owned(format!("{}ω", stem)),
+                LemmaStrategy::StripAugment => {
+                    let true_stem = strip_augment(stem);
+                    Cow::Owned(format!("{}ω", true_stem))
+                }
+                LemmaStrategy::PassiveOptative => {
+                    if stem.ends_with('θ') {
+                        // Strip the θη passive marker to get base stem, then add -ω for lemma
+                        let base_stem = stem.trim_end_matches('θ');
+                        Cow::Owned(format!("{}ω", base_stem))
+                    } else {
+                        Cow::Owned(format!("{}ω", stem))
+                    }
+                }
+            };
 
-    // Try present active imperative
-    if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_IMP) {
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}ω", stem)),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: Some(number),
-            gender: None,
-            person: Some(person),
-            tense: Some(Tense::Present),
-            mood: Some(Mood::Imperative),
-            voice: Some(Voice::Active),
-            confidence: 0.75,
-        });
-    }
-
-    // Try aorist active indicative
-    if let Some((augmented_stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_IND) {
-        // Strip temporal augment to find true stem: ἔλυσα → ελυ → λυ
-        let true_stem = strip_augment(augmented_stem);
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}ω", true_stem)),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: Some(number),
-            gender: None,
-            person: Some(person),
-            tense: Some(Tense::Aorist),
-            mood: Some(Mood::Indicative),
-            voice: Some(Voice::Active),
-            confidence: 0.85,
-        });
-    }
-
-    // Try aorist active imperative (no augment in imperative, but keep consistent)
-    if let Some((stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_IMP) {
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}ω", stem)),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: Some(number),
-            gender: None,
-            person: Some(person),
-            tense: Some(Tense::Aorist),
-            mood: Some(Mood::Imperative),
-            voice: Some(Voice::Active),
-            confidence: 0.75,
-        });
+            return Some(MorphAnalysis {
+                lemma,
+                part_of_speech: PartOfSpeech::Verb,
+                case: None,
+                number: Some(number),
+                gender: None,
+                person: Some(person),
+                tense: Some(pattern.tense),
+                mood: Some(pattern.mood),
+                voice: Some(pattern.voice),
+                confidence: pattern.base_confidence,
+            });
+        }
     }
 
     // Try present infinitive
@@ -364,82 +419,6 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
             mood: Some(Mood::Infinitive),
             voice: Some(Voice::Active),
             confidence: 0.85,
-        });
-    }
-
-    // Try aorist passive optative (εὑρεθείη "might be found")
-    // Checked before subjunctive because "θειη" overlaps with normalized "η" (subjunctive)
-    if let Some((stem, person, number)) = match_verb_endings(word, AORIST_PASSIVE_OPT) {
-        // Aorist passive stem typically ends in θ (from -θη-)
-        // For θειη ending, the stem before θ is what we want
-        let lemma = if stem.ends_with('θ') {
-            // Strip the θη passive marker to get base stem, then add -ω for lemma
-            let base_stem = stem.trim_end_matches('θ');
-            format!("{}ω", base_stem)
-        } else {
-            format!("{}ω", stem)
-        };
-
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(lemma),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: Some(number),
-            gender: None,
-            person: Some(person),
-            tense: Some(Tense::Aorist),
-            mood: Some(Mood::Optative),
-            voice: Some(Voice::Passive),
-            confidence: 0.75,
-        });
-    }
-
-    // Try present active subjunctive (checked after indicative due to -ω overlap)
-    // Only match distinctive subjunctive endings (ῃς, ῃ, ωμεν, ητε, ωσι)
-    if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_SUBJ) {
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}ω", stem)),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: Some(number),
-            gender: None,
-            person: Some(person),
-            tense: Some(Tense::Present),
-            mood: Some(Mood::Subjunctive),
-            voice: Some(Voice::Active),
-            confidence: 0.70, // Lower confidence due to rarity
-        });
-    }
-
-    // Try aorist active subjunctive
-    if let Some((stem, person, number)) = match_verb_endings(word, AORIST_ACTIVE_SUBJ) {
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}ω", stem)),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: Some(number),
-            gender: None,
-            person: Some(person),
-            tense: Some(Tense::Aorist),
-            mood: Some(Mood::Subjunctive),
-            voice: Some(Voice::Active),
-            confidence: 0.70,
-        });
-    }
-
-    // Try present active optative (for Option<T> semantics)
-    if let Some((stem, person, number)) = match_verb_endings(word, PRESENT_ACTIVE_OPT) {
-        return Some(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}ω", stem)),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: Some(number),
-            gender: None,
-            person: Some(person),
-            tense: Some(Tense::Present),
-            mood: Some(Mood::Optative),
-            voice: Some(Voice::Active),
-            confidence: 0.75,
         });
     }
 
@@ -506,74 +485,19 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
         }
     }
 
-    // Helper struct for conjugation patterns
-    struct ConjPattern {
-        endings: &'static [(&'static str, Person, Number)],
-        tense: Tense,
-        mood: Mood,
-        voice: Voice,
-        has_augment: bool,
-        base_confidence: f32,
-    }
-
-    let patterns = [
-        ConjPattern {
-            endings: PRESENT_ACTIVE_IND,
-            tense: Tense::Present,
-            mood: Mood::Indicative,
-            voice: Voice::Active,
-            has_augment: false,
-            base_confidence: 0.8,
-        },
-        ConjPattern {
-            endings: PRESENT_ACTIVE_IMP,
-            tense: Tense::Present,
-            mood: Mood::Imperative,
-            voice: Voice::Active,
-            has_augment: false,
-            base_confidence: 0.75,
-        },
-        ConjPattern {
-            endings: AORIST_ACTIVE_IND,
-            tense: Tense::Aorist,
-            mood: Mood::Indicative,
-            voice: Voice::Active,
-            has_augment: true,
-            base_confidence: 0.85,
-        },
-        ConjPattern {
-            endings: AORIST_ACTIVE_IMP,
-            tense: Tense::Aorist,
-            mood: Mood::Imperative,
-            voice: Voice::Active,
-            has_augment: false,
-            base_confidence: 0.75,
-        },
-        ConjPattern {
-            endings: PRESENT_ACTIVE_OPT,
-            tense: Tense::Present,
-            mood: Mood::Optative,
-            voice: Voice::Active,
-            has_augment: false,
-            base_confidence: 0.75,
-        },
-        ConjPattern {
-            endings: AORIST_PASSIVE_OPT,
-            tense: Tense::Aorist,
-            mood: Mood::Optative,
-            voice: Voice::Passive,
-            has_augment: false,
-            base_confidence: 0.75,
-        },
-    ];
-
-    for pattern in &patterns {
+    for pattern in CONJUGATION_PATTERNS {
         match_verb_endings_all(word, pattern.endings, |stem, person, number| {
-            // Handle augment stripping for indicative aorists
-            let lemma_stem = if pattern.has_augment {
-                strip_augment(stem)
-            } else {
-                Cow::Borrowed(stem)
+            // Handle lemma generation
+            let lemma_stem: Cow<str> = match pattern.lemma_strategy {
+                LemmaStrategy::Standard => Cow::Borrowed(stem),
+                LemmaStrategy::StripAugment => strip_augment(stem),
+                LemmaStrategy::PassiveOptative => {
+                    if stem.ends_with('θ') {
+                        Cow::Borrowed(stem.trim_end_matches('θ'))
+                    } else {
+                        Cow::Borrowed(stem)
+                    }
+                }
             };
 
             // Calculate confidence
@@ -861,5 +785,41 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_analyze_verb_all_discrepancies() {
+        // Aorist Passive Optative: λυθειη -> λυω (previously analyze_verb_all might have failed lemma or missed it if not in list)
+        let word = "λυθειη";
+        let analyses = analyze_verb_all(word);
+        let found = analyses
+            .iter()
+            .find(|a| a.mood == Some(Mood::Optative) && a.voice == Some(Voice::Passive));
+        assert!(
+            found.is_some(),
+            "analyze_verb_all should find Aorist Passive Optative"
+        );
+        if let Some(analysis) = found {
+            assert_eq!(
+                analysis.lemma, "λυω",
+                "Lemma should be correctly stripped of passive marker"
+            );
+        }
+
+        // Subjunctive: λυῃς (Present Active Subjunctive) -> λυω (previously missing from analyze_verb_all)
+        // Note: analyze_verb_all expects normalized input (accents removed)
+        let word = "λυῃς";
+        let normalized = normalize_greek(word);
+        let analyses = analyze_verb_all(&normalized);
+
+        // Debug output
+        if !analyses.iter().any(|a| a.mood == Some(Mood::Subjunctive)) {
+            println!("Word: {}", word);
+            println!("Normalized: {}", normalized);
+            println!("Analyses: {:?}", analyses);
+        }
+
+        let found = analyses.iter().find(|a| a.mood == Some(Mood::Subjunctive));
+        assert!(found.is_some(), "analyze_verb_all should find Subjunctive");
     }
 }
