@@ -12,6 +12,7 @@ use std::time::SystemTime;
 
 use glossa::codegen::{generate_rust, generate_rust_file};
 use glossa::errors::GlossaError;
+use glossa::experimental::diagram::generate_mermaid;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
@@ -52,6 +53,12 @@ enum Commands {
         input: PathBuf,
     },
 
+    /// Generate a Mermaid diagram of the program structure
+    Diagram {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Start the interactive REPL
     Repl,
 }
@@ -80,11 +87,23 @@ fn main() -> Result<()> {
             check_file(&input)?;
         }
 
+        Some(Commands::Diagram { input }) => {
+            generate_diagram_file(&input)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
     }
 
+    Ok(())
+}
+
+fn generate_diagram_file(input: &Path) -> Result<()> {
+    check_file_size(input)?;
+    let source = fs::read_to_string(input).into_diagnostic()?;
+    let diagram = generate_mermaid(&source).map_err(|e| miette::miette!("{}", e))?;
+    println!("{}", diagram);
     Ok(())
 }
 
