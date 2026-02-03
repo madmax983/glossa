@@ -452,7 +452,9 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
         Rule::string_literal => {
             let content = inner
                 .into_inner()
-                .find(|p| p.as_rule() == Rule::guillemet_content || p.as_rule() == Rule::ascii_content)
+                .find(|p| {
+                    p.as_rule() == Rule::guillemet_content || p.as_rule() == Rule::ascii_content
+                })
                 .map(|p| p.as_str().to_string())
                 .unwrap_or_default();
             Ok(Expr::StringLiteral(content))
@@ -501,7 +503,9 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
         Rule::string_literal => {
             let content = inner
                 .into_inner()
-                .find(|p| p.as_rule() == Rule::guillemet_content || p.as_rule() == Rule::ascii_content)
+                .find(|p| {
+                    p.as_rule() == Rule::guillemet_content || p.as_rule() == Rule::ascii_content
+                })
                 .map(|p| p.as_str().to_string())
                 .unwrap_or_default();
             Ok(Expr::StringLiteral(content))
