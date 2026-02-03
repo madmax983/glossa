@@ -127,7 +127,7 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
 }
 
 /// Analyze a single statement using the slot-based assembler
-pub fn analyze_single_statement_with_assembler(
+pub(crate) fn analyze_single_statement_with_assembler(
     stmt: &Statement,
 ) -> Result<AssembledStatement, GlossaError> {
     let mut asm = Assembler::new();

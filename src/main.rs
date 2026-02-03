@@ -406,6 +406,22 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_diagram_file() {
+        // Create a temporary file with valid Glossa code
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_diagram.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            f.write_all(b"\xCE\xBF \xCE\xB1\xCE\xBD\xCE\xB8\xCF\x81\xCF\x89\xCF\x80\xCE\xBF\xCF\x82 \xCE\xBB\xCE\xB5\xCE\xB3\xCE\xB5\xCE\xB9.").unwrap(); // "ὁ ἄνθρωπος λέγει."
+        }
+
+        // Call generate_diagram_file
+        // We can't easily assert the output, but we can ensure it runs without error
+        let result = generate_diagram_file(&file_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn test_file_size_check_internal() {
         // Create large file
         let dir = tempfile::tempdir().unwrap();

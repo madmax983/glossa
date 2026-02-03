@@ -124,4 +124,40 @@ mod tests {
         assert!(mermaid.contains("Subject: ἄνθρωπος"));
         assert!(mermaid.contains("Verb: λέγει"));
     }
+
+    #[test]
+    fn test_generate_diagram_definition() {
+        let source = "εἶδος Πρόσωπον ὁρίζειν { ὄνομα ἀριθμοῦ. }.";
+        let mermaid = generate_mermaid(source).unwrap();
+
+        assert!(mermaid.contains("[Definition]"));
+    }
+
+    #[test]
+    fn test_generate_diagram_complex_statement() {
+        // Use a statement that triggers an assembler error (Double Verb)
+        let source = "λέγει λέγει.";
+        let mermaid = generate_mermaid(source).unwrap();
+
+        // Should fall back to Complex Statement
+        assert!(mermaid.contains("[Complex Statement]"));
+    }
+
+    #[test]
+    fn test_generate_diagram_literals() {
+        let source = "«χαῖρε» 42 λέγε.";
+        let mermaid = generate_mermaid(source).unwrap();
+
+        assert!(mermaid.contains("Literal: \"χαῖρε\""));
+        assert!(mermaid.contains("Literal: 42"));
+    }
+
+    #[test]
+    fn test_generate_diagram_indirect_object() {
+        // τῷ ἀνθρώπῳ δίδωμι (I give to the man)
+        let source = "τῷ ἀνθρώπῳ δίδωμι.";
+        let mermaid = generate_mermaid(source).unwrap();
+
+        assert!(mermaid.contains("Indirect: ἀνθρώπῳ"));
+    }
 }
