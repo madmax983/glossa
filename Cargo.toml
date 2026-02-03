@@ -5,6 +5,7 @@ edition = "2024"
 description = "ΓΛΩΣΣΑ - A compiler where Ancient Greek morphology encodes programming semantics"
 
 [dependencies]
+crossterm = "0.27"
 dirs-next = "2"
 pest = "2.7"
 pest_derive = "2.7"

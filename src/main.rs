@@ -3,6 +3,7 @@
 //! A compiler for ΓΛΩΣΣΑ - where Ancient Greek morphology encodes programming semantics.
 
 use clap::{Parser, Subcommand};
+use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -151,7 +152,11 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     fs::write(&output_path, &rust_code).into_diagnostic()?;
 
-    println!("✓ Ἐγράφη: {}", output_path.display());
+    println!(
+        "{} Ἐγράφη: {}",
+        "✓".green(),
+        output_path.display().to_string().bold()
+    );
 
     Ok(())
 }
@@ -229,20 +234,27 @@ fn check_file(input: &Path) -> Result<()> {
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
     let _analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
 
-    println!("✓ {} - ὀρθόν", input.display());
+    println!(
+        "{} {} - ὀρθόν",
+        "✓".green(),
+        input.display().to_string().bold()
+    );
 
     Ok(())
 }
 
 fn run_repl() -> Result<()> {
-    println!("ΓΛΩΣΣΑ v{}", env!("CARGO_PKG_VERSION"));
-    println!("Γράψον .βοήθεια διὰ βοήθειαν, .ἔξοδος διὰ ἔξοδον.");
+    println!("{} v{}", "ΓΛΩΣΣΑ".bold().blue(), env!("CARGO_PKG_VERSION"));
+    println!(
+        "{}",
+        "Γράψον .βοήθεια διὰ βοήθειαν, .ἔξοδος διὰ ἔξοδον.".dim()
+    );
     println!();
 
     let mut context = ReplContext::new();
 
     loop {
-        print!("γλ> ");
+        print!("{}", "γλ> ".green().bold());
         use std::io::Write;
         std::io::stdout().flush().into_diagnostic()?;
 
@@ -331,7 +343,8 @@ impl ReplContext {
         // Generate and return the code (for now, just show the Rust)
         let rust_code = generate_rust(&analyzed);
         Ok(format!(
-            "→ {}",
+            "{} {}",
+            "→".blue(),
             rust_code
                 .lines()
                 .skip(1)
