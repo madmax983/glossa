@@ -22,3 +22,8 @@
 **Bloat:** `src/ir` module (HIR) was a mirror of `AnalyzedProgram` with English names but identical structure.
 **Cut:** Deleted `src/ir` (~600 lines). Updated `codegen` to consume `AnalyzedProgram` directly.
 **Saved:** Removed an entire compiler pass and module. Flattened architecture: Parser -> Semantic -> Codegen.
+
+## [Reduction]
+**Bloat:** Duplicated logic for extracting comparison values and creating predicates in iterator patterns (`filter`, `any`, `all`, `find`).
+**Cut:** Extracted `extract_comparison_value` and `create_comparison_predicate` helper functions.
+**Saved:** ~150 lines of duplicated code. Reduced cognitive load for understanding iterator pattern logic.
