@@ -6,7 +6,7 @@ use super::{
 };
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
-use crate::grammar::normalize_greek;
+use crate::text::normalize_greek;
 use smol_str::SmolStr;
 
 /// Try to parse a trait method call: method_name receiver
@@ -136,7 +136,7 @@ pub fn try_parse_struct_instantiation(
             }
 
             // Second word should be νέον (new) - check both normalized form and if it's "new" via morphology
-            let normalized_adj = crate::grammar::normalize_greek(&adj_word.normalized);
+            let normalized_adj = crate::text::normalize_greek(&adj_word.normalized);
             // Check if it's "new" - could be νέον, νεον, etc.
             if normalized_adj != "νεον" && normalized_adj != "νεος" {
                 return Ok(None);

@@ -3,8 +3,8 @@
 use super::{AnalyzedExpr, AnalyzedExprKind, Assembler, GlossaType, Literal, Scope};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
-use crate::grammar::normalize_greek;
 use crate::morphology::{self, DisambiguationContext, analyze_article, resolve_best};
+use crate::text::normalize_greek;
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
 ///

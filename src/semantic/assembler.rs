@@ -95,11 +95,11 @@
 
 use crate::ast::{Expr, Word};
 pub use crate::errors::assembly::AssemblyError;
-use crate::grammar::normalize_greek;
 use crate::morphology::lexicon::BinaryOp;
 use crate::morphology::{
     Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
 };
+use crate::text::normalize_greek;
 use smol_str::SmolStr;
 
 /// A fully assembled statement with all grammatical roles filled
@@ -982,7 +982,7 @@ impl Assembler {
         if crate::morphology::lexicon::is_length_property(normalized) {
             // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.pending_subject {
-                let normalized_original = crate::grammar::normalize_greek(&subj.original);
+                let normalized_original = crate::text::normalize_greek(&subj.original);
                 self.pending_property_accesses
                     .push((normalized_original.to_string(), "len".to_string()));
                 self.pending_subject = None; // Consume the subject
@@ -997,7 +997,7 @@ impl Assembler {
                 && let Some(index) = crate::morphology::lexicon::ordinal_to_index(normalized)
             {
                 // Create array and index expressions (use normalized original, not lemma)
-                let normalized_original = crate::grammar::normalize_greek(&subj.original);
+                let normalized_original = crate::text::normalize_greek(&subj.original);
                 let array = Expr::Word(Word {
                     original: subj.original.clone(),
                     normalized: normalized_original.clone(),

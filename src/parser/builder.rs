@@ -89,7 +89,7 @@ fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, ParseError> {
                 // This is the type name (between εἶδος and ὁρίζειν)
                 type_name = Some(Word {
                     original: inner.as_str().into(),
-                    normalized: crate::grammar::normalize_greek(inner.as_str()),
+                    normalized: crate::text::normalize_greek(inner.as_str()),
                 });
             }
             Rule::field_list => {
@@ -122,7 +122,7 @@ fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, ParseError
         if inner.as_rule() == Rule::greek_word {
             words.push(Word {
                 original: inner.as_str().into(),
-                normalized: crate::grammar::normalize_greek(inner.as_str()),
+                normalized: crate::text::normalize_greek(inner.as_str()),
             });
         }
     }
@@ -151,7 +151,7 @@ fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> 
                 // This is the trait name (between χαρακτήρ and ὁρίζειν)
                 trait_name = Some(Word {
                     original: inner.as_str().into(),
-                    normalized: crate::grammar::normalize_greek(inner.as_str()),
+                    normalized: crate::text::normalize_greek(inner.as_str()),
                 });
             }
             Rule::trait_method_list => {
@@ -194,7 +194,7 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseErro
             Rule::greek_word => {
                 words.push(Word {
                     original: inner.as_str().into(),
-                    normalized: crate::grammar::normalize_greek(inner.as_str()),
+                    normalized: crate::text::normalize_greek(inner.as_str()),
                 });
             }
             Rule::statement => {
@@ -260,12 +260,12 @@ fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, ParseError> {
                 if type_name.is_none() {
                     type_name = Some(Word {
                         original: inner.as_str().into(),
-                        normalized: crate::grammar::normalize_greek(inner.as_str()),
+                        normalized: crate::text::normalize_greek(inner.as_str()),
                     });
                 } else if trait_name.is_none() {
                     trait_name = Some(Word {
                         original: inner.as_str().into(),
-                        normalized: crate::grammar::normalize_greek(inner.as_str()),
+                        normalized: crate::text::normalize_greek(inner.as_str()),
                     });
                 }
             }
@@ -302,7 +302,7 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> 
             Rule::greek_word => {
                 words.push(Word {
                     original: inner.as_str().into(),
-                    normalized: crate::grammar::normalize_greek(inner.as_str()),
+                    normalized: crate::text::normalize_greek(inner.as_str()),
                 });
             }
             Rule::statement => {
@@ -417,7 +417,7 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             let array_word = parts.next().ok_or(ParseError::EmptyTerm)?;
             let array = Expr::Word(Word {
                 original: array_word.as_str().into(),
-                normalized: crate::grammar::normalize_greek(array_word.as_str()),
+                normalized: crate::text::normalize_greek(array_word.as_str()),
             });
             // Second is the index_expr
             let index_pair = parts.next().ok_or(ParseError::EmptyTerm)?;
@@ -435,7 +435,7 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
                 }
                 Rule::greek_word => Expr::Word(Word {
                     original: index_inner.as_str().into(),
-                    normalized: crate::grammar::normalize_greek(index_inner.as_str()),
+                    normalized: crate::text::normalize_greek(index_inner.as_str()),
                 }),
                 _ => {
                     return Err(ParseError::UnexpectedRule(format!(
@@ -465,13 +465,13 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             Ok(Expr::NumberLiteral(value))
         }
         Rule::boolean_literal => {
-            let normalized = crate::grammar::normalize_greek(inner.as_str());
+            let normalized = crate::text::normalize_greek(inner.as_str());
             let value = normalized == "αληθες";
             Ok(Expr::BooleanLiteral(value))
         }
         Rule::greek_word => Ok(Expr::Word(Word {
             original: inner.as_str().into(),
-            normalized: crate::grammar::normalize_greek(inner.as_str()),
+            normalized: crate::text::normalize_greek(inner.as_str()),
         })),
         Rule::parenthesized_expr => {
             // Unwrap the parentheses and build the inner expression
@@ -483,7 +483,7 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             let word_pair = inner.into_inner().next().ok_or(ParseError::EmptyTerm)?;
             let word = Expr::Word(Word {
                 original: word_pair.as_str().into(),
-                normalized: crate::grammar::normalize_greek(word_pair.as_str()),
+                normalized: crate::text::normalize_greek(word_pair.as_str()),
             });
             Ok(Expr::UnaryOp {
                 op: UnaryOperator::Unwrap,
@@ -514,13 +514,13 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             Ok(Expr::NumberLiteral(value))
         }
         Rule::boolean_literal => {
-            let normalized = crate::grammar::normalize_greek(inner.as_str());
+            let normalized = crate::text::normalize_greek(inner.as_str());
             let value = normalized == "αληθες";
             Ok(Expr::BooleanLiteral(value))
         }
         Rule::greek_word => Ok(Expr::Word(Word {
             original: inner.as_str().into(),
-            normalized: crate::grammar::normalize_greek(inner.as_str()),
+            normalized: crate::text::normalize_greek(inner.as_str()),
         })),
         _ => Err(ParseError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
     }

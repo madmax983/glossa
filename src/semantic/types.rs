@@ -172,7 +172,7 @@ impl Ownership {
 
 /// Infer type from a Greek word (by looking at lexicon or morphology)
 pub fn infer_type(word: &str) -> GlossaType {
-    let normalized = crate::grammar::normalize_greek(word);
+    let normalized = crate::text::normalize_greek(word);
 
     // Check lexicon first
     if let Some(entry) = crate::morphology::lexicon::lookup(&normalized) {

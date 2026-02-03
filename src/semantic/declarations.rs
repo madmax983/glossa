@@ -6,8 +6,8 @@ use super::{
 };
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
-use crate::grammar::normalize_greek;
 use crate::morphology;
+use crate::text::normalize_greek;
 use smol_str::SmolStr;
 // Circular dependencies handled by crate structure
 use super::control_flow::analyze_control_flow;

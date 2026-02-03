@@ -20,12 +20,12 @@
 //!
 //! See [`sanitize_name`] for details.
 
-use crate::grammar::normalize_greek;
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedImplMethod, AnalyzedIteratorOp, AnalyzedProgram,
     AnalyzedStatement, AnalyzedTraitMethod, GlossaType, StatementKind,
 };
+use crate::text::normalize_greek;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
