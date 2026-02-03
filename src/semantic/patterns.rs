@@ -147,18 +147,7 @@ pub fn try_parse_struct_instantiation(
             let type_name = &type_word.normalized;
 
             // Check for built-in collection types first (HashSet, HashMap)
-            let collection_type = match type_name.as_str() {
-                "συνολον" => {
-                    Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown))))
-                }
-                "χαρτης" => Some((
-                    "HashMap",
-                    GlossaType::Map(Box::new(GlossaType::Unknown), Box::new(GlossaType::Unknown)),
-                )),
-                _ => None,
-            };
-
-            if let Some((rust_type, glossa_type)) = collection_type {
+            if let Some((rust_type, glossa_type)) = detect_collection_type(type_name) {
                 let collection_new = AnalyzedExpr {
                     expr: AnalyzedExprKind::CollectionNew {
                         collection_type: rust_type.to_string(),
@@ -414,48 +403,7 @@ pub fn detect_iterator_pattern(
                 && (rust_op == ">" || rust_op == "<")
             {
                 // Found a comparative adjective!
-                // Get the comparison value from:
-                // 1. Genitive (captured variable like θου)
-                // 2. Literal (number like πέντε)
-                // 3. Implicit 0 (for predicates like θετικά)
-                let comparison_expr = if let Some(genitive) = asm_stmt.genitives.first() {
-                    // Genitive of comparison: θου μείζονα = "greater than theta"
-                    // For single-letter variables, strip genitive ending
-                    let normalized = normalize_greek(&genitive.original);
-                    let var_name = if let Some(stem) = normalized.strip_suffix("ου") {
-                        // Strip -ου genitive ending (θου → θ)
-                        stem.to_string()
-                    } else if let Some(stem) = normalized.strip_suffix("ης") {
-                        // Strip -ης genitive ending
-                        stem.to_string()
-                    } else if let Some(stem) = normalized.strip_suffix("ων") {
-                        // Strip -ων genitive plural ending
-                        stem.to_string()
-                    } else {
-                        // Use as-is (shouldn't happen for valid genitives)
-                        normalized.to_string()
-                    };
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(var_name.into()),
-                        glossa_type: GlossaType::Number,
-                    }
-                } else if let Some(literal) = asm_stmt.literals.first() {
-                    // Literal comparison: πέντε μείζονα = "greater than five"
-                    let value = match literal {
-                        crate::semantic::assembler::Literal::Number(n) => *n,
-                        _ => 0,
-                    };
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(value),
-                        glossa_type: GlossaType::Number,
-                    }
-                } else {
-                    // Implicit zero: θετικά = "positive" = greater than 0
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(0),
-                        glossa_type: GlossaType::Number,
-                    }
-                };
+                let comparison_expr = extract_comparison_value(asm_stmt);
 
                 // Determine the binary operation
                 let bin_op = if rust_op == ">" {
@@ -465,29 +413,7 @@ pub fn detect_iterator_pattern(
                 };
 
                 // Create the filter predicate: |x| x > value
-                let predicate_body = AnalyzedExpr {
-                    expr: AnalyzedExprKind::BinOp {
-                        op: bin_op,
-                        left: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable("x".into()),
-                            glossa_type: GlossaType::Number,
-                        }),
-                        right: Box::new(comparison_expr),
-                    },
-                    glossa_type: GlossaType::Boolean,
-                };
-
-                let filter_closure = AnalyzedExpr {
-                    expr: AnalyzedExprKind::Lambda {
-                        params: vec!["x".into()],
-                        body: Box::new(predicate_body),
-                        capture_mode: crate::ast::CaptureMode::Borrow,
-                    },
-                    glossa_type: GlossaType::Function {
-                        params: vec![GlossaType::Number],
-                        returns: Box::new(GlossaType::Boolean),
-                    },
-                };
+                let filter_closure = create_comparison_predicate(bin_op, comparison_expr);
 
                 // Determine which operation to use based on quantifier
                 if is_any {
@@ -643,9 +569,6 @@ pub fn detect_iterator_pattern(
     }
 
     // Handle any/all operations with operators (comparatives stored as operators)
-    // Pattern: collection τι/πάντα value comparative_op verb
-    // Example: [1, -2, 3] τι μηδενὸς μείζον λέγε → .any(|x| x > 0)
-    // Example: [5, 15, 3] τι θου μείζον λέγε → .any(|x| x > theta)
     if (is_any || is_all) && !asm_stmt.operators.is_empty() {
         // Get the comparison operator (Gt or Lt)
         for &bin_op in &asm_stmt.operators {
@@ -653,70 +576,8 @@ pub fn detect_iterator_pattern(
                 bin_op,
                 crate::morphology::lexicon::BinaryOp::Gt | crate::morphology::lexicon::BinaryOp::Lt
             ) {
-                // Get comparison value from genitive (variable) or literal
-                let comparison_expr = if let Some(genitive) = asm_stmt.genitives.first() {
-                    // Genitive of comparison: θου μείζον = "greater than theta"
-                    // For single-letter variables, strip genitive ending
-                    let normalized = normalize_greek(&genitive.original);
-                    let var_name = if let Some(stem) = normalized.strip_suffix("ου") {
-                        // Strip -ου genitive ending (θου → θ)
-                        stem.to_string()
-                    } else if let Some(stem) = normalized.strip_suffix("ης") {
-                        // Strip -ης genitive ending
-                        stem.to_string()
-                    } else if let Some(stem) = normalized.strip_suffix("ων") {
-                        // Strip -ων genitive plural ending
-                        stem.to_string()
-                    } else {
-                        // Use as-is
-                        normalized.to_string()
-                    };
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(var_name.into()),
-                        glossa_type: GlossaType::Number,
-                    }
-                } else if let Some(literal) = asm_stmt.literals.first() {
-                    // Literal comparison
-                    let value = match literal {
-                        crate::semantic::assembler::Literal::Number(n) => *n,
-                        _ => 0,
-                    };
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(value),
-                        glossa_type: GlossaType::Number,
-                    }
-                } else {
-                    // No value specified, use implicit 0
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(0),
-                        glossa_type: GlossaType::Number,
-                    }
-                };
-
-                // Create the predicate: |x| x > value
-                let predicate_body = AnalyzedExpr {
-                    expr: AnalyzedExprKind::BinOp {
-                        op: bin_op,
-                        left: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable("x".into()),
-                            glossa_type: GlossaType::Number,
-                        }),
-                        right: Box::new(comparison_expr),
-                    },
-                    glossa_type: GlossaType::Boolean,
-                };
-
-                let any_all_closure = AnalyzedExpr {
-                    expr: AnalyzedExprKind::Lambda {
-                        params: vec!["x".into()],
-                        body: Box::new(predicate_body),
-                        capture_mode: crate::ast::CaptureMode::Borrow,
-                    },
-                    glossa_type: GlossaType::Function {
-                        params: vec![GlossaType::Number],
-                        returns: Box::new(GlossaType::Boolean),
-                    },
-                };
+                let comparison_expr = extract_comparison_value(asm_stmt);
+                let any_all_closure = create_comparison_predicate(bin_op, comparison_expr);
 
                 if is_any {
                     iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(any_all_closure.clone())));
@@ -740,11 +601,6 @@ pub fn detect_iterator_pattern(
     // Handle find operations differently from print operations
     if is_find {
         // Find operation: .iter().find(predicate)
-        // Check if we have a predicate (comparative operator + value)
-        // Pattern: collection value comparative_op find_verb
-        // Example: [1, 5, 3] τριῶν μείζον εὑρέ → .find(|x| x > 3)
-        // Example: [1, 5, 3] θου μείζον εὑρέ → .find(|x| x > theta)
-        // Note: μείζον is stored as an operator (Gt), not an adjective
         if !asm_stmt.operators.is_empty() {
             // Get the comparison operator (Gt or Lt)
             for &bin_op in &asm_stmt.operators {
@@ -753,70 +609,8 @@ pub fn detect_iterator_pattern(
                     crate::morphology::lexicon::BinaryOp::Gt
                         | crate::morphology::lexicon::BinaryOp::Lt
                 ) {
-                    // Get comparison value from genitive (variable) or literal
-                    let comparison_expr = if let Some(genitive) = asm_stmt.genitives.first() {
-                        // Genitive of comparison: θου μείζον = "greater than theta"
-                        // For single-letter variables, strip genitive ending
-                        let normalized = normalize_greek(&genitive.original);
-                        let var_name = if let Some(stem) = normalized.strip_suffix("ου") {
-                            // Strip -ου genitive ending (θου → θ)
-                            stem.to_string()
-                        } else if let Some(stem) = normalized.strip_suffix("ης") {
-                            // Strip -ης genitive ending
-                            stem.to_string()
-                        } else if let Some(stem) = normalized.strip_suffix("ων") {
-                            // Strip -ων genitive plural ending
-                            stem.to_string()
-                        } else {
-                            // Use as-is
-                            normalized.to_string()
-                        };
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(var_name.into()),
-                            glossa_type: GlossaType::Number,
-                        }
-                    } else if let Some(literal) = asm_stmt.literals.first() {
-                        // Literal comparison
-                        let value = match literal {
-                            crate::semantic::assembler::Literal::Number(n) => *n,
-                            _ => 0,
-                        };
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::NumberLiteral(value),
-                            glossa_type: GlossaType::Number,
-                        }
-                    } else {
-                        // No value specified
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::NumberLiteral(0),
-                            glossa_type: GlossaType::Number,
-                        }
-                    };
-
-                    // Create the predicate: |x| x > value
-                    let predicate_body = AnalyzedExpr {
-                        expr: AnalyzedExprKind::BinOp {
-                            op: bin_op,
-                            left: Box::new(AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable("x".into()),
-                                glossa_type: GlossaType::Number,
-                            }),
-                            right: Box::new(comparison_expr),
-                        },
-                        glossa_type: GlossaType::Boolean,
-                    };
-
-                    let find_closure = AnalyzedExpr {
-                        expr: AnalyzedExprKind::Lambda {
-                            params: vec!["x".into()],
-                            body: Box::new(predicate_body),
-                            capture_mode: crate::ast::CaptureMode::Borrow,
-                        },
-                        glossa_type: GlossaType::Function {
-                            params: vec![GlossaType::Number],
-                            returns: Box::new(GlossaType::Boolean),
-                        },
-                    };
+                    let comparison_expr = extract_comparison_value(asm_stmt);
+                    let find_closure = create_comparison_predicate(bin_op, comparison_expr);
 
                     iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(find_closure.clone())));
                     break;
@@ -917,4 +711,88 @@ pub fn detect_iterator_pattern(
     };
 
     Ok(Some(iterator_chain))
+}
+
+/// Helper: Extract comparison value for filter/find/any/all
+fn extract_comparison_value(asm_stmt: &AssembledStatement) -> AnalyzedExpr {
+    if let Some(genitive) = asm_stmt.genitives.first() {
+        // Genitive of comparison: θου μείζονα = "greater than theta"
+        // For single-letter variables, strip genitive ending
+        let normalized = normalize_greek(&genitive.original);
+        let var_name = if let Some(stem) = normalized.strip_suffix("ου") {
+            // Strip -ου genitive ending (θου → θ)
+            stem.to_string()
+        } else if let Some(stem) = normalized.strip_suffix("ης") {
+            // Strip -ης genitive ending
+            stem.to_string()
+        } else if let Some(stem) = normalized.strip_suffix("ων") {
+            // Strip -ων genitive plural ending
+            stem.to_string()
+        } else {
+            // Use as-is (shouldn't happen for valid genitives)
+            normalized.to_string()
+        };
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(var_name.into()),
+            glossa_type: GlossaType::Number,
+        }
+    } else if let Some(literal) = asm_stmt.literals.first() {
+        // Literal comparison: πέντε μείζονα = "greater than five"
+        let value = match literal {
+            crate::semantic::assembler::Literal::Number(n) => *n,
+            _ => 0,
+        };
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(value),
+            glossa_type: GlossaType::Number,
+        }
+    } else {
+        // Implicit zero: θετικά = "positive" = greater than 0
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(0),
+            glossa_type: GlossaType::Number,
+        }
+    }
+}
+
+/// Helper: Create comparison predicate closure |x| x op value
+fn create_comparison_predicate(
+    op: crate::morphology::lexicon::BinaryOp,
+    comparison_value: AnalyzedExpr,
+) -> AnalyzedExpr {
+    let predicate_body = AnalyzedExpr {
+        expr: AnalyzedExprKind::BinOp {
+            op,
+            left: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("x".into()),
+                glossa_type: GlossaType::Number,
+            }),
+            right: Box::new(comparison_value),
+        },
+        glossa_type: GlossaType::Boolean,
+    };
+
+    AnalyzedExpr {
+        expr: AnalyzedExprKind::Lambda {
+            params: vec!["x".into()],
+            body: Box::new(predicate_body),
+            capture_mode: crate::ast::CaptureMode::Borrow,
+        },
+        glossa_type: GlossaType::Function {
+            params: vec![GlossaType::Number],
+            returns: Box::new(GlossaType::Boolean),
+        },
+    }
+}
+
+/// Helper: Detect built-in collection types
+fn detect_collection_type(type_name: &str) -> Option<(&str, GlossaType)> {
+    match type_name {
+        "συνολον" => Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown)))),
+        "χαρτης" => Some((
+            "HashMap",
+            GlossaType::Map(Box::new(GlossaType::Unknown), Box::new(GlossaType::Unknown)),
+        )),
+        _ => None,
+    }
 }
