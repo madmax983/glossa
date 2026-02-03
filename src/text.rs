@@ -19,7 +19,7 @@ use unicode_normalization::UnicodeNormalization;
 /// # Examples
 ///
 /// ```
-/// use glossa::grammar::normalize_greek;
+/// use glossa::text::normalize_greek;
 ///
 /// assert_eq!(normalize_greek("ἄνθρωπος"), "ανθρωπος");
 /// assert_eq!(normalize_greek("Ἀθῆναι"), "αθηναι");

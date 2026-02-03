@@ -45,8 +45,8 @@ use super::{
 };
 use crate::ast::Expr;
 use crate::errors::GlossaError;
-use crate::grammar::normalize_greek;
 use crate::morphology::{self};
+use crate::text::normalize_greek;
 use smol_str::SmolStr;
 
 /// Convert an AssembledStatement to an AnalyzedStatement

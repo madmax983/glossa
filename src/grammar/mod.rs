@@ -6,7 +6,7 @@
 //!
 //! # The Parsing Pipeline
 //!
-//! 1. **Text Normalization** (`normalize.rs`):
+//! 1. **Text Normalization** (`text` module):
 //!    Greek is polytonic (has accents/breathings: ἄ, ῆ, ῶ).
 //!    We normalize everything to monotonic lowercase to simplify processing.
 //!    `ἄνθρωπος` -> `ανθρωπος`.
@@ -33,10 +33,6 @@
 //!     println!("Text: {}", pair.as_str());
 //! }
 //! ```
-
-mod normalize;
-
-pub use normalize::normalize_greek;
 
 use pest::Parser;
 use pest_derive::Parser;

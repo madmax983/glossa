@@ -37,10 +37,11 @@
 //! * [`ast`]: Abstract Syntax Tree definitions.
 //! * [`codegen`]: Rust code generation logic.
 //! * [`errors`]: Greek-native error messages and diagnostics.
-//! * [`grammar`]: PEG parser and text normalization.
+//! * [`grammar`]: PEG parser.
 //! * [`morphology`]: Word analysis, lexicon, and participle parsing.
 //! * [`parser`]: AST Builder and parsing logic.
 //! * [`semantic`]: The slot-based assembler and semantic analysis.
+//! * [`text`]: Text utilities and normalization.
 
 pub mod ast;
 pub mod codegen;
@@ -49,3 +50,4 @@ pub mod grammar;
 pub mod morphology;
 pub mod parser;
 pub mod semantic;
+pub mod text;

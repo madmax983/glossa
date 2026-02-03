@@ -8,8 +8,8 @@ use super::{
 };
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
-use crate::grammar::normalize_greek;
 use crate::morphology::lexicon;
+use crate::text::normalize_greek;
 // Circular dependencies handled by crate structure
 use super::declarations::parse_function_definition;
 use super::expressions::{contains_function_definition_verb, get_first_word};

@@ -263,7 +263,7 @@ impl Word {
     /// Create a new word, automatically generating the normalized form
     pub fn new(original: impl Into<SmolStr>) -> Self {
         let original = original.into();
-        let normalized = crate::grammar::normalize_greek(&original);
+        let normalized = crate::text::normalize_greek(&original);
         Word {
             original,
             normalized,

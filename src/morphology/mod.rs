@@ -35,7 +35,7 @@ pub use participle::*;
 
 use std::borrow::Cow;
 
-use crate::grammar::normalize_greek;
+use crate::text::normalize_greek;
 
 /// Result of morphological analysis
 #[derive(Debug, Clone, PartialEq)]
