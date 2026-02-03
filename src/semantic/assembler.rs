@@ -369,7 +369,12 @@ pub struct Assembler {
     pending_string_method: Option<(String, String)>,
     is_query: bool,
     is_propagate: bool,
+    /// Token count to prevent DoS via massive sentences
+    token_count: usize,
 }
+
+/// Maximum tokens allowed in a single statement
+const MAX_TOKENS: usize = 1000;
 
 impl Assembler {
     /// Create a new empty assembler
@@ -405,6 +410,7 @@ impl Assembler {
             pending_string_method: None,
             is_query: false,
             is_propagate: false,
+            token_count: 0,
         }
     }
 
@@ -436,6 +442,7 @@ impl Assembler {
         self.pending_string_method = None;
         self.is_query = false;
         self.is_propagate = false;
+        self.token_count = 0;
     }
 
     /// Mark this statement as a query
@@ -469,6 +476,15 @@ impl Assembler {
     /// asm.feed(&obj, "λόγον").unwrap();
     /// ```
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+        // Enforce token limit
+        self.token_count += 1;
+        if self.token_count > MAX_TOKENS {
+            return Err(AssemblyError::StatementTooLong {
+                count: self.token_count,
+                limit: MAX_TOKENS,
+            });
+        }
+
         let normalized = normalize_greek(original);
 
         if self.check_special_markers(&normalized) {
@@ -1511,5 +1527,31 @@ mod tests {
             stmt.string_method,
             Some(("split".to_string(), ",".to_string()))
         );
+    }
+
+    #[test]
+    fn test_assembler_limit() {
+        let mut asm = Assembler::new();
+        let word = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("λογος"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: Some(Gender::Masculine),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+
+        // Feed MAX_TOKENS
+        for _ in 0..MAX_TOKENS {
+            asm.feed(&word, "λόγος").unwrap();
+        }
+
+        // Feed one more
+        let result = asm.feed(&word, "λόγος");
+        assert!(matches!(result, Err(AssemblyError::StatementTooLong { .. })));
     }
 }

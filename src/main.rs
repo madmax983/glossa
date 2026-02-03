@@ -55,6 +55,9 @@ enum Commands {
     Repl,
 }
 
+/// Maximum source file size (1MB) to prevent memory exhaustion
+const MAX_FILE_SIZE: u64 = 1024 * 1024;
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -123,6 +126,12 @@ fn cache_valid(input: &Path, cached_exe: &Path) -> bool {
 }
 
 fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    // Check file size
+    let metadata = fs::metadata(input).into_diagnostic()?;
+    if metadata.len() > MAX_FILE_SIZE {
+        return Err(miette::miette!("Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes", metadata.len(), MAX_FILE_SIZE));
+    }
+
     let source = fs::read_to_string(input).into_diagnostic()?;
 
     let rust_code = compile(&source).map_err(|e| miette::miette!("{}", e))?;
@@ -142,6 +151,12 @@ fn run_file(input: &Path) -> Result<()> {
     // Validate file exists
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
+    }
+
+    // Check file size
+    let metadata = fs::metadata(input).into_diagnostic()?;
+    if metadata.len() > MAX_FILE_SIZE {
+        return Err(miette::miette!("Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes", metadata.len(), MAX_FILE_SIZE));
     }
 
     // Set up cache directory
@@ -202,6 +217,12 @@ fn run_file(input: &Path) -> Result<()> {
 }
 
 fn check_file(input: &Path) -> Result<()> {
+    // Check file size
+    let metadata = fs::metadata(input).into_diagnostic()?;
+    if metadata.len() > MAX_FILE_SIZE {
+        return Err(miette::miette!("Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes", metadata.len(), MAX_FILE_SIZE));
+    }
+
     let source = fs::read_to_string(input).into_diagnostic()?;
 
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;

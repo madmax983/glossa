@@ -622,8 +622,16 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
         AnalyzedExprKind::IndexAccess { array, index } => {
             let array_tokens = generate_expr(array);
             let index_tokens = generate_expr(index);
-            // Cast index to usize for Rust array indexing
-            quote! { #array_tokens[(#index_tokens) as usize] }
+            // Safety check for negative index
+            quote! {
+                {
+                    let idx = #index_tokens;
+                    if idx < 0 {
+                        panic!("Negative index access: {}", idx);
+                    }
+                    #array_tokens[idx as usize]
+                }
+            }
         }
 
         AnalyzedExprKind::Variable(name) => {
@@ -969,8 +977,10 @@ fn transliterate(greek: &str) -> String {
                 if c.is_ascii_alphanumeric() || c == '_' {
                     result.push(c);
                 } else {
-                    // Replace invalid characters with underscore to prevent panic in format_ident!
-                    result.push('_');
+                    // Replace invalid characters with unique hex code to prevent collisions
+                    // e.g. ϟ -> _u3df_
+                    use std::fmt::Write;
+                    write!(result, "_u{:x}_", c as u32).unwrap();
                 }
                 continue;
             }
@@ -1045,6 +1055,20 @@ mod tests {
         assert_eq!(transliterate("χρηστος"), "chrestos");
         assert_eq!(transliterate("λογος"), "logos");
         assert_eq!(transliterate("φιλοσοφια"), "philosophia");
+    }
+
+    #[test]
+    fn test_transliterate_unique() {
+        // Test that different invalid characters produce different outputs
+        let koppa = "ϟ";
+        let stigma = "ϛ";
+
+        let t_koppa = transliterate(koppa);
+        let t_stigma = transliterate(stigma);
+
+        assert_ne!(t_koppa, t_stigma, "Different invalid chars should not collide");
+        assert!(t_koppa.contains("_u3df_")); // Koppa is 0x3DF
+        assert!(t_stigma.contains("_u3db_")); // Stigma is 0x3DB
     }
 
     #[test]
