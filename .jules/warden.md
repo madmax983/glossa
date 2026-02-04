@@ -29,3 +29,15 @@
 3. **Resource Limits:** Enforced `MAX_FILE_SIZE` (1MB) and `MAX_TOKENS` (1000/stmt).
 
 **Severity:** Medium (DoS & Logic bugs).
+
+## 2026-06-01 - Logic Bug in Morphology & REPL DoS
+
+**Threat:**
+1. Logic bug in `src/morphology/conjugation.rs`: `trim_end_matches('θ')` over-stripped stems ending in theta.
+2. REPL DoS: Unbounded history growth in `ReplContext`.
+
+**Defense:**
+1. Switched to `strip_suffix('θ')` in conjugation.
+2. Enforced `MAX_REPL_BINDINGS` (50) and `MAX_REPL_SOURCE_LEN` (50KB) in `src/main.rs`.
+
+**Severity:** Low (Logic bug) / Medium (DoS).

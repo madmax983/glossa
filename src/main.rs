@@ -312,6 +312,11 @@ fn print_help() {
     println!("  ξ λέγε.");
 }
 
+/// Maximum number of bindings to track in REPL history
+const MAX_REPL_BINDINGS: usize = 50;
+/// Maximum total source size for REPL history
+const MAX_REPL_SOURCE_LEN: usize = 50_000;
+
 struct ReplContext {
     bindings: Vec<String>,
 }
@@ -324,12 +329,26 @@ impl ReplContext {
     }
 
     fn execute(&mut self, input: &str) -> std::result::Result<String, GlossaError> {
+        // Check binding count limit
+        if self.bindings.len() > MAX_REPL_BINDINGS {
+            return Err(GlossaError::semantic(
+                "REPL binding limit exceeded (50). Please use .καθαρός (.clear)",
+            ));
+        }
+
         // Build full program with previous bindings
         let mut full_source = self.bindings.join("\n");
         if !full_source.is_empty() {
             full_source.push('\n');
         }
         full_source.push_str(input);
+
+        // Check total size limit
+        if full_source.len() > MAX_REPL_SOURCE_LEN {
+            return Err(GlossaError::semantic(
+                "REPL source size limit exceeded (50KB). Please use .καθαρός (.clear)",
+            ));
+        }
 
         // Try to compile
         let ast = parse(&full_source)?;
@@ -449,6 +468,45 @@ mod tests {
                 .unwrap_err()
                 .to_string()
                 .contains("Ἀρχεῖον λίαν μέγα")
+        );
+    }
+
+    #[test]
+    fn test_repl_binding_limit() {
+        let mut context = ReplContext::new();
+
+        // Add max bindings
+        for i in 0..MAX_REPL_BINDINGS {
+            context.execute(&format!("ξ{} πέντε ἔστω.", i)).unwrap();
+        }
+
+        // Add one more (this puts us over the limit of 50 -> 51)
+        // The check is `> 50`, so 50 is allowed, 51 triggers error on NEXT call
+        context.execute("υπερβολή πέντε ἔστω.").unwrap();
+
+        // This one should be blocked
+        let result = context.execute("τέλος πέντε ἔστω.");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("binding limit"));
+    }
+
+    #[test]
+    fn test_repl_source_limit() {
+        let mut context = ReplContext::new();
+
+        // Create a huge input that exceeds the limit immediately
+        // The check happens before parsing, so content validity doesn't matter much
+        // as long as it triggers the length check.
+        let huge_input = " ".repeat(MAX_REPL_SOURCE_LEN + 1);
+
+        let result = context.execute(&huge_input);
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("source size limit")
         );
     }
 }
