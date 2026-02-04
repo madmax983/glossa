@@ -19,7 +19,7 @@
 
 program = { SOI ~ statement* ~ EOI }
 
-statement = { (type_definition | trait_definition | trait_impl | clause_list) ~ statement_end }
+statement = { test_declaration | (type_definition | trait_definition | trait_impl | clause_list) ~ statement_end }
 
 statement_end = { period | query | propagate }
 
@@ -31,6 +31,18 @@ trait_definition = { character_keyword ~ greek_word ~ orizontin_keyword ~ "{" ~ 
 
 // Trait implementation: εἶδος typename τῷ traitname ἐμπίπτειν { methods }
 trait_impl = { eidos_keyword ~ greek_word ~ dative_marker ~ greek_word ~ empiptein_keyword ~ "{" ~ impl_method_list? ~ "}" }
+
+// Test declaration: δοκιμή «test name» period body τέλος period
+// Use explicit strings to ensure higher precedence than greek_word in clause_list
+// statement* must not consume τέλος, so we need a different approach
+test_declaration = {
+    ("δοκιμή" | "δοκιμη") ~ string_literal ~ statement_end ~
+    test_body ~
+    ("τέλος" | "τελος") ~ statement_end
+}
+
+// Test body: statements that are NOT τέλος
+test_body = { (!("τέλος" | "τελος") ~ statement)* }
 
 // Keywords
 eidos_keyword = { "εἶδος" | "ειδος" }
@@ -55,6 +67,10 @@ trait_method = { (dei_keyword | ede_keyword) ~ greek_word+ ~ (chain ~ statement+
 // Keywords for trait methods
 dei_keyword = { "δεῖ" | "δει" }
 ede_keyword = { "ἤδη" | "ηδη" }
+
+// Keywords for test declarations
+dokime_keyword = @{ ("δοκιμή" | "δοκιμη") ~ !GREEK_CHAR }
+telos_keyword = @{ ("τέλος" | "τελος") ~ !GREEK_CHAR }
 
 // Implementation method list: method implementations (each has one statement body)
 impl_method_list = { impl_method+ }

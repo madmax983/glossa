@@ -499,3 +499,48 @@ pub fn infer_return_type_from_body(body: &[AnalyzedStatement]) -> Option<GlossaT
     }
     None
 }
+
+/// Analyze a test declaration statement
+pub fn analyze_test_declaration(
+    test_decl: &crate::ast::TestDecl,
+    scope: &mut Scope,
+) -> Result<AnalyzedStatement, GlossaError> {
+    let test_name = test_decl.name.clone();
+
+    // Analyze the test body statements
+    let mut analyzed_body = Vec::new();
+
+    // Create a child scope for the test
+    {
+        let mut test_scope = scope.enter_scope();
+
+        for body_stmt in &test_decl.body {
+            // Handle control flow
+            if let Some(control_flow) = analyze_control_flow(body_stmt, &mut test_scope)? {
+                analyzed_body.push(control_flow);
+            }
+            // Handle struct instantiation
+            else if let Some(struct_inst) = try_parse_struct_instantiation(body_stmt, &mut test_scope)? {
+                analyzed_body.push(struct_inst);
+            }
+            // Handle trait method calls
+            else if let Some(method_call) = try_parse_trait_method_call(body_stmt, &mut test_scope)? {
+                analyzed_body.push(method_call);
+            }
+            // Regular statement analysis
+            else {
+                let assembled = analyze_single_statement_with_assembler(body_stmt)?;
+                let analyzed = convert_assembled_to_analyzed(&assembled, &mut test_scope)?;
+                analyzed_body.push(analyzed);
+            }
+        }
+    }
+
+    Ok(AnalyzedStatement {
+        kind: StatementKind::TestDeclaration {
+            name: test_name,
+            body: analyzed_body,
+        },
+        expressions: vec![],
+    })
+}

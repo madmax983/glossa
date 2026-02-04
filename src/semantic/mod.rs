@@ -55,7 +55,7 @@ use crate::errors::GlossaError;
 
 use self::control_flow::analyze_control_flow;
 use self::conversion::convert_assembled_to_analyzed;
-use self::declarations::{analyze_trait_definition, analyze_trait_impl, analyze_type_definition};
+use self::declarations::{analyze_test_declaration, analyze_trait_definition, analyze_trait_impl, analyze_type_definition};
 use self::expressions::feed_expr_to_assembler_with_context;
 use self::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
 
@@ -81,6 +81,12 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
         // Handle trait implementations
         if let Statement::TraitImpl(trait_impl) = stmt {
             analyzed_statements.push(analyze_trait_impl(trait_impl, &mut scope)?);
+            continue;
+        }
+
+        // Handle test declarations
+        if let Statement::TestDeclaration(test_decl) = stmt {
+            analyzed_statements.push(analyze_test_declaration(test_decl, &mut scope)?);
             continue;
         }
 

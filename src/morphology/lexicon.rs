@@ -235,6 +235,42 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         },
     );
 
+    // δεῖ - it is necessary (impersonal verb for assertions)
+    m.insert(
+        "δει",
+        LexiconEntry {
+            lemma: "δει",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "it is necessary, must be",
+            rust_equiv: Some("assert!"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+        },
+    );
+
+    // ἰσοῦται - equals (3rd person singular middle/passive of ἰσόω)
+    m.insert(
+        "ισουται",
+        LexiconEntry {
+            lemma: "ισοω",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "equals, is made equal to",
+            rust_equiv: Some("assert_eq!"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Middle),
+        },
+    );
+
     // =========================================================================
     // Built-in type nouns
     // =========================================================================
@@ -2058,6 +2094,16 @@ pub fn is_print_verb(normalized_word: &str) -> bool {
 /// Check if a word is a find verb (εὑρέ)
 pub fn is_find_verb(normalized_word: &str) -> bool {
     matches!(normalized_word, "ευρε" | "ευρισκω")
+}
+
+/// Check if a word is the δεῖ assertion verb
+pub fn is_assert_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "δει" | "dei")
+}
+
+/// Check if a word is the ἰσοῦται equality verb
+pub fn is_equals_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "ισοω" | "isoo" | "ισουται" | "isoutai")
 }
 
 /// Check if a word is the "any" quantifier (τι)

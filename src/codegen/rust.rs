@@ -34,11 +34,12 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
     // Check if we need collection imports
     let needs_collections = uses_collections(program);
 
-    // Separate trait defs, struct defs, trait impls, function defs, and main body statements
+    // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
     let mut trait_defs = Vec::new();
     let mut struct_defs = Vec::new();
     let mut trait_impls = Vec::new();
     let mut fn_defs = Vec::new();
+    let mut test_defs = Vec::new();
     let mut main_stmts = Vec::new();
 
     for stmt in &program.statements {
@@ -47,6 +48,7 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
             StatementKind::TypeDefinition { .. } => struct_defs.push(generate_statement(stmt)),
             StatementKind::TraitImplementation { .. } => trait_impls.push(generate_statement(stmt)),
             StatementKind::FunctionDef { .. } => fn_defs.push(generate_statement(stmt)),
+            StatementKind::TestDeclaration { .. } => test_defs.push(generate_statement(stmt)),
             _ => main_stmts.push(generate_statement(stmt)),
         }
     }
@@ -72,6 +74,8 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
         fn main() {
             #(#main_stmts)*
         }
+
+        #(#test_defs)*
     };
 
     output.to_string()
@@ -133,6 +137,7 @@ fn statement_uses_collections(stmt: &AnalyzedStatement) -> bool {
                 .map(|b| b.iter().any(statement_uses_collections))
                 .unwrap_or(false)
         }),
+        StatementKind::TestDeclaration { body, .. } => body.iter().any(statement_uses_collections),
         _ => false,
     }
 }
@@ -252,6 +257,8 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             type_name,
             methods,
         } => generate_trait_impl(trait_name, type_name, methods),
+
+        StatementKind::TestDeclaration { name, body } => generate_test(name, body),
     }
 }
 
@@ -567,6 +574,30 @@ fn generate_trait_impl(
     }
 }
 
+fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
+    // Sanitize test name for Rust function identifier
+    // Replace spaces and special chars with underscores
+    let test_fn_name = name
+        .to_lowercase()
+        .replace(' ', "_")
+        .replace('-', "_")
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_')
+        .collect::<String>();
+
+    let test_ident = format_ident!("test_{}", test_fn_name);
+
+    // Generate body statements
+    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+
+    quote! {
+        #[test]
+        fn #test_ident() {
+            #(#body_stmts)*
+        }
+    }
+}
+
 fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => {
@@ -754,6 +785,17 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
                     }
                 }
             }
+        }
+
+        AnalyzedExprKind::Assert { condition } => {
+            let cond = generate_expr(condition);
+            quote! { assert!(#cond) }
+        }
+
+        AnalyzedExprKind::AssertEq { left, right } => {
+            let left_tokens = generate_expr(left);
+            let right_tokens = generate_expr(right);
+            quote! { assert_eq!(#left_tokens, #right_tokens) }
         }
     }
 }

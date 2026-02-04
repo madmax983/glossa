@@ -83,6 +83,12 @@ pub fn classify_assembled_statement(
     if let Some(res) = classify_function_call(asm_stmt, scope)? {
         return Ok(res);
     }
+    if let Some(res) = classify_assertion(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = classify_equality_assertion(asm_stmt, scope)? {
+        return Ok(res);
+    }
     if let Some(res) = classify_subjunctive_comparison(asm_stmt, scope)? {
         return Ok(res);
     }
@@ -565,6 +571,114 @@ fn classify_collection_mutation(
             };
 
             return Ok(Some((StatementKind::Expression, vec![method_call])));
+        }
+    }
+    Ok(None)
+}
+
+/// Helper: Detect δεῖ assertion pattern
+/// Pattern: <condition> δεῖ (any word order)
+/// Examples: "2 ἐν χ δεῖ", "δεῖ 2 ἐν χ"
+fn classify_assertion(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+    if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
+
+        if crate::morphology::lexicon::is_assert_verb(&verb_lemma) {
+            // The condition is everything except the verb
+            // Common pattern: <element> ἐν <collection> δεῖ
+
+            // Check for collection contains pattern (most common in tests)
+            if asm_stmt.has_containment_preposition
+                && let Some(ref subj) = asm_stmt.subject
+            {
+                // Pattern: element ἐν collection δεῖ
+                let subj_name = normalize_greek(&subj.original);
+                let collection_type = scope
+                    .lookup(&subj_name)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+
+                let element = if let Some(lit) = asm_stmt.literals.first() {
+                    literal_to_analyzed_expr(lit)
+                } else {
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(0),
+                        glossa_type: GlossaType::Number,
+                    }
+                };
+
+                let is_map = matches!(collection_type, GlossaType::Map(_, _));
+
+                let contains_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::CollectionContains {
+                        collection: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subj_name.clone()),
+                            glossa_type: collection_type.clone(),
+                        }),
+                        element: Box::new(element),
+                        is_map,
+                    },
+                    glossa_type: GlossaType::Boolean,
+                };
+
+                let assert_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Assert {
+                        condition: Box::new(contains_expr),
+                    },
+                    glossa_type: GlossaType::Unit,
+                };
+
+                return Ok(Some((StatementKind::Expression, vec![assert_expr])));
+            }
+        }
+    }
+    Ok(None)
+}
+
+/// Helper: Detect ἰσοῦται equality assertion pattern
+/// Pattern: <value1> <value2> ἰσοῦται (any word order)
+/// Examples: "κ 5 ἰσοῦται", "ἰσοῦται κ 5", "5 κ ἰσοῦται"
+fn classify_equality_assertion(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+    if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
+
+        if crate::morphology::lexicon::is_equals_verb(&verb_lemma) {
+            // We need two values to compare
+            let mut left_expr = None;
+            let mut right_expr = None;
+
+            // Get subject (variable)
+            if let Some(ref subj) = asm_stmt.subject {
+                if let Some(var_type) = scope.lookup(&subj.lemma) {
+                    left_expr = Some(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    });
+                }
+            }
+
+            // Get literal (expected value)
+            if let Some(literal) = asm_stmt.literals.first() {
+                right_expr = Some(literal_to_analyzed_expr(literal));
+            }
+
+            if let (Some(left), Some(right)) = (left_expr, right_expr) {
+                let assert_eq_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::AssertEq {
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    },
+                    glossa_type: GlossaType::Unit,
+                };
+
+                return Ok(Some((StatementKind::Expression, vec![assert_eq_expr])));
+            }
         }
     }
     Ok(None)

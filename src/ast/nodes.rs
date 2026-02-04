@@ -26,6 +26,8 @@ pub enum Statement {
     TraitDefinition(TraitDef),
     /// A trait implementation statement
     TraitImpl(TraitImplDef),
+    /// A test declaration
+    TestDeclaration(TestDecl),
 }
 
 /// A type definition (struct)
@@ -74,6 +76,15 @@ pub struct ImplMethodDef {
     pub body: Vec<Statement>,
 }
 
+/// A test declaration (δοκιμή)
+#[derive(Debug, Clone, PartialEq)]
+pub struct TestDecl {
+    /// Test name (string literal)
+    pub name: String,
+    /// Test body statements
+    pub body: Vec<Statement>,
+}
+
 /// A clause within a statement (comma-separated)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Clause {
@@ -91,6 +102,7 @@ impl Statement {
             Statement::TypeDefinition(_) => Box::new(std::iter::empty()),
             Statement::TraitDefinition(_) => Box::new(std::iter::empty()),
             Statement::TraitImpl(_) => Box::new(std::iter::empty()),
+            Statement::TestDeclaration(_) => Box::new(std::iter::empty()),
         }
     }
 
@@ -101,6 +113,7 @@ impl Statement {
             Statement::TypeDefinition(_) => false,
             Statement::TraitDefinition(_) => false,
             Statement::TraitImpl(_) => false,
+            Statement::TestDeclaration(_) => false,
         }
     }
 
@@ -111,6 +124,7 @@ impl Statement {
             Statement::TypeDefinition(_) => false,
             Statement::TraitDefinition(_) => false,
             Statement::TraitImpl(_) => false,
+            Statement::TestDeclaration(_) => false,
         }
     }
 
@@ -121,6 +135,7 @@ impl Statement {
             Statement::TypeDefinition(_) => &[],
             Statement::TraitDefinition(_) => &[],
             Statement::TraitImpl(_) => &[],
+            Statement::TestDeclaration(_) => &[],
         }
     }
 }
