@@ -191,6 +191,31 @@ mod tests {
         assert_eq!(map_type(&GlossaType::Number), "i64".to_string());
         assert_eq!(map_type(&GlossaType::String), "String".to_string());
         assert_eq!(map_type(&GlossaType::Boolean), "bool".to_string());
+        assert_eq!(map_type(&GlossaType::Unit), "()".to_string());
+        assert_eq!(map_type(&GlossaType::Unknown), "_".to_string());
+        assert_eq!(map_type(&GlossaType::Function { params: vec![], returns: Box::new(GlossaType::Unit) }), "fn".to_string());
+
+        let list_type = GlossaType::List(Box::new(GlossaType::Number));
+        assert_eq!(map_type(&list_type), "Vec<i64>");
+
+        let set_type = GlossaType::Set(Box::new(GlossaType::String));
+        assert_eq!(map_type(&set_type), "HashSet<String>");
+
+        let map_type_obj = GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number));
+        assert_eq!(map_type(&map_type_obj), "HashMap<String, i64>");
+
+        let struct_type = GlossaType::Struct {
+            name: "χρηστης".into(),
+            gender: crate::morphology::Gender::Masculine,
+            fields: vec![]
+        };
+        assert_eq!(map_type(&struct_type), "Chrestes"); // sanitized and capitalized
+
+        let option_type = GlossaType::Option(Box::new(GlossaType::Number));
+        assert_eq!(map_type(&option_type), "Option<i64>");
+
+        let result_type = GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String));
+        assert_eq!(map_type(&result_type), "Result<i64, String>");
     }
 
     #[test]
@@ -198,31 +223,67 @@ mod tests {
         assert_eq!(map_ownership(Ownership::Borrow), "&");
         assert_eq!(map_ownership(Ownership::BorrowMut), "&mut ");
         assert_eq!(map_ownership(Ownership::Move), "");
+        assert_eq!(map_ownership(Ownership::Copy), "");
     }
 
     #[test]
     fn test_map_case_ownership() {
+        assert_eq!(map_case_ownership(Case::Nominative), "");
         assert_eq!(map_case_ownership(Case::Genitive), "&");
         assert_eq!(map_case_ownership(Case::Dative), "&mut");
         assert_eq!(map_case_ownership(Case::Accusative), "");
+        assert_eq!(map_case_ownership(Case::Vocative), "");
     }
 
     #[test]
     fn test_map_bin_op() {
         assert_eq!(map_bin_op(BinaryOp::Add), "+");
+        assert_eq!(map_bin_op(BinaryOp::Sub), "-");
+        assert_eq!(map_bin_op(BinaryOp::Mul), "*");
+        assert_eq!(map_bin_op(BinaryOp::Div), "/");
+        assert_eq!(map_bin_op(BinaryOp::Mod), "%");
+        assert_eq!(map_bin_op(BinaryOp::Eq), "==");
+        assert_eq!(map_bin_op(BinaryOp::Ne), "!=");
+        assert_eq!(map_bin_op(BinaryOp::Lt), "<");
+        assert_eq!(map_bin_op(BinaryOp::Le), "<=");
         assert_eq!(map_bin_op(BinaryOp::Gt), ">");
+        assert_eq!(map_bin_op(BinaryOp::Ge), ">=");
         assert_eq!(map_bin_op(BinaryOp::And), "&&");
+        assert_eq!(map_bin_op(BinaryOp::Or), "||");
     }
 
     #[test]
     fn test_map_unary_op() {
         assert_eq!(map_unary_op(UnaryOp::Not), "!");
+        assert_eq!(map_unary_op(UnaryOp::Neg), "-");
     }
 
     #[test]
     fn test_sanitize_greek_letter() {
-        assert_eq!(sanitize_name("ξ"), "xi");
         assert_eq!(sanitize_name("α"), "alpha");
+        assert_eq!(sanitize_name("β"), "beta");
+        assert_eq!(sanitize_name("γ"), "gamma");
+        assert_eq!(sanitize_name("δ"), "delta");
+        assert_eq!(sanitize_name("ε"), "epsilon");
+        assert_eq!(sanitize_name("ζ"), "zeta");
+        assert_eq!(sanitize_name("η"), "eta");
+        assert_eq!(sanitize_name("θ"), "theta");
+        assert_eq!(sanitize_name("ι"), "iota");
+        assert_eq!(sanitize_name("κ"), "kappa");
+        assert_eq!(sanitize_name("λ"), "lambda");
+        assert_eq!(sanitize_name("μ"), "mu");
+        assert_eq!(sanitize_name("ν"), "nu");
+        assert_eq!(sanitize_name("ξ"), "xi");
+        assert_eq!(sanitize_name("ο"), "omicron");
+        assert_eq!(sanitize_name("π"), "pi");
+        assert_eq!(sanitize_name("ρ"), "rho");
+        assert_eq!(sanitize_name("σ"), "sigma");
+        assert_eq!(sanitize_name("ς"), "sigma");
+        assert_eq!(sanitize_name("τ"), "tau");
+        assert_eq!(sanitize_name("υ"), "upsilon");
+        assert_eq!(sanitize_name("φ"), "phi");
+        assert_eq!(sanitize_name("χ"), "chi");
+        assert_eq!(sanitize_name("ψ"), "psi");
         assert_eq!(sanitize_name("ω"), "omega");
     }
 
@@ -242,5 +303,12 @@ mod tests {
         assert_ne!(t_koppa, t_stigma);
         assert!(t_koppa.contains("_u3df_"));
         assert!(t_stigma.contains("_u3db_"));
+    }
+
+    #[test]
+    fn test_transliterate_numbers() {
+        // Rust identifiers cannot start with a number
+        assert_eq!(transliterate("123"), "_123");
+        assert_eq!(transliterate("1α"), "_1a");
     }
 }
