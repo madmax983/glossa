@@ -22,8 +22,8 @@
 
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedImplMethod, AnalyzedIteratorOp, AnalyzedProgram,
-    AnalyzedStatement, AnalyzedTraitMethod, GlossaType, StatementKind,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedMethod, AnalyzedProgram,
+    AnalyzedStatement, GlossaType, StatementKind,
 };
 use crate::text::normalize_greek;
 use proc_macro2::TokenStream;
@@ -124,10 +124,8 @@ fn statement_uses_collections(stmt: &AnalyzedStatement) -> bool {
                 })
         }
         StatementKind::FunctionDef { body, .. } => body.iter().any(statement_uses_collections),
-        StatementKind::TraitImplementation { methods, .. } => methods
-            .iter()
-            .any(|m| m.body.iter().any(statement_uses_collections)),
-        StatementKind::TraitDefinition { methods, .. } => methods.iter().any(|m| {
+        StatementKind::TraitImplementation { methods, .. }
+        | StatementKind::TraitDefinition { methods, .. } => methods.iter().any(|m| {
             m.body
                 .as_ref()
                 .map(|b| b.iter().any(statement_uses_collections))
@@ -425,7 +423,7 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
     }
 }
 
-fn generate_trait_def(name: &str, methods: &[AnalyzedTraitMethod]) -> TokenStream {
+fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
     // Capitalize trait name for Rust conventions
     let trait_name = format_ident!("{}", capitalize(&sanitize_name(name)));
 
@@ -458,18 +456,12 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedTraitMethod]) -> TokenStrea
                 let ret_str = type_to_rust_string(ret_type);
                 let ret_ty = format_ident!("{}", ret_str);
 
-                if method.is_default {
-                    if let Some(body) = &method.body {
-                        let body_stmts: Vec<TokenStream> =
-                            body.iter().map(generate_statement).collect();
-                        quote! {
-                            fn #method_name(#(#param_tokens),*) -> #ret_ty {
-                                #(#body_stmts)*
-                            }
-                        }
-                    } else {
-                        quote! {
-                            fn #method_name(#(#param_tokens),*) -> #ret_ty;
+                if let Some(body) = &method.body {
+                    let body_stmts: Vec<TokenStream> =
+                        body.iter().map(generate_statement).collect();
+                    quote! {
+                        fn #method_name(#(#param_tokens),*) -> #ret_ty {
+                            #(#body_stmts)*
                         }
                     }
                 } else {
@@ -477,18 +469,12 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedTraitMethod]) -> TokenStrea
                         fn #method_name(#(#param_tokens),*) -> #ret_ty;
                     }
                 }
-            } else if method.is_default {
-                if let Some(body) = &method.body {
-                    let body_stmts: Vec<TokenStream> =
-                        body.iter().map(generate_statement).collect();
-                    quote! {
-                        fn #method_name(#(#param_tokens),*) {
-                            #(#body_stmts)*
-                        }
-                    }
-                } else {
-                    quote! {
-                        fn #method_name(#(#param_tokens),*);
+            } else if let Some(body) = &method.body {
+                let body_stmts: Vec<TokenStream> =
+                    body.iter().map(generate_statement).collect();
+                quote! {
+                    fn #method_name(#(#param_tokens),*) {
+                        #(#body_stmts)*
                     }
                 }
             } else {
@@ -509,7 +495,7 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedTraitMethod]) -> TokenStrea
 fn generate_trait_impl(
     trait_name: &str,
     type_name: &str,
-    methods: &[AnalyzedImplMethod],
+    methods: &[AnalyzedMethod],
 ) -> TokenStream {
     // Capitalize trait and type names for Rust conventions
     let trait_ident = format_ident!("{}", capitalize(&sanitize_name(trait_name)));
@@ -539,7 +525,11 @@ fn generate_trait_impl(
                 .collect();
 
             // Generate method body
-            let body_stmts: Vec<TokenStream> = method.body.iter().map(generate_statement).collect();
+            let body_stmts: Vec<TokenStream> = if let Some(body) = &method.body {
+                body.iter().map(generate_statement).collect()
+            } else {
+                Vec::new()
+            };
 
             // Generate return type
             if let Some(ret_type) = &method.return_type {
