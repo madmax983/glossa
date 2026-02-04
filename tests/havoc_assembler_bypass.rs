@@ -15,5 +15,9 @@ fn test_assembler_string_literal_bypass() {
     let stmt = asm.finalize().unwrap();
 
     // This assertion should FAIL if the vulnerability exists
-    assert!(stmt.literals.len() <= 1000, "DoS vulnerability: Accepted {} tokens, limit is 1000", stmt.literals.len());
+    assert!(
+        stmt.literals.len() <= 1000,
+        "DoS vulnerability: Accepted {} tokens, limit is 1000",
+        stmt.literals.len()
+    );
 }

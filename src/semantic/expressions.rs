@@ -389,13 +389,11 @@ fn feed_expr_recursive(
             // Feed each term in the phrase, passing context through
             // But detect nested phrases (parenthesized expressions) and store them separately
             for term in terms {
-                if matches!(term, Expr::Phrase(_)) {
-                    // This is a nested phrase (parenthesized expression)
-                    // Store it for later analysis instead of flattening
-                    if let Expr::Phrase(nested_terms) = term {
-                        if let Err(e) = asm.feed_nested_phrase(nested_terms.clone()) {
-                            return Err(GlossaError::semantic(e.to_string()));
-                        }
+                // This is a nested phrase (parenthesized expression)
+                // Store it for later analysis instead of flattening
+                if let Expr::Phrase(nested_terms) = term {
+                    if let Err(e) = asm.feed_nested_phrase(nested_terms.clone()) {
+                        return Err(GlossaError::semantic(e.to_string()));
                     }
                 } else {
                     feed_expr_recursive(asm, term, context, depth + 1)?;
