@@ -361,13 +361,10 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
                     Cow::Owned(format!("{}ω", true_stem))
                 }
                 LemmaStrategy::PassiveOptative => {
-                    if stem.ends_with('θ') {
-                        // Strip the θη passive marker to get base stem, then add -ω for lemma
-                        let base_stem = stem.trim_end_matches('θ');
-                        Cow::Owned(format!("{}ω", base_stem))
-                    } else {
-                        Cow::Owned(format!("{}ω", stem))
-                    }
+                    // Strip the θη passive marker (if present) to get base stem, then add -ω for lemma
+                    // Use strip_suffix instead of trim_end_matches to avoid over-stripping root characters
+                    let base_stem = stem.strip_suffix('θ').unwrap_or(stem);
+                    Cow::Owned(format!("{}ω", base_stem))
                 }
             };
 
@@ -501,11 +498,7 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
                 LemmaStrategy::Standard => Cow::Borrowed(stem),
                 LemmaStrategy::StripAugment => strip_augment(stem),
                 LemmaStrategy::PassiveOptative => {
-                    if stem.ends_with('θ') {
-                        Cow::Borrowed(stem.trim_end_matches('θ'))
-                    } else {
-                        Cow::Borrowed(stem)
-                    }
+                    Cow::Borrowed(stem.strip_suffix('θ').unwrap_or(stem))
                 }
             };
 
