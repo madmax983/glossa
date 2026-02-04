@@ -455,6 +455,19 @@ impl Assembler {
         self.is_propagate = is_propagate;
     }
 
+    /// Check token limit
+    fn check_limit(&mut self) -> Result<(), AssemblyError> {
+        self.token_count += 1;
+        if self.token_count > MAX_TOKENS {
+            Err(AssemblyError::StatementTooLong {
+                count: self.token_count,
+                limit: MAX_TOKENS,
+            })
+        } else {
+            Ok(())
+        }
+    }
+
     /// Feed a morphologically-analyzed token into the assembler
     ///
     /// This routes the token to the correct slot based on its case.
@@ -477,13 +490,7 @@ impl Assembler {
     /// ```
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
         // Enforce token limit
-        self.token_count += 1;
-        if self.token_count > MAX_TOKENS {
-            return Err(AssemblyError::StatementTooLong {
-                count: self.token_count,
-                limit: MAX_TOKENS,
-            });
-        }
+        self.check_limit()?;
 
         let normalized = normalize_greek(original);
 
@@ -527,10 +534,12 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_string("χαῖρε".to_string());
+    /// asm.feed_string("χαῖρε".to_string()).unwrap();
     /// ```
-    pub fn feed_string(&mut self, value: String) {
+    pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
+        self.check_limit()?;
         self.pending_literals.push(Literal::String(value));
+        Ok(())
     }
 
     /// Feed a number literal
@@ -541,10 +550,12 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_number(42);
+    /// asm.feed_number(42).unwrap();
     /// ```
-    pub fn feed_number(&mut self, value: i64) {
+    pub fn feed_number(&mut self, value: i64) -> Result<(), AssemblyError> {
+        self.check_limit()?;
         self.pending_literals.push(Literal::Number(value));
+        Ok(())
     }
 
     /// Feed a boolean literal
@@ -555,10 +566,12 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_boolean(true);
+    /// asm.feed_boolean(true).unwrap();
     /// ```
-    pub fn feed_boolean(&mut self, value: bool) {
+    pub fn feed_boolean(&mut self, value: bool) -> Result<(), AssemblyError> {
+        self.check_limit()?;
         self.pending_literals.push(Literal::Boolean(value));
+        Ok(())
     }
 
     /// Feed an array literal
@@ -571,10 +584,12 @@ impl Assembler {
     ///
     /// let mut asm = Assembler::new();
     /// let elements = vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)];
-    /// asm.feed_array(elements);
+    /// asm.feed_array(elements).unwrap();
     /// ```
-    pub fn feed_array(&mut self, elements: Vec<Expr>) {
+    pub fn feed_array(&mut self, elements: Vec<Expr>) -> Result<(), AssemblyError> {
+        self.check_limit()?;
         self.pending_arrays.push(elements);
+        Ok(())
     }
 
     /// Feed a parenthesized block (nested expression)
@@ -585,10 +600,12 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_block(vec![]); // Empty block
+    /// asm.feed_block(vec![]).unwrap(); // Empty block
     /// ```
-    pub fn feed_block(&mut self, statements: Vec<crate::ast::Statement>) {
+    pub fn feed_block(&mut self, statements: Vec<crate::ast::Statement>) -> Result<(), AssemblyError> {
+        self.check_limit()?;
         self.pending_blocks.push(statements);
+        Ok(())
     }
 
     /// Feed a nested phrase (parenthesized function call)
@@ -600,10 +617,12 @@ impl Assembler {
     /// use glossa::ast::Expr;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]);
+    /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]).unwrap();
     /// ```
-    pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) {
+    pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) -> Result<(), AssemblyError> {
+        self.check_limit()?;
         self.pending_nested_phrases.push(terms);
+        Ok(())
     }
 
     /// Feed an index access (`array[index]`)
@@ -620,10 +639,12 @@ impl Assembler {
     ///     normalized: "πιναξ".into(),
     /// });
     /// let index = Expr::NumberLiteral(0);
-    /// asm.feed_index_access(array, index);
+    /// asm.feed_index_access(array, index).unwrap();
     /// ```
-    pub fn feed_index_access(&mut self, array: Expr, index: Expr) {
+    pub fn feed_index_access(&mut self, array: Expr, index: Expr) -> Result<(), AssemblyError> {
+        self.check_limit()?;
         self.pending_index_accesses.push((array, index));
+        Ok(())
     }
 
     /// Feed an unwrap expression (expr!)
@@ -639,10 +660,12 @@ impl Assembler {
     ///     original: "τιμή".into(),
     ///     normalized: "τιμη".into(),
     /// });
-    /// asm.feed_unwrap(expr);
+    /// asm.feed_unwrap(expr).unwrap();
     /// ```
-    pub fn feed_unwrap(&mut self, expr: Expr) {
+    pub fn feed_unwrap(&mut self, expr: Expr) -> Result<(), AssemblyError> {
+        self.check_limit()?;
         self.pending_unwraps.push(expr);
+        Ok(())
     }
 
     /// Feed a participle (for lambda construction)
@@ -663,13 +686,14 @@ impl Assembler {
     ///     number: Number::Plural,
     ///     confidence: 1.0,
     /// };
-    /// asm.feed_participle(&analysis, "διπλασιαζόμενα");
+    /// asm.feed_participle(&analysis, "διπλασιαζόμενα").unwrap();
     /// ```
     pub fn feed_participle(
         &mut self,
         analysis: &crate::morphology::ParticipleAnalysis,
         original: &str,
-    ) {
+    ) -> Result<(), AssemblyError> {
+        self.check_limit()?;
         let constituent = ParticipleConstituent {
             verb_lemma: analysis.verb_lemma(),
             original: original.to_string(),
@@ -680,6 +704,7 @@ impl Assembler {
             number: analysis.number,
         };
         self.pending_participles.push(constituent);
+        Ok(())
     }
 
     /// Handle a noun/pronoun/adjective - route to slot by case
@@ -1095,14 +1120,14 @@ mod tests {
         let mut asm = Assembler::new();
 
         // Feed true (boolean literal - handled by parser, goes to feed_boolean)
-        asm.feed_boolean(true);
+        asm.feed_boolean(true).unwrap();
 
         // Feed ἤ (OR operator)
         let or_particle = analyze("η");
         asm.feed(&or_particle, "ἤ").unwrap();
 
         // Feed false (boolean literal)
-        asm.feed_boolean(false);
+        asm.feed_boolean(false).unwrap();
 
         // Feed λέγε (print verb)
         let verb = analyze("λεγε");
@@ -1203,7 +1228,7 @@ mod tests {
     fn test_literals() {
         let mut asm = Assembler::new();
 
-        asm.feed_string("χαῖρε κόσμε".to_string());
+        asm.feed_string("χαῖρε κόσμε".to_string()).unwrap();
 
         let verb = analyze("λεγε");
         asm.feed(&verb, "λέγε").unwrap();
@@ -1496,7 +1521,7 @@ mod tests {
         asm.feed(&marker_analysis, "κατά").unwrap();
 
         // 3. Delimiter Literal: ","
-        asm.feed_string(",".to_string());
+        asm.feed_string(",".to_string()).unwrap();
 
         // 4. Split Verb: "σχίζεται" (is split)
         let split_verb = MorphAnalysis {

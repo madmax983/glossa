@@ -194,12 +194,12 @@ pub fn infer_type(word: &str) -> GlossaType {
 }
 
 /// Detect built-in collection types (HashSet, HashMap)
-pub fn detect_collection_type(type_name: &str) -> Option<(&'static str, GlossaType)> {
+pub fn detect_collection_type(type_name: &str) -> Option<GlossaType> {
     match type_name {
-        "συνολον" => Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown)))),
-        "χαρτης" => Some((
-            "HashMap",
-            GlossaType::Map(Box::new(GlossaType::Unknown), Box::new(GlossaType::Unknown)),
+        "συνολον" => Some(GlossaType::Set(Box::new(GlossaType::Unknown))),
+        "χαρτης" => Some(GlossaType::Map(
+            Box::new(GlossaType::Unknown),
+            Box::new(GlossaType::Unknown),
         )),
         _ => None,
     }

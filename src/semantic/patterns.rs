@@ -199,12 +199,17 @@ pub fn try_parse_struct_instantiation(
             let type_name = &type_word.normalized;
 
             // Check for built-in collection types first (HashSet, HashMap)
-            if let Some((rust_type, glossa_type)) =
-                crate::semantic::types::detect_collection_type(type_name)
-            {
+            if let Some(glossa_type) = crate::semantic::types::detect_collection_type(type_name) {
+                // Extract collection type string (HashSet/HashMap) from the glossa type
+                let collection_type_str = match &glossa_type {
+                    GlossaType::Set(_) => "HashSet".to_string(),
+                    GlossaType::Map(_, _) => "HashMap".to_string(),
+                    _ => unreachable!("detect_collection_type returned unexpected type"),
+                };
+
                 let collection_new = AnalyzedExpr {
                     expr: AnalyzedExprKind::CollectionNew {
-                        collection_type: rust_type.to_string(),
+                        collection_type: collection_type_str,
                     },
                     glossa_type: glossa_type.clone(),
                 };

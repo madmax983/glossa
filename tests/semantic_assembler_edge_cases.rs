@@ -10,7 +10,7 @@ fn test_split_verb_consumes_literal_without_subject() {
     asm.feed(&kata, "κατά").unwrap();
 
     // 2. Feed string literal " "
-    asm.feed_string(" ".to_string());
+    asm.feed_string(" ".to_string()).unwrap();
 
     // 3. Feed "σχίζεται" (split verb)
     // This triggers check_method_verbs
@@ -130,7 +130,7 @@ fn test_length_property_not_ignored_without_subject() {
     asm.feed(&is_verb, "ἐστί").unwrap();
 
     // Feed "5"
-    asm.feed_number(5);
+    asm.feed_number(5).unwrap();
 
     let stmt = asm.finalize().unwrap();
 

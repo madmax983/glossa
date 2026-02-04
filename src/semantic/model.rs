@@ -76,32 +76,22 @@ pub enum StatementKind {
     /// Trait definition: χαρακτήρ name ὁρίζειν { methods }
     TraitDefinition {
         name: SmolStr,
-        methods: Vec<AnalyzedTraitMethod>,
+        methods: Vec<AnalyzedMethod>,
     },
     /// Trait implementation: εἶδος Type τῷ Trait ἐμπίπτειν { methods }
     TraitImplementation {
         trait_name: SmolStr,
         type_name: SmolStr,
-        methods: Vec<AnalyzedImplMethod>,
+        methods: Vec<AnalyzedMethod>,
     },
 }
 
-/// An analyzed method in a trait definition (AST node)
+/// An analyzed method (used in both trait definitions and implementations)
 #[derive(Debug, Clone)]
-pub struct AnalyzedTraitMethod {
+pub struct AnalyzedMethod {
     pub name: SmolStr,
     pub params: Vec<(SmolStr, GlossaType)>,
-    pub is_default: bool,
-    pub body: Option<Vec<AnalyzedStatement>>, // Some for default methods, None for required
-    pub return_type: Option<GlossaType>,
-}
-
-/// An analyzed method in a trait implementation (AST node)
-#[derive(Debug, Clone)]
-pub struct AnalyzedImplMethod {
-    pub name: SmolStr,
-    pub params: Vec<(SmolStr, GlossaType)>,
-    pub body: Vec<AnalyzedStatement>,
+    pub body: Option<Vec<AnalyzedStatement>>, // None for required trait methods, Some for everything else
     pub return_type: Option<GlossaType>,
 }
 
@@ -242,7 +232,7 @@ pub enum AnalyzedExprKind {
 #[derive(Debug, Clone)]
 pub struct TraitDef {
     pub name: SmolStr,
-    pub methods: Vec<AnalyzedTraitMethod>,
+    pub methods: Vec<AnalyzedMethod>,
 }
 
 /// Trait implementation for a type
