@@ -37,3 +37,8 @@
 **Bloat:** Duplicate logic for struct instantiation in `src/semantic/conversion.rs` (broken, handled only literals) and `src/semantic/patterns.rs` (working, handled variables).
 **Cut:** Deleted `classify_struct_instantiation` from `conversion.rs` and consolidated `detect_collection_type` into `src/semantic/types.rs`.
 **Saved:** Removed ~100 lines of duplicate/broken code and fixed a bug preventing variable arguments in constructors.
+
+## [Reduction]
+**Bloat:** `AnalyzedImplMethod` in `src/semantic/model.rs` was a near-duplicate of `AnalyzedTraitMethod`. `is_default` field was redundant.
+**Cut:** Merged into `AnalyzedTraitMethod`. Removed `is_default` (inferred from `body.is_some()`). Unified codegen logic.
+**Saved:** Reduced semantic model complexity. Removed redundant struct and field. Simplified trait implementation handling.
