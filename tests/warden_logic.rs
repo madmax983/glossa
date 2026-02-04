@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use glossa::morphology::{analyze_verb, Tense, Mood, Voice};
+    use glossa::morphology::{Mood, Tense, Voice, analyze_verb};
 
     #[test]
     fn test_trim_end_matches_bug_reproduction() {
@@ -30,6 +30,9 @@ mod tests {
         // Or better, we assert the CORRECT behavior and expect it to fail.
         // Warden philosophy: Red Phase = Write tests that fail.
 
-        assert_eq!(analysis.lemma, "αθω", "Logic bug: trim_end_matches over-stripped the stem 'αθθ'");
+        assert_eq!(
+            analysis.lemma, "αθω",
+            "Logic bug: trim_end_matches over-stripped the stem 'αθθ'"
+        );
     }
 }

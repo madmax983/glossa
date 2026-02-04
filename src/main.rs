@@ -470,4 +470,43 @@ mod tests {
                 .contains("Ἀρχεῖον λίαν μέγα")
         );
     }
+
+    #[test]
+    fn test_repl_binding_limit() {
+        let mut context = ReplContext::new();
+
+        // Add max bindings
+        for i in 0..MAX_REPL_BINDINGS {
+            context.execute(&format!("ξ{} πέντε ἔστω.", i)).unwrap();
+        }
+
+        // Add one more (this puts us over the limit of 50 -> 51)
+        // The check is `> 50`, so 50 is allowed, 51 triggers error on NEXT call
+        context.execute("υπερβολή πέντε ἔστω.").unwrap();
+
+        // This one should be blocked
+        let result = context.execute("τέλος πέντε ἔστω.");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("binding limit"));
+    }
+
+    #[test]
+    fn test_repl_source_limit() {
+        let mut context = ReplContext::new();
+
+        // Create a huge input that exceeds the limit immediately
+        // The check happens before parsing, so content validity doesn't matter much
+        // as long as it triggers the length check.
+        let huge_input = " ".repeat(MAX_REPL_SOURCE_LEN + 1);
+
+        let result = context.execute(&huge_input);
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("source size limit")
+        );
+    }
 }
