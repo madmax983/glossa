@@ -147,7 +147,9 @@ pub fn try_parse_struct_instantiation(
             let type_name = &type_word.normalized;
 
             // Check for built-in collection types first (HashSet, HashMap)
-            if let Some((rust_type, glossa_type)) = detect_collection_type(type_name) {
+            if let Some((rust_type, glossa_type)) =
+                crate::semantic::types::detect_collection_type(type_name)
+            {
                 let collection_new = AnalyzedExpr {
                     expr: AnalyzedExprKind::CollectionNew {
                         collection_type: rust_type.to_string(),
@@ -782,17 +784,5 @@ fn create_comparison_predicate(
             params: vec![GlossaType::Number],
             returns: Box::new(GlossaType::Boolean),
         },
-    }
-}
-
-/// Helper: Detect built-in collection types
-fn detect_collection_type(type_name: &str) -> Option<(&str, GlossaType)> {
-    match type_name {
-        "συνολον" => Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown)))),
-        "χαρτης" => Some((
-            "HashMap",
-            GlossaType::Map(Box::new(GlossaType::Unknown), Box::new(GlossaType::Unknown)),
-        )),
-        _ => None,
     }
 }

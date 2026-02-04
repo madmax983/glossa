@@ -193,6 +193,18 @@ pub fn infer_type(word: &str) -> GlossaType {
     GlossaType::Unknown
 }
 
+/// Detect built-in collection types (HashSet, HashMap)
+pub fn detect_collection_type(type_name: &str) -> Option<(&'static str, GlossaType)> {
+    match type_name {
+        "συνολον" => Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown)))),
+        "χαρτης" => Some((
+            "HashMap",
+            GlossaType::Map(Box::new(GlossaType::Unknown), Box::new(GlossaType::Unknown)),
+        )),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -235,5 +247,12 @@ mod tests {
         assert!(GlossaType::Number.is_compatible(&GlossaType::Number));
         assert!(!GlossaType::Number.is_compatible(&GlossaType::String));
         assert!(GlossaType::Unknown.is_compatible(&GlossaType::Number));
+    }
+
+    #[test]
+    fn test_detect_collection_type() {
+        assert!(detect_collection_type("συνολον").is_some());
+        assert!(detect_collection_type("χαρτης").is_some());
+        assert!(detect_collection_type("other").is_none());
     }
 }
