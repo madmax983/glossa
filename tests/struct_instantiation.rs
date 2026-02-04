@@ -1,5 +1,5 @@
 use glossa::parser::parse;
-use glossa::semantic::{analyze_program, StatementKind, AnalyzedExprKind};
+use glossa::semantic::{AnalyzedExprKind, StatementKind, analyze_program};
 
 #[test]
 fn test_struct_instantiation_with_variable_args() {

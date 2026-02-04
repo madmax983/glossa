@@ -147,7 +147,9 @@ pub fn try_parse_struct_instantiation(
             let type_name = &type_word.normalized;
 
             // Check for built-in collection types first (HashSet, HashMap)
-            if let Some((rust_type, glossa_type)) = crate::semantic::types::detect_collection_type(type_name) {
+            if let Some((rust_type, glossa_type)) =
+                crate::semantic::types::detect_collection_type(type_name)
+            {
                 let collection_new = AnalyzedExpr {
                     expr: AnalyzedExprKind::CollectionNew {
                         collection_type: rust_type.to_string(),
@@ -784,4 +786,3 @@ fn create_comparison_predicate(
         },
     }
 }
-
