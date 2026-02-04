@@ -47,7 +47,6 @@ use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::morphology::{self};
 use crate::text::normalize_greek;
-use smol_str::SmolStr;
 
 /// Convert an AssembledStatement to an AnalyzedStatement
 ///
@@ -79,9 +78,6 @@ pub fn classify_assembled_statement(
         return Ok(res);
     }
     if let Some(res) = classify_property_access_print(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_struct_instantiation(asm_stmt, scope)? {
         return Ok(res);
     }
     if let Some(res) = classify_function_call(asm_stmt, scope)? {
@@ -172,120 +168,6 @@ fn classify_property_access_print(
                 };
 
                 return Ok(Some((StatementKind::Print, vec![prop_access])));
-            }
-        }
-    }
-    Ok(None)
-}
-
-/// Helper: Detect struct instantiation or collection creation
-fn classify_struct_instantiation(
-    asm_stmt: &AssembledStatement,
-    scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
-    if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
-
-        if crate::morphology::lexicon::is_binding_verb(&verb_lemma)
-            && !asm_stmt.adjectives.is_empty()
-            && let (Some(subject), Some(object)) = (&asm_stmt.subject, &asm_stmt.object)
-        {
-            // Check if adjective is νέον (new)
-            let adj_lemma = normalize_greek(&asm_stmt.adjectives[0].lemma);
-            if adj_lemma == "νεος" {
-                // Get variable name from subject
-                let var_name = normalize_greek(&subject.original);
-
-                // Get type name from object
-                let type_name = normalize_greek(&object.original);
-
-                // Check if type exists in scope
-                if let Some(struct_type) = scope.lookup_type(&type_name).cloned() {
-                    // Extract field names from struct type
-                    let field_names: Vec<SmolStr> =
-                        if let GlossaType::Struct { fields, .. } = &struct_type {
-                            fields.iter().map(|(name, _)| name.clone()).collect()
-                        } else {
-                            vec![]
-                        };
-
-                    // Get constructor arguments from literals
-                    let args: Vec<AnalyzedExpr> = asm_stmt
-                        .literals
-                        .iter()
-                        .map(literal_to_analyzed_expr)
-                        .collect();
-
-                    // Build struct instantiation
-                    let struct_inst = AnalyzedExpr {
-                        expr: AnalyzedExprKind::StructInstantiation {
-                            type_name: type_name.clone(),
-                            fields: field_names,
-                            args,
-                        },
-                        glossa_type: struct_type.clone(),
-                    };
-
-                    // Register variable in scope
-                    scope.define(var_name.clone(), struct_type.clone());
-
-                    return Ok(Some((
-                        StatementKind::Binding {
-                            name: var_name.clone(),
-                            value_type: struct_type.clone(),
-                            mutable: false,
-                        },
-                        vec![
-                            AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable(var_name),
-                                glossa_type: struct_type.clone(),
-                            },
-                            struct_inst,
-                        ],
-                    )));
-                }
-
-                // Check for built-in collection types (HashSet, HashMap)
-                let collection_type = match type_name.as_str() {
-                    "συνολον" => {
-                        Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown))))
-                    }
-                    "χαρτης" => Some((
-                        "HashMap",
-                        GlossaType::Map(
-                            Box::new(GlossaType::Unknown),
-                            Box::new(GlossaType::Unknown),
-                        ),
-                    )),
-                    _ => None,
-                };
-
-                if let Some((rust_type, glossa_type)) = collection_type {
-                    let collection_new = AnalyzedExpr {
-                        expr: AnalyzedExprKind::CollectionNew {
-                            collection_type: rust_type.to_string(),
-                        },
-                        glossa_type: glossa_type.clone(),
-                    };
-
-                    // Register variable in scope (mutable for collection operations)
-                    scope.define_mut(var_name.clone(), glossa_type.clone());
-
-                    return Ok(Some((
-                        StatementKind::Binding {
-                            name: var_name.clone(),
-                            value_type: glossa_type.clone(),
-                            mutable: true, // Collections are implicitly mutable
-                        },
-                        vec![
-                            AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable(var_name),
-                                glossa_type: glossa_type.clone(),
-                            },
-                            collection_new,
-                        ],
-                    )));
-                }
             }
         }
     }

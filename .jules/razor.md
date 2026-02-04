@@ -32,3 +32,8 @@
 **Bloat:** `MethodSignature`, `DefaultMethod`, `ImplMethod`, and redundant `TraitDef` fields in `src/semantic/model.rs`.
 **Cut:** Consolidated into `TraitDef` using `Vec<AnalyzedTraitMethod>` and simplified `TraitImpl`. Deleted redundant structs.
 **Saved:** Reduced code duplication and complexity in semantic model and declarations. ~50 lines removed.
+
+## [Reduction]
+**Bloat:** Duplicate logic for struct instantiation in `src/semantic/conversion.rs` (broken, handled only literals) and `src/semantic/patterns.rs` (working, handled variables).
+**Cut:** Deleted `classify_struct_instantiation` from `conversion.rs` and consolidated `detect_collection_type` into `src/semantic/types.rs`.
+**Saved:** Removed ~100 lines of duplicate/broken code and fixed a bug preventing variable arguments in constructors.
