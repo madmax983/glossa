@@ -246,15 +246,7 @@ fn check_file(input: &Path) -> Result<()> {
 }
 
 fn run_repl() -> Result<()> {
-    // Welcome Banner
-    let version = format!("v{}", env!("CARGO_PKG_VERSION"));
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α".bold().cyan());
-    println!("   {}", "Code as the ancients intended.".italic().dim());
-    println!("   {}", version.blue());
-    println!();
-    println!("   {}", "Type .help for commands".dim());
-    println!();
+    print_banner();
 
     let mut context = ReplContext::new();
 
@@ -314,6 +306,18 @@ fn run_repl() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn print_banner() {
+    // Welcome Banner
+    let version = format!("v{}", env!("CARGO_PKG_VERSION"));
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α".bold().cyan());
+    println!("   {}", "Code as the ancients intended.".italic().dim());
+    println!("   {}", version.blue());
+    println!();
+    println!("   {}", "Type .help for commands".dim());
+    println!();
 }
 
 fn print_help() {
@@ -613,6 +617,25 @@ mod tests {
         // 5. Test clear simulation (new context)
         let context = ReplContext::new();
         assert!(context.last_scope.is_none());
+        print_env(&context);
+    }
+
+    #[test]
+    fn test_print_help_coverage() {
+        // Just verify it doesn't panic
+        print_help();
+    }
+
+    #[test]
+    fn test_print_banner_coverage() {
+        // Just verify it doesn't panic
+        print_banner();
+    }
+
+    #[test]
+    fn test_print_env_empty() {
+        let context = ReplContext::new();
+        // Should print "No variables defined"
         print_env(&context);
     }
 }
