@@ -465,6 +465,15 @@ where
 /// - 3rd person singular aorist indicative (ἔλυσε)
 pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
     let mut analyses = Vec::new();
+    analyze_verb_all_into(word, &mut analyses);
+    analyses
+}
+
+/// Analyze a word as a verb, pushing results into an existing vector
+///
+/// Zero-allocation version of `analyze_verb_all`.
+pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
+    let start_len = analyses.len();
 
     // Special handling for εἰμί (to be) subjunctive forms
     // These are irregular and essential for conditionals (εἰ ... ᾖ)
@@ -555,21 +564,37 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
         });
     }
 
-    // Deduplicate identical analyses
-    analyses.sort_by(|a, b| {
+    // Sort the newly added analyses (the tail)
+    analyses[start_len..].sort_by(|a, b| {
         let key_a = (a.tense, a.mood, a.person, a.number, &a.lemma);
         let key_b = (b.tense, b.mood, b.person, b.number, &b.lemma);
-        format!("{:?}", key_a).cmp(&format!("{:?}", key_b))
-    });
-    analyses.dedup_by(|a, b| {
-        a.tense == b.tense
-            && a.mood == b.mood
-            && a.person == b.person
-            && a.number == b.number
-            && a.lemma == b.lemma
+        key_a.cmp(&key_b)
     });
 
-    analyses
+    // Deduplicate identical analyses in the tail
+    let len = analyses.len();
+    if len > start_len + 1 {
+        let mut w = start_len + 1;
+        for r in start_len + 1..len {
+            let matches = {
+                let a = &analyses[w - 1];
+                let b = &analyses[r];
+                a.tense == b.tense
+                    && a.mood == b.mood
+                    && a.person == b.person
+                    && a.number == b.number
+                    && a.lemma == b.lemma
+            };
+
+            if !matches {
+                if r != w {
+                    analyses.swap(r, w);
+                }
+                w += 1;
+            }
+        }
+        analyses.truncate(w);
+    }
 }
 
 /// Conjugate a verb stem to a specific form
