@@ -2138,24 +2138,7 @@ pub enum BinaryOp {
 }
 
 impl BinaryOp {
-    /// Get the Rust operator string
-    pub fn to_rust(&self) -> &'static str {
-        match self {
-            BinaryOp::Add => "+",
-            BinaryOp::Sub => "-",
-            BinaryOp::Mul => "*",
-            BinaryOp::Div => "/",
-            BinaryOp::Mod => "%",
-            BinaryOp::Eq => "==",
-            BinaryOp::Ne => "!=",
-            BinaryOp::Lt => "<",
-            BinaryOp::Le => "<=",
-            BinaryOp::Gt => ">",
-            BinaryOp::Ge => ">=",
-            BinaryOp::And => "&&",
-            BinaryOp::Or => "||",
-        }
-    }
+    // Rust mapping moved to codegen::mappings
 }
 
 /// Unary operator type for code generation
@@ -2163,16 +2146,6 @@ impl BinaryOp {
 pub enum UnaryOp {
     Not, // οὐ/οὐκ
     Neg, // arithmetic negation
-}
-
-impl UnaryOp {
-    /// Get the Rust operator string
-    pub fn to_rust(&self) -> &'static str {
-        match self {
-            UnaryOp::Not => "!",
-            UnaryOp::Neg => "-",
-        }
-    }
 }
 
 /// Check if a word is a comparison adjective and return the operator
@@ -2458,14 +2431,6 @@ mod tests {
         assert_eq!(arithmetic_operator("γινομενον"), Some(BinaryOp::Mul));
         assert_eq!(arithmetic_operator("μερος"), Some(BinaryOp::Div));
         assert_eq!(arithmetic_operator("υπολοιπον"), Some(BinaryOp::Mod));
-    }
-
-    #[test]
-    fn test_operator_to_rust() {
-        assert_eq!(BinaryOp::Add.to_rust(), "+");
-        assert_eq!(BinaryOp::Gt.to_rust(), ">");
-        assert_eq!(BinaryOp::And.to_rust(), "&&");
-        assert_eq!(UnaryOp::Not.to_rust(), "!");
     }
 
     #[test]

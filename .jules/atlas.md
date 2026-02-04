@@ -36,3 +36,11 @@
 2. Updated all imports to point to `crate::text::normalize_greek`.
 3. Removed `normalize` submodule from `grammar`.
 **Stability:** Decouples core logic from parsing implementation. `text` becomes a leaf utility module, allowing `ast` and `morphology` to be independent of `grammar`.
+
+## [Breaking The Leak: Codegen Logic in Domain Models]
+**Tangle:** `GlossaType`, `Case`, and `Lexicon` models contained `to_rust()` methods, coupling the Semantic and Morphology layers directly to the Rust target language implementation details.
+**Blueprint:**
+1. Created `src/codegen/mappings.rs` to house all Logic for mapping Domain Objects -> Rust Code.
+2. Moved `sanitize_name` and transliteration logic to `mappings.rs`.
+3. Removed `to_rust`, `to_rust_prefix`, and `to_rust_ownership` from `src/semantic` and `src/morphology`.
+**Stability:** Ensures Domain Models are target-agnostic. `codegen` depends on `semantic`/`morphology`, but they no longer "know" about `codegen`.

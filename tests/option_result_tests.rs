@@ -6,6 +6,7 @@
 /// - τί (ti) → Some
 /// - ἐπιτυχία (epitychia) → Ok
 /// - σφάλμα (sphalma) → Err
+use glossa::codegen::mappings::map_type;
 use glossa::semantic::GlossaType;
 
 /// Helper to compile GLOSSA source to Rust code
@@ -38,13 +39,13 @@ fn test_result_type_exists() {
 #[test]
 fn test_option_to_rust() {
     let opt = GlossaType::Option(Box::new(GlossaType::Number));
-    assert_eq!(opt.to_rust(), "Option<i64>");
+    assert_eq!(map_type(&opt), "Option<i64>");
 }
 
 #[test]
 fn test_result_to_rust() {
     let result = GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String));
-    assert_eq!(result.to_rust(), "Result<i64, String>");
+    assert_eq!(map_type(&result), "Result<i64, String>");
 }
 
 #[test]
@@ -64,7 +65,7 @@ fn test_result_type_compatibility() {
 #[test]
 fn test_nested_option() {
     let nested = GlossaType::Option(Box::new(GlossaType::Option(Box::new(GlossaType::Number))));
-    assert_eq!(nested.to_rust(), "Option<Option<i64>>");
+    assert_eq!(map_type(&nested), "Option<Option<i64>>");
 }
 
 // ============================================================================

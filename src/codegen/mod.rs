@@ -12,6 +12,7 @@
 //! 2. **Code Generation**: `codegen::generate_rust` takes the `AnalyzedProgram` and
 //!    produces a Rust source string.
 
+pub mod mappings;
 mod rust;
 
 pub use rust::*;

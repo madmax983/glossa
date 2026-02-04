@@ -20,7 +20,10 @@
 //!
 //! See [`sanitize_name`] for details.
 
-use crate::morphology::lexicon::{BinaryOp, UnaryOp};
+use crate::codegen::mappings::{
+    capitalize, map_bin_op, map_type, map_unary_op, sanitize_name,
+};
+use crate::morphology::lexicon::BinaryOp;
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedImplMethod, AnalyzedIteratorOp, AnalyzedProgram,
     AnalyzedStatement, AnalyzedTraitMethod, GlossaType, StatementKind,
@@ -375,7 +378,7 @@ fn generate_fn_def(
         .map(|(param_name, param_type)| {
             let param_ident = format_ident!("{}", sanitize_name(param_name));
             if let Some(ty) = param_type {
-                let ty_str = type_to_rust_string(ty);
+                let ty_str = map_type(ty);
                 let ty_ident = format_ident!("{}", ty_str);
                 quote! { #param_ident: #ty_ident }
             } else {
@@ -386,7 +389,7 @@ fn generate_fn_def(
 
     // Generate return type
     if let Some(ret_type) = return_type {
-        let ret_str = type_to_rust_string(ret_type);
+        let ret_str = map_type(ret_type);
         let ret_ty = format_ident!("{}", ret_str);
         quote! {
             fn #fn_name(#(#param_tokens),*) -> #ret_ty {
@@ -411,7 +414,7 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
         .iter()
         .map(|(field_name, field_type)| {
             let field_ident = format_ident!("{}", sanitize_name(field_name));
-            let type_str = type_to_rust_string(field_type);
+            let type_str = map_type(field_type);
             let type_ident = format_ident!("{}", type_str);
             quote! { #field_ident: #type_ident }
         })
@@ -446,7 +449,7 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedTraitMethod]) -> TokenStrea
                         quote! { &self }
                     } else {
                         let param_ident = format_ident!("{}", sanitize_name(param_name));
-                        let type_str = type_to_rust_string(param_type);
+                        let type_str = map_type(param_type);
                         let ty = format_ident!("{}", type_str);
                         quote! { #param_ident: #ty }
                     }
@@ -455,7 +458,7 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedTraitMethod]) -> TokenStrea
 
             // Generate return type
             if let Some(ret_type) = &method.return_type {
-                let ret_str = type_to_rust_string(ret_type);
+                let ret_str = map_type(ret_type);
                 let ret_ty = format_ident!("{}", ret_str);
 
                 if method.is_default {
@@ -531,7 +534,7 @@ fn generate_trait_impl(
                         quote! { &self }
                     } else {
                         let param_ident = format_ident!("{}", sanitize_name(param_name));
-                        let type_str = type_to_rust_string(param_type);
+                        let type_str = map_type(param_type);
                         let ty = format_ident!("{}", type_str);
                         quote! { #param_ident: #ty }
                     }
@@ -543,7 +546,7 @@ fn generate_trait_impl(
 
             // Generate return type
             if let Some(ret_type) = &method.return_type {
-                let ret_str = type_to_rust_string(ret_type);
+                let ret_str = map_type(ret_type);
                 let ret_ty = format_ident!("{}", ret_str);
                 quote! {
                     fn #method_name(#(#param_tokens),*) -> #ret_ty {
@@ -679,17 +682,11 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
         AnalyzedExprKind::BinOp { op, left, right } => generate_bin_op(*op, left, right),
 
         AnalyzedExprKind::UnaryOp { op, operand } => {
-            match op {
-                UnaryOp::Not => {
-                    let operand_tokens = generate_expr(operand);
-                    // Standard Rust logical not or bitwise not
-                    quote! { !#operand_tokens }
-                }
-                UnaryOp::Neg => {
-                    let operand_tokens = generate_expr(operand);
-                    quote! { -#operand_tokens }
-                }
-            }
+            let op_str = map_unary_op(*op);
+            use std::str::FromStr;
+            let op_tokens = TokenStream::from_str(op_str).unwrap();
+            let operand_tokens = generate_expr(operand);
+            quote! { #op_tokens #operand_tokens }
         }
 
         AnalyzedExprKind::Range {
@@ -762,21 +759,21 @@ fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> T
     let left_tokens = generate_expr(left);
     let right_tokens = generate_expr(right);
 
-    match op {
-        BinaryOp::Add => quote! { (#left_tokens + #right_tokens) },
-        BinaryOp::Sub => quote! { (#left_tokens - #right_tokens) },
-        BinaryOp::Mul => quote! { (#left_tokens * #right_tokens) },
-        BinaryOp::Div => quote! { (#left_tokens / #right_tokens) },
-        BinaryOp::Mod => quote! { (#left_tokens % #right_tokens) },
-        BinaryOp::Eq => quote! { (#left_tokens == #right_tokens) },
-        BinaryOp::Ne => quote! { (#left_tokens != #right_tokens) },
-        BinaryOp::Lt => quote! { (#left_tokens < #right_tokens) },
-        BinaryOp::Le => quote! { (#left_tokens <= #right_tokens) },
-        BinaryOp::Gt => quote! { (#left_tokens > #right_tokens) },
-        BinaryOp::Ge => quote! { (#left_tokens >= #right_tokens) },
-        BinaryOp::And => quote! { (#left_tokens && #right_tokens) },
-        BinaryOp::Or => quote! { (#left_tokens || #right_tokens) },
-    }
+    // Use mapped operator string to generate quote
+    let op_str = map_bin_op(op);
+
+    // We can't easily interpolate a string into an operator in quote!
+    // But we can parse it, or just fallback to the manual mapping if quote! needs concrete tokens.
+    // quote! supports #ident for identifiers, but operators are Punct.
+    // However, the original code had a match block returning quote!{ ... }
+
+    // Let's stick to the match block for quote generation to ensure correct Punct types,
+    // but we can verify the mapping matches if we wanted.
+    // Actually, `map_bin_op` returns `&str`. Converting that to a TokenStream is easy.
+    use std::str::FromStr;
+    let op_tokens = TokenStream::from_str(op_str).unwrap();
+
+    quote! { (#left_tokens #op_tokens #right_tokens) }
 }
 
 fn generate_struct_lit(
@@ -882,15 +879,6 @@ fn generate_iterator_chain(collection: &AnalyzedExpr, ops: &[AnalyzedIteratorOp]
     current
 }
 
-/// Capitalize the first letter of a string (for Rust type/trait names)
-fn capitalize(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-    }
-}
-
 /// Check if a parameter represents the self parameter in a trait method
 fn is_self_parameter(param_name: &str, idx: usize) -> bool {
     if idx != 0 {
@@ -902,111 +890,6 @@ fn is_self_parameter(param_name: &str, idx: usize) -> bool {
         || param_name == "self"
         || normalized == "τω"
         || param_name.contains("self")
-}
-
-/// Sanitize a Greek name for use as a Rust identifier
-fn sanitize_name(name: &str) -> String {
-    // Map single Greek letters to their names
-    if name.len() <= 2 {
-        // Could be a single Greek letter (2 bytes for UTF-8)
-        match name {
-            "α" => return "alpha".to_string(),
-            "β" => return "beta".to_string(),
-            "γ" => return "gamma".to_string(),
-            "δ" => return "delta".to_string(),
-            "ε" => return "epsilon".to_string(),
-            "ζ" => return "zeta".to_string(),
-            "η" => return "eta".to_string(),
-            "θ" => return "theta".to_string(),
-            "ι" => return "iota".to_string(),
-            "κ" => return "kappa".to_string(),
-            "λ" => return "lambda".to_string(),
-            "μ" => return "mu".to_string(),
-            "ν" => return "nu".to_string(),
-            "ξ" => return "xi".to_string(),
-            "ο" => return "omicron".to_string(),
-            "π" => return "pi".to_string(),
-            "ρ" => return "rho".to_string(),
-            "σ" | "ς" => return "sigma".to_string(),
-            "τ" => return "tau".to_string(),
-            "υ" => return "upsilon".to_string(),
-            "φ" => return "phi".to_string(),
-            "χ" => return "chi".to_string(),
-            "ψ" => return "psi".to_string(),
-            "ω" => return "omega".to_string(),
-            _ => {}
-        }
-    }
-
-    // Transliterate the full name
-    transliterate(name)
-}
-
-/// Transliterate Greek to Latin characters
-fn transliterate(greek: &str) -> String {
-    let mut result = String::new();
-
-    for c in greek.chars() {
-        let trans = match c {
-            'α' => "a",
-            'β' => "b",
-            'γ' => "g",
-            'δ' => "d",
-            'ε' => "e",
-            'ζ' => "z",
-            'η' => "e",
-            'θ' => "th",
-            'ι' => "i",
-            'κ' => "k",
-            'λ' => "l",
-            'μ' => "m",
-            'ν' => "n",
-            'ξ' => "x",
-            'ο' => "o",
-            'π' => "p",
-            'ρ' => "r",
-            'σ' | 'ς' => "s",
-            'τ' => "t",
-            'υ' => "u",
-            'φ' => "ph",
-            'χ' => "ch",
-            'ψ' => "ps",
-            'ω' => "o",
-            _ => {
-                // Keep only ASCII alphanumeric characters and underscore
-                if c.is_ascii_alphanumeric() || c == '_' {
-                    result.push(c);
-                } else {
-                    // Replace invalid characters with unique hex code to prevent collisions
-                    // e.g. ϟ -> _u3df_
-                    use std::fmt::Write;
-                    write!(result, "_u{:x}_", c as u32).unwrap();
-                }
-                continue;
-            }
-        };
-        result.push_str(trans);
-    }
-
-    // Ensure it starts with a letter or underscore (valid Rust identifier)
-    if result
-        .chars()
-        .next()
-        .map(|c| c.is_numeric())
-        .unwrap_or(true)
-    {
-        format!("_{}", result)
-    } else {
-        result
-    }
-}
-
-/// Helper to get Rust type string, working around GlossaType::to_rust issues
-fn type_to_rust_string(ty: &GlossaType) -> String {
-    match ty {
-        GlossaType::Struct { name, .. } => capitalize(&sanitize_name(name)),
-        _ => ty.to_rust(),
-    }
 }
 
 #[cfg(test)]
@@ -1041,45 +924,6 @@ mod tests {
         let code = compile("42 λέγε.");
         assert!(code.contains("println"), "Expected println in: {}", code);
         assert!(code.contains("42"));
-    }
-
-    #[test]
-    fn test_sanitize_greek_letter() {
-        assert_eq!(sanitize_name("ξ"), "xi");
-        assert_eq!(sanitize_name("α"), "alpha");
-        assert_eq!(sanitize_name("ω"), "omega");
-    }
-
-    #[test]
-    fn test_transliterate() {
-        assert_eq!(transliterate("χρηστος"), "chrestos");
-        assert_eq!(transliterate("λογος"), "logos");
-        assert_eq!(transliterate("φιλοσοφια"), "philosophia");
-    }
-
-    #[test]
-    fn test_transliterate_unique() {
-        // Test that different invalid characters produce different outputs
-        let koppa = "ϟ";
-        let stigma = "ϛ";
-
-        let t_koppa = transliterate(koppa);
-        let t_stigma = transliterate(stigma);
-
-        assert_ne!(
-            t_koppa, t_stigma,
-            "Different invalid chars should not collide"
-        );
-        assert!(t_koppa.contains("_u3df_")); // Koppa is 0x3DF
-        assert!(t_stigma.contains("_u3db_")); // Stigma is 0x3DB
-    }
-
-    #[test]
-    fn test_transliterate_mixed_valid_invalid() {
-        // Test mixing valid and invalid characters
-        let input = "αϟβ";
-        let output = transliterate(input);
-        assert_eq!(output, "a_u3df_b");
     }
 
     #[test]
