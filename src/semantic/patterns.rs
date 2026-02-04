@@ -383,8 +383,46 @@ pub fn detect_iterator_pattern(
         return Ok(None);
     }
 
-    // Get the collection - prefer array literals, then subject (but not quantifiers)
-    let collection_expr = if !asm_stmt.arrays.is_empty() {
+    // Get the collection - prefer array literals, then subject
+    let Some(collection_expr) = extract_collection(asm_stmt) else {
+        return Ok(None);
+    };
+
+    // Determine flags for any/all quantification
+    let flags = QuantifierFlags::from(asm_stmt);
+
+    // Start with the collection variable
+    let mut iterator_ops = vec![AnalyzedIteratorOp::Iter];
+
+    // Process adjectives (filter, any, all)
+    process_adjectives(asm_stmt, &flags, &mut iterator_ops);
+
+    // Process participles (map, fold)
+    process_participles(asm_stmt, &mut iterator_ops);
+
+    // Handle any/all operations with explicit operators (comparatives stored as operators)
+    if let Some(chain) =
+        process_explicit_quantifiers(asm_stmt, &flags, &collection_expr, &mut iterator_ops)
+    {
+        return Ok(Some(chain));
+    }
+
+    // Handle find operations
+    if is_find {
+        return process_find(asm_stmt, collection_expr, iterator_ops);
+    }
+
+    // Finalize the iterator chain (add .collect() if needed)
+    finalize_iterator_chain(collection_expr, iterator_ops)
+}
+
+// -------------------------------------------------------------------------------------------------
+// Helper functions for detect_iterator_pattern
+// -------------------------------------------------------------------------------------------------
+
+/// Helper: Extract the collection expression from the assembled statement
+fn extract_collection(asm_stmt: &AssembledStatement) -> Option<AnalyzedExpr> {
+    if !asm_stmt.arrays.is_empty() {
         // Use the first array literal
         let array_elements: Vec<AnalyzedExpr> = asm_stmt.arrays[0]
             .iter()
@@ -400,95 +438,111 @@ pub fn detect_iterator_pattern(
             })
             .collect();
 
-        AnalyzedExpr {
+        Some(AnalyzedExpr {
             expr: AnalyzedExprKind::ArrayLiteral(array_elements),
             glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
-        }
+        })
     } else if let Some(subject) = &asm_stmt.subject {
         // Use subject only if it's not a quantifier (τι/πάντα)
         let collection_name = normalize_greek(&subject.lemma);
         if !crate::morphology::lexicon::is_any_quantifier(&collection_name)
             && !crate::morphology::lexicon::is_all_quantifier(&collection_name)
         {
-            AnalyzedExpr {
+            Some(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(collection_name),
                 glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
-            }
+            })
         } else {
-            return Ok(None);
+            None
         }
     } else {
-        return Ok(None);
-    };
-
-    // Start with the collection variable
-    let mut iterator_ops = vec![AnalyzedIteratorOp::Iter];
-
-    // Check for any/all quantifiers
-    let mut is_any = false;
-    let mut is_all = false;
-    if let Some(ref subj) = asm_stmt.subject {
-        let subj_lemma = normalize_greek(&subj.lemma);
-        is_any = crate::morphology::lexicon::is_any_quantifier(&subj_lemma);
-        is_all = crate::morphology::lexicon::is_all_quantifier(&subj_lemma);
+        None
     }
-    // Also check nominatives for quantifiers
-    for nom in &asm_stmt.nominatives {
-        let nom_lemma = normalize_greek(&nom.lemma);
-        if crate::morphology::lexicon::is_any_quantifier(&nom_lemma) {
-            is_any = true;
-        }
-        if crate::morphology::lexicon::is_all_quantifier(&nom_lemma) {
-            is_all = true;
-        }
-    }
+}
 
+/// Flags to track quantifier presence (any/all)
+struct QuantifierFlags {
+    is_any: bool,
+    is_all: bool,
+}
+
+impl QuantifierFlags {
+    fn from(asm_stmt: &AssembledStatement) -> Self {
+        let mut is_any = false;
+        let mut is_all = false;
+
+        if let Some(ref subj) = asm_stmt.subject {
+            let subj_lemma = normalize_greek(&subj.lemma);
+            is_any = crate::morphology::lexicon::is_any_quantifier(&subj_lemma);
+            is_all = crate::morphology::lexicon::is_all_quantifier(&subj_lemma);
+        }
+
+        // Also check nominatives for quantifiers
+        for nom in &asm_stmt.nominatives {
+            let nom_lemma = normalize_greek(&nom.lemma);
+            if crate::morphology::lexicon::is_any_quantifier(&nom_lemma) {
+                is_any = true;
+            }
+            if crate::morphology::lexicon::is_all_quantifier(&nom_lemma) {
+                is_all = true;
+            }
+        }
+
+        Self { is_any, is_all }
+    }
+}
+
+/// Helper: Process adjectives for filter/any/all patterns
+fn process_adjectives(
+    asm_stmt: &AssembledStatement,
+    flags: &QuantifierFlags,
+    iterator_ops: &mut Vec<AnalyzedIteratorOp>,
+) {
     // Check for comparative adjective filter/any/all pattern
     // Pattern: collection + number + comparative_adj → filter/any/all
-    // Pattern: collection + predicate_adj (implicit zero) → filter/any/all
-    // Example: [1, 10, 3, 8] πέντε μείζονα → filter(|x| x > 5)
-    // Example: [1, 2, 3] πάντα θετικά → all(|x| x > 0)
-    if !asm_stmt.adjectives.is_empty() {
-        for adj in &asm_stmt.adjectives {
-            // Look up adjective in lexicon to check if it's comparative
-            // Use the ORIGINAL form, not the lemma, because comparatives are irregular
-            if let Some(entry) = crate::morphology::lexicon::lookup(&normalize_greek(&adj.original))
-                && entry.pos == crate::morphology::PartOfSpeech::Adjective
-                && let Some(rust_op) = entry.rust_equiv
-                && (rust_op == ">" || rust_op == "<")
-            {
-                // Found a comparative adjective!
-                let comparison_expr = extract_comparison_value(asm_stmt);
+    if asm_stmt.adjectives.is_empty() {
+        return;
+    }
 
-                // Determine the binary operation
-                let bin_op = if rust_op == ">" {
-                    crate::morphology::lexicon::BinaryOp::Gt
-                } else {
-                    crate::morphology::lexicon::BinaryOp::Lt
-                };
+    for adj in &asm_stmt.adjectives {
+        // Look up adjective in lexicon to check if it's comparative
+        // Use the ORIGINAL form, not the lemma, because comparatives are irregular
+        if let Some(entry) = crate::morphology::lexicon::lookup(&normalize_greek(&adj.original))
+            && entry.pos == crate::morphology::PartOfSpeech::Adjective
+            && let Some(rust_op) = entry.rust_equiv
+            && (rust_op == ">" || rust_op == "<")
+        {
+            // Found a comparative adjective!
+            let comparison_expr = extract_comparison_value(asm_stmt);
 
-                // Create the filter predicate: |x| x > value
-                let filter_closure = create_comparison_predicate(bin_op, comparison_expr);
+            // Determine the binary operation
+            let bin_op = if rust_op == ">" {
+                crate::morphology::lexicon::BinaryOp::Gt
+            } else {
+                crate::morphology::lexicon::BinaryOp::Lt
+            };
 
-                // Determine which operation to use based on quantifier
-                if is_any {
-                    iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(filter_closure.clone())));
-                } else if is_all {
-                    iterator_ops.push(AnalyzedIteratorOp::All(Box::new(filter_closure.clone())));
-                } else {
-                    iterator_ops.push(AnalyzedIteratorOp::Filter(Box::new(filter_closure.clone())));
-                }
+            // Create the filter predicate: |x| x > value
+            let filter_closure = create_comparison_predicate(bin_op, comparison_expr);
+
+            // Determine which operation to use based on quantifier
+            if flags.is_any {
+                iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(filter_closure)));
+            } else if flags.is_all {
+                iterator_ops.push(AnalyzedIteratorOp::All(Box::new(filter_closure)));
+            } else {
+                iterator_ops.push(AnalyzedIteratorOp::Filter(Box::new(filter_closure)));
             }
         }
     }
+}
 
-    // Process each participle and add appropriate iterator operation
+/// Helper: Process participles for map/fold patterns
+fn process_participles(asm_stmt: &AssembledStatement, iterator_ops: &mut Vec<AnalyzedIteratorOp>) {
     for participle in &asm_stmt.participles {
         let verb_stem = normalize_greek(&participle.verb_lemma);
 
         // Check for fold pattern: συλλεγόμενα εἰς [target]
-        // Pattern: collection + συλλεγόμενα + εἰς + operator(sum/product) + verb
-        // Note: ἄθροισμα and γινόμενον are stored as operators, not nouns
         let mut is_fold = false;
         if verb_stem.contains("συλλεγ") {
             // Look for target operator (Add for sum, Mul for product)
@@ -546,8 +600,8 @@ pub fn detect_iterator_pattern(
                     };
 
                     iterator_ops.push(AnalyzedIteratorOp::Fold {
-                        init: Box::new(init_expr.clone()),
-                        closure: Box::new(fold_closure.clone()),
+                        init: Box::new(init_expr),
+                        closure: Box::new(fold_closure),
                     });
 
                     is_fold = true;
@@ -562,15 +616,8 @@ pub fn detect_iterator_pattern(
         }
 
         // For now, map present middle participles to .map()
-        // The closure will be the verb operation
         if participle.voice == crate::morphology::Voice::Middle {
-            // Present middle participle: διπλασιαζόμενα → "doubling itself"
-            // Maps to: .map(|x| x * 2)
-
             // Create a simple lambda based on the verb
-
-            // For now, create a placeholder closure
-            // In a full implementation, we'd look up the verb's operation
             let closure_body = if verb_stem.contains("διπλασιαζ") {
                 // διπλασιαζω = "to double"
                 AnalyzedExpr {
@@ -595,17 +642,12 @@ pub fn detect_iterator_pattern(
                 }
             };
 
-            // Determine capture mode based on participle tense
-            // Present participle: borrow (streaming operation)
-            // Aorist participle: move (one-shot consumption)
-            // Perfect participle: memoize (cached result)
             let capture_mode = match participle.tense {
                 crate::morphology::Tense::Aorist => crate::ast::CaptureMode::Move,
                 crate::morphology::Tense::Perfect => crate::ast::CaptureMode::Memoize,
-                _ => crate::ast::CaptureMode::Borrow, // Present, Imperfect, etc.
+                _ => crate::ast::CaptureMode::Borrow,
             };
 
-            // Create closure: |x| body
             let closure = AnalyzedExpr {
                 expr: AnalyzedExprKind::Lambda {
                     params: vec!["x".into()],
@@ -618,13 +660,58 @@ pub fn detect_iterator_pattern(
                 },
             };
 
-            // Lower the closure to HIR and wrap in iterator op
-            iterator_ops.push(AnalyzedIteratorOp::Map(Box::new(closure.clone())));
+            iterator_ops.push(AnalyzedIteratorOp::Map(Box::new(closure)));
         }
     }
+}
 
-    // Handle any/all operations with operators (comparatives stored as operators)
-    if (is_any || is_all) && !asm_stmt.operators.is_empty() {
+/// Helper: Process explicit quantifier operators (any/all via >/<)
+fn process_explicit_quantifiers(
+    asm_stmt: &AssembledStatement,
+    flags: &QuantifierFlags,
+    collection_expr: &AnalyzedExpr,
+    iterator_ops: &mut Vec<AnalyzedIteratorOp>,
+) -> Option<AnalyzedExpr> {
+    if (!flags.is_any && !flags.is_all) || asm_stmt.operators.is_empty() {
+        return None;
+    }
+
+    // Get the comparison operator (Gt or Lt)
+    for &bin_op in &asm_stmt.operators {
+        if matches!(
+            bin_op,
+            crate::morphology::lexicon::BinaryOp::Gt | crate::morphology::lexicon::BinaryOp::Lt
+        ) {
+            let comparison_expr = extract_comparison_value(asm_stmt);
+            let any_all_closure = create_comparison_predicate(bin_op, comparison_expr);
+
+            if flags.is_any {
+                iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(any_all_closure)));
+            } else {
+                iterator_ops.push(AnalyzedIteratorOp::All(Box::new(any_all_closure)));
+            }
+
+            // Build the iterator chain for any/all (returns boolean)
+            return Some(AnalyzedExpr {
+                expr: AnalyzedExprKind::IteratorChain {
+                    collection: Box::new(collection_expr.clone()),
+                    ops: iterator_ops.clone(),
+                },
+                glossa_type: GlossaType::Boolean,
+            });
+        }
+    }
+    None
+}
+
+/// Helper: Process find operations
+fn process_find(
+    asm_stmt: &AssembledStatement,
+    collection_expr: AnalyzedExpr,
+    mut iterator_ops: Vec<AnalyzedIteratorOp>,
+) -> Result<Option<AnalyzedExpr>, GlossaError> {
+    // Find operation: .iter().find(predicate)
+    if !asm_stmt.operators.is_empty() {
         // Get the comparison operator (Gt or Lt)
         for &bin_op in &asm_stmt.operators {
             if matches!(
@@ -632,86 +719,53 @@ pub fn detect_iterator_pattern(
                 crate::morphology::lexicon::BinaryOp::Gt | crate::morphology::lexicon::BinaryOp::Lt
             ) {
                 let comparison_expr = extract_comparison_value(asm_stmt);
-                let any_all_closure = create_comparison_predicate(bin_op, comparison_expr);
+                let find_closure = create_comparison_predicate(bin_op, comparison_expr);
 
-                if is_any {
-                    iterator_ops.push(AnalyzedIteratorOp::Any(Box::new(any_all_closure.clone())));
-                } else {
-                    iterator_ops.push(AnalyzedIteratorOp::All(Box::new(any_all_closure.clone())));
-                }
-
-                // Build the iterator chain for any/all (returns boolean)
-                let iterator_chain = AnalyzedExpr {
-                    expr: AnalyzedExprKind::IteratorChain {
-                        collection: Box::new(collection_expr),
-                        ops: iterator_ops,
-                    },
-                    glossa_type: GlossaType::Boolean,
-                };
-                return Ok(Some(iterator_chain));
+                iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(find_closure)));
+                break;
             }
         }
     }
 
-    // Handle find operations differently from print operations
-    if is_find {
-        // Find operation: .iter().find(predicate)
-        if !asm_stmt.operators.is_empty() {
-            // Get the comparison operator (Gt or Lt)
-            for &bin_op in &asm_stmt.operators {
-                if matches!(
-                    bin_op,
-                    crate::morphology::lexicon::BinaryOp::Gt
-                        | crate::morphology::lexicon::BinaryOp::Lt
-                ) {
-                    let comparison_expr = extract_comparison_value(asm_stmt);
-                    let find_closure = create_comparison_predicate(bin_op, comparison_expr);
-
-                    iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(find_closure.clone())));
-                    break;
-                }
-            }
-        }
-
-        // If no predicate was added, just find the first element (essentially .next())
-        // Use .find(|_| true) to get the first element
-        if iterator_ops.len() <= 1 {
-            // No predicate specified, so find the first element
-            // Create a trivial predicate that always returns true: |_| true
-            let always_true_body = AnalyzedExpr {
-                expr: AnalyzedExprKind::BooleanLiteral(true),
-                glossa_type: GlossaType::Boolean,
-            };
-
-            let find_first_closure = AnalyzedExpr {
-                expr: AnalyzedExprKind::Lambda {
-                    params: vec!["_".into()],
-                    body: Box::new(always_true_body),
-                    capture_mode: crate::ast::CaptureMode::Borrow,
-                },
-                glossa_type: GlossaType::Function {
-                    params: vec![GlossaType::Number],
-                    returns: Box::new(GlossaType::Boolean),
-                },
-            };
-
-            iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(
-                find_first_closure.clone(),
-            )));
-        }
-
-        // Build the iterator chain for find (no .collect())
-        let iterator_chain = AnalyzedExpr {
-            expr: AnalyzedExprKind::IteratorChain {
-                collection: Box::new(collection_expr),
-                ops: iterator_ops,
-            },
-            glossa_type: GlossaType::Number, // find returns Option<T>, but we'll unwrap for now
+    // If no predicate was added, just find the first element (essentially .next())
+    if iterator_ops.len() <= 1 {
+        // No predicate specified, so find the first element
+        // Create a trivial predicate that always returns true: |_| true
+        let always_true_body = AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
         };
 
-        return Ok(Some(iterator_chain));
+        let find_first_closure = AnalyzedExpr {
+            expr: AnalyzedExprKind::Lambda {
+                params: vec!["_".into()],
+                body: Box::new(always_true_body),
+                capture_mode: crate::ast::CaptureMode::Borrow,
+            },
+            glossa_type: GlossaType::Function {
+                params: vec![GlossaType::Number],
+                returns: Box::new(GlossaType::Boolean),
+            },
+        };
+
+        iterator_ops.push(AnalyzedIteratorOp::Find(Box::new(find_first_closure)));
     }
 
+    // Build the iterator chain for find (no .collect())
+    Ok(Some(AnalyzedExpr {
+        expr: AnalyzedExprKind::IteratorChain {
+            collection: Box::new(collection_expr),
+            ops: iterator_ops,
+        },
+        glossa_type: GlossaType::Number, // find returns Option<T>, but we'll unwrap for now
+    }))
+}
+
+/// Helper: Finalize iterator chain with optional collect
+fn finalize_iterator_chain(
+    collection_expr: AnalyzedExpr,
+    mut iterator_ops: Vec<AnalyzedIteratorOp>,
+) -> Result<Option<AnalyzedExpr>, GlossaError> {
     // Print operation: only proceed if we have actual operations
     if iterator_ops.len() <= 1 {
         // No filter/map operations were added, so this isn't an iterator pattern
@@ -731,41 +785,37 @@ pub fn detect_iterator_pattern(
 
     if has_fold {
         // Fold returns a single value, no .collect() needed
-        let iterator_chain = AnalyzedExpr {
+        return Ok(Some(AnalyzedExpr {
             expr: AnalyzedExprKind::IteratorChain {
                 collection: Box::new(collection_expr),
                 ops: iterator_ops,
             },
             glossa_type: GlossaType::Number, // fold returns a single number
-        };
-        return Ok(Some(iterator_chain));
+        }));
     }
 
     if has_any || has_all {
         // Any/all return a boolean, no .collect() needed
-        let iterator_chain = AnalyzedExpr {
+        return Ok(Some(AnalyzedExpr {
             expr: AnalyzedExprKind::IteratorChain {
                 collection: Box::new(collection_expr),
                 ops: iterator_ops,
             },
             glossa_type: GlossaType::Boolean,
-        };
-        return Ok(Some(iterator_chain));
+        }));
     }
 
     // Add .collect() at the end for map/filter operations
     iterator_ops.push(AnalyzedIteratorOp::Collect);
 
     // Build the iterator chain expression
-    let iterator_chain = AnalyzedExpr {
+    Ok(Some(AnalyzedExpr {
         expr: AnalyzedExprKind::IteratorChain {
             collection: Box::new(collection_expr),
             ops: iterator_ops,
         },
         glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
-    };
-
-    Ok(Some(iterator_chain))
+    }))
 }
 
 /// Helper: Extract comparison value for filter/find/any/all
