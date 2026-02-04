@@ -906,89 +906,28 @@ fn is_self_parameter(param_name: &str, idx: usize) -> bool {
 
 /// Sanitize a Greek name for use as a Rust identifier
 fn sanitize_name(name: &str) -> String {
-    // Map single Greek letters to their names
-    if name.len() <= 2 {
-        // Could be a single Greek letter (2 bytes for UTF-8)
-        match name {
-            "α" => return "alpha".to_string(),
-            "β" => return "beta".to_string(),
-            "γ" => return "gamma".to_string(),
-            "δ" => return "delta".to_string(),
-            "ε" => return "epsilon".to_string(),
-            "ζ" => return "zeta".to_string(),
-            "η" => return "eta".to_string(),
-            "θ" => return "theta".to_string(),
-            "ι" => return "iota".to_string(),
-            "κ" => return "kappa".to_string(),
-            "λ" => return "lambda".to_string(),
-            "μ" => return "mu".to_string(),
-            "ν" => return "nu".to_string(),
-            "ξ" => return "xi".to_string(),
-            "ο" => return "omicron".to_string(),
-            "π" => return "pi".to_string(),
-            "ρ" => return "rho".to_string(),
-            "σ" | "ς" => return "sigma".to_string(),
-            "τ" => return "tau".to_string(),
-            "υ" => return "upsilon".to_string(),
-            "φ" => return "phi".to_string(),
-            "χ" => return "chi".to_string(),
-            "ψ" => return "psi".to_string(),
-            "ω" => return "omega".to_string(),
-            _ => {}
+    // Sanitize the full name (preserves Greek characters)
+    sanitize_identifier(name)
+}
+
+/// Sanitize characters for Rust identifier
+fn sanitize_identifier(input: &str) -> String {
+    let mut result = String::new();
+
+    for c in input.chars() {
+        // Keep alphanumeric characters (including Greek) and underscore
+        if c.is_alphanumeric() || c == '_' {
+            result.push(c);
+        } else {
+            // Replace invalid characters with unique hex code to prevent collisions
+            // e.g. ϟ -> _u3df_
+            use std::fmt::Write;
+            write!(result, "_u{:x}_", c as u32).unwrap();
         }
     }
 
-    // Transliterate the full name
-    transliterate(name)
-}
-
-/// Transliterate Greek to Latin characters
-fn transliterate(greek: &str) -> String {
-    let mut result = String::new();
-
-    for c in greek.chars() {
-        let trans = match c {
-            'α' => "a",
-            'β' => "b",
-            'γ' => "g",
-            'δ' => "d",
-            'ε' => "e",
-            'ζ' => "z",
-            'η' => "e",
-            'θ' => "th",
-            'ι' => "i",
-            'κ' => "k",
-            'λ' => "l",
-            'μ' => "m",
-            'ν' => "n",
-            'ξ' => "x",
-            'ο' => "o",
-            'π' => "p",
-            'ρ' => "r",
-            'σ' | 'ς' => "s",
-            'τ' => "t",
-            'υ' => "u",
-            'φ' => "ph",
-            'χ' => "ch",
-            'ψ' => "ps",
-            'ω' => "o",
-            _ => {
-                // Keep only ASCII alphanumeric characters and underscore
-                if c.is_ascii_alphanumeric() || c == '_' {
-                    result.push(c);
-                } else {
-                    // Replace invalid characters with unique hex code to prevent collisions
-                    // e.g. ϟ -> _u3df_
-                    use std::fmt::Write;
-                    write!(result, "_u{:x}_", c as u32).unwrap();
-                }
-                continue;
-            }
-        };
-        result.push_str(trans);
-    }
-
     // Ensure it starts with a letter or underscore (valid Rust identifier)
+    // Rust identifiers cannot start with a number
     if result
         .chars()
         .next()
@@ -1032,7 +971,7 @@ mod tests {
     #[test]
     fn test_generate_binding() {
         let code = compile("ξ πέντε ἔστω.");
-        assert!(code.contains("let xi"));
+        assert!(code.contains("let ξ"));
         assert!(code.contains("5"));
     }
 
@@ -1045,47 +984,48 @@ mod tests {
 
     #[test]
     fn test_sanitize_greek_letter() {
-        assert_eq!(sanitize_name("ξ"), "xi");
-        assert_eq!(sanitize_name("α"), "alpha");
-        assert_eq!(sanitize_name("ω"), "omega");
+        assert_eq!(sanitize_name("ξ"), "ξ");
+        assert_eq!(sanitize_name("α"), "α");
+        assert_eq!(sanitize_name("ω"), "ω");
     }
 
     #[test]
-    fn test_transliterate() {
-        assert_eq!(transliterate("χρηστος"), "chrestos");
-        assert_eq!(transliterate("λογος"), "logos");
-        assert_eq!(transliterate("φιλοσοφια"), "philosophia");
+    fn test_sanitize_identifier() {
+        assert_eq!(sanitize_identifier("χρηστος"), "χρηστος");
+        assert_eq!(sanitize_identifier("λογος"), "λογος");
+        assert_eq!(sanitize_identifier("φιλοσοφια"), "φιλοσοφια");
     }
 
     #[test]
-    fn test_transliterate_unique() {
+    fn test_sanitize_identifier_unique() {
         // Test that different invalid characters produce different outputs
-        let koppa = "ϟ";
-        let stigma = "ϛ";
+        // Use emojis or symbols that are not valid Rust identifiers
+        let pile = "💩";
+        let clown = "🤡";
 
-        let t_koppa = transliterate(koppa);
-        let t_stigma = transliterate(stigma);
+        let t_pile = sanitize_identifier(pile);
+        let t_clown = sanitize_identifier(clown);
 
         assert_ne!(
-            t_koppa, t_stigma,
+            t_pile, t_clown,
             "Different invalid chars should not collide"
         );
-        assert!(t_koppa.contains("_u3df_")); // Koppa is 0x3DF
-        assert!(t_stigma.contains("_u3db_")); // Stigma is 0x3DB
+        assert!(t_pile.contains("_u1f4a9_")); // Pile of poo
+        assert!(t_clown.contains("_u1f921_")); // Clown face
     }
 
     #[test]
-    fn test_transliterate_mixed_valid_invalid() {
+    fn test_sanitize_identifier_mixed_valid_invalid() {
         // Test mixing valid and invalid characters
-        let input = "αϟβ";
-        let output = transliterate(input);
-        assert_eq!(output, "a_u3df_b");
+        let input = "α💩β";
+        let output = sanitize_identifier(input);
+        assert_eq!(output, "α_u1f4a9_β");
     }
 
     #[test]
     fn test_generate_full_program() {
         let code = compile("ξ πέντε ἔστω. ξ λέγε.");
-        assert!(code.contains("let xi = 5"), "Expected binding in: {}", code);
+        assert!(code.contains("let ξ = 5"), "Expected binding in: {}", code);
         assert!(code.contains("println"), "Expected println in: {}", code);
     }
 }

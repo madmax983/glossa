@@ -43,7 +43,8 @@ fn test_instantiation() {
         π νέον σημεῖον πέντε ἔστω.
     "#;
     let code = compile(source);
-    assert!(code.contains("Semeion") || code.contains("semeion"));
+    // Compiler normalizes names (removes accents), so expect unaccented
+    assert!(code.contains("Σημειον") || code.contains("σημειον"));
     assert!(code.contains("5"));
 }
 
@@ -54,7 +55,7 @@ fn test_instantiation_multiple_fields() {
         π νέον σημεῖον πέντε τρία ἔστω.
     "#;
     let code = compile(source);
-    assert!(code.contains("Semeion") || code.contains("semeion"));
+    assert!(code.contains("Σημειον") || code.contains("σημειον"));
 }
 
 // Cycle 5: Field Access
@@ -67,7 +68,7 @@ fn test_field_access() {
     "#;
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
-    assert!(code.contains(".xi") || code.contains(". xi"));
+    assert!(code.contains(".ξ") || code.contains(". ξ"));
 }
 
 #[test]
@@ -80,8 +81,8 @@ fn test_field_access_multiple_fields() {
     "#;
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
-    assert!(code.contains(". xi") || code.contains(".xi"));
-    assert!(code.contains(". psi") || code.contains(".psi"));
+    assert!(code.contains(". ξ") || code.contains(".ξ"));
+    assert!(code.contains(". ψ") || code.contains(".ψ"));
 }
 
 #[test]
@@ -93,9 +94,10 @@ fn test_instantiation_with_literals() {
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
     // It should generate struct instantiation, not string assignment
-    // We expect: let chrestes = Chrestes { onoma: "Σωκράτης".to_string(), elikia: 70 };
-    assert!(code.contains("struct Chrestes"));
-    assert!(code.contains("let chrestes = Chrestes"));
+    // We expect: let χρήστης = Χρηστης { ονομα: "Σωκράτης".to_string(), ηλικια: 70 };
+    // Names are normalized (accents removed)
+    assert!(code.contains("struct Χρηστης"));
+    assert!(code.contains("let χρηστης = Χρηστης"));
     assert!(code.contains("Σωκράτης"));
     assert!(code.contains("70"));
 }

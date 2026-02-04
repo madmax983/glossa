@@ -39,7 +39,7 @@ fn test_function_with_two_params() {
     let code = compile("προσθεσις ὁρίζειν τῷ ξ τῷ ψ· δός ξ ψ ἄθροισμα.");
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("fn"));
-    assert!(code.contains("xi") && code.contains("psi"));
+    assert!(code.contains("ξ") && code.contains("ψ"));
 }
 
 #[test]
@@ -58,7 +58,7 @@ fn test_simple_return() {
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("return"));
     // Should return xi * 2, not just a literal
-    assert!(code.contains("xi") || code.contains("*") || code.contains("2"));
+    assert!(code.contains("ξ") || code.contains("*") || code.contains("2"));
 }
 
 #[test]
@@ -82,8 +82,8 @@ fn test_function_call() {
     );
     eprintln!("Generated code:\n{}", code);
     assert!(
-        code.contains("prosthesis")
-            && (code.contains("prosthesis(") || code.contains("prosthesis ("))
+        code.contains("προσθεσις")
+            && (code.contains("προσθεσις(") || code.contains("προσθεσις ("))
     );
 }
 
@@ -98,7 +98,7 @@ fn test_nested_calls() {
     eprintln!("Generated code:\n{}", code);
     // Check for nested diplasiasmos calls (allowing for whitespace)
     assert!(
-        code.matches("diplasiasmos").count() >= 3,
+        code.matches("διπλασιασμος").count() >= 3,
         "Expected at least 3 occurrences of diplasiasmos (fn def + 2 calls)"
     );
     assert!(code.contains("5i64"), "Expected literal 5 as argument");
@@ -118,7 +118,7 @@ fn test_function_local_variables() {
     ",
     );
     eprintln!("Generated code:\n{}", code);
-    assert!(code.contains("let topikon"));
+    assert!(code.contains("let τοπικον"));
 }
 
 #[test]

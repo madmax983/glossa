@@ -29,7 +29,7 @@ This allows for **Free Word Order**:
 
 ## Quick Start: The Hero's Journey
 
-Here is a simple program that defines a user struct and greets them.
+Here is a simple program that defines a user struct and greets them. Save this code as `hero.γλ`.
 
 ```glossa
 // Define a type (struct)
@@ -48,6 +48,12 @@ Here is a simple program that defines a user struct and greets them.
 // Access property and print
 // "of the user" (genitive) "name" (nominative) "say" (verb)
 χρήστου ὄνομα λέγε.
+```
+
+Run the program:
+
+```bash
+cargo run --release -- hero.γλ
 ```
 
 ## Control Flow

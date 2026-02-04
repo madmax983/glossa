@@ -21,16 +21,16 @@ fn test_hello_cosmos() {
 #[test]
 fn test_variable_binding() {
     let code = compile("ξ πέντε ἔστω.").unwrap();
-    assert!(code.contains("let xi"));
+    assert!(code.contains("let ξ"));
     assert!(code.contains("5"));
 }
 
 #[test]
 fn test_variable_binding_and_use() {
     let code = compile("ξ πέντε ἔστω. ξ λέγε.").unwrap();
-    assert!(code.contains("let xi = 5"));
+    assert!(code.contains("let ξ = 5"));
     assert!(code.contains("println"));
-    assert!(code.contains("xi"));
+    assert!(code.contains("ξ"));
 }
 
 #[test]
@@ -42,8 +42,8 @@ fn test_number_literal() {
 #[test]
 fn test_multiple_statements() {
     let code = compile("α πέντε ἔστω. β δέκα ἔστω. α λέγε.").unwrap();
-    assert!(code.contains("let alpha = 5"));
-    assert!(code.contains("let beta = 10"));
+    assert!(code.contains("let α = 5"));
+    assert!(code.contains("let β = 10"));
 }
 
 #[test]
@@ -61,15 +61,15 @@ fn test_preserves_greek_in_strings() {
 #[test]
 fn test_mutable_binding() {
     let code = compile("μετά ξ πέντε ἔστω.").unwrap();
-    assert!(code.contains("let mut xi"));
+    assert!(code.contains("let mut ξ"));
     assert!(code.contains("5"));
 }
 
 #[test]
 fn test_assignment_codegen() {
     let code = compile("μετά ξ πέντε ἔστω. ξ δέκα γίγνεται.").unwrap();
-    assert!(code.contains("let mut xi = 5"));
-    assert!(code.contains("xi = 10"));
+    assert!(code.contains("let mut ξ = 5"));
+    assert!(code.contains("ξ = 10"));
 }
 
 #[test]
@@ -89,8 +89,8 @@ fn test_undefined_assignment_error() {
 #[test]
 fn test_mutable_binding_and_reassignment() {
     let code = compile("μετά ξ πέντε ἔστω. ξ λέγε. ξ δέκα γίγνεται. ξ λέγε.").unwrap();
-    assert!(code.contains("let mut xi = 5"));
-    assert!(code.contains("xi = 10"));
+    assert!(code.contains("let mut ξ = 5"));
+    assert!(code.contains("ξ = 10"));
     assert!(code.matches("println").count() >= 2);
 }
 
