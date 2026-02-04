@@ -15,7 +15,7 @@ use std::time::SystemTime;
 use glossa::codegen::{generate_rust, generate_rust_file};
 use glossa::errors::GlossaError;
 use glossa::parser::parse;
-use glossa::semantic::{analyze_program, Scope};
+use glossa::semantic::{Scope, analyze_program};
 
 #[derive(Parser)]
 #[command(name = "glossa")]
@@ -322,13 +322,24 @@ fn print_help() {
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("Ἐντολή (Command)").add_attribute(Attribute::Bold).fg(Color::Cyan),
+            Cell::new("Ἐντολή (Command)")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
             Cell::new("Περιγραφή (Description)").add_attribute(Attribute::Bold),
         ])
-        .add_row(vec![".βοήθεια / .help", "Δεῖξαι τήνδε τὴν βοήθειαν (Show this help)"])
+        .add_row(vec![
+            ".βοήθεια / .help",
+            "Δεῖξαι τήνδε τὴν βοήθειαν (Show this help)",
+        ])
         .add_row(vec![".ἔξοδος / .exit", "Ἐξελθεῖν (Exit REPL)"])
-        .add_row(vec![".καθαρός / .clear", "Καθαρίσαι τὸ περιβάλλον (Clear history)"])
-        .add_row(vec![".περιβάλλον / .env", "Δεῖξαι τὰς μεταβλητάς (Show variables)"]);
+        .add_row(vec![
+            ".καθαρός / .clear",
+            "Καθαρίσαι τὸ περιβάλλον (Clear history)",
+        ])
+        .add_row(vec![
+            ".περιβάλλον / .env",
+            "Δεῖξαι τὰς μεταβλητάς (Show variables)",
+        ]);
 
     println!("{}", table);
     println!("\n{}", "Παραδείγματα:".bold().underlined());
@@ -343,7 +354,9 @@ fn print_env(context: &ReplContext) {
             .load_preset(UTF8_FULL)
             .set_content_arrangement(ContentArrangement::Dynamic)
             .set_header(vec![
-                Cell::new("Μεταβλητή (Var)").add_attribute(Attribute::Bold).fg(Color::Magenta),
+                Cell::new("Μεταβλητή (Var)")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Magenta),
                 Cell::new("Τύπος (Type)").add_attribute(Attribute::Bold),
                 Cell::new("Μεταβλητότης (Mut)").add_attribute(Attribute::Bold),
             ]);
@@ -353,8 +366,8 @@ fn print_env(context: &ReplContext) {
         bindings.sort_by(|a, b| a.0.cmp(b.0));
 
         if bindings.is_empty() {
-             println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
-             return;
+            println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
+            return;
         }
 
         for (name, binding) in bindings {
@@ -575,5 +588,31 @@ mod tests {
                 .to_string()
                 .contains("source size limit")
         );
+    }
+
+    #[test]
+    fn test_repl_env_coverage() {
+        let mut context = ReplContext::new();
+
+        // 1. Initial state: No scope
+        assert!(context.last_scope.is_none());
+        print_env(&context); // Should print "No variables"
+
+        // 2. Execute binding
+        let _ = context.execute("ξ πέντε ἔστω.").unwrap();
+
+        // 3. Verify scope captured
+        assert!(context.last_scope.is_some());
+        let scope = context.last_scope.as_ref().unwrap();
+        assert!(scope.lookup("ξ").is_some());
+
+        // 4. Run print_env to cover the table generation code
+        // We aren't capturing stdout, but this ensures the code runs without panicking
+        print_env(&context);
+
+        // 5. Test clear simulation (new context)
+        let context = ReplContext::new();
+        assert!(context.last_scope.is_none());
+        print_env(&context);
     }
 }
