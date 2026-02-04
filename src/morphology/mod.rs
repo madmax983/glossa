@@ -123,7 +123,9 @@ pub fn analyze(word: &str) -> MorphAnalysis {
 /// ```
 pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     let normalized = normalize_greek(word);
-    let mut analyses = Vec::new();
+    // Pre-allocate capacity to avoid reallocations
+    // Lexicon (1) + Noun variants (~2-3) + Verb variants (~2-3)
+    let mut analyses = Vec::with_capacity(8);
 
     // First check the lexicon - these get highest confidence
     if let Some(entry) = lexicon::lookup(&normalized) {
@@ -132,13 +134,11 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
         analyses.push(analysis);
     }
 
-    // Get all possible noun analyses
-    let noun_analyses = declension::analyze_noun_all(&normalized);
-    analyses.extend(noun_analyses);
+    // Get all possible noun analyses (zero allocation)
+    declension::analyze_noun_all_into(&normalized, &mut analyses);
 
-    // Get all possible verb analyses
-    let verb_analyses = conjugation::analyze_verb_all(&normalized);
-    analyses.extend(verb_analyses);
+    // Get all possible verb analyses (zero allocation)
+    conjugation::analyze_verb_all_into(&normalized, &mut analyses);
 
     // Sort by confidence (highest first)
     analyses.sort_by(|a, b| {

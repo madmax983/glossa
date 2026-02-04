@@ -201,6 +201,15 @@ where
 /// The caller should use syntactic context to pick the right one.
 pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
     let mut analyses = Vec::new();
+    analyze_noun_all_into(word, &mut analyses);
+    analyses
+}
+
+/// Analyze a word as a noun, pushing results into an existing vector
+///
+/// Zero-allocation version of `analyze_noun_all`.
+pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
+    let start_len = analyses.len();
 
     for decl in DECLENSION_PATTERNS {
         match_endings_all(word, decl.endings, |stem, case, number| {
@@ -228,17 +237,36 @@ pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
         });
     }
 
-    // Deduplicate identical analyses (same case/number/gender)
-    analyses.sort_by(|a, b| {
+    // Sort the newly added analyses (the tail)
+    analyses[start_len..].sort_by(|a, b| {
         let key_a = (a.case, a.number, a.gender, &a.lemma);
         let key_b = (b.case, b.number, b.gender, &b.lemma);
         key_a.cmp(&key_b)
     });
-    analyses.dedup_by(|a, b| {
-        a.case == b.case && a.number == b.number && a.gender == b.gender && a.lemma == b.lemma
-    });
 
-    analyses
+    // Deduplicate identical analyses in the tail
+    let len = analyses.len();
+    if len > start_len + 1 {
+        let mut w = start_len + 1;
+        for r in start_len + 1..len {
+            let matches = {
+                let a = &analyses[w - 1];
+                let b = &analyses[r];
+                a.case == b.case
+                    && a.number == b.number
+                    && a.gender == b.gender
+                    && a.lemma == b.lemma
+            };
+
+            if !matches {
+                if r != w {
+                    analyses.swap(r, w);
+                }
+                w += 1;
+            }
+        }
+        analyses.truncate(w);
+    }
 }
 
 /// Extract stem from a word given its nominative form and declension
