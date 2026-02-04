@@ -786,3 +786,281 @@ fn create_comparison_predicate(
         },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Expr, Word, Statement, Clause};
+    use crate::morphology::{Case, Gender, Number, Person, Tense, Voice, Mood};
+    use crate::semantic::{Constituent, VerbConstituent};
+
+    // Helper to create a Word
+    fn word(original: &str) -> Word {
+        Word::new(original)
+    }
+
+    // Helper to create a Phrase expression
+    fn phrase(terms: Vec<Expr>) -> Expr {
+        Expr::Phrase(terms)
+    }
+
+    // Helper to create a Regular Statement
+    fn regular_statement(exprs: Vec<Expr>) -> Statement {
+        Statement::Regular {
+            clauses: vec![Clause { expressions: exprs }],
+            is_query: false,
+            is_propagate: false,
+        }
+    }
+
+    #[test]
+    fn test_struct_instantiation_success() {
+        // ξ νέον Χρήστης "Alice" 42 ἔστω.
+        let stmt = regular_statement(vec![
+            phrase(vec![
+                Expr::Word(word("ξ")),
+                Expr::Word(word("νέον")),
+                Expr::Word(word("Χρήστης")),
+                Expr::StringLiteral("Alice".to_string()),
+                Expr::NumberLiteral(42),
+                Expr::Word(word("ἔστω")),
+            ])
+        ]);
+
+        let mut scope = Scope::new();
+        // Define struct type in scope
+        let struct_type = GlossaType::Struct {
+            name: "χρηστης".into(),
+            gender: Gender::Masculine,
+            fields: vec![
+                ("ονομα".into(), GlossaType::String),
+                ("ηλικια".into(), GlossaType::Number),
+            ],
+        };
+        scope.define_type("χρηστης", struct_type.clone());
+
+        let result = try_parse_struct_instantiation(&stmt, &mut scope).unwrap();
+        assert!(result.is_some());
+
+        let analyzed = result.unwrap();
+        // Use ref name to avoid moving name out of analyzed.kind
+        assert!(matches!(analyzed.kind, StatementKind::Binding { ref name, .. } if name == "ξ"));
+
+        // Check inferred type
+        if let StatementKind::Binding { value_type, .. } = analyzed.kind {
+            assert_eq!(value_type, struct_type);
+        }
+    }
+
+    #[test]
+    fn test_struct_instantiation_missing_keywords() {
+        let mut scope = Scope::new();
+
+        // Missing "νέον" -> ξ παλιόν Χρήστης ...
+        let stmt_bad_new = regular_statement(vec![
+            phrase(vec![
+                Expr::Word(word("ξ")),
+                Expr::Word(word("παλιόν")),
+                Expr::Word(word("Χρήστης")),
+                Expr::Word(word("ἔστω")),
+            ])
+        ]);
+        assert!(try_parse_struct_instantiation(&stmt_bad_new, &mut scope).unwrap().is_none());
+
+        // Missing "ἔστω" -> ... λέγε
+        let stmt_bad_verb = regular_statement(vec![
+            phrase(vec![
+                Expr::Word(word("ξ")),
+                Expr::Word(word("νέον")),
+                Expr::Word(word("Χρήστης")),
+                Expr::Word(word("λέγε")),
+            ])
+        ]);
+        assert!(try_parse_struct_instantiation(&stmt_bad_verb, &mut scope).unwrap().is_none());
+    }
+
+    #[test]
+    fn test_iterator_pattern_map() {
+        // ξ διπλασιαζόμενα λέγε (Present Middle Participle -> Map)
+        let asm = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "ξ".into(),
+                original: "ξ".into(),
+                case: Case::Nominative,
+                number: Some(Number::Plural),
+                gender: Some(Gender::Neuter),
+                person: Some(Person::Third),
+            }),
+            verb: Some(VerbConstituent {
+                lemma: "λεγω".into(),
+                original: "λέγε".into(),
+                person: Some(Person::Second),
+                number: Some(Number::Singular),
+                tense: Some(Tense::Present),
+                mood: Some(Mood::Imperative),
+                voice: Some(Voice::Active),
+            }),
+            participles: vec![
+                crate::semantic::assembler::ParticipleConstituent {
+                    verb_lemma: "διπλασιαζω".into(),
+                    original: "διπλασιαζόμενα".into(),
+                    tense: Tense::Present,
+                    voice: Voice::Middle,
+                    case: Case::Nominative,
+                    gender: Gender::Neuter,
+                    number: Number::Plural,
+                }
+            ],
+            // Defaults for others
+            nominatives: vec![],
+            object: None,
+            indirect: None,
+            genitives: vec![],
+            adjectives: vec![],
+            literals: vec![],
+            arrays: vec![],
+            index_accesses: vec![],
+            property_accesses: vec![],
+            operators: vec![],
+            blocks: vec![],
+            nested_phrases: vec![],
+            unwraps: vec![],
+            has_mutable_marker: false,
+            is_query: false,
+            is_propagate: false,
+            has_containment_preposition: false,
+            has_delimiter_preposition: false,
+            string_method: None,
+        };
+
+        let mut scope = Scope::new();
+        // Define collection in scope
+        scope.define("ξ", GlossaType::List(Box::new(GlossaType::Number)));
+
+        let result = detect_iterator_pattern(&asm, &mut scope).unwrap();
+        assert!(result.is_some());
+
+        let analyzed = result.unwrap();
+        if let AnalyzedExprKind::IteratorChain { ops, .. } = analyzed.expr {
+            assert!(ops.iter().any(|op| matches!(op, AnalyzedIteratorOp::Map(_))));
+            assert!(ops.iter().any(|op| matches!(op, AnalyzedIteratorOp::Collect)));
+        } else {
+            panic!("Expected IteratorChain, got {:?}", analyzed.expr);
+        }
+    }
+
+    #[test]
+    fn test_iterator_pattern_filter() {
+        // ξ πέντε μείζονα λέγε (Filter > 5)
+        let asm = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "ξ".into(),
+                original: "ξ".into(),
+                case: Case::Nominative,
+                number: Some(Number::Plural),
+                gender: Some(Gender::Neuter),
+                person: Some(Person::Third),
+            }),
+            verb: Some(VerbConstituent {
+                lemma: "λεγω".into(),
+                original: "λέγε".into(),
+                person: Some(Person::Second),
+                number: Some(Number::Singular),
+                tense: Some(Tense::Present),
+                mood: Some(Mood::Imperative),
+                voice: Some(Voice::Active),
+            }),
+            literals: vec![crate::semantic::assembler::Literal::Number(5)],
+            adjectives: vec![
+                Constituent {
+                    lemma: "μειζων".into(), // Normalized lemma
+                    original: "μείζονα".into(), // Original form for lookup
+                    case: Case::Nominative,
+                    number: Some(Number::Plural),
+                    gender: Some(Gender::Neuter),
+                    person: None,
+                }
+            ],
+            // Defaults
+            participles: vec![],
+            nominatives: vec![],
+            object: None,
+            indirect: None,
+            genitives: vec![],
+            arrays: vec![],
+            index_accesses: vec![],
+            property_accesses: vec![],
+            operators: vec![],
+            blocks: vec![],
+            nested_phrases: vec![],
+            unwraps: vec![],
+            has_mutable_marker: false,
+            is_query: false,
+            is_propagate: false,
+            has_containment_preposition: false,
+            has_delimiter_preposition: false,
+            string_method: None,
+        };
+
+        let mut scope = Scope::new();
+        scope.define("ξ", GlossaType::List(Box::new(GlossaType::Number)));
+
+        let result = detect_iterator_pattern(&asm, &mut scope).unwrap();
+
+        assert!(result.is_some(), "Expected iterator pattern to be detected for Filter");
+        let analyzed = result.unwrap();
+        if let AnalyzedExprKind::IteratorChain { ops, .. } = analyzed.expr {
+            assert!(ops.iter().any(|op| matches!(op, AnalyzedIteratorOp::Filter(_))));
+        } else {
+            panic!("Expected IteratorChain, got {:?}", analyzed.expr);
+        }
+    }
+
+    #[test]
+    fn test_iterator_pattern_no_match() {
+        let asm = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "ξ".into(),
+                original: "ξ".into(),
+                case: Case::Nominative,
+                number: Some(Number::Plural),
+                gender: Some(Gender::Neuter),
+                person: Some(Person::Third),
+            }),
+            verb: Some(VerbConstituent {
+                lemma: "λεγω".into(),
+                original: "λέγε".into(),
+                person: Some(Person::Second),
+                number: Some(Number::Singular),
+                tense: Some(Tense::Present),
+                mood: Some(Mood::Imperative),
+                voice: Some(Voice::Active),
+            }),
+            // No participles or adjectives
+            participles: vec![],
+            adjectives: vec![],
+            literals: vec![],
+            nominatives: vec![],
+            object: None,
+            indirect: None,
+            genitives: vec![],
+            arrays: vec![],
+            index_accesses: vec![],
+            property_accesses: vec![],
+            operators: vec![],
+            blocks: vec![],
+            nested_phrases: vec![],
+            unwraps: vec![],
+            has_mutable_marker: false,
+            is_query: false,
+            is_propagate: false,
+            has_containment_preposition: false,
+            has_delimiter_preposition: false,
+            string_method: None,
+        };
+
+        let mut scope = Scope::new();
+        let result = detect_iterator_pattern(&asm, &mut scope).unwrap();
+        assert!(result.is_none());
+    }
+}
