@@ -3,6 +3,8 @@
 //! A compiler for ΓΛΩΣΣΑ - where Ancient Greek morphology encodes programming semantics.
 
 use clap::{Parser, Subcommand};
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
@@ -13,7 +15,7 @@ use std::time::SystemTime;
 use glossa::codegen::{generate_rust, generate_rust_file};
 use glossa::errors::GlossaError;
 use glossa::parser::parse;
-use glossa::semantic::analyze_program;
+use glossa::semantic::{Scope, analyze_program};
 
 #[derive(Parser)]
 #[command(name = "glossa")]
@@ -244,12 +246,7 @@ fn check_file(input: &Path) -> Result<()> {
 }
 
 fn run_repl() -> Result<()> {
-    println!("{} v{}", "ΓΛΩΣΣΑ".bold().blue(), env!("CARGO_PKG_VERSION"));
-    println!(
-        "{}",
-        "Γράψον .βοήθεια διὰ βοήθειαν, .ἔξοδος διὰ ἔξοδον.".dim()
-    );
-    println!();
+    print_banner();
 
     let mut context = ReplContext::new();
 
@@ -259,7 +256,13 @@ fn run_repl() -> Result<()> {
         std::io::stdout().flush().into_diagnostic()?;
 
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input).into_diagnostic()?;
+        let bytes = std::io::stdin().read_line(&mut input).into_diagnostic()?;
+
+        // Fix: Handle EOF (Ctrl+D) gracefully
+        if bytes == 0 {
+            println!("\nΧαῖρε!");
+            break;
+        }
 
         let input = input.trim();
 
@@ -279,7 +282,11 @@ fn run_repl() -> Result<()> {
             }
             ".καθαρός" | ".clear" => {
                 context = ReplContext::new();
-                println!("Ἐκαθαρίσθη.");
+                println!("{} Ἐκαθαρίσθη.", "✓".green());
+                continue;
+            }
+            ".περιβάλλον" | ".env" => {
+                print_env(&context);
                 continue;
             }
             _ => {}
@@ -292,7 +299,8 @@ fn run_repl() -> Result<()> {
                 }
             }
             Err(e) => {
-                eprintln!("Σφάλμα: {}", e);
+                // Use default error formatting but ensure it's visible
+                eprintln!("{}", format!("× Σφάλμα: {}", e).red());
             }
         }
     }
@@ -300,16 +308,87 @@ fn run_repl() -> Result<()> {
     Ok(())
 }
 
-fn print_help() {
-    println!("Ἐντολαί:");
-    println!("  .βοήθεια  - δεῖξαι τήνδε τὴν βοήθειαν");
-    println!("  .ἔξοδος   - ἐξελθεῖν");
-    println!("  .καθαρός  - καθαρίσαι τὸ περιβάλλον");
+fn print_banner() {
+    // Welcome Banner
+    let version = format!("v{}", env!("CARGO_PKG_VERSION"));
     println!();
-    println!("Παραδείγματα:");
+    println!("   {}", "Γ Λ Ω Σ Σ Α".bold().cyan());
+    println!("   {}", "Code as the ancients intended.".italic().dim());
+    println!("   {}", version.blue());
+    println!();
+    println!("   {}", "Type .help for commands".dim());
+    println!();
+}
+
+fn print_help() {
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_header(vec![
+            Cell::new("Ἐντολή (Command)")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("Περιγραφή (Description)").add_attribute(Attribute::Bold),
+        ])
+        .add_row(vec![
+            ".βοήθεια / .help",
+            "Δεῖξαι τήνδε τὴν βοήθειαν (Show this help)",
+        ])
+        .add_row(vec![".ἔξοδος / .exit", "Ἐξελθεῖν (Exit REPL)"])
+        .add_row(vec![
+            ".καθαρός / .clear",
+            "Καθαρίσαι τὸ περιβάλλον (Clear history)",
+        ])
+        .add_row(vec![
+            ".περιβάλλον / .env",
+            "Δεῖξαι τὰς μεταβλητάς (Show variables)",
+        ]);
+
+    println!("{}", table);
+    println!("\n{}", "Παραδείγματα:".bold().underlined());
     println!("  «χαῖρε κόσμε» λέγε.");
     println!("  ξ πέντε ἔστω.");
-    println!("  ξ λέγε.");
+}
+
+fn print_env(context: &ReplContext) {
+    if let Some(scope) = &context.last_scope {
+        let mut table = Table::new();
+        table
+            .load_preset(UTF8_FULL)
+            .set_content_arrangement(ContentArrangement::Dynamic)
+            .set_header(vec![
+                Cell::new("Μεταβλητή (Var)")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Magenta),
+                Cell::new("Τύπος (Type)").add_attribute(Attribute::Bold),
+                Cell::new("Μεταβλητότης (Mut)").add_attribute(Attribute::Bold),
+            ]);
+
+        // Collect and sort bindings for consistent display
+        let mut bindings: Vec<_> = scope.bindings().collect();
+        bindings.sort_by(|a, b| a.0.cmp(b.0));
+
+        if bindings.is_empty() {
+            println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
+            return;
+        }
+
+        for (name, binding) in bindings {
+            table.add_row(vec![
+                Cell::new(name).fg(Color::Green),
+                Cell::new(format!("{:?}", binding.glossa_type)),
+                if binding.mutable {
+                    Cell::new("Ναί (Yes)").fg(Color::Yellow)
+                } else {
+                    Cell::new("Οὔ (No)").fg(Color::DarkGrey)
+                },
+            ]);
+        }
+        println!("{}", table);
+    } else {
+        println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
+    }
 }
 
 /// Maximum number of bindings to track in REPL history
@@ -319,12 +398,14 @@ const MAX_REPL_SOURCE_LEN: usize = 50_000;
 
 struct ReplContext {
     bindings: Vec<String>,
+    last_scope: Option<Scope>,
 }
 
 impl ReplContext {
     fn new() -> Self {
         ReplContext {
             bindings: Vec::new(),
+            last_scope: None,
         }
     }
 
@@ -353,6 +434,9 @@ impl ReplContext {
         // Try to compile
         let ast = parse(&full_source)?;
         let analyzed = analyze_program(&ast)?;
+
+        // Update scope
+        self.last_scope = Some(analyzed.scope.clone());
 
         // Check if input contains a binding
         if input.contains("ἔστω") || input.contains("εστω") {
@@ -508,5 +592,50 @@ mod tests {
                 .to_string()
                 .contains("source size limit")
         );
+    }
+
+    #[test]
+    fn test_repl_env_coverage() {
+        let mut context = ReplContext::new();
+
+        // 1. Initial state: No scope
+        assert!(context.last_scope.is_none());
+        print_env(&context); // Should print "No variables"
+
+        // 2. Execute binding
+        let _ = context.execute("ξ πέντε ἔστω.").unwrap();
+
+        // 3. Verify scope captured
+        assert!(context.last_scope.is_some());
+        let scope = context.last_scope.as_ref().unwrap();
+        assert!(scope.lookup("ξ").is_some());
+
+        // 4. Run print_env to cover the table generation code
+        // We aren't capturing stdout, but this ensures the code runs without panicking
+        print_env(&context);
+
+        // 5. Test clear simulation (new context)
+        let context = ReplContext::new();
+        assert!(context.last_scope.is_none());
+        print_env(&context);
+    }
+
+    #[test]
+    fn test_print_help_coverage() {
+        // Just verify it doesn't panic
+        print_help();
+    }
+
+    #[test]
+    fn test_print_banner_coverage() {
+        // Just verify it doesn't panic
+        print_banner();
+    }
+
+    #[test]
+    fn test_print_env_empty() {
+        let context = ReplContext::new();
+        // Should print "No variables defined"
+        print_env(&context);
     }
 }
