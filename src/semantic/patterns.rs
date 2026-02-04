@@ -1,4 +1,41 @@
-//! Pattern detection (struct instantiation, trait calls, iterators)
+//! Pattern detection for high-level language constructs
+//!
+//! This module acts as a "bridge" between the low-level, word-order-independent
+//! Greek grammar and high-level programming patterns.
+//!
+//! While the [`Assembler`](crate::semantic::Assembler) handles the grammatical roles (Subject, Object, Verb),
+//! this module identifies idiomatic combinations of these roles that map to complex semantics.
+//!
+//! # Supported Patterns
+//!
+//! 1.  **Struct Instantiation**: Creating new instances of user-defined types.
+//! 2.  **Trait Method Calls**: Invoking methods defined on traits.
+//! 3.  **Iterator Chains**: Functional programming pipelines using participles.
+//!
+//! # The Hero's Journey: The Iterator Chain
+//!
+//! Consider the task: *"Take a list of numbers, double them, keep only those greater than 10, and print them."*
+//!
+//! In Rust:
+//! ```rust,ignore
+//! vec.iter()
+//!    .map(|x| x * 2)
+//!    .filter(|x| x > 10)
+//!    .for_each(|x| println!("{}", x));
+//! ```
+//!
+//! In ΓΛΩΣΣΑ, we use **Participles** for mapping and **Adjectives** for filtering:
+//!
+//! ```glossa
+//! // "xi" (the list)
+//! // "doubling" (present participle -> .map())
+//! // "ten greater" (comparative adjective -> .filter())
+//! // "say" (imperative verb -> print)
+//! ξ διπλασιαζόμενα δέκα μείζονα λέγε.
+//! ```
+//!
+//! This module detects this sequence of grammatical constituents and transforms it
+//! into the corresponding Rust iterator chain.
 
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedStatement, AssembledStatement,
@@ -9,8 +46,21 @@ use crate::errors::GlossaError;
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
 
-/// Try to parse a trait method call: method_name receiver
-/// Returns Some(analyzed_statement) if this is a trait method call, None otherwise
+/// Try to parse a trait method call: `method_name receiver`
+///
+/// This looks for a specific phrase pattern where a method name is immediately
+/// followed by its receiver (the object it acts upon).
+///
+/// # Pattern
+/// `[method_name] [receiver]`
+///
+/// # Example
+/// ```text
+/// // Calls the 'speak' method on the 'animal' variable
+/// λέγε ζῷον.
+/// ```
+///
+/// Returns `Some(analyzed_statement)` if this is a trait method call, `None` otherwise.
 pub fn try_parse_trait_method_call(
     stmt: &Statement,
     scope: &mut Scope,
@@ -68,20 +118,22 @@ pub fn try_parse_trait_method_call(
     Ok(None)
 }
 
-/// Try to parse a struct instantiation: variable νέον type_name args ἔστω
-/// Returns Some(analyzed_statement) if this is a struct instantiation, None otherwise
+/// Try to parse a struct instantiation
+///
+/// This handles the creation of new struct instances or built-in collections.
 ///
 /// # Pattern
-///
 /// `[variable] νέον [TypeName] [arg1] [arg2] ... ἔστω`
 ///
 /// # Example
-///
 /// ```text
-/// ξ νέον Ἀριθμός πέντε ἔστω.
+/// // Define struct: εἶδος Point { x: i64, y: i64 }
+///
+/// // Instantiate: let p = Point { x: 10, y: 20 };
+/// π νέον Σημεῖον δέκα εἴκοσι ἔστω.
 /// ```
 ///
-/// This translates to: `let xi = Number { value: 5 };`
+/// Returns `Some(analyzed_statement)` if this is a struct instantiation, `None` otherwise.
 pub fn try_parse_struct_instantiation(
     stmt: &Statement,
     scope: &mut Scope,
@@ -296,21 +348,22 @@ pub fn try_parse_struct_instantiation(
 
 /// Detect iterator patterns with participles
 ///
-/// # Pattern
-/// `collection` + `participle(s)` + `verb`
-///
-/// # Example
-/// `ξ διπλασιαζόμενα λέγε`
-///
-/// Translates to: `xi.iter().map(|x| x * 2).collect::<Vec<_>>()` (which is then printed)
-///
 /// This function analyzes the `AssembledStatement` to detect functional programming chains
 /// expressed through Greek participles.
 ///
-/// * **Present Participle (Middle)**: Maps to `.map()` (e.g., `διπλασιαζόμενα` -> doubling).
-/// * **Comparative Adjective**: Maps to `.filter()` (e.g., `πέντε μείζονα` -> greater than 5).
-/// * **Quantifiers (τι/πάντα)**: Maps to `.any()` or `.all()`.
-/// * **Find Verb (εὑρέ)**: Maps to `.find()`.
+/// # Logic
+/// * **Collection**: The subject or an array literal.
+/// * **Map**: Present Participles (e.g., `διπλασιαζόμενα`) become `.map()`.
+/// * **Filter**: Comparative Adjectives (e.g., `μείζονα`) become `.filter()`.
+/// * **Fold**: The participle `συλλεγόμενα` (gathering) becomes `.fold()`.
+/// * **Find**: The verb `εὑρέ` (find) becomes `.find()`.
+///
+/// # Example
+///
+/// ```text
+/// // [1, 2, 3].iter().map(|x| x*2).filter(|x| x > 5).collect::<Vec<_>>()
+/// [1, 2, 3] διπλασιαζόμενα πέντε μείζονα λέγε.
+/// ```
 pub fn detect_iterator_pattern(
     asm_stmt: &AssembledStatement,
     _scope: &mut Scope,
