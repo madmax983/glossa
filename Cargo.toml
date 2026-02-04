@@ -21,4 +21,5 @@ rustc-hash = "2"
 [dev-dependencies]
 insta = "1"
 pretty_assertions = "1"
+proptest = "1.9.0"
 tempfile = "3.24.0"
