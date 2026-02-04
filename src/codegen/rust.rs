@@ -470,8 +470,7 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
                     }
                 }
             } else if let Some(body) = &method.body {
-                let body_stmts: Vec<TokenStream> =
-                    body.iter().map(generate_statement).collect();
+                let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
                 quote! {
                     fn #method_name(#(#param_tokens),*) {
                         #(#body_stmts)*
