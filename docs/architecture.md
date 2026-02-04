@@ -38,3 +38,27 @@ C4Container
     Rel(morphology, semantic, "AST (Resolved Morphology)")
     Rel(semantic, codegen, "Analyzed Program")
 ```
+
+## Semantic Analysis (C4 Component Level)
+
+The semantic analysis phase is unique due to the slot-based assembler which enables free word order.
+
+```mermaid
+C4Component
+    title Component Diagram for Semantic Analysis
+
+    Container_Boundary(semantic, "Semantic Analysis") {
+        Component(assembler, "Assembler", "src/semantic/assembler.rs", "Routes words to slots based on Case (Nom, Acc, Dat)")
+        Component(converter, "Converter", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
+        Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs (Iterators, Structs)")
+        Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
+    }
+
+    Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
+
+    Rel(morphology, assembler, "Feeds MorphAnalysis")
+    Rel(assembler, converter, "Produces AssembledStatement")
+    Rel(converter, patterns, "Delegates complex patterns")
+    Rel(patterns, model, "Produces AnalyzedStatement")
+    Rel(converter, model, "Produces AnalyzedStatement")
+```
