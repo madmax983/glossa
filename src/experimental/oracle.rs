@@ -77,7 +77,7 @@ impl Oracle {
                     "Subject (Agent)",
                     &subject.original,
                     "Nominative Case",
-                    &subject.lemma.to_string(),
+                    subject.lemma.as_ref(),
                 ]);
             }
 
@@ -86,7 +86,7 @@ impl Oracle {
                     "Nominative (Secondary)",
                     &nom.original,
                     "Nominative Case",
-                    &nom.lemma.to_string(),
+                    nom.lemma.as_ref(),
                 ]);
             }
 
@@ -105,7 +105,7 @@ impl Oracle {
                     "Verb (Action)",
                     &verb.original,
                     &morph,
-                    &verb.lemma.to_string(),
+                    verb.lemma.as_ref(),
                 ]);
             }
 
@@ -114,7 +114,7 @@ impl Oracle {
                     "Object (Patient)",
                     &object.original,
                     "Accusative Case",
-                    &object.lemma.to_string(),
+                    object.lemma.as_ref(),
                 ]);
             }
 
@@ -123,7 +123,7 @@ impl Oracle {
                     "Indirect Object",
                     &indirect.original,
                     "Dative Case",
-                    &indirect.lemma.to_string(),
+                    indirect.lemma.as_ref(),
                 ]);
             }
 
@@ -170,13 +170,18 @@ impl Oracle {
             } else if !assembled.literals.is_empty() {
                 report.push_str("A value is being expressed.");
             } else if !assembled.participles.is_empty() {
-                 report.push_str("A functional operation (lambda) is being defined.");
+                report.push_str("A functional operation (lambda) is being defined.");
             } else {
                 report.push_str(
                     "This statement contains no main verb (possibly a definition or fragment).",
                 );
             }
-            report.push_str("\n");
+
+            if assembled.verb.is_some() && !assembled.participles.is_empty() {
+                report.push_str(" A functional operation (lambda) is also involved.");
+            }
+
+            report.push('\n');
         }
 
         Ok(report)
@@ -209,5 +214,82 @@ mod tests {
         assert!(explanation.contains("ἀρχήν"));
         assert!(explanation.contains("Verb (Action)"));
         assert!(explanation.contains("λέγει"));
+    }
+
+    #[test]
+    fn test_oracle_type_definition() {
+        let oracle = Oracle::new();
+        let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.";
+        let explanation = oracle.explain(source).unwrap();
+        assert!(explanation.contains("Type Definition detected"));
+    }
+
+    #[test]
+    fn test_oracle_literals() {
+        let oracle = Oracle::new();
+        let source = "«χαῖρε» 42 ἀληθές λέγε.";
+        let explanation = oracle.explain(source).unwrap();
+
+        assert!(explanation.contains("Literal Value"));
+        assert!(explanation.contains("«χαῖρε»"));
+        assert!(explanation.contains("42"));
+        assert!(explanation.contains("true")); // boolean true prints as true
+    }
+
+    #[test]
+    fn test_oracle_participle() {
+        let oracle = Oracle::new();
+        // Use a participle form
+        let source = "διπλασιαζόμενα λέγε.";
+        let explanation = oracle.explain(source).unwrap();
+
+        assert!(explanation.contains("Participle (Lambda)"));
+        assert!(explanation.contains("διπλασιαζόμενα"));
+        assert!(explanation.contains("lambda"));
+    }
+
+    #[test]
+    fn test_oracle_indirect_object() {
+        let oracle = Oracle::new();
+        // Dative case: τῷ ἀνθρώπῳ (to the man)
+        let source = "τῷ ἀνθρώπῳ δίδωμι.";
+        let explanation = oracle.explain(source).unwrap();
+
+        assert!(explanation.contains("Indirect Object"));
+        assert!(explanation.contains("ἀνθρώπῳ"));
+    }
+
+    #[test]
+    fn test_oracle_verbless() {
+        let oracle = Oracle::new();
+        // Just a literal, no verb
+        let source = "42.";
+        let explanation = oracle.explain(source).unwrap();
+
+        assert!(explanation.contains("A value is being expressed"));
+    }
+
+    #[test]
+    fn test_oracle_empty_or_fragment() {
+        let oracle = Oracle::new();
+        // Empty statement (just a period, though parser might reject, let's try a variable decl without verb if possible, or just check the fallback path)
+        // Actually, "User." is valid syntax for a variable reference statement
+        let source = "User.";
+        let explanation = oracle.explain(source).unwrap();
+
+        assert!(explanation.contains("This statement contains no main verb"));
+    }
+
+    #[test]
+    fn test_oracle_secondary_nominative() {
+        let oracle = Oracle::new();
+        // "Subject Predicate is." - "User God is."
+        // We need a sentence that Assembler treats as having multiple nominatives.
+        // Usually, function calls or 'is' sentences do this.
+        let source = "ὁ ἄνθρωπος θεός ἐστιν.";
+        let explanation = oracle.explain(source).unwrap();
+
+        assert!(explanation.contains("Subject (Agent)"));
+        assert!(explanation.contains("Nominative (Secondary)"));
     }
 }
