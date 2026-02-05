@@ -1,5 +1,5 @@
+use glossa::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person};
 use glossa::semantic::{Assembler, AssemblyError};
-use glossa::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender, Person};
 
 #[test]
 fn test_double_indirect_object_error() {
@@ -38,7 +38,11 @@ fn test_double_indirect_object_error() {
 
     // SENTRY: This assertion enforces that we DO NOT allow silent overwrites.
     // This test is expected to FAIL until the fix is applied.
-    assert!(matches!(result, Err(AssemblyError::DoubleIndirect)), "Should return DoubleIndirect error, got {:?}", result);
+    assert!(
+        matches!(result, Err(AssemblyError::DoubleIndirect)),
+        "Should return DoubleIndirect error, got {:?}",
+        result
+    );
 }
 
 #[test]
@@ -76,7 +80,11 @@ fn test_neuter_plural_agreement() {
     asm.feed(&verb, "τρέχουσιν").unwrap();
 
     let stmt = asm.finalize();
-    assert!(stmt.is_ok(), "Neuter plural subject should allow plural verb (current behavior), got {:?}", stmt.err());
+    assert!(
+        stmt.is_ok(),
+        "Neuter plural subject should allow plural verb (current behavior), got {:?}",
+        stmt.err()
+    );
 }
 
 #[test]
@@ -102,7 +110,10 @@ fn test_verbless_statement() {
 
     let stmt = asm.finalize();
     // Current behavior allows verbless statements if they have content.
-    assert!(stmt.is_ok(), "Verbless statement with content should be allowed");
+    assert!(
+        stmt.is_ok(),
+        "Verbless statement with content should be allowed"
+    );
     let s = stmt.unwrap();
     assert!(s.subject.is_some());
     assert!(s.verb.is_none());
