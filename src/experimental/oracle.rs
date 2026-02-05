@@ -1,8 +1,6 @@
 use crate::errors::GlossaError;
-use crate::morphology::DisambiguationContext;
 use crate::parser::parse;
-use crate::semantic::expressions::feed_expr_to_assembler_with_context;
-use crate::semantic::{Assembler, Literal};
+use crate::semantic::{Literal, assemble_statement};
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
@@ -42,19 +40,7 @@ impl Oracle {
             }
 
             // Re-assemble to inspect slots
-            let mut asm = Assembler::new();
-            asm.set_query(stmt.is_query());
-            asm.set_propagate(stmt.is_propagate());
-
-            let mut context = DisambiguationContext::new();
-
-            for clause in stmt.clauses() {
-                for expr in &clause.expressions {
-                    feed_expr_to_assembler_with_context(&mut asm, expr, &mut context)?;
-                }
-            }
-
-            let assembled = asm.finalize()?;
+            let assembled = assemble_statement(stmt)?;
 
             // Build Table
             let mut table = Table::new();

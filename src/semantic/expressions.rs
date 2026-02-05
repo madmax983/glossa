@@ -12,63 +12,6 @@ use crate::text::normalize_greek;
 /// a typed, semantic `AnalyzedExpr`. It handles name resolution, type inference,
 /// and nested structure unpacking.
 ///
-/// # Examples
-///
-/// ## Literals
-///
-/// ```
-/// # use glossa::ast::{Expr, Word};
-/// # use glossa::semantic::{Scope, expressions::analyze_argument_expr, AnalyzedExprKind, GlossaType};
-/// #
-/// let scope = Scope::new();
-/// let expr = Expr::NumberLiteral(42);
-///
-/// let analyzed = analyze_argument_expr(&expr, &scope).unwrap();
-/// assert!(matches!(analyzed.expr, AnalyzedExprKind::NumberLiteral(42)));
-/// assert_eq!(analyzed.glossa_type, GlossaType::Number);
-/// ```
-///
-/// ## Variables
-///
-/// ```
-/// # use glossa::ast::{Expr, Word};
-/// # use glossa::semantic::{Scope, expressions::analyze_argument_expr, AnalyzedExprKind, GlossaType};
-/// #
-/// let mut scope = Scope::new();
-/// scope.define("x", GlossaType::Number);
-/// let expr = Expr::Word(Word::new("x"));
-///
-/// let analyzed = analyze_argument_expr(&expr, &scope).unwrap();
-/// assert!(matches!(analyzed.expr, AnalyzedExprKind::Variable(name) if name == "x"));
-/// ```
-///
-/// ## Nested Phrases (Function Calls)
-///
-/// Phrases starting with a known function name are parsed as function calls.
-///
-/// ```
-/// # use glossa::ast::{Expr, Word};
-/// # use glossa::semantic::{Scope, expressions::analyze_argument_expr, AnalyzedExprKind, GlossaType};
-/// #
-/// let mut scope = Scope::new();
-/// // Define function `add(a, b) -> Number`
-/// scope.define_function("add", vec![GlossaType::Number, GlossaType::Number], Some(GlossaType::Number));
-///
-/// // Phrase: `add 1 2`
-/// let expr = Expr::Phrase(vec![
-///     Expr::Word(Word::new("add")),
-///     Expr::NumberLiteral(1),
-///     Expr::NumberLiteral(2)
-/// ]);
-///
-/// let analyzed = analyze_argument_expr(&expr, &scope).unwrap();
-/// if let AnalyzedExprKind::FunctionCall { func, args } = analyzed.expr {
-///     assert_eq!(func, "add");
-///     assert_eq!(args.len(), 2);
-/// } else {
-///     panic!("Expected function call");
-/// }
-/// ```
 pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
     analyze_argument_expr_recursive(expr, scope, 0)
 }

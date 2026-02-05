@@ -1,8 +1,8 @@
 //! Declaration analysis (functions, types, traits)
 
 use super::{
-    AnalyzedMethod, AnalyzedStatement, GlossaType, Scope, StatementKind,
-    analyze_single_statement_with_assembler, convert_assembled_to_analyzed,
+    AnalyzedMethod, AnalyzedStatement, GlossaType, Scope, StatementKind, assemble_statement,
+    convert_assembled_to_analyzed,
 };
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
@@ -106,7 +106,7 @@ pub fn analyze_trait_definition(
                         {
                             analyzed_body.push(method_call);
                         } else {
-                            let assembled = analyze_single_statement_with_assembler(body_stmt)?;
+                            let assembled = assemble_statement(body_stmt)?;
                             let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
                             analyzed_body.push(analyzed);
                         }
@@ -223,7 +223,7 @@ pub fn analyze_trait_impl(
                     analyzed_body.push(method_call);
                 } else {
                     // Use assembler for regular statements
-                    let assembled = analyze_single_statement_with_assembler(body_stmt)?;
+                    let assembled = assemble_statement(body_stmt)?;
                     let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
                     analyzed_body.push(analyzed);
                 }
@@ -347,7 +347,7 @@ pub fn parse_function_definition(
         if let Some(cf) = analyze_control_flow(&clause_stmt, &mut function_scope)? {
             body_statements.push(cf);
         } else {
-            let assembled = analyze_single_statement_with_assembler(&clause_stmt)?;
+            let assembled = assemble_statement(&clause_stmt)?;
             let analyzed = convert_assembled_to_analyzed(&assembled, &mut function_scope)?;
             body_statements.push(analyzed);
         }
@@ -531,7 +531,7 @@ pub fn analyze_test_declaration(
             }
             // Regular statement analysis
             else {
-                let assembled = analyze_single_statement_with_assembler(body_stmt)?;
+                let assembled = assemble_statement(body_stmt)?;
                 let analyzed = convert_assembled_to_analyzed(&assembled, &mut test_scope)?;
                 analyzed_body.push(analyzed);
             }

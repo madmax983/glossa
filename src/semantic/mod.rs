@@ -35,8 +35,7 @@ pub mod assembler;
 pub(crate) mod control_flow;
 pub(crate) mod conversion;
 pub(crate) mod declarations;
-#[doc(hidden)]
-pub mod expressions;
+pub(crate) mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
 mod resolver;
@@ -121,7 +120,7 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
                 analyzed_statements.push(method_call);
             } else {
                 // Use the assembler-based approach for regular statements
-                let assembled = analyze_single_statement_with_assembler(stmt)?;
+                let assembled = assemble_statement(stmt)?;
                 let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
                 analyzed_statements.push(analyzed);
             }
@@ -135,9 +134,7 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
 }
 
 /// Analyze a single statement using the slot-based assembler
-fn analyze_single_statement_with_assembler(
-    stmt: &Statement,
-) -> Result<AssembledStatement, GlossaError> {
+pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
     let mut asm = Assembler::new();
     asm.set_query(stmt.is_query());
     asm.set_propagate(stmt.is_propagate());
