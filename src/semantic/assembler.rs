@@ -714,6 +714,9 @@ impl Assembler {
             }
             Some(Case::Dative) => {
                 // Dative can stack (multiple recipients) but for simplicity, one for now
+                if self.pending_indirect.is_some() {
+                    return Err(AssemblyError::DoubleIndirect);
+                }
                 self.pending_indirect = Some(constituent);
             }
             Some(Case::Genitive) => {
