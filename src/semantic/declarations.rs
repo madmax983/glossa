@@ -1,7 +1,7 @@
 //! Declaration analysis (functions, types, traits)
 
 use super::{
-    AnalyzedImplMethod, AnalyzedStatement, AnalyzedTraitMethod, GlossaType, Scope, StatementKind,
+    AnalyzedMethod, AnalyzedStatement, GlossaType, Scope, StatementKind,
     analyze_single_statement_with_assembler, convert_assembled_to_analyzed,
 };
 use crate::ast::{Expr, Statement};
@@ -123,18 +123,16 @@ pub fn analyze_trait_definition(
                 None
             };
 
-            analyzed_methods.push(AnalyzedTraitMethod {
+            analyzed_methods.push(AnalyzedMethod {
                 name: method_name,
                 params,
-                is_default: true,
                 body,
                 return_type,
             });
         } else {
-            analyzed_methods.push(AnalyzedTraitMethod {
+            analyzed_methods.push(AnalyzedMethod {
                 name: method_name,
                 params,
-                is_default: false,
                 body: None,
                 return_type: None,
             });
@@ -235,17 +233,17 @@ pub fn analyze_trait_impl(
         let return_type = infer_return_type_from_body(&analyzed_body);
 
         implemented_method_names.push(method_name.clone());
-        analyzed_methods.push(AnalyzedImplMethod {
+        analyzed_methods.push(AnalyzedMethod {
             name: method_name,
             params,
-            body: analyzed_body,
+            body: Some(analyzed_body),
             return_type,
         });
     }
 
     // Validate: all required methods must be implemented
     for method in &trait_def.methods {
-        if !method.is_default && !implemented_method_names.contains(&method.name) {
+        if method.body.is_none() && !implemented_method_names.contains(&method.name) {
             return Err(GlossaError::semantic(format!(
                 "Type {} does not implement required method {} from trait {}",
                 type_name, method.name, trait_name
