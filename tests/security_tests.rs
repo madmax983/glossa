@@ -1,6 +1,6 @@
+use glossa::codegen::generate_rust;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
-use glossa::codegen::generate_rust;
 
 #[test]
 fn test_diacritic_only_variable_panic() {
@@ -21,7 +21,10 @@ fn test_diacritic_only_variable_panic() {
     let rust_code = generate_rust(&analyzed);
 
     // Verify that it generated a safe fallback name
-    assert!(rust_code.contains("_var_empty"), "Generated code should contain fallback for empty identifier");
+    assert!(
+        rust_code.contains("_var_empty"),
+        "Generated code should contain fallback for empty identifier"
+    );
 }
 
 #[test]
@@ -46,6 +49,9 @@ fn test_stack_overflow_nested_parens() {
     // Optional: verify error message contains recursion limit
     // but GlossaError wraps ParseError, so checking string representation is easiest
     let err_msg = result.err().unwrap().to_string();
-    assert!(err_msg.contains("Recursion limit exceeded") || err_msg.contains("Parse error"),
-            "Unexpected error: {}", err_msg);
+    assert!(
+        err_msg.contains("Recursion limit exceeded") || err_msg.contains("Parse error"),
+        "Unexpected error: {}",
+        err_msg
+    );
 }
