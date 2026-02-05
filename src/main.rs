@@ -14,6 +14,7 @@ use std::time::SystemTime;
 
 use glossa::codegen::{generate_rust, generate_rust_file};
 use glossa::errors::GlossaError;
+use glossa::experimental::oracle::Oracle;
 use glossa::parser::parse;
 use glossa::semantic::{Scope, analyze_program};
 
@@ -54,6 +55,12 @@ enum Commands {
         input: PathBuf,
     },
 
+    /// Explain the semantic analysis of a .γλ file
+    Explain {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Start the interactive REPL
     Repl,
 }
@@ -80,6 +87,10 @@ fn main() -> Result<()> {
 
         Some(Commands::Check { input }) => {
             check_file(&input)?;
+        }
+
+        Some(Commands::Explain { input }) => {
+            explain_file(&input)?;
         }
 
         Some(Commands::Repl) | None => {
@@ -241,6 +252,20 @@ fn check_file(input: &Path) -> Result<()> {
         "✓".green(),
         input.display().to_string().bold()
     );
+
+    Ok(())
+}
+
+fn explain_file(input: &Path) -> Result<()> {
+    check_file_size(input)?;
+
+    let source = fs::read_to_string(input).into_diagnostic()?;
+    let oracle = Oracle::new();
+    let explanation = oracle
+        .explain(&source)
+        .map_err(|e| miette::miette!("{}", e))?;
+
+    println!("{}", explanation);
 
     Ok(())
 }
@@ -637,5 +662,15 @@ mod tests {
         let context = ReplContext::new();
         // Should print "No variables defined"
         print_env(&context);
+    }
+
+    #[test]
+    fn test_explain_file_integration() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("explain.gl");
+        std::fs::write(&file_path, "«χαῖρε» λέγε.").unwrap();
+
+        let result = explain_file(&file_path);
+        assert!(result.is_ok());
     }
 }
