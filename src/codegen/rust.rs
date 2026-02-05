@@ -1019,11 +1019,15 @@ fn transliterate(greek: &str) -> String {
     }
 
     // Ensure it starts with a letter or underscore (valid Rust identifier)
+    if result.is_empty() {
+        return "_var_empty".to_string();
+    }
+
     if result
         .chars()
         .next()
         .map(|c| c.is_numeric())
-        .unwrap_or(true)
+        .unwrap_or(false)
     {
         format!("_{}", result)
     } else {
