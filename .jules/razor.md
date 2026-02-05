@@ -42,3 +42,8 @@
 **Bloat:** `AnalyzedTraitMethod` and `AnalyzedImplMethod` in `src/semantic/model.rs`.
 **Cut:** Merged into a unified `AnalyzedMethod` struct. Removed redundant `is_default` field.
 **Saved:** Reduced code duplication in semantic model and codegen (~60 lines removed/simplified). Unified method representation.
+
+## [Reduction]
+**Bloat:** `experimental` module containing fully functional `Oracle` tool.
+**Cut:** Moved `Oracle` to `src/semantic/oracle.rs`, deleted `experimental`.
+**Saved:** Removed misleading "experimental" label, flattened module hierarchy, integrated tooling where it belongs.

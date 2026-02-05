@@ -38,6 +38,7 @@ pub(crate) mod declarations;
 #[doc(hidden)]
 pub mod expressions;
 pub(crate) mod model;
+pub mod oracle;
 pub(crate) mod patterns;
 mod resolver;
 mod types;
