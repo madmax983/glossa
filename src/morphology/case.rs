@@ -200,13 +200,58 @@ mod tests {
     }
 
     #[test]
-    fn test_greek_names() {
+    fn test_greek_names_case() {
         assert_eq!(Case::Nominative.to_greek(), "Ὀνομαστική");
+        assert_eq!(Case::Genitive.to_greek(), "Γενική");
+        assert_eq!(Case::Dative.to_greek(), "Δοτική");
+        assert_eq!(Case::Accusative.to_greek(), "Αἰτιατική");
+        assert_eq!(Case::Vocative.to_greek(), "Κλητική");
+    }
+
+    #[test]
+    fn test_greek_names_number() {
         assert_eq!(Number::Singular.to_greek(), "Ἑνικός");
+        assert_eq!(Number::Plural.to_greek(), "Πληθυντικός");
+    }
+
+    #[test]
+    fn test_greek_names_gender() {
+        assert_eq!(Gender::Masculine.to_greek(), "Ἀρσενικόν");
+        assert_eq!(Gender::Feminine.to_greek(), "Θηλυκόν");
         assert_eq!(Gender::Neuter.to_greek(), "Οὐδέτερον");
+    }
+
+    #[test]
+    fn test_greek_names_person() {
+        assert_eq!(Person::First.to_greek(), "Πρῶτον");
+        assert_eq!(Person::Second.to_greek(), "Δεύτερον");
         assert_eq!(Person::Third.to_greek(), "Τρίτον");
+    }
+
+    #[test]
+    fn test_greek_names_tense() {
         assert_eq!(Tense::Present.to_greek(), "Ἐνεστώς");
+        assert_eq!(Tense::Imperfect.to_greek(), "Παρατατικός");
+        assert_eq!(Tense::Future.to_greek(), "Μέλλων");
+        assert_eq!(Tense::Aorist.to_greek(), "Ἀόριστος");
+        assert_eq!(Tense::Perfect.to_greek(), "Παρακείμενος");
+        assert_eq!(Tense::Pluperfect.to_greek(), "Ὑπερσυντέλικος");
+    }
+
+    #[test]
+    fn test_greek_names_mood() {
+        assert_eq!(Mood::Indicative.to_greek(), "Ὁριστική");
         assert_eq!(Mood::Imperative.to_greek(), "Προστακτική");
+        assert_eq!(Mood::Subjunctive.to_greek(), "Ὑποτακτική");
+        assert_eq!(Mood::Optative.to_greek(), "Εὐκτική");
+        assert_eq!(Mood::Infinitive.to_greek(), "Ἀπαρέμφατον");
+        assert_eq!(Mood::Participle.to_greek(), "Μετοχή");
+    }
+
+    #[test]
+    fn test_greek_names_voice() {
         assert_eq!(Voice::Active.to_greek(), "Ἐνεργητική");
+        assert_eq!(Voice::Middle.to_greek(), "Μέση");
+        assert_eq!(Voice::Passive.to_greek(), "Παθητική");
     }
 }

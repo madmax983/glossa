@@ -77,14 +77,8 @@ impl Oracle {
             }
 
             if let Some(verb) = &assembled.verb {
-                let tense_str = verb
-                    .tense
-                    .map(|t| t.to_greek())
-                    .unwrap_or("Ἄγνωστον");
-                let voice_str = verb
-                    .voice
-                    .map(|v| v.to_greek())
-                    .unwrap_or("Ἄγνωστον");
+                let tense_str = verb.tense.map(|t| t.to_greek()).unwrap_or("Ἄγνωστον");
+                let voice_str = verb.voice.map(|v| v.to_greek()).unwrap_or("Ἄγνωστον");
                 let morph = format!("{} {}", tense_str, voice_str);
 
                 table.add_row(vec![
