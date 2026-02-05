@@ -19,82 +19,92 @@ pub enum Declension {
 
 /// Second declension endings (masculine -ος type)
 /// The most common pattern: λόγος, χρήστος, etc.
+/// NOTE: Must be sorted by length descending!
 const SECOND_DECLENSION_MASC: &[(&str, Case, Number)] = &[
-    // Singular
-    ("ος", Case::Nominative, Number::Singular),
-    ("ου", Case::Genitive, Number::Singular),
-    ("ω", Case::Dative, Number::Singular), // ῳ normalized to ω
-    ("ον", Case::Accusative, Number::Singular),
-    ("ε", Case::Vocative, Number::Singular),
-    // Plural
-    ("οι", Case::Nominative, Number::Plural),
-    ("ων", Case::Genitive, Number::Plural),
+    // Length 3
     ("οις", Case::Dative, Number::Plural),
     ("ους", Case::Accusative, Number::Plural),
+    // Length 2
+    ("ος", Case::Nominative, Number::Singular),
+    ("ου", Case::Genitive, Number::Singular),
+    ("ον", Case::Accusative, Number::Singular),
+    ("οι", Case::Nominative, Number::Plural),
+    ("ων", Case::Genitive, Number::Plural),
+    // Length 1
+    ("ω", Case::Dative, Number::Singular), // ῳ normalized to ω
+    ("ε", Case::Vocative, Number::Singular),
 ];
 
 /// Second declension endings (neuter -ον type)
 /// Pattern: δῶρον, ἔργον, etc.
+/// NOTE: Must be sorted by length descending!
 const SECOND_DECLENSION_NEUT: &[(&str, Case, Number)] = &[
-    // Singular
+    // Length 3
+    ("οις", Case::Dative, Number::Plural),
+    // Length 2
     ("ον", Case::Nominative, Number::Singular),
     ("ου", Case::Genitive, Number::Singular),
-    ("ω", Case::Dative, Number::Singular),
     ("ον", Case::Accusative, Number::Singular),
     ("ον", Case::Vocative, Number::Singular),
-    // Plural
-    ("α", Case::Nominative, Number::Plural),
     ("ων", Case::Genitive, Number::Plural),
-    ("οις", Case::Dative, Number::Plural),
+    // Length 1
+    ("ω", Case::Dative, Number::Singular),
+    ("α", Case::Nominative, Number::Plural),
     ("α", Case::Accusative, Number::Plural),
 ];
 
 /// First declension endings (-η type)
 /// Pattern: τιμή, ψυχή, etc.
+/// NOTE: Must be sorted by length descending!
 const FIRST_DECLENSION_ETA: &[(&str, Case, Number)] = &[
-    // Singular
-    ("η", Case::Nominative, Number::Singular),
+    // Length 3
+    ("αις", Case::Dative, Number::Plural),
+    // Length 2
     ("ης", Case::Genitive, Number::Singular),
-    ("η", Case::Dative, Number::Singular), // ῃ normalized
     ("ην", Case::Accusative, Number::Singular),
-    ("η", Case::Vocative, Number::Singular),
-    // Plural
     ("αι", Case::Nominative, Number::Plural),
     ("ων", Case::Genitive, Number::Plural),
-    ("αις", Case::Dative, Number::Plural),
     ("ας", Case::Accusative, Number::Plural),
+    // Length 1
+    ("η", Case::Nominative, Number::Singular),
+    ("η", Case::Dative, Number::Singular), // ῃ normalized
+    ("η", Case::Vocative, Number::Singular),
 ];
 
 /// First declension endings (-α type, pure alpha)
 /// Pattern: χώρα, θάλαττα, etc.
+/// NOTE: Must be sorted by length descending!
 const FIRST_DECLENSION_ALPHA: &[(&str, Case, Number)] = &[
-    // Singular
-    ("α", Case::Nominative, Number::Singular),
+    // Length 3
+    ("αις", Case::Dative, Number::Plural),
+    // Length 2
     ("ας", Case::Genitive, Number::Singular),
-    ("α", Case::Dative, Number::Singular), // ᾳ normalized
     ("αν", Case::Accusative, Number::Singular),
-    ("α", Case::Vocative, Number::Singular),
-    // Plural (same as eta type)
     ("αι", Case::Nominative, Number::Plural),
     ("ων", Case::Genitive, Number::Plural),
-    ("αις", Case::Dative, Number::Plural),
     ("ας", Case::Accusative, Number::Plural),
+    // Length 1
+    ("α", Case::Nominative, Number::Singular),
+    ("α", Case::Dative, Number::Singular), // ᾳ normalized
+    ("α", Case::Vocative, Number::Singular),
 ];
 
 /// Third declension endings (-μα type)
 /// Pattern: ὄνομα, πρᾶγμα, σῶμα, etc.
+/// NOTE: Must be sorted by length descending!
 const THIRD_DECLENSION_MA: &[(&str, Case, Number)] = &[
-    // Singular
-    ("μα", Case::Nominative, Number::Singular),
+    // Length 5
     ("ματος", Case::Genitive, Number::Singular),
-    ("ματι", Case::Dative, Number::Singular),
-    ("μα", Case::Accusative, Number::Singular),
-    ("μα", Case::Vocative, Number::Singular),
-    // Plural
-    ("ματα", Case::Nominative, Number::Plural),
     ("ματων", Case::Genitive, Number::Plural),
+    // Length 4
+    ("ματι", Case::Dative, Number::Singular),
+    ("ματα", Case::Nominative, Number::Plural),
     ("μασι", Case::Dative, Number::Plural), // μασι(ν)
     ("ματα", Case::Accusative, Number::Plural),
+    // Length 2
+    ("μα", Case::Nominative, Number::Singular),
+    ("μα", Case::Accusative, Number::Singular),
+    ("μα", Case::Vocative, Number::Singular),
 ];
 
 /// Declension configuration pattern
@@ -163,16 +173,18 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
 }
 
 /// Match a word against a list of endings, returning the stem and grammatical info
-fn match_endings(word: &str, endings: &[(&str, Case, Number)]) -> Option<(String, Case, Number)> {
-    // Sort by ending length (longest first) to match most specific
-    let mut sorted_endings: Vec<_> = endings.iter().collect();
-    sorted_endings.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
-
-    for (ending, case, number) in sorted_endings {
+///
+/// Note: The `endings` slice MUST be sorted by length descending.
+fn match_endings<'a>(
+    word: &'a str,
+    endings: &[(&str, Case, Number)],
+) -> Option<(&'a str, Case, Number)> {
+    // Endings are pre-sorted by length (longest first)
+    for (ending, case, number) in endings {
         if let Some(stem) = word.strip_suffix(ending)
             && !stem.is_empty()
         {
-            return Some((stem.to_string(), *case, *number));
+            return Some((stem, *case, *number));
         }
     }
     None
@@ -328,6 +340,38 @@ pub fn decline(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_constants_sorted() {
+        // Enforce that ending constants are sorted by length descending
+        let constant_lists = vec![
+            ("SECOND_DECLENSION_MASC", SECOND_DECLENSION_MASC),
+            ("SECOND_DECLENSION_NEUT", SECOND_DECLENSION_NEUT),
+            ("FIRST_DECLENSION_ETA", FIRST_DECLENSION_ETA),
+            ("FIRST_DECLENSION_ALPHA", FIRST_DECLENSION_ALPHA),
+            ("THIRD_DECLENSION_MA", THIRD_DECLENSION_MA),
+        ];
+
+        for (name, list) in constant_lists {
+            for (i, window) in list.windows(2).enumerate() {
+                let current = window[0].0;
+                let next = window[1].0;
+                let current_len = current.len();
+                let next_len = next.len();
+                assert!(
+                    current_len >= next_len,
+                    "{} is not sorted by length descending! Element at {} ('{}', len {}) is shorter than element at {} ('{}', len {})",
+                    name,
+                    i,
+                    current,
+                    current_len,
+                    i + 1,
+                    next,
+                    next_len
+                );
+            }
+        }
+    }
 
     #[test]
     fn test_second_declension_nominative() {
