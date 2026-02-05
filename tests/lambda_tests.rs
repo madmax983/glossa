@@ -561,8 +561,11 @@ mod cycle11_variable_capture {
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(code_no_space.contains(".filter("), "Should have .filter(");
             // Should reference theta variable in closure
+            // theta (θ) is hex-encoded as _u3b8_ to prevent collisions
             assert!(
-                code_no_space.contains("theta") || code_no_space.contains("θ"),
+                code_no_space.contains("theta")
+                    || code_no_space.contains("θ")
+                    || code_no_space.contains("_u3b8_"),
                 "Should capture theta"
             );
         } else {
@@ -588,8 +591,11 @@ mod cycle11_variable_capture {
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(code_no_space.contains(".any("), "Should have .any(");
+            // theta (θ) is hex-encoded as _u3b8_
             assert!(
-                code_no_space.contains("theta") || code_no_space.contains("θ"),
+                code_no_space.contains("theta")
+                    || code_no_space.contains("θ")
+                    || code_no_space.contains("_u3b8_"),
                 "Should capture theta"
             );
         } else {
@@ -616,9 +622,11 @@ mod cycle11_variable_capture {
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(code_no_space.contains(".filter("), "Should have .filter(");
             assert!(code_no_space.contains("5"), "Should use literal 5");
-            // Should NOT reference theta
+            // Should NOT reference theta (encoded or not)
             assert!(
-                !code_no_space.contains("theta") && !code_no_space.contains("θ"),
+                !code_no_space.contains("theta")
+                    && !code_no_space.contains("θ")
+                    && !code_no_space.contains("_u3b8_"),
                 "Should NOT capture theta"
             );
         } else {

@@ -1056,7 +1056,7 @@ mod tests {
         assert_eq!(transliterate("λογος"), "logos");
         // φ (phi) -> hex
         // φ is 0x3c6
-        assert_eq!(transliterate("φιλοσοφια"), "_u3c6_ilosofia");
+        assert_eq!(transliterate("φιλοσοφια"), "_u3c6_iloso_u3c6_ia");
     }
 
     #[test]

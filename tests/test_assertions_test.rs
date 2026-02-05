@@ -46,13 +46,13 @@ fn test_assert_eq_compiles() {
 
     eprintln!("Generated code:\n{}", rust_str);
 
-    // Should generate assert_eq !(kappa, 5i64)
+    // Should generate assert_eq !(k, 5i64)
     assert!(
         rust_str.contains("assert_eq !"),
         "Missing assert_eq ! macro. Got:\n{}",
         rust_str
     );
-    assert!(rust_str.contains("kappa"), "Missing variable reference");
+    assert!(rust_str.contains("k"), "Missing variable reference");
     assert!(rust_str.contains("5i64"), "Missing literal value");
     assert!(rust_str.contains("# [test]"), "Missing #[test] attribute");
 }

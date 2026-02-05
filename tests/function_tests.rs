@@ -39,7 +39,8 @@ fn test_function_with_two_params() {
     let code = compile("προσθεσις ὁρίζειν τῷ ξ τῷ ψ· δός ξ ψ ἄθροισμα.");
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("fn"));
-    assert!(code.contains("xi") && code.contains("psi"));
+    // ξ -> x, ψ -> _u3c8_
+    assert!(code.contains("x") && code.contains("_u3c8_"));
 }
 
 #[test]
@@ -57,8 +58,8 @@ fn test_simple_return() {
     let code = compile("διπλασιασμος ὁρίζειν τῷ ξ· δός ξ δύο γινόμενον.");
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("return"));
-    // Should return xi * 2, not just a literal
-    assert!(code.contains("xi") || code.contains("*") || code.contains("2"));
+    // Should return x * 2, not just a literal
+    assert!(code.contains("x") || code.contains("*") || code.contains("2"));
 }
 
 #[test]
@@ -81,9 +82,10 @@ fn test_function_call() {
     ",
     );
     eprintln!("Generated code:\n{}", code);
+    // πρόσθεσις -> pros_u3b8_esis
     assert!(
-        code.contains("prosthesis")
-            && (code.contains("prosthesis(") || code.contains("prosthesis ("))
+        code.contains("pros_u3b8_esis")
+            && (code.contains("pros_u3b8_esis(") || code.contains("pros_u3b8_esis ("))
     );
 }
 
