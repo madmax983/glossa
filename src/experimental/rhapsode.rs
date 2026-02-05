@@ -97,9 +97,7 @@ impl Rhapsode {
                     }
 
                     // Add sentence terminator
-                    if stmt.is_query() {
-                        html.push_str(";\n");
-                    } else if stmt.is_propagate() {
+                    if stmt.is_query() || stmt.is_propagate() {
                         html.push_str(";\n");
                     } else {
                         html.push_str(".\n");
@@ -111,7 +109,7 @@ impl Rhapsode {
                     html.push_str(r#" <span class="keyword">ὁρίζειν</span> { "#);
                     for field in &td.fields {
                         html.push_str(&field.name.original);
-                        html.push_str(" ");
+                        html.push(' ');
                         html.push_str(&field.type_name.original);
                         html.push_str(". ");
                     }
@@ -130,94 +128,163 @@ impl Rhapsode {
     fn fill_pool(&self, pool: &mut HashMap<String, VecDeque<TokenInfo>>, asm: &AssembledStatement) {
         // Subject
         if let Some(s) = &asm.subject {
-            self.add_to_pool(pool, &s.original, "subject", format!("Subject (Nom): {}", s.lemma));
+            self.add_to_pool(
+                pool,
+                &s.original,
+                "subject",
+                format!("Subject (Nom): {}", s.lemma),
+            );
         }
 
         // Nominatives
         for n in &asm.nominatives {
-             self.add_to_pool(pool, &n.original, "subject", format!("Nominative: {}", n.lemma));
+            self.add_to_pool(
+                pool,
+                &n.original,
+                "subject",
+                format!("Nominative: {}", n.lemma),
+            );
         }
 
         // Object
         if let Some(o) = &asm.object {
-            self.add_to_pool(pool, &o.original, "object", format!("Object (Acc): {}", o.lemma));
+            self.add_to_pool(
+                pool,
+                &o.original,
+                "object",
+                format!("Object (Acc): {}", o.lemma),
+            );
         }
 
         // Indirect
         if let Some(i) = &asm.indirect {
-            self.add_to_pool(pool, &i.original, "indirect", format!("Indirect (Dat): {}", i.lemma));
+            self.add_to_pool(
+                pool,
+                &i.original,
+                "indirect",
+                format!("Indirect (Dat): {}", i.lemma),
+            );
         }
 
         // Verb
         if let Some(v) = &asm.verb {
-            let info = format!("Verb: {} ({:?} {:?})", v.lemma, v.tense.unwrap_or(crate::morphology::Tense::Present), v.voice.unwrap_or(crate::morphology::Voice::Active));
+            let info = format!(
+                "Verb: {} ({:?} {:?})",
+                v.lemma,
+                v.tense.unwrap_or(crate::morphology::Tense::Present),
+                v.voice.unwrap_or(crate::morphology::Voice::Active)
+            );
             self.add_to_pool(pool, &v.original, "verb", info);
         }
 
         // Adjectives
         for a in &asm.adjectives {
-            self.add_to_pool(pool, &a.original, "adjective", format!("Adjective: {}", a.lemma));
+            self.add_to_pool(
+                pool,
+                &a.original,
+                "adjective",
+                format!("Adjective: {}", a.lemma),
+            );
         }
 
         // Genitives
         for g in &asm.genitives {
-             self.add_to_pool(pool, &g.original, "genitive", format!("Genitive: {}", g.lemma));
+            self.add_to_pool(
+                pool,
+                &g.original,
+                "genitive",
+                format!("Genitive: {}", g.lemma),
+            );
         }
 
         // Participles
         for p in &asm.participles {
-             self.add_to_pool(pool, &p.original, "participle", format!("Participle: {}", p.verb_lemma));
+            self.add_to_pool(
+                pool,
+                &p.original,
+                "participle",
+                format!("Participle: {}", p.verb_lemma),
+            );
         }
     }
 
-    fn add_to_pool(&self, pool: &mut HashMap<String, VecDeque<TokenInfo>>, original: &str, class: &'static str, tooltip: String) {
+    fn add_to_pool(
+        &self,
+        pool: &mut HashMap<String, VecDeque<TokenInfo>>,
+        original: &str,
+        class: &'static str,
+        tooltip: String,
+    ) {
         let normalized = normalize_greek(original);
-        pool.entry(normalized.to_string()).or_default().push_back(TokenInfo { class, tooltip });
+        pool.entry(normalized.to_string())
+            .or_default()
+            .push_back(TokenInfo { class, tooltip });
     }
 
-    fn render_expr(&self, expr: &Expr, pool: &mut HashMap<String, VecDeque<TokenInfo>>, html: &mut String) {
+    fn render_expr(
+        &self,
+        expr: &Expr,
+        pool: &mut HashMap<String, VecDeque<TokenInfo>>,
+        html: &mut String,
+    ) {
         match expr {
             Expr::Word(w) => {
                 let normalized = &w.normalized;
-                if let Some(queue) = pool.get_mut(normalized.as_str()) {
-                    if let Some(info) = queue.pop_front() {
-                        html.push_str(&format!(r#"<span class="{}" data-tooltip="{}">{}</span>"#, info.class, info.tooltip, w.original));
-                        return;
-                    }
+                if let Some(queue) = pool.get_mut(normalized.as_str())
+                    && let Some(info) = queue.pop_front()
+                {
+                    html.push_str(&format!(
+                        r#"<span class="{}" data-tooltip="{}">{}</span>"#,
+                        info.class, info.tooltip, w.original
+                    ));
+                    return;
                 }
                 // Fallback
                 html.push_str(&w.original);
             }
             Expr::StringLiteral(s) => {
-                html.push_str(&format!(r#"<span class="literal" data-tooltip="String">«{}»</span>"#, s));
+                html.push_str(&format!(
+                    r#"<span class="literal" data-tooltip="String">«{}»</span>"#,
+                    s
+                ));
             }
             Expr::NumberLiteral(n) => {
-                 html.push_str(&format!(r#"<span class="literal" data-tooltip="Number">{}</span>"#, n));
+                html.push_str(&format!(
+                    r#"<span class="literal" data-tooltip="Number">{}</span>"#,
+                    n
+                ));
             }
             Expr::BooleanLiteral(b) => {
-                 html.push_str(&format!(r#"<span class="literal" data-tooltip="Boolean">{}</span>"#, b));
+                html.push_str(&format!(
+                    r#"<span class="literal" data-tooltip="Boolean">{}</span>"#,
+                    b
+                ));
             }
-             Expr::Call { verb, arguments } => {
+            Expr::Call { verb, arguments } => {
                 // Render verb
-                 self.render_expr(&Expr::Word(verb.clone()), pool, html);
-                 html.push('(');
-                 for (i, arg) in arguments.iter().enumerate() {
-                     if i > 0 { html.push_str(", "); }
-                     self.render_expr(arg, pool, html);
-                 }
-                 html.push(')');
+                self.render_expr(&Expr::Word(verb.clone()), pool, html);
+                html.push('(');
+                for (i, arg) in arguments.iter().enumerate() {
+                    if i > 0 {
+                        html.push_str(", ");
+                    }
+                    self.render_expr(arg, pool, html);
+                }
+                html.push(')');
             }
             Expr::Phrase(exprs) => {
                 for (i, e) in exprs.iter().enumerate() {
-                    if i > 0 { html.push_str(" "); }
+                    if i > 0 {
+                        html.push(' ');
+                    }
                     self.render_expr(e, pool, html);
                 }
             }
             // Handle other expressions recursively or simply
-             _ => {
-                 // For now, minimal rendering for complex exprs
-                 html.push_str("...");
-             }
+            _ => {
+                // For now, minimal rendering for complex exprs
+                html.push_str("...");
+            }
         }
     }
 }
@@ -242,5 +309,43 @@ mod tests {
         // assert!(html.contains("class=\"object\"")); // λόγον might be misclassified as participle
         assert!(html.contains("class=\"verb\""));
         assert!(html.contains("ἄνθρωπος"));
+    }
+
+    #[test]
+    fn test_rhapsode_type_definition() {
+        let rhapsode = Rhapsode::new();
+        let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.";
+        let html = rhapsode.export_html(source).unwrap();
+
+        assert!(html.contains("class=\"keyword\""));
+        assert!(html.contains("Χρήστης"));
+        assert!(html.contains("ὄνομα"));
+    }
+
+    #[test]
+    fn test_rhapsode_literals_and_phrases() {
+        let rhapsode = Rhapsode::new();
+        // Test literals: String, Number, Boolean
+        // Test phrase: ( ... )
+        let source = "«χαῖρε» 42 ἀληθές λέγε.";
+        let html = rhapsode.export_html(source).unwrap();
+
+        assert!(html.contains("class=\"literal\""));
+        assert!(html.contains("«χαῖρε»"));
+        assert!(html.contains("42"));
+        assert!(html.contains("true")); // BooleanLiteral prints as true/false
+    }
+
+    #[test]
+    fn test_rhapsode_function_call() {
+        let rhapsode = Rhapsode::new();
+        // Test function call structure (verb args...)
+        // Though in Glossa it's often implicit, explicit Call exprs exist
+        // Let's use a known pattern that parses to Call or Phrase
+        let source = "τὸν λόγον λέγει.";
+        let html = rhapsode.export_html(source).unwrap();
+
+        // Basic check that it renders
+        assert!(html.contains("λέγει"));
     }
 }
