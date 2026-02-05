@@ -2661,4 +2661,43 @@ mod tests {
         assert_eq!(entry.case, Some(Case::Dative));
         assert_eq!(entry.lemma, "λογος");
     }
+
+    #[test]
+    fn test_is_assert_verb() {
+        assert!(is_assert_verb("δει"));
+        assert!(is_assert_verb("dei"));
+        assert!(!is_assert_verb("εστω"));
+        assert!(!is_assert_verb("λεγε"));
+    }
+
+    #[test]
+    fn test_is_equals_verb() {
+        assert!(is_equals_verb("ισοω"));
+        assert!(is_equals_verb("isoo"));
+        assert!(is_equals_verb("ισουται"));
+        assert!(is_equals_verb("isoutai"));
+        assert!(!is_equals_verb("δει"));
+        assert!(!is_equals_verb("εστω"));
+    }
+
+    #[test]
+    fn test_assert_verb_lexicon_entry() {
+        let entry = lookup("δει").unwrap();
+        assert_eq!(entry.pos, PartOfSpeech::Verb);
+        assert_eq!(entry.rust_equiv, Some("assert!"));
+        assert_eq!(entry.lemma, "δει");
+        assert_eq!(entry.person, Some(Person::Third));
+        assert_eq!(entry.number, Some(Number::Singular));
+    }
+
+    #[test]
+    fn test_equals_verb_lexicon_entry() {
+        let entry = lookup("ισουται").unwrap();
+        assert_eq!(entry.pos, PartOfSpeech::Verb);
+        assert_eq!(entry.rust_equiv, Some("assert_eq!"));
+        assert_eq!(entry.lemma, "ισοω");
+        assert_eq!(entry.voice, Some(Voice::Middle));
+        assert_eq!(entry.person, Some(Person::Third));
+        assert_eq!(entry.number, Some(Number::Singular));
+    }
 }

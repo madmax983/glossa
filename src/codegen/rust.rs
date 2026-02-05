@@ -579,8 +579,7 @@ fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
     // Replace spaces and special chars with underscores
     let test_fn_name = name
         .to_lowercase()
-        .replace(' ', "_")
-        .replace('-', "_")
+        .replace([' ', '-'], "_")
         .chars()
         .filter(|c| c.is_alphanumeric() || *c == '_')
         .collect::<String>();

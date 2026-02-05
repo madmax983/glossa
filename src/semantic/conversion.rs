@@ -654,13 +654,13 @@ fn classify_equality_assertion(
             let mut right_expr = None;
 
             // Get subject (variable)
-            if let Some(ref subj) = asm_stmt.subject {
-                if let Some(var_type) = scope.lookup(&subj.lemma) {
-                    left_expr = Some(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: var_type.clone(),
-                    });
-                }
+            if let Some(ref subj) = asm_stmt.subject
+                && let Some(var_type) = scope.lookup(&subj.lemma)
+            {
+                left_expr = Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                });
             }
 
             // Get literal (expected value)

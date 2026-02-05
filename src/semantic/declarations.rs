@@ -520,11 +520,15 @@ pub fn analyze_test_declaration(
                 analyzed_body.push(control_flow);
             }
             // Handle struct instantiation
-            else if let Some(struct_inst) = try_parse_struct_instantiation(body_stmt, &mut test_scope)? {
+            else if let Some(struct_inst) =
+                try_parse_struct_instantiation(body_stmt, &mut test_scope)?
+            {
                 analyzed_body.push(struct_inst);
             }
             // Handle trait method calls
-            else if let Some(method_call) = try_parse_trait_method_call(body_stmt, &mut test_scope)? {
+            else if let Some(method_call) =
+                try_parse_trait_method_call(body_stmt, &mut test_scope)?
+            {
                 analyzed_body.push(method_call);
             }
             // Regular statement analysis
