@@ -8,6 +8,9 @@ use pest::iterators::Pair;
 
 /// Build an AST from source code
 pub fn parse_source(source: &str) -> Result<Program, ParseError> {
+    // Check recursion depth before parsing to prevent stack overflow
+    check_recursion_depth(source)?;
+
     let pairs = parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
 
     let mut statements = Vec::new();
@@ -593,6 +596,51 @@ pub enum ParseError {
 
     #[error("Unexpected rule: {0}")]
     UnexpectedRule(String),
+
+    #[error("Recursion limit exceeded: depth > {0}")]
+    RecursionLimitExceeded(usize),
+}
+
+/// Check recursion depth to prevent stack overflows
+fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
+    const MAX_DEPTH: usize = 500;
+    let mut depth = 0;
+    let mut in_string = false;
+    let mut chars = source.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if in_string {
+            if c == '»' {
+                in_string = false;
+            }
+        } else {
+            match c {
+                '«' => in_string = true,
+                '(' | '{' | '[' => {
+                    depth += 1;
+                    if depth > MAX_DEPTH {
+                        return Err(ParseError::RecursionLimitExceeded(MAX_DEPTH));
+                    }
+                }
+                ')' | '}' | ']' => {
+                    depth = depth.saturating_sub(1);
+                }
+                '/' => {
+                    if let Some('/') = chars.peek() {
+                        // Skip comment
+                        chars.next(); // consume second /
+                        for c in chars.by_ref() {
+                            if c == '\n' || c == '\r' {
+                                break;
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
