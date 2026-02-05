@@ -936,39 +936,9 @@ fn is_self_parameter(param_name: &str, idx: usize) -> bool {
 
 /// Sanitize a Greek name for use as a Rust identifier
 fn sanitize_name(name: &str) -> String {
-    // Map single Greek letters to their names
-    if name.len() <= 2 {
-        // Could be a single Greek letter (2 bytes for UTF-8)
-        match name {
-            "α" => return "alpha".to_string(),
-            "β" => return "beta".to_string(),
-            "γ" => return "gamma".to_string(),
-            "δ" => return "delta".to_string(),
-            "ε" => return "epsilon".to_string(),
-            "ζ" => return "zeta".to_string(),
-            "η" => return "eta".to_string(),
-            "θ" => return "theta".to_string(),
-            "ι" => return "iota".to_string(),
-            "κ" => return "kappa".to_string(),
-            "λ" => return "lambda".to_string(),
-            "μ" => return "mu".to_string(),
-            "ν" => return "nu".to_string(),
-            "ξ" => return "xi".to_string(),
-            "ο" => return "omicron".to_string(),
-            "π" => return "pi".to_string(),
-            "ρ" => return "rho".to_string(),
-            "σ" | "ς" => return "sigma".to_string(),
-            "τ" => return "tau".to_string(),
-            "υ" => return "upsilon".to_string(),
-            "φ" => return "phi".to_string(),
-            "χ" => return "chi".to_string(),
-            "ψ" => return "psi".to_string(),
-            "ω" => return "omega".to_string(),
-            _ => {}
-        }
-    }
-
-    // Transliterate the full name
+    // Directly transliterate without special casing single letters
+    // This prevents collisions between single letters and their full names
+    // e.g. "σ" (sigma) vs "σίγμα" (sigma)
     transliterate(name)
 }
 
@@ -984,8 +954,7 @@ fn transliterate(greek: &str) -> String {
             'δ' => "d",
             'ε' => "e",
             'ζ' => "z",
-            'η' => "e",
-            'θ' => "th",
+            'η' => "h", // Distinct from 'e' (epsilon)
             'ι' => "i",
             'κ' => "k",
             'λ' => "l",
@@ -998,10 +967,9 @@ fn transliterate(greek: &str) -> String {
             'σ' | 'ς' => "s",
             'τ' => "t",
             'υ' => "u",
-            'φ' => "ph",
-            'χ' => "ch",
-            'ψ' => "ps",
-            'ω' => "o",
+            'ω' => "w", // Distinct from 'o' (omicron)
+            // Digraphs and other characters are hex-encoded to prevent collisions
+            // θ, φ, χ, ψ map to _u..._ because th, ph, ch, ps collide with sequences
             _ => {
                 // Keep only ASCII alphanumeric characters and underscore
                 if c.is_ascii_alphanumeric() || c == '_' {
@@ -1062,7 +1030,7 @@ mod tests {
     #[test]
     fn test_generate_binding() {
         let code = compile("ξ πέντε ἔστω.");
-        assert!(code.contains("let xi"));
+        assert!(code.contains("let x"));
         assert!(code.contains("5"));
     }
 
@@ -1075,16 +1043,20 @@ mod tests {
 
     #[test]
     fn test_sanitize_greek_letter() {
-        assert_eq!(sanitize_name("ξ"), "xi");
-        assert_eq!(sanitize_name("α"), "alpha");
-        assert_eq!(sanitize_name("ω"), "omega");
+        assert_eq!(sanitize_name("ξ"), "x");
+        assert_eq!(sanitize_name("α"), "a");
+        assert_eq!(sanitize_name("ω"), "w");
     }
 
     #[test]
     fn test_transliterate() {
-        assert_eq!(transliterate("χρηστος"), "chrestos");
+        // χ (chi) -> hex, ρ -> r, η -> h, σ -> s, τ -> t, ο -> o, ς -> s
+        // χ is 0x3c7
+        assert_eq!(transliterate("χρηστος"), "_u3c7_rhstos");
         assert_eq!(transliterate("λογος"), "logos");
-        assert_eq!(transliterate("φιλοσοφια"), "philosophia");
+        // φ (phi) -> hex
+        // φ is 0x3c6
+        assert_eq!(transliterate("φιλοσοφια"), "_u3c6_ilosofia");
     }
 
     #[test]
@@ -1115,7 +1087,7 @@ mod tests {
     #[test]
     fn test_generate_full_program() {
         let code = compile("ξ πέντε ἔστω. ξ λέγε.");
-        assert!(code.contains("let xi = 5"), "Expected binding in: {}", code);
+        assert!(code.contains("let x = 5"), "Expected binding in: {}", code);
         assert!(code.contains("println"), "Expected println in: {}", code);
     }
 }

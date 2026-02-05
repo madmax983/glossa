@@ -41,3 +41,11 @@
 2. Enforced `MAX_REPL_BINDINGS` (50) and `MAX_REPL_SOURCE_LEN` (50KB) in `src/main.rs`.
 
 **Severity:** Low (Logic bug) / Medium (DoS).
+
+## 2026-06-02 - Identifier Collision Logic Bug
+
+**Threat:** Identifier collision in `src/codegen/rust.rs`. `sanitize_name` mapped single Greek letters (e.g., `σ`) to their full names (`sigma`), causing collisions with variables named with the full name (`σίγμα`). This allowed variable shadowing and potential logic errors. Also `ψ` collided with `πσ`.
+
+**Defense:** Removed special single-letter mapping in `sanitize_name` and enforced strict transliteration in `transliterate`. `σ` now maps to `s`, while `σίγμα` maps to `sigma`. `ψ` maps to `_u3c8_` (hex encoded) to avoid collision with `ps`.
+
+**Severity:** Medium (Logic Bug).
