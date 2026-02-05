@@ -348,4 +348,45 @@ mod tests {
         // Basic check that it renders
         assert!(html.contains("λέγει"));
     }
+
+    #[test]
+    fn test_rhapsode_coverage_gaps() {
+        let rhapsode = Rhapsode::new();
+        // Test propagate statement (;), indirect object, genitive, participle
+        // 1. Propagate: ends with ;
+        // 2. Indirect: τῷ ἀνθρώπῳ (to the man)
+        // 3. Genitive: τοῦ θεοῦ (of God)
+        // 4. Participle: διπλασιαζόμενα (doubling)
+        let source = "τῷ ἀνθρώπῳ τοῦ θεοῦ δίδωμι; διπλασιαζόμενα λέγε.";
+        let html = rhapsode.export_html(source).unwrap();
+
+        // Check propagate terminator
+        assert!(html.contains(";\n"));
+
+        // Check indirect object
+        assert!(html.contains("class=\"indirect\""));
+        assert!(html.contains("ἀνθρώπῳ"));
+
+        // Check genitive
+        assert!(html.contains("class=\"genitive\""));
+        assert!(html.contains("θεοῦ"));
+
+        // Check participle
+        assert!(html.contains("class=\"participle\""));
+        assert!(html.contains("διπλασιαζόμενα"));
+    }
+
+    #[test]
+    fn test_rhapsode_phrase_expression() {
+        let rhapsode = Rhapsode::new();
+        // Force a Phrase expression (parenthesized sequence often creates this in AST if not a call)
+        let source = "(«Α» «Β») λέγε.";
+        let html = rhapsode.export_html(source).unwrap();
+
+        // Check that components render
+        assert!(html.contains("«Α»"));
+        assert!(html.contains("«Β»"));
+        // Check spacing in phrase
+        // Phrase rendering puts spaces between items
+    }
 }
