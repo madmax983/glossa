@@ -389,4 +389,42 @@ mod tests {
         // Check spacing in phrase
         // Phrase rendering puts spaces between items
     }
+
+    #[test]
+    fn test_rhapsode_complex_expressions() {
+        let rhapsode = Rhapsode::new();
+
+        // ArrayLiteral: [1, 2]
+        // IndexAccess: a[0]
+        // BinOp: 1 + 2 (arithmetic, likely parsed as Phrase but let's try explicit op if possible)
+        // Note: Parser might treat "1 + 2" as Phrase("1", "+", "2") unless operator precedence kicks in.
+        // Let's use array syntax which is explicit in AST.
+        let source = "πίναξ [1, 2] ἔστω. πίναξ[0] λέγε.";
+        let html = rhapsode.export_html(source).unwrap();
+
+        // Array literal triggers fallback "..." currently
+        assert!(html.contains("..."));
+
+        // Index access also triggers fallback "..."
+        // This confirms the fallback path is covered.
+    }
+
+    #[test]
+    fn test_rhapsode_default_impl() {
+        let rhapsode = Rhapsode::default();
+        let source = "«δοκιμή» λέγε.";
+        let html = rhapsode.export_html(source).unwrap();
+        assert!(html.contains("«δοκιμή»"));
+    }
+
+    #[test]
+    fn test_rhapsode_token_info() {
+        // Indirectly test TokenInfo by checking tooltips
+        let rhapsode = Rhapsode::new();
+        let source = "ὁ ἄνθρωπος λέγει.";
+        let html = rhapsode.export_html(source).unwrap();
+
+        // Check for tooltip data attribute
+        assert!(html.contains("data-tooltip=\"Subject (Nom): ανθρωπος\""));
+    }
 }
