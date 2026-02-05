@@ -6,11 +6,12 @@ This EBNF reflects the actual PEG grammar (`glossa.pest`).
 (* ============ Top Level ============ *)
 program           = { statement }
 
-statement         = ( type_definition
-                    | trait_definition
-                    | trait_impl
-                    | clause_list )
-                    statement_end
+statement         = test_declaration
+                    | ( type_definition
+                      | trait_definition
+                      | trait_impl
+                      | clause_list )
+                      statement_end
 
 statement_end     = period | query | propagate
 
@@ -28,6 +29,13 @@ trait_definition   = character_keyword greek_word orizontin_keyword
 trait_impl         = eidos_keyword greek_word dative_marker greek_word
                     empiptein_keyword "{" [ impl_method_list ] "}"
 
+(* δοκιμή «test name». body τέλος. *)
+test_declaration   = ("δοκιμή" | "δοκιμη") string_literal statement_end
+                    test_body
+                    ("τέλος" | "τελος") statement_end
+
+test_body          = { !(("τέλος" | "τελος")) statement }
+
 (* ============ Keywords ============ *)
 eidos_keyword      = "εἶδος" | "ειδος"
 character_keyword  = "χαρακτήρ" | "χαρακτηρ"
@@ -36,6 +44,8 @@ dative_marker      = "τῷ" | "τω"
 empiptein_keyword  = "ἐμπίπτειν" | "εμπιπτειν"
 dei_keyword        = "δεῖ" | "δει"
 ede_keyword        = "ἤδη" | "ηδη"
+dokime_keyword     = "δοκιμή" | "δοκιμη"
+telos_keyword      = "τέλος" | "τελος"
 
 (* ============ Fields & Methods ============ *)
 field_list         = field_declaration { (chain | period) field_declaration }

@@ -235,6 +235,42 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         },
     );
 
+    // δεῖ - it is necessary (impersonal verb for assertions)
+    m.insert(
+        "δει",
+        LexiconEntry {
+            lemma: "δει",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "it is necessary, must be",
+            rust_equiv: Some("assert!"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+        },
+    );
+
+    // ἰσοῦται - equals (3rd person singular middle/passive of ἰσόω)
+    m.insert(
+        "ισουται",
+        LexiconEntry {
+            lemma: "ισοω",
+            pos: PartOfSpeech::Verb,
+            gender: None,
+            meaning: "equals, is made equal to",
+            rust_equiv: Some("assert_eq!"),
+            case: None,
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Middle),
+        },
+    );
+
     // =========================================================================
     // Built-in type nouns
     // =========================================================================
@@ -2060,6 +2096,16 @@ pub fn is_find_verb(normalized_word: &str) -> bool {
     matches!(normalized_word, "ευρε" | "ευρισκω")
 }
 
+/// Check if a word is the δεῖ assertion verb
+pub fn is_assert_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "δει" | "dei")
+}
+
+/// Check if a word is the ἰσοῦται equality verb
+pub fn is_equals_verb(normalized_word: &str) -> bool {
+    matches!(normalized_word, "ισοω" | "isoo" | "ισουται" | "isoutai")
+}
+
 /// Check if a word is the "any" quantifier (τι)
 pub fn is_any_quantifier(normalized_word: &str) -> bool {
     matches!(normalized_word, "τι" | "τις") // τι is the form, τις is the lemma
@@ -2614,5 +2660,44 @@ mod tests {
         let entry = lookup("λογω").unwrap();
         assert_eq!(entry.case, Some(Case::Dative));
         assert_eq!(entry.lemma, "λογος");
+    }
+
+    #[test]
+    fn test_is_assert_verb() {
+        assert!(is_assert_verb("δει"));
+        assert!(is_assert_verb("dei"));
+        assert!(!is_assert_verb("εστω"));
+        assert!(!is_assert_verb("λεγε"));
+    }
+
+    #[test]
+    fn test_is_equals_verb() {
+        assert!(is_equals_verb("ισοω"));
+        assert!(is_equals_verb("isoo"));
+        assert!(is_equals_verb("ισουται"));
+        assert!(is_equals_verb("isoutai"));
+        assert!(!is_equals_verb("δει"));
+        assert!(!is_equals_verb("εστω"));
+    }
+
+    #[test]
+    fn test_assert_verb_lexicon_entry() {
+        let entry = lookup("δει").unwrap();
+        assert_eq!(entry.pos, PartOfSpeech::Verb);
+        assert_eq!(entry.rust_equiv, Some("assert!"));
+        assert_eq!(entry.lemma, "δει");
+        assert_eq!(entry.person, Some(Person::Third));
+        assert_eq!(entry.number, Some(Number::Singular));
+    }
+
+    #[test]
+    fn test_equals_verb_lexicon_entry() {
+        let entry = lookup("ισουται").unwrap();
+        assert_eq!(entry.pos, PartOfSpeech::Verb);
+        assert_eq!(entry.rust_equiv, Some("assert_eq!"));
+        assert_eq!(entry.lemma, "ισοω");
+        assert_eq!(entry.voice, Some(Voice::Middle));
+        assert_eq!(entry.person, Some(Person::Third));
+        assert_eq!(entry.number, Some(Number::Singular));
     }
 }

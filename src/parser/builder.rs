@@ -32,6 +32,7 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
     let mut type_def = None;
     let mut trait_def = None;
     let mut trait_impl = None;
+    let mut test_decl = None;
 
     for inner in pair.into_inner() {
         match inner.as_rule() {
@@ -43,6 +44,9 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
             }
             Rule::trait_impl => {
                 trait_impl = Some(build_trait_impl(inner)?);
+            }
+            Rule::test_declaration => {
+                test_decl = Some(build_test_declaration(inner)?);
             }
             Rule::clause_list => {
                 for clause_pair in inner.into_inner() {
@@ -70,6 +74,8 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
         Ok(Statement::TraitDefinition(def))
     } else if let Some(impl_def) = trait_impl {
         Ok(Statement::TraitImpl(impl_def))
+    } else if let Some(test) = test_decl {
+        Ok(Statement::TestDeclaration(test))
     } else {
         Ok(Statement::Regular {
             clauses,
@@ -290,6 +296,53 @@ fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, ParseError> {
         type_name: type_name.unwrap(),
         trait_name: trait_name.unwrap(),
         methods,
+    })
+}
+
+fn build_test_declaration(pair: Pair<'_, Rule>) -> Result<TestDecl, ParseError> {
+    let mut test_name = None;
+    let mut body = Vec::new();
+
+    for inner in pair.into_inner() {
+        match inner.as_rule() {
+            Rule::string_literal => {
+                // Extract the content from «name»
+                for content_pair in inner.into_inner() {
+                    if content_pair.as_rule() == Rule::string_content {
+                        test_name = Some(content_pair.as_str().to_string());
+                    }
+                }
+            }
+            Rule::test_body => {
+                // test_body contains statements
+                for stmt_pair in inner.into_inner() {
+                    if stmt_pair.as_rule() == Rule::statement {
+                        body.push(build_statement(stmt_pair)?);
+                    }
+                }
+            }
+            Rule::statement => {
+                // Fallback for direct statements (shouldn't happen with test_body)
+                body.push(build_statement(inner)?);
+            }
+            Rule::statement_end => {
+                // Skip these - they're punctuation
+            }
+            _ => {
+                // Skip keywords and other tokens
+            }
+        }
+    }
+
+    if test_name.is_none() {
+        return Err(ParseError::UnexpectedRule(
+            "Test declaration needs a name".to_string(),
+        ));
+    }
+
+    Ok(TestDecl {
+        name: test_name.unwrap(),
+        body,
     })
 }
 
@@ -553,6 +606,7 @@ mod tests {
             Statement::TypeDefinition(_) => panic!("Cannot get first_expr from TypeDefinition"),
             Statement::TraitDefinition(_) => panic!("Cannot get first_expr from TraitDefinition"),
             Statement::TraitImpl(_) => panic!("Cannot get first_expr from TraitImpl"),
+            Statement::TestDeclaration(_) => panic!("Cannot get first_expr from TestDeclaration"),
         }
     }
 

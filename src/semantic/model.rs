@@ -84,6 +84,11 @@ pub enum StatementKind {
         type_name: SmolStr,
         methods: Vec<AnalyzedMethod>,
     },
+    /// Test declaration: δοκιμή «test name» ... τέλος
+    TestDeclaration {
+        name: String,
+        body: Vec<AnalyzedStatement>,
+    },
 }
 
 /// An analyzed method (used in traits and implementations)
@@ -223,6 +228,15 @@ pub enum AnalyzedExprKind {
         collection: Box<AnalyzedExpr>,
         element: Box<AnalyzedExpr>,
         is_map: bool,
+    },
+    /// Boolean assertion: δεῖ (condition must be true)
+    Assert {
+        condition: Box<AnalyzedExpr>,
+    },
+    /// Equality assertion: ἰσοῦται (values must be equal)
+    AssertEq {
+        left: Box<AnalyzedExpr>,
+        right: Box<AnalyzedExpr>,
     },
 }
 
