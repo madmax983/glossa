@@ -46,6 +46,8 @@
 //! }
 //! ```
 
+#![allow(clippy::needless_doctest_main)]
+
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedMethod, AnalyzedProgram,

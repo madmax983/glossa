@@ -37,6 +37,7 @@ pub(crate) mod conversion;
 pub(crate) mod declarations;
 pub(crate) mod expressions;
 pub(crate) mod model;
+pub mod oracle;
 pub(crate) mod patterns;
 mod resolver;
 mod types;
@@ -46,6 +47,7 @@ pub use assembler::{
     AssembledStatement, Assembler, AssemblyError, Constituent, Literal, VerbConstituent,
 };
 pub use model::*;
+pub use oracle::Oracle;
 pub use resolver::*;
 pub use types::*;
 
