@@ -1,20 +1,36 @@
 //! Greek error messages
 //!
-//! Provides helpful error messages in Ancient Greek style.
+//! # Philosophy: Errors as Dialogue
+//!
+//! In ΓΛΩΣΣΑ, error messages are not just debug output; they are part of the immersion.
+//! Instead of technical jargon like "Type Mismatch", the compiler speaks to you
+//! in Ancient Greek:
+//!
+//! * "Ἐδόκει ἀριθμὸν εὑρεῖν..." (I expected to find a number...)
+//! * "Οὐκ οἶδα τὸ ὄνομα..." (I do not know the name...)
+//!
+//! This module centralizes these strings to ensure consistency and grammatical correctness.
+//! We strive to be helpful, polite, but firm—like a strict grammaticus teaching a pupil.
 
 use crate::morphology::{Case, Gender, Number};
 
 /// Get a Greek message for a type mismatch
+///
+/// "I expected to find {expected}, but I found {got}"
 pub fn type_mismatch(expected: &str, got: &str) -> String {
     format!("Ἐδόκει {} εὑρεῖν, ἀλλ' εὗρον {}", expected, got)
 }
 
 /// Get a Greek message for an undefined variable
+///
+/// "I do not know the name {name}"
 pub fn undefined_variable(name: &str) -> String {
     format!("Οὐκ οἶδα τὸ ὄνομα «{}»", name)
 }
 
 /// Get a Greek message for assignment to immutable variable
+///
+/// "The {name} is immutable — use 'meta' before the definition"
 pub fn immutable_assignment(name: &str) -> String {
     format!(
         "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
@@ -23,6 +39,8 @@ pub fn immutable_assignment(name: &str) -> String {
 }
 
 /// Get a Greek message for gender mismatch
+///
+/// "The {word1} ({gender1}) does not agree with the {word2} ({gender2})"
 pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gender) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
@@ -34,6 +52,8 @@ pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gende
 }
 
 /// Get a Greek message for number mismatch
+///
+/// "The {word1} ({num1}) does not agree with the {word2} ({num2})"
 pub fn number_mismatch(word1: &str, num1: Number, word2: &str, num2: Number) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
@@ -45,6 +65,8 @@ pub fn number_mismatch(word1: &str, num1: Number, word2: &str, num2: Number) -> 
 }
 
 /// Get a Greek message for case mismatch
+///
+/// "The {word1} ({case1}) does not agree with the {word2} ({case2})"
 pub fn case_mismatch(word1: &str, case1: Case, word2: &str, case2: Case) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
