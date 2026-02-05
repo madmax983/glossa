@@ -36,3 +36,11 @@
 2. Updated all imports to point to `crate::text::normalize_greek`.
 3. Removed `normalize` submodule from `grammar`.
 **Stability:** Decouples core logic from parsing implementation. `text` becomes a leaf utility module, allowing `ast` and `morphology` to be independent of `grammar`.
+
+## [Breaking The Leak: Semantic Expressions]
+**Tangle:** `src/semantic/expressions.rs` was exposing internal logic (`feed_expr_to_assembler_with_context`) via `#[doc(hidden)]` solely for the `Oracle` tool in `src/experimental/oracle.rs`. This violated encapsulation and forced `Oracle` to rely on internal implementation details of the assembler.
+**Blueprint:**
+1. Exposed `assemble_statement` in `src/semantic/mod.rs` as a high-level facade API.
+2. Refactored `Oracle` to use `assemble_statement` instead of manually driving the assembler loop.
+3. Changed `src/semantic/expressions.rs` visibility to `pub(crate)` to enforce internal-only use.
+**Stability:** Enforces clear module boundaries. `semantic` now provides a stable public API for assembly, and internal expression logic is hidden from external consumers.

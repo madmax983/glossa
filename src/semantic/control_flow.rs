@@ -4,7 +4,7 @@
 
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, StatementKind,
-    analyze_single_statement_with_assembler, convert_assembled_to_analyzed,
+    assemble_statement, convert_assembled_to_analyzed,
 };
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
@@ -115,7 +115,7 @@ fn parse_while_loop(
     let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
         cf
     } else {
-        let assembled = analyze_single_statement_with_assembler(&body_stmt)?;
+        let assembled = assemble_statement(&body_stmt)?;
         convert_assembled_to_analyzed(&assembled, scope)?
     };
 
@@ -263,7 +263,7 @@ fn parse_for_range_loop(
     let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
         cf
     } else {
-        let assembled = analyze_single_statement_with_assembler(&body_stmt)?;
+        let assembled = assemble_statement(&body_stmt)?;
         convert_assembled_to_analyzed(&assembled, scope)?
     };
 
@@ -360,7 +360,7 @@ fn parse_for_iteration_loop(
     let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
         cf
     } else {
-        let assembled = analyze_single_statement_with_assembler(&body_stmt)?;
+        let assembled = assemble_statement(&body_stmt)?;
         convert_assembled_to_analyzed(&assembled, scope)?
     };
 
@@ -711,7 +711,7 @@ fn skip_first_word_and_parse(
 
     // Parse the modified clause as a statement
     let stmt = parse_clause_as_mini_statement(&modified_clause)?;
-    let analyzed = analyze_single_statement_with_assembler(&stmt)?;
+    let analyzed = assemble_statement(&stmt)?;
     let converted = convert_assembled_to_analyzed(&analyzed, scope)?;
 
     // Extract the first expression as the condition
@@ -734,7 +734,7 @@ fn parse_clause_as_statement(
         return Ok(cf);
     }
 
-    let assembled = analyze_single_statement_with_assembler(&stmt)?;
+    let assembled = assemble_statement(&stmt)?;
     convert_assembled_to_analyzed(&assembled, scope)
 }
 
