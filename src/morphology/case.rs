@@ -31,6 +31,17 @@ impl Case {
             Case::Vocative => "",   // No ownership semantic
         }
     }
+
+    /// Get the Greek name for the case
+    pub fn to_greek(&self) -> &'static str {
+        match self {
+            Case::Nominative => "Ὀνομαστική",
+            Case::Genitive => "Γενική",
+            Case::Dative => "Δοτική",
+            Case::Accusative => "Αἰτιατική",
+            Case::Vocative => "Κλητική",
+        }
+    }
 }
 
 /// Grammatical number
@@ -41,6 +52,16 @@ pub enum Number {
     // Dual omitted for MVP
 }
 
+impl Number {
+    /// Get the Greek name for the number
+    pub fn to_greek(&self) -> &'static str {
+        match self {
+            Number::Singular => "Ἑνικός",
+            Number::Plural => "Πληθυντικός",
+        }
+    }
+}
+
 /// Grammatical gender
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Gender {
@@ -49,12 +70,34 @@ pub enum Gender {
     Neuter,
 }
 
+impl Gender {
+    /// Get the Greek name for the gender
+    pub fn to_greek(&self) -> &'static str {
+        match self {
+            Gender::Masculine => "Ἀρσενικόν",
+            Gender::Feminine => "Θηλυκόν",
+            Gender::Neuter => "Οὐδέτερον",
+        }
+    }
+}
+
 /// Person (for verbs)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Person {
     First,
     Second,
     Third,
+}
+
+impl Person {
+    /// Get the Greek name for the person
+    pub fn to_greek(&self) -> &'static str {
+        match self {
+            Person::First => "Πρῶτον",
+            Person::Second => "Δεύτερον",
+            Person::Third => "Τρίτον",
+        }
+    }
 }
 
 /// Tense - encodes aspect/time
@@ -72,6 +115,20 @@ pub enum Tense {
     Aorist,
     Perfect,
     Pluperfect,
+}
+
+impl Tense {
+    /// Get the Greek name for the tense
+    pub fn to_greek(&self) -> &'static str {
+        match self {
+            Tense::Present => "Ἐνεστώς",
+            Tense::Imperfect => "Παρατατικός",
+            Tense::Future => "Μέλλων",
+            Tense::Aorist => "Ἀόριστος",
+            Tense::Perfect => "Παρακείμενος",
+            Tense::Pluperfect => "Ὑπερσυντέλικος",
+        }
+    }
 }
 
 /// Mood - encodes modality
@@ -93,6 +150,20 @@ pub enum Mood {
     Participle,
 }
 
+impl Mood {
+    /// Get the Greek name for the mood
+    pub fn to_greek(&self) -> &'static str {
+        match self {
+            Mood::Indicative => "Ὁριστική",
+            Mood::Imperative => "Προστακτική",
+            Mood::Subjunctive => "Ὑποτακτική",
+            Mood::Optative => "Εὐκτική",
+            Mood::Infinitive => "Ἀπαρέμφατον",
+            Mood::Participle => "Μετοχή",
+        }
+    }
+}
+
 /// Voice - active, middle, passive
 ///
 /// In ΓΛΩΣΣΑ:
@@ -106,6 +177,17 @@ pub enum Voice {
     Passive,
 }
 
+impl Voice {
+    /// Get the Greek name for the voice
+    pub fn to_greek(&self) -> &'static str {
+        match self {
+            Voice::Active => "Ἐνεργητική",
+            Voice::Middle => "Μέση",
+            Voice::Passive => "Παθητική",
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,5 +197,16 @@ mod tests {
         assert_eq!(Case::Genitive.to_rust_ownership(), "&");
         assert_eq!(Case::Dative.to_rust_ownership(), "&mut");
         assert_eq!(Case::Accusative.to_rust_ownership(), "");
+    }
+
+    #[test]
+    fn test_greek_names() {
+        assert_eq!(Case::Nominative.to_greek(), "Ὀνομαστική");
+        assert_eq!(Number::Singular.to_greek(), "Ἑνικός");
+        assert_eq!(Gender::Neuter.to_greek(), "Οὐδέτερον");
+        assert_eq!(Person::Third.to_greek(), "Τρίτον");
+        assert_eq!(Tense::Present.to_greek(), "Ἐνεστώς");
+        assert_eq!(Mood::Imperative.to_greek(), "Προστακτική");
+        assert_eq!(Voice::Active.to_greek(), "Ἐνεργητική");
     }
 }

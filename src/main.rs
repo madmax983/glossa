@@ -402,7 +402,7 @@ fn print_env(context: &ReplContext) {
         for (name, binding) in bindings {
             table.add_row(vec![
                 Cell::new(name).fg(Color::Green),
-                Cell::new(format!("{:?}", binding.glossa_type)),
+                Cell::new(binding.glossa_type.to_greek()),
                 if binding.mutable {
                     Cell::new("Ναί (Yes)").fg(Color::Yellow)
                 } else {

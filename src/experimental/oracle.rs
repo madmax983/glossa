@@ -48,30 +48,30 @@ impl Oracle {
                 .load_preset(UTF8_FULL)
                 .set_content_arrangement(ContentArrangement::Dynamic)
                 .set_header(vec![
-                    Cell::new("Role")
+                    Cell::new("Ῥόλος (Role)")
                         .add_attribute(Attribute::Bold)
                         .fg(Color::Cyan),
-                    Cell::new("Greek Word").add_attribute(Attribute::Bold),
-                    Cell::new("Morphology")
+                    Cell::new("Λέξις (Word)").add_attribute(Attribute::Bold),
+                    Cell::new("Μορφολογία (Morphology)")
                         .add_attribute(Attribute::Bold)
                         .fg(Color::Green),
-                    Cell::new("Lemma/Value").add_attribute(Attribute::Bold),
+                    Cell::new("Λῆμμα/Τιμή (Lemma/Value)").add_attribute(Attribute::Bold),
                 ]);
 
             if let Some(subject) = &assembled.subject {
                 table.add_row(vec![
-                    "Subject (Agent)",
+                    "Ὑποκείμενον (Subject)",
                     &subject.original,
-                    "Nominative Case",
+                    "Ὀνομαστική (Nominative)",
                     subject.lemma.as_ref(),
                 ]);
             }
 
             for nom in &assembled.nominatives {
                 table.add_row(vec![
-                    "Nominative (Secondary)",
+                    "Κατηγορούμενον (Predicate)",
                     &nom.original,
-                    "Nominative Case",
+                    "Ὀνομαστική (Nominative)",
                     nom.lemma.as_ref(),
                 ]);
             }
@@ -79,16 +79,16 @@ impl Oracle {
             if let Some(verb) = &assembled.verb {
                 let tense_str = verb
                     .tense
-                    .map(|t| format!("{:?}", t))
-                    .unwrap_or_else(|| "Unknown".to_string());
+                    .map(|t| t.to_greek())
+                    .unwrap_or("Ἄγνωστον");
                 let voice_str = verb
                     .voice
-                    .map(|v| format!("{:?}", v))
-                    .unwrap_or_else(|| "Unknown".to_string());
+                    .map(|v| v.to_greek())
+                    .unwrap_or("Ἄγνωστον");
                 let morph = format!("{} {}", tense_str, voice_str);
 
                 table.add_row(vec![
-                    "Verb (Action)",
+                    "Ῥῆμα (Verb)",
                     &verb.original,
                     &morph,
                     verb.lemma.as_ref(),
@@ -97,26 +97,28 @@ impl Oracle {
 
             if let Some(object) = &assembled.object {
                 table.add_row(vec![
-                    "Object (Patient)",
+                    "Ἀντικείμενον (Object)",
                     &object.original,
-                    "Accusative Case",
+                    "Αἰτιατική (Accusative)",
                     object.lemma.as_ref(),
                 ]);
             }
 
             if let Some(indirect) = &assembled.indirect {
                 table.add_row(vec![
-                    "Indirect Object",
+                    "Ἔμμεσον (Indirect)",
                     &indirect.original,
-                    "Dative Case",
+                    "Δοτική (Dative)",
                     indirect.lemma.as_ref(),
                 ]);
             }
 
             for participle in &assembled.participles {
-                let morph = format!("{:?} {:?} Participle", participle.tense, participle.voice);
+                let tense_str = participle.tense.to_greek();
+                let voice_str = participle.voice.to_greek();
+                let morph = format!("{} {} Μετοχή", tense_str, voice_str);
                 table.add_row(vec![
-                    "Participle (Lambda)",
+                    "Μετοχή (Participle)",
                     &participle.original,
                     &morph,
                     &participle.verb_lemma,
@@ -125,11 +127,18 @@ impl Oracle {
 
             for literal in &assembled.literals {
                 let (val, type_name) = match literal {
-                    Literal::String(s) => (format!("«{}»", s), "String"),
-                    Literal::Number(n) => (n.to_string(), "Number"),
-                    Literal::Boolean(b) => (b.to_string(), "Boolean"),
+                    Literal::String(s) => (format!("«{}»", s), "ὄνομα (String)"),
+                    Literal::Number(n) => (n.to_string(), "ἀριθμός (Number)"),
+                    Literal::Boolean(b) => (
+                        if *b {
+                            "ἀληθές".to_string()
+                        } else {
+                            "ψεῦδος".to_string()
+                        },
+                        "ἀληθές (Boolean)",
+                    ),
                 };
-                table.add_row(vec!["Literal Value", &val, type_name, &val]);
+                table.add_row(vec!["Τιμή (Literal)", &val, type_name, &val]);
             }
 
             report.push_str(&table.to_string());
@@ -194,11 +203,11 @@ mod tests {
 
         println!("{}", explanation);
 
-        assert!(explanation.contains("Subject (Agent)"));
+        assert!(explanation.contains("Ὑποκείμενον (Subject)"));
         assert!(explanation.contains("ἄνθρωπος"));
-        assert!(explanation.contains("Object (Patient)"));
+        assert!(explanation.contains("Ἀντικείμενον (Object)"));
         assert!(explanation.contains("ἀρχήν"));
-        assert!(explanation.contains("Verb (Action)"));
+        assert!(explanation.contains("Ῥῆμα (Verb)"));
         assert!(explanation.contains("λέγει"));
     }
 
@@ -216,10 +225,10 @@ mod tests {
         let source = "«χαῖρε» 42 ἀληθές λέγε.";
         let explanation = oracle.explain(source).unwrap();
 
-        assert!(explanation.contains("Literal Value"));
+        assert!(explanation.contains("Τιμή (Literal)"));
         assert!(explanation.contains("«χαῖρε»"));
         assert!(explanation.contains("42"));
-        assert!(explanation.contains("true")); // boolean true prints as true
+        assert!(explanation.contains("ἀληθές"));
     }
 
     #[test]
@@ -229,7 +238,7 @@ mod tests {
         let source = "διπλασιαζόμενα λέγε.";
         let explanation = oracle.explain(source).unwrap();
 
-        assert!(explanation.contains("Participle (Lambda)"));
+        assert!(explanation.contains("Μετοχή (Participle)"));
         assert!(explanation.contains("διπλασιαζόμενα"));
         assert!(explanation.contains("lambda"));
     }
@@ -241,7 +250,7 @@ mod tests {
         let source = "τῷ ἀνθρώπῳ δίδωμι.";
         let explanation = oracle.explain(source).unwrap();
 
-        assert!(explanation.contains("Indirect Object"));
+        assert!(explanation.contains("Ἔμμεσον (Indirect)"));
         assert!(explanation.contains("ἀνθρώπῳ"));
     }
 
@@ -275,7 +284,7 @@ mod tests {
         let source = "ὁ ἄνθρωπος θεός ἐστιν.";
         let explanation = oracle.explain(source).unwrap();
 
-        assert!(explanation.contains("Subject (Agent)"));
-        assert!(explanation.contains("Nominative (Secondary)"));
+        assert!(explanation.contains("Ὑποκείμενον (Subject)"));
+        assert!(explanation.contains("Κατηγορούμενον (Predicate)"));
     }
 }
