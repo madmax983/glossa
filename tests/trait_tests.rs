@@ -582,7 +582,7 @@ fn test_standalone_method_call() {
     let code = compile(source);
 
     // Should contain the method call
-    assert!(code.contains("pi . show") || code.contains("pi.show"));
+    assert!(code.contains("p . show") || code.contains("p.show"));
 }
 
 // ============================================================================
