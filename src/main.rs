@@ -61,6 +61,16 @@ enum Commands {
         input: PathBuf,
     },
 
+    /// Export the source to an HTML document
+    #[cfg(feature = "nova")]
+    Export {
+        /// Input file (.γλ)
+        input: PathBuf,
+        /// Output file (.html)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
     /// Start the interactive REPL
     Repl,
 }
@@ -91,6 +101,11 @@ fn main() -> Result<()> {
 
         Some(Commands::Explain { input }) => {
             explain_file(&input)?;
+        }
+
+        #[cfg(feature = "nova")]
+        Some(Commands::Export { input, output }) => {
+            export_file(&input, output.as_deref())?;
         }
 
         Some(Commands::Repl) | None => {
@@ -266,6 +281,28 @@ fn explain_file(input: &Path) -> Result<()> {
         .map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", explanation);
+
+    Ok(())
+}
+
+#[cfg(feature = "nova")]
+fn export_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    check_file_size(input)?;
+    let source = fs::read_to_string(input).into_diagnostic()?;
+    let rhapsode = glossa::experimental::rhapsode::Rhapsode::new();
+    let html = rhapsode.export_html(&source).into_diagnostic()?;
+
+    let output_path = output
+        .map(|p| p.to_owned())
+        .unwrap_or_else(|| input.with_extension("html"));
+
+    fs::write(&output_path, &html).into_diagnostic()?;
+
+    println!(
+        "{} Ἐξήχθη: {}",
+        "✓".green(),
+        output_path.display().to_string().bold()
+    );
 
     Ok(())
 }

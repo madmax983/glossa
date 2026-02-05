@@ -19,6 +19,9 @@ smol_str = "0.3"
 rustc-hash = "2"
 comfy-table = "7.2.2"
 
+[features]
+nova = []
+
 [dev-dependencies]
 insta = "1"
 pretty_assertions = "1"
