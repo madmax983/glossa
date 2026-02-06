@@ -15,7 +15,7 @@ use std::time::SystemTime;
 use glossa::codegen::{generate_rust, generate_rust_file};
 use glossa::errors::GlossaError;
 use glossa::parser::parse;
-use glossa::semantic::{Scope, analyze_program, oracle::Oracle};
+use glossa::semantic::{Scope, Scribe, analyze_program, oracle::Oracle};
 
 #[derive(Parser)]
 #[command(name = "glossa")]
@@ -60,6 +60,16 @@ enum Commands {
         input: PathBuf,
     },
 
+    /// Generate Markdown documentation for a .γλ file
+    Doc {
+        /// Input file (.γλ)
+        input: PathBuf,
+
+        /// Output file (.md)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
     /// Start the interactive REPL
     Repl,
 }
@@ -90,6 +100,10 @@ fn main() -> Result<()> {
 
         Some(Commands::Explain { input }) => {
             explain_file(&input)?;
+        }
+
+        Some(Commands::Doc { input, output }) => {
+            doc_file(&input, output.as_deref())?;
         }
 
         Some(Commands::Repl) | None => {
@@ -265,6 +279,30 @@ fn explain_file(input: &Path) -> Result<()> {
         .map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", explanation);
+
+    Ok(())
+}
+
+fn doc_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    check_file_size(input)?;
+
+    let source = fs::read_to_string(input).into_diagnostic()?;
+    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
+    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+
+    let scribe = Scribe::new();
+    let doc = scribe.render(&analyzed);
+
+    if let Some(output_path) = output {
+        fs::write(output_path, &doc).into_diagnostic()?;
+        println!(
+            "{} Ἐγράφη: {}",
+            "✓".green(),
+            output_path.display().to_string().bold()
+        );
+    } else {
+        println!("{}", doc);
+    }
 
     Ok(())
 }
@@ -671,5 +709,24 @@ mod tests {
 
         let result = explain_file(&file_path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_doc_file_integration() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("doc.gl");
+        std::fs::write(&file_path, "«χαῖρε» λέγε.").unwrap();
+
+        // Test output to stdout (None)
+        let result = doc_file(&file_path, None);
+        assert!(result.is_ok());
+
+        // Test output to file
+        let output_path = dir.path().join("doc.md");
+        let result = doc_file(&file_path, Some(&output_path));
+        assert!(result.is_ok());
+        assert!(output_path.exists());
+        let content = std::fs::read_to_string(output_path).unwrap();
+        assert!(content.contains("The Scribe"));
     }
 }

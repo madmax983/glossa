@@ -40,6 +40,7 @@ pub(crate) mod model;
 pub mod oracle;
 pub(crate) mod patterns;
 mod resolver;
+pub mod scribe;
 mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
@@ -48,6 +49,7 @@ pub use assembler::{
 };
 pub use model::*;
 pub use resolver::*;
+pub use scribe::Scribe;
 pub use types::*;
 
 use crate::ast::{Expr, Program, Statement};
