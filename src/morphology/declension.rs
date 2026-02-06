@@ -155,8 +155,17 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
     // Try each declension pattern in order
     for decl in DECLENSION_PATTERNS {
         if let Some((stem, case, number)) = match_endings(word, decl.endings) {
+            // Optimization: If the ending matches the nominative ending, the lemma is the word itself
+            let lemma = if word.len() == stem.len() + decl.nom_ending.len()
+                && word.ends_with(decl.nom_ending)
+            {
+                Cow::Owned(word.to_string())
+            } else {
+                Cow::Owned(format!("{}{}", stem, decl.nom_ending))
+            };
+
             return Some(MorphAnalysis {
-                lemma: Cow::Owned(format!("{}{}", stem, decl.nom_ending)),
+                lemma,
                 part_of_speech: PartOfSpeech::Noun,
                 case: Some(case),
                 number: Some(number),
@@ -234,8 +243,17 @@ pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
             // We standardized on 0.75 in the struct.
             let confidence = (decl.base_confidence + length_bonus).min(0.95);
 
+            // Optimization: Avoid format! for canonical forms
+            let lemma = if word.len() == stem.len() + decl.nom_ending.len()
+                && word.ends_with(decl.nom_ending)
+            {
+                Cow::Owned(word.to_string())
+            } else {
+                Cow::Owned(format!("{}{}", stem, decl.nom_ending))
+            };
+
             analyses.push(MorphAnalysis {
-                lemma: Cow::Owned(format!("{}{}", stem, decl.nom_ending)),
+                lemma,
                 part_of_speech: PartOfSpeech::Noun,
                 case: Some(case),
                 number: Some(number),
