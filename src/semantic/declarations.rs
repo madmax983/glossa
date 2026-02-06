@@ -472,7 +472,7 @@ pub fn analyze_test_declaration(
         let mut test_scope = scope.enter_scope();
 
         for body_stmt in &test_decl.body {
-             analyzed_body.extend(analyze_statement(body_stmt, &mut test_scope)?);
+            analyzed_body.extend(analyze_statement(body_stmt, &mut test_scope)?);
         }
     }
 
