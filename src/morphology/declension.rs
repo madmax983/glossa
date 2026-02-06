@@ -341,7 +341,17 @@ pub fn decline(
     let endings = match (declension, gender) {
         (Declension::Second, Gender::Masculine) => SECOND_DECLENSION_MASC,
         (Declension::Second, Gender::Neuter) => SECOND_DECLENSION_NEUT,
-        (Declension::First, _) => FIRST_DECLENSION_ETA,
+        (Declension::First, _) => {
+            // Check if stem ends in epsilon, iota, or rho (Alpha pure rule)
+            // Note: Input stem should be normalized (lowercase, monotonic)
+            // Long Alpha type: -α, -ας, -ᾳ, -αν
+            if stem.ends_with('ε') || stem.ends_with('ι') || stem.ends_with('ρ') {
+                FIRST_DECLENSION_ALPHA
+            } else {
+                // Eta type: -η, -ης, -ῃ, -ην (or mixed alpha)
+                FIRST_DECLENSION_ETA
+            }
+        }
         (Declension::Third, Gender::Neuter) => THIRD_DECLENSION_MA,
         _ => return stem.to_string(),
     };
@@ -571,12 +581,9 @@ mod tests {
 
     #[test]
     fn test_decline_alpha_mismatch() {
-        // This test documents a known limitation in `decline`
-        // It uses FIRST_DECLENSION_ETA for all First Declension nouns
-
+        // Updated to assert the CORRECT behavior after fix
         // "χωρ" (stem of χώρα) + First Declension + Genitive Singular
-        // Expectation for Alpha type: "χωρας"
-        // Actual behavior (Eta type): "χωρης"
+        // Expectation for Alpha type: "χωρας" (pure alpha)
 
         let result = decline(
             "χωρ",
@@ -586,10 +593,131 @@ mod tests {
             Number::Singular,
         );
 
-        // Assert the current behavior (Eta ending)
-        assert_eq!(result, "χωρης");
+        assert_eq!(
+            result, "χωρας",
+            "Should return alpha ending for stem ending in rho"
+        );
+    }
 
-        // If we fix the bug, this test should be updated to expect "χωρας"
+    #[test]
+    fn test_decline_table() {
+        // Table-driven test for decline() covering multiple declensions and cases
+        struct TestCase {
+            stem: &'static str,
+            declension: Declension,
+            gender: Gender,
+            case: Case,
+            number: Number,
+            expected: &'static str,
+            description: &'static str,
+        }
+
+        let cases = vec![
+            // First Declension - Eta type (stem ending in consonant other than rho)
+            TestCase {
+                stem: "τιμ",
+                declension: Declension::First,
+                gender: Gender::Feminine,
+                case: Case::Nominative,
+                number: Number::Singular,
+                expected: "τιμη",
+                description: "First Declension Eta Nominative Singular",
+            },
+            TestCase {
+                stem: "τιμ",
+                declension: Declension::First,
+                gender: Gender::Feminine,
+                case: Case::Genitive,
+                number: Number::Singular,
+                expected: "τιμης",
+                description: "First Declension Eta Genitive Singular",
+            },
+            // First Declension - Alpha type (stem ending in rho)
+            TestCase {
+                stem: "χωρ",
+                declension: Declension::First,
+                gender: Gender::Feminine,
+                case: Case::Nominative,
+                number: Number::Singular,
+                expected: "χωρα",
+                description: "First Declension Alpha (rho) Nominative Singular",
+            },
+            TestCase {
+                stem: "χωρ",
+                declension: Declension::First,
+                gender: Gender::Feminine,
+                case: Case::Genitive,
+                number: Number::Singular,
+                expected: "χωρας",
+                description: "First Declension Alpha (rho) Genitive Singular",
+            },
+            // First Declension - Alpha type (stem ending in iota)
+            TestCase {
+                stem: "οικι",
+                declension: Declension::First,
+                gender: Gender::Feminine,
+                case: Case::Genitive,
+                number: Number::Singular,
+                expected: "οικιας",
+                description: "First Declension Alpha (iota) Genitive Singular",
+            },
+            // First Declension - Alpha type (stem ending in epsilon)
+            // e.g. γενεά -> γενε
+            TestCase {
+                stem: "γενε",
+                declension: Declension::First,
+                gender: Gender::Feminine,
+                case: Case::Genitive,
+                number: Number::Singular,
+                expected: "γενεας",
+                description: "First Declension Alpha (epsilon) Genitive Singular",
+            },
+            // Second Declension - Masculine
+            TestCase {
+                stem: "λογ",
+                declension: Declension::Second,
+                gender: Gender::Masculine,
+                case: Case::Accusative,
+                number: Number::Plural,
+                expected: "λογους",
+                description: "Second Declension Masculine Accusative Plural",
+            },
+            // Second Declension - Neuter
+            TestCase {
+                stem: "δωρ",
+                declension: Declension::Second,
+                gender: Gender::Neuter,
+                case: Case::Nominative,
+                number: Number::Plural,
+                expected: "δωρα",
+                description: "Second Declension Neuter Nominative Plural",
+            },
+            // Third Declension - Neuter (-μα type)
+            TestCase {
+                stem: "σω", // σῶμα -> σώματος
+                declension: Declension::Third,
+                gender: Gender::Neuter,
+                case: Case::Genitive,
+                number: Number::Singular,
+                expected: "σωματος",
+                description: "Third Declension Neuter Genitive Singular",
+            },
+        ];
+
+        for test in cases {
+            let result = decline(
+                test.stem,
+                test.declension,
+                test.gender,
+                test.case,
+                test.number,
+            );
+            assert_eq!(
+                result, test.expected,
+                "Failed test: {}. Stem: {}, Decl: {:?}, Gender: {:?}, Case: {:?}, Num: {:?}",
+                test.description, test.stem, test.declension, test.gender, test.case, test.number
+            );
+        }
     }
 
     #[test]
