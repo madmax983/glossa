@@ -355,7 +355,14 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     for pattern in CONJUGATION_PATTERNS {
         if let Some((stem, person, number)) = match_verb_endings(word, pattern.endings) {
             let lemma = match pattern.lemma_strategy {
-                LemmaStrategy::Standard => Cow::Owned(format!("{}ω", stem)),
+                LemmaStrategy::Standard => {
+                    // Optimization: If ending is "ω", then lemma == word (e.g. λέγω)
+                    if word.ends_with('ω') && word.len() == stem.len() + "ω".len() {
+                        Cow::Owned(word.to_string())
+                    } else {
+                        Cow::Owned(format!("{}ω", stem))
+                    }
+                }
                 LemmaStrategy::StripAugment => {
                     let true_stem = strip_augment(stem);
                     Cow::Owned(format!("{}ω", true_stem))
@@ -507,8 +514,18 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
             let length_bonus = (ending_len as f32 - 1.0) * 0.03;
             let confidence = (pattern.base_confidence + length_bonus).min(0.95);
 
+            // Optimization: If lemma_stem is just stem (Standard strategy), and ending is "ω", then lemma == word
+            let lemma = if matches!(pattern.lemma_strategy, LemmaStrategy::Standard)
+                && word.ends_with('ω')
+                && word.len() == stem.len() + "ω".len()
+            {
+                Cow::Owned(word.to_string())
+            } else {
+                Cow::Owned(format!("{}ω", lemma_stem))
+            };
+
             analyses.push(MorphAnalysis {
-                lemma: Cow::Owned(format!("{}ω", lemma_stem)),
+                lemma,
                 part_of_speech: PartOfSpeech::Verb,
                 case: None,
                 number: Some(number),
