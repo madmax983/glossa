@@ -155,8 +155,9 @@ fn analyze_argument_expr_recursive(
                 } else if exprs.is_empty() {
                     return Err(GlossaError::semantic("Expression evaluated to nothing"));
                 } else {
-                    // Return the last expression (block style)
-                    return Ok(exprs.pop().unwrap());
+                    return Err(GlossaError::semantic(
+                        "Ambiguous nested phrase: multiple expressions found",
+                    ));
                 }
             }
 

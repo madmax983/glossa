@@ -1010,6 +1010,11 @@ pub fn extract_value(
     // Check nested phrases (parenthesized expressions) which should be treated as values
     // This allows constructs like "x = (1 + 2)"
     if let Some(nested) = asm_stmt.nested_phrases.first() {
+        if asm_stmt.nested_phrases.len() > 1 {
+            return Err(GlossaError::semantic(
+                "Multiple nested phrases in value position are ambiguous",
+            ));
+        }
         let phrase_expr = Expr::Phrase(nested.clone());
         let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
         let ty = analyzed.glossa_type.clone();

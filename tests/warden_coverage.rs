@@ -8,6 +8,57 @@ fn compile(source: &str) {
     let _ = generate_rust(&analyzed);
 }
 
+fn compile_error(source: &str, expected_error: &str) {
+    let ast = parse(source).unwrap();
+    match analyze_program(&ast) {
+        Ok(_) => panic!("Expected error: {}", expected_error),
+        Err(e) => {
+            let msg = e.to_string();
+            assert!(msg.contains(expected_error), "Expected '{}', got '{}'", expected_error, msg);
+        }
+    }
+}
+
+#[test]
+fn test_coverage_nested_phrase_ambiguous_error() {
+    // Should error because multiple expressions are found
+    // Code path: exprs.len() > 1 -> Err("Ambiguous nested phrase...")
+    let source = "ξ (1 2) ἔστω.";
+    compile_error(source, "Ambiguous nested phrase");
+}
+
+#[test]
+fn test_coverage_nested_phrase_binding_error() {
+    // Nested phrase containing a statement (binding) -> Error
+    // Code path: kind is Binding -> Err("Nested phrase must evaluate to an expression")
+    let source = "ξ (ψ 1 ἔστω) ἔστω.";
+    compile_error(source, "Nested phrase must evaluate to an expression");
+}
+
+#[test]
+fn test_coverage_nested_phrase_empty_error() {
+    // Nested phrase evaluating to nothing (e.g. just article)
+    // Code path: exprs.is_empty() -> Err("Expression evaluated to nothing")
+    // "ὁ" is an article, ignored by assembler.
+    // We use "ὁ ὁ" to ensure it parses as a Phrase (multiple terms) rather than a single Word,
+    // which forces it to go through the nested phrase path.
+    let source = "ξ (ὁ ὁ) ἔστω.";
+    compile_error(source, "Expression evaluated to nothing");
+}
+
+#[test]
+fn test_coverage_nested_phrase_multiple_error() {
+    // Multiple nested phrases in binding -> Error
+    // Code path: nested_phrases.len() > 1 -> Err("Multiple nested phrases...")
+    // "ξ (1 2) (3 4) ἔστω."
+    // (1 2) -> nested phrase [1, 2]
+    // (3 4) -> nested phrase [3, 4]
+    // This is parsed as multiple terms, fed to assembler as separate nested phrases.
+    // Single terms like (1) are flattened by parser to just 1, so we need multiple terms.
+    let source = "ξ (1 2) (3 4) ἔστω.";
+    compile_error(source, "Multiple nested phrases in value position are ambiguous");
+}
+
 #[test]
 fn test_coverage_filter_patterns() {
     // 1. Suffix "ου" (e.g. θ -> θου)
