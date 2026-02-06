@@ -79,26 +79,6 @@ pub enum GlossaType {
 }
 
 impl GlossaType {
-    /// Get the Rust equivalent type
-    pub fn to_rust(&self) -> String {
-        match self {
-            GlossaType::Number => "i64".to_string(),
-            GlossaType::String => "String".to_string(),
-            GlossaType::Boolean => "bool".to_string(),
-            GlossaType::List(inner) => format!("Vec<{}>", inner.to_rust()),
-            GlossaType::Set(inner) => format!("HashSet<{}>", inner.to_rust()),
-            GlossaType::Map(key, value) => {
-                format!("HashMap<{}, {}>", key.to_rust(), value.to_rust())
-            }
-            GlossaType::Option(inner) => format!("Option<{}>", inner.to_rust()),
-            GlossaType::Result(ok, err) => format!("Result<{}, {}>", ok.to_rust(), err.to_rust()),
-            GlossaType::Unit => "()".to_string(),
-            GlossaType::Struct { .. } => "struct".to_string(),
-            GlossaType::Function { .. } => "fn".to_string(),
-            GlossaType::Unknown => "_".to_string(),
-        }
-    }
-
     /// Get the Greek name for this type
     pub fn to_greek(&self) -> &'static str {
         match self {
@@ -158,19 +138,20 @@ impl Ownership {
             _ => Ownership::Copy,
         }
     }
-
-    /// Get the Rust reference prefix
-    pub fn to_rust_prefix(&self) -> &'static str {
-        match self {
-            Ownership::Move => "",
-            Ownership::Borrow => "&",
-            Ownership::BorrowMut => "&mut ",
-            Ownership::Copy => "",
-        }
-    }
 }
 
 /// Infer type from a Greek word (by looking at lexicon or morphology)
+///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::{infer_type, GlossaType};
+///
+/// assert_eq!(infer_type("πέντε"), GlossaType::Number);
+/// assert_eq!(infer_type("ἀριθμός"), GlossaType::Number);
+/// assert_eq!(infer_type("ὄνομα"), GlossaType::String);
+/// assert_eq!(infer_type("ἄγνωστον"), GlossaType::Unknown);
+/// ```
 pub fn infer_type(word: &str) -> GlossaType {
     let normalized = crate::text::normalize_greek(word);
 
@@ -194,6 +175,19 @@ pub fn infer_type(word: &str) -> GlossaType {
 }
 
 /// Detect built-in collection types (HashSet, HashMap)
+///
+/// Returns a tuple of (Rust collection name, GlossaType).
+///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::detect_collection_type;
+/// use glossa::semantic::GlossaType;
+///
+/// let (name, ty) = detect_collection_type("χαρτης").unwrap();
+/// assert_eq!(name, "HashMap");
+/// assert!(matches!(ty, GlossaType::Map(..)));
+/// ```
 pub fn detect_collection_type(type_name: &str) -> Option<(&'static str, GlossaType)> {
     match type_name {
         "συνολον" => Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown)))),
@@ -210,13 +204,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_type_to_rust() {
-        assert_eq!(GlossaType::Number.to_rust(), "i64".to_string());
-        assert_eq!(GlossaType::String.to_rust(), "String".to_string());
-        assert_eq!(GlossaType::Boolean.to_rust(), "bool".to_string());
-    }
-
-    #[test]
     fn test_type_to_greek() {
         assert_eq!(GlossaType::Number.to_greek(), "ἀριθμός");
         assert_eq!(GlossaType::String.to_greek(), "ὄνομα");
@@ -227,13 +214,6 @@ mod tests {
         assert_eq!(Ownership::from_case(Case::Genitive), Ownership::Borrow);
         assert_eq!(Ownership::from_case(Case::Dative), Ownership::BorrowMut);
         assert_eq!(Ownership::from_case(Case::Accusative), Ownership::Move);
-    }
-
-    #[test]
-    fn test_ownership_prefix() {
-        assert_eq!(Ownership::Borrow.to_rust_prefix(), "&");
-        assert_eq!(Ownership::BorrowMut.to_rust_prefix(), "&mut ");
-        assert_eq!(Ownership::Move.to_rust_prefix(), "");
     }
 
     #[test]

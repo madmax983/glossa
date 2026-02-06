@@ -42,3 +42,13 @@
 **Bloat:** `AnalyzedTraitMethod` and `AnalyzedImplMethod` in `src/semantic/model.rs`.
 **Cut:** Merged into a unified `AnalyzedMethod` struct. Removed redundant `is_default` field.
 **Saved:** Reduced code duplication in semantic model and codegen (~60 lines removed/simplified). Unified method representation.
+
+## [Reduction]
+**Bloat:** Duplicated "statement dispatch" logic in `analyze_program`, `analyze_trait_definition`, `analyze_trait_impl`, and `parse_function_definition`.
+**Cut:** Centralized in `analyze_statement` helper in `src/semantic/mod.rs`.
+**Saved:** Removed duplicate `if/else` chains (~40 lines). Enabled consistent block (`{...}`) support across all contexts.
+
+## [Fix]
+**Issue:** `parse_function_definition` used `Scope::new()` which created a detached scope, preventing access to global types/traits.
+**Fix:** Switched to `scope.enter_scope()`.
+**Saved:** Fixed bug where functions couldn't see global definitions. Corrected scope inheritance.

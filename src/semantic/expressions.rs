@@ -16,198 +16,258 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
     analyze_argument_expr_recursive(expr, scope, 0)
 }
 
+const MAX_RECURSION_DEPTH: usize = 50;
+
 fn analyze_argument_expr_recursive(
     expr: &Expr,
     scope: &Scope,
     depth: usize,
 ) -> Result<AnalyzedExpr, GlossaError> {
-    if depth > 50 {
+    if depth > MAX_RECURSION_DEPTH {
         return Err(GlossaError::semantic(
             "Recursion limit exceeded in expression analysis",
         ));
     }
 
     match expr {
-        Expr::Word(w) => {
-            let normalized = normalize_greek(&w.original);
+        Expr::Word(w) => analyze_word(w, scope),
 
-            // Check if it's a numeral
-            if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
-                return Ok(AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(val),
-                    glossa_type: GlossaType::Number,
-                });
-            }
-
-            // Check if it's a variable
-            if let Some(var_type) = scope.lookup(&normalized) {
-                return Ok(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(normalized),
-                    glossa_type: var_type.clone(),
-                });
-            }
-
-            // Unknown variable
-            Err(GlossaError::semantic(format!(
-                "Undefined variable: {}",
-                normalized
-            )))
+        Expr::NumberLiteral(_) | Expr::StringLiteral(_) | Expr::BooleanLiteral(_) => {
+            analyze_literal(expr)
         }
 
-        Expr::NumberLiteral(n) => Ok(AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(*n),
-            glossa_type: GlossaType::Number,
-        }),
+        Expr::ArrayLiteral(elements) => analyze_array(elements, scope, depth),
 
-        Expr::StringLiteral(s) => Ok(AnalyzedExpr {
-            expr: AnalyzedExprKind::StringLiteral(s.clone()),
-            glossa_type: GlossaType::String,
-        }),
+        Expr::IndexAccess { array, index } => analyze_index_access(array, index, scope, depth),
 
-        Expr::BooleanLiteral(b) => Ok(AnalyzedExpr {
-            expr: AnalyzedExprKind::BooleanLiteral(*b),
-            glossa_type: GlossaType::Boolean,
-        }),
+        Expr::Phrase(terms) => analyze_phrase(terms, scope, depth),
 
-        Expr::ArrayLiteral(elements) => {
-            let mut analyzed_elements = Vec::with_capacity(elements.len());
-            for el in elements {
-                analyzed_elements.push(analyze_argument_expr_recursive(el, scope, depth + 1)?);
-            }
+        Expr::Block(statements) => analyze_block(statements, scope, depth),
 
-            let element_type = analyzed_elements
-                .first()
-                .map(|e| e.glossa_type.clone())
-                .unwrap_or(GlossaType::Unknown);
+        Expr::BinOp { left, op, right } => analyze_binop(left, op, right, scope, depth),
 
-            Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
-                glossa_type: GlossaType::List(Box::new(element_type)),
-            })
-        }
-
-        Expr::IndexAccess { array, index } => {
-            let array_analyzed = analyze_argument_expr_recursive(array, scope, depth + 1)?;
-            let index_analyzed = analyze_argument_expr_recursive(index, scope, depth + 1)?;
-
-            Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::IndexAccess {
-                    array: Box::new(array_analyzed),
-                    index: Box::new(index_analyzed),
-                },
-                glossa_type: GlossaType::Unknown,
-            })
-        }
-
-        Expr::Phrase(terms) => {
-            // A phrase could be a function call: function_name arg1 arg2 ...
-            if terms.is_empty() {
-                return Err(GlossaError::semantic("Empty phrase in argument"));
-            }
-
-            // Check if first term is a function name
-            if let Expr::Word(w) = &terms[0] {
-                let func_name = normalize_greek(&w.original);
-
-                if scope.is_function(&func_name) {
-                    // It's a function call - recursively analyze arguments
-                    let mut args = Vec::new();
-                    for arg_expr in &terms[1..] {
-                        args.push(analyze_argument_expr_recursive(arg_expr, scope, depth + 1)?);
-                    }
-
-                    let return_type = scope
-                        .lookup_function(&func_name)
-                        .and_then(|sig| sig.return_type.clone())
-                        .unwrap_or(GlossaType::Unknown);
-
-                    return Ok(AnalyzedExpr {
-                        expr: AnalyzedExprKind::FunctionCall {
-                            func: func_name,
-                            args,
-                        },
-                        glossa_type: return_type,
-                    });
-                }
-            }
-
-            // Not a function call - could be a complex expression
-            // For now, just analyze the first term
-            analyze_argument_expr_recursive(&terms[0], scope, depth + 1)
-        }
-
-        Expr::Block(statements) => {
-            // Parenthesized expression - analyze as nested expression
-            // Extract the expression from the block
-            if let Some(stmt) = statements.first()
-                && let Some(clause) = stmt.clauses().first()
-                && let Some(expr) = clause.expressions.first()
-            {
-                return analyze_argument_expr_recursive(expr, scope, depth + 1);
-            }
-            Err(GlossaError::semantic("Empty or invalid block expression"))
-        }
-
-        Expr::BinOp { left, op, right } => {
-            let left_analyzed = analyze_argument_expr_recursive(left, scope, depth + 1)?;
-            let right_analyzed = analyze_argument_expr_recursive(right, scope, depth + 1)?;
-            // Map AST op to semantic op
-            let sem_op = match op {
-                crate::ast::BinOperator::Add => crate::morphology::lexicon::BinaryOp::Add,
-                crate::ast::BinOperator::Sub => crate::morphology::lexicon::BinaryOp::Sub,
-                crate::ast::BinOperator::Mul => crate::morphology::lexicon::BinaryOp::Mul,
-                crate::ast::BinOperator::Div => crate::morphology::lexicon::BinaryOp::Div,
-                crate::ast::BinOperator::Mod => crate::morphology::lexicon::BinaryOp::Mod,
-                crate::ast::BinOperator::Eq => crate::morphology::lexicon::BinaryOp::Eq,
-                crate::ast::BinOperator::Ne => crate::morphology::lexicon::BinaryOp::Ne,
-                crate::ast::BinOperator::Lt => crate::morphology::lexicon::BinaryOp::Lt,
-                crate::ast::BinOperator::Le => crate::morphology::lexicon::BinaryOp::Le,
-                crate::ast::BinOperator::Gt => crate::morphology::lexicon::BinaryOp::Gt,
-                crate::ast::BinOperator::Ge => crate::morphology::lexicon::BinaryOp::Ge,
-                crate::ast::BinOperator::And => crate::morphology::lexicon::BinaryOp::And,
-                crate::ast::BinOperator::Or => crate::morphology::lexicon::BinaryOp::Or,
-            };
-
-            Ok(build_binary_expr(left_analyzed, sem_op, right_analyzed))
-        }
-
-        Expr::UnaryOp { op, operand } => {
-            match op {
-                crate::ast::UnaryOperator::Unwrap => {
-                    let inner = analyze_argument_expr_recursive(operand, scope, depth + 1)?;
-                    Ok(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Unwrap(Box::new(inner)),
-                        glossa_type: GlossaType::Unknown,
-                    })
-                }
-                // TODO: Handle Neg and Not
-                _ => Err(GlossaError::semantic(
-                    "Unsupported unary operator in expression",
-                )),
-            }
-        }
+        Expr::UnaryOp { op, operand } => analyze_unaryop(op, operand, scope, depth),
 
         Expr::PropertyAccess { owner, property } => {
-            // Treat property access as variable lookup or method call preparation
-            // This is simplified; usually property access is handled by the assembler context
-            // But if we encounter it directly as an expression, we try to resolve it.
-            // For now, if it's a simple property access, we might need more context or just return it as PropertyAccess
-            let owner_analyzed = analyze_argument_expr_recursive(owner, scope, depth + 1)?;
-            if let Expr::Word(prop_word) = property.as_ref() {
-                Ok(AnalyzedExpr {
-                    expr: AnalyzedExprKind::PropertyAccess {
-                        owner: Box::new(owner_analyzed),
-                        property: normalize_greek(&prop_word.original),
-                    },
-                    glossa_type: GlossaType::Unknown,
-                })
-            } else {
-                Err(GlossaError::semantic("Property must be a word"))
-            }
+            analyze_property_access(owner, property, scope, depth)
         }
 
         _ => Err(GlossaError::semantic(
             "Unsupported argument expression type",
+        )),
+    }
+}
+
+fn analyze_word(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
+    let normalized = normalize_greek(&w.original);
+
+    // Check if it's a numeral
+    if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
+        return Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(val),
+            glossa_type: GlossaType::Number,
+        });
+    }
+
+    // Check if it's a variable
+    if let Some(var_type) = scope.lookup(&normalized) {
+        return Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(normalized),
+            glossa_type: var_type.clone(),
+        });
+    }
+
+    // Unknown variable
+    Err(GlossaError::semantic(format!(
+        "Undefined variable: {}",
+        normalized
+    )))
+}
+
+fn analyze_literal(expr: &Expr) -> Result<AnalyzedExpr, GlossaError> {
+    match expr {
+        Expr::NumberLiteral(n) => Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(*n),
+            glossa_type: GlossaType::Number,
+        }),
+        Expr::StringLiteral(s) => Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::StringLiteral(s.clone()),
+            glossa_type: GlossaType::String,
+        }),
+        Expr::BooleanLiteral(b) => Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(*b),
+            glossa_type: GlossaType::Boolean,
+        }),
+        _ => Err(GlossaError::semantic("Not a literal expression")),
+    }
+}
+
+fn analyze_array(
+    elements: &[Expr],
+    scope: &Scope,
+    depth: usize,
+) -> Result<AnalyzedExpr, GlossaError> {
+    let mut analyzed_elements = Vec::with_capacity(elements.len());
+    for el in elements {
+        analyzed_elements.push(analyze_argument_expr_recursive(el, scope, depth + 1)?);
+    }
+
+    let element_type = analyzed_elements
+        .first()
+        .map(|e| e.glossa_type.clone())
+        .unwrap_or(GlossaType::Unknown);
+
+    Ok(AnalyzedExpr {
+        expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
+        glossa_type: GlossaType::List(Box::new(element_type)),
+    })
+}
+
+fn analyze_index_access(
+    array: &Expr,
+    index: &Expr,
+    scope: &Scope,
+    depth: usize,
+) -> Result<AnalyzedExpr, GlossaError> {
+    let array_analyzed = analyze_argument_expr_recursive(array, scope, depth + 1)?;
+    let index_analyzed = analyze_argument_expr_recursive(index, scope, depth + 1)?;
+
+    Ok(AnalyzedExpr {
+        expr: AnalyzedExprKind::IndexAccess {
+            array: Box::new(array_analyzed),
+            index: Box::new(index_analyzed),
+        },
+        glossa_type: GlossaType::Unknown,
+    })
+}
+
+fn analyze_property_access(
+    owner: &Expr,
+    property: &Expr,
+    scope: &Scope,
+    depth: usize,
+) -> Result<AnalyzedExpr, GlossaError> {
+    // Treat property access as variable lookup or method call preparation
+    // This is simplified; usually property access is handled by the assembler context
+    // But if we encounter it directly as an expression, we try to resolve it.
+    // For now, if it's a simple property access, we might need more context or just return it as PropertyAccess
+    let owner_analyzed = analyze_argument_expr_recursive(owner, scope, depth + 1)?;
+    if let Expr::Word(prop_word) = property {
+        Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::PropertyAccess {
+                owner: Box::new(owner_analyzed),
+                property: normalize_greek(&prop_word.original),
+            },
+            glossa_type: GlossaType::Unknown,
+        })
+    } else {
+        Err(GlossaError::semantic("Property must be a word"))
+    }
+}
+
+fn analyze_phrase(
+    terms: &[Expr],
+    scope: &Scope,
+    depth: usize,
+) -> Result<AnalyzedExpr, GlossaError> {
+    // A phrase could be a function call: function_name arg1 arg2 ...
+    if terms.is_empty() {
+        return Err(GlossaError::semantic("Empty phrase in argument"));
+    }
+
+    // Check if first term is a function name
+    if let Expr::Word(w) = &terms[0] {
+        let func_name = normalize_greek(&w.original);
+
+        if scope.is_function(&func_name) {
+            // It's a function call - recursively analyze arguments
+            let mut args = Vec::new();
+            for arg_expr in &terms[1..] {
+                args.push(analyze_argument_expr_recursive(arg_expr, scope, depth + 1)?);
+            }
+
+            let return_type = scope
+                .lookup_function(&func_name)
+                .and_then(|sig| sig.return_type.clone())
+                .unwrap_or(GlossaType::Unknown);
+
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::FunctionCall {
+                    func: func_name,
+                    args,
+                },
+                glossa_type: return_type,
+            });
+        }
+    }
+
+    // Not a function call - could be a complex expression
+    // For now, just analyze the first term
+    analyze_argument_expr_recursive(&terms[0], scope, depth + 1)
+}
+
+fn analyze_block(
+    statements: &[Statement],
+    scope: &Scope,
+    depth: usize,
+) -> Result<AnalyzedExpr, GlossaError> {
+    // Parenthesized expression - analyze as nested expression
+    // Extract the expression from the block
+    if let Some(stmt) = statements.first()
+        && let Some(clause) = stmt.clauses().first()
+        && let Some(expr) = clause.expressions.first()
+    {
+        return analyze_argument_expr_recursive(expr, scope, depth + 1);
+    }
+    Err(GlossaError::semantic("Empty or invalid block expression"))
+}
+
+fn analyze_binop(
+    left: &Expr,
+    op: &crate::ast::BinOperator,
+    right: &Expr,
+    scope: &Scope,
+    depth: usize,
+) -> Result<AnalyzedExpr, GlossaError> {
+    let left_analyzed = analyze_argument_expr_recursive(left, scope, depth + 1)?;
+    let right_analyzed = analyze_argument_expr_recursive(right, scope, depth + 1)?;
+    // Map AST op to semantic op
+    let sem_op = match op {
+        crate::ast::BinOperator::Add => crate::morphology::lexicon::BinaryOp::Add,
+        crate::ast::BinOperator::Sub => crate::morphology::lexicon::BinaryOp::Sub,
+        crate::ast::BinOperator::Mul => crate::morphology::lexicon::BinaryOp::Mul,
+        crate::ast::BinOperator::Div => crate::morphology::lexicon::BinaryOp::Div,
+        crate::ast::BinOperator::Mod => crate::morphology::lexicon::BinaryOp::Mod,
+        crate::ast::BinOperator::Eq => crate::morphology::lexicon::BinaryOp::Eq,
+        crate::ast::BinOperator::Ne => crate::morphology::lexicon::BinaryOp::Ne,
+        crate::ast::BinOperator::Lt => crate::morphology::lexicon::BinaryOp::Lt,
+        crate::ast::BinOperator::Le => crate::morphology::lexicon::BinaryOp::Le,
+        crate::ast::BinOperator::Gt => crate::morphology::lexicon::BinaryOp::Gt,
+        crate::ast::BinOperator::Ge => crate::morphology::lexicon::BinaryOp::Ge,
+        crate::ast::BinOperator::And => crate::morphology::lexicon::BinaryOp::And,
+        crate::ast::BinOperator::Or => crate::morphology::lexicon::BinaryOp::Or,
+    };
+
+    Ok(build_binary_expr(left_analyzed, sem_op, right_analyzed))
+}
+
+fn analyze_unaryop(
+    op: &crate::ast::UnaryOperator,
+    operand: &Expr,
+    scope: &Scope,
+    depth: usize,
+) -> Result<AnalyzedExpr, GlossaError> {
+    match op {
+        crate::ast::UnaryOperator::Unwrap => {
+            let inner = analyze_argument_expr_recursive(operand, scope, depth + 1)?;
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::Unwrap(Box::new(inner)),
+                glossa_type: GlossaType::Unknown,
+            })
+        }
+        // TODO: Handle Neg and Not
+        _ => Err(GlossaError::semantic(
+            "Unsupported unary operator in expression",
         )),
     }
 }
@@ -274,13 +334,13 @@ fn feed_expr_recursive(
 
     match expr {
         Expr::StringLiteral(s) => {
-            asm.feed_string(s.clone());
+            asm.feed_string(s.clone())?;
         }
         Expr::NumberLiteral(n) => {
-            asm.feed_number(*n);
+            asm.feed_number(*n)?;
         }
         Expr::BooleanLiteral(b) => {
-            asm.feed_boolean(*b);
+            asm.feed_boolean(*b)?;
         }
         Expr::Word(w) => {
             // Check if this is an article using ORIGINAL form (preserves diacritics)
@@ -301,7 +361,7 @@ fn feed_expr_recursive(
             if !in_lexicon && !is_numeral {
                 let participle_check = morphology::analyze_participle(&w.normalized);
                 if let Some(participle_analysis) = participle_check {
-                    asm.feed_participle(&participle_analysis, &w.original);
+                    asm.feed_participle(&participle_analysis, &w.original)?;
                     return Ok(());
                 }
             }
@@ -328,7 +388,7 @@ fn feed_expr_recursive(
                     // This is a nested phrase (parenthesized expression)
                     // Store it for later analysis instead of flattening
                     if let Expr::Phrase(nested_terms) = term {
-                        asm.feed_nested_phrase(nested_terms.clone());
+                        asm.feed_nested_phrase(nested_terms.clone())?;
                     }
                 } else {
                     feed_expr_recursive(asm, term, context, depth + 1)?;
@@ -376,7 +436,7 @@ fn feed_expr_recursive(
             // Handle unwrap operator specially - it's a postfix operator that doesn't need word-order handling
             if matches!(op, crate::ast::UnaryOperator::Unwrap) {
                 // Store the unwrap expression for special handling
-                asm.feed_unwrap(operand.as_ref().clone());
+                asm.feed_unwrap(operand.as_ref().clone())?;
             } else {
                 // TODO: Implement other unary operations (Not, Neg)
                 feed_expr_recursive(asm, operand, context, depth + 1)?;
@@ -385,15 +445,15 @@ fn feed_expr_recursive(
         Expr::Block(statements) => {
             // Parenthesized expressions are stored as blocks for later analysis
             // Don't feed their contents to the main assembler - they'll be analyzed separately
-            asm.feed_block(statements.clone());
+            asm.feed_block(statements.clone())?;
         }
         Expr::ArrayLiteral(elements) => {
             // Feed array literal to assembler
-            asm.feed_array(elements.clone());
+            asm.feed_array(elements.clone())?;
         }
         Expr::IndexAccess { array, index } => {
             // Feed index access to assembler
-            asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone());
+            asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone())?;
         }
     }
     Ok(())

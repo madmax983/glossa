@@ -50,7 +50,7 @@ pub use model::*;
 pub use resolver::*;
 pub use types::*;
 
-use crate::ast::{Program, Statement};
+use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
 
 use self::control_flow::analyze_control_flow;
@@ -92,46 +92,79 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
             continue;
         }
 
-        // Check if this is a control flow construct
-        if let Some(control_flow_stmt) = analyze_control_flow(stmt, &mut scope)? {
-            // If it's a function definition, register it in the scope
-            if let StatementKind::FunctionDef {
-                name,
-                params,
-                return_type,
-                ..
-            } = &control_flow_stmt.kind
-            {
-                let param_types: Vec<GlossaType> = params
-                    .iter()
-                    .map(|(_, ty)| ty.clone().unwrap_or(GlossaType::Unknown))
-                    .collect();
-                scope.define_function(name.clone(), param_types, return_type.clone());
-            }
-            analyzed_statements.push(control_flow_stmt);
-        } else {
-            // Check for struct instantiation pattern BEFORE assembler
-            // Pattern: var_name νέον TypeName args... ἔστω
-            if let Some(struct_inst) = try_parse_struct_instantiation(stmt, &mut scope)? {
-                analyzed_statements.push(struct_inst);
-            }
-            // Check for trait method call pattern BEFORE assembler
-            // Pattern: method_name receiver
-            else if let Some(method_call) = try_parse_trait_method_call(stmt, &mut scope)? {
-                analyzed_statements.push(method_call);
-            } else {
-                // Use the assembler-based approach for regular statements
-                let assembled = assemble_statement(stmt)?;
-                let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
-                analyzed_statements.push(analyzed);
-            }
-        }
+        // Use the unified analyze_statement helper for all other statements
+        analyzed_statements.extend(analyze_statement(stmt, &mut scope)?);
     }
 
     Ok(AnalyzedProgram {
         statements: analyzed_statements,
         scope,
     })
+}
+
+/// Analyze a single statement (which might produce multiple analyzed statements if it's a block)
+pub fn analyze_statement(
+    stmt: &Statement,
+    scope: &mut Scope,
+) -> Result<Vec<AnalyzedStatement>, GlossaError> {
+    // Check for control flow (if, while, etc.)
+    if let Some(control_flow) = analyze_control_flow(stmt, scope)? {
+        // If it's a function definition, register it in the scope
+        if let StatementKind::FunctionDef {
+            name,
+            params,
+            return_type,
+            ..
+        } = &control_flow.kind
+        {
+            let param_types: Vec<GlossaType> = params
+                .iter()
+                .map(|(_, ty)| ty.clone().unwrap_or(GlossaType::Unknown))
+                .collect();
+            scope.define_function(name.clone(), param_types, return_type.clone());
+        }
+
+        return Ok(vec![control_flow]);
+    }
+
+    // Check for struct instantiation pattern
+    if let Some(struct_inst) = try_parse_struct_instantiation(stmt, scope)? {
+        return Ok(vec![struct_inst]);
+    }
+
+    // Check for trait method call pattern
+    if let Some(method_call) = try_parse_trait_method_call(stmt, scope)? {
+        return Ok(vec![method_call]);
+    }
+
+    // Check if it's a block statement (regular statement containing a single block expression)
+    if let Some(block_stmts) = extract_block_statements(stmt) {
+        let mut analyzed = Vec::new();
+        // Create a child scope for the block
+        // This ensures variables defined inside the block don't leak out
+        let mut block_scope = scope.enter_scope();
+        for s in block_stmts {
+            analyzed.extend(analyze_statement(s, &mut block_scope)?);
+        }
+        return Ok(analyzed);
+    }
+
+    // Use the assembler-based approach for regular statements
+    let assembled = assemble_statement(stmt)?;
+    let analyzed = convert_assembled_to_analyzed(&assembled, scope)?;
+    Ok(vec![analyzed])
+}
+
+fn extract_block_statements(stmt: &Statement) -> Option<&Vec<Statement>> {
+    if let Statement::Regular { clauses, .. } = stmt
+        && clauses.len() == 1
+        && clauses[0].expressions.len() == 1
+        && let Expr::Block(stmts) = &clauses[0].expressions[0]
+    {
+        Some(stmts)
+    } else {
+        None
+    }
 }
 
 /// Analyze a single statement using the slot-based assembler

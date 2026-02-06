@@ -111,31 +111,37 @@ use smol_str::SmolStr;
 pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer
     ///
+    /// Fills the **Nominative** slot.
     /// Example: **ὁ ἄνθρωπος** λέγει (The **man** speaks)
     pub subject: Option<Constituent>,
 
     /// Additional nominatives (for function names, etc.)
     ///
     /// Used in patterns where multiple nominatives appear, such as
-    /// function calls or predicate nominatives.
+    /// function calls (`add x y`) or predicate nominatives (`x is y`).
     pub nominatives: Vec<Constituent>,
 
     /// The verb - the action
     ///
+    /// Fills the **Verb** slot.
     /// Example: ὁ ἄνθρωπος **λέγει** (The man **speaks**)
     pub verb: Option<VerbConstituent>,
 
     /// The direct object (accusative) - receives the action
     ///
+    /// Fills the **Accusative** slot.
     /// Example: βλέπω **τὸν ἄνθρωπον** (I see **the man**)
     pub object: Option<Constituent>,
+
     /// The indirect object (dative) - recipient/beneficiary
     ///
+    /// Fills the **Dative** slot.
     /// Example: δίδωμι **τῷ ἀνθρώπῳ** (I give **to the man**)
     pub indirect: Option<Constituent>,
 
     /// Possessors/sources (genitive) - attached to other constituents
     ///
+    /// Fills the **Genitive** slot.
     /// Example: τὸ τοῦ **ἀνθρώπου** βιβλίον (The **man's** book)
     pub genitives: Vec<Constituent>,
 
@@ -209,6 +215,23 @@ pub struct AssembledStatement {
 ///
 /// This represents a word that fills a nominal slot (Subject, Object, etc.).
 /// It carries both its original surface form and its normalized lemma.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::Constituent;
+/// use glossa::morphology::{Case, Number, Gender};
+/// use smol_str::SmolStr;
+///
+/// let man = Constituent {
+///     lemma: SmolStr::new("ανθρωπος"),
+///     original: SmolStr::new("ἄνθρωπος"),
+///     case: Case::Nominative,
+///     number: Some(Number::Singular),
+///     gender: Some(Gender::Masculine),
+///     person: None,
+/// };
+/// ```
 #[derive(Debug, Clone)]
 pub struct Constituent {
     /// The dictionary form
@@ -476,14 +499,7 @@ impl Assembler {
     /// asm.feed(&obj, "λόγον").unwrap();
     /// ```
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
-        // Enforce token limit
-        self.token_count += 1;
-        if self.token_count > MAX_TOKENS {
-            return Err(AssemblyError::StatementTooLong {
-                count: self.token_count,
-                limit: MAX_TOKENS,
-            });
-        }
+        self.check_token_limit()?;
 
         let normalized = normalize_greek(original);
 
@@ -527,10 +543,12 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_string("χαῖρε".to_string());
+    /// asm.feed_string("χαῖρε".to_string()).unwrap();
     /// ```
-    pub fn feed_string(&mut self, value: String) {
+    pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
+        self.check_token_limit()?;
         self.pending_literals.push(Literal::String(value));
+        Ok(())
     }
 
     /// Feed a number literal
@@ -541,10 +559,12 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_number(42);
+    /// asm.feed_number(42).unwrap();
     /// ```
-    pub fn feed_number(&mut self, value: i64) {
+    pub fn feed_number(&mut self, value: i64) -> Result<(), AssemblyError> {
+        self.check_token_limit()?;
         self.pending_literals.push(Literal::Number(value));
+        Ok(())
     }
 
     /// Feed a boolean literal
@@ -555,10 +575,12 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_boolean(true);
+    /// asm.feed_boolean(true).unwrap();
     /// ```
-    pub fn feed_boolean(&mut self, value: bool) {
+    pub fn feed_boolean(&mut self, value: bool) -> Result<(), AssemblyError> {
+        self.check_token_limit()?;
         self.pending_literals.push(Literal::Boolean(value));
+        Ok(())
     }
 
     /// Feed an array literal
@@ -571,10 +593,12 @@ impl Assembler {
     ///
     /// let mut asm = Assembler::new();
     /// let elements = vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)];
-    /// asm.feed_array(elements);
+    /// asm.feed_array(elements).unwrap();
     /// ```
-    pub fn feed_array(&mut self, elements: Vec<Expr>) {
+    pub fn feed_array(&mut self, elements: Vec<Expr>) -> Result<(), AssemblyError> {
+        self.check_token_limit()?;
         self.pending_arrays.push(elements);
+        Ok(())
     }
 
     /// Feed a parenthesized block (nested expression)
@@ -585,10 +609,15 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_block(vec![]); // Empty block
+    /// asm.feed_block(vec![]).unwrap(); // Empty block
     /// ```
-    pub fn feed_block(&mut self, statements: Vec<crate::ast::Statement>) {
+    pub fn feed_block(
+        &mut self,
+        statements: Vec<crate::ast::Statement>,
+    ) -> Result<(), AssemblyError> {
+        self.check_token_limit()?;
         self.pending_blocks.push(statements);
+        Ok(())
     }
 
     /// Feed a nested phrase (parenthesized function call)
@@ -600,10 +629,12 @@ impl Assembler {
     /// use glossa::ast::Expr;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]);
+    /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]).unwrap();
     /// ```
-    pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) {
+    pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) -> Result<(), AssemblyError> {
+        self.check_token_limit()?;
         self.pending_nested_phrases.push(terms);
+        Ok(())
     }
 
     /// Feed an index access (`array[index]`)
@@ -620,10 +651,12 @@ impl Assembler {
     ///     normalized: "πιναξ".into(),
     /// });
     /// let index = Expr::NumberLiteral(0);
-    /// asm.feed_index_access(array, index);
+    /// asm.feed_index_access(array, index).unwrap();
     /// ```
-    pub fn feed_index_access(&mut self, array: Expr, index: Expr) {
+    pub fn feed_index_access(&mut self, array: Expr, index: Expr) -> Result<(), AssemblyError> {
+        self.check_token_limit()?;
         self.pending_index_accesses.push((array, index));
+        Ok(())
     }
 
     /// Feed an unwrap expression (expr!)
@@ -639,10 +672,12 @@ impl Assembler {
     ///     original: "τιμή".into(),
     ///     normalized: "τιμη".into(),
     /// });
-    /// asm.feed_unwrap(expr);
+    /// asm.feed_unwrap(expr).unwrap();
     /// ```
-    pub fn feed_unwrap(&mut self, expr: Expr) {
+    pub fn feed_unwrap(&mut self, expr: Expr) -> Result<(), AssemblyError> {
+        self.check_token_limit()?;
         self.pending_unwraps.push(expr);
+        Ok(())
     }
 
     /// Feed a participle (for lambda construction)
@@ -663,13 +698,14 @@ impl Assembler {
     ///     number: Number::Plural,
     ///     confidence: 1.0,
     /// };
-    /// asm.feed_participle(&analysis, "διπλασιαζόμενα");
+    /// asm.feed_participle(&analysis, "διπλασιαζόμενα").unwrap();
     /// ```
     pub fn feed_participle(
         &mut self,
         analysis: &crate::morphology::ParticipleAnalysis,
         original: &str,
-    ) {
+    ) -> Result<(), AssemblyError> {
+        self.check_token_limit()?;
         let constituent = ParticipleConstituent {
             verb_lemma: analysis.verb_lemma(),
             original: original.to_string(),
@@ -680,6 +716,19 @@ impl Assembler {
             number: analysis.number,
         };
         self.pending_participles.push(constituent);
+        Ok(())
+    }
+
+    /// Check if token limit is exceeded
+    fn check_token_limit(&mut self) -> Result<(), AssemblyError> {
+        self.token_count += 1;
+        if self.token_count > MAX_TOKENS {
+            return Err(AssemblyError::StatementTooLong {
+                count: self.token_count,
+                limit: MAX_TOKENS,
+            });
+        }
+        Ok(())
     }
 
     /// Handle a noun/pronoun/adjective - route to slot by case
@@ -1098,14 +1147,14 @@ mod tests {
         let mut asm = Assembler::new();
 
         // Feed true (boolean literal - handled by parser, goes to feed_boolean)
-        asm.feed_boolean(true);
+        asm.feed_boolean(true).unwrap();
 
         // Feed ἤ (OR operator)
         let or_particle = analyze("η");
         asm.feed(&or_particle, "ἤ").unwrap();
 
         // Feed false (boolean literal)
-        asm.feed_boolean(false);
+        asm.feed_boolean(false).unwrap();
 
         // Feed λέγε (print verb)
         let verb = analyze("λεγε");
@@ -1206,7 +1255,7 @@ mod tests {
     fn test_literals() {
         let mut asm = Assembler::new();
 
-        asm.feed_string("χαῖρε κόσμε".to_string());
+        asm.feed_string("χαῖρε κόσμε".to_string()).unwrap();
 
         let verb = analyze("λεγε");
         asm.feed(&verb, "λέγε").unwrap();
@@ -1499,7 +1548,7 @@ mod tests {
         asm.feed(&marker_analysis, "κατά").unwrap();
 
         // 3. Delimiter Literal: ","
-        asm.feed_string(",".to_string());
+        asm.feed_string(",".to_string()).unwrap();
 
         // 4. Split Verb: "σχίζεται" (is split)
         let split_verb = MorphAnalysis {

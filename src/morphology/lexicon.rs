@@ -585,46 +585,6 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     );
 
     // =========================================================================
-    // Trait keywords (self)
-    // =========================================================================
-
-    // self - self instance
-    m.insert(
-        "self",
-        LexiconEntry {
-            lemma: "self",
-            pos: PartOfSpeech::Pronoun,
-            gender: Some(Gender::Masculine), // Arbitrary
-            meaning: "self",
-            rust_equiv: Some("self"),
-            case: Some(Case::Nominative),
-            number: Some(Number::Singular),
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
-        },
-    );
-
-    // selfου - of self (genitive)
-    m.insert(
-        "selfου",
-        LexiconEntry {
-            lemma: "self",
-            pos: PartOfSpeech::Pronoun,
-            gender: Some(Gender::Masculine),
-            meaning: "of self",
-            rust_equiv: Some("self"),
-            case: Some(Case::Genitive),
-            number: Some(Number::Singular),
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
-        },
-    );
-
-    // =========================================================================
     // More verbs for common operations
     // =========================================================================
 
@@ -2223,26 +2183,7 @@ pub enum BinaryOp {
     Or,
 }
 
-impl BinaryOp {
-    /// Get the Rust operator string
-    pub fn to_rust(&self) -> &'static str {
-        match self {
-            BinaryOp::Add => "+",
-            BinaryOp::Sub => "-",
-            BinaryOp::Mul => "*",
-            BinaryOp::Div => "/",
-            BinaryOp::Mod => "%",
-            BinaryOp::Eq => "==",
-            BinaryOp::Ne => "!=",
-            BinaryOp::Lt => "<",
-            BinaryOp::Le => "<=",
-            BinaryOp::Gt => ">",
-            BinaryOp::Ge => ">=",
-            BinaryOp::And => "&&",
-            BinaryOp::Or => "||",
-        }
-    }
-}
+impl BinaryOp {}
 
 /// Unary operator type for code generation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -2251,15 +2192,7 @@ pub enum UnaryOp {
     Neg, // arithmetic negation
 }
 
-impl UnaryOp {
-    /// Get the Rust operator string
-    pub fn to_rust(&self) -> &'static str {
-        match self {
-            UnaryOp::Not => "!",
-            UnaryOp::Neg => "-",
-        }
-    }
-}
+impl UnaryOp {}
 
 /// Check if a word is a comparison adjective and return the operator
 pub fn comparison_operator(normalized_word: &str) -> Option<BinaryOp> {
@@ -2544,14 +2477,6 @@ mod tests {
         assert_eq!(arithmetic_operator("γινομενον"), Some(BinaryOp::Mul));
         assert_eq!(arithmetic_operator("μερος"), Some(BinaryOp::Div));
         assert_eq!(arithmetic_operator("υπολοιπον"), Some(BinaryOp::Mod));
-    }
-
-    #[test]
-    fn test_operator_to_rust() {
-        assert_eq!(BinaryOp::Add.to_rust(), "+");
-        assert_eq!(BinaryOp::Gt.to_rust(), ">");
-        assert_eq!(BinaryOp::And.to_rust(), "&&");
-        assert_eq!(UnaryOp::Not.to_rust(), "!");
     }
 
     #[test]

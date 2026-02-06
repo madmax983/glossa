@@ -33,5 +33,7 @@
 //! 2. **Code Generation**: [`generate_rust`] takes the program and produces a Rust source string.
 
 mod rust;
+pub mod types;
+pub(crate) mod utils;
 
 pub use rust::*;

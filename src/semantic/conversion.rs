@@ -785,50 +785,25 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-            if let Some(ref subj) = asm_stmt.subject {
-                let lemma = normalize_greek(&subj.lemma);
-                if let Some(var_type) = scope.lookup(&subj.lemma) {
-                    args.insert(
-                        0,
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                            glossa_type: var_type.clone(),
-                        },
-                    );
-                } else if crate::morphology::lexicon::is_none_word(&lemma) {
-                    args.insert(
-                        0,
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::None,
-                            glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
-                        },
-                    );
-                } else {
-                    return Err(GlossaError::semantic(format!(
-                        "Τὸ «{}» οὐχ ὡρίσθη (Variable '{}' is not defined)",
-                        subj.original, subj.original
-                    )));
-                }
+            if let Some(ref subj) = asm_stmt.subject
+                && let Some(var_type) = scope.lookup(&subj.lemma)
+            {
+                args.insert(
+                    0,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    },
+                );
             }
 
-            if let Some(ref obj) = asm_stmt.object {
-                let lemma = normalize_greek(&obj.lemma);
-                if let Some(var_type) = scope.lookup(&obj.lemma) {
-                    args.push(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                        glossa_type: var_type.clone(),
-                    });
-                } else if crate::morphology::lexicon::is_none_word(&lemma) {
-                    args.push(AnalyzedExpr {
-                        expr: AnalyzedExprKind::None,
-                        glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
-                    });
-                } else {
-                    return Err(GlossaError::semantic(format!(
-                        "Τὸ «{}» οὐχ ὡρίσθη (Variable '{}' is not defined)",
-                        obj.original, obj.original
-                    )));
-                }
+            if let Some(ref obj) = asm_stmt.object
+                && let Some(var_type) = scope.lookup(&obj.lemma)
+            {
+                args.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                });
             }
 
             return Ok(Some((StatementKind::Print, args)));

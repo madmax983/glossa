@@ -47,6 +47,8 @@
 //! }
 //! ```
 
+use crate::codegen::types::to_rust_type;
+use crate::codegen::utils::{capitalize, sanitize_name};
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedMethod, AnalyzedProgram,
@@ -303,26 +305,12 @@ fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
         quote! { println!(); }
     } else if args.len() == 1 {
         let arg = generate_expr(&args[0]);
-        let fmt = get_format_string(&args[0].glossa_type);
-        quote! { println!(#fmt, #arg); }
+        // Use Display formatting
+        quote! { println!("{}", #arg); }
     } else {
         // Multiple args - join with space
-        let format_calls: Vec<TokenStream> = args
-            .iter()
-            .map(|arg| {
-                let arg_token = generate_expr(arg);
-                let fmt = get_format_string(&arg.glossa_type);
-                quote! { format!(#fmt, #arg_token) }
-            })
-            .collect();
-        quote! { println!("{}", vec![#(#format_calls),*].join(" ")); }
-    }
-}
-
-fn get_format_string(ty: &GlossaType) -> &'static str {
-    match ty {
-        GlossaType::String | GlossaType::Number | GlossaType::Boolean => "{}",
-        _ => "{:?}", // Use Debug for structs, collections, enums, unknown
+        let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+        quote! { println!("{}", vec![#(format!("{}", #arg_tokens)),*].join(" ")); }
     }
 }
 
@@ -421,7 +409,7 @@ fn generate_fn_def(
         .map(|(param_name, param_type)| {
             let param_ident = format_ident!("{}", sanitize_name(param_name));
             if let Some(ty) = param_type {
-                let ty_str = type_to_rust_string(ty);
+                let ty_str = to_rust_type(ty);
                 let ty_ident = format_ident!("{}", ty_str);
                 quote! { #param_ident: #ty_ident }
             } else {
@@ -432,7 +420,7 @@ fn generate_fn_def(
 
     // Generate return type
     if let Some(ret_type) = return_type {
-        let ret_str = type_to_rust_string(ret_type);
+        let ret_str = to_rust_type(ret_type);
         let ret_ty = format_ident!("{}", ret_str);
         quote! {
             fn #fn_name(#(#param_tokens),*) -> #ret_ty {
@@ -457,7 +445,7 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
         .iter()
         .map(|(field_name, field_type)| {
             let field_ident = format_ident!("{}", sanitize_name(field_name));
-            let type_str = type_to_rust_string(field_type);
+            let type_str = to_rust_type(field_type);
             let type_ident = format_ident!("{}", type_str);
             quote! { #field_ident: #type_ident }
         })
@@ -492,7 +480,7 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
                         quote! { &self }
                     } else {
                         let param_ident = format_ident!("{}", sanitize_name(param_name));
-                        let type_str = type_to_rust_string(param_type);
+                        let type_str = to_rust_type(param_type);
                         let ty = format_ident!("{}", type_str);
                         quote! { #param_ident: #ty }
                     }
@@ -501,7 +489,7 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
 
             // Generate return type
             if let Some(ret_type) = &method.return_type {
-                let ret_str = type_to_rust_string(ret_type);
+                let ret_str = to_rust_type(ret_type);
                 let ret_ty = format_ident!("{}", ret_str);
 
                 if let Some(body) = &method.body {
@@ -564,7 +552,7 @@ fn generate_trait_impl(
                         quote! { &self }
                     } else {
                         let param_ident = format_ident!("{}", sanitize_name(param_name));
-                        let type_str = type_to_rust_string(param_type);
+                        let type_str = to_rust_type(param_type);
                         let ty = format_ident!("{}", type_str);
                         quote! { #param_ident: #ty }
                     }
@@ -580,7 +568,7 @@ fn generate_trait_impl(
 
             // Generate return type
             if let Some(ret_type) = &method.return_type {
-                let ret_str = type_to_rust_string(ret_type);
+                let ret_str = to_rust_type(ret_type);
                 let ret_ty = format_ident!("{}", ret_str);
                 quote! {
                     fn #method_name(#(#param_tokens),*) -> #ret_ty {
@@ -953,15 +941,6 @@ fn generate_iterator_chain(collection: &AnalyzedExpr, ops: &[AnalyzedIteratorOp]
     current
 }
 
-/// Capitalize the first letter of a string (for Rust type/trait names)
-fn capitalize(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-    }
-}
-
 /// Check if a parameter represents the self parameter in a trait method
 fn is_self_parameter(param_name: &str, idx: usize) -> bool {
     if idx != 0 {
@@ -973,102 +952,6 @@ fn is_self_parameter(param_name: &str, idx: usize) -> bool {
         || param_name == "self"
         || normalized == "τω"
         || param_name.contains("self")
-}
-
-/// Sanitize a Greek name for use as a Rust identifier
-///
-/// This function performs the critical step of converting Ancient Greek identifiers
-/// into valid ASCII Rust identifiers. It uses a combination of name mapping
-/// (for single letters like `α`) and transliteration (for words like `χρήστης`).
-///
-/// # Edge Cases
-///
-/// Characters that do not have a standard Latin mapping (like `ϟ` Koppa) are
-/// hex-encoded to ensure uniqueness and prevent collisions.
-///
-/// * `ϟ` -> `_u3df_`
-///
-/// # Examples
-///
-/// ```
-/// // These are internal functions, but here is how they behave:
-/// // sanitize_name("ξ") -> "xi"
-/// // sanitize_name("χρήστης") -> "chrestes"
-/// ```
-fn sanitize_name(name: &str) -> String {
-    // Directly transliterate without special casing single letters
-    // This prevents collisions between single letters and their full names
-    // e.g. "σ" (sigma) vs "σίγμα" (sigma)
-    transliterate(name)
-}
-
-/// Transliterate Greek to Latin characters
-fn transliterate(greek: &str) -> String {
-    let mut result = String::new();
-
-    for c in greek.chars() {
-        let trans = match c {
-            'α' => "a",
-            'β' => "b",
-            'γ' => "g",
-            'δ' => "d",
-            'ε' => "e",
-            'ζ' => "z",
-            'η' => "h", // Distinct from 'e' (epsilon)
-            'ι' => "i",
-            'κ' => "k",
-            'λ' => "l",
-            'μ' => "m",
-            'ν' => "n",
-            'ξ' => "x",
-            'ο' => "o",
-            'π' => "p",
-            'ρ' => "r",
-            'σ' | 'ς' => "s",
-            'τ' => "t",
-            'υ' => "u",
-            'ω' => "w", // Distinct from 'o' (omicron)
-            // Digraphs and other characters are hex-encoded to prevent collisions
-            // θ, φ, χ, ψ map to _u..._ because th, ph, ch, ps collide with sequences
-            _ => {
-                // Keep only ASCII alphanumeric characters and underscore
-                if c.is_ascii_alphanumeric() || c == '_' {
-                    result.push(c);
-                } else {
-                    // Replace invalid characters with unique hex code to prevent collisions
-                    // e.g. ϟ -> _u3df_
-                    use std::fmt::Write;
-                    write!(result, "_u{:x}_", c as u32).unwrap();
-                }
-                continue;
-            }
-        };
-        result.push_str(trans);
-    }
-
-    // Ensure it starts with a letter or underscore (valid Rust identifier)
-    if result.is_empty() {
-        return "_var_empty".to_string();
-    }
-
-    if result
-        .chars()
-        .next()
-        .map(|c| c.is_numeric())
-        .unwrap_or(false)
-    {
-        format!("_{}", result)
-    } else {
-        result
-    }
-}
-
-/// Helper to get Rust type string, working around GlossaType::to_rust issues
-fn type_to_rust_string(ty: &GlossaType) -> String {
-    match ty {
-        GlossaType::Struct { name, .. } => capitalize(&sanitize_name(name)),
-        _ => ty.to_rust(),
-    }
 }
 
 #[cfg(test)]
@@ -1103,49 +986,6 @@ mod tests {
         let code = compile("42 λέγε.");
         assert!(code.contains("println"), "Expected println in: {}", code);
         assert!(code.contains("42"));
-    }
-
-    #[test]
-    fn test_sanitize_greek_letter() {
-        assert_eq!(sanitize_name("ξ"), "x");
-        assert_eq!(sanitize_name("α"), "a");
-        assert_eq!(sanitize_name("ω"), "w");
-    }
-
-    #[test]
-    fn test_transliterate() {
-        // χ (chi) -> hex, ρ -> r, η -> h, σ -> s, τ -> t, ο -> o, ς -> s
-        // χ is 0x3c7
-        assert_eq!(transliterate("χρηστος"), "_u3c7_rhstos");
-        assert_eq!(transliterate("λογος"), "logos");
-        // φ (phi) -> hex
-        // φ is 0x3c6
-        assert_eq!(transliterate("φιλοσοφια"), "_u3c6_iloso_u3c6_ia");
-    }
-
-    #[test]
-    fn test_transliterate_unique() {
-        // Test that different invalid characters produce different outputs
-        let koppa = "ϟ";
-        let stigma = "ϛ";
-
-        let t_koppa = transliterate(koppa);
-        let t_stigma = transliterate(stigma);
-
-        assert_ne!(
-            t_koppa, t_stigma,
-            "Different invalid chars should not collide"
-        );
-        assert!(t_koppa.contains("_u3df_")); // Koppa is 0x3DF
-        assert!(t_stigma.contains("_u3db_")); // Stigma is 0x3DB
-    }
-
-    #[test]
-    fn test_transliterate_mixed_valid_invalid() {
-        // Test mixing valid and invalid characters
-        let input = "αϟβ";
-        let output = transliterate(input);
-        assert_eq!(output, "a_u3df_b");
     }
 
     #[test]
