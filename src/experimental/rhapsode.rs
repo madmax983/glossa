@@ -411,7 +411,7 @@ mod tests {
 
     #[test]
     fn test_rhapsode_default_impl() {
-        let rhapsode = Rhapsode::default();
+        let rhapsode = Rhapsode::new();
         let source = "«δοκιμή» λέγε.";
         let html = rhapsode.export_html(source).unwrap();
         assert!(html.contains("«δοκιμή»"));
@@ -426,5 +426,20 @@ mod tests {
 
         // Check for tooltip data attribute
         assert!(html.contains("data-tooltip=\"Subject (Nom): ανθρωπος\""));
+    }
+
+    #[test]
+    fn test_rhapsode_error_propagation() {
+        let rhapsode = Rhapsode::new();
+        // Just feed it something that definitely isn't valid Glossa
+        // The parser expects specific keywords or morphology.
+        // "invalid" might parse as a word/expression.
+        // But an incomplete type def will fail.
+        // "εἶδος" (type) must be followed by name and body.
+        let source = "εἶδος"; // Just the keyword, unexpected EOF
+        let result = rhapsode.export_html(source);
+
+        // Should return error from parser
+        assert!(result.is_err());
     }
 }
