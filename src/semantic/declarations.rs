@@ -1,8 +1,7 @@
 //! Declaration analysis (functions, types, traits)
 
 use super::{
-    AnalyzedMethod, AnalyzedStatement, GlossaType, Scope, StatementKind, assemble_statement,
-    convert_assembled_to_analyzed,
+    AnalyzedMethod, AnalyzedStatement, GlossaType, Scope, StatementKind, analyze_statement,
 };
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
@@ -10,8 +9,6 @@ use crate::morphology;
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
 // Circular dependencies handled by crate structure
-use super::control_flow::analyze_control_flow;
-use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
 
 /// Analyze a type definition statement
 pub fn analyze_type_definition(
@@ -93,23 +90,9 @@ pub fn analyze_trait_definition(
                     for (param_name, param_type) in &params {
                         scope.define(param_name.clone(), param_type.clone());
                     }
-                    // Properly analyze statements in the body
+                    // Properly analyze statements in the body using unified helper
                     for body_stmt in body_stmts {
-                        if let Some(control_flow) = analyze_control_flow(body_stmt, &mut scope)? {
-                            analyzed_body.push(control_flow);
-                        } else if let Some(struct_inst) =
-                            try_parse_struct_instantiation(body_stmt, &mut scope)?
-                        {
-                            analyzed_body.push(struct_inst);
-                        } else if let Some(method_call) =
-                            try_parse_trait_method_call(body_stmt, &mut scope)?
-                        {
-                            analyzed_body.push(method_call);
-                        } else {
-                            let assembled = assemble_statement(body_stmt)?;
-                            let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
-                            analyzed_body.push(analyzed);
-                        }
+                        analyzed_body.extend(analyze_statement(body_stmt, &mut scope)?);
                     }
                 }
                 Some(analyzed_body)
@@ -204,29 +187,9 @@ pub fn analyze_trait_impl(
                 scope.define(param_name.clone(), param_type.clone());
             }
 
-            // Analyze the method body
+            // Analyze the method body using unified helper
             for body_stmt in &method.body {
-                // Try control flow first
-                if let Some(control_flow) = analyze_control_flow(body_stmt, &mut scope)? {
-                    analyzed_body.push(control_flow);
-                }
-                // Try struct instantiation pattern
-                else if let Some(struct_inst) =
-                    try_parse_struct_instantiation(body_stmt, &mut scope)?
-                {
-                    analyzed_body.push(struct_inst);
-                }
-                // Try trait method call pattern
-                else if let Some(method_call) =
-                    try_parse_trait_method_call(body_stmt, &mut scope)?
-                {
-                    analyzed_body.push(method_call);
-                } else {
-                    // Use assembler for regular statements
-                    let assembled = assemble_statement(body_stmt)?;
-                    let analyzed = convert_assembled_to_analyzed(&assembled, &mut scope)?;
-                    analyzed_body.push(analyzed);
-                }
+                analyzed_body.extend(analyze_statement(body_stmt, &mut scope)?);
             }
         }
 
@@ -293,7 +256,7 @@ pub fn map_genitive_to_type(genitive_name: &str, scope: &Scope) -> GlossaType {
 /// Parse a function definition: name ὁρίζειν [params]· body
 pub fn parse_function_definition(
     stmt: &Statement,
-    _scope: &mut Scope,
+    scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // The middle dot (·) separates expressions within a clause
     // Structure: expr1 · expr2 where expr1 is "name ὁρίζειν [params]" and expr2 is the body
@@ -319,37 +282,33 @@ pub fn parse_function_definition(
     // Extract parameters (dative words) from the header
     let params = extract_parameters_from_expr(header_expr)?;
 
-    // Create a new scope for the function body and add parameters to it
-    let mut function_scope = Scope::new();
-    for (param_name, param_type) in &params {
-        let glossa_type = param_type.clone().unwrap_or(GlossaType::Unknown);
-        function_scope.define(param_name.clone(), glossa_type);
-    }
-
-    // Parse body (remaining expressions after middle dot)
-    let body_exprs = &clause.expressions[1..];
+    // Use enter_scope() to create a child scope that inherits types/traits
     let mut body_statements = Vec::new();
+    {
+        let mut function_scope = scope.enter_scope();
+        for (param_name, param_type) in &params {
+            let glossa_type = param_type.clone().unwrap_or(GlossaType::Unknown);
+            function_scope.define(param_name.clone(), glossa_type);
+        }
 
-    // Each expression in the body becomes a statement
-    for expr in body_exprs {
-        // Create a clause with this single expression
-        let body_clause = crate::ast::Clause {
-            expressions: vec![expr.clone()],
-        };
+        // Parse body (remaining expressions after middle dot)
+        let body_exprs = &clause.expressions[1..];
 
-        let clause_stmt = Statement::Regular {
-            clauses: vec![body_clause],
-            is_query: false,
-            is_propagate: false,
-        };
+        // Each expression in the body becomes a statement
+        for expr in body_exprs {
+            // Create a clause with this single expression
+            let body_clause = crate::ast::Clause {
+                expressions: vec![expr.clone()],
+            };
 
-        // Analyze each body expression as a statement with the function scope
-        if let Some(cf) = analyze_control_flow(&clause_stmt, &mut function_scope)? {
-            body_statements.push(cf);
-        } else {
-            let assembled = assemble_statement(&clause_stmt)?;
-            let analyzed = convert_assembled_to_analyzed(&assembled, &mut function_scope)?;
-            body_statements.push(analyzed);
+            let clause_stmt = Statement::Regular {
+                clauses: vec![body_clause],
+                is_query: false,
+                is_propagate: false,
+            };
+
+            // Analyze each body expression using unified helper
+            body_statements.extend(analyze_statement(&clause_stmt, &mut function_scope)?);
         }
     }
 
@@ -513,28 +472,7 @@ pub fn analyze_test_declaration(
         let mut test_scope = scope.enter_scope();
 
         for body_stmt in &test_decl.body {
-            // Handle control flow
-            if let Some(control_flow) = analyze_control_flow(body_stmt, &mut test_scope)? {
-                analyzed_body.push(control_flow);
-            }
-            // Handle struct instantiation
-            else if let Some(struct_inst) =
-                try_parse_struct_instantiation(body_stmt, &mut test_scope)?
-            {
-                analyzed_body.push(struct_inst);
-            }
-            // Handle trait method calls
-            else if let Some(method_call) =
-                try_parse_trait_method_call(body_stmt, &mut test_scope)?
-            {
-                analyzed_body.push(method_call);
-            }
-            // Regular statement analysis
-            else {
-                let assembled = assemble_statement(body_stmt)?;
-                let analyzed = convert_assembled_to_analyzed(&assembled, &mut test_scope)?;
-                analyzed_body.push(analyzed);
-            }
+            analyzed_body.extend(analyze_statement(body_stmt, &mut test_scope)?);
         }
     }
 
