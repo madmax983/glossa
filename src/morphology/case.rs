@@ -20,19 +20,6 @@ pub enum Case {
     Vocative,
 }
 
-impl Case {
-    /// Convert case to its ownership/borrowing semantic
-    pub fn to_rust_ownership(&self) -> &'static str {
-        match self {
-            Case::Nominative => "", // Subject, just the value
-            Case::Genitive => "&",  // Borrow (of/from)
-            Case::Dative => "&mut", // Mutable borrow (to/for)
-            Case::Accusative => "", // Move (direct object)
-            Case::Vocative => "",   // No ownership semantic
-        }
-    }
-}
-
 /// Grammatical number
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Number {
@@ -104,16 +91,4 @@ pub enum Voice {
     Active,
     Middle,
     Passive,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_case_ownership() {
-        assert_eq!(Case::Genitive.to_rust_ownership(), "&");
-        assert_eq!(Case::Dative.to_rust_ownership(), "&mut");
-        assert_eq!(Case::Accusative.to_rust_ownership(), "");
-    }
 }
