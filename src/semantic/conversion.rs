@@ -1007,6 +1007,15 @@ pub fn extract_value(
         ));
     }
 
+    // Check nested phrases (parenthesized expressions) which should be treated as values
+    // This allows constructs like "x = (1 + 2)"
+    if let Some(nested) = asm_stmt.nested_phrases.first() {
+        let phrase_expr = Expr::Phrase(nested.clone());
+        let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
+        let ty = analyzed.glossa_type.clone();
+        return Ok((analyzed, ty));
+    }
+
     // Check subject for Option/Result words
     if let Some(ref subj) = asm_stmt.subject
         && let Some(result) = detect_enum_variant(subj, &asm_stmt.literals)

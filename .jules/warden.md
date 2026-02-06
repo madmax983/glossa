@@ -49,3 +49,16 @@
 **Defense:** Removed special single-letter mapping in `sanitize_name` and enforced strict transliteration in `transliterate`. `σ` now maps to `s`, while `σίγμα` maps to `sigma`. `ψ` maps to `_u3c8_` (hex encoded) to avoid collision with `ps`.
 
 **Severity:** Medium (Logic Bug).
+
+## 2026-06-03 - Nested Expression Truncation
+
+**Threat:** Logic bug in `src/semantic/expressions.rs` and `src/semantic/conversion.rs`.
+1. `analyze_argument_expr` silently truncated nested phrases (e.g., `(1 2 sum)`) to their first term (`1`), ignoring subsequent terms and operators. This could allow logic errors or assertion bypasses.
+2. `extract_value` ignored nested phrases entirely, causing bindings like `x = (1 + 2)` to default to `0` (silent data loss).
+
+**Defense:**
+1. Updated `analyze_argument_expr` to use a fresh `Assembler` to correctly analyze the full nested phrase, preserving operator order and terms.
+2. Updated `extract_value` to correctly extract and analyze nested phrases.
+3. Used `scope.child()` for nested analysis to prevent variable leakage.
+
+**Severity:** High (Logic Bug / Silent Data Loss).

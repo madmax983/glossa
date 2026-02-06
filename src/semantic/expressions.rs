@@ -1,9 +1,12 @@
 //! Expression analysis and helpers
 
-use super::{AnalyzedExpr, AnalyzedExprKind, Assembler, GlossaType, Literal, Scope};
+use super::conversion::classify_assembled_statement;
+use super::{
+    AnalyzedExpr, AnalyzedExprKind, Assembler, GlossaType, Literal, Scope, StatementKind,
+};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
-use crate::morphology::{self, DisambiguationContext, analyze_article, resolve_best};
+use crate::morphology::{self, analyze_article, resolve_best, DisambiguationContext};
 use crate::text::normalize_greek;
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
@@ -131,9 +134,35 @@ fn analyze_argument_expr_recursive(
                 }
             }
 
-            // Not a function call - could be a complex expression
-            // For now, just analyze the first term
-            analyze_argument_expr_recursive(&terms[0], scope, depth + 1)
+            // Not a function call - could be a complex expression (e.g. "1 2 +")
+            // Use Assembler to analyze the phrase properly
+            let mut asm = Assembler::new();
+            let mut context = DisambiguationContext::new();
+
+            for term in terms {
+                feed_expr_recursive(&mut asm, term, &mut context, depth + 1)?;
+            }
+
+            let asm_stmt = asm.finalize()?;
+            // Use a child scope to prevent side effects from leaking out (e.g. bindings in expressions)
+            let mut inner_scope = scope.child();
+            let (kind, mut exprs) = classify_assembled_statement(&asm_stmt, &mut inner_scope)?;
+
+            // Expecting an Expression statement that yielded a result
+            if matches!(kind, StatementKind::Expression) || matches!(kind, StatementKind::Print) {
+                if exprs.len() == 1 {
+                    return Ok(exprs.remove(0));
+                } else if exprs.is_empty() {
+                    return Err(GlossaError::semantic("Expression evaluated to nothing"));
+                } else {
+                    // Return the last expression (block style)
+                    return Ok(exprs.pop().unwrap());
+                }
+            }
+
+            Err(GlossaError::semantic(
+                "Nested phrase must evaluate to an expression",
+            ))
         }
 
         Expr::Block(statements) => {
