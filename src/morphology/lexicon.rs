@@ -2183,8 +2183,7 @@ pub enum BinaryOp {
     Or,
 }
 
-impl BinaryOp {
-}
+impl BinaryOp {}
 
 /// Unary operator type for code generation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -2193,8 +2192,7 @@ pub enum UnaryOp {
     Neg, // arithmetic negation
 }
 
-impl UnaryOp {
-}
+impl UnaryOp {}
 
 /// Check if a word is a comparison adjective and return the operator
 pub fn comparison_operator(normalized_word: &str) -> Option<BinaryOp> {

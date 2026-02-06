@@ -138,7 +138,6 @@ impl Ownership {
             _ => Ownership::Copy,
         }
     }
-
 }
 
 /// Infer type from a Greek word (by looking at lexicon or morphology)

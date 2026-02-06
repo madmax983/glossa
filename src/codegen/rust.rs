@@ -47,9 +47,9 @@
 //! }
 //! ```
 
-use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::codegen::types::to_rust_type;
 use crate::codegen::utils::{capitalize, sanitize_name};
+use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedMethod, AnalyzedProgram,
     AnalyzedStatement, GlossaType, StatementKind,
@@ -954,7 +954,6 @@ fn is_self_parameter(param_name: &str, idx: usize) -> bool {
         || param_name.contains("self")
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -988,7 +987,6 @@ mod tests {
         assert!(code.contains("println"), "Expected println in: {}", code);
         assert!(code.contains("42"));
     }
-
 
     #[test]
     fn test_generate_full_program() {
