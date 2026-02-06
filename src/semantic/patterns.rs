@@ -309,6 +309,21 @@ pub fn try_parse_struct_instantiation(
                         },
                         _ => return Ok(None), // Unsupported argument type
                     };
+
+                    // Strict type checking
+                    if *expected_type != GlossaType::Unknown
+                        && analyzed_arg.glossa_type != GlossaType::Unknown
+                        && analyzed_arg.glossa_type != *expected_type
+                    {
+                        return Err(GlossaError::semantic(format!(
+                            "Τύπος ἀσυμβίβαστος: ἀναμενόμενος {}, εὑρεθείς {} (Type mismatch: expected {:?}, found {:?})",
+                            expected_type.to_greek(),
+                            analyzed_arg.glossa_type.to_greek(),
+                            expected_type,
+                            analyzed_arg.glossa_type
+                        )));
+                    }
+
                     args.push(analyzed_arg);
                 }
 

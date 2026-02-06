@@ -303,12 +303,26 @@ fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
         quote! { println!(); }
     } else if args.len() == 1 {
         let arg = generate_expr(&args[0]);
-        // Use Display formatting
-        quote! { println!("{}", #arg); }
+        let fmt = get_format_string(&args[0].glossa_type);
+        quote! { println!(#fmt, #arg); }
     } else {
         // Multiple args - join with space
-        let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-        quote! { println!("{}", vec![#(format!("{}", #arg_tokens)),*].join(" ")); }
+        let format_calls: Vec<TokenStream> = args
+            .iter()
+            .map(|arg| {
+                let arg_token = generate_expr(arg);
+                let fmt = get_format_string(&arg.glossa_type);
+                quote! { format!(#fmt, #arg_token) }
+            })
+            .collect();
+        quote! { println!("{}", vec![#(#format_calls),*].join(" ")); }
+    }
+}
+
+fn get_format_string(ty: &GlossaType) -> &'static str {
+    match ty {
+        GlossaType::String | GlossaType::Number | GlossaType::Boolean => "{}",
+        _ => "{:?}", // Use Debug for structs, collections, enums, unknown
     }
 }
 

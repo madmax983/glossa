@@ -851,10 +851,10 @@ fn test_statement_end_with_semicolon() {
     let regular_output = compile(regular).unwrap();
     let propagate_output = compile(propagate).unwrap();
 
-    // Regular should NOT have ?
+    // Regular should NOT have ? (excluding debug format strings)
     assert!(
-        !regular_output.contains("?"),
-        "Should not have ? in regular statement"
+        !regular_output.replace("{:?}", "").contains("?"),
+        "Should not have ? in regular statement (excluding format strings)"
     );
 
     // Propagate should have ?

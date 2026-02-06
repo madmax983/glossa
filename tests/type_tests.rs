@@ -105,35 +105,17 @@ fn test_instantiation_with_literals() {
 }
 
 #[test]
-fn test_instantiation_with_boolean() {
+fn test_instantiation_with_boolean_error() {
     let source = r#"
-        εἶδος Κατάστασις ὁρίζειν { ενεργός κενόν. }. // Using κενόν as placeholder for boolean if not available? No, let's use valid bool check.
-        // Actually there isn't a "boolean" type keyword in the lexicon explicitly mapped to GlossaType::Boolean yet?
-        // Wait, 'αληθες' maps to true.
-        // Let's assume there is no explicit boolean type name in lexicon yet, but we can verify BooleanLiteral handling.
-        // Or wait, is there a boolean type?
-        // In src/semantic/declarations.rs: map_greek_type_to_glossa only handles Number, String, List.
-        // So we can't define a struct with a boolean field yet properly?
-        // Let's check lexicon.
-        // "αριθμου", "ονοματος", "λιστης".
-        // But the parser supports Expr::BooleanLiteral.
-        // If I use "ἀριθμοῦ" it expects Number.
-        // If I pass a boolean literal to a field expecting Number, it might fail type check later, but here we test PARSING/AST construction.
-
-        // Let's try to pass a boolean literal. Even if type doesn't match, we want to exercise the code path in patterns.rs.
         εἶδος Δοκιμή ὁρίζειν { τιμή ἀριθμοῦ. }.
         δ νέον Δοκιμή ἀληθές ἔστω.
     "#;
-    // This might fail compilation due to type mismatch in Rust codegen or analysis, but patterns.rs should handle it.
-    // However, if it fails analysis later, we won't see the coverage.
-    // Let's see if we can use a type that accepts anything or if we can just trigger the path.
+    let ast = parse(source).unwrap();
+    let result = analyze_program(&ast);
 
-    // Actually, `map_genitive_to_type` falls back to `scope.lookup_type`.
-    // If we can't define a boolean field, we can't fully test semantic validity, but patterns.rs just builds the expression.
-
-    let code = compile(source);
-    // It should generate "true" in the output
-    assert!(code.contains("true"));
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("Type mismatch") || err.contains("Τύπος ἀσυμβίβαστος"));
 }
 
 #[test]
@@ -153,28 +135,15 @@ fn test_instantiation_with_word_number() {
 }
 
 #[test]
-fn test_instantiation_with_explicit_numeric_word() {
-    // This tests `word.original.parse::<i64>()` inside Expr::Word match arm
-    // Assuming the parser produces Expr::Word for "123" if it's not a NumberLiteral token?
-    // Actually pest grammar likely parses digits as NumberLiteral.
-    // So Expr::Word with "123" might not happen from parser, but we can try "123" string? No.
-    // If the parser always produces NumberLiteral for digits, that path in patterns.rs (Expr::Word -> parse i64) might be dead code
-    // unless we construct AST manually or if parser is lenient.
-    // But let's leave it. The `lexicon::numeral_value` path is covered by "πέντε".
-
-    // What about Expr::StringLiteral for a non-String field?
-    // `test_instantiation_with_literals` covers StringLiteral for String field (with .to_string()).
-    // Let's try StringLiteral for Number field (should pass through without .to_string()).
+fn test_instantiation_with_explicit_numeric_word_error() {
     let source = r#"
         εἶδος Δοκιμή ὁρίζειν { τιμή ἀριθμοῦ. }.
         δ νέον Δοκιμή «42» ἔστω.
     "#;
-    let code = compile(source);
-    // Should contain "42" as a string literal, not wrapped in to_string (or wrapped? checks expected_type)
-    // Field is Number, so expected_type is Number.
-    // StringLiteral path checks `if matches!(expected_type, GlossaType::String)`.
-    // Since it's Number, it goes to `else { lit_expr }`.
-    // So output should be `"42"` (quoted), not `"42".to_string()`.
-    assert!(code.contains("\"42\""));
-    assert!(!code.contains("\"42\".to_string()"));
+    let ast = parse(source).unwrap();
+    let result = analyze_program(&ast);
+
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("Type mismatch") || err.contains("Τύπος ἀσυμβίβαστος"));
 }
