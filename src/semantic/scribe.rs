@@ -158,6 +158,20 @@ mod tests {
     }
 
     #[test]
+    fn test_scribe_empty_type_fields() {
+        let source = "εἶδος Κενόν ὁρίζειν { }.";
+        let ast = parse(source).unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+
+        let scribe = Scribe::new();
+        let doc = scribe.render(&analyzed);
+
+        println!("{}", doc);
+        assert!(doc.contains("### κενον"));
+        assert!(doc.contains("*No fields.*"));
+    }
+
+    #[test]
     fn test_scribe_functions() {
         let source = "πρόσθεσις ὁρίζειν τῷ α ἀριθμοῦ· α 1 συν δός.";
         let ast = parse(source).unwrap();
@@ -170,5 +184,64 @@ mod tests {
         assert!(doc.contains("## Functions"));
         assert!(doc.contains("### προσθεσις"));
         assert!(doc.contains("| α | ἀριθμός | `Number` |"));
+    }
+
+    #[test]
+    fn test_scribe_empty_function_params() {
+        let source = "κενόν ὁρίζειν· 1.";
+        let ast = parse(source).unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+
+        let scribe = Scribe::new();
+        let doc = scribe.render(&analyzed);
+
+        println!("{}", doc);
+        assert!(doc.contains("### κενον"));
+        assert!(doc.contains("*No parameters.*"));
+    }
+
+    #[test]
+    fn test_scribe_traits() {
+        // Correct syntax: δεῖ method_name τῷ param.
+        let source = "χαρακτήρ Ομιλών ὁρίζειν { δεῖ λέγειν. }.";
+        let ast = parse(source).unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+
+        let scribe = Scribe::new();
+        let doc = scribe.render(&analyzed);
+
+        println!("{}", doc);
+        assert!(doc.contains("## Traits"));
+        assert!(doc.contains("### ομιλων"));
+        assert!(doc.contains("| λεγειν |  |"));
+    }
+
+    #[test]
+    fn test_scribe_empty_trait_methods() {
+        let source = "χαρακτήρ Κενόν ὁρίζειν { }.";
+        let ast = parse(source).unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+
+        let scribe = Scribe::new();
+        let doc = scribe.render(&analyzed);
+
+        println!("{}", doc);
+        assert!(doc.contains("### κενον"));
+        assert!(doc.contains("*No methods.*"));
+    }
+
+    #[test]
+    fn test_scribe_tests() {
+        // Correct syntax: δοκιμή «name». body. τέλος.
+        let source = "δοκιμή «βασικόν». 1 1 ἰσοῦται. τέλος.";
+        let ast = parse(source).unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+
+        let scribe = Scribe::new();
+        let doc = scribe.render(&analyzed);
+
+        println!("{}", doc);
+        assert!(doc.contains("## Tests"));
+        assert!(doc.contains("- βασικόν"));
     }
 }
