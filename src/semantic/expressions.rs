@@ -274,13 +274,13 @@ fn feed_expr_recursive(
 
     match expr {
         Expr::StringLiteral(s) => {
-            asm.feed_string(s.clone());
+            asm.feed_string(s.clone())?;
         }
         Expr::NumberLiteral(n) => {
-            asm.feed_number(*n);
+            asm.feed_number(*n)?;
         }
         Expr::BooleanLiteral(b) => {
-            asm.feed_boolean(*b);
+            asm.feed_boolean(*b)?;
         }
         Expr::Word(w) => {
             // Check if this is an article using ORIGINAL form (preserves diacritics)
@@ -301,7 +301,7 @@ fn feed_expr_recursive(
             if !in_lexicon && !is_numeral {
                 let participle_check = morphology::analyze_participle(&w.normalized);
                 if let Some(participle_analysis) = participle_check {
-                    asm.feed_participle(&participle_analysis, &w.original);
+                    asm.feed_participle(&participle_analysis, &w.original)?;
                     return Ok(());
                 }
             }
@@ -328,7 +328,7 @@ fn feed_expr_recursive(
                     // This is a nested phrase (parenthesized expression)
                     // Store it for later analysis instead of flattening
                     if let Expr::Phrase(nested_terms) = term {
-                        asm.feed_nested_phrase(nested_terms.clone());
+                        asm.feed_nested_phrase(nested_terms.clone())?;
                     }
                 } else {
                     feed_expr_recursive(asm, term, context, depth + 1)?;
@@ -376,7 +376,7 @@ fn feed_expr_recursive(
             // Handle unwrap operator specially - it's a postfix operator that doesn't need word-order handling
             if matches!(op, crate::ast::UnaryOperator::Unwrap) {
                 // Store the unwrap expression for special handling
-                asm.feed_unwrap(operand.as_ref().clone());
+                asm.feed_unwrap(operand.as_ref().clone())?;
             } else {
                 // TODO: Implement other unary operations (Not, Neg)
                 feed_expr_recursive(asm, operand, context, depth + 1)?;
@@ -385,15 +385,15 @@ fn feed_expr_recursive(
         Expr::Block(statements) => {
             // Parenthesized expressions are stored as blocks for later analysis
             // Don't feed their contents to the main assembler - they'll be analyzed separately
-            asm.feed_block(statements.clone());
+            asm.feed_block(statements.clone())?;
         }
         Expr::ArrayLiteral(elements) => {
             // Feed array literal to assembler
-            asm.feed_array(elements.clone());
+            asm.feed_array(elements.clone())?;
         }
         Expr::IndexAccess { array, index } => {
             // Feed index access to assembler
-            asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone());
+            asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone())?;
         }
     }
     Ok(())
