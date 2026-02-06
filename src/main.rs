@@ -14,9 +14,8 @@ use std::time::SystemTime;
 
 use glossa::codegen::{generate_rust, generate_rust_file};
 use glossa::errors::GlossaError;
-use glossa::experimental::oracle::Oracle;
 use glossa::parser::parse;
-use glossa::semantic::{Scope, analyze_program};
+use glossa::semantic::{Scope, analyze_program, oracle::Oracle};
 
 #[derive(Parser)]
 #[command(name = "glossa")]

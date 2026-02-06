@@ -1,3 +1,4 @@
+#![allow(clippy::needless_doctest_main)]
 //! Rust code generation
 //!
 //! This module handles the final step of the compilation pipeline: translating
