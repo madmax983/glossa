@@ -200,6 +200,11 @@ pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
     )
 }
 
+/// Generate Rust code for a single analyzed statement
+pub fn generate_statement_code(stmt: &AnalyzedStatement) -> String {
+    generate_statement(stmt).to_string()
+}
+
 fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
     match &stmt.kind {
         StatementKind::Binding { name, mutable, .. } => {

@@ -12,10 +12,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::SystemTime;
 
-use glossa::codegen::{generate_rust, generate_rust_file};
+use glossa::codegen::{generate_rust_file, generate_statement_code};
 use glossa::errors::GlossaError;
 use glossa::parser::parse;
-use glossa::semantic::{Scope, analyze_program, oracle::Oracle};
+use glossa::semantic::{GlossaType, Scope, StatementKind, analyze_program, oracle::Oracle};
 
 #[derive(Parser)]
 #[command(name = "glossa")]
@@ -318,9 +318,8 @@ fn run_repl() -> Result<()> {
 
         match context.execute(input) {
             Ok(output) => {
-                if !output.is_empty() {
-                    println!("{}", output);
-                }
+                // Display handles formatting (empty if None)
+                print!("{}", output);
             }
             Err(e) => {
                 // Use default error formatting but ensure it's visible
@@ -415,6 +414,55 @@ fn print_env(context: &ReplContext) {
     }
 }
 
+/// REPL Output variants
+#[derive(Debug)]
+pub enum ReplOutput {
+    /// A new variable binding
+    Binding {
+        name: String,
+        type_: GlossaType,
+        mutable: bool,
+    },
+    /// Code execution (compilation)
+    Statement { code: String },
+    /// No output (e.g. empty line)
+    None,
+}
+
+impl std::fmt::Display for ReplOutput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ReplOutput::Binding {
+                name,
+                type_,
+                mutable,
+            } => {
+                write!(
+                    f,
+                    "{} {}: {:?}{}",
+                    "✓".green(),
+                    name.as_str().cyan().bold(),
+                    type_,
+                    if *mutable {
+                        " (mutable)".yellow().to_string()
+                    } else {
+                        "".to_string()
+                    }
+                )?;
+                writeln!(f)
+            }
+            ReplOutput::Statement { code } => {
+                writeln!(f, "{}", "✓ Ἐκτελέσθη (Executed)".green())?;
+                if !code.is_empty() {
+                    writeln!(f, "  {}", code.as_str().dim())?;
+                }
+                Ok(())
+            }
+            ReplOutput::None => Ok(()),
+        }
+    }
+}
+
 /// Maximum number of bindings to track in REPL history
 const MAX_REPL_BINDINGS: usize = 50;
 /// Maximum total source size for REPL history
@@ -423,6 +471,7 @@ const MAX_REPL_SOURCE_LEN: usize = 50_000;
 struct ReplContext {
     bindings: Vec<String>,
     last_scope: Option<Scope>,
+    statement_count: usize,
 }
 
 impl ReplContext {
@@ -430,10 +479,11 @@ impl ReplContext {
         ReplContext {
             bindings: Vec::new(),
             last_scope: None,
+            statement_count: 0,
         }
     }
 
-    fn execute(&mut self, input: &str) -> std::result::Result<String, GlossaError> {
+    fn execute(&mut self, input: &str) -> std::result::Result<ReplOutput, GlossaError> {
         // Check binding count limit
         if self.bindings.len() > MAX_REPL_BINDINGS {
             return Err(GlossaError::semantic(
@@ -459,26 +509,52 @@ impl ReplContext {
         let ast = parse(&full_source)?;
         let analyzed = analyze_program(&ast)?;
 
-        // Update scope
-        self.last_scope = Some(analyzed.scope.clone());
-
-        // Check if input contains a binding
-        if input.contains("ἔστω") || input.contains("εστω") {
-            self.bindings.push(input.to_string());
+        let new_count = analyzed.statements.len();
+        if new_count <= self.statement_count {
+            return Ok(ReplOutput::None);
         }
 
-        // Generate and return the code (for now, just show the Rust)
-        let rust_code = generate_rust(&analyzed);
-        Ok(format!(
-            "{} {}",
-            "→".blue(),
-            rust_code
-                .lines()
-                .skip(1)
-                .take(5)
-                .collect::<Vec<_>>()
-                .join("\n")
-        ))
+        // Update scope and count
+        self.last_scope = Some(analyzed.scope.clone());
+        self.statement_count = new_count;
+
+        // Analyze what happened in the last statement
+        // We know it exists because new_count > old_count >= 0
+        let last_stmt = analyzed.statements.last().unwrap();
+        match &last_stmt.kind {
+            StatementKind::Binding {
+                name,
+                value_type,
+                mutable,
+            } => {
+                // Add to bindings list so it persists
+                self.bindings.push(input.to_string());
+
+                Ok(ReplOutput::Binding {
+                    name: name.to_string(),
+                    type_: value_type.clone(),
+                    mutable: *mutable,
+                })
+            }
+            _ => {
+                // For non-binding statements, we don't save them to bindings list
+                // because we don't want to re-execute side effects (print) every time.
+                // BUT: If the user defines a function or type, we SHOULD save it.
+                if matches!(
+                    last_stmt.kind,
+                    StatementKind::FunctionDef { .. }
+                        | StatementKind::TypeDefinition { .. }
+                        | StatementKind::TraitDefinition { .. }
+                        | StatementKind::TraitImplementation { .. }
+                ) {
+                    self.bindings.push(input.to_string());
+                }
+
+                Ok(ReplOutput::Statement {
+                    code: generate_statement_code(last_stmt),
+                })
+            }
+        }
     }
 }
 
