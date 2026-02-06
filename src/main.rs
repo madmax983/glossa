@@ -763,7 +763,7 @@ mod tests {
         {
             assert_eq!(name, "ξ");
             assert_eq!(type_, GlossaType::Number);
-            assert_eq!(mutable, false);
+            assert!(!mutable);
         } else {
             panic!("Expected Binding, got {:?}", output);
         }
