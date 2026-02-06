@@ -25,7 +25,7 @@ pub fn analyze_type_definition(
         let type_name_gen = normalize_greek(&field.type_name.original);
 
         // Map genitive type names to GlossaType
-        let field_type = map_genitive_to_type(&type_name_gen, scope);
+        let field_type = resolve_type_name(&type_name_gen, scope);
         fields.push((field_name, field_type));
     }
 
@@ -234,23 +234,25 @@ pub fn analyze_trait_impl(
 }
 
 /// Map a genitive type name to a GlossaType
-pub fn map_genitive_to_type(genitive_name: &str, scope: &Scope) -> GlossaType {
-    // ἀριθμοῦ (genitive of ἀριθμός) → Number
-    if genitive_name == "αριθμου" {
-        return GlossaType::Number;
+pub fn resolve_type_name(name: &str, scope: &Scope) -> GlossaType {
+    match name {
+        // ἀριθμοῦ (genitive of ἀριθμός) → Number
+        "αριθμου" => GlossaType::Number,
+        // ὀνόματος (genitive of ὄνομα) → String
+        "ονοματος" => GlossaType::String,
+        // λιστης (genitive of λίστα) → List
+        "λιστης" => GlossaType::List(Box::new(GlossaType::Unknown)),
+        _ => {
+            // Check for user-defined types
+            // Strip genitive ending and look up the nominative form
+            // For now, just try the name as-is
+            if let Some(ty) = scope.lookup_type(name) {
+                ty.clone()
+            } else {
+                GlossaType::Unknown
+            }
+        }
     }
-    // ὀνόματος (genitive of ὄνομα) → String
-    if genitive_name == "ονοματος" {
-        return GlossaType::String;
-    }
-    // Check for user-defined types
-    // Strip genitive ending and look up the nominative form
-    // For now, just try the name as-is
-    if let Some(ty) = scope.lookup_type(genitive_name) {
-        return ty.clone();
-    }
-
-    GlossaType::Unknown
 }
 
 /// Parse a function definition: name ὁρίζειν [params]· body
@@ -280,7 +282,7 @@ pub fn parse_function_definition(
     let function_name = extract_function_name_from_expr(header_expr)?;
 
     // Extract parameters (dative words) from the header
-    let params = extract_parameters_from_expr(header_expr)?;
+    let params = extract_parameters_from_expr(header_expr, scope)?;
 
     // Use enter_scope() to create a child scope that inherits types/traits
     let mut body_statements = Vec::new();
@@ -362,6 +364,7 @@ fn extract_function_name_from_expr(expr: &Expr) -> Result<SmolStr, GlossaError> 
 /// Parameters are words after dative article τῷ, optionally followed by genitive type annotations
 fn extract_parameters_from_expr(
     expr: &Expr,
+    scope: &Scope,
 ) -> Result<Vec<(SmolStr, Option<GlossaType>)>, GlossaError> {
     let mut params = Vec::new();
 
@@ -402,7 +405,7 @@ fn extract_parameters_from_expr(
                     if next_analysis.case == Some(morphology::Case::Genitive) {
                         // Map genitive type to GlossaType
                         let type_name = normalize_greek(&next_word.original);
-                        param_type = Some(map_greek_type_to_glossa(&type_name));
+                        param_type = Some(resolve_type_name(&type_name, scope));
                         i += 1; // Skip the type annotation
                     }
                 }
@@ -433,16 +436,6 @@ fn collect_words_from_expr(expr: &Expr) -> Vec<&crate::ast::Word> {
     }
 
     words
-}
-
-/// Map Greek type names to GlossaType
-fn map_greek_type_to_glossa(type_name: &str) -> GlossaType {
-    match type_name {
-        "αριθμου" => GlossaType::Number,
-        "ονοματος" => GlossaType::String,
-        "λιστης" => GlossaType::List(Box::new(GlossaType::Unknown)),
-        _ => GlossaType::Unknown,
-    }
 }
 
 /// Infer the return type from the function body by examining return statements

@@ -52,3 +52,13 @@
 **Issue:** `parse_function_definition` used `Scope::new()` which created a detached scope, preventing access to global types/traits.
 **Fix:** Switched to `scope.enter_scope()`.
 **Saved:** Fixed bug where functions couldn't see global definitions. Corrected scope inheritance.
+
+## [Reduction]
+**Bloat:** Duplicated type mapping logic in `src/semantic/declarations.rs` (`map_genitive_to_type` vs `map_greek_type_to_glossa`).
+**Cut:** Merged into single `resolve_type_name` function that handles both nominative and genitive forms. Deleted `map_greek_type_to_glossa`.
+**Saved:** Removed duplicated logic and potential for divergence (~15 lines).
+
+## [Reduction]
+**Bloat:** Wrapper function `parse_clause_as_mini_statement` in `src/semantic/control_flow.rs` used only locally.
+**Cut:** Inlined into 4 call sites.
+**Saved:** Removed unnecessary abstraction (~10 lines).
