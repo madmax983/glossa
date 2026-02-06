@@ -171,6 +171,17 @@ impl Ownership {
 }
 
 /// Infer type from a Greek word (by looking at lexicon or morphology)
+///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::{infer_type, GlossaType};
+///
+/// assert_eq!(infer_type("πέντε"), GlossaType::Number);
+/// assert_eq!(infer_type("ἀριθμός"), GlossaType::Number);
+/// assert_eq!(infer_type("ὄνομα"), GlossaType::String);
+/// assert_eq!(infer_type("ἄγνωστον"), GlossaType::Unknown);
+/// ```
 pub fn infer_type(word: &str) -> GlossaType {
     let normalized = crate::text::normalize_greek(word);
 
@@ -194,6 +205,19 @@ pub fn infer_type(word: &str) -> GlossaType {
 }
 
 /// Detect built-in collection types (HashSet, HashMap)
+///
+/// Returns a tuple of (Rust collection name, GlossaType).
+///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::detect_collection_type;
+/// use glossa::semantic::GlossaType;
+///
+/// let (name, ty) = detect_collection_type("χαρτης").unwrap();
+/// assert_eq!(name, "HashMap");
+/// assert!(matches!(ty, GlossaType::Map(..)));
+/// ```
 pub fn detect_collection_type(type_name: &str) -> Option<(&'static str, GlossaType)> {
     match type_name {
         "συνολον" => Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown)))),

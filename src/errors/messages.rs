@@ -16,21 +16,48 @@ use crate::morphology::{Case, Gender, Number};
 
 /// Get a Greek message for a type mismatch
 ///
-/// "I expected to find {expected}, but I found {got}"
+/// Returns: "Ἐδόκει {expected} εὑρεῖν, ἀλλ' εὗρον {got}"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::type_mismatch;
+///
+/// let msg = type_mismatch("ἀριθμόν", "ὄνομα");
+/// assert_eq!(msg, "Ἐδόκει ἀριθμόν εὑρεῖν, ἀλλ' εὗρον ὄνομα");
+/// ```
 pub fn type_mismatch(expected: &str, got: &str) -> String {
     format!("Ἐδόκει {} εὑρεῖν, ἀλλ' εὗρον {}", expected, got)
 }
 
 /// Get a Greek message for an undefined variable
 ///
-/// "I do not know the name {name}"
+/// Returns: "Οὐκ οἶδα τὸ ὄνομα «{name}»"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::undefined_variable;
+///
+/// let msg = undefined_variable("ξ");
+/// assert_eq!(msg, "Οὐκ οἶδα τὸ ὄνομα «ξ»");
+/// ```
 pub fn undefined_variable(name: &str) -> String {
     format!("Οὐκ οἶδα τὸ ὄνομα «{}»", name)
 }
 
 /// Get a Greek message for assignment to immutable variable
 ///
-/// "The {name} is immutable — use 'meta' before the definition"
+/// Returns: "Τὸ «{name}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::immutable_assignment;
+///
+/// let msg = immutable_assignment("π");
+/// assert!(msg.contains("ἀμετάβλητόν ἐστιν"));
+/// ```
 pub fn immutable_assignment(name: &str) -> String {
     format!(
         "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
@@ -40,7 +67,17 @@ pub fn immutable_assignment(name: &str) -> String {
 
 /// Get a Greek message for gender mismatch
 ///
-/// "The {word1} ({gender1}) does not agree with the {word2} ({gender2})"
+/// Returns: "Τὸ «{word1}» ({gender1}) οὐ συμφωνεῖ τῷ «{word2}» ({gender2})"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::gender_mismatch;
+/// use glossa::morphology::Gender;
+///
+/// let msg = gender_mismatch("καλός", Gender::Masculine, "γυνή", Gender::Feminine);
+/// assert!(msg.contains("οὐ συμφωνεῖ"));
+/// ```
 pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gender) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
@@ -53,7 +90,17 @@ pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gende
 
 /// Get a Greek message for number mismatch
 ///
-/// "The {word1} ({num1}) does not agree with the {word2} ({num2})"
+/// Returns: "Τὸ «{word1}» ({num1}) οὐ συμφωνεῖ τῷ «{word2}» ({num2})"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::number_mismatch;
+/// use glossa::morphology::Number;
+///
+/// let msg = number_mismatch("ἄνθρωπος", Number::Singular, "λέγουσι", Number::Plural);
+/// assert!(msg.contains("οὐ συμφωνεῖ"));
+/// ```
 pub fn number_mismatch(word1: &str, num1: Number, word2: &str, num2: Number) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
@@ -66,7 +113,17 @@ pub fn number_mismatch(word1: &str, num1: Number, word2: &str, num2: Number) -> 
 
 /// Get a Greek message for case mismatch
 ///
-/// "The {word1} ({case1}) does not agree with the {word2} ({case2})"
+/// Returns: "Τὸ «{word1}» ({case1}) οὐ συμφωνεῖ τῷ «{word2}» ({case2})"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::case_mismatch;
+/// use glossa::morphology::Case;
+///
+/// let msg = case_mismatch("ἄνθρωπος", Case::Nominative, "λόγον", Case::Accusative);
+/// assert!(msg.contains("οὐ συμφωνεῖ"));
+/// ```
 pub fn case_mismatch(word1: &str, case1: Case, word2: &str, case2: Case) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
