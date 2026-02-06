@@ -111,31 +111,37 @@ use smol_str::SmolStr;
 pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer
     ///
+    /// Fills the **Nominative** slot.
     /// Example: **ὁ ἄνθρωπος** λέγει (The **man** speaks)
     pub subject: Option<Constituent>,
 
     /// Additional nominatives (for function names, etc.)
     ///
     /// Used in patterns where multiple nominatives appear, such as
-    /// function calls or predicate nominatives.
+    /// function calls (`add x y`) or predicate nominatives (`x is y`).
     pub nominatives: Vec<Constituent>,
 
     /// The verb - the action
     ///
+    /// Fills the **Verb** slot.
     /// Example: ὁ ἄνθρωπος **λέγει** (The man **speaks**)
     pub verb: Option<VerbConstituent>,
 
     /// The direct object (accusative) - receives the action
     ///
+    /// Fills the **Accusative** slot.
     /// Example: βλέπω **τὸν ἄνθρωπον** (I see **the man**)
     pub object: Option<Constituent>,
+
     /// The indirect object (dative) - recipient/beneficiary
     ///
+    /// Fills the **Dative** slot.
     /// Example: δίδωμι **τῷ ἀνθρώπῳ** (I give **to the man**)
     pub indirect: Option<Constituent>,
 
     /// Possessors/sources (genitive) - attached to other constituents
     ///
+    /// Fills the **Genitive** slot.
     /// Example: τὸ τοῦ **ἀνθρώπου** βιβλίον (The **man's** book)
     pub genitives: Vec<Constituent>,
 
@@ -209,6 +215,23 @@ pub struct AssembledStatement {
 ///
 /// This represents a word that fills a nominal slot (Subject, Object, etc.).
 /// It carries both its original surface form and its normalized lemma.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::Constituent;
+/// use glossa::morphology::{Case, Number, Gender};
+/// use smol_str::SmolStr;
+///
+/// let man = Constituent {
+///     lemma: SmolStr::new("ανθρωπος"),
+///     original: SmolStr::new("ἄνθρωπος"),
+///     case: Case::Nominative,
+///     number: Some(Number::Singular),
+///     gender: Some(Gender::Masculine),
+///     person: None,
+/// };
+/// ```
 #[derive(Debug, Clone)]
 pub struct Constituent {
     /// The dictionary form

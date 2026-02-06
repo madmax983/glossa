@@ -1,6 +1,14 @@
 //! AST Builder
 //!
-//! Converts Pest pairs into AST nodes.
+//! This module is responsible for converting the raw Concrete Syntax Tree (CST)
+//! produced by the Pest parser into a strongly-typed Abstract Syntax Tree (AST).
+//!
+//! # Safety: Recursion Depth
+//!
+//! ΓΛΩΣΣΑ implements a strict recursion depth check ([`check_recursion_depth`])
+//! before parsing begins. This linear scan of the source code ensures that deep
+//! nesting (e.g., `((((...))))`) does not cause a stack overflow during the
+//! recursive descent parsing phase.
 
 use crate::ast::*;
 use crate::grammar::{Rule, parse};
@@ -602,6 +610,10 @@ pub enum ParseError {
 }
 
 /// Check recursion depth to prevent stack overflows
+///
+/// This function performs a fast linear scan of the source code to ensure that
+/// parentheses, braces, and brackets are not nested deeper than `MAX_DEPTH` (500).
+/// This prevents stack overflows during the recursive parsing phase.
 fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
     const MAX_DEPTH: usize = 500;
     let mut depth = 0;
