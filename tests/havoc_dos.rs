@@ -29,5 +29,9 @@ fn test_dos_max_tokens_bypass() {
 
     // Verify it is indeed the token limit error
     // Error message: "Πρότασις λίαν μακρά! ({count} > {limit})"
-    assert!(err.to_string().contains("Πρότασις λίαν μακρά"), "Error should be 'Statement too long' (in Greek), got: {}", err);
+    assert!(
+        err.to_string().contains("Πρότασις λίαν μακρά"),
+        "Error should be 'Statement too long' (in Greek), got: {}",
+        err
+    );
 }

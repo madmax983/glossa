@@ -588,7 +588,10 @@ impl Assembler {
     /// let mut asm = Assembler::new();
     /// asm.feed_block(vec![]).unwrap(); // Empty block
     /// ```
-    pub fn feed_block(&mut self, statements: Vec<crate::ast::Statement>) -> Result<(), AssemblyError> {
+    pub fn feed_block(
+        &mut self,
+        statements: Vec<crate::ast::Statement>,
+    ) -> Result<(), AssemblyError> {
         self.check_token_limit()?;
         self.pending_blocks.push(statements);
         Ok(())
