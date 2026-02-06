@@ -4,7 +4,7 @@
 
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, StatementKind,
-    assemble_statement, convert_assembled_to_analyzed,
+    analyze_statement,
 };
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
@@ -13,6 +13,7 @@ use crate::text::normalize_greek;
 // Circular dependencies handled by crate structure
 use super::declarations::parse_function_definition;
 use super::expressions::{contains_function_definition_verb, get_first_word};
+use super::{assemble_statement, convert_assembled_to_analyzed};
 
 /// Check if a statement is a control flow construct and analyze it
 /// Returns Some(AnalyzedStatement) if it's control flow, None otherwise
@@ -112,17 +113,13 @@ fn parse_while_loop(
         is_propagate: false,
     };
 
-    let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
-        cf
-    } else {
-        let assembled = assemble_statement(&body_stmt)?;
-        convert_assembled_to_analyzed(&assembled, scope)?
-    };
+    // Analyze body using unified helper
+    let body_analyzed = analyze_statement(&body_stmt, scope)?;
 
     Ok(Some(AnalyzedStatement {
         kind: StatementKind::While {
             condition: Box::new(condition_expr),
-            body: vec![body_analyzed],
+            body: body_analyzed,
         },
         expressions: vec![],
     }))
@@ -141,8 +138,6 @@ fn parse_for_range_loop(
     }
 
     // Parse range specification from first clause
-    // Pattern: ἀπὸ start μέχρι/ἕως end
-    // Structure in clause.expressions[0].Phrase: [ἀπὸ, start, μέχρι/ἕως, end]
     let range_clause = &stmt.clauses()[0];
 
     if range_clause.expressions.is_empty() {
@@ -225,7 +220,6 @@ fn parse_for_range_loop(
     };
 
     // Parse body - all remaining clauses form the body
-    // Body might be a single clause or multiple clauses (e.g., if statement)
     let body_clauses = &stmt.clauses()[1..];
 
     if body_clauses.is_empty() {
@@ -249,32 +243,25 @@ fn parse_for_range_loop(
         "i".into()
     };
 
-    // Parse body as a multi-clause statement (handles if/else/etc)
     let body_stmt = Statement::Regular {
         clauses: body_clauses.to_vec(),
         is_query: false,
         is_propagate: false,
     };
 
-    // Add loop variable to scope temporarily while parsing body
-    scope.define(variable.clone(), GlossaType::Number);
+    // Use a scope guard to ensure the loop variable is removed after parsing
+    let body_analyzed = {
+        let mut loop_scope = scope.enter_scope();
+        loop_scope.define(variable.clone(), GlossaType::Number);
 
-    // Check if body is control flow, otherwise parse as regular statement
-    let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
-        cf
-    } else {
-        let assembled = assemble_statement(&body_stmt)?;
-        convert_assembled_to_analyzed(&assembled, scope)?
+        analyze_statement(&body_stmt, &mut loop_scope)?
     };
-
-    // Note: We don't remove the variable from scope since Scope doesn't support that
-    // In a real implementation, we'd use nested scopes
 
     Ok(Some(AnalyzedStatement {
         kind: StatementKind::For {
             variable,
             iterator: Box::new(iterator),
-            body: vec![body_analyzed],
+            body: body_analyzed,
         },
         expressions: vec![],
     }))
@@ -294,7 +281,6 @@ fn parse_for_iteration_loop(
     }
 
     // Extract collection name from first clause (διὰ + genitive noun)
-    // Pattern: διὰ στοιχείων -> extract "στοιχείων" as collection variable
     let collection_clause = &stmt.clauses()[0];
 
     if collection_clause.expressions.is_empty() {
@@ -316,7 +302,6 @@ fn parse_for_iteration_loop(
     };
 
     // Create a variable expression for the collection
-    // TODO: Look up the collection in scope to get its actual type
     let collection_type = scope
         .lookup(&collection_name)
         .cloned()
@@ -346,29 +331,26 @@ fn parse_for_iteration_loop(
         "x".into()
     };
 
-    // Parse body as multi-clause statement
     let body_stmt = Statement::Regular {
         clauses: body_clauses.to_vec(),
         is_query: false,
         is_propagate: false,
     };
 
-    // Add loop variable to scope temporarily
-    // TODO: Infer element type from collection type
-    scope.define(variable.clone(), GlossaType::String);
+    // Use scope guard for loop variable
+    let body_analyzed = {
+        let mut loop_scope = scope.enter_scope();
+        // TODO: Infer element type from collection type
+        loop_scope.define(variable.clone(), GlossaType::String);
 
-    let body_analyzed = if let Some(cf) = analyze_control_flow(&body_stmt, scope)? {
-        cf
-    } else {
-        let assembled = assemble_statement(&body_stmt)?;
-        convert_assembled_to_analyzed(&assembled, scope)?
+        analyze_statement(&body_stmt, &mut loop_scope)?
     };
 
     Ok(Some(AnalyzedStatement {
         kind: StatementKind::For {
             variable,
             iterator: Box::new(collection_expr),
-            body: vec![body_analyzed],
+            body: body_analyzed,
         },
         expressions: vec![],
     }))
@@ -401,8 +383,7 @@ fn parse_match_expression(
         if clause.expressions.len() > 1 {
             let pattern_expr = &clause.expressions[1];
 
-            // Extract pattern value (skip ᾖ subjunctive verb)
-            // Pattern is the first word(s) before ᾖ
+            // Extract pattern value
             let pattern = parse_match_pattern(pattern_expr, scope)?;
 
             // Get body from next clause, expression 0
@@ -419,9 +400,10 @@ fn parse_match_expression(
             let body_expr_clause = Clause {
                 expressions: vec![body_clause.expressions[0].clone()],
             };
-            let body_stmt = parse_clause_as_statement(&body_expr_clause, scope)?;
+            let body_stmt = parse_clause_as_mini_statement(&body_expr_clause)?;
+            let body_analyzed = analyze_statement(&body_stmt, scope)?;
 
-            arms.push((pattern, vec![body_stmt]));
+            arms.push((pattern, body_analyzed));
         }
     }
 
@@ -455,8 +437,7 @@ fn parse_return_statement(
 
     let clause = &stmt.clauses()[0];
 
-    // Try to parse return expression - for now, use a simple heuristic
-    // Full expression parsing will need a context-aware approach
+    // Try to parse return expression
     let return_expr = parse_return_expression(clause, scope)?;
 
     Ok(Some(AnalyzedStatement {
@@ -467,7 +448,7 @@ fn parse_return_statement(
     }))
 }
 
-/// Parse return expression in a simple way (avoiding assembler issues with scoped variables)
+/// Parse return expression in a simple way
 fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
     // For Cycle 3, we'll do simple expression parsing
     // The expression after δός could be:
@@ -544,10 +525,8 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
 }
 
 /// Parse a match pattern expression
-/// Patterns can be: literals (μηδὲν, ἓν, δύο), or wildcard (ἄλλο)
 fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, GlossaError> {
     // Pattern is typically: value ᾖ
-    // We want to extract the value part
     if let Expr::Phrase(terms) = expr {
         if terms.is_empty() {
             return Err(GlossaError::semantic("Empty match pattern"));
@@ -559,8 +538,6 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
 
             // Check if it's ἄλλο (wildcard)
             if normalized == "αλλο" {
-                // Wildcard pattern - represented as a special marker
-                // We'll use a boolean literal true as a placeholder for wildcard
                 return Ok(AnalyzedExpr {
                     expr: AnalyzedExprKind::BooleanLiteral(true),
                     glossa_type: GlossaType::Boolean,
@@ -609,7 +586,6 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
 }
 
 /// Parse a conditional statement (εἰ/ἐάν)
-/// Structure: εἰ condition, body [, εἰ δὲ μή, else_body]
 fn parse_conditional(
     stmt: &Statement,
     scope: &mut Scope,
@@ -625,8 +601,6 @@ fn parse_conditional(
     let condition_expr = skip_first_word_and_parse(condition_clause, scope)?;
 
     // Parse then-body (second clause, first expression)
-    // Note: Clause 1 may have multiple expressions chained with middle dot (·)
-    // The first expression is the then-body, the second (if present) is the else marker
     let then_clause = &stmt.clauses()[1];
     let then_body = if then_clause.expressions.is_empty() {
         return Err(GlossaError::semantic("Empty then-body in conditional"));
@@ -635,25 +609,22 @@ fn parse_conditional(
         let first_expr_clause = Clause {
             expressions: vec![then_clause.expressions[0].clone()],
         };
-        parse_clause_as_statement(&first_expr_clause, scope)?
+        let stmt = parse_clause_as_mini_statement(&first_expr_clause)?;
+        analyze_statement(&stmt, scope)?
     };
 
     // Check for else/elif clause
-    // The second expression in clause 1 (if present) can be:
-    // 1. "εἰ δὲ μή" - else clause
-    // 2. "εἰ" - elif chain (nested if)
     let else_body = if then_clause.expressions.len() > 1 && stmt.clauses().len() >= 3 {
         let second_expr = &then_clause.expressions[1];
 
         // Check if it's "εἰ δὲ μή" (else)
         if check_else_pattern_in_expression(second_expr) {
-            Some(vec![parse_clause_as_statement(&stmt.clauses()[2], scope)?])
+            let stmt = parse_clause_as_mini_statement(&stmt.clauses()[2])?;
+            Some(analyze_statement(&stmt, scope)?)
         }
         // Check if it's "εἰ" or "ἐάν" (elif)
         else if check_conditional_start(second_expr) {
             // Build a new statement for the elif chain
-            // The elif condition is in clause 1, expression 1
-            // We need to restructure: make a new clause 0 with just that expression
             let mut elif_clauses = Vec::new();
 
             // New clause 0: just the elif condition (from clause 1, expr 1)
@@ -686,10 +657,10 @@ fn parse_conditional(
     Ok(Some(AnalyzedStatement {
         kind: StatementKind::If {
             condition: Box::new(condition_expr),
-            then_body: vec![then_body],
+            then_body,
             else_body,
         },
-        expressions: vec![], // Control flow doesn't use flat expression list
+        expressions: vec![],
     }))
 }
 
@@ -722,22 +693,6 @@ fn skip_first_word_and_parse(
     }
 }
 
-/// Parse a clause as a statement
-fn parse_clause_as_statement(
-    clause: &Clause,
-    scope: &mut Scope,
-) -> Result<AnalyzedStatement, GlossaError> {
-    let stmt = parse_clause_as_mini_statement(clause)?;
-
-    // Check if it's control flow first (break, continue, etc.)
-    if let Some(cf) = analyze_control_flow(&stmt, scope)? {
-        return Ok(cf);
-    }
-
-    let assembled = assemble_statement(&stmt)?;
-    convert_assembled_to_analyzed(&assembled, scope)
-}
-
 /// Convert a clause to a mini-statement for parsing
 fn parse_clause_as_mini_statement(clause: &Clause) -> Result<Statement, GlossaError> {
     Ok(Statement::Regular {
@@ -748,7 +703,6 @@ fn parse_clause_as_mini_statement(clause: &Clause) -> Result<Statement, GlossaEr
 }
 
 /// Check if a clause starts with "εἰ δὲ μή" (else pattern)
-/// Check if an expression matches "εἰ δὲ μή" (else pattern)
 fn check_else_pattern_in_expression(expr: &Expr) -> bool {
     // Extract first 3 words from the expression
     let words: Vec<String> = if let Expr::Phrase(terms) = expr {

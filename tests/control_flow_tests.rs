@@ -267,3 +267,20 @@ fn test_lexicon_match_particle() {
         "κατά should be match particle"
     );
 }
+
+#[test]
+fn test_block_in_while_loop() {
+    // Regression test for multi-statement blocks in loops
+    let source = "
+    κ μετά 0 ἔστω.
+    ἕως κ 10 μεῖον ᾖ, {
+        κ 1 1 ἄθροισμα γίγνεται.
+        κ λέγε.
+    }.";
+    let output = compile_to_rust(source);
+
+    assert!(output.contains("while"), "Expected while loop");
+    // Ensure body contains both statements
+    assert!(output.contains("println"), "Expected print in loop body");
+    assert!(output.contains("+"), "Expected addition in loop body");
+}
