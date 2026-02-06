@@ -14,7 +14,12 @@ fn compile_error(source: &str, expected_error: &str) {
         Ok(_) => panic!("Expected error: {}", expected_error),
         Err(e) => {
             let msg = e.to_string();
-            assert!(msg.contains(expected_error), "Expected '{}', got '{}'", expected_error, msg);
+            assert!(
+                msg.contains(expected_error),
+                "Expected '{}', got '{}'",
+                expected_error,
+                msg
+            );
         }
     }
 }
@@ -56,7 +61,10 @@ fn test_coverage_nested_phrase_multiple_error() {
     // This is parsed as multiple terms, fed to assembler as separate nested phrases.
     // Single terms like (1) are flattened by parser to just 1, so we need multiple terms.
     let source = "ξ (1 2) (3 4) ἔστω.";
-    compile_error(source, "Multiple nested phrases in value position are ambiguous");
+    compile_error(
+        source,
+        "Multiple nested phrases in value position are ambiguous",
+    );
 }
 
 #[test]
