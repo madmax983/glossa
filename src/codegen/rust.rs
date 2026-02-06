@@ -999,4 +999,14 @@ mod tests {
         assert!(code.contains("let x = 5"), "Expected binding in: {}", code);
         assert!(code.contains("println"), "Expected println in: {}", code);
     }
+
+    #[test]
+    fn test_generate_statement_code() {
+        let ast = parse("«χαῖρε» λέγε.").unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+        let stmt = &analyzed.statements[0];
+        let code = generate_statement_code(stmt);
+        assert!(code.contains("println"));
+        assert!(code.contains("χαῖρε"));
+    }
 }
