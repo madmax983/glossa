@@ -822,8 +822,7 @@ fn classify_print(
                     args.push(AnalyzedExpr {
                         expr: AnalyzedExprKind::None,
                         glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
-                    },
-                    );
+                    });
                 } else {
                     return Err(GlossaError::semantic(format!(
                         "Τὸ «{}» οὐχ ὡρίσθη (Variable '{}' is not defined)",
