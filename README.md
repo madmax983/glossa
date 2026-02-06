@@ -50,21 +50,30 @@ Here is a simple program that defines a user struct and greets them.
 χρήστου ὄνομα λέγε.
 ```
 
+## Running Code
+
+To run a ΓΛΩΣΣΑ file (e.g., `hero.γλ`), use `cargo run`:
+
+```bash
+cargo run --release -- hero.γλ
+```
+
 ## Control Flow
 
 ### Conditionals
 
 ```glossa
-εἰ ξ πέντε μείζον,
+ξ 10 ἔστω.
+εἰ ξ πέντε μεῖζον ᾖ,
     «μείζον» λέγε.
 ```
 
 ### Loops
 
 ```glossa
-// While loop
-ἕως ξ δέκα ἔλασσον,
-    ξ ξ ἕνα ἄθροισμα γίγνεται. // x = x + 1
+// Iterate through a collection
+α [1, 2, 3] ἔστω.
+διὰ α, β λέγε.  // For each beta in alpha, say beta
 ```
 
 ## Features
@@ -102,21 +111,6 @@ GLOSSA provides native test declarations using idiomatic Greek verbs:
 - **ἰσοῦται** - "equals" → `assert_eq!(left, right)`
 
 Tests transpile to Rust `#[test]` functions and can be run with standard Rust tools.
-
-## Lambda Expressions (Participles)
-
-GLOSSA uses Greek participles as lambda expressions:
-
-```glossa
-// Present participle - streaming operation (borrow)
-ξ [1, 2, 3] διπλασιαζόμενα λέγε.  // ξ.iter().map(|x| x * 2)
-
-// Aorist participle - one-shot operation (move)
-ξ [1, 2, 3] γράψαντα λέγε.        // ξ.into_iter().map(move |x| write(x))
-
-// Perfect participle - memoized operation
-ξ [1, 2, 3] κεκαχυμένα λέγε.      // Cached/memoized closure
-```
 
 ## Building
 
