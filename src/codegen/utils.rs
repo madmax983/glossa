@@ -33,7 +33,10 @@ pub(crate) fn sanitize_name(name: &str) -> String {
     // Directly transliterate without special casing single letters
     // This prevents collisions between single letters and their full names
     // e.g. "σ" (sigma) vs "σίγμα" (sigma)
-    transliterate(name)
+    //
+    // Prefix with "g_" to prevent collisions with Rust keywords (let, fn, struct)
+    // and internal code generation variables (idx, current, result).
+    format!("g_{}", transliterate(name))
 }
 
 /// Transliterate Greek to Latin characters
@@ -103,9 +106,9 @@ mod tests {
 
     #[test]
     fn test_sanitize_greek_letter() {
-        assert_eq!(sanitize_name("ξ"), "x");
-        assert_eq!(sanitize_name("α"), "a");
-        assert_eq!(sanitize_name("ω"), "w");
+        assert_eq!(sanitize_name("ξ"), "g_x");
+        assert_eq!(sanitize_name("α"), "g_a");
+        assert_eq!(sanitize_name("ω"), "g_w");
     }
 
     #[test]

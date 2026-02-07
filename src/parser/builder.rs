@@ -788,3 +788,20 @@ mod tests {
         assert_eq!(ast.statements[0].clauses().len(), 2); // Two clauses separated by comma
     }
 }
+
+    #[test]
+    fn test_recursion_limit() {
+        let depth = 600;
+        let mut source = String::new();
+        for _ in 0..depth {
+            source.push('(');
+        }
+        source.push_str("«χαῖρε»");
+        for _ in 0..depth {
+            source.push(')');
+        }
+        source.push_str(" λέγε.");
+
+        let result = parse_source(&source);
+        assert!(matches!(result, Err(ParseError::RecursionLimitExceeded(500))));
+    }

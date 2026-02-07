@@ -39,8 +39,8 @@ fn test_function_with_two_params() {
     let code = compile("προσθεσις ὁρίζειν τῷ ξ τῷ ψ· δός ξ ψ ἄθροισμα.");
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("fn"));
-    // ξ -> x, ψ -> _u3c8_
-    assert!(code.contains("x") && code.contains("_u3c8_"));
+    // ξ -> g_x, ψ -> g__u3c8_
+    assert!(code.contains("g_x") && code.contains("g__u3c8_"));
 }
 
 #[test]
@@ -82,10 +82,10 @@ fn test_function_call() {
     ",
     );
     eprintln!("Generated code:\n{}", code);
-    // πρόσθεσις -> pros_u3b8_esis
+    // πρόσθεσις -> g_pros_u3b8_esis
     assert!(
-        code.contains("pros_u3b8_esis")
-            && (code.contains("pros_u3b8_esis(") || code.contains("pros_u3b8_esis ("))
+        code.contains("g_pros_u3b8_esis")
+            && (code.contains("g_pros_u3b8_esis(") || code.contains("g_pros_u3b8_esis ("))
     );
 }
 
@@ -98,10 +98,10 @@ fn test_nested_calls() {
     ",
     );
     eprintln!("Generated code:\n{}", code);
-    // Check for nested diplasiasmos calls (allowing for whitespace)
+    // Check for nested g_diplasiasmos calls (allowing for whitespace)
     assert!(
-        code.matches("diplasiasmos").count() >= 3,
-        "Expected at least 3 occurrences of diplasiasmos (fn def + 2 calls)"
+        code.matches("g_diplasiasmos").count() >= 3,
+        "Expected at least 3 occurrences of g_diplasiasmos (fn def + 2 calls)"
     );
     assert!(code.contains("5i64"), "Expected literal 5 as argument");
 }
@@ -120,7 +120,7 @@ fn test_function_local_variables() {
     ",
     );
     eprintln!("Generated code:\n{}", code);
-    assert!(code.contains("let topikon"));
+    assert!(code.contains("let g_topikon"));
 }
 
 #[test]

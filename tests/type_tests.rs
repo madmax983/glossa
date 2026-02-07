@@ -43,8 +43,8 @@ fn test_instantiation() {
         π νέον σημεῖον πέντε ἔστω.
     "#;
     let code = compile(source);
-    // σημεῖον -> Shmeion (η -> h)
-    assert!(code.contains("Shmeion") || code.contains("shmeion"));
+    // σημεῖον -> G_shmeion (η -> h, prefixed g_)
+    assert!(code.contains("G_shmeion"));
     assert!(code.contains("5"));
 }
 
@@ -55,7 +55,7 @@ fn test_instantiation_multiple_fields() {
         π νέον σημεῖον πέντε τρία ἔστω.
     "#;
     let code = compile(source);
-    assert!(code.contains("Shmeion") || code.contains("shmeion"));
+    assert!(code.contains("G_shmeion"));
 }
 
 // Cycle 5: Field Access
@@ -68,8 +68,8 @@ fn test_field_access() {
     "#;
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
-    // ξ -> x
-    assert!(code.contains(".x") || code.contains(". x"));
+    // ξ -> g_x
+    assert!(code.contains(".g_x") || code.contains(". g_x"));
 }
 
 #[test]
@@ -82,10 +82,10 @@ fn test_field_access_multiple_fields() {
     "#;
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
-    // ξ -> x
-    assert!(code.contains(". x") || code.contains(".x"));
-    // ψ -> _u3c8_
-    assert!(code.contains(". _u3c8_") || code.contains("._u3c8_"));
+    // ξ -> g_x
+    assert!(code.contains(". g_x") || code.contains(".g_x"));
+    // ψ -> g__u3c8_
+    assert!(code.contains(". g__u3c8_") || code.contains(".g__u3c8_"));
 }
 
 #[test]
@@ -97,9 +97,9 @@ fn test_instantiation_with_literals() {
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
     // It should generate struct instantiation, not string assignment
-    // Χρήστης -> _u3c7_rhsths (chi -> _u3c7_, eta -> h)
-    assert!(code.contains("struct _u3c7_rhsths"));
-    assert!(code.contains("let _u3c7_rhsths = _u3c7_rhsths"));
+    // Χρήστης -> G__u3c7_rhsths
+    assert!(code.contains("struct G__u3c7_rhsths"));
+    assert!(code.contains("let g__u3c7_rhsths = G__u3c7_rhsths"));
     assert!(code.contains("Σωκράτης"));
     assert!(code.contains("70"));
 }

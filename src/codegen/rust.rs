@@ -704,7 +704,12 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             args,
         } => {
             let recv = generate_expr(receiver);
-            let method_ident = format_ident!("{}", sanitize_name(method));
+            let method_name = if is_std_method(method) {
+                method.to_string()
+            } else {
+                sanitize_name(method)
+            };
+            let method_ident = format_ident!("{}", method_name);
             let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
             quote! { #recv.#method_ident(#(#arg_tokens),*) }
         }
@@ -717,7 +722,12 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
         } => {
             // Treat as regular method call
             let recv = generate_expr(receiver);
-            let method_ident = format_ident!("{}", sanitize_name(method_name));
+            // Trait methods might be standard (e.g. Iterator methods) or user defined
+            let method_ident = if is_std_method(method_name) {
+                format_ident!("{}", method_name.as_str())
+            } else {
+                format_ident!("{}", sanitize_name(method_name))
+            };
             let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
             quote! { #recv.#method_ident(#(#arg_tokens),*) }
         }
@@ -959,6 +969,45 @@ fn is_self_parameter(param_name: &str, idx: usize) -> bool {
         || param_name.contains("self")
 }
 
+/// Check if a method name is a standard library method that should not be sanitized
+fn is_std_method(name: &str) -> bool {
+    matches!(
+        name,
+        "push"
+            | "pop"
+            | "len"
+            | "insert"
+            | "remove"
+            | "contains"
+            | "contains_key"
+            | "get"
+            | "split"
+            | "join"
+            | "trim"
+            | "replace"
+            | "iter"
+            | "map"
+            | "filter"
+            | "fold"
+            | "any"
+            | "all"
+            | "collect"
+            | "sort"
+            | "reverse"
+            | "to_lowercase"
+            | "to_uppercase"
+            | "as_str"
+            | "to_string"
+            | "unwrap"
+            | "find"
+            | "clone"
+            | "default"
+            | "into"
+            | "from"
+            | "eq"
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -982,7 +1031,7 @@ mod tests {
     #[test]
     fn test_generate_binding() {
         let code = compile("ξ πέντε ἔστω.");
-        assert!(code.contains("let x"));
+        assert!(code.contains("let g_x"));
         assert!(code.contains("5"));
     }
 
@@ -996,7 +1045,7 @@ mod tests {
     #[test]
     fn test_generate_full_program() {
         let code = compile("ξ πέντε ἔστω. ξ λέγε.");
-        assert!(code.contains("let x = 5"), "Expected binding in: {}", code);
+        assert!(code.contains("let g_x = 5"), "Expected binding in: {}", code);
         assert!(code.contains("println"), "Expected println in: {}", code);
     }
 
