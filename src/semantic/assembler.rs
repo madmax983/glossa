@@ -101,7 +101,6 @@ use crate::morphology::{
 };
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
-use unicode_normalization::UnicodeNormalization;
 
 /// A fully assembled statement with all grammatical roles filled
 ///
@@ -504,7 +503,7 @@ impl Assembler {
 
         let normalized = normalize_greek(original);
 
-        if self.check_special_markers(&normalized, original) {
+        if self.check_special_markers(&normalized) {
             return Ok(());
         }
 
@@ -531,10 +530,6 @@ impl Assembler {
             PartOfSpeech::Conjunction => {
                 // Non-operator conjunctions are ignored for now
                 Ok(())
-            }
-            PartOfSpeech::Unknown => {
-                // Unknown words fall back to nominal handling (Subject/Object inference)
-                self.handle_nominal(analysis, original)
             }
             _ => Ok(()), // Ignore particles, articles for now
         }
@@ -785,13 +780,9 @@ impl Assembler {
             }
             None => {
                 // Unknown case - try to infer from context
-                // Prioritize Subject, then Object, then extra Nominatives
-                if self.pending_subject.is_none() {
-                    self.pending_subject = Some(constituent);
-                } else if self.pending_object.is_none() {
+                // Default to accusative (object) if we have no object
+                if self.pending_object.is_none() {
                     self.pending_object = Some(constituent);
-                } else {
-                    self.pending_nominatives.push(constituent);
                 }
             }
         }
@@ -944,7 +935,7 @@ impl Assembler {
     }
 
     /// Check for special markers (mutable, containment, delimiter)
-    fn check_special_markers(&mut self, normalized: &str, original: &str) -> bool {
+    fn check_special_markers(&mut self, normalized: &str) -> bool {
         // Check for mutable marker (μετά)
         if crate::morphology::lexicon::is_mutable_marker(normalized) {
             self.pending_mutable_marker = true;
@@ -953,13 +944,6 @@ impl Assembler {
 
         // Check for containment preposition (ἐν)
         if crate::morphology::lexicon::is_containment_preposition(normalized) {
-            // Disambiguate ἓν (1) vs ἐν (in)
-            // If original has rough breathing, it's the numeral 1, so skip containment check
-            // U+0314 is Combining Reversed Comma Above (Rough Breathing)
-            if normalized == "εν" && original.nfd().any(|c| c == '\u{0314}') {
-                return false;
-            }
-
             self.has_containment_preposition = true;
             return true;
         }

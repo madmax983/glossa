@@ -80,10 +80,10 @@ pub fn classify_assembled_statement(
     if let Some(res) = classify_property_access_print(asm_stmt, scope)? {
         return Ok(res);
     }
-    if let Some(res) = classify_genitive_method_call(asm_stmt, scope)? {
+    if let Some(res) = classify_function_call(asm_stmt, scope)? {
         return Ok(res);
     }
-    if let Some(res) = classify_function_call(asm_stmt, scope)? {
+    if let Some(res) = classify_genitive_method_call(asm_stmt, scope)? {
         return Ok(res);
     }
     if let Some(res) = classify_assertion(asm_stmt, scope)? {
@@ -111,7 +111,7 @@ pub fn classify_assembled_statement(
         return Ok(res);
     }
 
-    classify_expression(asm_stmt, scope)
+    classify_expression(asm_stmt)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -139,43 +139,6 @@ fn classify_iterator_pattern(
         return Ok(Some((StatementKind::Print, vec![analyzed])));
     }
 
-    Ok(None)
-}
-
-/// Helper: Detect genitive method call pattern (owner.method)
-/// Pattern: Genitive (Owner) + Subject (MethodName) + No Verb
-fn classify_genitive_method_call(
-    asm_stmt: &AssembledStatement,
-    scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
-    if asm_stmt.verb.is_none()
-        && !asm_stmt.genitives.is_empty()
-        && let Some(subject) = &asm_stmt.subject
-    {
-        // Get owner from genitive
-        let owner_lemma = &asm_stmt.genitives[0].lemma;
-        let method_name = normalize_greek(&subject.original);
-
-        // Check if owner is defined (we don't strictly check for struct type here
-        // to allow for broader usage, but it helps if it is known)
-        if let Some(owner_type) = scope.lookup(owner_lemma) {
-            let receiver = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
-                glossa_type: owner_type.clone(),
-            };
-
-            let method_call = AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(receiver),
-                    method: method_name.into(),
-                    args: vec![], // No arguments supported in this pattern yet
-                },
-                glossa_type: GlossaType::Unknown,
-            };
-
-            return Ok(Some((StatementKind::Expression, vec![method_call])));
-        }
-    }
     Ok(None)
 }
 
@@ -366,18 +329,14 @@ fn classify_variable_binding(
 
                 if scope.is_defined(&subject.lemma) && !scope.is_defined(&object.lemma) {
                     let mut swapped = asm_stmt.clone();
-                    swapped.subject = None;
+                    swapped.subject = Some(object.clone());
                     swapped.object = Some(subject.clone());
                     (object_name, swapped)
                 } else {
-                    let mut fixed_asm = asm_stmt.clone();
-                    fixed_asm.subject = None;
-                    (subject_name, fixed_asm)
+                    (subject_name, asm_stmt.clone())
                 }
             } else if let Some(subject) = &asm_stmt.subject {
-                let mut fixed_asm = asm_stmt.clone();
-                fixed_asm.subject = None;
-                (normalize_greek(&subject.original), fixed_asm)
+                (normalize_greek(&subject.original), asm_stmt.clone())
             } else if !asm_stmt.participles.is_empty() {
                 let first_participle = &asm_stmt.participles[0];
                 let mut fixed_asm = asm_stmt.clone();
@@ -829,35 +788,25 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-            if let Some(ref subj) = asm_stmt.subject {
-                if let Some(var_type) = scope.lookup(&subj.lemma) {
-                    args.insert(
-                        0,
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                            glossa_type: var_type.clone(),
-                        },
-                    );
-                } else {
-                    return Err(GlossaError::semantic(format!(
-                        "Ἄγνωστος μεταβλητή (Undefined variable): {}",
-                        subj.original
-                    )));
-                }
+            if let Some(ref subj) = asm_stmt.subject
+                && let Some(var_type) = scope.lookup(&subj.lemma)
+            {
+                args.insert(
+                    0,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    },
+                );
             }
 
-            if let Some(ref obj) = asm_stmt.object {
-                if let Some(var_type) = scope.lookup(&obj.lemma) {
-                    args.push(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                        glossa_type: var_type.clone(),
-                    });
-                } else if !crate::morphology::lexicon::is_none_word(&obj.lemma) {
-                    return Err(GlossaError::semantic(format!(
-                        "Ἄγνωστος μεταβλητή (Undefined variable): {}",
-                        obj.original
-                    )));
-                }
+            if let Some(ref obj) = asm_stmt.object
+                && let Some(var_type) = scope.lookup(&obj.lemma)
+            {
+                args.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                });
             }
 
             return Ok(Some((StatementKind::Print, args)));
@@ -933,24 +882,9 @@ fn classify_query(
 /// Helper: Default expression
 fn classify_expression(
     asm_stmt: &AssembledStatement,
-    scope: &Scope,
 ) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
     let mut exprs =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
-
-    // If no expressions found from literals, try to extract value from other constituents
-    if exprs.is_empty() {
-        // Check if we have content that should be extracted
-        let has_content = asm_stmt.subject.is_some()
-            || asm_stmt.object.is_some()
-            || !asm_stmt.nominatives.is_empty()
-            || !asm_stmt.operators.is_empty();
-
-        if has_content {
-            let (expr, _) = extract_value(asm_stmt, scope)?;
-            exprs.push(expr);
-        }
-    }
 
     if asm_stmt.is_propagate && !exprs.is_empty() {
         let last_expr = exprs.pop().unwrap();
@@ -962,6 +896,66 @@ fn classify_expression(
     }
 
     Ok((StatementKind::Expression, exprs))
+}
+
+/// Helper: Common logic for genitive method call parsing
+#[allow(clippy::collapsible_if)]
+fn try_parse_genitive_method_call(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Option<(AnalyzedExpr, GlossaType)> {
+    if let Some(ref subject) = asm_stmt.subject {
+        if !asm_stmt.genitives.is_empty() {
+            let owner_lemma = &asm_stmt.genitives[0].lemma;
+            let method_name = normalize_greek(&subject.original);
+
+            if let Some(owner_type) = scope.lookup(owner_lemma) {
+                if !scope.is_defined(&method_name) {
+                    let receiver = AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
+                        glossa_type: owner_type.clone(),
+                    };
+
+                    let mut args = Vec::new();
+                    for lit in &asm_stmt.literals {
+                        args.push(literal_to_analyzed_expr(lit));
+                    }
+
+                    return Some((
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::MethodCall {
+                                receiver: Box::new(receiver),
+                                method: method_name,
+                                args,
+                            },
+                            glossa_type: GlossaType::Unknown,
+                        },
+                        GlossaType::Unknown,
+                    ));
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Helper: Detect genitive method call (owner.method)
+fn classify_genitive_method_call(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+    if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
+        if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
+            return Ok(None);
+        }
+    }
+
+    if let Some((expr, _)) = try_parse_genitive_method_call(asm_stmt, scope) {
+        return Ok(Some((StatementKind::Expression, vec![expr])));
+    }
+
+    Ok(None)
 }
 
 /// Helper: Detect Enum variant (None, Some, Ok, Err)
@@ -1083,6 +1077,11 @@ pub fn extract_value(
         return Ok(result);
     }
 
+    // Check for genitive method call (Subject of Genitive)
+    if let Some(result) = try_parse_genitive_method_call(asm_stmt, scope) {
+        return Ok(result);
+    }
+
     // Check nominatives for Option/Result words
     for nom in &asm_stmt.nominatives {
         if let Some(result) = detect_enum_variant(nom, &asm_stmt.literals) {
@@ -1147,67 +1146,31 @@ pub fn extract_value(
 
     // If we have operators, build a binary expression
     if !asm_stmt.operators.is_empty() {
-        // Collect all potential operands
-        let mut operands = Vec::new();
-
-        // 1. Subject (if present)
-        if let Some(ref subj) = asm_stmt.subject {
-            operands.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: scope
-                    .lookup(&subj.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown),
-            });
-        }
-
-        // 2. Object (if present)
-        if let Some(ref obj) = asm_stmt.object {
-            operands.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: scope
-                    .lookup(&obj.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown),
-            });
-        }
-
-        // 3. Nominatives
-        for nom in &asm_stmt.nominatives {
-            operands.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
-                glossa_type: scope
-                    .lookup(&nom.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown),
-            });
-        }
-
-        // 4. Literals
-        for lit in &asm_stmt.literals {
-            operands.push(literal_to_analyzed_expr(lit));
-        }
-
-        // Try to build binary expression if we have enough operands
-        if operands.len() >= 2 {
-            let mut result = operands[0].clone();
-            let mut op_idx = 0;
-
-            for right in operands.iter().skip(1) {
-                if op_idx < asm_stmt.operators.len() {
-                    let op = asm_stmt.operators[op_idx];
-                    result = build_binary_expr(result, op, right.clone());
-                    op_idx += 1;
-                }
+        // Check if we can build from literals alone (2+ literals)
+        if asm_stmt.literals.len() >= 2 {
+            let exprs =
+                build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
+            if let Some(expr) = exprs.into_iter().next() {
+                let ty = expr.glossa_type.clone();
+                return Ok((expr, ty));
             }
-
-            let ty = result.glossa_type.clone();
-            return Ok((result, ty));
         }
 
-        return Err(GlossaError::semantic(
-            "Ἀπαιτοῦνται δύο τοὐλάχιστον ὅροι διὰ τὴν πρᾶξιν (Operation requires at least two operands)",
-        ));
+        // Or check if we can combine object + literal with operator
+        if let Some(ref obj) = asm_stmt.object
+            && !asm_stmt.literals.is_empty()
+        {
+            // Build: object op literal
+            let left = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: GlossaType::Unknown, // Will be inferred
+            };
+            let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+            let op = asm_stmt.operators[0];
+            let bin_expr = build_binary_expr(left, op, right);
+            let ty = bin_expr.glossa_type.clone();
+            return Ok((bin_expr, ty));
+        }
     }
 
     // Prefer literals (single value, no operators)
@@ -1317,16 +1280,6 @@ pub fn extract_value(
     }
 
     // Default
-    // If we have content but couldn't extract value, return error
-    let has_content =
-        asm_stmt.subject.is_some() || asm_stmt.object.is_some() || !asm_stmt.literals.is_empty();
-
-    if has_content {
-        return Err(GlossaError::semantic(
-            "Ἀδυναμία ἐξαγωγῆς τιμῆς (Unable to determine value from statement)",
-        ));
-    }
-
     Ok((
         AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(0),
