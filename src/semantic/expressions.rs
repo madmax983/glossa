@@ -3,7 +3,7 @@
 use super::{AnalyzedExpr, AnalyzedExprKind, Assembler, GlossaType, Literal, Scope};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
-use crate::morphology::{self, analyze_article, disambiguate, resolve_best, DisambiguationContext};
+use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
 use crate::text::normalize_greek;
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
@@ -1001,6 +1001,45 @@ mod tests {
         assert_eq!(stmt.object.as_ref().unwrap().original, "ὄνομα");
 
         // Should NOT have a subject (implicit "I")
-        assert!(stmt.subject.is_none(), "Should NOT have a subject (found: {:?})", stmt.subject);
+        assert!(
+            stmt.subject.is_none(),
+            "Should NOT have a subject (found: {:?})",
+            stmt.subject
+        );
+    }
+
+    #[test]
+    fn test_backtracking_failure_propagates_error() {
+        use crate::ast::Word;
+        use crate::semantic::{Assembler, DisambiguationContext};
+
+        // Test sentence: ἐγὼ τρέχει
+        // "I" (Subj 1st) "runs" (Verb 3rd) -> Agreement Error
+        // This should fail for ALL backtracking candidates of "τρέχει".
+        // We verify that the error is propagated.
+
+        let mut asm = Assembler::new();
+        let mut ctx = DisambiguationContext::new();
+
+        // 1. Feed "ἐγώ" (I)
+        let subj = Expr::Word(Word::new("ἐγώ"));
+        feed_expr_to_assembler_with_context(&mut asm, &subj, &mut ctx).unwrap();
+
+        // 2. Feed "τρέχει" (runs - 3rd person)
+        let verb = Expr::Word(Word::new("τρέχει"));
+        let result = feed_expr_to_assembler_with_context(&mut asm, &verb, &mut ctx);
+
+        assert!(
+            result.is_err(),
+            "Backtracking should fail when no candidates match agreement"
+        );
+        let err = result.unwrap_err();
+        // The error message comes from GlossaError::semantic wrapping AssemblyError
+        // AssemblyError::SubjectVerbDisagreement -> Localized "Ἀσυμφωνία" (Disagreement)
+        assert!(
+            err.to_string().contains("Ἀσυμφωνία"),
+            "Error should be SubjectVerbDisagreement (Ἀσυμφωνία), got: {}",
+            err
+        );
     }
 }

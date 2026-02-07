@@ -1115,31 +1115,31 @@ impl Assembler {
         subject: &Constituent,
         verb: &VerbConstituent,
     ) -> Result<(), AssemblyError> {
-        if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number) {
-            if let Some(subj_number) = subject.number {
-                // Determine subject person (default to 3rd for nouns if not specified)
-                let subj_person = subject.person.unwrap_or(Person::Third);
+        if let (Some(verb_person), Some(verb_number), Some(subj_number)) =
+            (verb.person, verb.number, subject.number)
+        {
+            // Determine subject person (default to 3rd for nouns if not specified)
+            let subj_person = subject.person.unwrap_or(Person::Third);
 
-                // Check person agreement
-                // Exception: Allow Imperative verbs to disagree (e.g. "User, print!" uses 2nd person verb with 3rd person subject)
-                let is_imperative = verb.mood == Some(Mood::Imperative);
-                if !is_imperative && subj_person != verb_person {
-                    return Err(AssemblyError::SubjectVerbDisagreement {
-                        subject: (Some(subj_person), Some(subj_number)),
-                        verb: (Some(verb_person), Some(verb_number)),
-                    });
-                }
+            // Check person agreement
+            // Exception: Allow Imperative verbs to disagree (e.g. "User, print!" uses 2nd person verb with 3rd person subject)
+            let is_imperative = verb.mood == Some(Mood::Imperative);
+            if !is_imperative && subj_person != verb_person {
+                return Err(AssemblyError::SubjectVerbDisagreement {
+                    subject: (Some(subj_person), Some(subj_number)),
+                    verb: (Some(verb_person), Some(verb_number)),
+                });
+            }
 
-                // Special rule: Neuter plural nouns take singular verbs in Greek!
-                let is_neuter_plural =
-                    subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
+            // Special rule: Neuter plural nouns take singular verbs in Greek!
+            let is_neuter_plural =
+                subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
 
-                if !is_neuter_plural && subj_number != verb_number {
-                    return Err(AssemblyError::SubjectVerbDisagreement {
-                        subject: (Some(subj_person), Some(subj_number)),
-                        verb: (Some(verb_person), Some(verb_number)),
-                    });
-                }
+            if !is_neuter_plural && subj_number != verb_number {
+                return Err(AssemblyError::SubjectVerbDisagreement {
+                    subject: (Some(subj_person), Some(subj_number)),
+                    verb: (Some(verb_person), Some(verb_number)),
+                });
             }
         }
         Ok(())
@@ -1398,10 +1398,10 @@ mod tests {
         // This should fail IMMEDIATELY during feed because we have strict agreement checks now
         let result = asm.feed(&verb_analysis, "λέγει");
 
-        assert!(matches!(
-            result,
-            Err(AssemblyError::SubjectVerbDisagreement { .. })
-        ), "Expected immediate agreement failure");
+        assert!(
+            matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
+            "Expected immediate agreement failure"
+        );
     }
 
     #[test]
@@ -1761,10 +1761,10 @@ mod tests {
 
         // Should fail IMMEDIATELY because "I see" (1st) != "gift" (3rd)
         let result = asm.feed(&subj_analysis, "δῶρον");
-        assert!(matches!(
-            result,
-            Err(AssemblyError::SubjectVerbDisagreement { .. })
-        ), "Expected immediate agreement failure for VSO");
+        assert!(
+            matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
+            "Expected immediate agreement failure for VSO"
+        );
     }
 
     #[test]
@@ -1802,9 +1802,9 @@ mod tests {
 
         // Should fail IMMEDIATELY because "gift" (3rd) != "I see" (1st)
         let result = asm.feed(&verb_analysis, "βλέπω");
-        assert!(matches!(
-            result,
-            Err(AssemblyError::SubjectVerbDisagreement { .. })
-        ), "Expected immediate agreement failure for SVO");
+        assert!(
+            matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
+            "Expected immediate agreement failure for SVO"
+        );
     }
 }

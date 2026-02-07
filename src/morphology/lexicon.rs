@@ -1727,6 +1727,42 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     // Common words
     // =========================================================================
 
+    // ἐγώ - I (1st person pronoun)
+    m.insert(
+        "εγω",
+        LexiconEntry {
+            lemma: "εγω",
+            pos: PartOfSpeech::Pronoun,
+            gender: None,
+            meaning: "I",
+            rust_equiv: None,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: Some(Person::First),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // σύ - You (2nd person pronoun)
+    m.insert(
+        "συ",
+        LexiconEntry {
+            lemma: "συ",
+            pos: PartOfSpeech::Pronoun,
+            gender: None,
+            meaning: "you",
+            rust_equiv: None,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: Some(Person::Second),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
     // χρήστης - user
     m.insert(
         "χρηστης",
