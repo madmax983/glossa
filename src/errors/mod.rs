@@ -138,13 +138,6 @@ impl GlossaError {
 /// Result type for ΓΛΩΣΣΑ operations
 pub type GlossaResult<T> = Result<T, GlossaError>;
 
-// Conversion from Parser errors
-impl From<crate::parser::ParseError> for GlossaError {
-    fn from(err: crate::parser::ParseError) -> Self {
-        GlossaError::parse(err.to_string())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

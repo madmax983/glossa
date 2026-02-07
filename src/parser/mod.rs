@@ -29,6 +29,12 @@ use crate::errors::GlossaError;
 
 pub use builder::ParseError;
 
+impl From<ParseError> for GlossaError {
+    fn from(err: ParseError) -> Self {
+        GlossaError::parse(err.to_string())
+    }
+}
+
 /// Parse a ΓΛΩΣΣΑ source string into an AST
 ///
 /// This is the main entry point for the parsing phase.
@@ -43,5 +49,5 @@ pub use builder::ParseError;
 /// assert_eq!(program.statements.len(), 1);
 /// ```
 pub fn parse(source: &str) -> Result<Program, GlossaError> {
-    builder::parse_source(source).map_err(|e| GlossaError::parse(e.to_string()))
+    builder::parse_source(source).map_err(GlossaError::from)
 }
