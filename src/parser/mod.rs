@@ -52,10 +52,8 @@ pub fn parse(source: &str) -> Result<Program, GlossaError> {
                     if positives.is_empty() {
                         "Unexpected token".to_string()
                     } else {
-                        let expected: Vec<String> = positives
-                            .iter()
-                            .map(|r| format!("{:?}", r))
-                            .collect();
+                        let expected: Vec<String> =
+                            positives.iter().map(|r| format!("{:?}", r)).collect();
                         format!("Expected one of: {}", expected.join(", "))
                     }
                 }
