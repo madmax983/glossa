@@ -34,7 +34,10 @@ fn test_function_with_struct_parameter() {
     // The parameter type should be the struct name
 
     // Note: If type is unknown, it generates "_"
-    assert!(!code.contains("s: _"), "Generated 's: _' which means type was not resolved");
+    assert!(
+        !code.contains("s: _"),
+        "Generated 's: _' which means type was not resolved"
+    );
 
     // We expect the struct name in the function signature
     // Currently generated as value (move), e.g. "s: Shmeion"

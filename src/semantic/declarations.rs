@@ -25,9 +25,13 @@ pub fn resolve_type_name(name: &str, scope: &Scope) -> GlossaType {
         // List (generic unknown)
         "λιστη" | "λιστης" => return GlossaType::List(Box::new(GlossaType::Unknown)),
         // Set
-        "συνολον" | "συνολου" => return GlossaType::Set(Box::new(GlossaType::Unknown)),
+        "συνολον" | "συνολου" => {
+            return GlossaType::Set(Box::new(GlossaType::Unknown));
+        }
         // Map
-        "χαρτης" | "χαρτου" => return GlossaType::Map(Box::new(GlossaType::Unknown), Box::new(GlossaType::Unknown)),
+        "χαρτης" | "χαρτου" => {
+            return GlossaType::Map(Box::new(GlossaType::Unknown), Box::new(GlossaType::Unknown));
+        }
         _ => {}
     }
 
