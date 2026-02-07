@@ -15,13 +15,34 @@
 //!
 //! # The Mapping Strategy
 //!
-//! | ΓΛΩΣΣΑ Concept | Rust Equivalent |
-//! |----------------|-----------------|
-//! | `εἶδος` (Struct) | `struct` |
-//! | `χαρακτήρ` (Trait) | `trait` |
-//! | `ἐνδέχεται` (Result) | `Result<T, E>` |
-//! | `ἴσως` (Option) | `Option<T>` |
-//! | `μετά` (Mutable) | `mut` |
+//! | ΓΛΩΣΣΑ Concept | Rust Equivalent | Notes |
+//! |----------------|-----------------|-------|
+//! | `εἶδος` (Struct) | `struct` | Generates `#[derive(Clone, Debug, ...)]` |
+//! | `χαρακτήρ` (Trait) | `trait` | Maps methods directly |
+//! | `ἀποτέλεσμα` (Result) | `Result<T, E>` | Uses standard Rust Result |
+//! | `εὑρεθείη` (Option) | `Option<T>` | The "Optative" mood |
+//! | `μετά` (Mutable) | `mut` | Variable mutability |
+//! | `διὰ ...` (For loop) | `for ... in ...` | Standard iterator loop |
+//! | `εἰ ...` (If) | `if ...` | Standard control flow |
+//!
+//! # Example Translation
+//!
+//! **ΓΛΩΣΣΑ Source:**
+//! ```text
+//! ξ πέντε ἔστω.
+//! εἰ ξ πέντε ἰσοῦται,
+//!     «ἰσχύει» λέγε.
+//! ```
+//!
+//! **Generated Rust:**
+//! ```rust,ignore
+//! fn main() {
+//!     let x = 5;
+//!     if x == 5 {
+//!         println!("ἰσχύει");
+//!     }
+//! }
+//! ```
 //!
 //! # Architecture
 //!

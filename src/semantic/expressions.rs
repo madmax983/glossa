@@ -1,4 +1,16 @@
-//! Expression analysis and helpers
+//! Expression analysis and recursive descent
+//!
+//! This module handles the analysis of individual expressions within statements.
+//! While the `Assembler` handles the top-level sentence structure (Subject-Verb-Object),
+//! expressions like function calls, array literals, and binary operations are handled
+//! here via recursive descent.
+//!
+//! # The Two Modes of Analysis
+//!
+//! 1. **Assembler Feed**: Top-level words are "fed" to the assembler to find their grammatical slot.
+//!    See [`feed_expr_to_assembler_with_context`].
+//! 2. **Recursive Analysis**: Nested expressions (args inside a function call) are analyzed
+//!    recursively to produce an [`AnalyzedExpr`]. See [`analyze_argument_expr`].
 
 use super::{AnalyzedExpr, AnalyzedExprKind, Assembler, GlossaType, Literal, Scope};
 use crate::ast::{Expr, Statement};
@@ -12,6 +24,20 @@ use crate::text::normalize_greek;
 /// a typed, semantic `AnalyzedExpr`. It handles name resolution, type inference,
 /// and nested structure unpacking.
 ///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::{Scope, AnalyzedExprKind};
+/// use glossa::semantic::expressions::analyze_argument_expr;
+/// use glossa::ast::{Expr, Word};
+///
+/// let scope = Scope::new();
+///
+/// // Analyze a number literal
+/// let expr = Expr::NumberLiteral(42);
+/// let analyzed = analyze_argument_expr(&expr, &scope).unwrap();
+/// assert!(matches!(analyzed.expr, AnalyzedExprKind::NumberLiteral(42)));
+/// ```
 pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
     analyze_argument_expr_recursive(expr, scope, 0)
 }
@@ -312,6 +338,16 @@ pub fn contains_verb_in_expr(expr: &Expr, verb: &str) -> bool {
 }
 
 /// Feed an expression into the assembler with disambiguation context
+///
+/// This function takes a raw AST expression and "feeds" it into the [`Assembler`].
+/// It handles morphological analysis, disambiguation (using the context), and
+/// recursively handles complex expressions like arrays or nested phrases.
+///
+/// # The Context
+///
+/// The `DisambiguationContext` is crucial. For example, if we just saw the article "τὸν" (accusative),
+/// the context expects an Accusative noun next. This helps resolve ambiguity for words that
+/// could be either Nominative or Accusative.
 pub fn feed_expr_to_assembler_with_context(
     asm: &mut Assembler,
     expr: &Expr,
