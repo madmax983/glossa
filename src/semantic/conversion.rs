@@ -1138,11 +1138,10 @@ pub fn extract_value(
             let mut result = operands[0].clone();
             let mut op_idx = 0;
 
-            for i in 1..operands.len() {
+            for right in operands.iter().skip(1) {
                 if op_idx < asm_stmt.operators.len() {
-                    let right = operands[i].clone();
                     let op = asm_stmt.operators[op_idx];
-                    result = build_binary_expr(result, op, right);
+                    result = build_binary_expr(result, op, right.clone());
                     op_idx += 1;
                 }
             }
@@ -1264,9 +1263,8 @@ pub fn extract_value(
 
     // Default
     // If we have content but couldn't extract value, return error
-    let has_content = asm_stmt.subject.is_some()
-        || asm_stmt.object.is_some()
-        || !asm_stmt.literals.is_empty();
+    let has_content =
+        asm_stmt.subject.is_some() || asm_stmt.object.is_some() || !asm_stmt.literals.is_empty();
 
     if has_content {
         return Err(GlossaError::semantic(

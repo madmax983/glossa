@@ -69,7 +69,12 @@ fn test_article_disambiguation_context() {
     // ὁ ἄνθρωπος should be recognized as masculine nominative singular
     // τὸν λόγον should be recognized as masculine accusative singular
     // These don't produce Rust code yet, but they should parse without error
-    let ast = parse("ὁ ἄνθρωπος λέγει.").expect("Should parse");
+    // We must define 'ἄνθρωπος' first for strict semantic checking
+    let source = "
+        ὁ ἄνθρωπος «Socrates» ἔστω.
+        ὁ ἄνθρωπος λέγει.
+    ";
+    let ast = parse(source).expect("Should parse");
     let _analyzed = analyze_program(&ast).expect("Should analyze");
 }
 

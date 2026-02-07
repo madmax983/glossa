@@ -101,6 +101,7 @@ use crate::morphology::{
 };
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
+use unicode_normalization::UnicodeNormalization;
 
 /// A fully assembled statement with all grammatical roles filled
 ///
@@ -503,7 +504,7 @@ impl Assembler {
 
         let normalized = normalize_greek(original);
 
-        if self.check_special_markers(&normalized) {
+        if self.check_special_markers(&normalized, original) {
             return Ok(());
         }
 
@@ -939,7 +940,7 @@ impl Assembler {
     }
 
     /// Check for special markers (mutable, containment, delimiter)
-    fn check_special_markers(&mut self, normalized: &str) -> bool {
+    fn check_special_markers(&mut self, normalized: &str, original: &str) -> bool {
         // Check for mutable marker (μετά)
         if crate::morphology::lexicon::is_mutable_marker(normalized) {
             self.pending_mutable_marker = true;
@@ -948,6 +949,13 @@ impl Assembler {
 
         // Check for containment preposition (ἐν)
         if crate::morphology::lexicon::is_containment_preposition(normalized) {
+            // Disambiguate ἓν (1) vs ἐν (in)
+            // If original has rough breathing, it's the numeral 1, so skip containment check
+            // U+0314 is Combining Reversed Comma Above (Rough Breathing)
+            if normalized == "εν" && original.nfd().any(|c| c == '\u{0314}') {
+                return false;
+            }
+
             self.has_containment_preposition = true;
             return true;
         }

@@ -1727,6 +1727,78 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     // Common words
     // =========================================================================
 
+    // self (special pronoun for methods)
+    m.insert(
+        "self",
+        LexiconEntry {
+            lemma: "self",
+            pos: PartOfSpeech::Pronoun,
+            gender: Some(Gender::Masculine),
+            meaning: "self",
+            rust_equiv: Some("self"),
+            case: Some(Case::Nominative), // Default to Nominative, context can override
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // selfου (genitive of self - for property access tests)
+    m.insert(
+        "selfου",
+        LexiconEntry {
+            lemma: "self",
+            pos: PartOfSpeech::Pronoun,
+            gender: Some(Gender::Masculine),
+            meaning: "of self",
+            rust_equiv: Some("self"),
+            case: Some(Case::Genitive),
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // other (parameter name used in tests)
+    m.insert(
+        "other",
+        LexiconEntry {
+            lemma: "other",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "other",
+            rust_equiv: Some("other"),
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // otherou (genitive of other)
+    m.insert(
+        "otherou",
+        LexiconEntry {
+            lemma: "other",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "of other",
+            rust_equiv: Some("other"),
+            case: Some(Case::Genitive),
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
     // χρήστης - user
     m.insert(
         "χρηστης",
