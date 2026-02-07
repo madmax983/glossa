@@ -400,7 +400,11 @@ fn parse_match_expression(
             let body_expr_clause = Clause {
                 expressions: vec![body_clause.expressions[0].clone()],
             };
-            let body_stmt = parse_clause_as_mini_statement(&body_expr_clause)?;
+            let body_stmt = Statement::Regular {
+                clauses: vec![body_expr_clause],
+                is_query: false,
+                is_propagate: false,
+            };
             let body_analyzed = analyze_statement(&body_stmt, scope)?;
 
             arms.push((pattern, body_analyzed));
@@ -609,7 +613,11 @@ fn parse_conditional(
         let first_expr_clause = Clause {
             expressions: vec![then_clause.expressions[0].clone()],
         };
-        let stmt = parse_clause_as_mini_statement(&first_expr_clause)?;
+        let stmt = Statement::Regular {
+            clauses: vec![first_expr_clause],
+            is_query: false,
+            is_propagate: false,
+        };
         analyze_statement(&stmt, scope)?
     };
 
@@ -619,7 +627,11 @@ fn parse_conditional(
 
         // Check if it's "εἰ δὲ μή" (else)
         if check_else_pattern_in_expression(second_expr) {
-            let stmt = parse_clause_as_mini_statement(&stmt.clauses()[2])?;
+            let stmt = Statement::Regular {
+                clauses: vec![stmt.clauses()[2].clone()],
+                is_query: false,
+                is_propagate: false,
+            };
             Some(analyze_statement(&stmt, scope)?)
         }
         // Check if it's "εἰ" or "ἐάν" (elif)
@@ -681,7 +693,11 @@ fn skip_first_word_and_parse(
     }
 
     // Parse the modified clause as a statement
-    let stmt = parse_clause_as_mini_statement(&modified_clause)?;
+    let stmt = Statement::Regular {
+        clauses: vec![modified_clause],
+        is_query: false,
+        is_propagate: false,
+    };
     let analyzed = assemble_statement(&stmt)?;
     let converted = convert_assembled_to_analyzed(&analyzed, scope)?;
 
@@ -691,15 +707,6 @@ fn skip_first_word_and_parse(
     } else {
         Err(GlossaError::semantic("Empty condition in conditional"))
     }
-}
-
-/// Convert a clause to a mini-statement for parsing
-fn parse_clause_as_mini_statement(clause: &Clause) -> Result<Statement, GlossaError> {
-    Ok(Statement::Regular {
-        clauses: vec![clause.clone()],
-        is_query: false,
-        is_propagate: false,
-    })
 }
 
 /// Check if a clause starts with "εἰ δὲ μή" (else pattern)
