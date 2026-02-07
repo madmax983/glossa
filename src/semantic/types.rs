@@ -140,40 +140,6 @@ impl Ownership {
     }
 }
 
-/// Infer type from a Greek word (by looking at lexicon or morphology)
-///
-/// # Examples
-///
-/// ```
-/// use glossa::semantic::{infer_type, GlossaType};
-///
-/// assert_eq!(infer_type("πέντε"), GlossaType::Number);
-/// assert_eq!(infer_type("ἀριθμός"), GlossaType::Number);
-/// assert_eq!(infer_type("ὄνομα"), GlossaType::String);
-/// assert_eq!(infer_type("ἄγνωστον"), GlossaType::Unknown);
-/// ```
-pub fn infer_type(word: &str) -> GlossaType {
-    let normalized = crate::text::normalize_greek(word);
-
-    // Check lexicon first
-    if let Some(entry) = crate::morphology::lexicon::lookup(&normalized) {
-        match entry.rust_equiv {
-            Some("i64") => return GlossaType::Number,
-            Some("String") => return GlossaType::String,
-            Some("bool") | Some("true") | Some("false") => return GlossaType::Boolean,
-            Some("Vec") => return GlossaType::List(Box::new(GlossaType::Unknown)),
-            _ => {}
-        }
-    }
-
-    // Check for numeral
-    if crate::morphology::lexicon::numeral_value(&normalized).is_some() {
-        return GlossaType::Number;
-    }
-
-    GlossaType::Unknown
-}
-
 /// Detect built-in collection types (HashSet, HashMap)
 ///
 /// Returns a tuple of (Rust collection name, GlossaType).
@@ -214,12 +180,6 @@ mod tests {
         assert_eq!(Ownership::from_case(Case::Genitive), Ownership::Borrow);
         assert_eq!(Ownership::from_case(Case::Dative), Ownership::BorrowMut);
         assert_eq!(Ownership::from_case(Case::Accusative), Ownership::Move);
-    }
-
-    #[test]
-    fn test_infer_type_numeral() {
-        assert_eq!(infer_type("πέντε"), GlossaType::Number);
-        assert_eq!(infer_type("δέκα"), GlossaType::Number);
     }
 
     #[test]
