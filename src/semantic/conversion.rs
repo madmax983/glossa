@@ -83,6 +83,9 @@ pub fn classify_assembled_statement(
     if let Some(res) = classify_function_call(asm_stmt, scope)? {
         return Ok(res);
     }
+    if let Some(res) = classify_genitive_method_call(asm_stmt, scope)? {
+        return Ok(res);
+    }
     if let Some(res) = classify_assertion(asm_stmt, scope)? {
         return Ok(res);
     }
@@ -895,6 +898,66 @@ fn classify_expression(
     Ok((StatementKind::Expression, exprs))
 }
 
+/// Helper: Common logic for genitive method call parsing
+#[allow(clippy::collapsible_if)]
+fn try_parse_genitive_method_call(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Option<(AnalyzedExpr, GlossaType)> {
+    if let Some(ref subject) = asm_stmt.subject {
+        if !asm_stmt.genitives.is_empty() {
+            let owner_lemma = &asm_stmt.genitives[0].lemma;
+            let method_name = normalize_greek(&subject.original);
+
+            if let Some(owner_type) = scope.lookup(owner_lemma) {
+                if !scope.is_defined(&method_name) {
+                    let receiver = AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
+                        glossa_type: owner_type.clone(),
+                    };
+
+                    let mut args = Vec::new();
+                    for lit in &asm_stmt.literals {
+                        args.push(literal_to_analyzed_expr(lit));
+                    }
+
+                    return Some((
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::MethodCall {
+                                receiver: Box::new(receiver),
+                                method: method_name,
+                                args,
+                            },
+                            glossa_type: GlossaType::Unknown,
+                        },
+                        GlossaType::Unknown,
+                    ));
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Helper: Detect genitive method call (owner.method)
+fn classify_genitive_method_call(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+    if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = normalize_greek(&verb.lemma);
+        if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
+            return Ok(None);
+        }
+    }
+
+    if let Some((expr, _)) = try_parse_genitive_method_call(asm_stmt, scope) {
+        return Ok(Some((StatementKind::Expression, vec![expr])));
+    }
+
+    Ok(None)
+}
+
 /// Helper: Detect Enum variant (None, Some, Ok, Err)
 fn detect_enum_variant(
     word: &crate::semantic::assembler::Constituent,
@@ -1011,6 +1074,11 @@ pub fn extract_value(
     if let Some(ref subj) = asm_stmt.subject
         && let Some(result) = detect_enum_variant(subj, &asm_stmt.literals)
     {
+        return Ok(result);
+    }
+
+    // Check for genitive method call (Subject of Genitive)
+    if let Some(result) = try_parse_genitive_method_call(asm_stmt, scope) {
         return Ok(result);
     }
 
