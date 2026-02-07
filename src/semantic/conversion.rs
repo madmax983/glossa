@@ -80,6 +80,9 @@ pub fn classify_assembled_statement(
     if let Some(res) = classify_property_access_print(asm_stmt, scope)? {
         return Ok(res);
     }
+    if let Some(res) = classify_genitive_method_call(asm_stmt, scope)? {
+        return Ok(res);
+    }
     if let Some(res) = classify_function_call(asm_stmt, scope)? {
         return Ok(res);
     }
@@ -108,7 +111,7 @@ pub fn classify_assembled_statement(
         return Ok(res);
     }
 
-    classify_expression(asm_stmt)
+    classify_expression(asm_stmt, scope)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -136,6 +139,43 @@ fn classify_iterator_pattern(
         return Ok(Some((StatementKind::Print, vec![analyzed])));
     }
 
+    Ok(None)
+}
+
+/// Helper: Detect genitive method call pattern (owner.method)
+/// Pattern: Genitive (Owner) + Subject (MethodName) + No Verb
+fn classify_genitive_method_call(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+    if asm_stmt.verb.is_none()
+        && !asm_stmt.genitives.is_empty()
+        && let Some(subject) = &asm_stmt.subject
+    {
+        // Get owner from genitive
+        let owner_lemma = &asm_stmt.genitives[0].lemma;
+        let method_name = normalize_greek(&subject.original);
+
+        // Check if owner is defined (we don't strictly check for struct type here
+        // to allow for broader usage, but it helps if it is known)
+        if let Some(owner_type) = scope.lookup(owner_lemma) {
+            let receiver = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
+                glossa_type: owner_type.clone(),
+            };
+
+            let method_call = AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(receiver),
+                    method: method_name.into(),
+                    args: vec![], // No arguments supported in this pattern yet
+                },
+                glossa_type: GlossaType::Unknown,
+            };
+
+            return Ok(Some((StatementKind::Expression, vec![method_call])));
+        }
+    }
     Ok(None)
 }
 
@@ -893,9 +933,24 @@ fn classify_query(
 /// Helper: Default expression
 fn classify_expression(
     asm_stmt: &AssembledStatement,
+    scope: &Scope,
 ) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
     let mut exprs =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
+
+    // If no expressions found from literals, try to extract value from other constituents
+    if exprs.is_empty() {
+        // Check if we have content that should be extracted
+        let has_content = asm_stmt.subject.is_some()
+            || asm_stmt.object.is_some()
+            || !asm_stmt.nominatives.is_empty()
+            || !asm_stmt.operators.is_empty();
+
+        if has_content {
+            let (expr, _) = extract_value(asm_stmt, scope)?;
+            exprs.push(expr);
+        }
+    }
 
     if asm_stmt.is_propagate && !exprs.is_empty() {
         let last_expr = exprs.pop().unwrap();

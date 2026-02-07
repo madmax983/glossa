@@ -584,6 +584,42 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         },
     );
 
+    // ω (omega) - nominative
+    m.insert(
+        "ω",
+        LexiconEntry {
+            lemma: "ω",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Feminine),
+            meaning: "omega (variable)",
+            rust_equiv: None,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // ωου - genitive of ω
+    m.insert(
+        "ωου",
+        LexiconEntry {
+            lemma: "ω",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Feminine),
+            meaning: "of omega (genitive)",
+            rust_equiv: None,
+            case: Some(Case::Genitive),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
     // =========================================================================
     // More verbs for common operations
     // =========================================================================

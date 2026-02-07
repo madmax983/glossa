@@ -532,6 +532,10 @@ impl Assembler {
                 // Non-operator conjunctions are ignored for now
                 Ok(())
             }
+            PartOfSpeech::Unknown => {
+                // Unknown words fall back to nominal handling (Subject/Object inference)
+                self.handle_nominal(analysis, original)
+            }
             _ => Ok(()), // Ignore particles, articles for now
         }
     }
