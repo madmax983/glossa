@@ -48,6 +48,7 @@ C4Component
     title Component Diagram for Semantic Analysis
 
     Container_Boundary(semantic, "Semantic Analysis") {
+        Component(declarations, "Declarations", "src/semantic/declarations.rs", "Analyzes Types, Traits, Functions, Tests")
         Component(assembler, "Assembler", "src/semantic/assembler.rs", "Routes words to slots based on Case (Nom, Acc, Dat)")
         Component(converter, "Converter", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs (Iterators, Structs)")
@@ -57,6 +58,7 @@ C4Component
 
     Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
 
+    Rel(declarations, model, "Produces AnalyzedStatement")
     Rel(morphology, assembler, "Feeds MorphAnalysis")
     Rel(assembler, converter, "Produces AssembledStatement")
     Rel(converter, patterns, "Delegates complex patterns")
