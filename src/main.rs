@@ -12,6 +12,7 @@ use std::time::SystemTime;
 
 use glossa::codegen::{generate_rust_file, generate_statement_code};
 use glossa::errors::GlossaError;
+use glossa::experimental::scribe;
 use glossa::parser::parse;
 use glossa::semantic::{GlossaType, Scope, StatementKind, analyze_program};
 
@@ -52,6 +53,16 @@ enum Commands {
         input: PathBuf,
     },
 
+    /// Describe the program in a literary style
+    Describe {
+        /// Input file (.γλ)
+        input: PathBuf,
+
+        /// Output file for the description (.md)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
     /// Start the interactive REPL
     Repl,
 }
@@ -78,6 +89,10 @@ fn main() -> Result<()> {
 
         Some(Commands::Check { input }) => {
             check_file(&input)?;
+        }
+
+        Some(Commands::Describe { input, output }) => {
+            describe_file(&input, output.as_deref())?;
         }
 
         Some(Commands::Repl) | None => {
@@ -239,6 +254,30 @@ fn check_file(input: &Path) -> Result<()> {
         "✓".green(),
         input.display().to_string().bold()
     );
+
+    Ok(())
+}
+
+fn describe_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    check_file_size(input)?;
+
+    let source = fs::read_to_string(input).into_diagnostic()?;
+
+    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
+    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+
+    let description = scribe::describe_program(&analyzed);
+
+    if let Some(output_path) = output {
+        fs::write(output_path, &description).into_diagnostic()?;
+        println!(
+            "{} Ἐγράφη ἡ ἱστορία: {}",
+            "✓".green(),
+            output_path.display().to_string().bold()
+        );
+    } else {
+        println!("{}", description);
+    }
 
     Ok(())
 }
