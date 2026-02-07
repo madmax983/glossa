@@ -52,6 +52,7 @@ C4Component
         Component(converter, "Converter", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs (Iterators, Structs)")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
+        Component(oracle, "Oracle", "src/semantic/oracle.rs", "Generates human-readable explanations")
     }
 
     Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
@@ -61,4 +62,5 @@ C4Component
     Rel(converter, patterns, "Delegates complex patterns")
     Rel(patterns, model, "Produces AnalyzedStatement")
     Rel(converter, model, "Produces AnalyzedStatement")
+    Rel(oracle, assembler, "Uses (via assemble_statement)")
 ```
