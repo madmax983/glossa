@@ -200,6 +200,11 @@ pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
     )
 }
 
+/// Generate Rust code for a single analyzed statement
+pub fn generate_statement_code(stmt: &AnalyzedStatement) -> String {
+    generate_statement(stmt).to_string()
+}
+
 fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
     match &stmt.kind {
         StatementKind::Binding { name, mutable, .. } => {
@@ -993,5 +998,15 @@ mod tests {
         let code = compile("ξ πέντε ἔστω. ξ λέγε.");
         assert!(code.contains("let x = 5"), "Expected binding in: {}", code);
         assert!(code.contains("println"), "Expected println in: {}", code);
+    }
+
+    #[test]
+    fn test_generate_statement_code() {
+        let ast = parse("«χαῖρε» λέγε.").unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+        let stmt = &analyzed.statements[0];
+        let code = generate_statement_code(stmt);
+        assert!(code.contains("println"));
+        assert!(code.contains("χαῖρε"));
     }
 }
