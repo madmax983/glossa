@@ -15,7 +15,7 @@ use std::time::SystemTime;
 use glossa::codegen::{generate_rust_file, generate_statement_code};
 use glossa::errors::GlossaError;
 use glossa::parser::parse;
-use glossa::semantic::{GlossaType, Scope, StatementKind, analyze_program, oracle::Oracle};
+use glossa::semantic::{GlossaType, Scope, StatementKind, analyze_program, oracle::explain};
 
 #[derive(Parser)]
 #[command(name = "glossa")]
@@ -259,10 +259,7 @@ fn explain_file(input: &Path) -> Result<()> {
     check_file_size(input)?;
 
     let source = fs::read_to_string(input).into_diagnostic()?;
-    let oracle = Oracle::new();
-    let explanation = oracle
-        .explain(&source)
-        .map_err(|e| miette::miette!("{}", e))?;
+    let explanation = explain(&source).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", explanation);
 

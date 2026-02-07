@@ -42,7 +42,7 @@ pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr,
     analyze_argument_expr_recursive(expr, scope, 0)
 }
 
-const MAX_RECURSION_DEPTH: usize = 50;
+pub const MAX_RECURSION_DEPTH: usize = 50;
 
 fn analyze_argument_expr_recursive(
     expr: &Expr,
@@ -362,7 +362,7 @@ fn feed_expr_recursive(
     context: &mut DisambiguationContext,
     depth: usize,
 ) -> Result<(), GlossaError> {
-    if depth > 50 {
+    if depth > MAX_RECURSION_DEPTH {
         return Err(GlossaError::semantic(
             "Recursion limit exceeded in expression analysis",
         ));

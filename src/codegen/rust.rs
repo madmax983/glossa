@@ -630,10 +630,6 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             quote! { #n }
         }
 
-        AnalyzedExprKind::Literal(n) => {
-            quote! { #n }
-        }
-
         AnalyzedExprKind::BooleanLiteral(b) => {
             quote! { #b }
         }

@@ -217,8 +217,6 @@ pub enum AnalyzedExprKind {
         collection: Box<AnalyzedExpr>,
         ops: Vec<AnalyzedIteratorOp>,
     },
-    /// Literal value (used in iterator ops, different from specific literals above)
-    Literal(i64),
     /// Collection constructor (HashSet::new(), HashMap::new())
     CollectionNew {
         collection_type: String,

@@ -442,7 +442,7 @@ impl Assembler {
     /// Clears all pending slots, preparing the assembler for the next sentence.
     /// This is typically called automatically by `finalize()`, but can be
     /// called manually to discard a partial statement.
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         self.pending_subject = None;
         self.pending_nominatives.clear();
         self.pending_object = None;
