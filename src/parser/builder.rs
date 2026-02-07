@@ -194,6 +194,29 @@ fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> 
     })
 }
 
+fn parse_method_parameters(words: &[Word]) -> Vec<FieldDecl> {
+    let mut params = Vec::new();
+    let mut i = 0;
+    while i < words.len() {
+        // Look for τῷ (dative marker) followed by parameter name
+        if words[i].normalized == "τω" || words[i].normalized == "tw" {
+            if i + 1 < words.len() {
+                // Parameter without type annotation (just name)
+                params.push(FieldDecl {
+                    name: words[i + 1].clone(),
+                    type_name: Word::new("_"), // Placeholder, will be inferred
+                });
+                i += 2;
+            } else {
+                i += 1;
+            }
+        } else {
+            i += 1;
+        }
+    }
+    params
+}
+
 fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseError> {
     let mut words = Vec::new();
     let mut body_statements = Vec::new();
@@ -233,25 +256,7 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseErro
     let method_name = words[0].clone();
 
     // Parse parameters (skip method name)
-    let mut params = Vec::new();
-    let mut i = 1;
-    while i < words.len() {
-        // Look for τῷ (dative marker) followed by parameter name
-        if words[i].normalized == "τω" || words[i].normalized == "tw" {
-            if i + 1 < words.len() {
-                // Parameter without type annotation (just name)
-                params.push(FieldDecl {
-                    name: words[i + 1].clone(),
-                    type_name: Word::new("_"), // Placeholder, will be inferred
-                });
-                i += 2;
-            } else {
-                i += 1;
-            }
-        } else {
-            i += 1;
-        }
-    }
+    let params = parse_method_parameters(&words[1..]);
 
     Ok(TraitMethodDecl {
         name: method_name,
@@ -388,25 +393,7 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> 
     let method_name = words[0].clone();
 
     // Parse parameters (skip method name)
-    let mut params = Vec::new();
-    let mut i = 1;
-    while i < words.len() {
-        // Look for τῷ (dative marker) followed by parameter name
-        if words[i].normalized == "τω" || words[i].normalized == "tw" {
-            if i + 1 < words.len() {
-                // Parameter without type annotation (just name)
-                params.push(FieldDecl {
-                    name: words[i + 1].clone(),
-                    type_name: Word::new("_"), // Placeholder, will be inferred
-                });
-                i += 2;
-            } else {
-                i += 1;
-            }
-        } else {
-            i += 1;
-        }
-    }
+    let params = parse_method_parameters(&words[1..]);
 
     Ok(ImplMethodDef {
         name: method_name,
@@ -449,70 +436,89 @@ fn build_expression(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     }
 }
 
+fn build_block_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
+    let mut statements = Vec::new();
+    for stmt_pair in inner.into_inner() {
+        if stmt_pair.as_rule() == Rule::statement {
+            statements.push(build_statement(stmt_pair)?);
+        }
+    }
+    Ok(Expr::Block(statements))
+}
+
+fn build_array_literal_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
+    let mut elements = Vec::new();
+    for child in inner.into_inner() {
+        if child.as_rule() == Rule::array_elements {
+            for elem in child.into_inner() {
+                if elem.as_rule() == Rule::array_element {
+                    elements.push(build_array_element(elem)?);
+                }
+            }
+        }
+    }
+    Ok(Expr::ArrayLiteral(elements))
+}
+
+fn build_indexed_word_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
+    let mut parts = inner.into_inner();
+    // First is the greek_word (array name)
+    let array_word = parts.next().ok_or(ParseError::EmptyTerm)?;
+    let array = Expr::Word(Word {
+        original: array_word.as_str().into(),
+        normalized: crate::text::normalize_greek(array_word.as_str()),
+    });
+    // Second is the index_expr
+    let index_pair = parts.next().ok_or(ParseError::EmptyTerm)?;
+    let index_inner = index_pair
+        .into_inner()
+        .next()
+        .ok_or(ParseError::EmptyTerm)?;
+    let index = match index_inner.as_rule() {
+        Rule::number_literal => {
+            let value: i64 = index_inner
+                .as_str()
+                .parse()
+                .map_err(|_| ParseError::InvalidNumber(index_inner.as_str().to_string()))?;
+            Expr::NumberLiteral(value)
+        }
+        Rule::greek_word => Expr::Word(Word {
+            original: index_inner.as_str().into(),
+            normalized: crate::text::normalize_greek(index_inner.as_str()),
+        }),
+        _ => {
+            return Err(ParseError::UnexpectedRule(format!(
+                "{:?}",
+                index_inner.as_rule()
+            )));
+        }
+    };
+    Ok(Expr::IndexAccess {
+        array: Box::new(array),
+        index: Box::new(index),
+    })
+}
+
+fn build_unwrap_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
+    // Extract the word from "word!"
+    let word_pair = inner.into_inner().next().ok_or(ParseError::EmptyTerm)?;
+    let word = Expr::Word(Word {
+        original: word_pair.as_str().into(),
+        normalized: crate::text::normalize_greek(word_pair.as_str()),
+    });
+    Ok(Expr::UnaryOp {
+        op: UnaryOperator::Unwrap,
+        operand: Box::new(word),
+    })
+}
+
 fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     let inner = pair.into_inner().next().ok_or(ParseError::EmptyTerm)?;
 
     match inner.as_rule() {
-        Rule::block => {
-            let mut statements = Vec::new();
-            for stmt_pair in inner.into_inner() {
-                if stmt_pair.as_rule() == Rule::statement {
-                    statements.push(build_statement(stmt_pair)?);
-                }
-            }
-            Ok(Expr::Block(statements))
-        }
-        Rule::array_literal => {
-            let mut elements = Vec::new();
-            for child in inner.into_inner() {
-                if child.as_rule() == Rule::array_elements {
-                    for elem in child.into_inner() {
-                        if elem.as_rule() == Rule::array_element {
-                            elements.push(build_array_element(elem)?);
-                        }
-                    }
-                }
-            }
-            Ok(Expr::ArrayLiteral(elements))
-        }
-        Rule::indexed_word => {
-            let mut parts = inner.into_inner();
-            // First is the greek_word (array name)
-            let array_word = parts.next().ok_or(ParseError::EmptyTerm)?;
-            let array = Expr::Word(Word {
-                original: array_word.as_str().into(),
-                normalized: crate::text::normalize_greek(array_word.as_str()),
-            });
-            // Second is the index_expr
-            let index_pair = parts.next().ok_or(ParseError::EmptyTerm)?;
-            let index_inner = index_pair
-                .into_inner()
-                .next()
-                .ok_or(ParseError::EmptyTerm)?;
-            let index = match index_inner.as_rule() {
-                Rule::number_literal => {
-                    let value: i64 = index_inner
-                        .as_str()
-                        .parse()
-                        .map_err(|_| ParseError::InvalidNumber(index_inner.as_str().to_string()))?;
-                    Expr::NumberLiteral(value)
-                }
-                Rule::greek_word => Expr::Word(Word {
-                    original: index_inner.as_str().into(),
-                    normalized: crate::text::normalize_greek(index_inner.as_str()),
-                }),
-                _ => {
-                    return Err(ParseError::UnexpectedRule(format!(
-                        "{:?}",
-                        index_inner.as_rule()
-                    )));
-                }
-            };
-            Ok(Expr::IndexAccess {
-                array: Box::new(array),
-                index: Box::new(index),
-            })
-        }
+        Rule::block => build_block_expr(inner),
+        Rule::array_literal => build_array_literal_expr(inner),
+        Rule::indexed_word => build_indexed_word_expr(inner),
         Rule::string_literal => {
             let content = inner
                 .into_inner()
@@ -542,18 +548,7 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             let expr_pair = inner.into_inner().next().ok_or(ParseError::EmptyTerm)?;
             build_expression(expr_pair)
         }
-        Rule::unwrap_expr => {
-            // Extract the word from "word!"
-            let word_pair = inner.into_inner().next().ok_or(ParseError::EmptyTerm)?;
-            let word = Expr::Word(Word {
-                original: word_pair.as_str().into(),
-                normalized: crate::text::normalize_greek(word_pair.as_str()),
-            });
-            Ok(Expr::UnaryOp {
-                op: UnaryOperator::Unwrap,
-                operand: Box::new(word),
-            })
-        }
+        Rule::unwrap_expr => build_unwrap_expr(inner),
         _ => Err(ParseError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
     }
 }
