@@ -780,9 +780,13 @@ impl Assembler {
             }
             None => {
                 // Unknown case - try to infer from context
-                // Default to accusative (object) if we have no object
-                if self.pending_object.is_none() {
+                // Prioritize Subject, then Object, then extra Nominatives
+                if self.pending_subject.is_none() {
+                    self.pending_subject = Some(constituent);
+                } else if self.pending_object.is_none() {
                     self.pending_object = Some(constituent);
+                } else {
+                    self.pending_nominatives.push(constituent);
                 }
             }
         }

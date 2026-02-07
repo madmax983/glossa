@@ -326,14 +326,18 @@ fn classify_variable_binding(
 
                 if scope.is_defined(&subject.lemma) && !scope.is_defined(&object.lemma) {
                     let mut swapped = asm_stmt.clone();
-                    swapped.subject = Some(object.clone());
+                    swapped.subject = None;
                     swapped.object = Some(subject.clone());
                     (object_name, swapped)
                 } else {
-                    (subject_name, asm_stmt.clone())
+                    let mut fixed_asm = asm_stmt.clone();
+                    fixed_asm.subject = None;
+                    (subject_name, fixed_asm)
                 }
             } else if let Some(subject) = &asm_stmt.subject {
-                (normalize_greek(&subject.original), asm_stmt.clone())
+                let mut fixed_asm = asm_stmt.clone();
+                fixed_asm.subject = None;
+                (normalize_greek(&subject.original), fixed_asm)
             } else if !asm_stmt.participles.is_empty() {
                 let first_participle = &asm_stmt.participles[0];
                 let mut fixed_asm = asm_stmt.clone();
@@ -785,25 +789,35 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-            if let Some(ref subj) = asm_stmt.subject
-                && let Some(var_type) = scope.lookup(&subj.lemma)
-            {
-                args.insert(
-                    0,
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: var_type.clone(),
-                    },
-                );
+            if let Some(ref subj) = asm_stmt.subject {
+                if let Some(var_type) = scope.lookup(&subj.lemma) {
+                    args.insert(
+                        0,
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                            glossa_type: var_type.clone(),
+                        },
+                    );
+                } else {
+                    return Err(GlossaError::semantic(format!(
+                        "Ἄγνωστος μεταβλητή (Undefined variable): {}",
+                        subj.original
+                    )));
+                }
             }
 
-            if let Some(ref obj) = asm_stmt.object
-                && let Some(var_type) = scope.lookup(&obj.lemma)
-            {
-                args.push(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                });
+            if let Some(ref obj) = asm_stmt.object {
+                if let Some(var_type) = scope.lookup(&obj.lemma) {
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    });
+                } else if !crate::morphology::lexicon::is_none_word(&obj.lemma) {
+                    return Err(GlossaError::semantic(format!(
+                        "Ἄγνωστος μεταβλητή (Undefined variable): {}",
+                        obj.original
+                    )));
+                }
             }
 
             return Ok(Some((StatementKind::Print, args)));
@@ -1078,31 +1092,68 @@ pub fn extract_value(
 
     // If we have operators, build a binary expression
     if !asm_stmt.operators.is_empty() {
-        // Check if we can build from literals alone (2+ literals)
-        if asm_stmt.literals.len() >= 2 {
-            let exprs =
-                build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
-            if let Some(expr) = exprs.into_iter().next() {
-                let ty = expr.glossa_type.clone();
-                return Ok((expr, ty));
-            }
+        // Collect all potential operands
+        let mut operands = Vec::new();
+
+        // 1. Subject (if present)
+        if let Some(ref subj) = asm_stmt.subject {
+            operands.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                glossa_type: scope
+                    .lookup(&subj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown),
+            });
         }
 
-        // Or check if we can combine object + literal with operator
-        if let Some(ref obj) = asm_stmt.object
-            && !asm_stmt.literals.is_empty()
-        {
-            // Build: object op literal
-            let left = AnalyzedExpr {
+        // 2. Object (if present)
+        if let Some(ref obj) = asm_stmt.object {
+            operands.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown, // Will be inferred
-            };
-            let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
-            let op = asm_stmt.operators[0];
-            let bin_expr = build_binary_expr(left, op, right);
-            let ty = bin_expr.glossa_type.clone();
-            return Ok((bin_expr, ty));
+                glossa_type: scope
+                    .lookup(&obj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown),
+            });
         }
+
+        // 3. Nominatives
+        for nom in &asm_stmt.nominatives {
+            operands.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                glossa_type: scope
+                    .lookup(&nom.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown),
+            });
+        }
+
+        // 4. Literals
+        for lit in &asm_stmt.literals {
+            operands.push(literal_to_analyzed_expr(lit));
+        }
+
+        // Try to build binary expression if we have enough operands
+        if operands.len() >= 2 {
+            let mut result = operands[0].clone();
+            let mut op_idx = 0;
+
+            for i in 1..operands.len() {
+                if op_idx < asm_stmt.operators.len() {
+                    let right = operands[i].clone();
+                    let op = asm_stmt.operators[op_idx];
+                    result = build_binary_expr(result, op, right);
+                    op_idx += 1;
+                }
+            }
+
+            let ty = result.glossa_type.clone();
+            return Ok((result, ty));
+        }
+
+        return Err(GlossaError::semantic(
+            "Ἀπαιτοῦνται δύο τοὐλάχιστον ὅροι διὰ τὴν πρᾶξιν (Operation requires at least two operands)",
+        ));
     }
 
     // Prefer literals (single value, no operators)
@@ -1212,6 +1263,17 @@ pub fn extract_value(
     }
 
     // Default
+    // If we have content but couldn't extract value, return error
+    let has_content = asm_stmt.subject.is_some()
+        || asm_stmt.object.is_some()
+        || !asm_stmt.literals.is_empty();
+
+    if has_content {
+        return Err(GlossaError::semantic(
+            "Ἀδυναμία ἐξαγωγῆς τιμῆς (Unable to determine value from statement)",
+        ));
+    }
+
     Ok((
         AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(0),
