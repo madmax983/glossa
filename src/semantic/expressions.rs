@@ -3,7 +3,7 @@
 use super::{AnalyzedExpr, AnalyzedExprKind, Assembler, GlossaType, Literal, Scope};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
-use crate::morphology::{self, DisambiguationContext, analyze_article, resolve_best};
+use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
 use crate::text::normalize_greek;
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
@@ -369,12 +369,38 @@ fn feed_expr_recursive(
             // Get all possible analyses for the word
             let analyses = morphology::analyze_all(&w.normalized);
 
-            // Use disambiguation context to pick the best analysis
-            let best_analysis = resolve_best(analyses, context);
+            // Use disambiguation context to prioritize analyses
+            // Returns a list of candidates sorted by likelihood
+            let candidates = disambiguate(analyses, context);
 
-            // Feed the disambiguated analysis to assembler
-            if let Err(e) = asm.feed(&best_analysis, &w.original) {
-                return Err(GlossaError::semantic(e.to_string()));
+            // Try candidates in order until one works without error (e.g. Agreement mismatch)
+            // This allows us to handle ambiguous cases like Neuter Nominative/Accusative
+            // by backtracking if the first choice causes a conflict.
+            let mut last_error = None;
+            let mut success = false;
+
+            for candidate in candidates {
+                match asm.feed(&candidate, &w.original) {
+                    Ok(_) => {
+                        success = true;
+                        break;
+                    }
+                    Err(e) => {
+                        // If it's a conflict error (DoubleSubject, DoubleObject, Agreement), try next
+                        // Otherwise (StatementTooLong), fail immediately
+                        if matches!(e, crate::semantic::AssemblyError::StatementTooLong { .. }) {
+                            return Err(GlossaError::semantic(e.to_string()));
+                        }
+                        last_error = Some(e);
+                    }
+                }
+            }
+
+            if !success {
+                let msg = last_error
+                    .map(|e| e.to_string())
+                    .unwrap_or_else(|| "Unknown assembly error".to_string());
+                return Err(GlossaError::semantic(msg));
             }
 
             // Clear context after use (it was consumed by the following noun)
@@ -934,5 +960,86 @@ mod tests {
         let scope = Scope::new();
         let result = analyze_argument_expr(&expr, &scope);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_vso_ambiguity_resolution() {
+        use crate::ast::Word;
+        use crate::semantic::{Assembler, DisambiguationContext};
+
+        // Test sentence: λέγω τὸ πρῶτον
+        // "I say" (1st Person) "the first" (Neuter Nom/Acc 3rd Person?)
+        // Actually "πρῶτον" is an adjective but used as noun here.
+        // Or better: Use "λέγω τὸ ὄνομα" (I say the name).
+        // "λέγω" (1st Person) "ὄνομα" (Neuter Nom/Acc 3rd Person).
+        // Should parse as: Verb(I say) + Object(name)
+        // NOT: Subject(name) + Verb(I say) -> Agreement Error
+
+        let mut asm = Assembler::new();
+        let mut ctx = DisambiguationContext::new();
+
+        // 1. Feed "λέγω" (I say)
+        let verb = Expr::Word(Word::new("λέγω"));
+        feed_expr_to_assembler_with_context(&mut asm, &verb, &mut ctx).unwrap();
+
+        // 2. Feed "τό" (the)
+        let article = Expr::Word(Word::new("τό"));
+        feed_expr_to_assembler_with_context(&mut asm, &article, &mut ctx).unwrap();
+
+        // 3. Feed "ὄνομα" (name)
+        let noun = Expr::Word(Word::new("ὄνομα"));
+        feed_expr_to_assembler_with_context(&mut asm, &noun, &mut ctx).unwrap();
+
+        // 4. Finalize
+        let stmt = asm.finalize().unwrap();
+
+        // Verify
+        assert!(stmt.verb.is_some(), "Should have a verb");
+        assert_eq!(stmt.verb.as_ref().unwrap().original, "λέγω");
+
+        assert!(stmt.object.is_some(), "Should have an object");
+        assert_eq!(stmt.object.as_ref().unwrap().original, "ὄνομα");
+
+        // Should NOT have a subject (implicit "I")
+        assert!(
+            stmt.subject.is_none(),
+            "Should NOT have a subject (found: {:?})",
+            stmt.subject
+        );
+    }
+
+    #[test]
+    fn test_backtracking_failure_propagates_error() {
+        use crate::ast::Word;
+        use crate::semantic::{Assembler, DisambiguationContext};
+
+        // Test sentence: ἐγὼ τρέχει
+        // "I" (Subj 1st) "runs" (Verb 3rd) -> Agreement Error
+        // This should fail for ALL backtracking candidates of "τρέχει".
+        // We verify that the error is propagated.
+
+        let mut asm = Assembler::new();
+        let mut ctx = DisambiguationContext::new();
+
+        // 1. Feed "ἐγώ" (I)
+        let subj = Expr::Word(Word::new("ἐγώ"));
+        feed_expr_to_assembler_with_context(&mut asm, &subj, &mut ctx).unwrap();
+
+        // 2. Feed "τρέχει" (runs - 3rd person)
+        let verb = Expr::Word(Word::new("τρέχει"));
+        let result = feed_expr_to_assembler_with_context(&mut asm, &verb, &mut ctx);
+
+        assert!(
+            result.is_err(),
+            "Backtracking should fail when no candidates match agreement"
+        );
+        let err = result.unwrap_err();
+        // The error message comes from GlossaError::semantic wrapping AssemblyError
+        // AssemblyError::SubjectVerbDisagreement -> Localized "Ἀσυμφωνία" (Disagreement)
+        assert!(
+            err.to_string().contains("Ἀσυμφωνία"),
+            "Error should be SubjectVerbDisagreement (Ἀσυμφωνία), got: {}",
+            err
+        );
     }
 }

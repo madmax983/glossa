@@ -280,15 +280,18 @@ pub fn analyze_article(word: &str) -> Option<DisambiguationContext> {
             expected_person: None,
         }),
 
-        // Neuter
+        // Neuter - Case is ambiguous (Nominative or Accusative)
+        // We do NOT set expected_case so we don't bias disambiguation incorrectly.
+        // The assembler will eventually decide based on available slots,
+        // or we rely on backtracking if an incorrect choice causes a conflict.
         "τό" | "τὸ" | "το" => Some(DisambiguationContext {
-            expected_case: Some(Case::Nominative), // or Accusative - same form
+            expected_case: None,
             expected_number: Some(Number::Singular),
             expected_gender: Some(Gender::Neuter),
             expected_person: None,
         }),
         "τά" | "τὰ" | "τα" => Some(DisambiguationContext {
-            expected_case: Some(Case::Nominative), // or Accusative - same form
+            expected_case: None,
             expected_number: Some(Number::Plural),
             expected_gender: Some(Gender::Neuter),
             expected_person: None,
@@ -353,5 +356,20 @@ mod tests {
 
         // Order should be preserved when no context
         assert_eq!(analyses.len(), resolved.len());
+    }
+
+    #[test]
+    fn test_neuter_article_ambiguity() {
+        // "τό" should NOT force Nominative, because it can be Accusative
+        let ctx = analyze_article("τό").unwrap();
+        assert_eq!(ctx.expected_case, None);
+        assert_eq!(ctx.expected_gender, Some(Gender::Neuter));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+
+        // "τά" should NOT force Nominative
+        let ctx = analyze_article("τά").unwrap();
+        assert_eq!(ctx.expected_case, None);
+        assert_eq!(ctx.expected_gender, Some(Gender::Neuter));
+        assert_eq!(ctx.expected_number, Some(Number::Plural));
     }
 }
