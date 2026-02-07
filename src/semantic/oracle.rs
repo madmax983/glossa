@@ -136,8 +136,7 @@ pub fn explain(source: &str) -> Result<String, GlossaError> {
                         s.original, o.original
                     ));
                 } else {
-                    report
-                        .push_str(&format!("The subject '{}' performs an action.", s.original));
+                    report.push_str(&format!("The subject '{}' performs an action.", s.original));
                 }
             } else if let Some(o) = &assembled.object {
                 report.push_str(&format!("An action is performed on '{}'.", o.original));
