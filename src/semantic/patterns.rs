@@ -628,7 +628,7 @@ fn process_participles(asm_stmt: &AssembledStatement, iterator_ops: &mut Vec<Ana
                             glossa_type: GlossaType::Number,
                         }),
                         right: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Literal(2),
+                            expr: AnalyzedExprKind::NumberLiteral(2),
                             glossa_type: GlossaType::Number,
                         }),
                     },

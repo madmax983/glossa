@@ -90,7 +90,7 @@ impl Scope {
     }
 
     /// Enter a new scope level
-    pub fn enter(&mut self) {
+    fn enter(&mut self) {
         self.levels.push(ScopeLevel::new());
     }
 
@@ -101,17 +101,10 @@ impl Scope {
     }
 
     /// Exit the current scope level
-    pub fn exit(&mut self) {
+    fn exit(&mut self) {
         if self.levels.len() > 1 {
             self.levels.pop();
         }
-    }
-
-    /// Create a child scope with this scope as parent
-    pub fn child(&self) -> Self {
-        let mut new_scope = self.clone();
-        new_scope.enter();
-        new_scope
     }
 
     fn current_level(&mut self) -> &mut ScopeLevel {
@@ -343,7 +336,7 @@ mod tests {
         let mut parent = Scope::new();
         parent.define("ξ".to_string(), GlossaType::Number);
 
-        let child = parent.child();
+        let child = parent.enter_scope();
         assert!(child.is_defined("ξ"));
         assert_eq!(child.lookup("ξ"), Some(&GlossaType::Number));
     }
@@ -353,7 +346,7 @@ mod tests {
         let mut parent = Scope::new();
         parent.define("ξ".to_string(), GlossaType::Number);
 
-        let mut child = parent.child();
+        let mut child = parent.enter_scope();
         child.define("ξ".to_string(), GlossaType::String);
 
         assert_eq!(child.lookup("ξ"), Some(&GlossaType::String));
@@ -450,7 +443,7 @@ mod tests {
         let mut parent = Scope::new();
         parent.define_mut("π".to_string(), GlossaType::Number);
 
-        let child = parent.child();
+        let child = parent.enter_scope();
         let binding = child.lookup_binding("π").unwrap();
         assert_eq!(binding.name, "π");
         assert!(binding.mutable);
