@@ -44,3 +44,10 @@
 2. Refactored `Oracle` to use `assemble_statement` instead of manually driving the assembler loop.
 3. Changed `src/semantic/expressions.rs` visibility to `pub(crate)` to enforce internal-only use.
 **Stability:** Enforces clear module boundaries. `semantic` now provides a stable public API for assembly, and internal expression logic is hidden from external consumers.
+
+## [Breaking The Knot: Parser-Errors Cycle]
+**Tangle:** The `errors` module imported `parser::ParseError` to implement the `From` trait for `GlossaError`, while the `parser` module imported `GlossaError` as its return type. This created a circular dependency `errors <-> parser`.
+**Blueprint:**
+1. Moved the `impl From<ParseError> for GlossaError` block from `src/errors/mod.rs` to `src/parser/mod.rs`.
+2. Removed the dependency on `crate::parser` from `src/errors/mod.rs`.
+**Stability:** `errors` is now a lower-level module that does not depend on `parser`. The dependency graph is strictly `parser -> errors`.

@@ -29,6 +29,12 @@ use crate::errors::GlossaError;
 
 pub use builder::ParseError;
 
+impl From<ParseError> for GlossaError {
+    fn from(err: ParseError) -> Self {
+        GlossaError::parse(err.to_string())
+    }
+}
+
 /// Parse a ΓΛΩΣΣΑ source string into an AST
 ///
 /// This is the main entry point for the parsing phase.
