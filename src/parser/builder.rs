@@ -787,5 +787,4 @@ mod tests {
         assert_eq!(ast.statements.len(), 1);
         assert_eq!(ast.statements[0].clauses().len(), 2); // Two clauses separated by comma
     }
-
 }
