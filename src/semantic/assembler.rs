@@ -748,6 +748,14 @@ impl Assembler {
 
         match analysis.case {
             Some(Case::Nominative) => {
+                // If we already have a verb, check agreement immediately!
+                if let Some(verb) = &self.pending_verb {
+                    // Don't check agreement if we already have a subject (this is an extra nominative)
+                    if self.pending_subject.is_none() {
+                        self.check_agreement(&constituent, verb)?;
+                    }
+                }
+
                 if self.pending_subject.is_some() {
                     // Additional nominatives stored separately for function call patterns
                     self.pending_nominatives.push(constituent);
@@ -800,7 +808,7 @@ impl Assembler {
             return Err(AssemblyError::DoubleVerb);
         }
 
-        self.pending_verb = Some(VerbConstituent {
+        let verb_constituent = VerbConstituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
             person: analysis.person,
@@ -808,7 +816,14 @@ impl Assembler {
             tense: analysis.tense,
             mood: analysis.mood,
             voice: analysis.voice,
-        });
+        };
+
+        // If we already have a subject, check agreement immediately!
+        if let Some(subject) = &self.pending_subject {
+            self.check_agreement(subject, &verb_constituent)?;
+        }
+
+        self.pending_verb = Some(verb_constituent);
 
         Ok(())
     }
@@ -1093,6 +1108,42 @@ impl Assembler {
             || !self.pending_index_accesses.is_empty()
             || !self.pending_property_accesses.is_empty()
     }
+
+    /// Check subject-verb agreement
+    fn check_agreement(
+        &self,
+        subject: &Constituent,
+        verb: &VerbConstituent,
+    ) -> Result<(), AssemblyError> {
+        if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number) {
+            if let Some(subj_number) = subject.number {
+                // Determine subject person (default to 3rd for nouns if not specified)
+                let subj_person = subject.person.unwrap_or(Person::Third);
+
+                // Check person agreement
+                // Exception: Allow Imperative verbs to disagree (e.g. "User, print!" uses 2nd person verb with 3rd person subject)
+                let is_imperative = verb.mood == Some(Mood::Imperative);
+                if !is_imperative && subj_person != verb_person {
+                    return Err(AssemblyError::SubjectVerbDisagreement {
+                        subject: (Some(subj_person), Some(subj_number)),
+                        verb: (Some(verb_person), Some(verb_number)),
+                    });
+                }
+
+                // Special rule: Neuter plural nouns take singular verbs in Greek!
+                let is_neuter_plural =
+                    subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
+
+                if !is_neuter_plural && subj_number != verb_number {
+                    return Err(AssemblyError::SubjectVerbDisagreement {
+                        subject: (Some(subj_person), Some(subj_number)),
+                        verb: (Some(verb_person), Some(verb_number)),
+                    });
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Default for Assembler {
@@ -1344,17 +1395,13 @@ mod tests {
             confidence: 1.0,
         };
 
-        // This fails: we feed it, and finalize should error
-        asm.feed(&verb_analysis, "λέγει").unwrap(); // feeding is fine
+        // This should fail IMMEDIATELY during feed because we have strict agreement checks now
+        let result = asm.feed(&verb_analysis, "λέγει");
 
-        let result = asm.finalize();
-
-        // Currently this will PASS (Ok) because person is ignored.
-        // We WANT it to fail with SubjectVerbDisagreement.
         assert!(matches!(
             result,
             Err(AssemblyError::SubjectVerbDisagreement { .. })
-        ));
+        ), "Expected immediate agreement failure");
     }
 
     #[test]
@@ -1677,5 +1724,87 @@ mod tests {
             result,
             Err(AssemblyError::StatementTooLong { .. })
         ));
+    }
+
+    #[test]
+    fn test_immediate_agreement_failure_vso() {
+        let mut asm = Assembler::new();
+
+        // Feed verb: "I see" (1st Person Singular)
+        let verb_analysis = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("βλεπω"),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(Number::Singular),
+            gender: None,
+            person: Some(Person::First),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+            confidence: 1.0,
+        };
+        asm.feed(&verb_analysis, "βλέπω").unwrap();
+
+        // Feed subject: "The gift" (3rd Person Singular)
+        let subj_analysis = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("δωρον"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: Some(Gender::Neuter),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+
+        // Should fail IMMEDIATELY because "I see" (1st) != "gift" (3rd)
+        let result = asm.feed(&subj_analysis, "δῶρον");
+        assert!(matches!(
+            result,
+            Err(AssemblyError::SubjectVerbDisagreement { .. })
+        ), "Expected immediate agreement failure for VSO");
+    }
+
+    #[test]
+    fn test_immediate_agreement_failure_svo() {
+        let mut asm = Assembler::new();
+
+        // Feed subject: "The gift" (3rd Person Singular)
+        let subj_analysis = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("δωρον"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: Some(Gender::Neuter),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&subj_analysis, "δῶρον").unwrap();
+
+        // Feed verb: "I see" (1st Person Singular)
+        let verb_analysis = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("βλεπω"),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(Number::Singular),
+            gender: None,
+            person: Some(Person::First),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+            confidence: 1.0,
+        };
+
+        // Should fail IMMEDIATELY because "gift" (3rd) != "I see" (1st)
+        let result = asm.feed(&verb_analysis, "βλέπω");
+        assert!(matches!(
+            result,
+            Err(AssemblyError::SubjectVerbDisagreement { .. })
+        ), "Expected immediate agreement failure for SVO");
     }
 }
