@@ -19,10 +19,11 @@ fn test_identifier_prefixing() {
 fn test_collision_avoidance_with_internal_vars() {
     // Verify that user variables don't collide with internal generated variables (e.g. 'idx').
     // Internal variable `idx` is generated during IndexAccess.
-    // "ξ [1] ἔστω. ξ[0] λέγε."
+    // We use [1 2] (multiple elements) to avoid ambiguity with IndexAccess [1].
+    // "ξ [1 2] ἔστω. ξ[0] λέγε."
     // ξ -> g_x
 
-    let source = "ξ [1] ἔστω. ξ[0] λέγε.";
+    let source = "ξ [1 2] ἔστω. ξ[0] λέγε.";
     let ast = parse(source).expect("Parse failed");
     let analyzed = analyze_program(&ast).expect("Analysis failed");
     let code = generate_rust(&analyzed);
@@ -37,9 +38,4 @@ fn test_collision_avoidance_with_internal_vars() {
     assert!(code.contains("g_x"));
     // Ensure `idx` is used for indexing
     assert!(code.contains("[idx as usize]"));
-}
-
-#[test]
-fn test_keyword_collision_let() {
-    // Skipped as per previous reasoning
 }
