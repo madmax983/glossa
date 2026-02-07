@@ -264,6 +264,21 @@ mod tests {
     use super::*;
     use crate::semantic::{Scope, StatementKind};
     use smol_str::SmolStr;
+    use crate::morphology::lexicon::BinaryOp;
+
+    fn create_program(statements: Vec<AnalyzedStatement>) -> AnalyzedProgram {
+        AnalyzedProgram {
+            statements,
+            scope: Scope::new(),
+        }
+    }
+
+    fn simple_expr(kind: AnalyzedExprKind) -> AnalyzedExpr {
+        AnalyzedExpr {
+            expr: kind,
+            glossa_type: GlossaType::Unknown,
+        }
+    }
 
     #[test]
     fn test_describe_binding() {
@@ -274,44 +289,248 @@ mod tests {
                 mutable: false,
             },
             expressions: vec![
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(SmolStr::new("x")),
-                    glossa_type: GlossaType::Number,
-                },
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(42),
-                    glossa_type: GlossaType::Number,
-                },
+                simple_expr(AnalyzedExprKind::Variable(SmolStr::new("x"))),
+                simple_expr(AnalyzedExprKind::NumberLiteral(42)),
             ],
         };
 
-        let program = AnalyzedProgram {
-            statements: vec![stmt],
-            scope: Scope::new(),
-        };
-
-        let desc = describe_program(&program);
+        let desc = describe_program(&create_program(vec![stmt]));
         assert!(desc.contains("Let there be a constant variable named **x**"));
         assert!(desc.contains("of type *Number*"));
         assert!(desc.contains("initialized to 42"));
     }
 
     #[test]
+    fn test_describe_binding_mutable() {
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Binding {
+                name: SmolStr::new("y"),
+                value_type: GlossaType::String,
+                mutable: true,
+            },
+            expressions: vec![
+                simple_expr(AnalyzedExprKind::Variable(SmolStr::new("y"))),
+                simple_expr(AnalyzedExprKind::StringLiteral("test".to_string())),
+            ],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Let there be a mutable variable named **y**"));
+        assert!(desc.contains("of type *String*"));
+    }
+
+    #[test]
+    fn test_describe_assignment() {
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Assignment {
+                name: SmolStr::new("x"),
+                value_type: GlossaType::Number,
+            },
+            expressions: vec![
+                simple_expr(AnalyzedExprKind::Variable(SmolStr::new("x"))),
+                simple_expr(AnalyzedExprKind::NumberLiteral(100)),
+            ],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Update **x** to become 100."));
+    }
+
+    #[test]
     fn test_describe_print() {
         let stmt = AnalyzedStatement {
             kind: StatementKind::Print,
-            expressions: vec![AnalyzedExpr {
-                expr: AnalyzedExprKind::StringLiteral("Hello".to_string()),
-                glossa_type: GlossaType::String,
-            }],
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("Hello".to_string()))],
         };
 
-        let program = AnalyzedProgram {
-            statements: vec![stmt],
-            scope: Scope::new(),
-        };
-
-        let desc = describe_program(&program);
+        let desc = describe_program(&create_program(vec![stmt]));
         assert!(desc.contains("The program shall proclaim: \"Hello\"."));
+    }
+
+    #[test]
+    fn test_describe_if() {
+        let condition = simple_expr(AnalyzedExprKind::BooleanLiteral(true));
+        let then_stmt = AnalyzedStatement {
+            kind: StatementKind::Print,
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("True".to_string()))],
+        };
+
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::If {
+                condition: Box::new(condition),
+                then_body: vec![then_stmt],
+                else_body: None,
+            },
+            expressions: vec![],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("If indeed true, then shall the following occur:"));
+        assert!(desc.contains("The program shall proclaim: \"True\"."));
+    }
+
+    #[test]
+    fn test_describe_if_else() {
+        let condition = simple_expr(AnalyzedExprKind::BooleanLiteral(false));
+        let then_stmt = AnalyzedStatement {
+            kind: StatementKind::Print,
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("True".to_string()))],
+        };
+        let else_stmt = AnalyzedStatement {
+            kind: StatementKind::Print,
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("False".to_string()))],
+        };
+
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::If {
+                condition: Box::new(condition),
+                then_body: vec![then_stmt],
+                else_body: Some(vec![else_stmt]),
+            },
+            expressions: vec![],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Otherwise:"));
+        assert!(desc.contains("The program shall proclaim: \"False\"."));
+    }
+
+    #[test]
+    fn test_describe_while() {
+        let condition = simple_expr(AnalyzedExprKind::BooleanLiteral(true));
+        let body_stmt = AnalyzedStatement {
+            kind: StatementKind::Print,
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("Loop".to_string()))],
+        };
+
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::While {
+                condition: Box::new(condition),
+                body: vec![body_stmt],
+            },
+            expressions: vec![],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("So long as true, repeat these labors:"));
+        assert!(desc.contains("The program shall proclaim: \"Loop\"."));
+    }
+
+    #[test]
+    fn test_describe_for() {
+        let iterator = simple_expr(AnalyzedExprKind::Variable(SmolStr::new("items")));
+        let body_stmt = AnalyzedStatement {
+            kind: StatementKind::Print,
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("Item".to_string()))],
+        };
+
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::For {
+                variable: SmolStr::new("item"),
+                iterator: Box::new(iterator),
+                body: vec![body_stmt],
+            },
+            expressions: vec![],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("For each **item** in **items**, perform the following:"));
+        assert!(desc.contains("The program shall proclaim: \"Item\"."));
+    }
+
+    #[test]
+    fn test_describe_function_def() {
+        let body_stmt = AnalyzedStatement {
+            kind: StatementKind::Print,
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("Fn".to_string()))],
+        };
+
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::FunctionDef {
+                name: SmolStr::new("my_func"),
+                params: vec![
+                    (SmolStr::new("p1"), Some(GlossaType::Number)),
+                    (SmolStr::new("p2"), None),
+                ],
+                body: vec![body_stmt],
+                return_type: Some(GlossaType::Boolean),
+            },
+            expressions: vec![],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Define a function named **my_func** accepting **p1** (Number), **p2** returning *Boolean*:"));
+    }
+
+    #[test]
+    fn test_describe_expression_statement() {
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Expression,
+            expressions: vec![simple_expr(AnalyzedExprKind::NumberLiteral(123))],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Evaluate: 123."));
+    }
+
+    #[test]
+    fn test_describe_expressions_complex() {
+        let bin_op = simple_expr(AnalyzedExprKind::BinOp {
+            left: Box::new(simple_expr(AnalyzedExprKind::NumberLiteral(1))),
+            op: BinaryOp::Add,
+            right: Box::new(simple_expr(AnalyzedExprKind::NumberLiteral(2))),
+        });
+
+        let func_call = simple_expr(AnalyzedExprKind::FunctionCall {
+            func: SmolStr::new("call_me"),
+            args: vec![bin_op],
+        });
+
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Expression,
+            expressions: vec![func_call],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Evaluate: call **call_me** with ((1 Add 2))."));
+    }
+
+    #[test]
+    fn test_describe_method_call() {
+        let method_call = simple_expr(AnalyzedExprKind::MethodCall {
+            receiver: Box::new(simple_expr(AnalyzedExprKind::Variable(SmolStr::new("obj")))),
+            method: SmolStr::new("method"),
+            args: vec![],
+        });
+
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Expression,
+            expressions: vec![method_call],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("**obj**.method()"));
+    }
+
+    #[test]
+    fn test_describe_verb_call() {
+        let verb_call = simple_expr(AnalyzedExprKind::VerbCall {
+            verb: SmolStr::new("do_action"),
+            args: vec![simple_expr(AnalyzedExprKind::NumberLiteral(5))],
+        });
+
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Expression,
+            expressions: vec![verb_call],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("verb **do_action** acting on (5)"));
+    }
+
+    #[test]
+    fn test_default_impl() {
+        let scribe = Scribe::default();
+        assert_eq!(scribe.indent_level, 0);
     }
 }
