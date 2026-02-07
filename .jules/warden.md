@@ -49,11 +49,3 @@
 **Defense:** Removed special single-letter mapping in `sanitize_name` and enforced strict transliteration in `transliterate`. `σ` now maps to `s`, while `σίγμα` maps to `sigma`. `ψ` maps to `_u3c8_` (hex encoded) to avoid collision with `ps`.
 
 **Severity:** Medium (Logic Bug).
-
-## 2026-06-03 - Keyword Injection & Identifier Collision
-
-**Threat:** The compiler generated Rust identifiers directly from transliterated user input without preventing collisions with Rust keywords (e.g., `let`, `fn`, `struct`) or internal compiler variables (e.g., `idx` in index access). This allowed a malicious or accidental user to generate invalid Rust code (`let struct = 5;`) or buggy code (shadowing internal logic), causing Denial of Service (compilation failure) or logic errors.
-
-**Defense:** Updated `sanitize_name` in `src/codegen/utils.rs` to prefix all user-defined identifiers with `g_` (e.g., `g_struct`, `g_let`). This namespaces user identifiers away from Rust keywords and generated internal variables. Standard library methods (e.g., `push`, `len`) are whitelisted to avoid prefixing.
-
-**Severity:** Medium (DoS via compilation failure & Logic errors).

@@ -58,8 +58,8 @@ fn test_simple_return() {
     let code = compile("διπλασιασμος ὁρίζειν τῷ ξ· δός ξ δύο γινόμενον.");
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("return"));
-    // Should return x * 2, not just a literal
-    assert!(code.contains("x") || code.contains("*") || code.contains("2"));
+    // Should return g_x * 2, not just a literal
+    assert!(code.contains("g_x") || code.contains("*") || code.contains("2"));
 }
 
 #[test]

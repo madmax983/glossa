@@ -43,7 +43,7 @@ fn test_instantiation() {
         π νέον σημεῖον πέντε ἔστω.
     "#;
     let code = compile(source);
-    // σημεῖον -> G_shmeion (η -> h, prefixed g_)
+    // σημεῖον -> G_shmeion
     assert!(code.contains("G_shmeion"));
     assert!(code.contains("5"));
 }
@@ -97,7 +97,7 @@ fn test_instantiation_with_literals() {
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
     // It should generate struct instantiation, not string assignment
-    // Χρήστης -> G__u3c7_rhsths
+    // Χρήστης -> G__u3c7_rhsths (chi -> _u3c7_, eta -> h)
     assert!(code.contains("struct G__u3c7_rhsths"));
     assert!(code.contains("let g__u3c7_rhsths = G__u3c7_rhsths"));
     assert!(code.contains("Σωκράτης"));
