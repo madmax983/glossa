@@ -53,12 +53,6 @@ fn is_greek_diacritic(c: char) -> bool {
     )
 }
 
-/// Normalize a single Greek word for lexicon lookup
-#[allow(dead_code)]
-pub fn normalize_word(word: &str) -> SmolStr {
-    normalize_greek(word)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

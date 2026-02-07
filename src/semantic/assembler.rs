@@ -392,12 +392,7 @@ pub struct Assembler {
     pending_string_method: Option<(String, String)>,
     is_query: bool,
     is_propagate: bool,
-    /// Token count to prevent DoS via massive sentences
-    token_count: usize,
 }
-
-/// Maximum tokens allowed in a single statement
-const MAX_TOKENS: usize = 1000;
 
 impl Assembler {
     /// Create a new empty assembler
@@ -433,7 +428,6 @@ impl Assembler {
             pending_string_method: None,
             is_query: false,
             is_propagate: false,
-            token_count: 0,
         }
     }
 
@@ -465,7 +459,6 @@ impl Assembler {
         self.pending_string_method = None;
         self.is_query = false;
         self.is_propagate = false;
-        self.token_count = 0;
     }
 
     /// Mark this statement as a query
@@ -499,8 +492,6 @@ impl Assembler {
     /// asm.feed(&obj, "λόγον").unwrap();
     /// ```
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
-        self.check_token_limit()?;
-
         let normalized = normalize_greek(original);
 
         if self.check_special_markers(&normalized) {
@@ -546,7 +537,6 @@ impl Assembler {
     /// asm.feed_string("χαῖρε".to_string()).unwrap();
     /// ```
     pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
-        self.check_token_limit()?;
         self.pending_literals.push(Literal::String(value));
         Ok(())
     }
@@ -562,7 +552,6 @@ impl Assembler {
     /// asm.feed_number(42).unwrap();
     /// ```
     pub fn feed_number(&mut self, value: i64) -> Result<(), AssemblyError> {
-        self.check_token_limit()?;
         self.pending_literals.push(Literal::Number(value));
         Ok(())
     }
@@ -578,7 +567,6 @@ impl Assembler {
     /// asm.feed_boolean(true).unwrap();
     /// ```
     pub fn feed_boolean(&mut self, value: bool) -> Result<(), AssemblyError> {
-        self.check_token_limit()?;
         self.pending_literals.push(Literal::Boolean(value));
         Ok(())
     }
@@ -596,7 +584,6 @@ impl Assembler {
     /// asm.feed_array(elements).unwrap();
     /// ```
     pub fn feed_array(&mut self, elements: Vec<Expr>) -> Result<(), AssemblyError> {
-        self.check_token_limit()?;
         self.pending_arrays.push(elements);
         Ok(())
     }
@@ -615,7 +602,6 @@ impl Assembler {
         &mut self,
         statements: Vec<crate::ast::Statement>,
     ) -> Result<(), AssemblyError> {
-        self.check_token_limit()?;
         self.pending_blocks.push(statements);
         Ok(())
     }
@@ -632,7 +618,6 @@ impl Assembler {
     /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]).unwrap();
     /// ```
     pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) -> Result<(), AssemblyError> {
-        self.check_token_limit()?;
         self.pending_nested_phrases.push(terms);
         Ok(())
     }
@@ -654,7 +639,6 @@ impl Assembler {
     /// asm.feed_index_access(array, index).unwrap();
     /// ```
     pub fn feed_index_access(&mut self, array: Expr, index: Expr) -> Result<(), AssemblyError> {
-        self.check_token_limit()?;
         self.pending_index_accesses.push((array, index));
         Ok(())
     }
@@ -675,7 +659,6 @@ impl Assembler {
     /// asm.feed_unwrap(expr).unwrap();
     /// ```
     pub fn feed_unwrap(&mut self, expr: Expr) -> Result<(), AssemblyError> {
-        self.check_token_limit()?;
         self.pending_unwraps.push(expr);
         Ok(())
     }
@@ -705,7 +688,6 @@ impl Assembler {
         analysis: &crate::morphology::ParticipleAnalysis,
         original: &str,
     ) -> Result<(), AssemblyError> {
-        self.check_token_limit()?;
         let constituent = ParticipleConstituent {
             verb_lemma: analysis.verb_lemma(),
             original: original.to_string(),
@@ -716,18 +698,6 @@ impl Assembler {
             number: analysis.number,
         };
         self.pending_participles.push(constituent);
-        Ok(())
-    }
-
-    /// Check if token limit is exceeded
-    fn check_token_limit(&mut self) -> Result<(), AssemblyError> {
-        self.token_count += 1;
-        if self.token_count > MAX_TOKENS {
-            return Err(AssemblyError::StatementTooLong {
-                count: self.token_count,
-                limit: MAX_TOKENS,
-            });
-        }
         Ok(())
     }
 
@@ -1628,103 +1598,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_assembler_limit() {
-        let mut asm = Assembler::new();
-        let word = MorphAnalysis {
-            lemma: std::borrow::Cow::Borrowed("λογος"),
-            part_of_speech: PartOfSpeech::Noun,
-            case: Some(Case::Nominative),
-            number: Some(Number::Singular),
-            gender: Some(Gender::Masculine),
-            person: Some(Person::Third),
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 1.0,
-        };
-
-        // Feed MAX_TOKENS
-        for _ in 0..MAX_TOKENS {
-            asm.feed(&word, "λόγος").unwrap();
-        }
-
-        // Feed one more
-        let result = asm.feed(&word, "λόγος");
-        assert!(matches!(
-            result,
-            Err(AssemblyError::StatementTooLong { .. })
-        ));
-    }
-
-    #[test]
-    fn test_assembler_limit_boundary() {
-        let mut asm = Assembler::new();
-        let word = MorphAnalysis {
-            lemma: std::borrow::Cow::Borrowed("λογος"),
-            part_of_speech: PartOfSpeech::Noun,
-            case: Some(Case::Nominative),
-            number: Some(Number::Singular),
-            gender: Some(Gender::Masculine),
-            person: Some(Person::Third),
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 1.0,
-        };
-
-        // Feed MAX_TOKENS - 1
-        for _ in 0..(MAX_TOKENS - 1) {
-            asm.feed(&word, "λόγος").unwrap();
-        }
-
-        // Feed MAX_TOKENS (should succeed)
-        asm.feed(&word, "λόγος").unwrap();
-
-        // Feed MAX_TOKENS + 1 (should fail)
-        let result = asm.feed(&word, "λόγος");
-        assert!(matches!(
-            result,
-            Err(AssemblyError::StatementTooLong { .. })
-        ));
-    }
-
-    #[test]
-    fn test_assembler_reset_token_count() {
-        let mut asm = Assembler::new();
-        let word = MorphAnalysis {
-            lemma: std::borrow::Cow::Borrowed("λογος"),
-            part_of_speech: PartOfSpeech::Noun,
-            case: Some(Case::Nominative),
-            number: Some(Number::Singular),
-            gender: Some(Gender::Masculine),
-            person: Some(Person::Third),
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 1.0,
-        };
-
-        // Feed some tokens
-        for _ in 0..10 {
-            asm.feed(&word, "λόγος").unwrap();
-        }
-
-        // Reset
-        asm.reset();
-
-        // Feed MAX_TOKENS
-        for _ in 0..MAX_TOKENS {
-            asm.feed(&word, "λόγος").unwrap();
-        }
-
-        // Should be at limit now, not limit + 10
-        let result = asm.feed(&word, "λόγος");
-        assert!(matches!(
-            result,
-            Err(AssemblyError::StatementTooLong { .. })
-        ));
-    }
 
     #[test]
     fn test_immediate_agreement_failure_vso() {

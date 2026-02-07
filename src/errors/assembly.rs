@@ -72,9 +72,4 @@ pub enum AssemblyError {
         word2: String,
         gender2: Gender,
     },
-
-    /// Statement is too long (too many tokens) - potential DoS
-    #[error("Πρότασις λίαν μακρά! ({count} > {limit})")]
-    #[diagnostic(code(glossa::assembly::statement_too_long))]
-    StatementTooLong { count: usize, limit: usize },
 }
