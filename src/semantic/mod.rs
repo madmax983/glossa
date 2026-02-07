@@ -37,7 +37,6 @@ pub(crate) mod conversion;
 pub(crate) mod declarations;
 pub mod expressions;
 pub(crate) mod model;
-pub mod oracle;
 pub(crate) mod patterns;
 mod resolver;
 mod types;

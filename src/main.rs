@@ -3,8 +3,6 @@
 //! A compiler for ΓΛΩΣΣΑ - where Ancient Greek morphology encodes programming semantics.
 
 use clap::{Parser, Subcommand};
-use comfy_table::presets::UTF8_FULL;
-use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
@@ -15,7 +13,7 @@ use std::time::SystemTime;
 use glossa::codegen::{generate_rust_file, generate_statement_code};
 use glossa::errors::GlossaError;
 use glossa::parser::parse;
-use glossa::semantic::{GlossaType, Scope, StatementKind, analyze_program, oracle::explain};
+use glossa::semantic::{GlossaType, Scope, StatementKind, analyze_program};
 
 #[derive(Parser)]
 #[command(name = "glossa")]
@@ -54,12 +52,6 @@ enum Commands {
         input: PathBuf,
     },
 
-    /// Explain the semantic analysis of a .γλ file
-    Explain {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
-
     /// Start the interactive REPL
     Repl,
 }
@@ -86,10 +78,6 @@ fn main() -> Result<()> {
 
         Some(Commands::Check { input }) => {
             check_file(&input)?;
-        }
-
-        Some(Commands::Explain { input }) => {
-            explain_file(&input)?;
         }
 
         Some(Commands::Repl) | None => {
@@ -255,17 +243,6 @@ fn check_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
-fn explain_file(input: &Path) -> Result<()> {
-    check_file_size(input)?;
-
-    let source = fs::read_to_string(input).into_diagnostic()?;
-    let explanation = explain(&source).map_err(|e| miette::miette!("{}", e))?;
-
-    println!("{}", explanation);
-
-    Ok(())
-}
-
 fn run_repl() -> Result<()> {
     print_banner();
 
@@ -341,31 +318,30 @@ fn print_banner() {
 }
 
 fn print_help() {
-    let mut table = Table::new();
-    table
-        .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(vec![
-            Cell::new("Ἐντολή (Command)")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("Περιγραφή (Description)").add_attribute(Attribute::Bold),
-        ])
-        .add_row(vec![
-            ".βοήθεια / .help",
-            "Δεῖξαι τήνδε τὴν βοήθειαν (Show this help)",
-        ])
-        .add_row(vec![".ἔξοδος / .exit", "Ἐξελθεῖν (Exit REPL)"])
-        .add_row(vec![
-            ".καθαρός / .clear",
-            "Καθαρίσαι τὸ περιβάλλον (Clear history)",
-        ])
-        .add_row(vec![
-            ".περιβάλλον / .env",
-            "Δεῖξαι τὰς μεταβλητάς (Show variables)",
-        ]);
+    println!(
+        "{}",
+        "Ἐντολή (Command)          Περιγραφή (Description)"
+            .bold()
+            .cyan()
+    );
+    println!(
+        "{}",
+        "----------------------------------------------------".dim()
+    );
+    println!(
+        "{:<25} Δεῖξαι τήνδε τὴν βοήθειαν (Show this help)",
+        ".βοήθεια / .help"
+    );
+    println!("{:<25} Ἐξελθεῖν (Exit REPL)", ".ἔξοδος / .exit");
+    println!(
+        "{:<25} Καθαρίσαι τὸ περιβάλλον (Clear history)",
+        ".καθαρός / .clear"
+    );
+    println!(
+        "{:<25} Δεῖξαι τὰς μεταβλητάς (Show variables)",
+        ".περιβάλλον / .env"
+    );
 
-    println!("{}", table);
     println!("\n{}", "Παραδείγματα:".bold().underlined());
     println!("  «χαῖρε κόσμε» λέγε.");
     println!("  ξ πέντε ἔστω.");
@@ -373,18 +349,6 @@ fn print_help() {
 
 fn print_env(context: &ReplContext) {
     if let Some(scope) = &context.last_scope {
-        let mut table = Table::new();
-        table
-            .load_preset(UTF8_FULL)
-            .set_content_arrangement(ContentArrangement::Dynamic)
-            .set_header(vec![
-                Cell::new("Μεταβλητή (Var)")
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::Magenta),
-                Cell::new("Τύπος (Type)").add_attribute(Attribute::Bold),
-                Cell::new("Μεταβλητότης (Mut)").add_attribute(Attribute::Bold),
-            ]);
-
         // Collect and sort bindings for consistent display
         let mut bindings: Vec<_> = scope.bindings().collect();
         bindings.sort_by(|a, b| a.0.cmp(b.0));
@@ -394,18 +358,36 @@ fn print_env(context: &ReplContext) {
             return;
         }
 
+        println!(
+            "{:<20} {:<30} {}",
+            "Μεταβλητή (Var)".magenta().bold(),
+            "Τύπος (Type)".bold(),
+            "Μεταβλητότης (Mut)".bold()
+        );
+        println!(
+            "{}",
+            "----------------------------------------------------------------".dim()
+        );
+
         for (name, binding) in bindings {
-            table.add_row(vec![
-                Cell::new(name).fg(Color::Green),
-                Cell::new(format!("{:?}", binding.glossa_type)),
-                if binding.mutable {
-                    Cell::new("Ναί (Yes)").fg(Color::Yellow)
-                } else {
-                    Cell::new("Οὔ (No)").fg(Color::DarkGrey)
-                },
-            ]);
+            let mut_str = if binding.mutable {
+                "Ναί (Yes)"
+            } else {
+                "Οὔ (No)"
+            };
+            let mut_colored = if binding.mutable {
+                mut_str.yellow()
+            } else {
+                mut_str.dark_grey()
+            };
+
+            println!(
+                "{:<20} {:<30} {}",
+                name.green(),
+                format!("{:?}", binding.glossa_type),
+                mut_colored
+            );
         }
-        println!("{}", table);
     } else {
         println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
     }
@@ -734,16 +716,6 @@ mod tests {
         let context = ReplContext::new();
         // Should print "No variables defined"
         print_env(&context);
-    }
-
-    #[test]
-    fn test_explain_file_integration() {
-        let dir = tempfile::tempdir().unwrap();
-        let file_path = dir.path().join("explain.gl");
-        std::fs::write(&file_path, "«χαῖρε» λέγε.").unwrap();
-
-        let result = explain_file(&file_path);
-        assert!(result.is_ok());
     }
 
     #[test]
