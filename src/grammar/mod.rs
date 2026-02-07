@@ -4,6 +4,18 @@
 //! It handles the initial stage of the compiler pipeline: converting raw source code
 //! into a Concrete Syntax Tree (via [`pest`]) or an Abstract Syntax Tree (via the `ast` module).
 //!
+//! # The Grammar (`glossa.pest`)
+//!
+//! The language syntax is defined in [glossa.pest](https://github.com/madmax983/glossa/blob/trunk/src/grammar/glossa.pest).
+//!
+//! ## High-Level Structure
+//!
+//! * **Program**: A sequence of `Statement`s.
+//! * **Statement**: Can be a `TypeDefinition`, `TraitDefinition`, `TraitImplementation`, or a `Regular` statement.
+//! * **Regular Statement**: Composed of `Clause`s separated by commas.
+//! * **Clause**: A sequence of `Expression`s.
+//! * **Expression**: Words, literals, phrases, or blocks.
+//!
 //! # The Parsing Pipeline
 //!
 //! 1. **Text Normalization** (`text` module):

@@ -14,24 +14,48 @@ use crate::morphology::{Case, Gender};
 use smol_str::SmolStr;
 
 /// Types in ΓΛΩΣΣΑ
+///
+/// This enum represents the type system of the language.
+/// It maps directly to Rust types but uses Greek terminology.
+///
+/// # Type Compatibility
+///
+/// Types are checked for compatibility using [`GlossaType::is_compatible`].
+/// `GlossaType::Unknown` acts as a wildcard that matches any type (useful during inference).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GlossaType {
-    /// ἀριθμός - number (i64)
+    /// **ἀριθμός** (Number) - 64-bit signed integer (`i64`)
+    ///
+    /// # Examples
+    /// `1`, `42`, `-5`, `μηδέν` (zero)
     Number,
 
-    /// ὄνομα - string
+    /// **ὄνομα** (Name/String) - UTF-8 string (`String`)
+    ///
+    /// # Examples
+    /// `«χαῖρε»` ("hello")
     String,
 
-    /// ἀληθές/ψεῦδος - boolean
+    /// **ἀληθές/ψεῦδος** (Boolean) - `bool`
+    ///
+    /// # Examples
+    /// `ἀληθές` (true), `ψεῦδος` (false)
     Boolean,
 
-    /// λίστη - list of T
+    /// **λίστη** (List) - Dynamic array (`Vec<T>`)
+    ///
+    /// # Examples
+    /// `[1, 2, 3]` (`List<Number>`)
     List(Box<GlossaType>),
 
-    /// σύνολον - set of T (HashSet)
+    /// **σύνολον** (Set) - Hash set (`HashSet<T>`)
+    ///
+    /// Stores unique elements.
     Set(Box<GlossaType>),
 
-    /// χάρτης - map from K to V (HashMap)
+    /// **χάρτης** (Map) - Hash map (`HashMap<K, V>`)
+    ///
+    /// Key-value storage.
     Map(Box<GlossaType>, Box<GlossaType>),
 
     /// `Option<T>` - value that might not exist
@@ -41,40 +65,47 @@ pub enum GlossaType {
     /// making it a natural fit for optional values.
     ///
     /// # Examples
-    /// - τί (ti) → Some(value) ("something")
-    /// - οὐδέν (ouden) → None ("nothing")
-    /// - `;` after optative verb → propagates None (like Rust's `?`)
-    /// - `!` suffix → unwrap (confident extraction)
+    /// - `τί` (ti) → `Some(value)` ("something")
+    /// - `οὐδέν` (ouden) → `None` ("nothing")
+    /// - `;` after optative verb → propagates `None` (like Rust's `?`)
     Option(Box<GlossaType>),
 
     /// `Result<T, E>` - value or error
     ///
-    /// Expressed in ΓΛΩΣΣΑ via ἀποτέλεσμα (apotelasma) "result/outcome".
+    /// Expressed in ΓΛΩΣΣΑ via **ἀποτέλεσμα** (apotelasma) "result/outcome".
     /// Uses disjunctive patterns to distinguish success from failure.
     ///
     /// # Examples
-    /// - ἐπιτυχία (epitychia) → Ok(value) ("success")
-    /// - σφάλμα (sphalma) → Err(error) ("error/mistake")
-    /// - `;` after Result expression → propagates Err (like Rust's `?`)
+    /// - `ἐπιτυχία` (epitychia) → `Ok(value)` ("success")
+    /// - `σφάλμα` (sphalma) → `Err(error)` ("error/mistake")
+    /// - `;` after Result expression → propagates `Err` (like Rust's `?`)
     Result(Box<GlossaType>, Box<GlossaType>),
 
-    /// Custom struct type (from noun)
+    /// **εἶδος** (Form/Type) - User-defined struct
+    ///
+    /// Named types defined by the user (e.g., `εἶδος Χρήστης`).
     Struct {
         name: SmolStr,
         gender: Gender,
         fields: Vec<(SmolStr, GlossaType)>,
     },
 
-    /// Function type
+    /// **ἔργον** (Function) - Function signature
+    ///
+    /// Represents the type of a function, including parameter and return types.
     Function {
         params: Vec<GlossaType>,
         returns: Box<GlossaType>,
     },
 
-    /// Unit type (void)
+    /// **οὐδέν** (Nothing) - Unit type `()`
+    ///
+    /// Represents the absence of a value (void).
     Unit,
 
-    /// Unknown/unresolved type
+    /// **ἄγνωστον** (Unknown) - Type inference placeholder
+    ///
+    /// Used when the type cannot yet be determined. Acts as a wildcard in compatibility checks.
     Unknown,
 }
 
@@ -140,40 +171,6 @@ impl Ownership {
     }
 }
 
-/// Infer type from a Greek word (by looking at lexicon or morphology)
-///
-/// # Examples
-///
-/// ```
-/// use glossa::semantic::{infer_type, GlossaType};
-///
-/// assert_eq!(infer_type("πέντε"), GlossaType::Number);
-/// assert_eq!(infer_type("ἀριθμός"), GlossaType::Number);
-/// assert_eq!(infer_type("ὄνομα"), GlossaType::String);
-/// assert_eq!(infer_type("ἄγνωστον"), GlossaType::Unknown);
-/// ```
-pub fn infer_type(word: &str) -> GlossaType {
-    let normalized = crate::text::normalize_greek(word);
-
-    // Check lexicon first
-    if let Some(entry) = crate::morphology::lexicon::lookup(&normalized) {
-        match entry.rust_equiv {
-            Some("i64") => return GlossaType::Number,
-            Some("String") => return GlossaType::String,
-            Some("bool") | Some("true") | Some("false") => return GlossaType::Boolean,
-            Some("Vec") => return GlossaType::List(Box::new(GlossaType::Unknown)),
-            _ => {}
-        }
-    }
-
-    // Check for numeral
-    if crate::morphology::lexicon::numeral_value(&normalized).is_some() {
-        return GlossaType::Number;
-    }
-
-    GlossaType::Unknown
-}
-
 /// Detect built-in collection types (HashSet, HashMap)
 ///
 /// Returns a tuple of (Rust collection name, GlossaType).
@@ -214,12 +211,6 @@ mod tests {
         assert_eq!(Ownership::from_case(Case::Genitive), Ownership::Borrow);
         assert_eq!(Ownership::from_case(Case::Dative), Ownership::BorrowMut);
         assert_eq!(Ownership::from_case(Case::Accusative), Ownership::Move);
-    }
-
-    #[test]
-    fn test_infer_type_numeral() {
-        assert_eq!(infer_type("πέντε"), GlossaType::Number);
-        assert_eq!(infer_type("δέκα"), GlossaType::Number);
     }
 
     #[test]

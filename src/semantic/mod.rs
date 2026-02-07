@@ -35,7 +35,7 @@ pub mod assembler;
 pub(crate) mod control_flow;
 pub(crate) mod conversion;
 pub(crate) mod declarations;
-pub(crate) mod expressions;
+pub mod expressions;
 pub(crate) mod model;
 pub mod oracle;
 pub(crate) mod patterns;

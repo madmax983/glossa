@@ -5,7 +5,7 @@
 //!
 //! # Safety: Recursion Depth
 //!
-//! ΓΛΩΣΣΑ implements a strict recursion depth check ([`check_recursion_depth`])
+//! ΓΛΩΣΣΑ implements a strict recursion depth check (`check_recursion_depth`)
 //! before parsing begins. This linear scan of the source code ensures that deep
 //! nesting (e.g., `((((...))))`) does not cause a stack overflow during the
 //! recursive descent parsing phase.
