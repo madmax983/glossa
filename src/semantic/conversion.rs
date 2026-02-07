@@ -1220,3 +1220,95 @@ pub fn extract_value(
         GlossaType::Number,
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::semantic::assembler::Constituent;
+    use crate::morphology::{Case, Gender, Number};
+    use smol_str::SmolStr;
+    use crate::semantic::{Scope, AssembledStatement, AnalyzedExprKind}; // Import necessary types
+
+    fn create_constituent(lemma: &str) -> Constituent {
+        Constituent {
+            lemma: SmolStr::new(lemma),
+            original: SmolStr::new(lemma),
+            case: Case::Accusative, // Simulate it being in Object slot
+            number: Some(Number::Singular),
+            gender: Some(Gender::Neuter),
+            person: None,
+        }
+    }
+
+    #[test]
+    fn test_extract_value_enum_in_object() {
+        let scope = Scope::new();
+
+        // Test None (ουδεν) in object
+        let mut stmt = AssembledStatement {
+            subject: None,
+            nominatives: vec![],
+            verb: None,
+            object: Some(create_constituent("ουδεν")), // normalized
+            indirect: None,
+            genitives: vec![],
+            adjectives: vec![],
+            literals: vec![],
+            arrays: vec![],
+            index_accesses: vec![],
+            property_accesses: vec![],
+            operators: vec![],
+            blocks: vec![],
+            nested_phrases: vec![],
+            participles: vec![],
+            unwraps: vec![],
+            has_mutable_marker: false,
+            is_query: false,
+            is_propagate: false,
+            has_containment_preposition: false,
+            has_delimiter_preposition: false,
+            string_method: None,
+        };
+
+        let (expr, _) = extract_value(&stmt, &scope).unwrap();
+        assert!(matches!(expr.expr, AnalyzedExprKind::None));
+
+        // Test Some (τι) in object WITHOUT literals (to hit the check but fall through)
+        stmt.object = Some(create_constituent("τι"));
+        stmt.literals = vec![];
+        let (expr, _) = extract_value(&stmt, &scope).unwrap();
+        // Falls through to Variable because literals is empty
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(name, "τι");
+        } else {
+            panic!("Expected Variable(τι) fallthrough");
+        }
+
+        // Test Ok (επιτυχια) in object WITHOUT literals
+        stmt.object = Some(create_constituent("επιτυχια"));
+        let (expr, _) = extract_value(&stmt, &scope).unwrap();
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(name, "επιτυχια");
+        } else {
+            panic!("Expected Variable(επιτυχια) fallthrough");
+        }
+
+        // Test Err (σφαλμα) in object WITHOUT literals
+        stmt.object = Some(create_constituent("σφαλμα"));
+        let (expr, _) = extract_value(&stmt, &scope).unwrap();
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(name, "σφαλμα");
+        } else {
+            panic!("Expected Variable(σφαλμα) fallthrough");
+        }
+
+        // Test Numeral (πεντε) in object
+        stmt.object = Some(create_constituent("πεντε"));
+        let (expr, _) = extract_value(&stmt, &scope).unwrap();
+        if let AnalyzedExprKind::NumberLiteral(val) = expr.expr {
+            assert_eq!(val, 5);
+        } else {
+            panic!("Expected NumberLiteral(5)");
+        }
+    }
+}
