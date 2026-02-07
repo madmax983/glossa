@@ -49,5 +49,5 @@ impl From<ParseError> for GlossaError {
 /// assert_eq!(program.statements.len(), 1);
 /// ```
 pub fn parse(source: &str) -> Result<Program, GlossaError> {
-    builder::parse_source(source).map_err(|e| GlossaError::parse(e.to_string()))
+    builder::parse_source(source).map_err(GlossaError::from)
 }
