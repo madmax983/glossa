@@ -26,6 +26,7 @@ pub mod builder;
 
 use crate::ast::Program;
 use crate::errors::GlossaError;
+use pest::error::{ErrorVariant, InputLocation};
 
 pub use builder::ParseError;
 
@@ -43,5 +44,30 @@ pub use builder::ParseError;
 /// assert_eq!(program.statements.len(), 1);
 /// ```
 pub fn parse(source: &str) -> Result<Program, GlossaError> {
-    builder::parse_source(source).map_err(|e| GlossaError::parse(e.to_string()))
+    builder::parse_source(source).map_err(|e| match e {
+        ParseError::PestError(pest_err) => {
+            let message = match &pest_err.variant {
+                ErrorVariant::CustomError { message } => message.clone(),
+                ErrorVariant::ParsingError { positives, .. } => {
+                    if positives.is_empty() {
+                        "Unexpected token".to_string()
+                    } else {
+                        let expected: Vec<String> = positives
+                            .iter()
+                            .map(|r| format!("{:?}", r))
+                            .collect();
+                        format!("Expected one of: {}", expected.join(", "))
+                    }
+                }
+            };
+
+            let span = match pest_err.location {
+                InputLocation::Pos(pos) => (pos, 1).into(),
+                InputLocation::Span((start, end)) => (start, end - start).into(),
+            };
+
+            GlossaError::parse_with_source(message, source, span)
+        }
+        _ => GlossaError::parse(e.to_string()),
+    })
 }

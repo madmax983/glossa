@@ -19,7 +19,7 @@ pub fn parse_source(source: &str) -> Result<Program, ParseError> {
     // Check recursion depth before parsing to prevent stack overflow
     check_recursion_depth(source)?;
 
-    let pairs = parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
+    let pairs = parse(source).map_err(|e| ParseError::PestError(Box::new(e)))?;
 
     let mut statements = Vec::new();
 
@@ -593,8 +593,8 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
 /// Errors that can occur during AST construction
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum ParseError {
-    #[error("Parse error: {0}")]
-    PestError(String),
+    #[error("{0}")]
+    PestError(Box<pest::error::Error<Rule>>),
 
     #[error("Empty term in expression")]
     EmptyTerm,

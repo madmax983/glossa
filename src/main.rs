@@ -322,8 +322,16 @@ fn run_repl() -> Result<()> {
                 print!("{}", output);
             }
             Err(e) => {
-                // Use default error formatting but ensure it's visible
-                eprintln!("{}", format!("× Σφάλμα: {}", e).red());
+                let mut out = String::new();
+                if miette::GraphicalReportHandler::new()
+                    .with_theme(miette::GraphicalTheme::unicode())
+                    .render_report(&mut out, &e)
+                    .is_err()
+                {
+                    eprintln!("{}", e);
+                } else {
+                    eprintln!("{}", out);
+                }
             }
         }
     }
