@@ -109,6 +109,28 @@ pub enum GlossaType {
     Unknown,
 }
 
+impl std::fmt::Display for GlossaType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GlossaType::Number => write!(f, "Ἀριθμός"),
+            GlossaType::String => write!(f, "Ὄνομα"),
+            GlossaType::Boolean => write!(f, "Ἀληθές/Ψεῦδος"),
+            GlossaType::List(inner) => write!(f, "Λίστη<{}>", inner),
+            GlossaType::Set(inner) => write!(f, "Σύνολον<{}>", inner),
+            GlossaType::Map(k, v) => write!(f, "Χάρτης<{}, {}>", k, v),
+            GlossaType::Option(inner) => write!(f, "Εὑρεθείη<{}>", inner),
+            GlossaType::Result(ok, err) => write!(f, "Ἀποτέλεσμα<{}, {}>", ok, err),
+            GlossaType::Struct { name, .. } => write!(f, "Εἶδος {}", name),
+            GlossaType::Function { params, returns } => {
+                let params_str: Vec<String> = params.iter().map(|p| p.to_string()).collect();
+                write!(f, "Ἔργον({}) -> {}", params_str.join(", "), returns)
+            }
+            GlossaType::Unit => write!(f, "Οὐδέν"),
+            GlossaType::Unknown => write!(f, "Ἄγνωστον"),
+        }
+    }
+}
+
 impl GlossaType {
     /// Get the Greek name for this type
     pub fn to_greek(&self) -> &'static str {
@@ -225,5 +247,25 @@ mod tests {
         assert!(detect_collection_type("συνολον").is_some());
         assert!(detect_collection_type("χαρτης").is_some());
         assert!(detect_collection_type("other").is_none());
+    }
+
+    #[test]
+    fn test_display_formatting() {
+        assert_eq!(format!("{}", GlossaType::Number), "Ἀριθμός");
+        assert_eq!(format!("{}", GlossaType::String), "Ὄνομα");
+        assert_eq!(
+            format!("{}", GlossaType::List(Box::new(GlossaType::Number))),
+            "Λίστη<Ἀριθμός>"
+        );
+        assert_eq!(
+            format!(
+                "{}",
+                GlossaType::Map(
+                    Box::new(GlossaType::String),
+                    Box::new(GlossaType::Option(Box::new(GlossaType::Number)))
+                )
+            ),
+            "Χάρτης<Ὄνομα, Εὑρεθείη<Ἀριθμός>>"
+        );
     }
 }
