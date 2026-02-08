@@ -1335,5 +1335,7 @@ pub fn extract_value(
     }
 
     // Default
-    Err(GlossaError::semantic("Unable to extract value from statement"))
+    Err(GlossaError::semantic(
+        "Unable to extract value from statement",
+    ))
 }
