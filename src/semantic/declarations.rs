@@ -1,8 +1,6 @@
 //! Declaration analysis (functions, types, traits)
 
-use super::{
-    AnalyzedMethod, AnalyzedStatement, GlossaType, Scope, StatementKind, analyze_statement,
-};
+use super::{AnalyzedMethod, AnalyzedStatement, GlossaType, Scope, analyze_statement};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology;
@@ -39,12 +37,9 @@ pub fn analyze_type_definition(
     // Store the type in scope
     scope.define_type(type_name.clone(), struct_type);
 
-    Ok(AnalyzedStatement {
-        kind: StatementKind::TypeDefinition {
-            name: type_name,
-            fields,
-        },
-        expressions: vec![],
+    Ok(AnalyzedStatement::TypeDefinition {
+        name: type_name,
+        fields,
     })
 }
 
@@ -131,12 +126,9 @@ pub fn analyze_trait_definition(
     // Store the trait in scope
     scope.define_trait(trait_name.clone(), trait_def_semantic);
 
-    Ok(AnalyzedStatement {
-        kind: StatementKind::TraitDefinition {
-            name: trait_name,
-            methods: analyzed_methods,
-        },
-        expressions: vec![],
+    Ok(AnalyzedStatement::TraitDefinition {
+        name: trait_name,
+        methods: analyzed_methods,
     })
 }
 
@@ -223,13 +215,10 @@ pub fn analyze_trait_impl(
     // Register the trait impl in scope
     scope.register_trait_impl(trait_impl_semantic);
 
-    Ok(AnalyzedStatement {
-        kind: StatementKind::TraitImplementation {
-            trait_name,
-            type_name,
-            methods: analyzed_methods,
-        },
-        expressions: vec![],
+    Ok(AnalyzedStatement::TraitImplementation {
+        trait_name,
+        type_name,
+        methods: analyzed_methods,
     })
 }
 
@@ -317,14 +306,11 @@ pub fn parse_function_definition(
     // Infer return type from return statements
     let return_type = infer_return_type_from_body(&body_statements);
 
-    Ok(Some(AnalyzedStatement {
-        kind: StatementKind::FunctionDef {
-            name: function_name,
-            params,
-            body: body_statements,
-            return_type,
-        },
-        expressions: vec![],
+    Ok(Some(AnalyzedStatement::FunctionDef {
+        name: function_name,
+        params,
+        body: body_statements,
+        return_type,
     }))
 }
 
@@ -441,7 +427,7 @@ fn collect_words_from_expr(expr: &Expr) -> Vec<&crate::ast::Word> {
 /// Infer the return type from the function body by examining return statements
 pub fn infer_return_type_from_body(body: &[AnalyzedStatement]) -> Option<GlossaType> {
     for stmt in body {
-        if let StatementKind::Return { value } = &stmt.kind
+        if let AnalyzedStatement::Return { value } = stmt
             && let Some(return_expr) = value
         {
             return Some(return_expr.glossa_type.clone());
@@ -469,11 +455,8 @@ pub fn analyze_test_declaration(
         }
     }
 
-    Ok(AnalyzedStatement {
-        kind: StatementKind::TestDeclaration {
-            name: test_name,
-            body: analyzed_body,
-        },
-        expressions: vec![],
+    Ok(AnalyzedStatement::TestDeclaration {
+        name: test_name,
+        body: analyzed_body,
     })
 }

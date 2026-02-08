@@ -3,8 +3,7 @@
 //! Handles if, while, for, match, return, break, continue.
 
 use super::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, StatementKind,
-    analyze_statement,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, analyze_statement,
 };
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
@@ -70,18 +69,12 @@ pub fn analyze_control_flow(
 
     // Break: παῦε
     if lexicon::is_break_verb(&normalized) {
-        return Ok(Some(AnalyzedStatement {
-            kind: StatementKind::Break,
-            expressions: vec![],
-        }));
+        return Ok(Some(AnalyzedStatement::Break));
     }
 
     // Continue: συνέχιζε
     if lexicon::is_continue_verb(&normalized) {
-        return Ok(Some(AnalyzedStatement {
-            kind: StatementKind::Continue,
-            expressions: vec![],
-        }));
+        return Ok(Some(AnalyzedStatement::Continue));
     }
 
     // Not a control flow construct
@@ -116,12 +109,9 @@ fn parse_while_loop(
     // Analyze body using unified helper
     let body_analyzed = analyze_statement(&body_stmt, scope)?;
 
-    Ok(Some(AnalyzedStatement {
-        kind: StatementKind::While {
-            condition: Box::new(condition_expr),
-            body: body_analyzed,
-        },
-        expressions: vec![],
+    Ok(Some(AnalyzedStatement::While {
+        condition: Box::new(condition_expr),
+        body: body_analyzed,
     }))
 }
 
@@ -257,13 +247,10 @@ fn parse_for_range_loop(
         analyze_statement(&body_stmt, &mut loop_scope)?
     };
 
-    Ok(Some(AnalyzedStatement {
-        kind: StatementKind::For {
-            variable,
-            iterator: Box::new(iterator),
-            body: body_analyzed,
-        },
-        expressions: vec![],
+    Ok(Some(AnalyzedStatement::For {
+        variable,
+        iterator: Box::new(iterator),
+        body: body_analyzed,
     }))
 }
 
@@ -346,13 +333,10 @@ fn parse_for_iteration_loop(
         analyze_statement(&body_stmt, &mut loop_scope)?
     };
 
-    Ok(Some(AnalyzedStatement {
-        kind: StatementKind::For {
-            variable,
-            iterator: Box::new(collection_expr),
-            body: body_analyzed,
-        },
-        expressions: vec![],
+    Ok(Some(AnalyzedStatement::For {
+        variable,
+        iterator: Box::new(collection_expr),
+        body: body_analyzed,
     }))
 }
 
@@ -371,7 +355,11 @@ fn parse_match_expression(
 
     // Extract scrutinee from clause 0, expression 0 (skip κατά)
     let scrutinee_clause = &stmt.clauses()[0];
-    let scrutinee = skip_first_word_and_parse(scrutinee_clause, scope)?;
+    // Create a synthetic clause with only the first expression to avoid including the first pattern (expr 1)
+    let synthetic_clause = Clause {
+        expressions: vec![scrutinee_clause.expressions[0].clone()],
+    };
+    let scrutinee = skip_first_word_and_parse(&synthetic_clause, scope)?;
 
     // Build arms: pattern from clause[i], expr 1 → body from clause[i+1], expr 0
     let mut arms = Vec::new();
@@ -417,12 +405,9 @@ fn parse_match_expression(
         ));
     }
 
-    Ok(Some(AnalyzedStatement {
-        kind: StatementKind::Match {
-            scrutinee: Box::new(scrutinee),
-            arms,
-        },
-        expressions: vec![],
+    Ok(Some(AnalyzedStatement::Match {
+        scrutinee: Box::new(scrutinee),
+        arms,
     }))
 }
 
@@ -433,10 +418,7 @@ fn parse_return_statement(
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // Get the first clause
     if stmt.clauses().is_empty() {
-        return Ok(Some(AnalyzedStatement {
-            kind: StatementKind::Return { value: None },
-            expressions: vec![],
-        }));
+        return Ok(Some(AnalyzedStatement::Return { value: None }));
     }
 
     let clause = &stmt.clauses()[0];
@@ -444,11 +426,8 @@ fn parse_return_statement(
     // Try to parse return expression
     let return_expr = parse_return_expression(clause, scope)?;
 
-    Ok(Some(AnalyzedStatement {
-        kind: StatementKind::Return {
-            value: Some(Box::new(return_expr)),
-        },
-        expressions: vec![],
+    Ok(Some(AnalyzedStatement::Return {
+        value: Some(Box::new(return_expr)),
     }))
 }
 
@@ -666,13 +645,10 @@ fn parse_conditional(
         None
     };
 
-    Ok(Some(AnalyzedStatement {
-        kind: StatementKind::If {
-            condition: Box::new(condition_expr),
-            then_body,
-            else_body,
-        },
-        expressions: vec![],
+    Ok(Some(AnalyzedStatement::If {
+        condition: Box::new(condition_expr),
+        then_body,
+        else_body,
     }))
 }
 
@@ -702,10 +678,33 @@ fn skip_first_word_and_parse(
     let converted = convert_assembled_to_analyzed(&analyzed, scope)?;
 
     // Extract the first expression as the condition
-    if let Some(first) = converted.expressions.first() {
-        Ok(first.clone())
-    } else {
-        Err(GlossaError::semantic("Empty condition in conditional"))
+    match converted {
+        AnalyzedStatement::Expression(exprs) => {
+            if let Some(first) = exprs.first() {
+                Ok(first.clone())
+            } else {
+                Err(GlossaError::semantic("Empty condition in conditional"))
+            }
+        }
+        AnalyzedStatement::Binding { name, value, .. } => {
+            // Convert binding "x is y" to "x == y"
+            let left = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(name),
+                glossa_type: value.glossa_type.clone(),
+            };
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    left: Box::new(left),
+                    op: crate::morphology::lexicon::BinaryOp::Eq,
+                    right: Box::new(value),
+                },
+                glossa_type: GlossaType::Boolean,
+            })
+        }
+        _ => Err(GlossaError::semantic(format!(
+            "Invalid condition format: {:?}",
+            converted
+        ))),
     }
 }
 

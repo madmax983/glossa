@@ -13,7 +13,7 @@ use std::time::SystemTime;
 use glossa::codegen::{generate_rust_file, generate_statement_code};
 use glossa::errors::GlossaError;
 use glossa::parser::parse;
-use glossa::semantic::{GlossaType, Scope, StatementKind, analyze_program};
+use glossa::semantic::{AnalyzedStatement, GlossaType, Scope, analyze_program};
 
 #[derive(Parser)]
 #[command(name = "glossa")]
@@ -500,18 +500,21 @@ impl ReplContext {
         // Analyze what happened in the last statement
         // We know it exists because new_count > old_count >= 0
         let last_stmt = analyzed.statements.last().unwrap();
-        match &last_stmt.kind {
-            StatementKind::Binding {
-                name,
-                value_type,
-                mutable,
-            } => {
+        match last_stmt {
+            AnalyzedStatement::Binding { name, mutable, .. } => {
+                // Lookup type from scope since it's no longer in the binding statement
+                let value_type = analyzed
+                    .scope
+                    .lookup(name)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+
                 // Add to bindings list so it persists
                 self.bindings.push(input.to_string());
 
                 Ok(ReplOutput::Binding {
                     name: name.to_string(),
-                    type_: value_type.clone(),
+                    type_: value_type,
                     mutable: *mutable,
                 })
             }
@@ -520,11 +523,11 @@ impl ReplContext {
                 // because we don't want to re-execute side effects (print) every time.
                 // BUT: If the user defines a function or type, we SHOULD save it.
                 if matches!(
-                    last_stmt.kind,
-                    StatementKind::FunctionDef { .. }
-                        | StatementKind::TypeDefinition { .. }
-                        | StatementKind::TraitDefinition { .. }
-                        | StatementKind::TraitImplementation { .. }
+                    last_stmt,
+                    AnalyzedStatement::FunctionDef { .. }
+                        | AnalyzedStatement::TypeDefinition { .. }
+                        | AnalyzedStatement::TraitDefinition { .. }
+                        | AnalyzedStatement::TraitImplementation { .. }
                 ) {
                     self.bindings.push(input.to_string());
                 }

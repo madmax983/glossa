@@ -41,7 +41,6 @@ use super::expressions::{
 use super::patterns::detect_iterator_pattern;
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, AssembledStatement, GlossaType, Scope,
-    StatementKind,
 };
 use crate::ast::Expr;
 use crate::errors::GlossaError;
@@ -61,10 +60,7 @@ pub fn convert_assembled_to_analyzed(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
-    // Determine statement kind based on assembled content
-    let (kind, expressions) = classify_assembled_statement(asm_stmt, scope)?;
-
-    Ok(AnalyzedStatement { kind, expressions })
+    classify_assembled_statement(asm_stmt, scope)
 }
 
 /// Classify an assembled statement and extract analyzed expressions
@@ -73,7 +69,7 @@ pub fn convert_assembled_to_analyzed(
 pub fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
+) -> Result<AnalyzedStatement, GlossaError> {
     if let Some(res) = classify_iterator_pattern(asm_stmt, scope)? {
         return Ok(res);
     }
@@ -122,7 +118,7 @@ pub fn classify_assembled_statement(
 fn classify_iterator_pattern(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     let has_find_or_print_verb = if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
         crate::morphology::lexicon::is_print_verb(&verb_lemma)
@@ -136,7 +132,7 @@ fn classify_iterator_pattern(
         || has_find_or_print_verb)
         && let Some(analyzed) = detect_iterator_pattern(asm_stmt, scope)?
     {
-        return Ok(Some((StatementKind::Print, vec![analyzed])));
+        return Ok(Some(AnalyzedStatement::Print(vec![analyzed])));
     }
 
     Ok(None)
@@ -146,7 +142,7 @@ fn classify_iterator_pattern(
 fn classify_property_access_print(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -176,7 +172,7 @@ fn classify_property_access_print(
                     glossa_type: GlossaType::Unknown, // TODO: Look up field type
                 };
 
-                return Ok(Some((StatementKind::Print, vec![prop_access])));
+                return Ok(Some(AnalyzedStatement::Print(vec![prop_access])));
             }
         }
     }
@@ -187,7 +183,7 @@ fn classify_property_access_print(
 fn classify_function_call(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -250,20 +246,11 @@ fn classify_function_call(
                 let var_name = normalize_greek(&subject.original);
                 scope.define(var_name.clone(), return_type.clone());
 
-                return Ok(Some((
-                    StatementKind::Binding {
-                        name: var_name.clone(),
-                        value_type: return_type.clone(),
-                        mutable: false,
-                    },
-                    vec![
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(var_name),
-                            glossa_type: return_type.clone(),
-                        },
-                        func_call,
-                    ],
-                )));
+                return Ok(Some(AnalyzedStatement::Binding {
+                    name: var_name.clone(),
+                    value: func_call,
+                    mutable: false,
+                }));
             }
         }
     }
@@ -274,7 +261,7 @@ fn classify_function_call(
 fn classify_subjunctive_comparison(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -300,7 +287,7 @@ fn classify_subjunctive_comparison(
             let op = asm_stmt.operators[0];
             let comparison = build_binary_expr(left, op, right);
 
-            return Ok(Some((StatementKind::Expression, vec![comparison])));
+            return Ok(Some(AnalyzedStatement::Expression(vec![comparison])));
         }
     }
     Ok(None)
@@ -310,7 +297,7 @@ fn classify_subjunctive_comparison(
 fn classify_variable_binding(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -364,20 +351,11 @@ fn classify_variable_binding(
                 scope.define(var_name.clone(), value_type.clone());
             }
 
-            return Ok(Some((
-                StatementKind::Binding {
-                    name: var_name.clone(),
-                    value_type: value_type.clone(),
-                    mutable: is_mutable,
-                },
-                vec![
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(var_name),
-                        glossa_type: value_type.clone(),
-                    },
-                    final_value_expr,
-                ],
-            )));
+            return Ok(Some(AnalyzedStatement::Binding {
+                name: var_name.clone(),
+                value: final_value_expr,
+                mutable: is_mutable,
+            }));
         }
     }
     Ok(None)
@@ -387,7 +365,7 @@ fn classify_variable_binding(
 fn classify_assignment(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -407,6 +385,7 @@ fn classify_assignment(
                     )));
                 }
                 Some(b) if !b.mutable => {
+                    let _b = b; // Silence unused variable warning while keeping guard
                     return Err(GlossaError::semantic(crate::errors::immutable_assignment(
                         &var_name,
                     )));
@@ -427,22 +406,12 @@ fn classify_assignment(
                         )));
                     }
 
-                    let value_type = b.glossa_type.clone();
                     let (value_expr, _) = extract_value(asm_stmt, scope)?;
                     scope.mark_used(&var_name);
-                    return Ok(Some((
-                        StatementKind::Assignment {
-                            name: var_name.clone(),
-                            value_type: value_type.clone(),
-                        },
-                        vec![
-                            AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable(var_name),
-                                glossa_type: value_type.clone(),
-                            },
-                            value_expr,
-                        ],
-                    )));
+                    return Ok(Some(AnalyzedStatement::Assignment {
+                        name: var_name.clone(),
+                        value: value_expr,
+                    }));
                 }
             }
         }
@@ -454,7 +423,7 @@ fn classify_assignment(
 fn classify_collection_mutation(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -479,7 +448,7 @@ fn classify_collection_mutation(
                 glossa_type: GlossaType::Unknown,
             };
 
-            return Ok(Some((StatementKind::Expression, vec![method_call])));
+            return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
         }
 
         // Push
@@ -520,7 +489,7 @@ fn classify_collection_mutation(
                 glossa_type: GlossaType::Unit,
             };
 
-            return Ok(Some((StatementKind::Expression, vec![method_call])));
+            return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
         }
 
         // Insert
@@ -573,7 +542,7 @@ fn classify_collection_mutation(
                 glossa_type: return_type,
             };
 
-            return Ok(Some((StatementKind::Expression, vec![method_call])));
+            return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
         }
     }
     Ok(None)
@@ -585,7 +554,7 @@ fn classify_collection_mutation(
 fn classify_assertion(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -648,7 +617,7 @@ fn classify_assertion(
                     glossa_type: GlossaType::Unit,
                 };
 
-                return Ok(Some((StatementKind::Expression, vec![assert_expr])));
+                return Ok(Some(AnalyzedStatement::Expression(vec![assert_expr])));
             }
         }
     }
@@ -661,7 +630,7 @@ fn classify_assertion(
 fn classify_equality_assertion(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -694,7 +663,7 @@ fn classify_equality_assertion(
                     glossa_type: GlossaType::Unit,
                 };
 
-                return Ok(Some((StatementKind::Expression, vec![assert_eq_expr])));
+                return Ok(Some(AnalyzedStatement::Expression(vec![assert_eq_expr])));
             }
         }
     }
@@ -705,7 +674,7 @@ fn classify_equality_assertion(
 fn classify_print(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
 
@@ -726,7 +695,7 @@ fn classify_print(
                 if let (Some(left_expr), Some(right_expr)) = (left, right) {
                     let op = asm_stmt.operators[0];
                     let bin_expr = build_binary_expr(left_expr, op, right_expr);
-                    return Ok(Some((StatementKind::Print, vec![bin_expr])));
+                    return Ok(Some(AnalyzedStatement::Print(vec![bin_expr])));
                 }
             }
 
@@ -765,7 +734,7 @@ fn classify_print(
                         glossa_type: return_type,
                     });
                 }
-                return Ok(Some((StatementKind::Print, args)));
+                return Ok(Some(AnalyzedStatement::Print(args)));
             }
 
             // Index access
@@ -782,7 +751,7 @@ fn classify_print(
                         glossa_type: GlossaType::Unknown,
                     });
                 }
-                return Ok(Some((StatementKind::Print, args)));
+                return Ok(Some(AnalyzedStatement::Print(args)));
             }
 
             // Unwrap
@@ -795,7 +764,7 @@ fn classify_print(
                         glossa_type: GlossaType::Unknown,
                     });
                 }
-                return Ok(Some((StatementKind::Print, args)));
+                return Ok(Some(AnalyzedStatement::Print(args)));
             }
 
             // Default
@@ -823,7 +792,7 @@ fn classify_print(
                 });
             }
 
-            return Ok(Some((StatementKind::Print, args)));
+            return Ok(Some(AnalyzedStatement::Print(args)));
         }
     }
     Ok(None)
@@ -833,7 +802,7 @@ fn classify_print(
 fn classify_query(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if asm_stmt.is_query {
         // Containment pattern
         if asm_stmt.has_containment_preposition
@@ -884,7 +853,7 @@ fn classify_query(
                 glossa_type: GlossaType::Boolean,
             };
 
-            return Ok(Some((StatementKind::Query, vec![contains_expr])));
+            return Ok(Some(AnalyzedStatement::Query(vec![contains_expr])));
         }
 
         // Regular query
@@ -902,17 +871,30 @@ fn classify_query(
                 glossa_type: var_type,
             });
         }
-        return Ok(Some((StatementKind::Query, exprs)));
+        return Ok(Some(AnalyzedStatement::Query(exprs)));
     }
     Ok(None)
 }
 
 /// Helper: Default expression
-fn classify_expression(
-    asm_stmt: &AssembledStatement,
-) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
+fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatement, GlossaError> {
     let mut exprs =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
+
+    // Fallback: If no literals/ops, check Subject/Object
+    if exprs.is_empty() {
+        if let Some(ref subj) = asm_stmt.subject {
+            exprs.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            });
+        } else if let Some(ref obj) = asm_stmt.object {
+            exprs.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            });
+        }
+    }
 
     if asm_stmt.is_propagate && !exprs.is_empty() {
         let last_expr = exprs.pop().unwrap();
@@ -923,7 +905,7 @@ fn classify_expression(
         exprs.push(try_expr);
     }
 
-    Ok((StatementKind::Expression, exprs))
+    Ok(AnalyzedStatement::Expression(exprs))
 }
 
 /// Helper: Common logic for genitive method call parsing
@@ -971,7 +953,7 @@ fn try_parse_genitive_method_call(
 fn classify_genitive_method_call(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<(StatementKind, Vec<AnalyzedExpr>)>, GlossaError> {
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = normalize_greek(&verb.lemma);
         if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
@@ -980,7 +962,7 @@ fn classify_genitive_method_call(
     }
 
     if let Some((expr, _)) = try_parse_genitive_method_call(asm_stmt, scope) {
-        return Ok(Some((StatementKind::Expression, vec![expr])));
+        return Ok(Some(AnalyzedStatement::Expression(vec![expr])));
     }
 
     Ok(None)

@@ -39,7 +39,7 @@
 
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, AssembledStatement, CaptureMode, GlossaType,
-    Scope, StatementKind,
+    Scope,
 };
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
@@ -105,10 +105,7 @@ pub fn try_parse_trait_method_call(
                             glossa_type: GlossaType::Unit,
                         };
 
-                        return Ok(Some(AnalyzedStatement {
-                            kind: StatementKind::Expression,
-                            expressions: vec![method_call],
-                        }));
+                        return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
                     }
                 }
             }
@@ -212,19 +209,10 @@ pub fn try_parse_struct_instantiation(
                 // Register variable in scope (collections are implicitly mutable for insert)
                 scope.define_mut(var_name.clone(), glossa_type.clone());
 
-                return Ok(Some(AnalyzedStatement {
-                    kind: StatementKind::Binding {
-                        name: var_name.clone(),
-                        value_type: glossa_type.clone(),
-                        mutable: true,
-                    },
-                    expressions: vec![
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(var_name.clone()),
-                            glossa_type: glossa_type.clone(),
-                        },
-                        collection_new,
-                    ],
+                return Ok(Some(AnalyzedStatement::Binding {
+                    name: var_name.clone(),
+                    value: collection_new,
+                    mutable: true,
                 }));
             }
 
@@ -325,19 +313,10 @@ pub fn try_parse_struct_instantiation(
                 // Register variable in scope with correct type
                 scope.define(var_name.clone(), struct_type.clone());
 
-                return Ok(Some(AnalyzedStatement {
-                    kind: StatementKind::Binding {
-                        name: var_name.clone(),
-                        value_type: struct_type.clone(),
-                        mutable: false,
-                    },
-                    expressions: vec![
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(var_name.clone()),
-                            glossa_type: struct_type.clone(),
-                        },
-                        struct_inst,
-                    ],
+                return Ok(Some(AnalyzedStatement::Binding {
+                    name: var_name.clone(),
+                    value: struct_inst,
+                    mutable: false,
                 }));
             }
         }
