@@ -152,51 +152,19 @@ const DECLENSION_PATTERNS: &[DeclensionPattern] = &[
 
 /// Try to analyze a word as a noun by matching declension endings
 pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
-    // Try each declension pattern in order
-    for decl in DECLENSION_PATTERNS {
-        if let Some((stem, case, number)) = match_endings(word, decl.endings) {
-            // Optimization: If the ending matches the nominative ending, the lemma is the word itself
-            let lemma = if word.len() == stem.len() + decl.nom_ending.len()
-                && word.ends_with(decl.nom_ending)
-            {
-                Cow::Owned(word.to_string())
-            } else {
-                Cow::Owned(format!("{}{}", stem, decl.nom_ending))
-            };
+    let mut analyses = analyze_noun_all(word);
 
-            return Some(MorphAnalysis {
-                lemma,
-                part_of_speech: PartOfSpeech::Noun,
-                case: Some(case),
-                number: Some(number),
-                gender: Some(decl.gender),
-                person: Some(crate::morphology::Person::Third),
-                tense: None,
-                mood: None,
-                voice: None,
-                confidence: decl.base_confidence,
-            });
-        }
-    }
-    None
-}
+    // Sort by confidence (highest first)
+    // analyze_noun_all sorts by (case, number, gender, lemma) but NOT confidence.
+    // So we sort by confidence here. Since sort_by is stable, it preserves the
+    // order for equal confidence (which prefers singular/simpler forms).
+    analyses.sort_by(|a, b| {
+        b.confidence
+            .partial_cmp(&a.confidence)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
-/// Match a word against a list of endings, returning the stem and grammatical info
-///
-/// Note: The `endings` slice MUST be sorted by length descending.
-fn match_endings<'a>(
-    word: &'a str,
-    endings: &[(&str, Case, Number)],
-) -> Option<(&'a str, Case, Number)> {
-    // Endings are pre-sorted by length (longest first)
-    for (ending, case, number) in endings {
-        if let Some(stem) = word.strip_suffix(ending)
-            && !stem.is_empty()
-        {
-            return Some((stem, *case, *number));
-        }
-    }
-    None
+    analyses.into_iter().next()
 }
 
 /// Match a word against ALL possible endings, calling callback for each match
@@ -241,7 +209,9 @@ pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
             // Adjust base confidence if needed to match original behavior
             // Original analyze_noun_all used 0.7 for neuter/alpha, but analyze_noun uses 0.75.
             // We standardized on 0.75 in the struct.
-            let confidence = (decl.base_confidence + length_bonus).min(0.95);
+            // Increased cap from 0.95 to 0.99 to allow highly distinctive endings (like -ματος)
+            // to outscore less distinctive ones (like -ος) even when both have high base confidence.
+            let confidence = (decl.base_confidence + length_bonus).min(0.99);
 
             // Optimization: Avoid format! for canonical forms
             let lemma = if word.len() == stem.len() + decl.nom_ending.len()
@@ -452,13 +422,37 @@ mod tests {
     #[test]
     fn test_second_declension_neuter_plural() {
         // "δωρα" (gifts) - Neuter Plural (ends in -α)
-        // This should hit the SECOND_DECLENSION_NEUT fallback in analyze_noun
-        // because "α" is not in SECOND_DECLENSION_MASC
-        let analysis = analyze_noun("δωρα").unwrap();
-        assert_eq!(analysis.case, Some(Case::Nominative)); // or Accusative
-        assert_eq!(analysis.number, Some(Number::Plural));
-        assert_eq!(analysis.gender, Some(Gender::Neuter));
-        assert_eq!(analysis.lemma, "δωρον");
+        // This relies on SECOND_DECLENSION_NEUT fallback.
+        // Note: "δωρα" is morphologically ambiguous with First Declension Alpha (Singular).
+        // analyze_noun might prefer Singular due to tie-breaking rules.
+        // So we use analyze_noun_all to verify the Neuter Plural analysis exists.
+        let analyses = analyze_noun_all("δωρα");
+
+        let found = analyses.iter().find(|a| {
+            a.part_of_speech == PartOfSpeech::Noun
+                && a.lemma == "δωρον"
+                && a.gender == Some(Gender::Neuter)
+                && a.case == Some(Case::Nominative) // or Accusative
+                && a.number == Some(Number::Plural)
+        });
+
+        assert!(
+            found.is_some(),
+            "Should find Second Declension Neuter Plural analysis for δωρα"
+        );
+    }
+
+    #[test]
+    fn test_analyze_noun_disambiguation_alpha() {
+        // "χώρα" (country) ends in -α.
+        // Should be identified as First Declension Feminine Singular Nominative
+        // over Second Declension Neuter Plural Nominative, because Singular is preferred in ties
+        // or confidence rules should handle it.
+        let analysis = analyze_noun("χωρα").expect("Should analyze χωρα");
+
+        assert_eq!(analysis.gender, Some(Gender::Feminine));
+        assert_eq!(analysis.number, Some(Number::Singular));
+        assert_eq!(analysis.lemma, "χωρα");
     }
 
     #[test]
