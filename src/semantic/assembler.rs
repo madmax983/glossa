@@ -1598,7 +1598,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn test_immediate_agreement_failure_vso() {
         let mut asm = Assembler::new();
