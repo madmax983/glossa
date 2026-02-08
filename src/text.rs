@@ -26,11 +26,29 @@ use unicode_normalization::UnicodeNormalization;
 /// assert_eq!(normalize_greek("χαῖρε"), "χαιρε");
 /// ```
 pub fn normalize_greek(text: &str) -> SmolStr {
-    text.nfd() // Decompose into base + combining marks
-        .filter(|c| !is_greek_diacritic(*c))
-        .collect::<String>()
-        .to_lowercase()
-        .into()
+    // Optimization: If the text contains uppercase characters, use the standard
+    // `to_lowercase()` method which correctly handles Greek final sigma (ς).
+    // This involves an extra allocation but ensures correctness.
+    if text.chars().any(char::is_uppercase) {
+        text.nfd()
+            .filter(|c| !is_greek_diacritic(*c))
+            .collect::<String>()
+            .to_lowercase()
+            .into()
+    } else {
+        // Fast path: If all characters are already lowercase (or non-cased),
+        // we can avoid the intermediate allocation and complex casing logic.
+        // `char::to_lowercase` is sufficient here.
+        let mut s = String::with_capacity(text.len());
+        for c in text.nfd() {
+            if !is_greek_diacritic(c) {
+                for lc in c.to_lowercase() {
+                    s.push(lc);
+                }
+            }
+        }
+        s.into()
+    }
 }
 
 /// Check if a character is a Greek diacritical mark to be stripped
