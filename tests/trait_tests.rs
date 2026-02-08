@@ -353,7 +353,7 @@ fn test_call_trait_method() {
             show τῷ self· selfου ξ λέγε.
         }.
         π νέον Point πέντε ἔστω.
-        που show.
+        show π.
     "#;
     let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
@@ -414,7 +414,7 @@ fn test_trait_method_call_error_not_implemented() {
         χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.
         εἶδος Point ὁρίζειν { ξ ἀριθμοῦ. }.
         π νέον Point πέντε ἔστω.
-        που show.
+        show π.
     "#;
     let ast = parse(input).expect("Parsing failed");
     let result = analyze_program(&ast);
@@ -540,7 +540,7 @@ fn test_codegen_full_example() {
             show τῷ self· selfου ξ λέγε.
         }.
         π νέον Point πέντε τρία ἔστω.
-        που show.
+        show π.
     "#;
     let code = compile(source);
 
@@ -644,8 +644,8 @@ fn test_call_both_trait_methods_on_same_type() {
             beta τῷ self· selfου ν λέγε.
         }.
         ω νέον Widget πέντε ἔστω.
-        ωου alpha.
-        ωου beta.
+        alpha ω.
+        beta ω.
     "#;
 
     let code = compile(source);

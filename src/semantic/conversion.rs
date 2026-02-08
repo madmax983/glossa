@@ -111,7 +111,7 @@ pub fn classify_assembled_statement(
         return Ok(res);
     }
 
-    classify_expression(asm_stmt, scope)
+    classify_expression(asm_stmt)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -910,30 +910,20 @@ fn classify_query(
 /// Helper: Default expression
 fn classify_expression(
     asm_stmt: &AssembledStatement,
-    scope: &Scope,
 ) -> Result<(StatementKind, Vec<AnalyzedExpr>), GlossaError> {
-    match extract_value(asm_stmt, scope) {
-        Ok((expr, _)) => {
-            let final_expr = if asm_stmt.is_propagate {
-                AnalyzedExpr {
-                    glossa_type: expr.glossa_type.clone(),
-                    expr: AnalyzedExprKind::Try(Box::new(expr)),
-                }
-            } else {
-                expr
-            };
-            Ok((StatementKind::Expression, vec![final_expr]))
-        }
-        Err(_) => {
-            // Check if there is anything in the statement that was ignored
-            if asm_stmt.has_content() {
-                return Err(GlossaError::semantic(
-                    "Ἀκατάληπτος φράσις (Unintelligible statement): Missing verb or invalid syntax.",
-                ));
-            }
-            Ok((StatementKind::Expression, vec![]))
-        }
+    let mut exprs =
+        build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
+
+    if asm_stmt.is_propagate && !exprs.is_empty() {
+        let last_expr = exprs.pop().unwrap();
+        let try_expr = AnalyzedExpr {
+            glossa_type: last_expr.glossa_type.clone(),
+            expr: AnalyzedExprKind::Try(Box::new(last_expr)),
+        };
+        exprs.push(try_expr);
     }
+
+    Ok((StatementKind::Expression, exprs))
 }
 
 /// Helper: Common logic for genitive method call parsing
@@ -1317,25 +1307,12 @@ pub fn extract_value(
         ));
     }
 
-    // Fallback: use subject as variable if present
-    if let Some(ref subj) = asm_stmt.subject {
-        let subj_lemma = normalize_greek(&subj.lemma);
-        let var_type = scope
-            .lookup(&subj_lemma)
-            .cloned()
-            .unwrap_or(GlossaType::Unknown);
-
-        return Ok((
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj_lemma),
-                glossa_type: var_type.clone(),
-            },
-            var_type,
-        ));
-    }
-
     // Default
-    Err(GlossaError::semantic(
-        "Unable to extract value from statement",
+    Ok((
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(0),
+            glossa_type: GlossaType::Number,
+        },
+        GlossaType::Number,
     ))
 }
