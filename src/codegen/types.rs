@@ -90,13 +90,9 @@ mod tests {
             gender: crate::morphology::Gender::Masculine,
             fields: vec![],
         };
-        // Sanitize: χρηστης -> _u3c7_rhsths (Chi hex encoded, Eta -> h)
-        // Capitalize: _u3c7_rhsths (underscore remains underscore? No, capitalize capitalizes first char)
-        // _u... starts with _. _ is not uppercasable.
-        // Wait, capitalize logic:
-        // match chars.next() { Some(first) => first.to_uppercase() ... }
-        // '_' to_uppercase is '_'.
-        assert_eq!(to_rust_type(&ty), "_u3c7_rhsths");
+        // Sanitize: χρηστης -> g__u3c7_rhsths
+        // Capitalize: g__u3c7_rhsths -> G__u3c7_rhsths
+        assert_eq!(to_rust_type(&ty), "G__u3c7_rhsths");
     }
 
     #[test]

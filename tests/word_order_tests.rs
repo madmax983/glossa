@@ -23,7 +23,7 @@ fn test_binding_word_order_independence() {
     let sov = compile_to_rust("ξ πέντε ἔστω.");
 
     // These should all produce equivalent output
-    assert!(sov.contains("let x"));
+    assert!(sov.contains("let g_x"));
     assert!(sov.contains("5i64") || sov.contains("5 "));
 }
 
@@ -44,7 +44,7 @@ fn test_variable_binding_and_reference() {
     let output = compile_to_rust(source);
 
     // Should have binding
-    assert!(output.contains("let x"));
+    assert!(output.contains("let g_x"));
     // Should have print
     assert!(output.contains("println"));
 }
@@ -54,12 +54,12 @@ fn test_variable_binding_and_reference() {
 fn test_number_binding_variations() {
     // Arabic numeral
     let arabic = compile_to_rust("ξ 42 ἔστω.");
-    assert!(arabic.contains("let x"));
+    assert!(arabic.contains("let g_x"));
     assert!(arabic.contains("42"));
 
     // Greek numeral word
     let greek_word = compile_to_rust("ξ πέντε ἔστω.");
-    assert!(greek_word.contains("let x"));
+    assert!(greek_word.contains("let g_x"));
     assert!(greek_word.contains("5"));
 }
 
@@ -104,8 +104,8 @@ fn test_multiple_statement_scope() {
     let output = compile_to_rust(source);
 
     // Both bindings should exist
-    assert!(output.contains("let a"));
-    assert!(output.contains("let b"));
+    assert!(output.contains("let g_a"));
+    assert!(output.contains("let g_b"));
 }
 
 /// Test that queries produce output

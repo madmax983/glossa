@@ -49,3 +49,15 @@
 **Defense:** Removed special single-letter mapping in `sanitize_name` and enforced strict transliteration in `transliterate`. `σ` now maps to `s`, while `σίγμα` maps to `sigma`. `ψ` maps to `_u3c8_` (hex encoded) to avoid collision with `ps`.
 
 **Severity:** Medium (Logic Bug).
+
+## 2026-06-03 - Rust Keyword Collision & Namespace Pollution
+
+**Threat:**
+1. **Keyword Collision:** User identifiers like `if` or `fn` (valid in Glossa/ASCII) transliterated directly to Rust keywords, causing compilation errors.
+2. **Namespace Pollution:** User methods named `len` or `push` could shadow standard library methods, breaking generated code for standard types like `Vec`.
+
+**Defense:**
+1. **Namespace Isolation:** Modified `sanitize_name` to prefix ALL user-defined identifiers with `g_`.
+2. **Std Lib Preservation:** Implemented `is_std_method` and `is_std_type` allowlists in code generation to detect calls to standard library methods and preserve their original names (e.g. `len`) instead of prefixing them.
+
+**Severity:** Medium (Logic Bug / Compilation Failure).

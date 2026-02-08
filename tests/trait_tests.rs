@@ -437,13 +437,13 @@ fn test_codegen_trait_definition() {
     let source = "χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.";
     let code = compile(source);
     assert!(
-        code.contains("trait Showable"),
+        code.contains("trait G_showable"),
         "Should generate trait keyword: {}",
         code
     );
     // quote! adds spaces, so check for "& self" with possible spaces
     assert!(
-        code.contains("fn show") && code.contains("& self"),
+        code.contains("fn g_show") && code.contains("& self"),
         "Should generate method signature: {}",
         code
     );
@@ -460,12 +460,12 @@ fn test_codegen_trait_impl() {
     "#;
     let code = compile(source);
     assert!(
-        code.contains("impl Showable for Point"),
+        code.contains("impl G_showable for G_point"),
         "Should generate impl block: {}",
         code
     );
     assert!(
-        code.contains("fn show") && code.contains("& self"),
+        code.contains("fn g_show") && code.contains("& self"),
         "Should generate impl method: {}",
         code
     );
@@ -481,23 +481,23 @@ fn test_codegen_trait_with_default() {
     "#;
     let code = compile(source);
     assert!(
-        code.contains("trait Math"),
+        code.contains("trait G_math"),
         "Should generate trait: {}",
         code
     );
     assert!(
-        code.contains("fn value") && code.contains("& self"),
+        code.contains("fn g_value") && code.contains("& self"),
         "Should have required method: {}",
         code
     );
     assert!(
-        code.contains("fn double") && code.contains("& self"),
+        code.contains("fn g_double") && code.contains("& self"),
         "Should have default method: {}",
         code
     );
     // Default method should have a body
     assert!(
-        code.contains("double") && code.contains("& self") && code.contains("{"),
+        code.contains("g_double") && code.contains("& self") && code.contains("{"),
         "Default method should have body: {}",
         code
     );
@@ -519,12 +519,12 @@ fn test_codegen_trait_method_call_genitive() {
     // Using genitive pattern (που), this creates a property access which becomes a method call
     // The print statement should show the method call
     assert!(
-        code.contains("trait Showable"),
+        code.contains("trait G_showable"),
         "Should have trait: {}",
         code
     );
     assert!(
-        code.contains("impl Showable for Point"),
+        code.contains("impl G_showable for G_point"),
         "Should have impl: {}",
         code
     );
@@ -546,19 +546,19 @@ fn test_codegen_full_example() {
 
     // Check for trait definition
     assert!(
-        code.contains("trait Showable"),
+        code.contains("trait G_showable"),
         "Missing trait definition: {}",
         code
     );
     // Check for struct definition
     assert!(
-        code.contains("struct Point"),
+        code.contains("struct G_point"),
         "Missing struct definition: {}",
         code
     );
     // Check for impl block
     assert!(
-        code.contains("impl Showable for Point"),
+        code.contains("impl G_showable for G_point"),
         "Missing impl block: {}",
         code
     );
@@ -582,7 +582,7 @@ fn test_standalone_method_call() {
     let code = compile(source);
 
     // Should contain the method call
-    assert!(code.contains("p . show") || code.contains("p.show"));
+    assert!(code.contains("g_p . g_show") || code.contains("g_p.g_show"));
 }
 
 // ============================================================================
@@ -606,8 +606,8 @@ fn test_type_implements_multiple_traits() {
 
     let code = compile(source);
     // Should have impl blocks for both traits
-    assert!(code.contains("impl Showable for Point"));
-    assert!(code.contains("impl Printable for Point"));
+    assert!(code.contains("impl G_showable for G_point"));
+    assert!(code.contains("impl G_printable for G_point"));
 }
 
 #[test]
@@ -625,7 +625,7 @@ fn test_override_default_method() {
 
     let code = compile(source);
     // The impl should contain the overridden method
-    assert!(code.contains("impl Describable for Thing"));
+    assert!(code.contains("impl G_describable for G_thing"));
     // The impl body should have the custom implementation
     assert!(code.contains("custom") || code.contains("\"custom\""));
 }
@@ -650,7 +650,7 @@ fn test_call_both_trait_methods_on_same_type() {
 
     let code = compile(source);
     // Should have calls to both methods
-    assert!(code.contains("alpha") && code.contains("beta"));
+    assert!(code.contains("g_alpha") && code.contains("g_beta"));
 }
 
 #[test]
@@ -670,8 +670,8 @@ fn test_multiple_types_implement_same_trait() {
 
     let code = compile(source);
     // Should have impl blocks for both types
-    assert!(code.contains("impl Countable for Foo"));
-    assert!(code.contains("impl Countable for Bar"));
+    assert!(code.contains("impl G_countable for G_foo"));
+    assert!(code.contains("impl G_countable for G_bar"));
 }
 
 #[test]
