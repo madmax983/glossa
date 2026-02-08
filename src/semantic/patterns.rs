@@ -418,8 +418,7 @@ pub fn detect_iterator_pattern(
     }
 
     // Handle any/all operations with explicit operators (comparatives stored as operators)
-    let is_any_all =
-        process_explicit_quantifiers(asm_stmt, &flags, &mut current_expr);
+    let is_any_all = process_explicit_quantifiers(asm_stmt, &flags, &mut current_expr);
     if is_any_all {
         return Ok(Some(current_expr));
     }
@@ -786,10 +785,7 @@ fn process_explicit_quantifiers(
 }
 
 /// Helper: Process find operations
-fn process_find(
-    asm_stmt: &AssembledStatement,
-    current_expr: &mut AnalyzedExpr,
-) {
+fn process_find(asm_stmt: &AssembledStatement, current_expr: &mut AnalyzedExpr) {
     // Find operation: .iter().find(predicate)
     let mut found_predicate = false;
 
