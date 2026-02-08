@@ -390,7 +390,7 @@ fn classify_assignment(
                         &var_name,
                     )));
                 }
-                Some(b) => {
+                Some(_b) => {
                     let has_value = !asm_stmt.literals.is_empty()
                         || asm_stmt.object.is_some()
                         || !asm_stmt.arrays.is_empty()
