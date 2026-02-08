@@ -894,6 +894,7 @@ impl Assembler {
     }
 
     /// Helper to create a string method call if conditions are met
+    #[allow(clippy::collapsible_if)]
     fn try_create_string_method(&mut self, method_name: &str) -> bool {
         if self.has_delimiter_preposition
             && matches!(self.pending_literals.last(), Some(Literal::String(_)))
@@ -917,17 +918,17 @@ impl Assembler {
     /// Check for method verbs (split, join)
     fn check_method_verbs(&mut self, normalized: &str) -> bool {
         // Check for split verb
-        if crate::morphology::lexicon::is_split_verb(normalized) {
-            if self.try_create_string_method("split") {
-                return true;
-            }
+        if crate::morphology::lexicon::is_split_verb(normalized)
+            && self.try_create_string_method("split")
+        {
+            return true;
         }
 
         // Check for join verb
-        if crate::morphology::lexicon::is_join_verb(normalized) {
-            if self.try_create_string_method("join") {
-                return true;
-            }
+        if crate::morphology::lexicon::is_join_verb(normalized)
+            && self.try_create_string_method("join")
+        {
+            return true;
         }
 
         false
