@@ -437,28 +437,7 @@ impl Assembler {
     /// This is typically called automatically by `finalize()`, but can be
     /// called manually to discard a partial statement.
     fn reset(&mut self) {
-        self.pending_subject = None;
-        self.pending_nominatives.clear();
-        self.pending_object = None;
-        self.pending_indirect = None;
-        self.pending_verb = None;
-        self.pending_genitives.clear();
-        self.pending_adjectives.clear();
-        self.pending_literals.clear();
-        self.pending_arrays.clear();
-        self.pending_index_accesses.clear();
-        self.pending_property_accesses.clear();
-        self.pending_operators.clear();
-        self.pending_blocks.clear();
-        self.pending_nested_phrases.clear();
-        self.pending_participles.clear();
-        self.pending_unwraps.clear();
-        self.pending_mutable_marker = false;
-        self.has_containment_preposition = false;
-        self.has_delimiter_preposition = false;
-        self.pending_string_method = None;
-        self.is_query = false;
-        self.is_propagate = false;
+        *self = Self::new();
     }
 
     /// Mark this statement as a query
@@ -858,35 +837,7 @@ impl Assembler {
 
         // Check subject-verb agreement if both present
         if let (Some(subject), Some(verb)) = (&self.pending_subject, &self.pending_verb) {
-            // In Greek, 3rd person subjects agree with 3rd person verbs
-            // 1st/2nd person verbs often don't have explicit subjects (pro-drop)
-            if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number)
-                && let Some(subj_number) = subject.number
-            {
-                // Determine subject person (default to 3rd for nouns if not specified)
-                let subj_person = subject.person.unwrap_or(Person::Third);
-
-                // Check person agreement
-                // Exception: Allow Imperative verbs to disagree (e.g. "User, print!" uses 2nd person verb with 3rd person subject)
-                let is_imperative = verb.mood == Some(Mood::Imperative);
-                if !is_imperative && subj_person != verb_person {
-                    return Err(AssemblyError::SubjectVerbDisagreement {
-                        subject: (Some(subj_person), Some(subj_number)),
-                        verb: (Some(verb_person), Some(verb_number)),
-                    });
-                }
-
-                // Special rule: Neuter plural nouns take singular verbs in Greek!
-                let is_neuter_plural =
-                    subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
-
-                if !is_neuter_plural && subj_number != verb_number {
-                    return Err(AssemblyError::SubjectVerbDisagreement {
-                        subject: (Some(subj_person), Some(subj_number)),
-                        verb: (Some(verb_person), Some(verb_number)),
-                    });
-                }
-            }
+            self.check_agreement(subject, verb)?;
         }
 
         // Assemble the statement
@@ -942,53 +893,40 @@ impl Assembler {
         false
     }
 
+    /// Helper to create a string method call if conditions are met
+    fn try_create_string_method(&mut self, method_name: &str) -> bool {
+        if self.has_delimiter_preposition
+            && matches!(self.pending_literals.last(), Some(Literal::String(_)))
+        {
+            if let Some(ref subj) = self.pending_subject {
+                let delim = match self.pending_literals.pop() {
+                    Some(Literal::String(s)) => s,
+                    _ => unreachable!(),
+                };
+
+                let normalized_original = normalize_greek(&subj.original);
+                self.pending_string_method = Some((method_name.to_string(), delim));
+                self.pending_property_accesses
+                    .push((normalized_original.to_string(), method_name.to_string()));
+                return true;
+            }
+        }
+        false
+    }
+
     /// Check for method verbs (split, join)
     fn check_method_verbs(&mut self, normalized: &str) -> bool {
         // Check for split verb
         if crate::morphology::lexicon::is_split_verb(normalized) {
-            // If we have a delimiter, create a split method
-            #[allow(clippy::collapsible_if)]
-            if self.has_delimiter_preposition
-                && matches!(self.pending_literals.last(), Some(Literal::String(_)))
-            {
-                if let Some(ref subj) = self.pending_subject {
-                    // Safe to unwrap here because of the checks above
-                    let delim = match self.pending_literals.pop() {
-                        Some(Literal::String(s)) => s,
-                        _ => unreachable!(),
-                    };
-
-                    let normalized_original = normalize_greek(&subj.original);
-                    self.pending_string_method = Some(("split".to_string(), delim));
-                    // Push back a property access for the split result
-                    self.pending_property_accesses
-                        .push((normalized_original.to_string(), "split".to_string()));
-                    return true;
-                }
+            if self.try_create_string_method("split") {
+                return true;
             }
         }
 
         // Check for join verb
         if crate::morphology::lexicon::is_join_verb(normalized) {
-            // If we have a delimiter, create a join method
-            #[allow(clippy::collapsible_if)]
-            if self.has_delimiter_preposition
-                && matches!(self.pending_literals.last(), Some(Literal::String(_)))
-            {
-                if let Some(ref subj) = self.pending_subject {
-                    // Safe to unwrap here because of the checks above
-                    let delim = match self.pending_literals.pop() {
-                        Some(Literal::String(s)) => s,
-                        _ => unreachable!(),
-                    };
-
-                    let normalized_original = normalize_greek(&subj.original);
-                    self.pending_string_method = Some(("join".to_string(), delim));
-                    // Push back a property access for the join result
-                    self.pending_property_accesses
-                        .push((normalized_original.to_string(), "join".to_string()));
-                    return true;
-                }
+            if self.try_create_string_method("join") {
+                return true;
             }
         }
 
