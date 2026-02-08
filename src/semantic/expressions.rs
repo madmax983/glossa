@@ -423,10 +423,6 @@ fn feed_expr_recursive(
                     }
                     Err(e) => {
                         // If it's a conflict error (DoubleSubject, DoubleObject, Agreement), try next
-                        // Otherwise (StatementTooLong), fail immediately
-                        if matches!(e, crate::semantic::AssemblyError::StatementTooLong { .. }) {
-                            return Err(GlossaError::semantic(e.to_string()));
-                        }
                         last_error = Some(e);
                     }
                 }

@@ -500,18 +500,6 @@ pub fn analyze_participle(word: &str) -> Option<ParticipleAnalysis> {
                 continue;
             }
 
-            // For perfect participles, check for reduplication
-            // (This is a heuristic - perfect stems often start with repeated consonant)
-            let confidence = if pattern.tense == Tense::Perfect {
-                if has_reduplication(stem) {
-                    0.85
-                } else {
-                    0.65 // Lower confidence without reduplication
-                }
-            } else {
-                0.80
-            };
-
             return Some(ParticipleAnalysis {
                 stem: stem.to_string(),
                 tense: pattern.tense,
@@ -519,52 +507,12 @@ pub fn analyze_participle(word: &str) -> Option<ParticipleAnalysis> {
                 case: pattern.case,
                 gender: pattern.gender,
                 number: pattern.number,
-                confidence,
+                confidence: 0.9,
             });
         }
     }
 
     None
-}
-
-/// Check if a stem shows signs of reduplication (perfect tense marker)
-///
-/// Greek perfect stems often have reduplication:
-/// - γεγραφ- (γραφω)
-/// - λελυκ- (λυω)
-/// - πεπαυκ- (παυω)
-fn has_reduplication(stem: &str) -> bool {
-    if stem.len() < 2 {
-        return false;
-    }
-
-    let chars: Vec<char> = stem.chars().collect();
-
-    // Check for simple reduplication: first two letters are identical or similar
-    // γε-γραφ, λε-λυκ, πε-παυκ
-    if chars.len() >= 4 {
-        let first = chars[0];
-        let second = chars[1];
-        let third = chars[2];
-
-        // Perfect reduplication patterns:
-        // 1. Consonant + ε + same consonant (γε-γ, λε-λ, πε-π)
-        if second == 'ε' && first == third {
-            return true;
-        }
-
-        // 2. Simple vowel reduplication (ἠ-ακ from ἀκουω)
-        if first == second && is_greek_vowel(first) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if a character is a Greek vowel
-fn is_greek_vowel(c: char) -> bool {
-    matches!(c, 'α' | 'ε' | 'η' | 'ι' | 'ο' | 'υ' | 'ω')
 }
 
 #[cfg(test)]
@@ -642,14 +590,5 @@ mod tests {
     fn test_verb_lemma() {
         let p = analyze_participle("γραφων").unwrap();
         assert_eq!(p.verb_lemma(), "γραφω");
-    }
-
-    #[test]
-    fn test_reduplication_detection() {
-        assert!(has_reduplication("γεγραφ"));
-        assert!(has_reduplication("λελυκ"));
-        assert!(has_reduplication("πεπαυκ"));
-        assert!(!has_reduplication("γραφ"));
-        assert!(!has_reduplication("λυ"));
     }
 }
