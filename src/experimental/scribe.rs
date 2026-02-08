@@ -547,4 +547,67 @@ mod tests {
         let scribe = Scribe::default();
         assert_eq!(scribe.indent_level, 0);
     }
+
+    #[test]
+    fn test_describe_fallback() {
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Break,
+            expressions: vec![],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Perform a statement of kind: Break"));
+    }
+
+    #[test]
+    fn test_describe_match_fallback() {
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Match {
+                scrutinee: Box::new(simple_expr(AnalyzedExprKind::NumberLiteral(1))),
+                arms: vec![],
+            },
+            expressions: vec![],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Perform a statement of kind: Match"));
+    }
+
+    #[test]
+    fn test_describe_type_definition() {
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::TypeDefinition {
+                name: SmolStr::new("MyType"),
+                fields: vec![],
+            },
+            expressions: vec![],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Perform a statement of kind: TypeDefinition"));
+    }
+
+    #[test]
+    fn test_describe_return() {
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Return { value: None },
+            expressions: vec![],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Perform a statement of kind: Return"));
+    }
+
+    #[test]
+    fn test_describe_unknown_expr() {
+        // We use ArrayLiteral as a proxy for "complex expression" fallback in describe_expr_inline
+        // since it's not explicitly matched in the current implementation
+        let stmt = AnalyzedStatement {
+            kind: StatementKind::Expression,
+            expressions: vec![simple_expr(AnalyzedExprKind::ArrayLiteral(vec![]))],
+        };
+
+        let desc = describe_program(&create_program(vec![stmt]));
+        assert!(desc.contains("Evaluate: complex expression."));
+    }
 }
