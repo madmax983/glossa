@@ -210,12 +210,30 @@ fn classify_function_call(
             }
 
             if func_name.is_none() {
+                // Also check adjectives (in case function name was misidentified)
+                for adj in &asm_stmt.adjectives {
+                    if scope.is_function(&adj.lemma) {
+                        func_name = Some(adj.lemma.clone());
+                        break;
+                    }
+                }
+            }
+
+            if func_name.is_none() {
                 for genitive in &asm_stmt.genitives {
                     if scope.is_function(&genitive.lemma) {
                         func_name = Some(genitive.lemma.clone());
                         break;
                     }
                 }
+            }
+
+            if func_name.is_none() {
+                // Debugging: why didn't we find the function?
+                // Check if any word is a function but missed (e.g. wrong lemma)
+                // This is helpful if we have "Binding without subject" or "Multiple literals" error later
+                // because function call failed.
+                // We can't print easily here without spamming, but we can verify logic.
             }
 
             // If we found a function name, build the call
@@ -1058,8 +1076,26 @@ pub fn extract_value(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<(AnalyzedExpr, GlossaType), GlossaError> {
+    // Helper to count competing value sources
+    // Returns the number of active sources found in the statement (excluding current one if needed)
+    let count_other_sources = |ignore_literals: bool, ignore_object: bool| -> usize {
+        (!asm_stmt.unwraps.is_empty()) as usize
+            + (!asm_stmt.arrays.is_empty()) as usize
+            + (!asm_stmt.index_accesses.is_empty()) as usize
+            + (!asm_stmt.property_accesses.is_empty()) as usize
+            + (!ignore_literals && !asm_stmt.literals.is_empty()) as usize
+            + (!ignore_object && asm_stmt.object.is_some()) as usize
+    };
+
     // Check for unwrap expressions first
     if !asm_stmt.unwraps.is_empty() {
+        if asm_stmt.unwraps.len() > 1 {
+            return Err(GlossaError::semantic("Πολλαπλαὶ τιμὲς (unwraps) — διάλεξε μίαν"));
+        }
+        // Unwraps is counted in sources, so check if count > 1
+        if count_other_sources(false, false) > 1 {
+            return Err(GlossaError::semantic("Ἀσάφεια: Unwrap καὶ ἄλλες τιμές"));
+        }
         let inner_analyzed = analyze_argument_expr(&asm_stmt.unwraps[0], scope)?;
         return Ok((
             AnalyzedExpr {
@@ -1070,27 +1106,55 @@ pub fn extract_value(
         ));
     }
 
-    // Check subject for Option/Result words
+    // Check subject for Option/Result words (consumes 1 literal if Some/Ok/Err)
     if let Some(ref subj) = asm_stmt.subject
         && let Some(result) = detect_enum_variant(subj, &asm_stmt.literals)
     {
+        // If Enum consumed a literal, we check if there are LEFTOVER literals or other data
+        // detect_enum_variant checks literals.first().
+        // If literals.len() > 1, that's ambiguous.
+        if !asm_stmt.literals.is_empty() && asm_stmt.literals.len() > 1 {
+            return Err(GlossaError::semantic("Ἀσάφεια: Περισσευούμενα δεδομένα (literals)"));
+        }
+        // Subject is NOT counted in sources, so check if count > 0
+        if count_other_sources(true, false) > 0 {
+            return Err(GlossaError::semantic("Ἀσάφεια: Enum καὶ ἄλλες τιμές"));
+        }
         return Ok(result);
     }
 
     // Check for genitive method call (Subject of Genitive)
     if let Some(result) = try_parse_genitive_method_call(asm_stmt, scope) {
+        // Genitive/Method is NOT counted in sources, so check if count > 0
+        if count_other_sources(true, false) > 0 { // genitive uses literals for args
+             return Err(GlossaError::semantic("Ἀσάφεια: Μέθοδος καὶ ἄλλες τιμές"));
+        }
         return Ok(result);
     }
 
     // Check nominatives for Option/Result words
     for nom in &asm_stmt.nominatives {
         if let Some(result) = detect_enum_variant(nom, &asm_stmt.literals) {
+            if !asm_stmt.literals.is_empty() && asm_stmt.literals.len() > 1 {
+                return Err(GlossaError::semantic("Ἀσάφεια: Περισσευούμενα δεδομένα (literals)"));
+            }
+            // Nominative is NOT counted in sources, so check if count > 0
+            if count_other_sources(true, false) > 0 {
+                return Err(GlossaError::semantic("Ἀσάφεια: Enum καὶ ἄλλες τιμές"));
+            }
             return Ok(result);
         }
     }
 
     // If we have property accesses, use the first one
     if let Some((owner, method)) = asm_stmt.property_accesses.first() {
+        if asm_stmt.property_accesses.len() > 1 {
+            return Err(GlossaError::semantic("Πολλαπλαὶ τιμὲς (property access) — διάλεξε μίαν"));
+        }
+        // Property access is counted, so check if count > 1
+        if count_other_sources(false, false) > 1 {
+            return Err(GlossaError::semantic("Ἀσάφεια: Property καὶ ἄλλες τιμές"));
+        }
         let receiver = AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(owner.clone().into()),
             glossa_type: GlossaType::Unknown,
@@ -1110,6 +1174,13 @@ pub fn extract_value(
 
     // If we have index accesses, use the first one
     if let Some((array_expr, index_expr)) = asm_stmt.index_accesses.first() {
+        if asm_stmt.index_accesses.len() > 1 {
+            return Err(GlossaError::semantic("Πολλαπλαὶ τιμὲς (index access) — διάλεξε μίαν"));
+        }
+        // Index access is counted, so check if count > 1
+        if count_other_sources(false, false) > 1 {
+            return Err(GlossaError::semantic("Ἀσάφεια: Index access καὶ ἄλλες τιμές"));
+        }
         let array_analyzed = analyze_argument_expr(array_expr, scope)?;
         let index_analyzed = analyze_argument_expr(index_expr, scope)?;
         return Ok((
@@ -1126,6 +1197,14 @@ pub fn extract_value(
 
     // If we have arrays, use the first array
     if let Some(array_elements) = asm_stmt.arrays.first() {
+        if asm_stmt.arrays.len() > 1 {
+            return Err(GlossaError::semantic("Πολλαπλαὶ λίστες — διάλεξε μίαν"));
+        }
+        // Array is counted, so check if count > 1
+        if count_other_sources(false, false) > 1 {
+            return Err(GlossaError::semantic("Ἀσάφεια: Λίστα καὶ ἄλλες τιμές"));
+        }
+
         let mut analyzed_elements = Vec::with_capacity(array_elements.len());
         for e in array_elements {
             analyzed_elements.push(analyze_argument_expr(e, scope)?);
@@ -1146,8 +1225,16 @@ pub fn extract_value(
 
     // If we have operators, build a binary expression
     if !asm_stmt.operators.is_empty() {
+        // Binary expr combines object/literals.
+        // We shouldn't have arrays/unwraps etc (already checked above).
+
         // Check if we can build from literals alone (2+ literals)
         if asm_stmt.literals.len() >= 2 {
+            // Ensure no object if we are using literals only
+            if asm_stmt.object.is_some() {
+                 return Err(GlossaError::semantic("Ἀσάφεια: Binary expression (literals) καὶ Object"));
+            }
+
             let exprs =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
             if let Some(expr) = exprs.into_iter().next() {
@@ -1161,6 +1248,12 @@ pub fn extract_value(
             && !asm_stmt.literals.is_empty()
         {
             // Build: object op literal
+            // Check for ambiguity: if multiple literals, verify they match operators count?
+            // build_binary_expr uses 1 literal.
+            if asm_stmt.literals.len() > 1 {
+                 return Err(GlossaError::semantic("Ἀσάφεια: Binary expression (obj+lit) ἀλλὰ πολλὰ literals"));
+            }
+
             let left = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown, // Will be inferred
@@ -1175,6 +1268,12 @@ pub fn extract_value(
 
     // Prefer literals (single value, no operators)
     if let Some(lit) = asm_stmt.literals.first() {
+        if asm_stmt.literals.len() > 1 {
+            return Err(GlossaError::semantic("Πολλαπλαὶ τιμὲς (literals) — διάλεξε μίαν"));
+        }
+        if asm_stmt.object.is_some() {
+            return Err(GlossaError::semantic("Ἀσάφεια: Literal καὶ Object"));
+        }
         return Ok((literal_to_analyzed_expr(lit), literal_to_type(lit)));
     }
 

@@ -639,12 +639,16 @@ mod tests {
         let mut context = ReplContext::new();
 
         // Add max bindings
-        for i in 0..MAX_REPL_BINDINGS {
-            context.execute(&format!("ξ{} πέντε ἔστω.", i)).unwrap();
+        for _ in 0..MAX_REPL_BINDINGS {
+            // Use a valid Greek variable name that parses as Subject (Nominative).
+            // We can reuse the same name because shadowing is allowed, and we only care
+            // about the number of statements in the REPL history.
+            context.execute("ξ πέντε ἔστω.").unwrap();
         }
 
         // Add one more (this puts us over the limit of 50 -> 51)
         // The check is `> 50`, so 50 is allowed, 51 triggers error on NEXT call
+        // Use a different name to avoid collision
         context.execute("υπερβολή πέντε ἔστω.").unwrap();
 
         // This one should be blocked
