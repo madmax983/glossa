@@ -14,7 +14,10 @@ fn test_multiple_arrays_binding() {
     let ast = parse(source).expect("Failed to parse");
     let result = analyze_program(&ast);
     if result.is_ok() {
-        println!("test_multiple_arrays_binding: Unexpected success: {:?}", result);
+        println!(
+            "test_multiple_arrays_binding: Unexpected success: {:?}",
+            result
+        );
     } else {
         println!("test_multiple_arrays_binding: Expected error: {:?}", result);
     }
@@ -31,9 +34,15 @@ fn test_multiple_literals_binding() {
     let ast = parse(source).expect("Failed to parse");
     let result = analyze_program(&ast);
     if result.is_ok() {
-        println!("test_multiple_literals_binding: Unexpected success: {:?}", result);
+        println!(
+            "test_multiple_literals_binding: Unexpected success: {:?}",
+            result
+        );
     } else {
-        println!("test_multiple_literals_binding: Expected error: {:?}", result);
+        println!(
+            "test_multiple_literals_binding: Expected error: {:?}",
+            result
+        );
     }
     assert!(
         result.is_err(),

@@ -1090,7 +1090,9 @@ pub fn extract_value(
     // Check for unwrap expressions first
     if !asm_stmt.unwraps.is_empty() {
         if asm_stmt.unwraps.len() > 1 {
-            return Err(GlossaError::semantic("Πολλαπλαὶ τιμὲς (unwraps) — διάλεξε μίαν"));
+            return Err(GlossaError::semantic(
+                "Πολλαπλαὶ τιμὲς (unwraps) — διάλεξε μίαν",
+            ));
         }
         // Unwraps is counted in sources, so check if count > 1
         if count_other_sources(false, false) > 1 {
@@ -1114,7 +1116,9 @@ pub fn extract_value(
         // detect_enum_variant checks literals.first().
         // If literals.len() > 1, that's ambiguous.
         if !asm_stmt.literals.is_empty() && asm_stmt.literals.len() > 1 {
-            return Err(GlossaError::semantic("Ἀσάφεια: Περισσευούμενα δεδομένα (literals)"));
+            return Err(GlossaError::semantic(
+                "Ἀσάφεια: Περισσευούμενα δεδομένα (literals)",
+            ));
         }
         // Subject is NOT counted in sources, so check if count > 0
         if count_other_sources(true, false) > 0 {
@@ -1126,8 +1130,9 @@ pub fn extract_value(
     // Check for genitive method call (Subject of Genitive)
     if let Some(result) = try_parse_genitive_method_call(asm_stmt, scope) {
         // Genitive/Method is NOT counted in sources, so check if count > 0
-        if count_other_sources(true, false) > 0 { // genitive uses literals for args
-             return Err(GlossaError::semantic("Ἀσάφεια: Μέθοδος καὶ ἄλλες τιμές"));
+        if count_other_sources(true, false) > 0 {
+            // genitive uses literals for args
+            return Err(GlossaError::semantic("Ἀσάφεια: Μέθοδος καὶ ἄλλες τιμές"));
         }
         return Ok(result);
     }
@@ -1136,7 +1141,9 @@ pub fn extract_value(
     for nom in &asm_stmt.nominatives {
         if let Some(result) = detect_enum_variant(nom, &asm_stmt.literals) {
             if !asm_stmt.literals.is_empty() && asm_stmt.literals.len() > 1 {
-                return Err(GlossaError::semantic("Ἀσάφεια: Περισσευούμενα δεδομένα (literals)"));
+                return Err(GlossaError::semantic(
+                    "Ἀσάφεια: Περισσευούμενα δεδομένα (literals)",
+                ));
             }
             // Nominative is NOT counted in sources, so check if count > 0
             if count_other_sources(true, false) > 0 {
@@ -1149,7 +1156,9 @@ pub fn extract_value(
     // If we have property accesses, use the first one
     if let Some((owner, method)) = asm_stmt.property_accesses.first() {
         if asm_stmt.property_accesses.len() > 1 {
-            return Err(GlossaError::semantic("Πολλαπλαὶ τιμὲς (property access) — διάλεξε μίαν"));
+            return Err(GlossaError::semantic(
+                "Πολλαπλαὶ τιμὲς (property access) — διάλεξε μίαν",
+            ));
         }
         // Property access is counted, so check if count > 1
         if count_other_sources(false, false) > 1 {
@@ -1175,11 +1184,15 @@ pub fn extract_value(
     // If we have index accesses, use the first one
     if let Some((array_expr, index_expr)) = asm_stmt.index_accesses.first() {
         if asm_stmt.index_accesses.len() > 1 {
-            return Err(GlossaError::semantic("Πολλαπλαὶ τιμὲς (index access) — διάλεξε μίαν"));
+            return Err(GlossaError::semantic(
+                "Πολλαπλαὶ τιμὲς (index access) — διάλεξε μίαν",
+            ));
         }
         // Index access is counted, so check if count > 1
         if count_other_sources(false, false) > 1 {
-            return Err(GlossaError::semantic("Ἀσάφεια: Index access καὶ ἄλλες τιμές"));
+            return Err(GlossaError::semantic(
+                "Ἀσάφεια: Index access καὶ ἄλλες τιμές",
+            ));
         }
         let array_analyzed = analyze_argument_expr(array_expr, scope)?;
         let index_analyzed = analyze_argument_expr(index_expr, scope)?;
@@ -1232,7 +1245,9 @@ pub fn extract_value(
         if asm_stmt.literals.len() >= 2 {
             // Ensure no object if we are using literals only
             if asm_stmt.object.is_some() {
-                 return Err(GlossaError::semantic("Ἀσάφεια: Binary expression (literals) καὶ Object"));
+                return Err(GlossaError::semantic(
+                    "Ἀσάφεια: Binary expression (literals) καὶ Object",
+                ));
             }
 
             let exprs =
@@ -1251,7 +1266,9 @@ pub fn extract_value(
             // Check for ambiguity: if multiple literals, verify they match operators count?
             // build_binary_expr uses 1 literal.
             if asm_stmt.literals.len() > 1 {
-                 return Err(GlossaError::semantic("Ἀσάφεια: Binary expression (obj+lit) ἀλλὰ πολλὰ literals"));
+                return Err(GlossaError::semantic(
+                    "Ἀσάφεια: Binary expression (obj+lit) ἀλλὰ πολλὰ literals",
+                ));
             }
 
             let left = AnalyzedExpr {
@@ -1269,7 +1286,9 @@ pub fn extract_value(
     // Prefer literals (single value, no operators)
     if let Some(lit) = asm_stmt.literals.first() {
         if asm_stmt.literals.len() > 1 {
-            return Err(GlossaError::semantic("Πολλαπλαὶ τιμὲς (literals) — διάλεξε μίαν"));
+            return Err(GlossaError::semantic(
+                "Πολλαπλαὶ τιμὲς (literals) — διάλεξε μίαν",
+            ));
         }
         if asm_stmt.object.is_some() {
             return Err(GlossaError::semantic("Ἀσάφεια: Literal καὶ Object"));
