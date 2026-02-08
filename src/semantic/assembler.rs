@@ -191,15 +191,7 @@ impl Assembler {
             PartOfSpeech::Noun | PartOfSpeech::Pronoun => self.handle_nominal(analysis, original),
             PartOfSpeech::Adjective => self.handle_adjective(analysis, original),
             PartOfSpeech::Verb => self.handle_verb(analysis, original),
-            PartOfSpeech::Numeral => {
-                // Already handled above, but keep this for explicit numeral POS
-                self.handle_nominal(analysis, original)
-            }
-            PartOfSpeech::Conjunction => {
-                // Non-operator conjunctions are ignored for now
-                Ok(())
-            }
-            _ => Ok(()), // Ignore particles, articles for now
+            _ => Ok(()), // Ignore numerals (handled by properties), conjunctions (operators), particles, articles
         }
     }
 
