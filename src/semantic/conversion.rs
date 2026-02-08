@@ -960,8 +960,8 @@ fn classify_genitive_method_call(
 
 /// Helper: Detect Enum variant (None, Some, Ok, Err)
 fn detect_enum_variant(
-    word: &crate::semantic::assembler::Constituent,
-    literals: &[crate::semantic::assembler::Literal],
+    word: &crate::semantic::assembled::Constituent,
+    literals: &[crate::semantic::assembled::Literal],
 ) -> Option<(AnalyzedExpr, GlossaType)> {
     let lemma = normalize_greek(&word.lemma);
     let original = normalize_greek(&word.original);
