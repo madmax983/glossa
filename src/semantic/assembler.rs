@@ -97,7 +97,7 @@ use crate::ast::{Expr, Word};
 pub use crate::errors::assembly::AssemblyError;
 use crate::morphology::lexicon::BinaryOp;
 use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person};
-pub use crate::semantic::assembled::{
+use crate::semantic::assembled::{
     AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
 use crate::text::normalize_greek;
@@ -119,7 +119,40 @@ use crate::text::normalize_greek;
 /// This allows tokens to arrive in any order (Subject-Verb-Object, Verb-Object-Subject, etc.)
 /// and still fill the correct semantic roles.
 pub struct Assembler {
-    state: AssembledStatement,
+    /// Slot for the subject (Nominative case)
+    pending_subject: Option<Constituent>,
+    /// Storage for extra nominatives (e.g. predicate nominatives)
+    pending_nominatives: Vec<Constituent>,
+    /// Slot for the direct object (Accusative case)
+    pending_object: Option<Constituent>,
+    /// Slot for the indirect object (Dative case)
+    pending_indirect: Option<Constituent>,
+    /// Slot for the main verb
+    pending_verb: Option<VerbConstituent>,
+    /// Accumulated genitives (possessors)
+    pending_genitives: Vec<Constituent>,
+    /// Accumulated adjectives
+    pending_adjectives: Vec<Constituent>,
+    /// Accumulated literals (numbers, strings)
+    pending_literals: Vec<Literal>,
+    /// Accumulated array literals
+    pending_arrays: Vec<Vec<Expr>>,
+    pending_index_accesses: Vec<(Expr, Expr)>,
+    pending_property_accesses: Vec<(String, String)>,
+    pending_operators: Vec<BinaryOp>,
+    pending_blocks: Vec<Vec<crate::ast::Statement>>,
+    pending_nested_phrases: Vec<Vec<Expr>>,
+    pending_participles: Vec<ParticipleConstituent>,
+    pending_unwraps: Vec<Expr>,
+    pending_mutable_marker: bool,
+    /// Track containment preposition (ἐν) for contains patterns
+    has_containment_preposition: bool,
+    /// Track delimiter preposition (κατά) for split/join patterns
+    has_delimiter_preposition: bool,
+    /// Track split/join method call: (method_name, delimiter)
+    pending_string_method: Option<(String, String)>,
+    is_query: bool,
+    is_propagate: bool,
 }
 
 impl Assembler {
@@ -134,18 +167,69 @@ impl Assembler {
     /// ```
     pub fn new() -> Self {
         Assembler {
-            state: AssembledStatement::default(),
+            pending_subject: None,
+            pending_nominatives: Vec::new(),
+            pending_object: None,
+            pending_indirect: None,
+            pending_verb: None,
+            pending_genitives: Vec::new(),
+            pending_adjectives: Vec::new(),
+            pending_literals: Vec::new(),
+            pending_arrays: Vec::new(),
+            pending_index_accesses: Vec::new(),
+            pending_property_accesses: Vec::new(),
+            pending_operators: Vec::new(),
+            pending_blocks: Vec::new(),
+            pending_nested_phrases: Vec::new(),
+            pending_participles: Vec::new(),
+            pending_unwraps: Vec::new(),
+            pending_mutable_marker: false,
+            has_containment_preposition: false,
+            has_delimiter_preposition: false,
+            pending_string_method: None,
+            is_query: false,
+            is_propagate: false,
         }
+    }
+
+    /// Reset the assembler for a new statement
+    ///
+    /// Clears all pending slots, preparing the assembler for the next sentence.
+    /// This is typically called automatically by `finalize()`, but can be
+    /// called manually to discard a partial statement.
+    fn reset(&mut self) {
+        self.pending_subject = None;
+        self.pending_nominatives.clear();
+        self.pending_object = None;
+        self.pending_indirect = None;
+        self.pending_verb = None;
+        self.pending_genitives.clear();
+        self.pending_adjectives.clear();
+        self.pending_literals.clear();
+        self.pending_arrays.clear();
+        self.pending_index_accesses.clear();
+        self.pending_property_accesses.clear();
+        self.pending_operators.clear();
+        self.pending_blocks.clear();
+        self.pending_nested_phrases.clear();
+        self.pending_participles.clear();
+        self.pending_unwraps.clear();
+        self.pending_mutable_marker = false;
+        self.has_containment_preposition = false;
+        self.has_delimiter_preposition = false;
+        self.pending_string_method = None;
+        self.is_query = false;
+        self.is_propagate = false;
     }
 
     /// Mark this statement as a query
     pub fn set_query(&mut self, is_query: bool) {
-        self.state.is_query = is_query;
+        self.is_query = is_query;
     }
 
     /// Mark this statement as propagation (ends with `;` → converts to `?`)
     pub fn set_propagate(&mut self, is_propagate: bool) {
-        self.state.is_propagate = is_propagate;
+        self.is_propagate = is_propagate;
     }
 
     /// Feed a morphologically-analyzed token into the assembler
@@ -191,7 +275,15 @@ impl Assembler {
             PartOfSpeech::Noun | PartOfSpeech::Pronoun => self.handle_nominal(analysis, original),
             PartOfSpeech::Adjective => self.handle_adjective(analysis, original),
             PartOfSpeech::Verb => self.handle_verb(analysis, original),
-            _ => Ok(()), // Ignore numerals (handled by properties), conjunctions (operators), particles, articles
+            PartOfSpeech::Numeral => {
+                // Already handled above, but keep this for explicit numeral POS
+                self.handle_nominal(analysis, original)
+            }
+            PartOfSpeech::Conjunction => {
+                // Non-operator conjunctions are ignored for now
+                Ok(())
+            }
+            _ => Ok(()), // Ignore particles, articles for now
         }
     }
 
@@ -206,7 +298,7 @@ impl Assembler {
     /// asm.feed_string("χαῖρε".to_string()).unwrap();
     /// ```
     pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
-        self.state.literals.push(Literal::String(value));
+        self.pending_literals.push(Literal::String(value));
         Ok(())
     }
 
@@ -221,7 +313,7 @@ impl Assembler {
     /// asm.feed_number(42).unwrap();
     /// ```
     pub fn feed_number(&mut self, value: i64) -> Result<(), AssemblyError> {
-        self.state.literals.push(Literal::Number(value));
+        self.pending_literals.push(Literal::Number(value));
         Ok(())
     }
 
@@ -236,7 +328,7 @@ impl Assembler {
     /// asm.feed_boolean(true).unwrap();
     /// ```
     pub fn feed_boolean(&mut self, value: bool) -> Result<(), AssemblyError> {
-        self.state.literals.push(Literal::Boolean(value));
+        self.pending_literals.push(Literal::Boolean(value));
         Ok(())
     }
 
@@ -253,7 +345,7 @@ impl Assembler {
     /// asm.feed_array(elements).unwrap();
     /// ```
     pub fn feed_array(&mut self, elements: Vec<Expr>) -> Result<(), AssemblyError> {
-        self.state.arrays.push(elements);
+        self.pending_arrays.push(elements);
         Ok(())
     }
 
@@ -271,7 +363,7 @@ impl Assembler {
         &mut self,
         statements: Vec<crate::ast::Statement>,
     ) -> Result<(), AssemblyError> {
-        self.state.blocks.push(statements);
+        self.pending_blocks.push(statements);
         Ok(())
     }
 
@@ -287,7 +379,7 @@ impl Assembler {
     /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]).unwrap();
     /// ```
     pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) -> Result<(), AssemblyError> {
-        self.state.nested_phrases.push(terms);
+        self.pending_nested_phrases.push(terms);
         Ok(())
     }
 
@@ -308,7 +400,7 @@ impl Assembler {
     /// asm.feed_index_access(array, index).unwrap();
     /// ```
     pub fn feed_index_access(&mut self, array: Expr, index: Expr) -> Result<(), AssemblyError> {
-        self.state.index_accesses.push((array, index));
+        self.pending_index_accesses.push((array, index));
         Ok(())
     }
 
@@ -328,7 +420,7 @@ impl Assembler {
     /// asm.feed_unwrap(expr).unwrap();
     /// ```
     pub fn feed_unwrap(&mut self, expr: Expr) -> Result<(), AssemblyError> {
-        self.state.unwraps.push(expr);
+        self.pending_unwraps.push(expr);
         Ok(())
     }
 
@@ -366,7 +458,7 @@ impl Assembler {
             gender: analysis.gender,
             number: analysis.number,
         };
-        self.state.participles.push(constituent);
+        self.pending_participles.push(constituent);
         Ok(())
     }
 
@@ -388,48 +480,48 @@ impl Assembler {
         match analysis.case {
             Some(Case::Nominative) => {
                 // If we already have a verb, check agreement immediately!
-                if let Some(verb) = &self.state.verb {
+                if let Some(verb) = &self.pending_verb {
                     // Don't check agreement if we already have a subject (this is an extra nominative)
-                    if self.state.subject.is_none() {
+                    if self.pending_subject.is_none() {
                         self.check_agreement(&constituent, verb)?;
                     }
                 }
 
-                if self.state.subject.is_some() {
+                if self.pending_subject.is_some() {
                     // Additional nominatives stored separately for function call patterns
-                    self.state.nominatives.push(constituent);
+                    self.pending_nominatives.push(constituent);
                 } else {
-                    self.state.subject = Some(constituent);
+                    self.pending_subject = Some(constituent);
                 }
             }
             Some(Case::Accusative) => {
-                if self.state.object.is_some() {
+                if self.pending_object.is_some() {
                     return Err(AssemblyError::DoubleObject);
                 }
-                self.state.object = Some(constituent);
+                self.pending_object = Some(constituent);
             }
             Some(Case::Dative) => {
                 // Dative can stack (multiple recipients) but for simplicity, one for now
-                if self.state.indirect.is_some() {
+                if self.pending_indirect.is_some() {
                     return Err(AssemblyError::DoubleIndirect);
                 }
-                self.state.indirect = Some(constituent);
+                self.pending_indirect = Some(constituent);
             }
             Some(Case::Genitive) => {
                 // Genitives attach to other constituents (possession, etc.)
-                self.state.genitives.push(constituent);
+                self.pending_genitives.push(constituent);
             }
             Some(Case::Vocative) => {
                 // Vocative is direct address - treat as subject for now
-                if self.state.subject.is_none() {
-                    self.state.subject = Some(constituent);
+                if self.pending_subject.is_none() {
+                    self.pending_subject = Some(constituent);
                 }
             }
             None => {
                 // Unknown case - try to infer from context
                 // Default to accusative (object) if we have no object
-                if self.state.object.is_none() {
-                    self.state.object = Some(constituent);
+                if self.pending_object.is_none() {
+                    self.pending_object = Some(constituent);
                 }
             }
         }
@@ -443,7 +535,7 @@ impl Assembler {
         analysis: &MorphAnalysis,
         original: &str,
     ) -> Result<(), AssemblyError> {
-        if self.state.verb.is_some() {
+        if self.pending_verb.is_some() {
             return Err(AssemblyError::DoubleVerb);
         }
 
@@ -458,11 +550,11 @@ impl Assembler {
         };
 
         // If we already have a subject, check agreement immediately!
-        if let Some(subject) = &self.state.subject {
+        if let Some(subject) = &self.pending_subject {
             self.check_agreement(subject, &verb_constituent)?;
         }
 
-        self.state.verb = Some(verb_constituent);
+        self.pending_verb = Some(verb_constituent);
 
         Ok(())
     }
@@ -482,7 +574,7 @@ impl Assembler {
             person: None, // Adjectives don't really have person
         };
 
-        self.state.adjectives.push(constituent);
+        self.pending_adjectives.push(constituent);
         Ok(())
     }
 
@@ -516,17 +608,17 @@ impl Assembler {
     /// - Grammatical gender mismatch occurs
     pub fn finalize(&mut self) -> Result<AssembledStatement, AssemblyError> {
         // Check for required verb (unless it's a query or has only literals)
-        let has_content = self.state.subject.is_some()
-            || self.state.object.is_some()
-            || !self.state.literals.is_empty();
+        let has_content = self.pending_subject.is_some()
+            || self.pending_object.is_some()
+            || !self.pending_literals.is_empty();
 
-        if self.state.verb.is_none() && has_content && !self.state.is_query {
+        if self.pending_verb.is_none() && has_content && !self.is_query {
             // Allow verbless statements for queries and pure literal expressions
             // But for now, let's be lenient
         }
 
         // Check subject-verb agreement if both present
-        if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {
+        if let (Some(subject), Some(verb)) = (&self.pending_subject, &self.pending_verb) {
             // In Greek, 3rd person subjects agree with 3rd person verbs
             // 1st/2nd person verbs often don't have explicit subjects (pro-drop)
             if let (Some(verb_person), Some(verb_number)) = (verb.person, verb.number)
@@ -558,7 +650,33 @@ impl Assembler {
             }
         }
 
-        let statement = std::mem::take(&mut self.state);
+        // Assemble the statement
+        let statement = AssembledStatement {
+            subject: self.pending_subject.take(),
+            nominatives: std::mem::take(&mut self.pending_nominatives),
+            verb: self.pending_verb.take(),
+            object: self.pending_object.take(),
+            indirect: self.pending_indirect.take(),
+            genitives: std::mem::take(&mut self.pending_genitives),
+            adjectives: std::mem::take(&mut self.pending_adjectives),
+            literals: std::mem::take(&mut self.pending_literals),
+            arrays: std::mem::take(&mut self.pending_arrays),
+            index_accesses: std::mem::take(&mut self.pending_index_accesses),
+            property_accesses: std::mem::take(&mut self.pending_property_accesses),
+            operators: std::mem::take(&mut self.pending_operators),
+            blocks: std::mem::take(&mut self.pending_blocks),
+            nested_phrases: std::mem::take(&mut self.pending_nested_phrases),
+            participles: std::mem::take(&mut self.pending_participles),
+            unwraps: std::mem::take(&mut self.pending_unwraps),
+            has_mutable_marker: self.pending_mutable_marker,
+            is_query: self.is_query,
+            is_propagate: self.is_propagate,
+            has_containment_preposition: self.has_containment_preposition,
+            has_delimiter_preposition: self.has_delimiter_preposition,
+            string_method: self.pending_string_method.take(),
+        };
+
+        self.reset();
         Ok(statement)
     }
 
@@ -566,19 +684,19 @@ impl Assembler {
     fn check_special_markers(&mut self, normalized: &str) -> bool {
         // Check for mutable marker (μετά)
         if crate::morphology::lexicon::is_mutable_marker(normalized) {
-            self.state.has_mutable_marker = true;
+            self.pending_mutable_marker = true;
             return true;
         }
 
         // Check for containment preposition (ἐν)
         if crate::morphology::lexicon::is_containment_preposition(normalized) {
-            self.state.has_containment_preposition = true;
+            self.has_containment_preposition = true;
             return true;
         }
 
         // Check for delimiter preposition (κατά)
         if crate::morphology::lexicon::is_delimiter_preposition(normalized) {
-            self.state.has_delimiter_preposition = true;
+            self.has_delimiter_preposition = true;
             return true;
         }
 
@@ -591,21 +709,20 @@ impl Assembler {
         if crate::morphology::lexicon::is_split_verb(normalized) {
             // If we have a delimiter, create a split method
             #[allow(clippy::collapsible_if)]
-            if self.state.has_delimiter_preposition
-                && matches!(self.state.literals.last(), Some(Literal::String(_)))
+            if self.has_delimiter_preposition
+                && matches!(self.pending_literals.last(), Some(Literal::String(_)))
             {
-                if let Some(ref subj) = self.state.subject {
+                if let Some(ref subj) = self.pending_subject {
                     // Safe to unwrap here because of the checks above
-                    let delim = match self.state.literals.pop() {
+                    let delim = match self.pending_literals.pop() {
                         Some(Literal::String(s)) => s,
                         _ => unreachable!(),
                     };
 
                     let normalized_original = normalize_greek(&subj.original);
-                    self.state.string_method = Some(("split".to_string(), delim));
+                    self.pending_string_method = Some(("split".to_string(), delim));
                     // Push back a property access for the split result
-                    self.state
-                        .property_accesses
+                    self.pending_property_accesses
                         .push((normalized_original.to_string(), "split".to_string()));
                     return true;
                 }
@@ -616,21 +733,20 @@ impl Assembler {
         if crate::morphology::lexicon::is_join_verb(normalized) {
             // If we have a delimiter, create a join method
             #[allow(clippy::collapsible_if)]
-            if self.state.has_delimiter_preposition
-                && matches!(self.state.literals.last(), Some(Literal::String(_)))
+            if self.has_delimiter_preposition
+                && matches!(self.pending_literals.last(), Some(Literal::String(_)))
             {
-                if let Some(ref subj) = self.state.subject {
+                if let Some(ref subj) = self.pending_subject {
                     // Safe to unwrap here because of the checks above
-                    let delim = match self.state.literals.pop() {
+                    let delim = match self.pending_literals.pop() {
                         Some(Literal::String(s)) => s,
                         _ => unreachable!(),
                     };
 
                     let normalized_original = normalize_greek(&subj.original);
-                    self.state.string_method = Some(("join".to_string(), delim));
+                    self.pending_string_method = Some(("join".to_string(), delim));
                     // Push back a property access for the join result
-                    self.state
-                        .property_accesses
+                    self.pending_property_accesses
                         .push((normalized_original.to_string(), "join".to_string()));
                     return true;
                 }
@@ -644,24 +760,24 @@ impl Assembler {
     fn check_operators(&mut self, normalized: &str, original: &str) -> bool {
         // Boolean operators
         if matches!(original, "καί" | "και") {
-            self.state.operators.push(BinaryOp::And);
+            self.pending_operators.push(BinaryOp::And);
             return true;
         }
         if matches!(original, "ἤ" | "ή") {
             // ἤ with breathing+accent, but not ᾖ
-            self.state.operators.push(BinaryOp::Or);
+            self.pending_operators.push(BinaryOp::Or);
             return true;
         }
 
         // Comparison operators
         if let Some(op) = crate::morphology::lexicon::comparison_operator(normalized) {
-            self.state.operators.push(op);
+            self.pending_operators.push(op);
             return true;
         }
 
         // Arithmetic operators
         if let Some(op) = crate::morphology::lexicon::arithmetic_operator(normalized) {
-            self.state.operators.push(op);
+            self.pending_operators.push(op);
             return true;
         }
 
@@ -672,19 +788,18 @@ impl Assembler {
     fn check_special_properties(&mut self, normalized: &str) -> bool {
         // Numeral words
         if let Some(value) = crate::morphology::lexicon::numeral_value(normalized) {
-            self.state.literals.push(Literal::Number(value));
+            self.pending_literals.push(Literal::Number(value));
             return true;
         }
 
         // Property nouns (μῆκος)
         if crate::morphology::lexicon::is_length_property(normalized) {
             // If we have a subject, create a property access (use normalized original, not lemma)
-            if let Some(ref subj) = self.state.subject {
+            if let Some(ref subj) = self.pending_subject {
                 let normalized_original = crate::text::normalize_greek(&subj.original);
-                self.state
-                    .property_accesses
+                self.pending_property_accesses
                     .push((normalized_original.to_string(), "len".to_string()));
-                self.state.subject = None; // Consume the subject
+                self.pending_subject = None; // Consume the subject
                 return true;
             }
         }
@@ -692,7 +807,7 @@ impl Assembler {
         // Ordinal adjectives
         if crate::morphology::lexicon::is_ordinal(normalized) {
             // If we have a subject, create an index access with the ordinal index
-            if let Some(ref subj) = self.state.subject
+            if let Some(ref subj) = self.pending_subject
                 && let Some(index) = crate::morphology::lexicon::ordinal_to_index(normalized)
             {
                 // Create array and index expressions (use normalized original, not lemma)
@@ -703,8 +818,8 @@ impl Assembler {
                 });
                 let index_expr = Expr::NumberLiteral(index);
 
-                self.state.index_accesses.push((array, index_expr));
-                self.state.subject = None; // Consume the subject
+                self.pending_index_accesses.push((array, index_expr));
+                self.pending_subject = None; // Consume the subject
                 return true;
             }
         }
@@ -714,15 +829,15 @@ impl Assembler {
 
     /// Check if the assembler has any pending content
     pub fn has_content(&self) -> bool {
-        self.state.subject.is_some()
-            || self.state.object.is_some()
-            || self.state.indirect.is_some()
-            || self.state.verb.is_some()
-            || !self.state.genitives.is_empty()
-            || !self.state.literals.is_empty()
-            || !self.state.arrays.is_empty()
-            || !self.state.index_accesses.is_empty()
-            || !self.state.property_accesses.is_empty()
+        self.pending_subject.is_some()
+            || self.pending_object.is_some()
+            || self.pending_indirect.is_some()
+            || self.pending_verb.is_some()
+            || !self.pending_genitives.is_empty()
+            || !self.pending_literals.is_empty()
+            || !self.pending_arrays.is_empty()
+            || !self.pending_index_accesses.is_empty()
+            || !self.pending_property_accesses.is_empty()
     }
 
     /// Check subject-verb agreement

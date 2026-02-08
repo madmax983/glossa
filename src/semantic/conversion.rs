@@ -46,6 +46,7 @@ use super::{
 use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::morphology::{self};
+use crate::semantic::assembled::{Constituent, Literal};
 use crate::text::normalize_greek;
 
 /// Convert an AssembledStatement to an AnalyzedStatement
@@ -960,8 +961,8 @@ fn classify_genitive_method_call(
 
 /// Helper: Detect Enum variant (None, Some, Ok, Err)
 fn detect_enum_variant(
-    word: &crate::semantic::assembled::Constituent,
-    literals: &[crate::semantic::assembled::Literal],
+    word: &Constituent,
+    literals: &[Literal],
 ) -> Option<(AnalyzedExpr, GlossaType)> {
     let lemma = normalize_greek(&word.lemma);
     let original = normalize_greek(&word.original);
