@@ -354,13 +354,183 @@ mod tests {
     }
 
     #[test]
-    fn test_highlight_literals() {
+    fn test_highlight_string_literal() {
         let source = "«χαῖρε» λέγε.";
         let result = highlight(source);
         assert!(result.is_ok());
         let output = result.unwrap();
-
         // Italic (3) for string
         assert!(output.contains("\x1b[3mχαῖρε\x1b[0m"));
+    }
+
+    #[test]
+    fn test_highlight_number_literal() {
+        let source = "42 λέγε.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // Italic (3) for number
+        assert!(output.contains("\x1b[3m42\x1b[0m"));
+    }
+
+    #[test]
+    fn test_highlight_boolean_literal() {
+        let source = "ἀληθές λέγε.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // Italic (3) for boolean
+        assert!(output.contains("\x1b[3mἀληθές\x1b[0m"));
+    }
+
+    #[test]
+    fn test_highlight_array_literal() {
+        let source = "[1, 2, 3] λέγε.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains('['));
+        assert!(output.contains(']'));
+        assert!(output.contains("\x1b[3m1\x1b[0m"));
+    }
+
+    #[test]
+    fn test_highlight_index_access() {
+        let source = "πίναξ[0] λέγε.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains('['));
+        assert!(output.contains(']'));
+        assert!(output.contains("\x1b[3m0\x1b[0m"));
+    }
+
+    #[test]
+    fn test_highlight_property_access() {
+        let source = "χρήστου ὄνομα λέγε.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // Genitive owner (Magenta 35)
+        // Note: checking for color codes is brittle if crossterm changes, but magenta is typically 35
+        // We just ensure it runs and contains words
+        assert!(output.contains("χρήστου"));
+        assert!(output.contains("ὄνομα"));
+    }
+
+    #[test]
+    fn test_highlight_function_call() {
+        let source = "λέγε «χαῖρε».";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // Verb Green (32)
+        assert!(output.contains("λέγε"));
+        assert!(output.contains("χαῖρε"));
+    }
+
+    #[test]
+    fn test_highlight_binding() {
+        let source = "ξ πέντε ἔστω.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("ξ"));
+        assert!(output.contains("πέντε")); // Numeral -> Italic
+        assert!(output.contains("\x1b[1mἔστω\x1b[0m")); // Bold
+    }
+
+    #[test]
+    fn test_highlight_binop() {
+        let source = "1 καὶ 2 λέγε.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // Phrase(1, καὶ, 2) -> highlight words
+        assert!(output.contains("καὶ"));
+    }
+
+    #[test]
+    fn test_highlight_unary_op() {
+        // Negation
+        let source = "οὐκ ἀληθές λέγε.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("οὐ"));
+        assert!(output.contains("ἀληθές"));
+
+        // Unwrap
+        let source = "τιμή! λέγε.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("!"));
+    }
+
+    #[test]
+    fn test_highlight_block() {
+        // Block as a statement must end with period
+        let source = "{ «χαῖρε» λέγε. }.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("{"));
+        assert!(output.contains("}"));
+        assert!(output.contains("λέγε"));
+    }
+
+    #[test]
+    fn test_highlight_phrase() {
+        // A nested phrase expression is typically (expr expr)
+        // But parser produces Phrase for sequences of words.
+        // Let's try a function call that parses as a phrase initially
+        let source = "πρόσθεσις 1 2 λέγε.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("πρόσθεσις"));
+        assert!(output.contains("1"));
+        assert!(output.contains("2"));
+    }
+
+    #[test]
+    fn test_highlight_participle() {
+        let source = "τὰ διπλασιαζόμενα.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // Participle Cyan (36)
+        assert!(output.contains("διπλασιαζόμενα"));
+    }
+
+    #[test]
+    fn test_highlight_definitions() {
+        // Type definition
+        let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα Ὄνομα . ἡλικία Ἀριθμός }.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("εἶδος"));
+        assert!(output.contains("Χρήστης"));
+
+        // Trait definition
+        let source = "χαρακτήρ Δεικτόν ὁρίζειν { δεῖ δεῖξαι }.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("χαρακτήρ"));
+        assert!(output.contains("Δεικτόν"));
+    }
+
+    #[test]
+    fn test_highlight_test_declaration() {
+        let source = "δοκιμή «δοκιμή 1». «χαῖρε» λέγε. τέλος.";
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("δοκιμή"));
+        assert!(output.contains("χαῖρε"));
+        assert!(output.contains("τέλος"));
     }
 }
