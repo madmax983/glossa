@@ -253,9 +253,14 @@ mod tests {
     fn test_display_formatting() {
         assert_eq!(format!("{}", GlossaType::Number), "Ἀριθμός");
         assert_eq!(format!("{}", GlossaType::String), "Ὄνομα");
+        assert_eq!(format!("{}", GlossaType::Boolean), "Ἀληθές/Ψεῦδος");
         assert_eq!(
             format!("{}", GlossaType::List(Box::new(GlossaType::Number))),
             "Λίστη<Ἀριθμός>"
+        );
+        assert_eq!(
+            format!("{}", GlossaType::Set(Box::new(GlossaType::Number))),
+            "Σύνολον<Ἀριθμός>"
         );
         assert_eq!(
             format!(
@@ -267,5 +272,35 @@ mod tests {
             ),
             "Χάρτης<Ὄνομα, Εὑρεθείη<Ἀριθμός>>"
         );
+        assert_eq!(
+            format!(
+                "{}",
+                GlossaType::Result(Box::new(GlossaType::Unit), Box::new(GlossaType::String))
+            ),
+            "Ἀποτέλεσμα<Οὐδέν, Ὄνομα>"
+        );
+        assert_eq!(
+            format!(
+                "{}",
+                GlossaType::Struct {
+                    name: "User".into(),
+                    gender: Gender::Masculine,
+                    fields: vec![]
+                }
+            ),
+            "Εἶδος User"
+        );
+        assert_eq!(
+            format!(
+                "{}",
+                GlossaType::Function {
+                    params: vec![GlossaType::Number, GlossaType::String],
+                    returns: Box::new(GlossaType::Boolean)
+                }
+            ),
+            "Ἔργον(Ἀριθμός, Ὄνομα) -> Ἀληθές/Ψεῦδος"
+        );
+        assert_eq!(format!("{}", GlossaType::Unit), "Οὐδέν");
+        assert_eq!(format!("{}", GlossaType::Unknown), "Ἄγνωστον");
     }
 }

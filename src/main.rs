@@ -3,7 +3,7 @@
 //! A compiler for ΓΛΩΣΣΑ - where Ancient Greek morphology encodes programming semantics.
 
 use clap::{Parser, Subcommand};
-use comfy_table::{Table, presets, Cell, Color};
+use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
@@ -320,21 +320,20 @@ fn print_banner() {
 
 fn print_help() {
     let mut table = Table::new();
-    table
-        .load_preset(presets::UTF8_FULL)
-        .set_header(vec![
-            Cell::new("Ἐντολή (Command)").fg(Color::Cyan).add_attribute(comfy_table::Attribute::Bold),
-            Cell::new("Περιγραφή (Description)").fg(Color::Cyan).add_attribute(comfy_table::Attribute::Bold),
-        ]);
+    table.load_preset(presets::UTF8_FULL).set_header(vec![
+        Cell::new("Ἐντολή (Command)")
+            .fg(Color::Cyan)
+            .add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("Περιγραφή (Description)")
+            .fg(Color::Cyan)
+            .add_attribute(comfy_table::Attribute::Bold),
+    ]);
 
     table.add_row(vec![
         ".βοήθεια / .help",
         "Δεῖξαι τήνδε τὴν βοήθειαν (Show this help)",
     ]);
-    table.add_row(vec![
-        ".ἔξοδος / .exit",
-        "Ἐξελθεῖν (Exit REPL)",
-    ]);
+    table.add_row(vec![".ἔξοδος / .exit", "Ἐξελθεῖν (Exit REPL)"]);
     table.add_row(vec![
         ".καθαρός / .clear",
         "Καθαρίσαι τὸ περιβάλλον (Clear history)",
@@ -363,13 +362,13 @@ fn print_env(context: &ReplContext) {
         }
 
         let mut table = Table::new();
-        table
-            .load_preset(presets::UTF8_FULL)
-            .set_header(vec![
-                Cell::new("Μεταβλητή (Var)").fg(Color::Magenta).add_attribute(comfy_table::Attribute::Bold),
-                Cell::new("Τύπος (Type)").add_attribute(comfy_table::Attribute::Bold),
-                Cell::new("Μεταβλητότης (Mut)").add_attribute(comfy_table::Attribute::Bold),
-            ]);
+        table.load_preset(presets::UTF8_FULL).set_header(vec![
+            Cell::new("Μεταβλητή (Var)")
+                .fg(Color::Magenta)
+                .add_attribute(comfy_table::Attribute::Bold),
+            Cell::new("Τύπος (Type)").add_attribute(comfy_table::Attribute::Bold),
+            Cell::new("Μεταβλητότης (Mut)").add_attribute(comfy_table::Attribute::Bold),
+        ]);
 
         for (name, binding) in bindings {
             let mut_str = if binding.mutable {
@@ -693,11 +692,14 @@ mod tests {
         let scope = context.last_scope.as_ref().unwrap();
         assert!(scope.lookup("ξ").is_some());
 
-        // 4. Run print_env to cover the table generation code
+        // 4. Add a mutable binding to cover that branch
+        let _ = context.execute("μετά ψ δέκα ἔστω.").unwrap();
+
+        // 5. Run print_env to cover the table generation code
         // We aren't capturing stdout, but this ensures the code runs without panicking
         print_env(&context);
 
-        // 5. Test clear simulation (new context)
+        // 6. Test clear simulation (new context)
         let context = ReplContext::new();
         assert!(context.last_scope.is_none());
         print_env(&context);
