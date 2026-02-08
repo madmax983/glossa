@@ -1052,7 +1052,11 @@ mod tests {
     fn test_generate_full_program() {
         let code = compile("ξ πέντε ἔστω. ξ λέγε.");
         // Variables are now prefixed with g_
-        assert!(code.contains("let g_x = 5"), "Expected binding in: {}", code);
+        assert!(
+            code.contains("let g_x = 5"),
+            "Expected binding in: {}",
+            code
+        );
         assert!(code.contains("println"), "Expected println in: {}", code);
     }
 
