@@ -262,9 +262,9 @@ pub fn describe_program(program: &AnalyzedProgram) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::morphology::lexicon::BinaryOp;
     use crate::semantic::{Scope, StatementKind};
     use smol_str::SmolStr;
-    use crate::morphology::lexicon::BinaryOp;
 
     fn create_program(statements: Vec<AnalyzedStatement>) -> AnalyzedProgram {
         AnalyzedProgram {
@@ -340,7 +340,9 @@ mod tests {
     fn test_describe_print() {
         let stmt = AnalyzedStatement {
             kind: StatementKind::Print,
-            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("Hello".to_string()))],
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral(
+                "Hello".to_string(),
+            ))],
         };
 
         let desc = describe_program(&create_program(vec![stmt]));
@@ -352,7 +354,9 @@ mod tests {
         let condition = simple_expr(AnalyzedExprKind::BooleanLiteral(true));
         let then_stmt = AnalyzedStatement {
             kind: StatementKind::Print,
-            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("True".to_string()))],
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral(
+                "True".to_string(),
+            ))],
         };
 
         let stmt = AnalyzedStatement {
@@ -374,11 +378,15 @@ mod tests {
         let condition = simple_expr(AnalyzedExprKind::BooleanLiteral(false));
         let then_stmt = AnalyzedStatement {
             kind: StatementKind::Print,
-            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("True".to_string()))],
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral(
+                "True".to_string(),
+            ))],
         };
         let else_stmt = AnalyzedStatement {
             kind: StatementKind::Print,
-            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("False".to_string()))],
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral(
+                "False".to_string(),
+            ))],
         };
 
         let stmt = AnalyzedStatement {
@@ -400,7 +408,9 @@ mod tests {
         let condition = simple_expr(AnalyzedExprKind::BooleanLiteral(true));
         let body_stmt = AnalyzedStatement {
             kind: StatementKind::Print,
-            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("Loop".to_string()))],
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral(
+                "Loop".to_string(),
+            ))],
         };
 
         let stmt = AnalyzedStatement {
@@ -421,7 +431,9 @@ mod tests {
         let iterator = simple_expr(AnalyzedExprKind::Variable(SmolStr::new("items")));
         let body_stmt = AnalyzedStatement {
             kind: StatementKind::Print,
-            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("Item".to_string()))],
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral(
+                "Item".to_string(),
+            ))],
         };
 
         let stmt = AnalyzedStatement {
@@ -442,7 +454,9 @@ mod tests {
     fn test_describe_function_def() {
         let body_stmt = AnalyzedStatement {
             kind: StatementKind::Print,
-            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral("Fn".to_string()))],
+            expressions: vec![simple_expr(AnalyzedExprKind::StringLiteral(
+                "Fn".to_string(),
+            ))],
         };
 
         let stmt = AnalyzedStatement {
