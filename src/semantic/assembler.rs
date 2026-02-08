@@ -211,6 +211,27 @@ pub struct AssembledStatement {
     pub string_method: Option<(String, String)>,
 }
 
+impl AssembledStatement {
+    /// Check if the assembled statement has any content
+    pub fn has_content(&self) -> bool {
+        self.subject.is_some()
+            || self.object.is_some()
+            || self.indirect.is_some()
+            || self.verb.is_some()
+            || !self.genitives.is_empty()
+            || !self.literals.is_empty()
+            || !self.arrays.is_empty()
+            || !self.index_accesses.is_empty()
+            || !self.property_accesses.is_empty()
+            || !self.nominatives.is_empty()
+            || !self.blocks.is_empty()
+            || !self.nested_phrases.is_empty()
+            || !self.participles.is_empty()
+            || !self.unwraps.is_empty()
+            || self.is_query
+    }
+}
+
 /// A noun/pronoun constituent with its grammatical info
 ///
 /// This represents a word that fills a nominal slot (Subject, Object, etc.).
@@ -1016,6 +1037,12 @@ impl Assembler {
             || !self.pending_arrays.is_empty()
             || !self.pending_index_accesses.is_empty()
             || !self.pending_property_accesses.is_empty()
+            || !self.pending_nominatives.is_empty()
+            || !self.pending_blocks.is_empty()
+            || !self.pending_nested_phrases.is_empty()
+            || !self.pending_participles.is_empty()
+            || !self.pending_unwraps.is_empty()
+            || self.is_query
     }
 
     /// Check subject-verb agreement
