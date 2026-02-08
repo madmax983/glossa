@@ -51,8 +51,8 @@ use crate::codegen::types::to_rust_type;
 use crate::codegen::utils::{capitalize, sanitize_name};
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedIteratorOp, AnalyzedMethod, AnalyzedProgram,
-    AnalyzedStatement, GlossaType, StatementKind,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedProgram, AnalyzedStatement,
+    CaptureMode, GlossaType, StatementKind,
 };
 use crate::text::normalize_greek;
 use proc_macro2::TokenStream;
@@ -172,9 +172,7 @@ fn statement_uses_collections(stmt: &AnalyzedStatement) -> bool {
 /// Check if an expression uses collection types
 fn expr_uses_collections(expr: &AnalyzedExpr) -> bool {
     match &expr.expr {
-        AnalyzedExprKind::CollectionNew { .. } | AnalyzedExprKind::CollectionContains { .. } => {
-            true
-        }
+        AnalyzedExprKind::CollectionNew { .. } => true,
         AnalyzedExprKind::MethodCall { receiver, args, .. } => {
             expr_uses_collections(receiver) || args.iter().any(expr_uses_collections)
         }
@@ -738,6 +736,10 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
                     let operand_tokens = generate_expr(operand);
                     quote! { -#operand_tokens }
                 }
+                UnaryOp::Ref => {
+                    let operand_tokens = generate_expr(operand);
+                    quote! { &#operand_tokens }
+                }
             }
         }
 
@@ -767,42 +769,10 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             capture_mode,
         } => generate_closure(params, body, capture_mode),
 
-        AnalyzedExprKind::IteratorChain { collection, ops } => {
-            generate_iterator_chain(collection, ops)
-        }
-
         AnalyzedExprKind::CollectionNew { collection_type } => {
             // Generate HashSet::new() or HashMap::new()
             let type_ident = format_ident!("{}", collection_type);
             quote! { #type_ident::new() }
-        }
-
-        AnalyzedExprKind::CollectionContains {
-            collection,
-            element,
-            is_map,
-        } => {
-            let coll = generate_expr(collection);
-            let elem = generate_expr(element);
-            if *is_map {
-                // HashMap uses .contains_key(&key)
-                quote! { #coll.contains_key(&#elem) }
-            } else {
-                match &element.expr {
-                    // When the element is a string literal, `generate_expr`
-                    // already yields a `&str`, so we call `.contains(elem)`
-                    // without adding another `&`.
-                    AnalyzedExprKind::StringLiteral(_) => {
-                        quote! { #coll.contains(#elem) }
-                    }
-                    // In all other cases, keep the existing behavior and
-                    // pass a reference to the element.
-                    _ => {
-                        // HashSet uses .contains(&element)
-                        quote! { #coll.contains(&#elem) }
-                    }
-                }
-            }
         }
 
         AnalyzedExprKind::Assert { condition } => {
@@ -864,10 +834,8 @@ fn generate_struct_lit(
 fn generate_closure(
     params: &[smol_str::SmolStr],
     body: &AnalyzedExpr,
-    capture_mode: &crate::ast::CaptureMode,
+    capture_mode: &CaptureMode,
 ) -> TokenStream {
-    use crate::ast::CaptureMode;
-
     let body_tokens = generate_expr(body);
     let params_idents: Vec<_> = params
         .iter()
@@ -898,48 +866,6 @@ fn generate_closure(
             }
         }
     }
-}
-
-fn generate_iterator_chain(collection: &AnalyzedExpr, ops: &[AnalyzedIteratorOp]) -> TokenStream {
-    let mut current = generate_expr(collection);
-
-    for op in ops {
-        current = match op {
-            AnalyzedIteratorOp::Iter => {
-                quote! { #current.iter() }
-            }
-            AnalyzedIteratorOp::Map(closure) => {
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.map(#closure_tokens) }
-            }
-            AnalyzedIteratorOp::Filter(closure) => {
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.filter(#closure_tokens) }
-            }
-            AnalyzedIteratorOp::Find(closure) => {
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.find(#closure_tokens) }
-            }
-            AnalyzedIteratorOp::Fold { init, closure } => {
-                let init_tokens = generate_expr(init);
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.fold(#init_tokens, #closure_tokens) }
-            }
-            AnalyzedIteratorOp::Any(closure) => {
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.any(#closure_tokens) }
-            }
-            AnalyzedIteratorOp::All(closure) => {
-                let closure_tokens = generate_expr(closure);
-                quote! { #current.all(#closure_tokens) }
-            }
-            AnalyzedIteratorOp::Collect => {
-                quote! { #current.collect() }
-            }
-        };
-    }
-
-    current
 }
 
 /// Check if a parameter represents the self parameter in a trait method

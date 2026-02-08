@@ -2226,6 +2226,7 @@ impl BinaryOp {}
 pub enum UnaryOp {
     Not, // οὐ/οὐκ
     Neg, // arithmetic negation
+    Ref, // &
 }
 
 impl UnaryOp {}

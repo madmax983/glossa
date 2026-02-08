@@ -614,15 +614,29 @@ fn classify_assertion(
                 };
 
                 let is_map = matches!(collection_type, GlossaType::Map(_, _));
+                let method = if is_map { "contains_key" } else { "contains" };
+
+                // Handle referencing argument if not a string literal
+                let arg_expr = if matches!(element.expr, AnalyzedExprKind::StringLiteral(_)) {
+                    element
+                } else {
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::UnaryOp {
+                            op: crate::morphology::lexicon::UnaryOp::Ref,
+                            operand: Box::new(element),
+                        },
+                        glossa_type: GlossaType::Unknown,
+                    }
+                };
 
                 let contains_expr = AnalyzedExpr {
-                    expr: AnalyzedExprKind::CollectionContains {
-                        collection: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::MethodCall {
+                        receiver: Box::new(AnalyzedExpr {
                             expr: AnalyzedExprKind::Variable(subj_name.clone()),
                             glossa_type: collection_type.clone(),
                         }),
-                        element: Box::new(element),
-                        is_map,
+                        method: method.into(),
+                        args: vec![arg_expr],
                     },
                     glossa_type: GlossaType::Boolean,
                 };
@@ -846,12 +860,26 @@ fn classify_query(
             };
 
             let is_map = matches!(subj_type, GlossaType::Map(_, _));
+            let method = if is_map { "contains_key" } else { "contains" };
+
+            // Handle referencing argument if not a string literal
+            let arg_expr = if matches!(element.expr, AnalyzedExprKind::StringLiteral(_)) {
+                element
+            } else {
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::UnaryOp {
+                        op: crate::morphology::lexicon::UnaryOp::Ref,
+                        operand: Box::new(element),
+                    },
+                    glossa_type: GlossaType::Unknown,
+                }
+            };
 
             let contains_expr = AnalyzedExpr {
-                expr: AnalyzedExprKind::CollectionContains {
-                    collection: Box::new(collection),
-                    element: Box::new(element),
-                    is_map,
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(collection),
+                    method: method.into(),
+                    args: vec![arg_expr],
                 },
                 glossa_type: GlossaType::Boolean,
             };

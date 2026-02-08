@@ -100,30 +100,6 @@ pub struct AnalyzedMethod {
     pub return_type: Option<GlossaType>,
 }
 
-/// Iterator operation for AnalyzedExpr
-#[derive(Debug, Clone)]
-pub enum AnalyzedIteratorOp {
-    /// .iter() - create iterator
-    Iter,
-    /// .map(closure) - transform elements
-    Map(Box<AnalyzedExpr>),
-    /// .filter(closure) - select elements
-    Filter(Box<AnalyzedExpr>),
-    /// .find(closure) - find first matching element
-    Find(Box<AnalyzedExpr>),
-    /// .fold(init, closure) - reduce to single value
-    Fold {
-        init: Box<AnalyzedExpr>,
-        closure: Box<AnalyzedExpr>,
-    },
-    /// .any(closure) - test if any element matches
-    Any(Box<AnalyzedExpr>),
-    /// .all(closure) - test if all elements match
-    All(Box<AnalyzedExpr>),
-    /// .collect() - collect into collection
-    Collect,
-}
-
 /// Analyzed expression with type information
 #[derive(Debug, Clone)]
 pub struct AnalyzedExpr {
@@ -210,22 +186,11 @@ pub enum AnalyzedExprKind {
     Lambda {
         params: Vec<SmolStr>,
         body: Box<AnalyzedExpr>,
-        capture_mode: crate::ast::CaptureMode,
-    },
-    /// Iterator chain collection.iter().map(...).filter(...)
-    IteratorChain {
-        collection: Box<AnalyzedExpr>,
-        ops: Vec<AnalyzedIteratorOp>,
+        capture_mode: CaptureMode,
     },
     /// Collection constructor (HashSet::new(), HashMap::new())
     CollectionNew {
         collection_type: String,
-    },
-    /// Collection contains check (set.contains(&x), map.contains_key(&k))
-    CollectionContains {
-        collection: Box<AnalyzedExpr>,
-        element: Box<AnalyzedExpr>,
-        is_map: bool,
     },
     /// Boolean assertion: δεῖ (condition must be true)
     Assert {
@@ -236,6 +201,19 @@ pub enum AnalyzedExprKind {
         left: Box<AnalyzedExpr>,
         right: Box<AnalyzedExpr>,
     },
+}
+
+/// Capture mode for closures
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaptureMode {
+    /// Borrow captured variables (default for present participles)
+    Borrow,
+
+    /// Move captured variables (for aorist participles)
+    Move,
+
+    /// Memoize result (for perfect participles)
+    Memoize,
 }
 
 // --- Trait and Type Definitions (moved from types.rs) ---

@@ -208,19 +208,6 @@ pub enum Expr {
     Block(Vec<Statement>),
 }
 
-/// Capture mode for closures
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CaptureMode {
-    /// Borrow captured variables (default for present participles)
-    Borrow,
-
-    /// Move captured variables (for aorist participles)
-    Move,
-
-    /// Memoize result (for perfect participles)
-    Memoize,
-}
-
 /// Binary operators in GLOSSA
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinOperator {
