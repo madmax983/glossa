@@ -550,7 +550,7 @@ pub fn build_binary_expr(
     op: crate::morphology::lexicon::BinaryOp,
     right: AnalyzedExpr,
 ) -> AnalyzedExpr {
-    let result_type = infer_binop_type(&left.glossa_type, &op, &right.glossa_type);
+    let result_type = infer_binop_type(&op);
     AnalyzedExpr {
         expr: AnalyzedExprKind::BinOp {
             left: Box::new(left),
@@ -585,7 +585,7 @@ pub fn build_expressions_from_literals_and_ops(
     for (i, op) in operators.iter().enumerate() {
         if i + 1 < literals.len() {
             let right = literal_to_analyzed_expr(&literals[i + 1]);
-            let result_type = infer_binop_type(&result.glossa_type, op, &right.glossa_type);
+            let result_type = infer_binop_type(op);
             result = AnalyzedExpr {
                 expr: AnalyzedExprKind::BinOp {
                     left: Box::new(result),
@@ -601,11 +601,7 @@ pub fn build_expressions_from_literals_and_ops(
 }
 
 /// Infer the result type of a binary operation
-pub fn infer_binop_type(
-    _left: &GlossaType,
-    op: &crate::morphology::lexicon::BinaryOp,
-    _right: &GlossaType,
-) -> GlossaType {
+pub fn infer_binop_type(op: &crate::morphology::lexicon::BinaryOp) -> GlossaType {
     use crate::morphology::lexicon::BinaryOp;
 
     match op {
