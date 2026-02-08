@@ -13,7 +13,7 @@ use smol_str::SmolStr;
 /// This struct represents the "final state" of a sentence after parsing.
 /// It contains all the semantic components (subject, verb, object, etc.)
 /// extracted from the input stream.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer
     pub subject: Option<Constituent>,
@@ -80,35 +80,6 @@ pub struct AssembledStatement {
 
     /// String method call: (method_name, delimiter)
     pub string_method: Option<(String, String)>,
-}
-
-impl Default for AssembledStatement {
-    fn default() -> Self {
-        Self {
-            subject: None,
-            nominatives: Vec::new(),
-            verb: None,
-            object: None,
-            indirect: None,
-            genitives: Vec::new(),
-            adjectives: Vec::new(),
-            literals: Vec::new(),
-            arrays: Vec::new(),
-            index_accesses: Vec::new(),
-            property_accesses: Vec::new(),
-            operators: Vec::new(),
-            blocks: Vec::new(),
-            nested_phrases: Vec::new(),
-            participles: Vec::new(),
-            unwraps: Vec::new(),
-            is_query: false,
-            is_propagate: false,
-            has_mutable_marker: false,
-            has_containment_preposition: false,
-            has_delimiter_preposition: false,
-            string_method: None,
-        }
-    }
 }
 
 /// A noun/pronoun constituent with its grammatical info
