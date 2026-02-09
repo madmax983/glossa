@@ -93,7 +93,6 @@ cargo run --release -- hero.γλ
 GLOSSA provides native test declarations using idiomatic Greek verbs:
 
 ```glossa
-// tests.γλ
 δοκιμή «HashMap insert and contains».
     χ νέον χάρτης ἔστω.
     χ 2 0 τίθησι.
@@ -111,17 +110,7 @@ GLOSSA provides native test declarations using idiomatic Greek verbs:
 - **δεῖ** - "it is necessary" → `assert!(condition)`
 - **ἰσοῦται** - "equals" → `assert_eq!(left, right)`
 
-To run tests in a `.γλ` file, use the `test` command:
-
-```bash
-cargo run -- test tests.γλ
-# Or if installed:
-glossa test tests.γλ
-```
-
-## Variables
-
-Variables in ΓΛΩΣΣΑ typically use Greek characters (e.g., `α`, `β`, `χ`, `τιμή`). Latin characters (like `x`, `y`) are supported for interoperability but are discouraged. Using undefined variables will result in a compilation error.
+Tests transpile to Rust `#[test]` functions and can be run with standard Rust tools.
 
 ## Building
 
@@ -129,9 +118,7 @@ Variables in ΓΛΩΣΣΑ typically use Greek characters (e.g., `α`, `β`, `χ`
 cargo build --release
 ```
 
-## Internal Testing
-
-To test the compiler itself:
+## Testing
 
 ```bash
 cargo test

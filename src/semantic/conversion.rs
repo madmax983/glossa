@@ -772,28 +772,24 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-            if let Some(ref subj) = asm_stmt.subject {
-                let var_type = scope
-                    .lookup(&subj.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown);
+            if let Some(ref subj) = asm_stmt.subject
+                && let Some(var_type) = scope.lookup(&subj.lemma)
+            {
                 args.insert(
                     0,
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: var_type,
+                        glossa_type: var_type.clone(),
                     },
                 );
             }
 
-            if let Some(ref obj) = asm_stmt.object {
-                let var_type = scope
-                    .lookup(&obj.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown);
+            if let Some(ref obj) = asm_stmt.object
+                && let Some(var_type) = scope.lookup(&obj.lemma)
+            {
                 args.push(AnalyzedExpr {
                     expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: var_type,
+                    glossa_type: var_type.clone(),
                 });
             }
 
@@ -1302,4 +1298,59 @@ pub fn extract_value(
         },
         GlossaType::Number,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
+    use crate::semantic::assembled::{Constituent, VerbConstituent};
+
+    #[test]
+    fn test_print_undefined_variable() {
+        let mut scope = Scope::new();
+        // Do NOT define "z" in scope
+
+        let subj = Constituent {
+            lemma: "z".into(),
+            original: "z".into(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: Some(Gender::Neuter),
+            person: None,
+        };
+
+        let verb = VerbConstituent {
+            lemma: "λεγω".into(),
+            original: "λέγε".into(),
+            person: None,
+            number: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        };
+
+        let asm_stmt = AssembledStatement {
+            subject: Some(subj),
+            verb: Some(verb),
+            ..Default::default()
+        };
+
+        let result = classify_assembled_statement(&asm_stmt, &mut scope).unwrap();
+
+        match result {
+            AnalyzedStatement::Print(exprs) => {
+                assert_eq!(exprs.len(), 1);
+                let expr = &exprs[0];
+                match &expr.expr {
+                    AnalyzedExprKind::Variable(name) => {
+                        assert_eq!(name, "z");
+                        assert_eq!(expr.glossa_type, GlossaType::Unknown);
+                    }
+                    _ => panic!("Expected Variable expression"),
+                }
+            }
+            _ => panic!("Expected Print statement"),
+        }
+    }
 }
