@@ -100,10 +100,119 @@ pub enum PartOfSpeech {
 }
 
 /// Analyze a Greek word and return the most likely morphological analysis
+///
+/// This optimized version avoids heap allocations by tracking the best candidate
+/// iteratively instead of collecting all possibilities into a vector.
 pub fn analyze(word: &str) -> MorphAnalysis {
-    let analyses = analyze_all(word);
-    // analyze_all is guaranteed to return at least one analysis (Unknown if nothing else)
-    analyses.into_iter().next().unwrap()
+    let normalized = normalize_greek(word);
+    let mut best_analysis: Option<MorphAnalysis> = None;
+
+    // 1. Lexicon (Highest Priority, Conf=1.0)
+    // If found in lexicon, it's definitive (1.0). Nouns/Verbs cap at 0.99/0.95.
+    if let Some(entry) = lexicon::lookup(&normalized) {
+        let mut analysis = entry.to_analysis();
+        analysis.confidence = 1.0;
+        return analysis;
+    }
+
+    // 2. Nouns
+    declension::analyze_noun_visit(&normalized, |analysis| {
+        let should_replace = match best_analysis.as_ref() {
+            None => true,
+            Some(best) => {
+                if analysis.confidence > best.confidence {
+                    true
+                } else if (analysis.confidence - best.confidence).abs() < f32::EPSILON {
+                    // Tie-breaker within nouns: smaller feature tuple wins
+                    // Sort key: (case, number, gender, lemma)
+                    if best.part_of_speech == PartOfSpeech::Noun {
+                        let key_new = (
+                            analysis.case,
+                            analysis.number,
+                            analysis.gender,
+                            &analysis.lemma,
+                        );
+                        let key_best = (best.case, best.number, best.gender, &best.lemma);
+                        key_new < key_best
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
+        };
+
+        if should_replace {
+            best_analysis = Some(analysis);
+        }
+    });
+
+    // 3. Verbs
+    conjugation::analyze_verb_visit(&normalized, |analysis| {
+        let should_replace = match best_analysis.as_ref() {
+            None => true,
+            Some(best) => {
+                if analysis.confidence > best.confidence {
+                    true
+                } else if (analysis.confidence - best.confidence).abs() < f32::EPSILON {
+                    // Equal confidence.
+                    // Priority: Lexicon > Noun > Verb.
+                    // If best is Noun, Verb does NOT replace it.
+                    // If best is Verb, replace if "smaller" by verb criteria.
+                    if best.part_of_speech == PartOfSpeech::Verb {
+                        // Sort key: (tense, mood, person, number, lemma)
+                        let key_new = (
+                            analysis.tense,
+                            analysis.mood,
+                            analysis.person,
+                            analysis.number,
+                            &analysis.lemma,
+                        );
+                        let key_best =
+                            (best.tense, best.mood, best.person, best.number, &best.lemma);
+                        if key_new < key_best {
+                            best_analysis = Some(analysis);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 4. Single Letter Fallback (Mathematical variables)
+    // If we found nothing, or everything is low confidence
+    if best_analysis.as_ref().is_none_or(|a| a.confidence < 0.5)
+        && is_single_greek_letter(&normalized)
+    {
+        // Variable names have high confidence (0.9)
+        return MorphAnalysis {
+            lemma: Cow::Owned(normalized.to_string()),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            gender: None,
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 0.9,
+        };
+    }
+
+    // 5. Unknown Fallback
+    best_analysis.unwrap_or_else(|| MorphAnalysis {
+        lemma: Cow::Owned(normalized.to_string()),
+        part_of_speech: PartOfSpeech::Unknown,
+        case: None,
+        number: None,
+        gender: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+        confidence: 0.0,
+    })
 }
 
 /// Analyze a Greek word and return ALL possible morphological analyses

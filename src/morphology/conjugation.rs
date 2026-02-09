@@ -473,17 +473,18 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
     analyses
 }
 
-/// Analyze a word as a verb, pushing results into an existing vector
+/// Analyze a word as a verb, invoking the callback for each possible analysis
 ///
-/// Zero-allocation version of `analyze_verb_all`.
-pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
-    let start_len = analyses.len();
-
+/// This avoids allocation by letting the caller handle storage or selection.
+pub fn analyze_verb_visit<F>(word: &str, mut callback: F)
+where
+    F: FnMut(MorphAnalysis),
+{
     // Special handling for εἰμί (to be) subjunctive forms
     // These are irregular and essential for conditionals (εἰ ... ᾖ)
     for (form, person, number) in EIMI_SUBJUNCTIVE {
         if word == *form {
-            analyses.push(MorphAnalysis {
+            callback(MorphAnalysis {
                 lemma: Cow::Borrowed("ειμι"),
                 part_of_speech: PartOfSpeech::Verb,
                 case: None,
@@ -524,7 +525,7 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
                 Cow::Owned(format!("{}ω", lemma_stem))
             };
 
-            analyses.push(MorphAnalysis {
+            callback(MorphAnalysis {
                 lemma,
                 part_of_speech: PartOfSpeech::Verb,
                 case: None,
@@ -543,7 +544,7 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
     if let Some(stem) = word.strip_suffix(PRESENT_INFINITIVE)
         && !stem.is_empty()
     {
-        analyses.push(MorphAnalysis {
+        callback(MorphAnalysis {
             lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
@@ -560,7 +561,7 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
     if let Some(stem) = word.strip_suffix(AORIST_INFINITIVE)
         && !stem.is_empty()
     {
-        analyses.push(MorphAnalysis {
+        callback(MorphAnalysis {
             lemma: Cow::Owned(format!("{}ω", stem)),
             part_of_speech: PartOfSpeech::Verb,
             case: None,
@@ -573,6 +574,17 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
             confidence: 0.85,
         });
     }
+}
+
+/// Analyze a word as a verb, pushing results into an existing vector
+///
+/// Zero-allocation version of `analyze_verb_all`.
+pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
+    let start_len = analyses.len();
+
+    analyze_verb_visit(word, |analysis| {
+        analyses.push(analysis);
+    });
 
     // Sort the newly added analyses (the tail)
     analyses[start_len..].sort_by(|a, b| {

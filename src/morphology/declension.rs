@@ -152,19 +152,37 @@ const DECLENSION_PATTERNS: &[DeclensionPattern] = &[
 
 /// Try to analyze a word as a noun by matching declension endings
 pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
-    let mut analyses = analyze_noun_all(word);
+    let mut best_analysis: Option<MorphAnalysis> = None;
 
-    // Sort by confidence (highest first)
-    // analyze_noun_all sorts by (case, number, gender, lemma) but NOT confidence.
-    // So we sort by confidence here. Since sort_by is stable, it preserves the
-    // order for equal confidence (which prefers singular/simpler forms).
-    analyses.sort_by(|a, b| {
-        b.confidence
-            .partial_cmp(&a.confidence)
-            .unwrap_or(std::cmp::Ordering::Equal)
+    analyze_noun_visit(word, |analysis| {
+        let should_replace = match best_analysis.as_ref() {
+            None => true,
+            Some(best) => {
+                if analysis.confidence > best.confidence {
+                    true
+                } else if (analysis.confidence - best.confidence).abs() < f32::EPSILON {
+                    // Equal confidence. Check secondary sort keys (Case, Number, Gender, Lemma)
+                    // We want the "smaller" one.
+                    let key_new = (
+                        analysis.case,
+                        analysis.number,
+                        analysis.gender,
+                        &analysis.lemma,
+                    );
+                    let key_best = (best.case, best.number, best.gender, &best.lemma);
+                    key_new < key_best
+                } else {
+                    false
+                }
+            }
+        };
+
+        if should_replace {
+            best_analysis = Some(analysis);
+        }
     });
 
-    analyses.into_iter().next()
+    best_analysis
 }
 
 /// Match a word against ALL possible endings, calling callback for each match
@@ -194,12 +212,13 @@ pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
     analyses
 }
 
-/// Analyze a word as a noun, pushing results into an existing vector
+/// Analyze a word as a noun, invoking the callback for each possible analysis
 ///
-/// Zero-allocation version of `analyze_noun_all`.
-pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
-    let start_len = analyses.len();
-
+/// This avoids allocation by letting the caller handle storage or selection.
+pub fn analyze_noun_visit<F>(word: &str, mut callback: F)
+where
+    F: FnMut(MorphAnalysis),
+{
     for decl in DECLENSION_PATTERNS {
         match_endings_all(word, decl.endings, |stem, case, number| {
             // Calculate confidence based on ending length and distinctiveness
@@ -207,10 +226,6 @@ pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
             let length_bonus = (ending_len as f32 - 1.0) * 0.05; // Longer = better
 
             // Adjust base confidence if needed to match original behavior
-            // Original analyze_noun_all used 0.7 for neuter/alpha, but analyze_noun uses 0.75.
-            // We standardized on 0.75 in the struct.
-            // Increased cap from 0.95 to 0.99 to allow highly distinctive endings (like -ματος)
-            // to outscore less distinctive ones (like -ος) even when both have high base confidence.
             let confidence = (decl.base_confidence + length_bonus).min(0.99);
 
             // Optimization: Avoid format! for canonical forms
@@ -222,7 +237,7 @@ pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
                 Cow::Owned(format!("{}{}", stem, decl.nom_ending))
             };
 
-            analyses.push(MorphAnalysis {
+            callback(MorphAnalysis {
                 lemma,
                 part_of_speech: PartOfSpeech::Noun,
                 case: Some(case),
@@ -236,6 +251,17 @@ pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
             });
         });
     }
+}
+
+/// Analyze a word as a noun, pushing results into an existing vector
+///
+/// Zero-allocation version of `analyze_noun_all`.
+pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
+    let start_len = analyses.len();
+
+    analyze_noun_visit(word, |analysis| {
+        analyses.push(analysis);
+    });
 
     // Sort the newly added analyses (the tail)
     analyses[start_len..].sort_by(|a, b| {
