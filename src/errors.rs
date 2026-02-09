@@ -429,7 +429,7 @@ mod tests {
         let _ = GlossaError::parse_with_source(
             "msg",
             "src",
-            SourceSpan::new(0usize.into(), 0usize.into()),
+            SourceSpan::new(0usize.into(), 0usize),
         );
         let _ = GlossaError::semantic("msg");
         let _ = GlossaError::type_error("msg");
