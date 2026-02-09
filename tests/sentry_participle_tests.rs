@@ -1,6 +1,4 @@
-use glossa::morphology::{
-    participle::analyze_participle, Case, Gender, Number, Tense, Voice,
-};
+use glossa::morphology::{Case, Gender, Number, Tense, Voice, participle::analyze_participle};
 
 #[test]
 fn test_participle_analysis_coverage() {
@@ -53,7 +51,6 @@ fn test_participle_analysis_coverage() {
             expected_gender: Gender::Masculine,
             expected_number: Number::Plural,
         },
-
         // Present Middle/Passive
         TestCase {
             word: "λυομενος",
@@ -82,7 +79,6 @@ fn test_participle_analysis_coverage() {
             expected_gender: Gender::Neuter, // or Masculine Accusative
             expected_number: Number::Singular,
         },
-
         // Overlapping suffixes check: λυομενον ends in "ον"
         // If sorting is broken, it might match "ον" (Present Active) -> stem "λυομεν"
         // Correct behavior: matches "ομενον" (Present Middle) -> stem "λυ"
@@ -95,7 +91,6 @@ fn test_participle_analysis_coverage() {
             expected_gender: Gender::Neuter,
             expected_number: Number::Singular,
         },
-
         // Aorist Active
         TestCase {
             word: "λυσας", // stem λυσ -> lemma λυσω (not strictly true lemma which is λυω, but analyze_participle uses stem+ω)
@@ -120,7 +115,6 @@ fn test_participle_analysis_coverage() {
             expected_gender: Gender::Masculine,
             expected_number: Number::Singular,
         },
-
         // Perfect Passive
         TestCase {
             word: "λελυμενος",
