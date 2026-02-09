@@ -3,6 +3,7 @@
 //! A compiler for ΓΛΩΣΣΑ - where Ancient Greek morphology encodes programming semantics.
 
 use clap::{Parser, Subcommand};
+use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
@@ -318,29 +319,31 @@ fn print_banner() {
 }
 
 fn print_help() {
-    println!(
-        "{}",
-        "Ἐντολή (Command)          Περιγραφή (Description)"
-            .bold()
-            .cyan()
-    );
-    println!(
-        "{}",
-        "----------------------------------------------------".dim()
-    );
-    println!(
-        "{:<25} Δεῖξαι τήνδε τὴν βοήθειαν (Show this help)",
-        ".βοήθεια / .help"
-    );
-    println!("{:<25} Ἐξελθεῖν (Exit REPL)", ".ἔξοδος / .exit");
-    println!(
-        "{:<25} Καθαρίσαι τὸ περιβάλλον (Clear history)",
-        ".καθαρός / .clear"
-    );
-    println!(
-        "{:<25} Δεῖξαι τὰς μεταβλητάς (Show variables)",
-        ".περιβάλλον / .env"
-    );
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL).set_header(vec![
+        Cell::new("Ἐντολή (Command)")
+            .fg(Color::Cyan)
+            .add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("Περιγραφή (Description)")
+            .fg(Color::Cyan)
+            .add_attribute(comfy_table::Attribute::Bold),
+    ]);
+
+    table.add_row(vec![
+        ".βοήθεια / .help",
+        "Δεῖξαι τήνδε τὴν βοήθειαν (Show this help)",
+    ]);
+    table.add_row(vec![".ἔξοδος / .exit", "Ἐξελθεῖν (Exit REPL)"]);
+    table.add_row(vec![
+        ".καθαρός / .clear",
+        "Καθαρίσαι τὸ περιβάλλον (Clear history)",
+    ]);
+    table.add_row(vec![
+        ".περιβάλλον / .env",
+        "Δεῖξαι τὰς μεταβλητάς (Show variables)",
+    ]);
+
+    println!("{table}");
 
     println!("\n{}", "Παραδείγματα:".bold().underlined());
     println!("  «χαῖρε κόσμε» λέγε.");
@@ -358,16 +361,14 @@ fn print_env(context: &ReplContext) {
             return;
         }
 
-        println!(
-            "{:<20} {:<30} {}",
-            "Μεταβλητή (Var)".magenta().bold(),
-            "Τύπος (Type)".bold(),
-            "Μεταβλητότης (Mut)".bold()
-        );
-        println!(
-            "{}",
-            "----------------------------------------------------------------".dim()
-        );
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL).set_header(vec![
+            Cell::new("Μεταβλητή (Var)")
+                .fg(Color::Magenta)
+                .add_attribute(comfy_table::Attribute::Bold),
+            Cell::new("Τύπος (Type)").add_attribute(comfy_table::Attribute::Bold),
+            Cell::new("Μεταβλητότης (Mut)").add_attribute(comfy_table::Attribute::Bold),
+        ]);
 
         for (name, binding) in bindings {
             let mut_str = if binding.mutable {
@@ -375,19 +376,21 @@ fn print_env(context: &ReplContext) {
             } else {
                 "Οὔ (No)"
             };
-            let mut_colored = if binding.mutable {
-                mut_str.yellow()
+
+            let mut_cell = Cell::new(mut_str);
+            let mut_cell = if binding.mutable {
+                mut_cell.fg(Color::Yellow)
             } else {
-                mut_str.dark_grey()
+                mut_cell.fg(Color::DarkGrey)
             };
 
-            println!(
-                "{:<20} {:<30} {}",
-                name.green(),
-                format!("{:?}", binding.glossa_type),
-                mut_colored
-            );
+            table.add_row(vec![
+                Cell::new(name).fg(Color::Green),
+                Cell::new(&binding.glossa_type),
+                mut_cell,
+            ]);
         }
+        println!("{table}");
     } else {
         println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
     }
@@ -418,7 +421,7 @@ impl std::fmt::Display for ReplOutput {
             } => {
                 write!(
                     f,
-                    "{} {}: {:?}{}",
+                    "{} {}: {}{}",
                     "✓".green(),
                     name.as_str().cyan().bold(),
                     type_,
@@ -689,11 +692,14 @@ mod tests {
         let scope = context.last_scope.as_ref().unwrap();
         assert!(scope.lookup("ξ").is_some());
 
-        // 4. Run print_env to cover the table generation code
+        // 4. Add a mutable binding to cover that branch
+        let _ = context.execute("μετά ψ δέκα ἔστω.").unwrap();
+
+        // 5. Run print_env to cover the table generation code
         // We aren't capturing stdout, but this ensures the code runs without panicking
         print_env(&context);
 
-        // 5. Test clear simulation (new context)
+        // 6. Test clear simulation (new context)
         let context = ReplContext::new();
         assert!(context.last_scope.is_none());
         print_env(&context);
@@ -770,7 +776,7 @@ mod tests {
         let output = binding.to_string();
         // Check content without worrying about specific color codes
         assert!(output.contains("x"));
-        assert!(output.contains("Number"));
+        assert!(output.contains("Ἀριθμός"));
         assert!(!output.contains("mutable")); // Not mutable
 
         let binding_mut = ReplOutput::Binding {
@@ -780,7 +786,7 @@ mod tests {
         };
         let output_mut = binding_mut.to_string();
         assert!(output_mut.contains("y"));
-        assert!(output_mut.contains("String"));
+        assert!(output_mut.contains("Ὄνομα"));
         assert!(output_mut.contains("mutable"));
 
         // Test Statement display
