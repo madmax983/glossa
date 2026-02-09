@@ -33,7 +33,8 @@ pub(crate) fn sanitize_name(name: &str) -> String {
     // Directly transliterate without special casing single letters
     // This prevents collisions between single letters and their full names
     // e.g. "σ" (sigma) vs "σίγμα" (sigma)
-    transliterate(name)
+    // Prefix with "g_" to namespace all user-defined identifiers and avoid collisions with Rust keywords
+    format!("g_{}", transliterate(name))
 }
 
 /// Transliterate Greek to Latin characters
@@ -103,9 +104,9 @@ mod tests {
 
     #[test]
     fn test_sanitize_greek_letter() {
-        assert_eq!(sanitize_name("ξ"), "x");
-        assert_eq!(sanitize_name("α"), "a");
-        assert_eq!(sanitize_name("ω"), "w");
+        assert_eq!(sanitize_name("ξ"), "g_x");
+        assert_eq!(sanitize_name("α"), "g_a");
+        assert_eq!(sanitize_name("ω"), "g_w");
     }
 
     #[test]
@@ -150,5 +151,18 @@ mod tests {
         assert_eq!(capitalize("Hello"), "Hello");
         assert_eq!(capitalize(""), "");
         assert_eq!(capitalize("x"), "X");
+    }
+
+    #[test]
+    fn test_sanitize_keywords_and_prefix() {
+        // Test that keywords are safe (by prefixing)
+        // If "if" stays "if", it's invalid Rust
+        assert_eq!(sanitize_name("if"), "g_if");
+        assert_eq!(sanitize_name("fn"), "g_fn");
+
+        // Test that regular identifiers are prefixed
+        // This ensures a unique namespace for user variables
+        assert_eq!(sanitize_name("x"), "g_x");
+        assert_eq!(sanitize_name("foo"), "g_foo");
     }
 }

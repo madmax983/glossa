@@ -698,7 +698,16 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             args,
         } => {
             let recv = generate_expr(receiver);
-            let method_ident = format_ident!("{}", sanitize_name(method));
+
+            // Check if this is a standard library method call on a standard type
+            let method_ident = if is_std_method(method) && is_std_type(&receiver.glossa_type) {
+                // Use the raw method name (e.g., "len", "push")
+                format_ident!("{}", method.as_str())
+            } else {
+                // Sanitize (prefix with g_) for user-defined methods
+                format_ident!("{}", sanitize_name(method))
+            };
+
             let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
             quote! { #recv.#method_ident(#(#arg_tokens),*) }
         }
@@ -881,6 +890,55 @@ fn is_self_parameter(param_name: &str, idx: usize) -> bool {
         || param_name.contains("self")
 }
 
+/// Check if a method name belongs to the Rust standard library allowlist
+fn is_std_method(name: &str) -> bool {
+    matches!(
+        name,
+        "len"
+            | "push"
+            | "unwrap"
+            | "to_string"
+            | "clone"
+            | "default"
+            | "into"
+            | "from"
+            | "eq"
+            | "insert"
+            | "contains"
+            | "contains_key"
+            | "get"
+            | "remove"
+            | "iter"
+            | "map"
+            | "filter"
+            | "collect"
+            | "any"
+            | "all"
+            | "fold"
+            | "find"
+            | "as_str"
+            | "chars"
+            | "lines"
+            | "is_empty"
+    )
+}
+
+/// Check if a Glossa type maps to a standard Rust type (Vec, String, etc.)
+fn is_std_type(ty: &GlossaType) -> bool {
+    matches!(
+        ty,
+        GlossaType::Number
+            | GlossaType::String
+            | GlossaType::Boolean
+            | GlossaType::List(_)
+            | GlossaType::Set(_)
+            | GlossaType::Map(_, _)
+            | GlossaType::Option(_)
+            | GlossaType::Result(_, _)
+            | GlossaType::Unit
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -904,7 +962,8 @@ mod tests {
     #[test]
     fn test_generate_binding() {
         let code = compile("ξ πέντε ἔστω.");
-        assert!(code.contains("let x"));
+        // Variables are now prefixed with g_
+        assert!(code.contains("let g_x"));
         assert!(code.contains("5"));
     }
 
@@ -918,7 +977,12 @@ mod tests {
     #[test]
     fn test_generate_full_program() {
         let code = compile("ξ πέντε ἔστω. ξ λέγε.");
-        assert!(code.contains("let x = 5"), "Expected binding in: {}", code);
+        // Variables are now prefixed with g_
+        assert!(
+            code.contains("let g_x = 5"),
+            "Expected binding in: {}",
+            code
+        );
         assert!(code.contains("println"), "Expected println in: {}", code);
     }
 
