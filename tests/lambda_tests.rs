@@ -169,7 +169,10 @@ mod cycle5_filter_operation {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_filter("), "Should have .g_filter(");
+            assert!(
+                code_no_space.contains(".g_filter("),
+                "Should have .g_filter("
+            );
             assert!(
                 code_no_space.contains(">"),
                 "Should have comparison operator"
@@ -464,7 +467,10 @@ mod cycle9_combined_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_filter("), "Should have .g_filter(");
+            assert!(
+                code_no_space.contains(".g_filter("),
+                "Should have .g_filter("
+            );
             assert!(code_no_space.contains(".g_map("), "Should have .g_map(");
             assert!(code_no_space.contains(">"), "Should have comparison");
             assert!(code_no_space.contains("5"), "Should compare to 5");
@@ -559,7 +565,10 @@ mod cycle11_variable_capture {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_filter("), "Should have .g_filter(");
+            assert!(
+                code_no_space.contains(".g_filter("),
+                "Should have .g_filter("
+            );
             // Should reference theta variable in closure
             // theta (θ) is hex-encoded as _u3b8_ to prevent collisions
             assert!(
@@ -620,7 +629,10 @@ mod cycle11_variable_capture {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_filter("), "Should have .g_filter(");
+            assert!(
+                code_no_space.contains(".g_filter("),
+                "Should have .g_filter("
+            );
             assert!(code_no_space.contains("5"), "Should use literal 5");
             // Should NOT reference theta (encoded or not)
             assert!(

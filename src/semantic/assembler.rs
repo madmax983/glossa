@@ -138,7 +138,6 @@ impl Assembler {
         }
     }
 
-
     /// Mark this statement as a query
     pub fn set_query(&mut self, is_query: bool) {
         self.state.is_query = is_query;
@@ -581,7 +580,8 @@ impl Assembler {
 
                 let normalized_original = normalize_greek(&subj.original);
                 self.state.string_method = Some((method_name.to_string(), delim));
-                self.state.property_accesses
+                self.state
+                    .property_accesses
                     .push((normalized_original.to_string(), method_name.to_string()));
                 return true;
             }
@@ -649,7 +649,8 @@ impl Assembler {
             // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.state.subject {
                 let normalized_original = crate::text::normalize_greek(&subj.original);
-                self.state.property_accesses
+                self.state
+                    .property_accesses
                     .push((normalized_original.to_string(), "len".to_string()));
                 self.state.subject = None; // Consume the subject
                 return true;
