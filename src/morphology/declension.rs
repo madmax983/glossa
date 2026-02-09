@@ -152,37 +152,19 @@ const DECLENSION_PATTERNS: &[DeclensionPattern] = &[
 
 /// Try to analyze a word as a noun by matching declension endings
 pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
-    let mut best_analysis: Option<MorphAnalysis> = None;
+    let mut analyses = analyze_noun_all(word);
 
-    analyze_noun_visit(word, |analysis| {
-        let should_replace = match best_analysis.as_ref() {
-            None => true,
-            Some(best) => {
-                if analysis.confidence > best.confidence {
-                    true
-                } else if (analysis.confidence - best.confidence).abs() < f32::EPSILON {
-                    // Equal confidence. Check secondary sort keys (Case, Number, Gender, Lemma)
-                    // We want the "smaller" one.
-                    let key_new = (
-                        analysis.case,
-                        analysis.number,
-                        analysis.gender,
-                        &analysis.lemma,
-                    );
-                    let key_best = (best.case, best.number, best.gender, &best.lemma);
-                    key_new < key_best
-                } else {
-                    false
-                }
-            }
-        };
-
-        if should_replace {
-            best_analysis = Some(analysis);
-        }
+    // Sort by confidence (highest first)
+    // analyze_noun_all sorts by (case, number, gender, lemma) but NOT confidence.
+    // So we sort by confidence here. Since sort_by is stable, it preserves the
+    // order for equal confidence (which prefers singular/simpler forms).
+    analyses.sort_by(|a, b| {
+        b.confidence
+            .partial_cmp(&a.confidence)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    best_analysis
+    analyses.into_iter().next()
 }
 
 /// Match a word against ALL possible endings, calling callback for each match

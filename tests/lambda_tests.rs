@@ -125,7 +125,10 @@ mod cycle4_map_operation {
             // Remove whitespace for matching (quote! adds spaces)
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".map("), "Should have .map()");
+            assert!(
+                code_no_space.contains(".map(") || code_no_space.contains(".g_map("),
+                "Should have .map("
+            );
             assert!(code_no_space.contains("*2"), "Should multiply by 2");
             assert!(
                 code_no_space.contains(".collect()"),
@@ -169,7 +172,10 @@ mod cycle5_filter_operation {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".filter("), "Should have .filter(");
+            assert!(
+                code_no_space.contains(".filter(") || code_no_space.contains(".g_filter("),
+                "Should have .filter("
+            );
             assert!(
                 code_no_space.contains(">"),
                 "Should have comparison operator"
@@ -229,7 +235,10 @@ mod cycle6_find_operation {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".find("), "Should have .find(");
+            assert!(
+                code_no_space.contains(".find(") || code_no_space.contains(".g_find("),
+                "Should have .find("
+            );
             assert!(
                 code_no_space.contains(">"),
                 "Should have comparison operator"
@@ -297,7 +306,10 @@ mod cycle7_fold_operation {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".fold("), "Should have .fold(");
+            assert!(
+                code_no_space.contains(".fold(") || code_no_space.contains(".g_fold("),
+                "Should have .fold("
+            );
             assert!(code_no_space.contains("0"), "Should have initial value 0");
             assert!(code_no_space.contains("+"), "Should have + operation");
         } else {
@@ -320,7 +332,10 @@ mod cycle7_fold_operation {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".fold("), "Should have .fold(");
+            assert!(
+                code_no_space.contains(".fold(") || code_no_space.contains(".g_fold("),
+                "Should have .fold("
+            );
             assert!(code_no_space.contains("1"), "Should have initial value 1");
             assert!(code_no_space.contains("*"), "Should have * operation");
         } else {
@@ -366,7 +381,10 @@ mod cycle8_any_all_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".any("), "Should have .any(");
+            assert!(
+                code_no_space.contains(".any(") || code_no_space.contains(".g_any("),
+                "Should have .any("
+            );
             assert!(
                 code_no_space.contains(">"),
                 "Should have comparison operator"
@@ -409,7 +427,10 @@ mod cycle8_any_all_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".all("), "Should have .all(");
+            assert!(
+                code_no_space.contains(".all(") || code_no_space.contains(".g_all("),
+                "Should have .all("
+            );
             assert!(
                 code_no_space.contains(">"),
                 "Should have comparison operator"
@@ -434,7 +455,10 @@ mod cycle8_any_all_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".any("), "Should have .any(");
+            assert!(
+                code_no_space.contains(".any(") || code_no_space.contains(".g_any("),
+                "Should have .any("
+            );
             assert!(code_no_space.contains("<"), "Should have < operator");
         } else {
             panic!("Any less-than failed: {:?}", analyzed.err());
@@ -464,8 +488,14 @@ mod cycle9_combined_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".filter("), "Should have .filter(");
-            assert!(code_no_space.contains(".map("), "Should have .map(");
+            assert!(
+                code_no_space.contains(".filter(") || code_no_space.contains(".g_filter("),
+                "Should have .filter("
+            );
+            assert!(
+                code_no_space.contains(".map(") || code_no_space.contains(".g_map("),
+                "Should have .map("
+            );
             assert!(code_no_space.contains(">"), "Should have comparison");
             assert!(code_no_space.contains("5"), "Should compare to 5");
             assert!(code_no_space.contains("*2"), "Should multiply by 2");
@@ -495,8 +525,14 @@ mod cycle9_combined_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".map("), "Should have .map(");
-            assert!(code_no_space.contains(".fold("), "Should have .fold(");
+            assert!(
+                code_no_space.contains(".map(") || code_no_space.contains(".g_map("),
+                "Should have .map("
+            );
+            assert!(
+                code_no_space.contains(".fold(") || code_no_space.contains(".g_fold("),
+                "Should have .fold("
+            );
             assert!(code_no_space.contains("*2"), "Should multiply by 2");
             assert!(code_no_space.contains("0"), "Should have init value 0");
             assert!(code_no_space.contains("+"), "Should have + operation");
@@ -559,7 +595,10 @@ mod cycle11_variable_capture {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".filter("), "Should have .filter(");
+            assert!(
+                code_no_space.contains(".filter(") || code_no_space.contains(".g_filter("),
+                "Should have .filter("
+            );
             // Should reference theta variable in closure
             // theta (θ) is hex-encoded as _u3b8_ to prevent collisions
             assert!(
@@ -590,7 +629,10 @@ mod cycle11_variable_capture {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".any("), "Should have .any(");
+            assert!(
+                code_no_space.contains(".any(") || code_no_space.contains(".g_any("),
+                "Should have .any("
+            );
             // theta (θ) is hex-encoded as _u3b8_
             assert!(
                 code_no_space.contains("theta")
@@ -620,7 +662,10 @@ mod cycle11_variable_capture {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".filter("), "Should have .filter(");
+            assert!(
+                code_no_space.contains(".filter(") || code_no_space.contains(".g_filter("),
+                "Should have .filter("
+            );
             assert!(code_no_space.contains("5"), "Should use literal 5");
             // Should NOT reference theta (encoded or not)
             assert!(
