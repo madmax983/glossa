@@ -96,250 +96,11 @@
 use crate::ast::{Expr, Word};
 pub use crate::errors::assembly::AssemblyError;
 use crate::morphology::lexicon::BinaryOp;
-use crate::morphology::{
-    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
+use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person};
+use crate::semantic::assembled::{
+    AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
 use crate::text::normalize_greek;
-use smol_str::SmolStr;
-
-/// A fully assembled statement with all grammatical roles filled
-///
-/// This struct represents the "final state" of a sentence after parsing.
-/// It contains all the semantic components (subject, verb, object, etc.)
-/// extracted from the input stream.
-#[derive(Debug, Clone)]
-pub struct AssembledStatement {
-    /// The subject (nominative) - the agent/doer
-    ///
-    /// Fills the **Nominative** slot.
-    /// Example: **ὁ ἄνθρωπος** λέγει (The **man** speaks)
-    pub subject: Option<Constituent>,
-
-    /// Additional nominatives (for function names, etc.)
-    ///
-    /// Used in patterns where multiple nominatives appear, such as
-    /// function calls (`add x y`) or predicate nominatives (`x is y`).
-    pub nominatives: Vec<Constituent>,
-
-    /// The verb - the action
-    ///
-    /// Fills the **Verb** slot.
-    /// Example: ὁ ἄνθρωπος **λέγει** (The man **speaks**)
-    pub verb: Option<VerbConstituent>,
-
-    /// The direct object (accusative) - receives the action
-    ///
-    /// Fills the **Accusative** slot.
-    /// Example: βλέπω **τὸν ἄνθρωπον** (I see **the man**)
-    pub object: Option<Constituent>,
-
-    /// The indirect object (dative) - recipient/beneficiary
-    ///
-    /// Fills the **Dative** slot.
-    /// Example: δίδωμι **τῷ ἀνθρώπῳ** (I give **to the man**)
-    pub indirect: Option<Constituent>,
-
-    /// Possessors/sources (genitive) - attached to other constituents
-    ///
-    /// Fills the **Genitive** slot.
-    /// Example: τὸ τοῦ **ἀνθρώπου** βιβλίον (The **man's** book)
-    pub genitives: Vec<Constituent>,
-
-    /// Adjectives modifying nouns (νέον for "new")
-    ///
-    /// These are accumulated and applied to the relevant nouns during semantic analysis.
-    pub adjectives: Vec<Constituent>,
-
-    /// Literal values (strings, numbers) that appeared
-    ///
-    /// Example: `«χαῖρε»` (String), `42` (Number)
-    pub literals: Vec<Literal>,
-
-    /// Array literals that appeared
-    ///
-    /// Example: `[1, 2, 3]`
-    pub arrays: Vec<Vec<Expr>>,
-
-    /// Index accesses (array, index)
-    ///
-    /// Example: `πίναξ[0]`
-    pub index_accesses: Vec<(Expr, Expr)>,
-
-    /// Property accesses (owner, property)
-    ///
-    /// Example: `χρήστου ὄνομα` (user.name)
-    pub property_accesses: Vec<(String, String)>,
-
-    /// Binary operators found between expressions
-    ///
-    /// Example: `καί` (AND), `ἤ` (OR), `μείζον` (>)
-    pub operators: Vec<BinaryOp>,
-
-    /// Parenthesized blocks (nested expressions)
-    ///
-    /// Example: `{ ... }` blocks used in control flow bodies
-    pub blocks: Vec<Vec<crate::ast::Statement>>,
-
-    /// Nested phrases (parenthesized function calls)
-    ///
-    /// Example: `( ... )` groupings
-    pub nested_phrases: Vec<Vec<Expr>>,
-
-    /// Participles (used for lambdas/closures)
-    ///
-    /// Example: `διπλασιαζόμενα` (doubling/mapping)
-    pub participles: Vec<ParticipleConstituent>,
-
-    /// Unwrap expressions (expr!)
-    ///
-    /// Example: `τιμή!`
-    pub unwraps: Vec<Expr>,
-    /// Whether this is a query (ends with ?)
-    pub is_query: bool,
-    /// Whether this statement propagates (ends with ;) - converts to `?` in Rust
-    pub is_propagate: bool,
-    /// Whether this binding has the mutable marker (μετά)
-    pub has_mutable_marker: bool,
-    /// Whether this statement has the containment preposition (ἐν)
-    /// Used for contains patterns: element ἐν set? → set.contains(&element)
-    pub has_containment_preposition: bool,
-    /// Whether this statement has the delimiter preposition (κατά)
-    /// Used for split/join patterns: string κατά delimiter σχίζεται → string.split(delimiter)
-    pub has_delimiter_preposition: bool,
-    /// String method call: (method_name, delimiter)
-    /// Used for split/join patterns
-    pub string_method: Option<(String, String)>,
-}
-
-/// A noun/pronoun constituent with its grammatical info
-///
-/// This represents a word that fills a nominal slot (Subject, Object, etc.).
-/// It carries both its original surface form and its normalized lemma.
-///
-/// # Examples
-///
-/// ```
-/// use glossa::semantic::Constituent;
-/// use glossa::morphology::{Case, Number, Gender};
-/// use smol_str::SmolStr;
-///
-/// let man = Constituent {
-///     lemma: SmolStr::new("ανθρωπος"),
-///     original: SmolStr::new("ἄνθρωπος"),
-///     case: Case::Nominative,
-///     number: Some(Number::Singular),
-///     gender: Some(Gender::Masculine),
-///     person: None,
-/// };
-/// ```
-#[derive(Debug, Clone)]
-pub struct Constituent {
-    /// The dictionary form
-    ///
-    /// Used for semantic analysis and code generation.
-    /// Example: "ανθρωπος" (from "ἄνθρωπος")
-    pub lemma: SmolStr,
-
-    /// Original text as it appeared
-    ///
-    /// Preserved for error messages and display purposes.
-    /// Example: "ἄνθρωπος"
-    pub original: SmolStr,
-
-    /// Grammatical case
-    ///
-    /// Determines which slot this constituent fills:
-    /// - `Nominative` -> Subject
-    /// - `Accusative` -> Object
-    /// - `Dative` -> Indirect Object
-    pub case: Case,
-
-    /// Grammatical number
-    ///
-    /// Used for subject-verb agreement checks.
-    pub number: Option<Number>,
-
-    /// Grammatical gender
-    ///
-    /// Used for adjective-noun agreement checks.
-    pub gender: Option<Gender>,
-
-    /// Grammatical person (1st, 2nd, 3rd)
-    ///
-    /// Used for subject-verb agreement checks.
-    /// Nouns are typically 3rd person, but pronouns can be 1st/2nd.
-    pub person: Option<Person>,
-}
-
-/// A verb constituent with its grammatical info
-///
-/// This represents the main action of the sentence.
-#[derive(Debug, Clone)]
-pub struct VerbConstituent {
-    /// The dictionary form (1st person singular present)
-    ///
-    /// Example: "λεγω" (from "λέγει")
-    pub lemma: SmolStr,
-
-    /// Original text as it appeared
-    ///
-    /// Example: "λέγει"
-    pub original: SmolStr,
-
-    /// Person (1st, 2nd, 3rd)
-    ///
-    /// Used for agreement with the subject.
-    pub person: Option<Person>,
-
-    /// Number (singular, plural)
-    ///
-    /// Used for agreement with the subject.
-    pub number: Option<Number>,
-
-    /// Tense (present, aorist, etc.)
-    ///
-    /// Determines execution semantics (e.g., Aorist = immediate, Present = continuous).
-    pub tense: Option<Tense>,
-
-    /// Mood (indicative, imperative, etc.)
-    ///
-    /// Determines sentence type (Statement vs Command).
-    pub mood: Option<Mood>,
-
-    /// Voice (active, middle, passive)
-    ///
-    /// Determines the relationship between subject and action.
-    /// - Active: Subject does action
-    /// - Middle: Subject acts on self/for self (often used for specific ops like `.pop()`)
-    pub voice: Option<Voice>,
-}
-
-/// A participle constituent (used for lambdas/closures)
-#[derive(Debug, Clone)]
-pub struct ParticipleConstituent {
-    /// The verb stem extracted from the participle
-    pub verb_lemma: String,
-    /// Original text as it appeared
-    pub original: String,
-    /// Tense (present, aorist, perfect)
-    pub tense: Tense,
-    /// Voice (active, middle, passive)
-    pub voice: Voice,
-    /// Case (adjectival property)
-    pub case: Case,
-    /// Gender (adjectival property)
-    pub gender: Gender,
-    /// Number (adjectival property)
-    pub number: Number,
-}
-
-/// A literal value
-#[derive(Debug, Clone)]
-pub enum Literal {
-    String(String),
-    Number(i64),
-    Boolean(bool),
-}
 
 /// The slot-based assembler
 ///
@@ -668,8 +429,8 @@ impl Assembler {
         original: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = ParticipleConstituent {
-            verb_lemma: analysis.verb_lemma(),
-            original: original.to_string(),
+            verb_lemma: analysis.verb_lemma().into(),
+            original: original.into(),
             tense: analysis.tense,
             voice: analysis.voice,
             case: analysis.case,
@@ -1064,7 +825,7 @@ impl Default for Assembler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::morphology::analyze;
+    use crate::morphology::{Tense, Voice, analyze};
 
     #[test]
     fn test_operator_detection() {
