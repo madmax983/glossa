@@ -149,7 +149,10 @@ fn run_test(input: &Path) -> Result<()> {
 
     if !compile_output.status.success() {
         let stderr = String::from_utf8_lossy(&compile_output.stderr);
-        return Err(miette::miette!("Σφάλμα μεταγλωττίσεως δοκιμῶν:\n{}", stderr));
+        return Err(miette::miette!(
+            "Σφάλμα μεταγλωττίσεως δοκιμῶν:\n{}",
+            stderr
+        ));
     }
 
     // Run the test binary
@@ -690,7 +693,12 @@ mod tests {
         let path = PathBuf::from("nonexistent_test.gl");
         let result = run_test(&path);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον οὐχ εὑρέθη"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον οὐχ εὑρέθη")
+        );
     }
 
     #[test]

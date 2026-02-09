@@ -1402,4 +1402,23 @@ mod tests {
             "Expected immediate agreement failure for SVO"
         );
     }
+
+    #[test]
+    fn test_unintelligible_token() {
+        let mut asm = Assembler::new();
+        // $ is not alphanumeric and not a known token
+        let result = asm.feed(&MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("$"),
+            part_of_speech: PartOfSpeech::Unknown,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 0.0,
+        }, "$");
+        assert!(matches!(result, Err(AssemblyError::UnintelligibleToken(s)) if s == "$"));
+    }
 }

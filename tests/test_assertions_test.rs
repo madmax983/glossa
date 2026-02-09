@@ -138,3 +138,22 @@ fn test_empty_test_body() {
     assert!(rust_str.contains("# [test]"), "Missing #[test] attribute");
     assert!(rust_str.contains("fn test_empty_test"), "Missing function");
 }
+
+#[test]
+fn test_literal_equality_assertion() {
+    let source = r#"
+δοκιμή «Literal equality».
+    1 1 ἰσοῦται.
+    «hello» «hello» ἰσοῦται.
+τέλος.
+"#;
+
+    let ast = parse(source).expect("Parse failed");
+    let analyzed = analyze_program(&ast).expect("Semantic analysis failed");
+    let rust_code = generate_rust(&analyzed);
+
+    let rust_str = rust_code.to_string();
+
+    assert!(rust_str.contains("assert_eq ! (1i64 , 1i64)"), "Missing literal number equality check");
+    assert!(rust_str.contains("assert_eq ! (\"hello\" , \"hello\")"), "Missing literal string equality check");
+}
