@@ -53,12 +53,6 @@ enum Commands {
         input: PathBuf,
     },
 
-    /// Highlight a .γλ file with semantic colors
-    Highlight {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
-
     /// Start the interactive REPL
     Repl,
 }
@@ -85,10 +79,6 @@ fn main() -> Result<()> {
 
         Some(Commands::Check { input }) => {
             check_file(&input)?;
-        }
-
-        Some(Commands::Highlight { input }) => {
-            highlight_file(&input)?;
         }
 
         Some(Commands::Repl) | None => {
@@ -250,18 +240,6 @@ fn check_file(input: &Path) -> Result<()> {
         "✓".green(),
         input.display().to_string().bold()
     );
-
-    Ok(())
-}
-
-fn highlight_file(input: &Path) -> Result<()> {
-    check_file_size(input)?;
-
-    let source = fs::read_to_string(input).into_diagnostic()?;
-    let highlighted =
-        glossa::experimental::bard::highlight(&source).map_err(|e| miette::miette!("{}", e))?;
-
-    println!("{}", highlighted);
 
     Ok(())
 }
