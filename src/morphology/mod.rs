@@ -581,4 +581,66 @@ mod tests {
             "Should resolve to Feminine due to tie-breaker"
         );
     }
+
+    #[test]
+    fn test_noun_verb_tie_noun_wins() {
+        // "λογω"
+        // Noun: Dative Singular Masculine (2nd declension) -> Conf 0.8
+        // Verb: Present Active Indicative 1st Sg (contracted) -> Conf 0.8
+        //
+        // Logic:
+        // 1. Noun found first. Best = Noun (0.8).
+        // 2. Verb found second. Conf equal.
+        // 3. Compare: Priority Lexicon > Noun > Verb.
+        // 4. Best is Noun, new is Verb -> No replacement.
+        let analysis = analyze("λογω");
+        assert_eq!(
+            analysis.part_of_speech,
+            PartOfSpeech::Noun,
+            "Noun should win tie against Verb"
+        );
+    }
+
+    #[test]
+    fn test_tie_breaker_no_replacement() {
+        // "λογων"
+        // 1. Matches 2nd Declension Masculine Genitive Plural (Conf 0.85) -> Best
+        // 2. Matches 1st Declension Feminine Genitive Plural (Conf 0.85)
+        //
+        // Compare:
+        // Masc Key: (Genitive, Plural, Masculine, λογων)
+        // Fem Key: (Genitive, Plural, Feminine, λογων)
+        //
+        // Masc (Found First) vs Fem (New)
+        // Key New (Fem) < Key Best (Masc)?
+        // Gender: Feminine < Masculine? No (Feminine is after Masculine in enum?)
+        // Wait, Enum order: Masculine, Feminine, Neuter.
+        // So Masc (0) < Fem (1).
+        // Best is Masc. New is Fem.
+        // New (Fem) < Best (Masc) is FALSE.
+        // So NO replacement. Masculine should stay.
+        let analysis = analyze("λογων");
+        assert_eq!(
+            analysis.gender,
+            Some(Gender::Masculine),
+            "Masculine should be preserved (found first and smaller enum value)"
+        );
+    }
+
+    #[test]
+    fn test_noun_beats_verb_by_confidence() {
+        // "λογοι"
+        // Noun: Nominative Plural Masculine (2nd decl) -> Conf 0.85 (base 0.8 + len bonus)
+        // Verb: Present Optative 3rd Sg "λογοι" -> Conf ~0.78 (base 0.75 + len bonus)
+        //
+        // Noun (0.85) > Verb (0.78).
+        // Noun found first. Verb found second.
+        // Verb conf < Noun conf. No replacement.
+        let analysis = analyze("λογοι");
+        assert_eq!(
+            analysis.part_of_speech,
+            PartOfSpeech::Noun,
+            "Noun should win by higher confidence"
+        );
+    }
 }
