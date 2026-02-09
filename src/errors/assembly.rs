@@ -73,11 +73,8 @@ pub enum AssemblyError {
         gender2: Gender,
     },
 
-    /// Unintelligible token found (e.g. Latin characters or unsupported symbols)
-    ///
-    /// # Example
-    /// `z λέγε` (z is not a valid Greek word)
-    #[error("Ἀκατάληπτον: {0} (Unintelligible token). Is this a valid Greek word?")]
-    #[diagnostic(code(glossa::assembly::unintelligible_token))]
+    /// A token that could not be understood or classified (e.g., symbols like `$`, `%`)
+    #[error("Ἀκατάληπτον σῆμα (Unintelligible token): {0}")]
+    #[diagnostic(code(glossa::assembly::unintelligible))]
     UnintelligibleToken(String),
 }

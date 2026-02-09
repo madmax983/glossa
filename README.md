@@ -120,6 +120,14 @@ cargo build --release
 
 ## Testing
 
+You can run tests defined in `.γλ` files using the `glossa test` command:
+
+```bash
+cargo run --release -- test tests/my_test.γλ
+```
+
+Or run the compiler's internal tests:
+
 ```bash
 cargo test
 ```

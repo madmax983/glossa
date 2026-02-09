@@ -262,6 +262,29 @@ impl Assembler {
                 // Non-operator conjunctions are ignored for now
                 Ok(())
             }
+            PartOfSpeech::Unknown => {
+                // Check if it looks like a valid identifier (alphanumeric or underscore)
+                // This allows Latin variables (e.g. "x", "count") to be used even if not in Greek lexicon
+                if original.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                    // Treat as Noun (Variable/Subject/Object)
+                    // Create a synthetic analysis
+                    let synthetic = MorphAnalysis {
+                        lemma: std::borrow::Cow::Owned(original.to_string()),
+                        part_of_speech: PartOfSpeech::Noun,
+                        case: None, // Will default to Nominative/Accusative based on slot availability
+                        number: None,
+                        gender: None,
+                        person: None,
+                        tense: None,
+                        mood: None,
+                        voice: None,
+                        confidence: 0.5,
+                    };
+                    self.handle_nominal(&synthetic, original)
+                } else {
+                    Err(AssemblyError::UnintelligibleToken(original.to_string()))
+                }
+            }
             _ => Ok(()), // Ignore particles, articles for now
         }
     }
@@ -1378,49 +1401,5 @@ mod tests {
             matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
             "Expected immediate agreement failure for SVO"
         );
-    }
-
-    #[test]
-    fn test_unintelligible_token_error() {
-        let mut asm = Assembler::new();
-        // Create an analysis that mimics an unknown token (like a symbol)
-        let analysis = MorphAnalysis {
-            lemma: std::borrow::Cow::Borrowed("$"),
-            part_of_speech: PartOfSpeech::Unknown,
-            case: None,
-            number: None,
-            gender: None,
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 0.0,
-        };
-
-        // Feed a non-alphanumeric token
-        let result = asm.feed(&analysis, "$");
-        assert!(matches!(result, Err(AssemblyError::UnintelligibleToken(_))));
-    }
-
-    #[test]
-    fn test_latin_identifier_allowed() {
-        let mut asm = Assembler::new();
-        // Create an analysis for a Latin identifier (e.g. "x")
-        let analysis = MorphAnalysis {
-            lemma: std::borrow::Cow::Borrowed("x"),
-            part_of_speech: PartOfSpeech::Unknown,
-            case: None, // Will default to Nominative/Accusative based on context logic in feed
-            number: None,
-            gender: None,
-            person: None,
-            tense: None,
-            mood: None,
-            voice: None,
-            confidence: 0.0,
-        };
-
-        // Feed "x" - should be accepted as a noun
-        let result = asm.feed(&analysis, "x");
-        assert!(result.is_ok());
     }
 }

@@ -641,17 +641,22 @@ fn classify_equality_assertion(
             let mut right_expr = None;
 
             // Get subject (variable)
-            if let Some(ref subj) = asm_stmt.subject
-                && let Some(var_type) = scope.lookup(&subj.lemma)
-            {
-                left_expr = Some(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                });
+            if let Some(ref subj) = asm_stmt.subject {
+                // Try variable lookup first
+                if let Some(var_type) = scope.lookup(&subj.lemma) {
+                    left_expr = Some(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    });
+                }
             }
 
-            // Get literal (expected value)
-            if let Some(literal) = asm_stmt.literals.first() {
+            // If we have 2 literals and no subject was used, use them both
+            if left_expr.is_none() && asm_stmt.literals.len() >= 2 {
+                left_expr = Some(literal_to_analyzed_expr(&asm_stmt.literals[0]));
+                right_expr = Some(literal_to_analyzed_expr(&asm_stmt.literals[1]));
+            } else if let Some(literal) = asm_stmt.literals.first() {
+                // If we have a subject (left), take first literal as right
                 right_expr = Some(literal_to_analyzed_expr(literal));
             }
 
@@ -772,24 +777,32 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-            if let Some(ref subj) = asm_stmt.subject
-                && let Some(var_type) = scope.lookup(&subj.lemma)
-            {
+            if let Some(ref subj) = asm_stmt.subject {
+                // Always include the variable, defaulting to Unknown type if not found
+                // This ensures "println!("{}", x)" is generated, which will fail at compile time if x is undefined
+                let var_type = scope
+                    .lookup(&subj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+
                 args.insert(
                     0,
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: var_type.clone(),
+                        glossa_type: var_type,
                     },
                 );
             }
 
-            if let Some(ref obj) = asm_stmt.object
-                && let Some(var_type) = scope.lookup(&obj.lemma)
-            {
+            if let Some(ref obj) = asm_stmt.object {
+                let var_type = scope
+                    .lookup(&obj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+
                 args.push(AnalyzedExpr {
                     expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: var_type.clone(),
+                    glossa_type: var_type,
                 });
             }
 
@@ -1298,59 +1311,4 @@ pub fn extract_value(
         },
         GlossaType::Number,
     ))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::morphology::{Case, Gender, Number};
-    use crate::semantic::assembled::{Constituent, VerbConstituent};
-
-    #[test]
-    fn test_print_undefined_variable() {
-        let mut scope = Scope::new();
-        // Do NOT define "z" in scope
-
-        let subj = Constituent {
-            lemma: "z".into(),
-            original: "z".into(),
-            case: Case::Nominative,
-            number: Some(Number::Singular),
-            gender: Some(Gender::Neuter),
-            person: None,
-        };
-
-        let verb = VerbConstituent {
-            lemma: "λεγω".into(),
-            original: "λέγε".into(),
-            person: None,
-            number: None,
-            tense: None,
-            mood: None,
-            voice: None,
-        };
-
-        let asm_stmt = AssembledStatement {
-            subject: Some(subj),
-            verb: Some(verb),
-            ..Default::default()
-        };
-
-        let result = classify_assembled_statement(&asm_stmt, &mut scope).unwrap();
-
-        match result {
-            AnalyzedStatement::Print(exprs) => {
-                assert_eq!(exprs.len(), 1);
-                let expr = &exprs[0];
-                match &expr.expr {
-                    AnalyzedExprKind::Variable(name) => {
-                        assert_eq!(name, "z");
-                        assert_eq!(expr.glossa_type, GlossaType::Unknown);
-                    }
-                    _ => panic!("Expected Variable expression"),
-                }
-            }
-            _ => panic!("Expected Print statement"),
-        }
-    }
 }

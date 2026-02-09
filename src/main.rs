@@ -59,6 +59,12 @@ enum Commands {
         input: PathBuf,
     },
 
+    /// Run tests in a .γλ file
+    Test {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Start the interactive REPL
     Repl,
 }
@@ -91,9 +97,70 @@ fn main() -> Result<()> {
             highlight_file(&input)?;
         }
 
+        Some(Commands::Test { input }) => {
+            run_test(&input)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
+    }
+
+    Ok(())
+}
+
+fn run_test(input: &Path) -> Result<()> {
+    // Validate file exists
+    if !input.exists() {
+        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
+    }
+
+    check_file_size(input)?;
+
+    println!("{} Δοκιμή (Testing): {}", "ℹ".blue(), input.display());
+
+    // Compile source
+    let source = fs::read_to_string(input).into_diagnostic()?;
+
+    let rust_code = compile(&source).map_err(|e| miette::miette!("{}", e))?;
+
+    // Create temp directory for test binary
+    let cache = cache_dir().join("tests");
+    fs::create_dir_all(&cache).into_diagnostic()?;
+
+    let key = cache_key(input);
+    let test_rs = cache.join(format!("{}_test.rs", key));
+    let test_exe = cache.join(format!(
+        "{}_test{}",
+        key,
+        if cfg!(windows) { ".exe" } else { "" }
+    ));
+
+    fs::write(&test_rs, &rust_code).into_diagnostic()?;
+
+    // Compile with rustc --test
+    let compile_output = Command::new("rustc")
+        .arg("--test")
+        .arg(&test_rs)
+        .arg("-o")
+        .arg(&test_exe)
+        .output()
+        .into_diagnostic()?;
+
+    if !compile_output.status.success() {
+        let stderr = String::from_utf8_lossy(&compile_output.stderr);
+        return Err(miette::miette!("Σφάλμα μεταγλωττίσεως δοκιμῶν:\n{}", stderr));
+    }
+
+    // Run the test binary
+    let status = Command::new(&test_exe)
+        .stdout(Stdio::inherit()) // Let user see test output
+        .stderr(Stdio::inherit())
+        .status()
+        .into_diagnostic()?;
+
+    if !status.success() {
+        return Err(miette::miette!("Αἱ δοκιμαὶ ἀπέτυχον (Tests failed)"));
     }
 
     Ok(())
@@ -619,6 +686,14 @@ mod tests {
     }
 
     #[test]
+    fn test_run_test_missing_file() {
+        let path = PathBuf::from("nonexistent_test.gl");
+        let result = run_test(&path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον οὐχ εὑρέθη"));
+    }
+
+    #[test]
     fn test_build_file_size_limit() {
         // Create large file
         let dir = tempfile::tempdir().unwrap();
@@ -825,18 +900,5 @@ mod tests {
         // Test None display
         let none = ReplOutput::None;
         assert_eq!(none.to_string(), "");
-    }
-
-    #[test]
-    fn test_run_test_missing_file() {
-        let path = PathBuf::from("non_existent_file.gl");
-        let result = run_test(&path);
-        assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Ἀρχεῖον οὐχ εὑρέθη")
-        );
     }
 }
