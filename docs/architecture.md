@@ -28,7 +28,7 @@ C4Container
     title Container Diagram for ΓΛΩΣΣΑ Compiler
 
     Container(lexer, "Lexer", "src/grammar", "Tokenizes source, handling Unicode normalization")
-    Container(parser, "Parser", "src/parser", "Constructs AST from tokens, handling flexible word order")
+    Container(parser, "Parser", "src/parser", "Constructs AST, enforcing recursion limits (max depth 500)")
     Container(morphology, "Declension Resolver", "src/morphology", "Analyzes case, gender, number, and resolves agreement")
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
     Container(codegen, "Code Generator", "src/codegen", "Generates Rust source code")
