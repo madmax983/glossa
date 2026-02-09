@@ -263,12 +263,9 @@ impl Assembler {
                 Ok(())
             }
             PartOfSpeech::Unknown => {
-                // If the word contains Greek characters, treat it as a noun (variable/function/type)
-                // If it's Latin/Symbol, it's unintelligible
-                if original.chars().any(|c| {
-                    let u = c as u32;
-                    matches!(u, 0x0370..=0x03FF | 0x1F00..=0x1FFF)
-                }) {
+                // If the word is alphanumeric (Greek or Latin), treat it as a noun (variable/function/type)
+                // This allows unaccented Greek (e.g. προσθεσις) and Latin identifiers (e.g. self)
+                if original.chars().all(|c| c.is_alphanumeric() || c == '_') {
                     self.handle_nominal(analysis, original)
                 } else {
                     Err(AssemblyError::UnintelligibleToken(original.to_string()))

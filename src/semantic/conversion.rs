@@ -772,24 +772,28 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-            if let Some(ref subj) = asm_stmt.subject
-                && let Some(var_type) = scope.lookup(&subj.lemma)
-            {
+            if let Some(ref subj) = asm_stmt.subject {
+                let var_type = scope
+                    .lookup(&subj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
                 args.insert(
                     0,
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: var_type.clone(),
+                        glossa_type: var_type,
                     },
                 );
             }
 
-            if let Some(ref obj) = asm_stmt.object
-                && let Some(var_type) = scope.lookup(&obj.lemma)
-            {
+            if let Some(ref obj) = asm_stmt.object {
+                let var_type = scope
+                    .lookup(&obj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
                 args.push(AnalyzedExpr {
                     expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: var_type.clone(),
+                    glossa_type: var_type,
                 });
             }
 

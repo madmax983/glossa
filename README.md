@@ -121,7 +121,7 @@ glossa test tests.γλ
 
 ## Variables
 
-Variables in ΓΛΩΣΣΑ must use Greek characters (e.g., `α`, `β`, `χ`, `τιμή`). Latin characters (like `x`, `y`) are reserved for type names or keywords and will cause an "Unintelligible Token" error if used as variables.
+Variables in ΓΛΩΣΣΑ typically use Greek characters (e.g., `α`, `β`, `χ`, `τιμή`). Latin characters (like `x`, `y`) are supported for interoperability but are discouraged. Using undefined variables will result in a compilation error.
 
 ## Building
 
