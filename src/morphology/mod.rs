@@ -560,4 +560,25 @@ mod tests {
         assert_eq!(analysis.part_of_speech, PartOfSpeech::Unknown);
         assert_eq!(analysis.confidence, 0.0);
     }
+
+    #[test]
+    fn test_tie_breaker_replacement() {
+        // "τεστα" (fake word)
+        // Matches 2nd Declension Neuter Plural (-α). Base 0.75.
+        // Matches 1st Declension Feminine Singular (-α). Base 0.75.
+        //
+        // Logic:
+        // 1. Neuter found first. Best = Neuter.
+        // 2. Feminine found second. Confidence equal.
+        // 3. Compare: Fem (1) < Neuter (2).
+        // 4. Feminine replaces Neuter.
+        //
+        // This ensures the tie-breaker replacement logic is executed.
+        let analysis = analyze("τεστα");
+        assert_eq!(
+            analysis.gender,
+            Some(Gender::Feminine),
+            "Should resolve to Feminine due to tie-breaker"
+        );
+    }
 }
