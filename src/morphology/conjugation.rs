@@ -930,9 +930,7 @@ mod tests {
         // "επαυσα" (I stopped) -> Aorist Indicative -> strip augment "ε" -> lemma "παυω"
         let analyses = analyze_verb_all("επαυσα");
         let found = analyses.iter().find(|a| {
-            a.tense == Some(Tense::Aorist)
-                && a.mood == Some(Mood::Indicative)
-                && a.lemma == "παυω"
+            a.tense == Some(Tense::Aorist) && a.mood == Some(Mood::Indicative) && a.lemma == "παυω"
         });
         assert!(found.is_some(), "Should find 'παυω' from 'επαυσα'");
     }
