@@ -43,7 +43,7 @@ fn test_stack_overflow_expression() {
             println!("Generating...");
             // This should pass with 32MB stack
             let code = generate_rust(&analyzed);
-            assert!(code.len() > 0);
+            assert!(!code.is_empty());
         })
         .unwrap();
 
