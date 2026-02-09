@@ -259,7 +259,7 @@ fn highlight_file(input: &Path) -> Result<()> {
 
     let source = fs::read_to_string(input).into_diagnostic()?;
     let highlighted =
-        glossa::experimental::bard::highlight(&source).map_err(|e| miette::miette!("{}", e))?;
+        glossa::highlight::highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", highlighted);
 
