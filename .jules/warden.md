@@ -61,3 +61,15 @@
 2. **Std Lib Preservation:** Implemented `is_std_method` and `is_std_type` allowlists in code generation to detect calls to standard library methods and preserve their original names (e.g. `len`) instead of prefixing them.
 
 **Severity:** Medium (Logic Bug / Compilation Failure).
+
+## 2026-06-04 - HashDoS in Resolver & Iterator Prefixing Bug
+
+**Threat:**
+1. **HashDoS in Resolver:** User-controlled variable/type names were stored in `FxHashMap` (from `rustc-hash`), which uses a non-cryptographic hash function. A malicious source file with many colliding identifiers could cause quadratic lookup times (DoS) during semantic analysis.
+2. **Broken Code Generation:** Iterator methods (e.g., `map`, `filter`) on intermediate `Unknown` types were incorrectly sanitized (prefixed with `g_`), resulting in invalid Rust code (e.g., `.g_map()`) that failed to compile.
+
+**Defense:**
+1. **Secure Hashing:** Replaced `FxHashMap` with `std::collections::HashMap` (SipHash) in `src/semantic/resolver.rs` for all user-controlled scopes.
+2. **Standard Method Allowlist:** Added `GlossaType::Unknown` to `is_std_type` in `src/codegen/rust.rs` to prevent prefixing standard methods on inferred/iterator types.
+
+**Severity:** Medium (DoS via CPU exhaustion & Compilation Failure).

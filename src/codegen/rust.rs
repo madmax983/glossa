@@ -928,6 +928,7 @@ fn is_std_type(ty: &GlossaType) -> bool {
             | GlossaType::Option(_)
             | GlossaType::Result(_, _)
             | GlossaType::Unit
+            | GlossaType::Unknown
     )
 }
 
