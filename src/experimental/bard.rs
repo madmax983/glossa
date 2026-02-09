@@ -624,4 +624,69 @@ mod tests {
         let result = highlight(source);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_manual_ast_nodes() {
+        // These nodes are not currently produced by the parser but exist in the AST.
+        // We test them manually to ensure the highlighter handles them (future-proofing).
+        let mut h = Highlighter::new();
+
+        // 1. BinOp
+        let binop = Expr::BinOp {
+            left: Box::new(Expr::NumberLiteral(1)),
+            op: BinOperator::Add,
+            right: Box::new(Expr::NumberLiteral(2)),
+        };
+        h.highlight_expr(&binop).unwrap();
+        assert!(h.output.contains("+"));
+        h.output.clear();
+
+        // 2. Call
+        let call = Expr::Call {
+            verb: Word::new("λέγε"),
+            arguments: vec![Expr::StringLiteral("test".to_string())],
+        };
+        h.highlight_expr(&call).unwrap();
+        assert!(h.output.contains("λέγε"));
+        assert!(h.output.contains("test"));
+        h.output.clear();
+
+        // 3. Binding
+        let binding = Expr::Binding {
+            name: Word::new("χ"),
+            value: Box::new(Expr::NumberLiteral(10)),
+        };
+        h.highlight_expr(&binding).unwrap();
+        assert!(h.output.contains("χ"));
+        assert!(h.output.contains("ἔστω"));
+        h.output.clear();
+
+        // 4. PropertyAccess
+        let prop = Expr::PropertyAccess {
+            owner: Box::new(Expr::Word(Word::new("χρήστου"))),
+            property: Box::new(Expr::Word(Word::new("ὄνομα"))),
+        };
+        h.highlight_expr(&prop).unwrap();
+        assert!(h.output.contains("χρήστου"));
+        assert!(h.output.contains("ὄνομα"));
+        h.output.clear();
+
+        // 5. UnaryOp (Not)
+        let not_op = Expr::UnaryOp {
+            op: UnaryOperator::Not,
+            operand: Box::new(Expr::BooleanLiteral(true)),
+        };
+        h.highlight_expr(&not_op).unwrap();
+        assert!(h.output.contains("οὐ"));
+        h.output.clear();
+
+        // 6. UnaryOp (Neg)
+        let neg_op = Expr::UnaryOp {
+            op: UnaryOperator::Neg,
+            operand: Box::new(Expr::NumberLiteral(5)),
+        };
+        h.highlight_expr(&neg_op).unwrap();
+        assert!(h.output.contains("-"));
+        h.output.clear();
+    }
 }
