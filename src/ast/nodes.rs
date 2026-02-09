@@ -6,8 +6,11 @@
 use smol_str::SmolStr;
 
 /// A complete GLOSSA program
+///
+/// The root of the Abstract Syntax Tree, containing a sequence of statements.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
+    /// The list of top-level statements in the program.
     pub statements: Vec<Statement>,
 }
 
@@ -15,18 +18,69 @@ pub struct Program {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     /// A regular statement with clauses
+    ///
+    /// The most common statement type, representing imperative actions,
+    /// bindings, or expressions.
+    ///
+    /// # Example
+    ///
+    /// ```glossa
+    /// «χαῖρε» λέγε.
+    /// ```
     Regular {
         clauses: Vec<Clause>,
         is_query: bool,
         is_propagate: bool,
     },
     /// A type definition statement
+    ///
+    /// Defines a new struct type.
+    ///
+    /// # Example
+    ///
+    /// ```glossa
+    /// εἶδος Χρήστης ὁρίζειν {
+    ///     ὄνομα ὀνόματος.
+    /// }.
+    /// ```
     TypeDefinition(TypeDef),
     /// A trait definition statement
+    ///
+    /// Defines a new interface (trait).
+    ///
+    /// # Example
+    ///
+    /// ```glossa
+    /// χαρακτήρ Εκτυπώσιμος ὁρίζειν {
+    ///     τύπωσις(εαυτός).
+    /// }.
+    /// ```
     TraitDefinition(TraitDef),
     /// A trait implementation statement
+    ///
+    /// Implements a trait for a specific type.
+    ///
+    /// # Example
+    ///
+    /// ```glossa
+    /// εἶδος Χρήστης τῷ Εκτυπώσιμος ἐμπίπτειν {
+    ///     τύπωσις(εαυτός) {
+    ///         εαυτοῦ ὄνομα λέγε.
+    ///     }
+    /// }.
+    /// ```
     TraitImpl(TraitImplDef),
     /// A test declaration
+    ///
+    /// Defines a unit test.
+    ///
+    /// # Example
+    ///
+    /// ```glossa
+    /// δοκιμή «test name».
+    ///     ξ 5 ἰσοῦται.
+    /// τέλος.
+    /// ```
     TestDeclaration(TestDecl),
 }
 
@@ -168,6 +222,10 @@ pub enum Expr {
     IndexAccess { array: Box<Expr>, index: Box<Expr> },
 
     /// A single Greek word with morphological information
+    ///
+    /// This is the most basic building block. The semantic analyzer uses
+    /// the morphological information to determine if this word is a
+    /// variable, a keyword, or part of a larger phrase.
     Word(Word),
 
     /// Multiple terms forming a phrase
@@ -177,20 +235,30 @@ pub enum Expr {
     Phrase(Vec<Expr>),
 
     /// A property access (genitive construction)
-    /// e.g., χρήστου ὄνομα = "the name of the user"
+    ///
+    /// # Example
+    /// `χρήστου ὄνομα` (the user's name)
     PropertyAccess {
         owner: Box<Expr>,
         property: Box<Expr>,
     },
 
     /// A function/verb call
+    ///
+    /// # Example
+    /// `λέγε(«χαῖρε»)` (Explicit call syntax)
     Call { verb: Word, arguments: Vec<Expr> },
 
     /// Variable binding (ἔστω construction)
+    ///
+    /// # Example
+    /// `ξ πέντε ἔστω` -> `Binding { name: "ξ", value: 5 }`
     Binding { name: Word, value: Box<Expr> },
 
     /// Binary operation (arithmetic, comparison, boolean)
-    /// e.g., x μεῖζον y → x > y
+    ///
+    /// # Example
+    /// `x μεῖζον y` -> `x > y`
     BinOp {
         left: Box<Expr>,
         op: BinOperator,
@@ -198,7 +266,9 @@ pub enum Expr {
     },
 
     /// Unary operation (negation)
-    /// e.g., οὐκ x → !x
+    ///
+    /// # Example
+    /// `οὐκ x` -> `!x`
     UnaryOp {
         op: UnaryOperator,
         operand: Box<Expr>,
