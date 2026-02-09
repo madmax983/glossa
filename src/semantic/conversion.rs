@@ -1303,7 +1303,7 @@ pub fn extract_value(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
+    use crate::morphology::{Case, Gender, Number};
     use crate::semantic::assembled::{Constituent, VerbConstituent};
 
     #[test]
