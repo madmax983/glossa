@@ -514,4 +514,50 @@ mod tests {
                 .any(|a| a.tense == Some(Tense::Aorist) && a.lemma == "λυω")
         );
     }
+
+    #[test]
+    fn test_analyses_compatible_coverage() {
+        let mut a = MorphAnalysis::new("test".to_string(), PartOfSpeech::Noun);
+        let mut b = MorphAnalysis::new("test".to_string(), PartOfSpeech::Noun);
+
+        // Number mismatch
+        a.number = Some(Number::Singular);
+        b.number = Some(Number::Plural);
+        assert!(!analyses_compatible(&a, &b));
+
+        // Reset and test Gender mismatch
+        a.number = None;
+        b.number = None;
+        a.gender = Some(Gender::Masculine);
+        b.gender = Some(Gender::Feminine);
+        assert!(!analyses_compatible(&a, &b));
+
+        // Reset and test Case match (should be compatible)
+        a.gender = None;
+        b.gender = None;
+        a.case = Some(Case::Nominative);
+        b.case = Some(Case::Nominative);
+        assert!(analyses_compatible(&a, &b));
+    }
+
+    #[test]
+    fn test_single_greek_letter_variants() {
+        // Uppercase (Delta) - avoids ambiguity with Omega (verb ending)
+        // Note: normalize_greek converts to lowercase
+        let analysis = analyze("Δ");
+        assert_eq!(analysis.part_of_speech, PartOfSpeech::Noun);
+        assert_eq!(analysis.lemma, "δ");
+        assert_eq!(analysis.confidence, 0.9);
+
+        // Final Sigma
+        let analysis = analyze("ς");
+        assert_eq!(analysis.part_of_speech, PartOfSpeech::Noun);
+        assert_eq!(analysis.lemma, "ς");
+        assert_eq!(analysis.confidence, 0.9);
+
+        // Non-Greek char (punctuation)
+        let analysis = analyze("!");
+        assert_eq!(analysis.part_of_speech, PartOfSpeech::Unknown);
+        assert_eq!(analysis.confidence, 0.0);
+    }
 }

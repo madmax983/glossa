@@ -740,4 +740,19 @@ mod tests {
 
         assert_eq!(result, stem);
     }
+
+    #[test]
+    fn test_decline_coverage_extended() {
+        // Fallback for missing table entry
+        // Vocative Plural for 2nd Declension Masculine is not in table (defaults to stem in logic)
+        let stem = "λογ";
+        let result = decline(
+            stem,
+            Declension::Second,
+            Gender::Masculine,
+            Case::Vocative,
+            Number::Plural,
+        );
+        assert_eq!(result, stem);
+    }
 }

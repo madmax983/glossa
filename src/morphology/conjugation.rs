@@ -869,4 +869,71 @@ mod tests {
         let found = analyses.iter().find(|a| a.mood == Some(Mood::Subjunctive));
         assert!(found.is_some(), "analyze_verb_all should find Subjunctive");
     }
+
+    #[test]
+    fn test_strip_augment_edge_cases() {
+        assert_eq!(strip_augment("ε"), "ε");
+        assert_eq!(strip_augment("η"), "η");
+        assert_eq!(strip_augment("ω"), "ω");
+    }
+
+    #[test]
+    fn test_conjugate_coverage() {
+        // Aorist Active Indicative
+        // Note: conjugate() is mechanical (stem + ending), it doesn't add augment
+        assert_eq!(
+            conjugate(
+                "λυ",
+                Tense::Aorist,
+                Mood::Indicative,
+                Voice::Active,
+                Person::First,
+                Number::Singular
+            ),
+            "λυσα"
+        );
+
+        // Aorist Active Imperative
+        assert_eq!(
+            conjugate(
+                "λυ",
+                Tense::Aorist,
+                Mood::Imperative,
+                Voice::Active,
+                Person::Second,
+                Number::Singular
+            ),
+            "λυσον"
+        );
+
+        // Fallback (Future not supported yet)
+        assert_eq!(
+            conjugate(
+                "stem",
+                Tense::Future,
+                Mood::Indicative,
+                Voice::Active,
+                Person::First,
+                Number::Singular
+            ),
+            "stem"
+        );
+    }
+
+    #[test]
+    fn test_infinitive_fallback() {
+        assert_eq!(infinitive("stem", Tense::Future, Voice::Active), "stem");
+    }
+
+    #[test]
+    fn test_analyze_verb_all_augmented() {
+        // "επαυσα" (I stopped) -> Aorist Indicative -> strip augment "ε" -> lemma "παυω"
+        let analyses = analyze_verb_all("επαυσα");
+        let found = analyses.iter().find(|a| {
+            a.tense == Some(Tense::Aorist)
+                && a.mood == Some(Mood::Indicative)
+                && a.lemma == "παυω"
+        });
+        assert!(found.is_some(), "Should find 'παυω' from 'επαυσα'");
+    }
 }
