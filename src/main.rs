@@ -37,6 +37,12 @@ enum Commands {
         input: PathBuf,
     },
 
+    /// Run tests in a .γλ file
+    Test {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Compile a .γλ file to Rust source
     Build {
         /// Input file (.γλ)
@@ -87,6 +93,10 @@ fn main() -> Result<()> {
             check_file(&input)?;
         }
 
+        Some(Commands::Test { input }) => {
+            run_test(&input)?;
+        }
+
         Some(Commands::Highlight { input }) => {
             highlight_file(&input)?;
         }
@@ -94,6 +104,64 @@ fn main() -> Result<()> {
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
+    }
+
+    Ok(())
+}
+
+fn run_test(input: &Path) -> Result<()> {
+    // Validate file exists
+    if !input.exists() {
+        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
+    }
+
+    check_file_size(input)?;
+
+    // Set up cache directory
+    let cache = cache_dir();
+    fs::create_dir_all(&cache).into_diagnostic()?;
+
+    let key = cache_key(input);
+    let cached_rs = cache.join(format!("{}_test.rs", key));
+    let cached_exe = cache.join(format!(
+        "{}_test{}",
+        key,
+        if cfg!(windows) { ".exe" } else { "" }
+    ));
+
+    // Compile source
+    let source = fs::read_to_string(input).into_diagnostic()?;
+    let rust_code = compile(&source).map_err(|e| miette::miette!("{}", e))?;
+
+    // Write Rust source to cache
+    fs::write(&cached_rs, &rust_code).into_diagnostic()?;
+
+    // Compile with rustc --test
+    println!("{} Μεταγλώττισις δοκιμῶν (Compiling tests)...", "ℹ".blue());
+    let rustc_output = Command::new("rustc")
+        .arg("--test")
+        .arg(&cached_rs)
+        .arg("-o")
+        .arg(&cached_exe)
+        .arg("-O")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .into_diagnostic()?;
+
+    if !rustc_output.status.success() {
+        let stderr = String::from_utf8_lossy(&rustc_output.stderr);
+        return Err(miette::miette!("Σφάλμα μεταγλωττίσεως:\n{}", stderr));
+    }
+
+    println!("{} Ἐκτέλεσις δοκιμῶν (Running tests)...", "ℹ".blue());
+
+    // Run the compiled test binary
+    let status = Command::new(&cached_exe).status().into_diagnostic()?;
+
+    if !status.success() {
+        // Test failure is not a crash, but we should exit with error code
+        std::process::exit(status.code().unwrap_or(1));
     }
 
     Ok(())
