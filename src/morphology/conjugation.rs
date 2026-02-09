@@ -934,4 +934,23 @@ mod tests {
         });
         assert!(found.is_some(), "Should find 'παυω' from 'επαυσα'");
     }
+
+    #[test]
+    fn test_lemma_strategy_passive_optative_coverage() {
+        // Specifically target the PassiveOptative lemma strategy branch
+        // AORIST_PASSIVE_OPT uses this strategy
+        // Pattern: λυθειη -> λυω (strip θ)
+        // Ensure analyze_verb_visit hits this path
+
+        let mut hit = false;
+        analyze_verb_visit("λυθειη", |a| {
+            if a.voice == Some(Voice::Passive) && a.mood == Some(Mood::Optative) {
+                if a.lemma == "λυω" {
+                    hit = true;
+                }
+            }
+        });
+
+        assert!(hit, "Should have triggered PassiveOptative lemma strategy");
+    }
 }
