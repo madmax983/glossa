@@ -422,4 +422,45 @@ mod tests {
         let msg = gender_mismatch("μεγάλη", Gender::Feminine, "χρήστος", Gender::Masculine);
         assert!(msg.contains("οὐ συμφωνεῖ"));
     }
+
+    #[test]
+    fn test_all_error_constructors() {
+        let _ = GlossaError::parse("msg");
+        let _ = GlossaError::parse_with_source(
+            "msg",
+            "src",
+            SourceSpan::new(0usize.into(), 0usize.into()),
+        );
+        let _ = GlossaError::semantic("msg");
+        let _ = GlossaError::type_error("msg");
+        let _ = GlossaError::undefined("msg");
+        let _ = GlossaError::agreement("msg");
+        let _ = GlossaError::codegen("msg");
+        let _ = GlossaError::io("msg");
+    }
+
+    #[test]
+    fn test_all_helpers() {
+        assert!(!type_mismatch("a", "b").is_empty());
+        assert!(!undefined_variable("a").is_empty());
+        assert!(!immutable_assignment("a").is_empty());
+        assert!(!gender_mismatch("a", Gender::Masculine, "b", Gender::Feminine).is_empty());
+        assert!(!number_mismatch("a", Number::Singular, "b", Number::Plural).is_empty());
+        assert!(!case_mismatch("a", Case::Nominative, "b", Case::Accusative).is_empty());
+    }
+
+    #[test]
+    fn test_categories() {
+        assert_eq!(GlossaError::parse("").category_greek(), "Σύνταξις");
+        assert_eq!(GlossaError::semantic("").category_greek(), "Σημασία");
+        assert_eq!(GlossaError::type_error("").category_greek(), "Τύπος");
+        assert_eq!(GlossaError::undefined("").category_greek(), "Ὄνομα");
+        assert_eq!(GlossaError::agreement("").category_greek(), "Συμφωνία");
+        assert_eq!(GlossaError::codegen("").category_greek(), "Κῶδιξ");
+        assert_eq!(GlossaError::io("").category_greek(), "Ἀρχεῖον");
+        assert_eq!(
+            GlossaError::AssemblyError(AssemblyError::DoubleSubject).category_greek(),
+            "Συναρμογή"
+        );
+    }
 }

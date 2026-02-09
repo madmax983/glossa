@@ -173,6 +173,91 @@ impl Statement {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_word_new() {
+        let w = Word::new("Λόγος");
+        assert_eq!(w.original, "Λόγος");
+        assert_eq!(w.normalized, "λογος");
+    }
+
+    #[test]
+    fn test_statement_helpers() {
+        let stmt = Statement::Regular {
+            clauses: vec![],
+            is_query: true,
+            is_propagate: false,
+        };
+        assert!(stmt.is_query());
+        assert!(!stmt.is_propagate());
+        assert!(stmt.clauses().is_empty());
+        assert_eq!(stmt.expressions().count(), 0);
+
+        let stmt_prop = Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: true,
+        };
+        assert!(!stmt_prop.is_query());
+        assert!(stmt_prop.is_propagate());
+
+        let type_def = Statement::TypeDefinition(TypeDef {
+            name: Word::new("T"),
+            fields: vec![],
+        });
+        assert!(!type_def.is_query());
+        assert!(!type_def.is_propagate());
+        assert!(type_def.clauses().is_empty());
+        assert_eq!(type_def.expressions().count(), 0);
+
+        let trait_def = Statement::TraitDefinition(TraitDef {
+            name: Word::new("Tr"),
+            methods: vec![],
+        });
+        assert!(!trait_def.is_query());
+        assert!(!trait_def.is_propagate());
+        assert!(trait_def.clauses().is_empty());
+        assert_eq!(trait_def.expressions().count(), 0);
+
+        let trait_impl = Statement::TraitImpl(TraitImplDef {
+            type_name: Word::new("T"),
+            trait_name: Word::new("Tr"),
+            methods: vec![],
+        });
+        assert!(!trait_impl.is_query());
+        assert!(!trait_impl.is_propagate());
+        assert!(trait_impl.clauses().is_empty());
+        assert_eq!(trait_impl.expressions().count(), 0);
+
+        let test_decl = Statement::TestDeclaration(TestDecl {
+            name: "test".into(),
+            body: vec![],
+        });
+        assert!(!test_decl.is_query());
+        assert!(!test_decl.is_propagate());
+        assert!(test_decl.clauses().is_empty());
+        assert_eq!(test_decl.expressions().count(), 0);
+    }
+
+    #[test]
+    fn test_statement_expressions_iterator() {
+        let stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let exprs: Vec<_> = stmt.expressions().collect();
+        assert_eq!(exprs.len(), 2);
+        assert_eq!(exprs[0], &Expr::NumberLiteral(1));
+        assert_eq!(exprs[1], &Expr::NumberLiteral(2));
+    }
+}
+
 /// An expression in GLOSSA
 ///
 /// Expressions represent values that can be evaluated.
