@@ -560,8 +560,8 @@ mod tests {
         // If this fails, parser might not support unary minus yet or syntax is different
         // Assuming it works for now based on grammar check
         if let Ok(output) = result {
-             assert!(output.contains("-"));
-             assert!(output.contains("ξ"));
+            assert!(output.contains("-"));
+            assert!(output.contains("ξ"));
         }
     }
 
