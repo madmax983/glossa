@@ -68,12 +68,12 @@ pub fn try_parse_trait_method_call(
     // Only process Regular statements
     if let Statement::Regular { clauses, .. } = stmt {
         // Should have exactly one clause with one expression
-        if clauses.len() != 1 || clauses[0].expressions.len() != 1 {
+        if clauses.len() != 1 || clauses[0].len() != 1 {
             return Ok(None);
         }
 
         // Should be a Phrase with exactly 2 words
-        if let Expr::Phrase(terms) = &clauses[0].expressions[0] {
+        if let Expr::Phrase(terms) = &clauses[0][0] {
             if terms.len() != 2 {
                 return Ok(None);
             }
@@ -146,12 +146,12 @@ pub fn try_parse_struct_instantiation(
         }
 
         let clause = &clauses[0];
-        if clause.expressions.len() != 1 {
+        if clause.len() != 1 {
             return Ok(None);
         }
 
         // Should be a Phrase with at least 4 terms
-        if let Expr::Phrase(terms) = &clause.expressions[0] {
+        if let Expr::Phrase(terms) = &clause[0] {
             if terms.len() < 4 {
                 return Ok(None);
             }

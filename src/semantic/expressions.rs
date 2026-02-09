@@ -241,7 +241,7 @@ fn analyze_block(
     // Extract the expression from the block
     if let Some(stmt) = statements.first()
         && let Some(clause) = stmt.clauses().first()
-        && let Some(expr) = clause.expressions.first()
+        && let Some(expr) = clause.first()
     {
         return analyze_argument_expr_recursive(expr, scope, depth + 1);
     }
@@ -301,7 +301,7 @@ fn analyze_unaryop(
 /// Get the first word from a statement for pattern detection
 pub fn get_first_word(stmt: &Statement) -> Result<String, GlossaError> {
     if let Some(first_clause) = stmt.clauses().first()
-        && let Some(first_expr) = first_clause.expressions.first()
+        && let Some(first_expr) = first_clause.first()
     {
         if let Expr::Phrase(terms) = first_expr {
             if let Some(first_term) = terms.first()
@@ -319,7 +319,7 @@ pub fn get_first_word(stmt: &Statement) -> Result<String, GlossaError> {
 /// Check if a statement contains the function definition verb (ὁρίζειν)
 pub fn contains_function_definition_verb(stmt: &Statement) -> bool {
     for clause in stmt.clauses() {
-        for expr in &clause.expressions {
+        for expr in clause {
             if contains_verb_in_expr(expr, "οριζειν") {
                 return true;
             }
@@ -936,9 +936,7 @@ mod tests {
         // Block containing a statement with a clause with an expression
         // { 1. }
         let stmt = crate::ast::Statement::Regular {
-            clauses: vec![crate::ast::Clause {
-                expressions: vec![Expr::NumberLiteral(1)],
-            }],
+            clauses: vec![vec![Expr::NumberLiteral(1)]],
             is_query: false,
             is_propagate: false,
         };
@@ -978,9 +976,7 @@ mod tests {
     fn test_analyze_argument_expr_errors_on_block_with_empty_clause() {
         // Block with a statement that has a clause with no expressions
         let stmt = crate::ast::Statement::Regular {
-            clauses: vec![crate::ast::Clause {
-                expressions: vec![],
-            }],
+            clauses: vec![vec![]],
             is_query: false,
             is_propagate: false,
         };

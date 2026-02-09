@@ -12,8 +12,8 @@
 //!
 //! * **Program**: A sequence of `Statement`s.
 //! * **Statement**: Can be a `TypeDefinition`, `TraitDefinition`, `TraitImplementation`, or a `Regular` statement.
-//! * **Regular Statement**: Composed of `Clause`s separated by commas.
-//! * **Clause**: A sequence of `Expression`s.
+//! * **Regular Statement**: Composed of lists of expressions (clauses) separated by commas.
+//! * **Clause**: A sequence of `Expression`s (represented as `Vec<Expr>`).
 //! * **Expression**: Words, literals, phrases, or blocks.
 //!
 //! # The Parsing Pipeline

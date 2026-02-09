@@ -1,11 +1,9 @@
-use glossa::ast::{BinOperator, Clause, Expr, Program, Statement, UnaryOperator, Word};
+use glossa::ast::{BinOperator, Expr, Program, Statement, UnaryOperator, Word};
 use glossa::semantic::analyze_program;
 
 fn run_analysis(expr: Expr) {
     let stmt = Statement::Regular {
-        clauses: vec![Clause {
-            expressions: vec![expr],
-        }],
+        clauses: vec![vec![expr]],
         is_query: false,
         is_propagate: false,
     };

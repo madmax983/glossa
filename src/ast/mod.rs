@@ -9,8 +9,7 @@
 //!
 //! * [`Program`]: The root node, containing a list of statements.
 //! * [`Statement`]: A sentence, ending with a period (`.`) or query mark (`?` / `;`).
-//!   * A statement consists of one or more [`Clause`]s.
-//! * [`Clause`]: A comma-separated part of a statement.
+//!   * A statement consists of a list of clauses (comma-separated lists of expressions).
 //!   * Example: `ὁ ἄνθρωπος, τὸν λόγον λέγει.` (Two clauses: "The man", "says the word").
 //! * [`Expr`]: An expression (word, literal, operation).
 //!   * [`Expr::Word`]: A raw Greek word with its original and normalized forms.
@@ -31,7 +30,7 @@
 //! ```text
 //! Program
 //! └── Statement::Regular
-//!     └── Clause
+//!     └── Clause (Vec<Expr>)
 //!         ├── Expr::StringLiteral("χαῖρε")
 //!         └── Expr::Word("λέγε")
 //! ```

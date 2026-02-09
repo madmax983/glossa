@@ -271,14 +271,14 @@ pub fn parse_function_definition(
     let clause = &stmt.clauses()[0];
 
     // We need at least 2 expressions: header and body
-    if clause.expressions.len() < 2 {
+    if clause.len() < 2 {
         return Err(GlossaError::semantic(
             "Function definition needs header and body separated by middle dot (·)",
         ));
     }
 
     // Parse header (first expression contains name, ὁρίζειν, and parameters)
-    let header_expr = &clause.expressions[0];
+    let header_expr = &clause[0];
     let function_name = extract_function_name_from_expr(header_expr)?;
 
     // Extract parameters (dative words) from the header
@@ -294,14 +294,12 @@ pub fn parse_function_definition(
         }
 
         // Parse body (remaining expressions after middle dot)
-        let body_exprs = &clause.expressions[1..];
+        let body_exprs = &clause[1..];
 
         // Each expression in the body becomes a statement
         for expr in body_exprs {
             // Create a clause with this single expression
-            let body_clause = crate::ast::Clause {
-                expressions: vec![expr.clone()],
-            };
+            let body_clause = vec![expr.clone()];
 
             let clause_stmt = Statement::Regular {
                 clauses: vec![body_clause],

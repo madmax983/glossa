@@ -6,7 +6,7 @@ use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, StatementKind,
     analyze_statement,
 };
-use crate::ast::{Clause, Expr, Statement};
+use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::lexicon;
 use crate::text::normalize_greek;
@@ -140,12 +140,12 @@ fn parse_for_range_loop(
     // Parse range specification from first clause
     let range_clause = &stmt.clauses()[0];
 
-    if range_clause.expressions.is_empty() {
+    if range_clause.is_empty() {
         return Err(GlossaError::semantic("Empty range clause in for loop"));
     }
 
     // Extract words from the first expression (should be a Phrase)
-    let words = if let Expr::Phrase(terms) = &range_clause.expressions[0] {
+    let words = if let Expr::Phrase(terms) = &range_clause[0] {
         terms
     } else {
         return Err(GlossaError::semantic("Expected phrase in for range"));
@@ -227,7 +227,7 @@ fn parse_for_range_loop(
     }
 
     // Extract variable name from first word of first body clause
-    let variable = if let Some(first_expr) = body_clauses[0].expressions.first() {
+    let variable = if let Some(first_expr) = body_clauses[0].first() {
         if let Expr::Phrase(terms) = first_expr {
             if let Some(Expr::Word(w)) = terms.first() {
                 w.normalized.clone()
@@ -283,11 +283,11 @@ fn parse_for_iteration_loop(
     // Extract collection name from first clause (διὰ + genitive noun)
     let collection_clause = &stmt.clauses()[0];
 
-    if collection_clause.expressions.is_empty() {
+    if collection_clause.is_empty() {
         return Err(GlossaError::semantic("Empty collection clause in for loop"));
     }
 
-    let collection_name = if let Expr::Phrase(terms) = &collection_clause.expressions[0] {
+    let collection_name = if let Expr::Phrase(terms) = &collection_clause[0] {
         // Skip διά (first word) and get the collection name (second word)
         if terms.len() < 2 {
             return Err(GlossaError::semantic("For iteration needs: διὰ collection"));
@@ -315,7 +315,7 @@ fn parse_for_iteration_loop(
     let body_clauses = &stmt.clauses()[1..];
 
     // Extract variable name from first word of body
-    let variable = if let Some(first_expr) = body_clauses[0].expressions.first() {
+    let variable = if let Some(first_expr) = body_clauses[0].first() {
         if let Expr::Phrase(terms) = first_expr {
             if let Some(Expr::Word(w)) = terms.first() {
                 w.normalized.clone()
@@ -380,8 +380,8 @@ fn parse_match_expression(
         let clause = &stmt.clauses()[i];
 
         // Get pattern from expression 1 (if it exists)
-        if clause.expressions.len() > 1 {
-            let pattern_expr = &clause.expressions[1];
+        if clause.len() > 1 {
+            let pattern_expr = &clause[1];
 
             // Extract pattern value
             let pattern = parse_match_pattern(pattern_expr, scope)?;
@@ -392,14 +392,12 @@ fn parse_match_expression(
             }
 
             let body_clause = &stmt.clauses()[i + 1];
-            if body_clause.expressions.is_empty() {
+            if body_clause.is_empty() {
                 return Err(GlossaError::semantic("Empty match arm body"));
             }
 
             // Parse body as a statement
-            let body_expr_clause = Clause {
-                expressions: vec![body_clause.expressions[0].clone()],
-            };
+            let body_expr_clause = vec![body_clause[0].clone()];
             let body_stmt = Statement::Regular {
                 clauses: vec![body_expr_clause],
                 is_query: false,
@@ -453,7 +451,7 @@ fn parse_return_statement(
 }
 
 /// Parse return expression in a simple way
-fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
+fn parse_return_expression(clause: &[Expr], scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
     // For Cycle 3, we'll do simple expression parsing
     // The expression after δός could be:
     // - A simple variable: ξ
@@ -461,7 +459,7 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
     // - An operation: ξ δύο ἄθροισμα
 
     // Get all words after δός
-    let words = if let Some(Expr::Phrase(terms)) = clause.expressions.first() {
+    let words = if let Some(Expr::Phrase(terms)) = clause.first() {
         terms.iter().skip(1).collect::<Vec<_>>() // Skip δός
     } else {
         vec![]
@@ -606,13 +604,11 @@ fn parse_conditional(
 
     // Parse then-body (second clause, first expression)
     let then_clause = &stmt.clauses()[1];
-    let then_body = if then_clause.expressions.is_empty() {
+    let then_body = if then_clause.is_empty() {
         return Err(GlossaError::semantic("Empty then-body in conditional"));
     } else {
         // Create a mini-clause with just the first expression
-        let first_expr_clause = Clause {
-            expressions: vec![then_clause.expressions[0].clone()],
-        };
+        let first_expr_clause = vec![then_clause[0].clone()];
         let stmt = Statement::Regular {
             clauses: vec![first_expr_clause],
             is_query: false,
@@ -622,8 +618,8 @@ fn parse_conditional(
     };
 
     // Check for else/elif clause
-    let else_body = if then_clause.expressions.len() > 1 && stmt.clauses().len() >= 3 {
-        let second_expr = &then_clause.expressions[1];
+    let else_body = if then_clause.len() > 1 && stmt.clauses().len() >= 3 {
+        let second_expr = &then_clause[1];
 
         // Check if it's "εἰ δὲ μή" (else)
         if check_else_pattern_in_expression(second_expr) {
@@ -640,9 +636,7 @@ fn parse_conditional(
             let mut elif_clauses = Vec::new();
 
             // New clause 0: just the elif condition (from clause 1, expr 1)
-            elif_clauses.push(Clause {
-                expressions: vec![then_clause.expressions[1].clone()],
-            });
+            elif_clauses.push(vec![then_clause[1].clone()]);
 
             // Add remaining clauses (they contain the bodies)
             elif_clauses.extend_from_slice(&stmt.clauses()[2..]);
@@ -678,14 +672,14 @@ fn parse_conditional(
 
 /// Skip the first word of a clause and parse the rest as an expression
 fn skip_first_word_and_parse(
-    clause: &Clause,
+    clause: &[Expr],
     scope: &mut Scope,
 ) -> Result<AnalyzedExpr, GlossaError> {
     // Create a modified clause without the first word
-    let mut modified_clause = clause.clone();
+    let mut modified_clause = clause.to_vec();
 
     // Remove the first word from the first expression
-    if let Some(first_expr) = modified_clause.expressions.first_mut()
+    if let Some(first_expr) = modified_clause.first_mut()
         && let Expr::Phrase(terms) = first_expr
         && !terms.is_empty()
     {

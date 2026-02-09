@@ -157,8 +157,8 @@ pub fn analyze_statement(
 fn extract_block_statements(stmt: &Statement) -> Option<&Vec<Statement>> {
     if let Statement::Regular { clauses, .. } = stmt
         && clauses.len() == 1
-        && clauses[0].expressions.len() == 1
-        && let Expr::Block(stmts) = &clauses[0].expressions[0]
+        && clauses[0].len() == 1
+        && let Expr::Block(stmts) = &clauses[0][0]
     {
         Some(stmts)
     } else {
@@ -178,7 +178,7 @@ pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, Glossa
     // Feed each expression/term to the assembler with disambiguation
     // Process all clauses - they're separated by commas in the grammar
     for clause in stmt.clauses() {
-        for expr in &clause.expressions {
+        for expr in clause {
             feed_expr_to_assembler_with_context(&mut asm, expr, &mut current_context)?;
         }
     }

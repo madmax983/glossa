@@ -406,7 +406,7 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> 
     })
 }
 
-fn build_clause(pair: Pair<'_, Rule>) -> Result<Clause, ParseError> {
+fn build_clause(pair: Pair<'_, Rule>) -> Result<Vec<Expr>, ParseError> {
     let mut expressions = Vec::new();
 
     for inner in pair.into_inner() {
@@ -415,7 +415,7 @@ fn build_clause(pair: Pair<'_, Rule>) -> Result<Clause, ParseError> {
         }
     }
 
-    Ok(Clause { expressions })
+    Ok(expressions)
 }
 
 fn build_expression(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
@@ -683,7 +683,7 @@ mod tests {
     /// Helper to get the first expression of the first clause
     fn first_expr(stmt: &Statement) -> &Expr {
         match stmt {
-            Statement::Regular { clauses, .. } => &clauses[0].expressions[0],
+            Statement::Regular { clauses, .. } => &clauses[0][0],
             Statement::TypeDefinition(_) => panic!("Cannot get first_expr from TypeDefinition"),
             Statement::TraitDefinition(_) => panic!("Cannot get first_expr from TraitDefinition"),
             Statement::TraitImpl(_) => panic!("Cannot get first_expr from TraitImpl"),

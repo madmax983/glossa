@@ -1,4 +1,4 @@
-use glossa::ast::{Clause, Expr, Program, Statement, Word};
+use glossa::ast::{Expr, Program, Statement, Word};
 use glossa::semantic::analyze_program;
 
 #[test]
@@ -18,9 +18,7 @@ fn test_property_access_stack_overflow() {
 
     // Wrap in a simple statement: "expr;"
     let stmt = Statement::Regular {
-        clauses: vec![Clause {
-            expressions: vec![expr],
-        }],
+        clauses: vec![vec![expr]],
         is_query: false,
         is_propagate: false,
     };

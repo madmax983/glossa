@@ -16,7 +16,7 @@ pub struct Program {
 pub enum Statement {
     /// A regular statement with clauses
     Regular {
-        clauses: Vec<Clause>,
+        clauses: Vec<Vec<Expr>>,
         is_query: bool,
         is_propagate: bool,
     },
@@ -85,20 +85,11 @@ pub struct TestDecl {
     pub body: Vec<Statement>,
 }
 
-/// A clause within a statement (comma-separated)
-#[derive(Debug, Clone, PartialEq)]
-pub struct Clause {
-    /// Expressions in this clause (chained with middle dot)
-    pub expressions: Vec<Expr>,
-}
-
 impl Statement {
     /// Get all expressions flattened (for backwards compatibility)
     pub fn expressions(&self) -> Box<dyn Iterator<Item = &Expr> + '_> {
         match self {
-            Statement::Regular { clauses, .. } => {
-                Box::new(clauses.iter().flat_map(|c| c.expressions.iter()))
-            }
+            Statement::Regular { clauses, .. } => Box::new(clauses.iter().flat_map(|c| c.iter())),
             Statement::TypeDefinition(_) => Box::new(std::iter::empty()),
             Statement::TraitDefinition(_) => Box::new(std::iter::empty()),
             Statement::TraitImpl(_) => Box::new(std::iter::empty()),
@@ -129,7 +120,7 @@ impl Statement {
     }
 
     /// Get clauses if this is a regular statement
-    pub fn clauses(&self) -> &[Clause] {
+    pub fn clauses(&self) -> &[Vec<Expr>] {
         match self {
             Statement::Regular { clauses, .. } => clauses,
             Statement::TypeDefinition(_) => &[],
