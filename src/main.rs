@@ -14,6 +14,7 @@ use std::time::SystemTime;
 use glossa::codegen::{generate_rust_file, generate_statement_code};
 use glossa::errors::GlossaError;
 use glossa::parser::parse;
+use glossa::report::GlossaReport;
 use glossa::semantic::{AnalyzedStatement, GlossaType, Scope, analyze_program};
 
 #[derive(Parser)]
@@ -155,7 +156,10 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     let source = fs::read_to_string(input).into_diagnostic()?;
 
-    let rust_code = compile(&source).map_err(|e| miette::miette!("{}", e))?;
+    // Split compile to get stats
+    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
+    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let rust_code = generate_rust_file(&analyzed);
 
     let output_path = output
         .map(|p| p.to_owned())
@@ -164,9 +168,11 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     fs::write(&output_path, &rust_code).into_diagnostic()?;
 
     println!(
-        "{} Ἐγράφη: {}",
+        "{} Ἐγράφη: {} ({} statements, {} functions)",
         "✓".green(),
-        output_path.display().to_string().bold()
+        output_path.display().to_string().bold(),
+        analyzed.statements.len(),
+        analyzed.scope.functions().count()
     );
 
     Ok(())
@@ -243,13 +249,16 @@ fn check_file(input: &Path) -> Result<()> {
     let source = fs::read_to_string(input).into_diagnostic()?;
 
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let _analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
 
-    println!(
-        "{} {} - ὀρθόν",
-        "✓".green(),
-        input.display().to_string().bold()
-    );
+    let filename = input
+        .file_name()
+        .unwrap_or(input.as_os_str())
+        .to_string_lossy()
+        .to_string();
+    let report = GlossaReport::new(&analyzed, filename);
+
+    println!("{}", report);
 
     Ok(())
 }
