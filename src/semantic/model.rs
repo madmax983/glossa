@@ -7,74 +7,128 @@ use crate::semantic::types::GlossaType;
 use smol_str::SmolStr;
 
 /// Analyzed statement
+///
+/// Represents a statement after semantic analysis, where names are resolved,
+/// types are inferred, and word order is normalized.
 #[derive(Debug, Clone)]
 pub enum AnalyzedStatement {
-    /// Variable binding: ξ πέντε ἔστω
+    /// Variable binding
+    ///
+    /// # Example
+    /// `ξ πέντε ἔστω.` -> `let g_x = 5;`
     Binding {
         name: SmolStr,
         value: AnalyzedExpr,
         mutable: bool,
     },
-    /// Assignment: ξ δέκα γίγνεται
+    /// Assignment to existing variable
+    ///
+    /// # Example
+    /// `ξ δέκα γίγνεται.` -> `g_x = 10;`
     Assignment { name: SmolStr, value: AnalyzedExpr },
-    /// Print statement: «χαῖρε» λέγε
+    /// Print statement
+    ///
+    /// # Example
+    /// `«χαῖρε» λέγε.` -> `println!("χαῖρε");`
     Print(Vec<AnalyzedExpr>),
-    /// Expression statement
+    /// Expression statement (side effect)
+    ///
+    /// # Example
+    /// `array.push(1).`
     Expression(Vec<AnalyzedExpr>),
-    /// Query: ξ?
+    /// Query statement (print with newline)
+    ///
+    /// # Example
+    /// `ξ?` -> `println!("{}", g_x);`
     Query(Vec<AnalyzedExpr>),
-    /// If conditional: εἰ condition, body [εἰ δὲ μή, else_body]
+    /// If conditional
+    ///
+    /// # Example
+    /// `εἰ ξ > 5, ... εἰ δὲ μή, ...`
     If {
         condition: Box<AnalyzedExpr>,
         then_body: Vec<AnalyzedStatement>,
         else_body: Option<Vec<AnalyzedStatement>>,
     },
-    /// While loop: ἕως condition, body
+    /// While loop
+    ///
+    /// # Example
+    /// `ἕως ξ < 10, ...`
     While {
         condition: Box<AnalyzedExpr>,
         body: Vec<AnalyzedStatement>,
     },
-    /// For loop: διά/ἀπό...μέχρι
+    /// For loop
+    ///
+    /// # Example
+    /// `διὰ α, β λέγε.` -> `for b in a { println!("{}", b); }`
     For {
         variable: SmolStr,
         iterator: Box<AnalyzedExpr>,
         body: Vec<AnalyzedStatement>,
     },
-    /// Match expression: κατά scrutinee { arms }
+    /// Match expression
+    ///
+    /// # Example
+    /// `κατά ξ { 1 => ... }`
     Match {
         scrutinee: Box<AnalyzedExpr>,
         arms: Vec<(AnalyzedExpr, Vec<AnalyzedStatement>)>,
     },
-    /// Break: παῦε
+    /// Break statement
+    ///
+    /// # Example
+    /// `παῦε.`
     Break,
-    /// Continue: συνέχιζε
+    /// Continue statement
+    ///
+    /// # Example
+    /// `συνέχιζε.`
     Continue,
-    /// Return: δός value
+    /// Return statement
+    ///
+    /// # Example
+    /// `δός 5.`
     Return { value: Option<Box<AnalyzedExpr>> },
-    /// Function definition: name ὁρίζειν params· body
+    /// Function definition
+    ///
+    /// # Example
+    /// `func ὁρίζειν (x)· ...`
     FunctionDef {
         name: SmolStr,
         params: Vec<(SmolStr, Option<GlossaType>)>,
         body: Vec<AnalyzedStatement>,
         return_type: Option<GlossaType>,
     },
-    /// Type definition: εἶδος name ὁρίζειν { fields }
+    /// Type definition (struct)
+    ///
+    /// # Example
+    /// `εἶδος User ...`
     TypeDefinition {
         name: SmolStr,
         fields: Vec<(SmolStr, GlossaType)>,
     },
-    /// Trait definition: χαρακτήρ name ὁρίζειν { methods }
+    /// Trait definition
+    ///
+    /// # Example
+    /// `χαρακτήρ Show ...`
     TraitDefinition {
         name: SmolStr,
         methods: Vec<AnalyzedMethod>,
     },
-    /// Trait implementation: εἶδος Type τῷ Trait ἐμπίπτειν { methods }
+    /// Trait implementation
+    ///
+    /// # Example
+    /// `εἶδος User τῷ Show ἐμπίπτειν ...`
     TraitImplementation {
         trait_name: SmolStr,
         type_name: SmolStr,
         methods: Vec<AnalyzedMethod>,
     },
-    /// Test declaration: δοκιμή «test name» ... τέλος
+    /// Test declaration
+    ///
+    /// # Example
+    /// `δοκιμή «test» ... τέλος.`
     TestDeclaration {
         name: String,
         body: Vec<AnalyzedStatement>,
@@ -100,14 +154,20 @@ pub struct AnalyzedExpr {
 /// Kind of analyzed expression
 #[derive(Debug, Clone)]
 pub enum AnalyzedExprKind {
+    /// String literal
     StringLiteral(String),
+    /// Number literal (integer)
     NumberLiteral(i64),
+    /// Boolean literal
     BooleanLiteral(bool),
+    /// Variable reference
     Variable(SmolStr),
+    /// Property access (field access)
     PropertyAccess {
         owner: Box<AnalyzedExpr>,
         property: SmolStr,
     },
+    /// Verb call (function call using verb syntax)
     VerbCall {
         verb: SmolStr,
         args: Vec<AnalyzedExpr>,
@@ -179,13 +239,9 @@ pub enum AnalyzedExprKind {
         capture_mode: CaptureMode,
     },
     /// Collection constructor (HashSet::new(), HashMap::new())
-    CollectionNew {
-        collection_type: String,
-    },
+    CollectionNew { collection_type: String },
     /// Boolean assertion: δεῖ (condition must be true)
-    Assert {
-        condition: Box<AnalyzedExpr>,
-    },
+    Assert { condition: Box<AnalyzedExpr> },
     /// Equality assertion: ἰσοῦται (values must be equal)
     AssertEq {
         left: Box<AnalyzedExpr>,
