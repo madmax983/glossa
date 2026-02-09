@@ -171,12 +171,18 @@ pub fn analyze(word: &str) -> MorphAnalysis {
                         );
                         let key_best =
                             (best.tense, best.mood, best.person, best.number, &best.lemma);
-                        if key_new < key_best {
-                            best_analysis = Some(analysis);
-                        }
+                        key_new < key_best
+                    } else {
+                        false
                     }
+                } else {
+                    false
                 }
             }
+        };
+
+        if should_replace {
+            best_analysis = Some(analysis);
         }
     });
 
