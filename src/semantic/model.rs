@@ -239,13 +239,9 @@ pub enum AnalyzedExprKind {
         capture_mode: CaptureMode,
     },
     /// Collection constructor (HashSet::new(), HashMap::new())
-    CollectionNew {
-        collection_type: String,
-    },
+    CollectionNew { collection_type: String },
     /// Boolean assertion: δεῖ (condition must be true)
-    Assert {
-        condition: Box<AnalyzedExpr>,
-    },
+    Assert { condition: Box<AnalyzedExpr> },
     /// Equality assertion: ἰσοῦται (values must be equal)
     AssertEq {
         left: Box<AnalyzedExpr>,
