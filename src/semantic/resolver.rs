@@ -3,20 +3,20 @@
 //! Manages variable bindings and scope for ΓΛΩΣΣΑ programs.
 
 use crate::semantic::GlossaType;
-use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
+use std::collections::HashMap;
 
 /// A scope level containing variable bindings
 #[derive(Debug, Clone, Default)]
 struct ScopeLevel {
     /// Variable bindings in this scope
-    bindings: FxHashMap<SmolStr, Binding>,
+    bindings: HashMap<SmolStr, Binding>,
     /// Function definitions in this scope
-    functions: FxHashMap<SmolStr, FunctionSignature>,
+    functions: HashMap<SmolStr, FunctionSignature>,
     /// Type definitions in this scope
-    types: FxHashMap<SmolStr, GlossaType>,
+    types: HashMap<SmolStr, GlossaType>,
     /// Trait definitions in this scope
-    traits: FxHashMap<SmolStr, crate::semantic::model::TraitDef>,
+    traits: HashMap<SmolStr, crate::semantic::model::TraitDef>,
     /// Trait implementations in this scope
     trait_impls: Vec<crate::semantic::model::TraitImpl>,
 }
