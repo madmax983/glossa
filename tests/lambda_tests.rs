@@ -131,8 +131,8 @@ mod cycle4_map_operation {
             );
             assert!(code_no_space.contains("*2"), "Should multiply by 2");
             assert!(
-                code_no_space.contains(".collect()"),
-                "Should have .collect()"
+                code_no_space.contains(".collect()") || code_no_space.contains(".g_collect()"),
+                "Should have .collect() or .g_collect()"
             );
         } else {
             panic!("Second statement failed: {:?}", analyzed2.err());
@@ -500,8 +500,8 @@ mod cycle9_combined_operations {
             assert!(code_no_space.contains("5"), "Should compare to 5");
             assert!(code_no_space.contains("*2"), "Should multiply by 2");
             assert!(
-                code_no_space.contains(".collect()"),
-                "Should have .collect()"
+                code_no_space.contains(".collect()") || code_no_space.contains(".g_collect()"),
+                "Should have .collect() or .g_collect()"
             );
         } else {
             panic!("Filter then map failed: {:?}", analyzed.err());
@@ -538,8 +538,8 @@ mod cycle9_combined_operations {
             assert!(code_no_space.contains("+"), "Should have + operation");
             // Fold returns single value, no .collect()
             assert!(
-                !code_no_space.contains(".collect()"),
-                "Should NOT have .collect()"
+                !code_no_space.contains(".collect()") && !code_no_space.contains(".g_collect()"),
+                "Should NOT have .collect() or .g_collect()"
             );
         } else {
             panic!("Map then fold failed: {:?}", analyzed.err());
