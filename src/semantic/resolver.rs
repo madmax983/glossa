@@ -309,6 +309,21 @@ impl Scope {
             .filter(|b| !b.used)
             .collect()
     }
+
+    /// Get all functions defined in this scope
+    pub fn functions(&self) -> impl Iterator<Item = &FunctionSignature> {
+        self.levels.iter().flat_map(|l| l.functions.values())
+    }
+
+    /// Get all types defined in this scope
+    pub fn types(&self) -> impl Iterator<Item = (&SmolStr, &GlossaType)> {
+        self.levels.iter().flat_map(|l| l.types.iter())
+    }
+
+    /// Get all traits defined in this scope
+    pub fn traits(&self) -> impl Iterator<Item = (&SmolStr, &crate::semantic::model::TraitDef)> {
+        self.levels.iter().flat_map(|l| l.traits.iter())
+    }
 }
 
 impl Default for Scope {

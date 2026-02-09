@@ -52,3 +52,4 @@ pub mod morphology;
 pub mod parser;
 pub mod semantic;
 pub mod text;
+pub mod report;
