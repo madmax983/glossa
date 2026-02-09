@@ -8,31 +8,21 @@ use smol_str::SmolStr;
 
 /// Analyzed statement
 #[derive(Debug, Clone)]
-pub struct AnalyzedStatement {
-    pub kind: StatementKind,
-    pub expressions: Vec<AnalyzedExpr>,
-}
-
-/// The kind of statement
-#[derive(Debug, Clone)]
-pub enum StatementKind {
+pub enum AnalyzedStatement {
     /// Variable binding: ξ πέντε ἔστω
     Binding {
         name: SmolStr,
-        value_type: GlossaType,
+        value: AnalyzedExpr,
         mutable: bool,
     },
     /// Assignment: ξ δέκα γίγνεται
-    Assignment {
-        name: SmolStr,
-        value_type: GlossaType,
-    },
+    Assignment { name: SmolStr, value: AnalyzedExpr },
     /// Print statement: «χαῖρε» λέγε
-    Print,
+    Print(Vec<AnalyzedExpr>),
     /// Expression statement
-    Expression,
+    Expression(Vec<AnalyzedExpr>),
     /// Query: ξ?
-    Query,
+    Query(Vec<AnalyzedExpr>),
     /// If conditional: εἰ condition, body [εἰ δὲ μή, else_body]
     If {
         condition: Box<AnalyzedExpr>,

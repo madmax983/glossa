@@ -109,12 +109,12 @@ pub fn analyze_statement(
     // Check for control flow (if, while, etc.)
     if let Some(control_flow) = analyze_control_flow(stmt, scope)? {
         // If it's a function definition, register it in the scope
-        if let StatementKind::FunctionDef {
+        if let AnalyzedStatement::FunctionDef {
             name,
             params,
             return_type,
             ..
-        } = &control_flow.kind
+        } = &control_flow
         {
             let param_types: Vec<GlossaType> = params
                 .iter()
@@ -205,7 +205,10 @@ mod tests {
         let analyzed = analyze_program(&ast).unwrap();
 
         assert_eq!(analyzed.statements.len(), 1);
-        assert!(matches!(analyzed.statements[0].kind, StatementKind::Print));
+        assert!(matches!(
+            analyzed.statements[0],
+            AnalyzedStatement::Print(_)
+        ));
     }
 
     #[test]
@@ -214,8 +217,8 @@ mod tests {
         let analyzed = analyze_program(&ast).unwrap();
 
         assert!(matches!(
-            &analyzed.statements[0].kind,
-            StatementKind::Binding { name, .. } if name == "ξ"
+            &analyzed.statements[0],
+            AnalyzedStatement::Binding { name, .. } if name == "ξ"
         ));
 
         // Check that ξ is now in scope
@@ -229,7 +232,10 @@ mod tests {
 
         assert_eq!(analyzed.statements.len(), 2);
         // Second statement should reference ξ with known type
-        assert!(matches!(analyzed.statements[1].kind, StatementKind::Print));
+        assert!(matches!(
+            analyzed.statements[1],
+            AnalyzedStatement::Print(_)
+        ));
     }
 
     #[test]
@@ -237,8 +243,11 @@ mod tests {
         let ast = parse("«χαῖρε κόσμε» λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
 
-        let first_expr = &analyzed.statements[0].expressions[0];
-        assert_eq!(first_expr.glossa_type, GlossaType::String);
+        if let AnalyzedStatement::Print(exprs) = &analyzed.statements[0] {
+            assert_eq!(exprs[0].glossa_type, GlossaType::String);
+        } else {
+            panic!("Expected Print statement");
+        }
     }
 
     #[test]
@@ -246,7 +255,10 @@ mod tests {
         let ast = parse("42 λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
 
-        let first_expr = &analyzed.statements[0].expressions[0];
-        assert_eq!(first_expr.glossa_type, GlossaType::Number);
+        if let AnalyzedStatement::Print(exprs) = &analyzed.statements[0] {
+            assert_eq!(exprs[0].glossa_type, GlossaType::Number);
+        } else {
+            panic!("Expected Print statement");
+        }
     }
 }

@@ -52,7 +52,7 @@ use crate::codegen::utils::{capitalize, sanitize_name};
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedProgram, AnalyzedStatement,
-    CaptureMode, GlossaType, StatementKind,
+    CaptureMode, GlossaType,
 };
 use crate::text::normalize_greek;
 use proc_macro2::TokenStream;
@@ -72,12 +72,14 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
     let mut main_stmts = Vec::new();
 
     for stmt in &program.statements {
-        match &stmt.kind {
-            StatementKind::TraitDefinition { .. } => trait_defs.push(generate_statement(stmt)),
-            StatementKind::TypeDefinition { .. } => struct_defs.push(generate_statement(stmt)),
-            StatementKind::TraitImplementation { .. } => trait_impls.push(generate_statement(stmt)),
-            StatementKind::FunctionDef { .. } => fn_defs.push(generate_statement(stmt)),
-            StatementKind::TestDeclaration { .. } => test_defs.push(generate_statement(stmt)),
+        match stmt {
+            AnalyzedStatement::TraitDefinition { .. } => trait_defs.push(generate_statement(stmt)),
+            AnalyzedStatement::TypeDefinition { .. } => struct_defs.push(generate_statement(stmt)),
+            AnalyzedStatement::TraitImplementation { .. } => {
+                trait_impls.push(generate_statement(stmt))
+            }
+            AnalyzedStatement::FunctionDef { .. } => fn_defs.push(generate_statement(stmt)),
+            AnalyzedStatement::TestDeclaration { .. } => test_defs.push(generate_statement(stmt)),
             _ => main_stmts.push(generate_statement(stmt)),
         }
     }
@@ -122,17 +124,14 @@ fn uses_collections(program: &AnalyzedProgram) -> bool {
 
 /// Check if a statement uses collection types
 fn statement_uses_collections(stmt: &AnalyzedStatement) -> bool {
-    match &stmt.kind {
-        StatementKind::Binding { value_type: _, .. }
-        | StatementKind::Assignment { value_type: _, .. } => {
-            // Also check expressions
-            stmt.expressions.iter().any(expr_uses_collections)
+    match stmt {
+        AnalyzedStatement::Binding { value, .. } | AnalyzedStatement::Assignment { value, .. } => {
+            expr_uses_collections(value)
         }
-        StatementKind::Print | StatementKind::Query => {
-            stmt.expressions.iter().any(expr_uses_collections)
-        }
-        StatementKind::Expression => stmt.expressions.iter().any(expr_uses_collections),
-        StatementKind::If {
+        AnalyzedStatement::Print(exprs)
+        | AnalyzedStatement::Query(exprs)
+        | AnalyzedStatement::Expression(exprs) => exprs.iter().any(expr_uses_collections),
+        AnalyzedStatement::If {
             condition,
             then_body,
             else_body,
@@ -144,27 +143,29 @@ fn statement_uses_collections(stmt: &AnalyzedStatement) -> bool {
                     .map(|b| b.iter().any(statement_uses_collections))
                     .unwrap_or(false)
         }
-        StatementKind::While { condition, body } => {
+        AnalyzedStatement::While { condition, body } => {
             expr_uses_collections(condition) || body.iter().any(statement_uses_collections)
         }
-        StatementKind::For { iterator, body, .. } => {
+        AnalyzedStatement::For { iterator, body, .. } => {
             expr_uses_collections(iterator) || body.iter().any(statement_uses_collections)
         }
-        StatementKind::Match { scrutinee, arms } => {
+        AnalyzedStatement::Match { scrutinee, arms } => {
             expr_uses_collections(scrutinee)
                 || arms.iter().any(|(pat, body)| {
                     expr_uses_collections(pat) || body.iter().any(statement_uses_collections)
                 })
         }
-        StatementKind::FunctionDef { body, .. } => body.iter().any(statement_uses_collections),
-        StatementKind::TraitImplementation { methods, .. }
-        | StatementKind::TraitDefinition { methods, .. } => methods.iter().any(|m| {
+        AnalyzedStatement::FunctionDef { body, .. } => body.iter().any(statement_uses_collections),
+        AnalyzedStatement::TraitImplementation { methods, .. }
+        | AnalyzedStatement::TraitDefinition { methods, .. } => methods.iter().any(|m| {
             m.body
                 .as_ref()
                 .map(|b| b.iter().any(statement_uses_collections))
                 .unwrap_or(false)
         }),
-        StatementKind::TestDeclaration { body, .. } => body.iter().any(statement_uses_collections),
+        AnalyzedStatement::TestDeclaration { body, .. } => {
+            body.iter().any(statement_uses_collections)
+        }
         _ => false,
     }
 }
@@ -204,66 +205,57 @@ pub fn generate_statement_code(stmt: &AnalyzedStatement) -> String {
 }
 
 fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
-    match &stmt.kind {
-        StatementKind::Binding { name, mutable, .. } => {
-            // Get the value expression (second expression in the list, first is usually name or type info which is unused here)
-            // Wait, AnalyzedStatement.expressions structure depends on how it was built.
-            // Semantic analyzer puts value at index 1 for Binding (index 0 is name/type).
-            let value = if stmt.expressions.len() > 1 {
-                &stmt.expressions[1]
-            } else {
-                // Should not happen in valid program, but provide fallback
-                let name_ident = format_ident!("{}", sanitize_name(name));
-                return quote! { let #name_ident = 0; };
-            };
-
+    match stmt {
+        AnalyzedStatement::Binding {
+            name,
+            value,
+            mutable,
+        } => {
             // Check if it's an array to force mutable
             let is_array = matches!(value.expr, AnalyzedExprKind::ArrayLiteral(_));
             generate_let(name, value, *mutable || is_array)
         }
 
-        StatementKind::Assignment { name, .. } => {
-            if stmt.expressions.len() > 1 {
-                let name_ident = format_ident!("{}", sanitize_name(name));
-                let value_tokens = generate_expr(&stmt.expressions[1]);
-                quote! { #name_ident = #value_tokens; }
-            } else {
-                quote! {}
-            }
+        AnalyzedStatement::Assignment { name, value } => {
+            let name_ident = format_ident!("{}", sanitize_name(name));
+            let value_tokens = generate_expr(value);
+            quote! { #name_ident = #value_tokens; }
         }
 
-        StatementKind::Print | StatementKind::Query => generate_print(&stmt.expressions),
+        AnalyzedStatement::Print(exprs) | AnalyzedStatement::Query(exprs) => generate_print(exprs),
 
-        StatementKind::Expression => {
-            if let Some(first) = stmt.expressions.first() {
-                let expr_tokens = generate_expr(first);
-                quote! { #expr_tokens; }
-            } else {
-                quote! {}
-            }
+        AnalyzedStatement::Expression(exprs) => {
+            let expr_tokens: Vec<TokenStream> = exprs
+                .iter()
+                .map(|e| {
+                    let tokens = generate_expr(e);
+                    quote! { #tokens; }
+                })
+                .collect();
+            quote! { #(#expr_tokens)* }
         }
 
-        StatementKind::If {
+        AnalyzedStatement::If {
             condition,
             then_body,
             else_body,
         } => generate_if(condition, then_body, else_body),
 
-        StatementKind::While { condition, body } => generate_while(condition, body),
+        AnalyzedStatement::While { condition, body } => generate_while(condition, body),
 
-        StatementKind::For {
+        AnalyzedStatement::For {
             variable,
             iterator,
             body,
         } => generate_for(variable, iterator, body),
 
-        StatementKind::Match { scrutinee, arms } => generate_match(scrutinee, arms),
+        AnalyzedStatement::Match { scrutinee, arms } => generate_match(scrutinee, arms),
 
-        StatementKind::Break => quote! { break; },
+        AnalyzedStatement::Break => quote! { break; },
 
-        StatementKind::Continue => quote! { continue; },
+        AnalyzedStatement::Continue => quote! { continue; },
 
-        StatementKind::Return { value } => match value {
+        AnalyzedStatement::Return { value } => match value {
             Some(e) => {
                 let value_tokens = generate_expr(e);
                 quote! { return #value_tokens; }
@@ -271,24 +263,24 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             None => quote! { return; },
         },
 
-        StatementKind::FunctionDef {
+        AnalyzedStatement::FunctionDef {
             name,
             params,
             body,
             return_type,
         } => generate_fn_def(name, params, body, return_type),
 
-        StatementKind::TypeDefinition { name, fields } => generate_struct_def(name, fields),
+        AnalyzedStatement::TypeDefinition { name, fields } => generate_struct_def(name, fields),
 
-        StatementKind::TraitDefinition { name, methods } => generate_trait_def(name, methods),
+        AnalyzedStatement::TraitDefinition { name, methods } => generate_trait_def(name, methods),
 
-        StatementKind::TraitImplementation {
+        AnalyzedStatement::TraitImplementation {
             trait_name,
             type_name,
             methods,
         } => generate_trait_impl(trait_name, type_name, methods),
 
-        StatementKind::TestDeclaration { name, body } => generate_test(name, body),
+        AnalyzedStatement::TestDeclaration { name, body } => generate_test(name, body),
     }
 }
 

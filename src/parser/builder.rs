@@ -414,7 +414,6 @@ fn build_clause(pair: Pair<'_, Rule>) -> Result<Clause, ParseError> {
             expressions.push(build_expression(inner)?);
         }
     }
-
     Ok(Clause { expressions })
 }
 
