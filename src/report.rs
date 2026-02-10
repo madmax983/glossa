@@ -1,4 +1,3 @@
-
 //! Report generation for ΓΛΩΣΣΑ
 //!
 //! This module provides tools to generate human-readable reports and statistics
