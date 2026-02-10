@@ -35,12 +35,13 @@ pub struct ProgramStats {
 impl ProgramStats {
     /// Analyze a program and collect statistics
     pub fn new(program: &AnalyzedProgram) -> Self {
-        let mut stats = ProgramStats::default();
-
-        // Count top-level definitions from scope
-        stats.function_count = program.scope.functions().count();
-        stats.type_count = program.scope.types().count();
-        stats.trait_count = program.scope.traits().count();
+        // Fix for clippy::field_reassign_with_default
+        let mut stats = ProgramStats {
+            function_count: program.scope.functions().count(),
+            type_count: program.scope.types().count(),
+            trait_count: program.scope.traits().count(),
+            ..Default::default()
+        };
 
         // Traverse statements to count structural elements
         for stmt in &program.statements {
@@ -313,5 +314,108 @@ impl Display for GlossaReport<'_> {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::semantic::{GlossaType, Scope};
+    use smol_str::SmolStr;
+
+    fn make_expr(kind: AnalyzedExprKind) -> AnalyzedExpr {
+        AnalyzedExpr {
+            expr: kind,
+            glossa_type: GlossaType::Unknown,
+        }
+    }
+
+    #[test]
+    fn test_empty_program_stats() {
+        let program = AnalyzedProgram {
+            statements: vec![],
+            scope: Scope::default(),
+        };
+        let stats = ProgramStats::new(&program);
+        assert_eq!(stats.statement_count, 0);
+        assert_eq!(stats.function_count, 0);
+        assert_eq!(stats.max_depth, 0);
+    }
+
+    #[test]
+    fn test_scope_counts() {
+        let mut scope = Scope::default();
+        scope.define_function("test_func", vec![], None);
+        scope.define_type("test_type", GlossaType::Unknown);
+
+        let program = AnalyzedProgram {
+            statements: vec![],
+            scope,
+        };
+
+        let stats = ProgramStats::new(&program);
+        assert_eq!(stats.function_count, 1);
+        assert_eq!(stats.type_count, 1);
+    }
+
+    #[test]
+    fn test_statement_traversal() {
+        let binding = AnalyzedStatement::Binding {
+            name: SmolStr::new("x"),
+            value: make_expr(AnalyzedExprKind::NumberLiteral(10)),
+            mutable: false,
+        };
+
+        let if_stmt = AnalyzedStatement::If {
+            condition: Box::new(make_expr(AnalyzedExprKind::BooleanLiteral(true))),
+            then_body: vec![AnalyzedStatement::Print(vec![make_expr(AnalyzedExprKind::StringLiteral("hi".to_string()))])],
+            else_body: None,
+        };
+
+        let program = AnalyzedProgram {
+            statements: vec![binding, if_stmt],
+            scope: Scope::default(),
+        };
+
+        let stats = ProgramStats::new(&program);
+
+        assert_eq!(stats.statement_count, 3);
+        assert_eq!(stats.binding_count, 1);
+        assert_eq!(stats.conditional_count, 1);
+        assert_eq!(stats.max_depth, 1);
+    }
+
+    #[test]
+    fn test_expression_counting() {
+        let bin_op = make_expr(AnalyzedExprKind::BinOp {
+            left: Box::new(make_expr(AnalyzedExprKind::NumberLiteral(1))),
+            op: crate::morphology::lexicon::BinaryOp::Add,
+            right: Box::new(make_expr(AnalyzedExprKind::NumberLiteral(2))),
+        });
+
+        let stmt = AnalyzedStatement::Expression(vec![bin_op]);
+
+        let program = AnalyzedProgram {
+            statements: vec![stmt],
+            scope: Scope::default(),
+        };
+
+        let stats = ProgramStats::new(&program);
+
+        assert_eq!(stats.expression_count, 3);
+    }
+
+    #[test]
+    fn test_report_formatting() {
+        let program = AnalyzedProgram {
+            statements: vec![],
+            scope: Scope::default(),
+        };
+
+        let report = GlossaReport::new(&program, "test.gl".to_string());
+        let output = report.to_string();
+
+        assert!(output.contains("ΑΝΑΦΟΡΑ ΓΛΩΣΣΗΣ"));
+        assert!(output.contains("test.gl"));
     }
 }
