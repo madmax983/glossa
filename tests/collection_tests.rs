@@ -89,6 +89,17 @@ fn test_numeric_index_expression() {
     );
 }
 
+#[test]
+fn test_print_array_debug_format() {
+    // Printing an array should use {:?} debug format
+    let code = compile("ξ [1, 2, 3] ἔστω. ξ λέγε.");
+    assert!(
+        code.contains("{:?}") || code.contains("{ :? }"),
+        "Expected {{:?}} debug format for array print in: {}",
+        code
+    );
+}
+
 // =============================================================================
 // Cycle 4: Push Operation
 // =============================================================================

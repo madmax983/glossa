@@ -150,3 +150,18 @@ fn test_print_function_name() {
     // Function name should be sanitized and called
     assert!(code.contains("g_leitourgos") && code.contains("()"));
 }
+
+#[test]
+fn test_print_function_name_as_object() {
+    let code = compile(
+        "
+        λειτουργος ὁρίζειν · δός 42.
+        λέγε λειτουργος.
+    ",
+    );
+    eprintln!("Generated code:\n{}", code);
+    // Should invoke the function and print the result
+    assert!(code.contains("println"));
+    // Function name should be sanitized and called (Object position)
+    assert!(code.contains("g_leitourgos") && code.contains("()"));
+}
