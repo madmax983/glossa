@@ -160,6 +160,9 @@ fn test_unknown_token_binding() {
     let stmt = asm.finalize().unwrap();
 
     // The unknown token should have been promoted to Subject (Noun)
-    assert!(stmt.subject.is_some(), "Unknown token should be promoted to Subject");
+    assert!(
+        stmt.subject.is_some(),
+        "Unknown token should be promoted to Subject"
+    );
     assert_eq!(stmt.subject.unwrap().original, "foo");
 }
