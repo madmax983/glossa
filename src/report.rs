@@ -37,12 +37,12 @@ pub struct ProgramStats {
 impl ProgramStats {
     /// Analyze a program and collect statistics
     pub fn new(program: &AnalyzedProgram) -> Self {
-        let mut stats = ProgramStats::default();
-
-        // Count top-level definitions from scope
-        stats.function_count = program.scope.functions().count();
-        stats.type_count = program.scope.types().count();
-        stats.trait_count = program.scope.traits().count();
+        let mut stats = ProgramStats {
+            function_count: program.scope.functions().count(),
+            type_count: program.scope.types().count(),
+            trait_count: program.scope.traits().count(),
+            ..Default::default()
+        };
 
         // Traverse statements to count structural elements
         for stmt in &program.statements {
