@@ -373,24 +373,6 @@ pub fn case_name(case: Case) -> &'static str {
     }
 }
 
-/// Help messages in Greek
-pub mod help {
-    /// Help for the binding construct
-    pub const BINDING: &str = "Χρῆσις: ὄνομα τιμή ἔστω.
-Παράδειγμα: ξ πέντε ἔστω.";
-
-    /// Help for the print construct
-    pub const PRINT: &str = "Χρῆσις: τιμή λέγε.
-Παράδειγμα: «χαῖρε κόσμε» λέγε.";
-
-    /// Help for cases
-    pub const CASES: &str = "Πτώσεις καὶ σημασίαι:
-• Ὀνομαστική - τὸ ὑποκείμενον
-• Γενική - κτῆσις, δάνεισμα (&)
-• Δοτική - δάνεισμα μεταβλητόν (&mut)
-• Αἰτιατική - τὸ ἀντικείμενον, κίνησις";
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

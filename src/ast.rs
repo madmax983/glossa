@@ -178,19 +178,6 @@ pub struct Clause {
 }
 
 impl Statement {
-    /// Get all expressions flattened (for backwards compatibility)
-    pub fn expressions(&self) -> Box<dyn Iterator<Item = &Expr> + '_> {
-        match self {
-            Statement::Regular { clauses, .. } => {
-                Box::new(clauses.iter().flat_map(|c| c.expressions.iter()))
-            }
-            Statement::TypeDefinition(_) => Box::new(std::iter::empty()),
-            Statement::TraitDefinition(_) => Box::new(std::iter::empty()),
-            Statement::TraitImpl(_) => Box::new(std::iter::empty()),
-            Statement::TestDeclaration(_) => Box::new(std::iter::empty()),
-        }
-    }
-
     /// Check if this is a query statement
     pub fn is_query(&self) -> bool {
         match self {
@@ -371,5 +358,45 @@ impl Word {
             original,
             normalized,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_word_new() {
+        let w = Word::new("Ἀθῆναι");
+        assert_eq!(w.original, "Ἀθῆναι");
+        assert_eq!(w.normalized, "αθηναι");
+    }
+
+    #[test]
+    fn test_statement_helpers() {
+        let reg = Statement::Regular {
+            clauses: vec![],
+            is_query: true,
+            is_propagate: false,
+        };
+        assert!(reg.is_query());
+        assert!(!reg.is_propagate());
+        assert!(reg.clauses().is_empty());
+
+        let prop = Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: true,
+        };
+        assert!(!prop.is_query());
+        assert!(prop.is_propagate());
+
+        let typedef = Statement::TypeDefinition(TypeDef {
+            name: Word::new("Test"),
+            fields: vec![],
+        });
+        assert!(!typedef.is_query());
+        assert!(!typedef.is_propagate());
+        assert!(typedef.clauses().is_empty());
     }
 }
