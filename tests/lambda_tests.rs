@@ -125,11 +125,11 @@ mod cycle4_map_operation {
             // Remove whitespace for matching (quote! adds spaces)
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_map("), "Should have .g_map()");
+            assert!(code_no_space.contains(".map("), "Should have .map()");
             assert!(code_no_space.contains("*2"), "Should multiply by 2");
             assert!(
-                code_no_space.contains(".g_collect()"),
-                "Should have .g_collect()"
+                code_no_space.contains(".collect()"),
+                "Should have .collect()"
             );
         } else {
             panic!("Second statement failed: {:?}", analyzed2.err());
@@ -170,8 +170,8 @@ mod cycle5_filter_operation {
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(
-                code_no_space.contains(".g_filter("),
-                "Should have .g_filter("
+                code_no_space.contains(".filter("),
+                "Should have .filter("
             );
             assert!(
                 code_no_space.contains(">"),
@@ -232,7 +232,7 @@ mod cycle6_find_operation {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_find("), "Should have .g_find(");
+            assert!(code_no_space.contains(".find("), "Should have .find(");
             assert!(
                 code_no_space.contains(">"),
                 "Should have comparison operator"
@@ -300,7 +300,7 @@ mod cycle7_fold_operation {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_fold("), "Should have .g_fold(");
+            assert!(code_no_space.contains(".fold("), "Should have .fold(");
             assert!(code_no_space.contains("0"), "Should have initial value 0");
             assert!(code_no_space.contains("+"), "Should have + operation");
         } else {
@@ -323,7 +323,7 @@ mod cycle7_fold_operation {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_fold("), "Should have .g_fold(");
+            assert!(code_no_space.contains(".fold("), "Should have .fold(");
             assert!(code_no_space.contains("1"), "Should have initial value 1");
             assert!(code_no_space.contains("*"), "Should have * operation");
         } else {
@@ -355,7 +355,7 @@ mod cycle8_any_all_operations {
         // τι = "any" (interrogative pronoun, neuter nominative)
         // πέντε = "five"
         // μείζον = "greater" (comparative, neuter nominative)
-        // Should generate .g_any(|x| x > 5)
+        // Should generate .any(|x| x > 5)
         let code = "[1, 5, 3] τι πέντε μείζον λέγε.";
         println!("Testing: {}", code);
         let ast = parser::parse(code).unwrap();
@@ -369,7 +369,7 @@ mod cycle8_any_all_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_any("), "Should have .g_any(");
+            assert!(code_no_space.contains(".any("), "Should have .any(");
             assert!(
                 code_no_space.contains(">"),
                 "Should have comparison operator"
@@ -398,7 +398,7 @@ mod cycle8_any_all_operations {
         // [1, 2, 3] πάντα θετικά λέγε = "say whether all (are) positive"
         // πάντα = "all" (plural neuter nominative)
         // θετικά = "positive" (plural neuter nominative adjective)
-        // Should generate .g_all(|x| x > 0)
+        // Should generate .all(|x| x > 0)
         let code = "[1, 2, 3] πάντα θετικά λέγε.";
         println!("Testing: {}", code);
         let ast = parser::parse(code).unwrap();
@@ -412,7 +412,7 @@ mod cycle8_any_all_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_all("), "Should have .g_all(");
+            assert!(code_no_space.contains(".all("), "Should have .all(");
             assert!(
                 code_no_space.contains(">"),
                 "Should have comparison operator"
@@ -426,7 +426,7 @@ mod cycle8_any_all_operations {
     #[test]
     fn test_any_less_than() {
         // [1, 10, 3] τι πέντε ἐλάττον λέγε = "say whether any (are) less-than-five"
-        // Should generate .g_any(|x| x < 5)
+        // Should generate .any(|x| x < 5)
         let ast = parser::parse("[1, 10, 3] τι πέντε ἐλάττον λέγε.").unwrap();
         let analyzed = semantic::analyze_program(&ast);
 
@@ -437,7 +437,7 @@ mod cycle8_any_all_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_any("), "Should have .g_any(");
+            assert!(code_no_space.contains(".any("), "Should have .any(");
             assert!(code_no_space.contains("<"), "Should have < operator");
         } else {
             panic!("Any less-than failed: {:?}", analyzed.err());
@@ -453,7 +453,7 @@ mod cycle9_combined_operations {
     fn test_filter_then_map() {
         // [1, 5, 3, 8] πέντε μείζονα διπλασιαζόμενα λέγε
         // = "say (those) greater-than-five being-doubled"
-        // Should generate .g_filter(|x| x > 5).g_map(|x| x * 2)
+        // Should generate .filter(|x| x > 5).map(|x| x * 2)
         let code = "[1, 5, 3, 8] πέντε μείζονα διπλασιαζόμενα λέγε.";
         println!("Testing: {}", code);
         let ast = parser::parse(code).unwrap();
@@ -468,16 +468,16 @@ mod cycle9_combined_operations {
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(
-                code_no_space.contains(".g_filter("),
-                "Should have .g_filter("
+                code_no_space.contains(".filter("),
+                "Should have .filter("
             );
-            assert!(code_no_space.contains(".g_map("), "Should have .g_map(");
+            assert!(code_no_space.contains(".map("), "Should have .map(");
             assert!(code_no_space.contains(">"), "Should have comparison");
             assert!(code_no_space.contains("5"), "Should compare to 5");
             assert!(code_no_space.contains("*2"), "Should multiply by 2");
             assert!(
-                code_no_space.contains(".g_collect()"),
-                "Should have .g_collect()"
+                code_no_space.contains(".collect()"),
+                "Should have .collect()"
             );
         } else {
             panic!("Filter then map failed: {:?}", analyzed.err());
@@ -488,7 +488,7 @@ mod cycle9_combined_operations {
     fn test_map_then_fold() {
         // [1, 2, 3] διπλασιαζόμενα συλλεγόμενα εἰς ἄθροισμα λέγε
         // = "being-doubled being-collected into sum"
-        // Should generate .g_map(|x| x * 2).g_fold(0, |acc, x| acc + x)
+        // Should generate .map(|x| x * 2).fold(0, |acc, x| acc + x)
         let code = "[1, 2, 3] διπλασιαζόμενα συλλεγόμενα εἰς ἄθροισμα λέγε.";
         println!("Testing: {}", code);
         let ast = parser::parse(code).unwrap();
@@ -501,15 +501,15 @@ mod cycle9_combined_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_map("), "Should have .g_map(");
-            assert!(code_no_space.contains(".g_fold("), "Should have .g_fold(");
+            assert!(code_no_space.contains(".map("), "Should have .map(");
+            assert!(code_no_space.contains(".fold("), "Should have .fold(");
             assert!(code_no_space.contains("*2"), "Should multiply by 2");
             assert!(code_no_space.contains("0"), "Should have init value 0");
             assert!(code_no_space.contains("+"), "Should have + operation");
-            // Fold returns single value, no .g_collect()
+            // Fold returns single value, no .collect()
             assert!(
-                !code_no_space.contains(".g_collect()"),
-                "Should NOT have .g_collect()"
+                !code_no_space.contains(".collect()"),
+                "Should NOT have .collect()"
             );
         } else {
             panic!("Map then fold failed: {:?}", analyzed.err());
@@ -566,8 +566,8 @@ mod cycle11_variable_capture {
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(
-                code_no_space.contains(".g_filter("),
-                "Should have .g_filter("
+                code_no_space.contains(".filter("),
+                "Should have .filter("
             );
             // Should reference theta variable in closure
             // theta (θ) is hex-encoded as _u3b8_ to prevent collisions
@@ -599,7 +599,7 @@ mod cycle11_variable_capture {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(code_no_space.contains(".g_any("), "Should have .g_any(");
+            assert!(code_no_space.contains(".any("), "Should have .any(");
             // theta (θ) is hex-encoded as _u3b8_
             assert!(
                 code_no_space.contains("theta")
@@ -630,8 +630,8 @@ mod cycle11_variable_capture {
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
             assert!(
-                code_no_space.contains(".g_filter("),
-                "Should have .g_filter("
+                code_no_space.contains(".filter("),
+                "Should have .filter("
             );
             assert!(code_no_space.contains("5"), "Should use literal 5");
             // Should NOT reference theta (encoded or not)

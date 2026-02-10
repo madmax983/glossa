@@ -802,6 +802,14 @@ fn classify_print(
                             glossa_type: var_type.clone(),
                         },
                     );
+                } else if scope.is_function(&subj.lemma) {
+                    args.insert(
+                        0,
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                            glossa_type: GlossaType::Unknown,
+                        },
+                    );
                 } else if crate::morphology::lexicon::is_none_word(&lemma)
                     || crate::morphology::lexicon::is_none_word(&original)
                 {
@@ -833,6 +841,11 @@ fn classify_print(
                     args.push(AnalyzedExpr {
                         expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                         glossa_type: var_type.clone(),
+                    });
+                } else if scope.is_function(&obj.lemma) {
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                        glossa_type: GlossaType::Unknown,
                     });
                 } else if crate::morphology::lexicon::is_none_word(&lemma)
                     || crate::morphology::lexicon::is_none_word(&original)
