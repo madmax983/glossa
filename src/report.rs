@@ -315,3 +315,23 @@ impl Display for GlossaReport<'_> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::semantic::{AnalyzedProgram, Scope};
+
+    #[test]
+    fn test_program_stats_new() {
+        let program = AnalyzedProgram {
+            statements: vec![],
+            scope: Scope::new(),
+        };
+
+        let stats = ProgramStats::new(&program);
+
+        assert_eq!(stats.statement_count, 0);
+        assert_eq!(stats.function_count, 0);
+        assert_eq!(stats.binding_count, 0);
+    }
+}
