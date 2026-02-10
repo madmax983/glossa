@@ -347,3 +347,35 @@ impl Display for GlossaReport<'_> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::parse;
+    use crate::semantic::analyze_program;
+
+    #[test]
+    fn test_report_generation() {
+        let source = "«χαῖρε» λέγε.";
+        let ast = parse(source).expect("Failed to parse");
+        let analyzed = analyze_program(&ast).expect("Failed to analyze");
+
+        let report = GlossaReport::new(&analyzed, "test.gl".to_string());
+        let output = format!("{}", report);
+
+        assert!(output.contains("test.gl"));
+        assert!(output.contains("Προτάσεις (Statements)"));
+        assert!(output.contains("1"));
+    }
+
+    #[test]
+    fn test_report_stats() {
+        let source = "ξ πέντε ἔστω.";
+        let ast = parse(source).expect("Failed to parse");
+        let analyzed = analyze_program(&ast).expect("Failed to analyze");
+
+        let stats = ProgramStats::new(&analyzed);
+        assert_eq!(stats.statement_count, 1);
+        assert_eq!(stats.binding_count, 1);
+    }
+}
