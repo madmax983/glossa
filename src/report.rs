@@ -1,3 +1,4 @@
+
 //! Report generation for ΓΛΩΣΣΑ
 //!
 //! This module provides tools to generate human-readable reports and statistics
@@ -313,5 +314,38 @@ impl Display for GlossaReport<'_> {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::semantic::{AnalyzedProgram, Scope};
+
+    #[test]
+    fn test_program_stats_initialization() {
+        let program = AnalyzedProgram {
+            statements: vec![],
+            scope: Scope::new(),
+        };
+        let stats = ProgramStats::new(&program);
+        assert_eq!(stats.statement_count, 0);
+        assert_eq!(stats.expression_count, 0);
+        assert_eq!(stats.binding_count, 0);
+        assert_eq!(stats.function_count, 0);
+    }
+
+    #[test]
+    fn test_glossa_report_display() {
+        let program = AnalyzedProgram {
+            statements: vec![],
+            scope: Scope::new(),
+        };
+        let report = GlossaReport::new(&program, "test.gl".to_string());
+        let output = format!("{}", report);
+
+        assert!(output.contains("ΑΝΑΦΟΡΑ ΓΛΩΣΣΗΣ"));
+        assert!(output.contains("test.gl"));
+        assert!(output.contains("Προτάσεις"));
     }
 }
