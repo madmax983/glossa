@@ -50,6 +50,6 @@ pub mod experimental;
 pub mod grammar;
 pub mod morphology;
 pub mod parser;
-pub mod report;
 pub mod semantic;
 pub mod text;
+pub mod report;

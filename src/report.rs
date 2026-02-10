@@ -7,7 +7,9 @@ use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use std::fmt::Display;
 
-use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
+use crate::semantic::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement,
+};
 
 /// Statistics for an analyzed program
 #[derive(Debug, Default, Clone)]
@@ -413,35 +415,60 @@ mod tests {
     }
 
     #[test]
-    fn test_report_extended_coverage() {
-        // Cover remaining expression types: StructInstantiation, Lambda, Unwrap
-        let source = r#"
-            εἶδος Τύπος ὁρίζειν { α Ἀριθμός }.
+    fn test_report_manual_ast_coverage() {
+        // Manually construct AST nodes to hit all visitor branches
+        // without relying on complex parser logic.
+        use crate::semantic::*;
 
-            // Struct Instantiation
-            τ νέον Τύπος 1 ἔστω.
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
+        };
 
-            // Unwrap (unary op !)
-            // Assuming `τ` could be an Option/Result for parser context,
-            // or just lexically valid.
-            // Actually parser handles ! as Unwrap unary op.
-            υ τ! ἔστω.
+        let exprs = vec![
+            AnalyzedExprKind::Some(Box::new(dummy_expr.clone())),
+            AnalyzedExprKind::Ok(Box::new(dummy_expr.clone())),
+            AnalyzedExprKind::Err(Box::new(dummy_expr.clone())),
+            AnalyzedExprKind::Try(Box::new(dummy_expr.clone())),
+            AnalyzedExprKind::Assert { condition: Box::new(dummy_expr.clone()) },
+            AnalyzedExprKind::AssertEq { left: Box::new(dummy_expr.clone()), right: Box::new(dummy_expr.clone()) },
+            AnalyzedExprKind::MethodCall {
+                receiver: Box::new(dummy_expr.clone()),
+                method: "test".into(),
+                args: vec![dummy_expr.clone()]
+            },
+            AnalyzedExprKind::TraitMethodCall {
+                receiver: Box::new(dummy_expr.clone()),
+                trait_name: "T".into(),
+                method_name: "m".into(),
+                args: vec![dummy_expr.clone()]
+            },
+            AnalyzedExprKind::FunctionCall {
+                func: "f".into(),
+                args: vec![dummy_expr.clone()],
+            },
+            AnalyzedExprKind::StructInstantiation {
+                type_name: "S".into(),
+                fields: vec![],
+                args: vec![dummy_expr.clone()],
+            },
+        ];
 
-            // Lambda (via participle)
-            // [1, 2] doubled
-            [1, 2] διπλασιαζόμενα λέγε.
+        let mut program = AnalyzedProgram {
+            statements: vec![],
+            scope: crate::semantic::Scope::new(),
+        };
 
-            // Method Call (not easily expressible in pure Greek syntax without std types,
-            // but PropertyAccess is similar and covered).
-            // Let's try a chain if possible.
-        "#;
+        for e in exprs {
+            program.statements.push(AnalyzedStatement::Expression(vec![
+                AnalyzedExpr {
+                    expr: e,
+                    glossa_type: GlossaType::Unit,
+                }
+            ]));
+        }
 
-        let ast = parse(source).unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
-        let stats = ProgramStats::new(&analyzed);
-
-        assert!(stats.binding_count >= 2);
-        // Lambda generates a closure body expression
-        assert!(stats.expression_count > 0);
+        let stats = ProgramStats::new(&program);
+        assert!(stats.expression_count >= 10);
     }
 }
