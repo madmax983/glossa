@@ -62,8 +62,3 @@
 **Bloat:** Wrapper function `parse_clause_as_mini_statement` in `src/semantic/control_flow.rs` used only locally.
 **Cut:** Inlined into 4 call sites.
 **Saved:** Removed unnecessary abstraction (~10 lines).
-
-## [Reduction]
-**Bloat:** Deep directory hierarchy for `src/grammar/`, `src/ast/` and `src/experimental/`.
-**Cut:** Flattened to `src/grammar.rs`, `src/ast.rs`, and promoted `src/highlight.rs`.
-**Saved:** Removed 3 directories, simplified imports, aligned with flat module philosophy.
