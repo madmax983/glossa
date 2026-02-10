@@ -16,8 +16,8 @@
 //!    * Structural validation (e.g., ensuring a trait method has a name)
 
 use crate::ast::*;
-use crate::grammar::{Rule, parse as grammar_parse};
 use crate::errors::GlossaError;
+use crate::grammar::{Rule, parse as grammar_parse};
 use pest::iterators::Pair;
 
 /// Parse a ΓΛΩΣΣΑ source string into an AST

@@ -46,10 +46,10 @@
 pub mod ast;
 pub mod codegen;
 pub mod errors;
-pub mod highlight;
 pub mod grammar;
+pub mod highlight;
 pub mod morphology;
 pub mod parser;
+pub mod report;
 pub mod semantic;
 pub mod text;
-pub mod report;
