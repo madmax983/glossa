@@ -326,7 +326,7 @@ mod tests {
     fn create_dummy_program() -> AnalyzedProgram {
         let mut scope = Scope::new();
         // Add a function to scope
-        let _ = scope.define_function("test_func", vec![], None);
+        scope.define_function("test_func", vec![], None);
 
         let mut statements = Vec::new();
 
@@ -387,75 +387,71 @@ mod tests {
     fn test_report_manual_ast_coverage() {
         // Create AST nodes that might be hard to trigger via parser but need coverage
         let scope = Scope::new();
-        let mut statements = Vec::new();
-
-        // While loop
-        statements.push(AnalyzedStatement::While {
-            condition: Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::BooleanLiteral(true),
-                glossa_type: GlossaType::Boolean,
-            }),
-            body: vec![],
-        });
-
-        // Loop (for)
-        statements.push(AnalyzedStatement::For {
-            variable: "i".into(),
-            iterator: Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::Range {
-                    start: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(1),
-                        glossa_type: GlossaType::Number,
-                    }),
-                    end: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(10),
-                        glossa_type: GlossaType::Number,
-                    }),
-                    inclusive: false,
-                },
-                glossa_type: GlossaType::Number,
-            }),
-            body: vec![],
-        });
-
-        // Match
-        statements.push(AnalyzedStatement::Match {
-            scrutinee: Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(1),
-                glossa_type: GlossaType::Number,
-            }),
-            arms: vec![],
-        });
-
-        // Assignment
-        statements.push(AnalyzedStatement::Assignment {
-            name: "x".into(),
-            value: AnalyzedExpr {
-                expr: AnalyzedExprKind::BinOp {
-                    left: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(1),
-                        glossa_type: GlossaType::Number,
-                    }),
-                    op: crate::morphology::lexicon::BinaryOp::Add,
-                    right: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(2),
-                        glossa_type: GlossaType::Number,
-                    }),
-                },
-                glossa_type: GlossaType::Number,
+        let statements = vec![
+            // While loop
+            AnalyzedStatement::While {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                body: vec![],
             },
-        });
-
-        // Return
-        statements.push(AnalyzedStatement::Return {
-            value: Some(Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::FunctionCall {
-                    func: "test_func".into(),
-                    args: vec![],
+            // Loop (for)
+            AnalyzedStatement::For {
+                variable: "i".into(),
+                iterator: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Range {
+                        start: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(1),
+                            glossa_type: GlossaType::Number,
+                        }),
+                        end: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(10),
+                            glossa_type: GlossaType::Number,
+                        }),
+                        inclusive: false,
+                    },
+                    glossa_type: GlossaType::Number,
+                }),
+                body: vec![],
+            },
+            // Match
+            AnalyzedStatement::Match {
+                scrutinee: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+                arms: vec![],
+            },
+            // Assignment
+            AnalyzedStatement::Assignment {
+                name: "x".into(),
+                value: AnalyzedExpr {
+                    expr: AnalyzedExprKind::BinOp {
+                        left: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(1),
+                            glossa_type: GlossaType::Number,
+                        }),
+                        op: crate::morphology::lexicon::BinaryOp::Add,
+                        right: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(2),
+                            glossa_type: GlossaType::Number,
+                        }),
+                    },
+                    glossa_type: GlossaType::Number,
                 },
-                glossa_type: GlossaType::Unit,
-            })),
-        });
+            },
+            // Return
+            AnalyzedStatement::Return {
+                value: Some(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::FunctionCall {
+                        func: "test_func".into(),
+                        args: vec![],
+                    },
+                    glossa_type: GlossaType::Unit,
+                })),
+            },
+        ];
 
         let program = AnalyzedProgram { statements, scope };
         let stats = ProgramStats::new(&program);
