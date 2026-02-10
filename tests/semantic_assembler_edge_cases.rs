@@ -143,3 +143,23 @@ fn test_length_property_not_ignored_without_subject() {
         "Property accesses should be empty"
     );
 }
+
+#[test]
+fn test_unknown_token_binding() {
+    let mut asm = Assembler::new();
+
+    // Feed a made-up word "foo" which should analyze as Unknown
+    let mut unknown = analyze("foo");
+    unknown.part_of_speech = glossa::morphology::PartOfSpeech::Unknown;
+    asm.feed(&unknown, "foo").unwrap();
+
+    // Feed a verb
+    let verb = analyze("λεγε");
+    asm.feed(&verb, "λέγε").unwrap();
+
+    let stmt = asm.finalize().unwrap();
+
+    // The unknown token should have been promoted to Subject (Noun)
+    assert!(stmt.subject.is_some(), "Unknown token should be promoted to Subject");
+    assert_eq!(stmt.subject.unwrap().original, "foo");
+}

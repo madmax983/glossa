@@ -135,3 +135,18 @@ fn test_parameter_shadowing() {
     eprintln!("Generated code:\n{}", code);
     // Should compile without error - just verify it compiles
 }
+
+#[test]
+fn test_print_function_name() {
+    let code = compile(
+        "
+        λειτουργος ὁρίζειν · δός 42.
+        λειτουργος λέγε.
+    ",
+    );
+    eprintln!("Generated code:\n{}", code);
+    // Should invoke the function and print the result
+    assert!(code.contains("println"));
+    // Function name should be sanitized and called
+    assert!(code.contains("g_leitourgos") && code.contains("()"));
+}

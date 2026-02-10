@@ -803,11 +803,19 @@ fn classify_print(
                         },
                     );
                 } else if scope.is_function(&subj.lemma) {
+                    let return_type = scope
+                        .lookup_function(&subj.lemma)
+                        .and_then(|sig| sig.return_type.clone())
+                        .unwrap_or(GlossaType::Unknown);
+
                     args.insert(
                         0,
                         AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                            glossa_type: GlossaType::Unknown,
+                            expr: AnalyzedExprKind::FunctionCall {
+                                func: subj.lemma.clone(),
+                                args: vec![],
+                            },
+                            glossa_type: return_type,
                         },
                     );
                 } else if crate::morphology::lexicon::is_none_word(&lemma)
@@ -843,9 +851,17 @@ fn classify_print(
                         glossa_type: var_type.clone(),
                     });
                 } else if scope.is_function(&obj.lemma) {
+                    let return_type = scope
+                        .lookup_function(&obj.lemma)
+                        .and_then(|sig| sig.return_type.clone())
+                        .unwrap_or(GlossaType::Unknown);
+
                     args.push(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                        glossa_type: GlossaType::Unknown,
+                        expr: AnalyzedExprKind::FunctionCall {
+                            func: obj.lemma.clone(),
+                            args: vec![],
+                        },
+                        glossa_type: return_type,
                     });
                 } else if crate::morphology::lexicon::is_none_word(&lemma)
                     || crate::morphology::lexicon::is_none_word(&original)
