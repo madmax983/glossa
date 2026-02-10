@@ -252,17 +252,18 @@ fn test_glossa_report_display_full_coverage() {
 
     // Create a scope with dummy functions and types
     let mut scope = Scope::default();
-    scope.define_function("test_func", vec![GlossaType::Number], Some(GlossaType::String));
+    scope.define_function(
+        "test_func",
+        vec![GlossaType::Number],
+        Some(GlossaType::String),
+    );
     scope.define_function("func2", vec![], None);
     scope.define_function("func3", vec![], None);
 
     scope.define_type("Type1", GlossaType::Number);
     scope.define_type("Type2", GlossaType::String);
 
-    let program = AnalyzedProgram {
-        statements,
-        scope,
-    };
+    let program = AnalyzedProgram { statements, scope };
 
     let report = GlossaReport::new(&program, "test.gl".into());
 
