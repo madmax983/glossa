@@ -7,9 +7,7 @@ use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use std::fmt::Display;
 
-use crate::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement,
-};
+use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 
 /// Statistics for an analyzed program
 #[derive(Debug, Default, Clone)]
@@ -430,18 +428,23 @@ mod tests {
             AnalyzedExprKind::Ok(Box::new(dummy_expr.clone())),
             AnalyzedExprKind::Err(Box::new(dummy_expr.clone())),
             AnalyzedExprKind::Try(Box::new(dummy_expr.clone())),
-            AnalyzedExprKind::Assert { condition: Box::new(dummy_expr.clone()) },
-            AnalyzedExprKind::AssertEq { left: Box::new(dummy_expr.clone()), right: Box::new(dummy_expr.clone()) },
+            AnalyzedExprKind::Assert {
+                condition: Box::new(dummy_expr.clone()),
+            },
+            AnalyzedExprKind::AssertEq {
+                left: Box::new(dummy_expr.clone()),
+                right: Box::new(dummy_expr.clone()),
+            },
             AnalyzedExprKind::MethodCall {
                 receiver: Box::new(dummy_expr.clone()),
                 method: "test".into(),
-                args: vec![dummy_expr.clone()]
+                args: vec![dummy_expr.clone()],
             },
             AnalyzedExprKind::TraitMethodCall {
                 receiver: Box::new(dummy_expr.clone()),
                 trait_name: "T".into(),
                 method_name: "m".into(),
-                args: vec![dummy_expr.clone()]
+                args: vec![dummy_expr.clone()],
             },
             AnalyzedExprKind::FunctionCall {
                 func: "f".into(),
@@ -460,12 +463,12 @@ mod tests {
         };
 
         for e in exprs {
-            program.statements.push(AnalyzedStatement::Expression(vec![
-                AnalyzedExpr {
+            program
+                .statements
+                .push(AnalyzedStatement::Expression(vec![AnalyzedExpr {
                     expr: e,
                     glossa_type: GlossaType::Unit,
-                }
-            ]));
+                }]));
         }
 
         let stats = ProgramStats::new(&program);
