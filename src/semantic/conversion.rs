@@ -1304,7 +1304,7 @@ pub fn extract_value(
 mod tests {
     use super::*;
     use crate::ast::{Expr, Word};
-    use crate::morphology::Case;
+    use crate::morphology::{Case, Gender};
     use crate::semantic::assembled::{Constituent, Literal};
 
     fn constituent(lemma: &str) -> Constituent {
@@ -1568,5 +1568,103 @@ mod tests {
             panic!("Expected default NumberLiteral(0)");
         }
         assert_eq!(ty, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_extract_value_detect_enum_ok() {
+        let scope = Scope::new();
+        let asm = AssembledStatement {
+            subject: Some(constituent("ἐπιτυχία")), // Ok
+            literals: vec![number_literal(42)],
+            ..Default::default()
+        };
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::Ok(inner) = expr.expr {
+            if let AnalyzedExprKind::NumberLiteral(val) = inner.expr {
+                assert_eq!(val, 42);
+            } else {
+                panic!("Expected inner NumberLiteral");
+            }
+        } else {
+            panic!("Expected Ok expression");
+        }
+        assert!(matches!(ty, GlossaType::Result(..)));
+    }
+
+    #[test]
+    fn test_extract_value_detect_enum_err() {
+        let scope = Scope::new();
+        let asm = AssembledStatement {
+            subject: Some(constituent("σφάλμα")), // Err
+            literals: vec![number_literal(1)],
+            ..Default::default()
+        };
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::Err(inner) = expr.expr {
+            if let AnalyzedExprKind::NumberLiteral(val) = inner.expr {
+                assert_eq!(val, 1);
+            } else {
+                panic!("Expected inner NumberLiteral");
+            }
+        } else {
+            panic!("Expected Err expression");
+        }
+        assert!(matches!(ty, GlossaType::Result(..)));
+    }
+
+    #[test]
+    fn test_extract_value_genitive_method_call() {
+        let mut scope = Scope::new();
+        scope.define_type("MyType", GlossaType::Struct { name: "MyType".into(), fields: vec![], gender: Gender::Neuter });
+        scope.define("obj".to_string(), GlossaType::Struct { name: "MyType".into(), fields: vec![], gender: Gender::Neuter });
+
+        let asm = AssembledStatement {
+            subject: Some(constituent("method")),
+            genitives: vec![constituent("obj")],
+            literals: vec![number_literal(10)],
+            ..Default::default()
+        };
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::MethodCall { receiver, method, args } = expr.expr {
+            assert_eq!(method, "method");
+            assert_eq!(args.len(), 1);
+            if let AnalyzedExprKind::Variable(name) = receiver.expr {
+                assert_eq!(name, "obj");
+            } else {
+                panic!("Expected variable receiver");
+            }
+        } else {
+            panic!("Expected MethodCall expression");
+        }
+        assert_eq!(ty, GlossaType::Unknown);
+    }
+
+    #[test]
+    fn test_extract_value_nominative_enum() {
+        let scope = Scope::new();
+        let asm = AssembledStatement {
+            nominatives: vec![constituent("τί")], // Some
+            literals: vec![number_literal(99)],
+            ..Default::default()
+        };
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::Some(inner) = expr.expr {
+            if let AnalyzedExprKind::NumberLiteral(val) = inner.expr {
+                assert_eq!(val, 99);
+            } else {
+                panic!("Expected inner NumberLiteral");
+            }
+        } else {
+            panic!("Expected Some expression from nominative");
+        }
+        assert!(matches!(ty, GlossaType::Option(_)));
     }
 }
