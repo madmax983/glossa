@@ -36,6 +36,20 @@ pub fn normalize_greek(text: &str) -> SmolStr {
             .to_lowercase()
             .into()
     } else {
+        // No uppercase.
+        // Optimization: Fast check for characters that are definitely clean
+        // (ASCII or basic Greek lowercase without diacritics).
+        // This avoids creating the NFD iterator for the vast majority of tokens.
+        if text.chars().all(is_clean_char) {
+            return text.into();
+        }
+
+        // Fallback: If we encountered a suspicious character (e.g. extended Greek or punctuation),
+        // check if it actually has diacritics using NFD.
+        if !text.nfd().any(is_greek_diacritic) {
+            return text.into();
+        }
+
         // Fast path: If all characters are already lowercase (or non-cased),
         // we can avoid the intermediate allocation and complex casing logic.
         // `char::to_lowercase` is sufficient here.
@@ -49,6 +63,21 @@ pub fn normalize_greek(text: &str) -> SmolStr {
         }
         s.into()
     }
+}
+
+/// Check if a character is a "clean" character (no diacritics, safe to use directly)
+///
+/// This includes:
+/// - ASCII characters
+/// - Basic Greek lowercase letters (α-ω, ς)
+///
+/// This excludes:
+/// - Characters with diacritics (combining or precomposed)
+/// - Punctuation/symbols outside ASCII (e.g. «, ») - these will fail this check
+///   and fall back to the slower NFD check, which is fine as they are rare in identifiers.
+#[inline(always)]
+fn is_clean_char(c: char) -> bool {
+    c.is_ascii() || matches!(c, '\u{03B1}'..='\u{03C9}')
 }
 
 /// Check if a character is a Greek diacritical mark to be stripped
