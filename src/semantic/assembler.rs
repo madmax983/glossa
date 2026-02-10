@@ -199,6 +199,15 @@ impl Assembler {
                 // Non-operator conjunctions are ignored for now
                 Ok(())
             }
+            PartOfSpeech::Unknown => {
+                // Treat unknown words (like ASCII identifiers) as Nominative Nouns
+                // This allows user-defined names to work as Subjects (variables, method names)
+                let mut fallback = analysis.clone();
+                fallback.part_of_speech = PartOfSpeech::Noun;
+                fallback.case = Some(Case::Nominative);
+                fallback.number = Some(Number::Singular);
+                self.handle_nominal(&fallback, original)
+            }
             _ => Ok(()), // Ignore particles, articles for now
         }
     }

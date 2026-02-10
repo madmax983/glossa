@@ -299,14 +299,37 @@ fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
     if args.is_empty() {
         quote! { println!(); }
     } else if args.len() == 1 {
-        let arg = generate_expr(&args[0]);
-        // Use Display formatting
-        quote! { println!("{}", #arg); }
+        let arg_expr = &args[0];
+        let arg_tokens = generate_expr(arg_expr);
+
+        // Use Display for primitives, Debug for others (structs, collections)
+        if is_display_type(&arg_expr.glossa_type) {
+            quote! { println!("{}", #arg_tokens); }
+        } else {
+            quote! { println!("{:?}", #arg_tokens); }
+        }
     } else {
         // Multiple args - join with space
-        let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-        quote! { println!("{}", vec![#(format!("{}", #arg_tokens)),*].join(" ")); }
+        // We need to check each argument's type to decide format string
+        let format_calls: Vec<TokenStream> = args.iter().map(|arg_expr| {
+            let arg_tokens = generate_expr(arg_expr);
+            if is_display_type(&arg_expr.glossa_type) {
+                quote! { format!("{}", #arg_tokens) }
+            } else {
+                quote! { format!("{:?}", #arg_tokens) }
+            }
+        }).collect();
+
+        quote! { println!("{}", vec![#(#format_calls),*].join(" ")); }
     }
+}
+
+/// Check if a type implements Display (primitives)
+fn is_display_type(ty: &GlossaType) -> bool {
+    matches!(
+        ty,
+        GlossaType::Number | GlossaType::String | GlossaType::Boolean | GlossaType::Unit
+    )
 }
 
 fn generate_if(
@@ -888,6 +911,7 @@ fn is_std_method(name: &str) -> bool {
         name,
         "len"
             | "push"
+            | "pop"
             | "unwrap"
             | "to_string"
             | "clone"

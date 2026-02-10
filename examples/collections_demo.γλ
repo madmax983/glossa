@@ -18,11 +18,11 @@
 κενός ὠθεῖ 42.
 κενός ὠθεῖ 99.
 // Note: Can't print arrays directly in Rust (no Display impl)
-// κενός λέγε.
+κενός λέγε.
 
 // Pop operation
 κενός ἕλκεται.
-// κενός λέγε.
+κενός λέγε.
 
 // Length property
 κενός μῆκος λέγε.

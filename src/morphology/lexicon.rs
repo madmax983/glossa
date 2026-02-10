@@ -1781,6 +1781,42 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         },
     );
 
+    // self (for traits)
+    m.insert(
+        "self",
+        LexiconEntry {
+            lemma: "self",
+            pos: PartOfSpeech::Pronoun,
+            gender: None,
+            meaning: "self (trait instance)",
+            rust_equiv: Some("self"),
+            case: Some(Case::Nominative), // Treated as subject usually
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // selfου (genitive of self)
+    m.insert(
+        "selfου",
+        LexiconEntry {
+            lemma: "self",
+            pos: PartOfSpeech::Pronoun,
+            gender: None,
+            meaning: "of self (trait instance)",
+            rust_equiv: Some("self"),
+            case: Some(Case::Genitive),
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
     // =========================================================================
     // Predicate adjectives (for any/all tests)
     // =========================================================================

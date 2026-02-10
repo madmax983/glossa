@@ -772,25 +772,73 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-            if let Some(ref subj) = asm_stmt.subject
-                && let Some(var_type) = scope.lookup(&subj.lemma)
-            {
-                args.insert(
-                    0,
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: var_type.clone(),
-                    },
-                );
+            // Handle arrays
+            for array_elements in &asm_stmt.arrays {
+                let mut analyzed_elements = Vec::with_capacity(array_elements.len());
+                for e in array_elements {
+                    analyzed_elements.push(analyze_argument_expr(e, scope)?);
+                }
+
+                let element_type = analyzed_elements
+                    .first()
+                    .map(|e| e.glossa_type.clone())
+                    .unwrap_or(GlossaType::Unknown);
+
+                args.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
+                    glossa_type: GlossaType::List(Box::new(element_type)),
+                });
             }
 
-            if let Some(ref obj) = asm_stmt.object
-                && let Some(var_type) = scope.lookup(&obj.lemma)
-            {
-                args.push(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                });
+            if let Some(ref subj) = asm_stmt.subject {
+                let lemma = normalize_greek(&subj.lemma);
+                let original = normalize_greek(&subj.original);
+
+                if let Some(var_type) = scope.lookup(&subj.lemma) {
+                    args.insert(
+                        0,
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                            glossa_type: var_type.clone(),
+                        },
+                    );
+                } else if crate::morphology::lexicon::is_none_word(&lemma) || crate::morphology::lexicon::is_none_word(&original) {
+                    args.insert(0, AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
+                    });
+                } else if let Some(val) = crate::morphology::lexicon::numeral_value(&lemma) {
+                    args.insert(0, AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(val),
+                        glossa_type: GlossaType::Number,
+                    });
+                } else {
+                    return Err(GlossaError::undefined(subj.original.to_string()));
+                }
+            }
+
+            if let Some(ref obj) = asm_stmt.object {
+                let lemma = normalize_greek(&obj.lemma);
+                let original = normalize_greek(&obj.original);
+
+                if let Some(var_type) = scope.lookup(&obj.lemma) {
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    });
+                } else if crate::morphology::lexicon::is_none_word(&lemma) || crate::morphology::lexicon::is_none_word(&original) {
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
+                    });
+                } else if let Some(val) = crate::morphology::lexicon::numeral_value(&lemma) {
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(val),
+                        glossa_type: GlossaType::Number,
+                    });
+                } else {
+                    return Err(GlossaError::undefined(obj.original.to_string()));
+                }
             }
 
             return Ok(Some(AnalyzedStatement::Print(args)));

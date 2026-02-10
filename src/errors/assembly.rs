@@ -49,6 +49,14 @@ pub enum AssemblyError {
     #[diagnostic(code(glossa::assembly::missing_verb))]
     MissingVerb,
 
+    /// Unknown token (part of speech unknown)
+    ///
+    /// # Example
+    /// `αβγ` (Not in lexicon, not a variable)
+    #[error("Ἄγνωστος λέξις: {0}")]
+    #[diagnostic(code(glossa::assembly::unknown_token))]
+    UnknownToken(String),
+
     /// Subject and Verb do not agree in number/person
     ///
     /// # Example
