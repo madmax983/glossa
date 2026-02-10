@@ -1,7 +1,19 @@
-//! AST Builder
+//! Semantic Parser for ΓΛΩΣΣΑ
 //!
-//! This module is responsible for converting the raw Concrete Syntax Tree (CST)
-//! produced by the Pest parser into a strongly-typed Abstract Syntax Tree (AST).
+//! This module bridges the gap between the raw text parsing (Grammar) and the
+//! high-level program structure (AST).
+//!
+//! # The Parsing Flow
+//!
+//! 1. **Grammar (`src/grammar`)**: Uses [`pest`] (PEG parser) to tokenize the input
+//!    and verify it matches the language rules. This produces a "Concrete Syntax Tree" (CST)
+//!    of untyped pairs (e.g., `Rule::greek_word`, `Rule::number_literal`).
+//!
+//! 2. **Builder**: Walks this CST and constructs strongly-typed
+//!    [`crate::ast`] nodes. This is where we handle:
+//!    * Text normalization (converting `Ἀθῆναι` to `αθηναι`)
+//!    * Number parsing
+//!    * Structural validation (e.g., ensuring a trait method has a name)
 //!
 //! # Safety: Recursion Depth
 //!
@@ -11,15 +23,43 @@
 //! recursive descent parsing phase.
 
 use crate::ast::*;
-use crate::grammar::{Rule, parse};
+use crate::errors::GlossaError;
+use crate::grammar::{Rule, parse as parse_pest};
 use pest::iterators::Pair;
 
+impl From<ParseError> for GlossaError {
+    fn from(err: ParseError) -> Self {
+        GlossaError::ParseError {
+            message: err.to_string(),
+            src: String::new(),
+            span: None,
+        }
+    }
+}
+
+/// Parse a ΓΛΩΣΣΑ source string into an AST
+///
+/// This is the main entry point for the parsing phase.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::parser::parse;
+///
+/// let source = "«χαῖρε» λέγε.";
+/// let program = parse(source).unwrap();
+/// assert_eq!(program.statements.len(), 1);
+/// ```
+pub fn parse(source: &str) -> Result<Program, GlossaError> {
+    parse_source(source).map_err(GlossaError::from)
+}
+
 /// Build an AST from source code
-pub fn parse_source(source: &str) -> Result<Program, ParseError> {
+fn parse_source(source: &str) -> Result<Program, ParseError> {
     // Check recursion depth before parsing to prevent stack overflow
     check_recursion_depth(source)?;
 
-    let pairs = parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
+    let pairs = parse_pest(source).map_err(|e| ParseError::PestError(e.to_string()))?;
 
     let mut statements = Vec::new();
 
@@ -693,7 +733,7 @@ mod tests {
     #[test]
     fn test_parse_source_hello() {
         let source = "«χαῖρε» λέγε.";
-        let ast = parse_source(source).unwrap();
+        let ast = parse(source).unwrap();
 
         assert_eq!(ast.statements.len(), 1);
         assert!(!ast.statements[0].is_query());
@@ -702,7 +742,7 @@ mod tests {
     #[test]
     fn test_parse_source_string_literal() {
         let source = "«χαῖρε κόσμε» λέγε.";
-        let ast = parse_source(source).unwrap();
+        let ast = parse(source).unwrap();
 
         let expr = first_expr(&ast.statements[0]);
         if let Expr::Phrase(terms) = expr {
@@ -715,7 +755,7 @@ mod tests {
     #[test]
     fn test_parse_source_variable_binding() {
         let source = "ξ πέντε ἔστω.";
-        let ast = parse_source(source).unwrap();
+        let ast = parse(source).unwrap();
 
         assert_eq!(ast.statements.len(), 1);
         let expr = first_expr(&ast.statements[0]);
@@ -734,7 +774,7 @@ mod tests {
     #[test]
     fn test_parse_source_number_literal() {
         let source = "42 λέγε.";
-        let ast = parse_source(source).unwrap();
+        let ast = parse(source).unwrap();
 
         let expr = first_expr(&ast.statements[0]);
         if let Expr::Phrase(terms) = expr {
@@ -745,7 +785,7 @@ mod tests {
     #[test]
     fn test_parse_source_query() {
         let source = "ξ?";
-        let ast = parse_source(source).unwrap();
+        let ast = parse(source).unwrap();
 
         assert!(ast.statements[0].is_query());
     }
@@ -753,7 +793,7 @@ mod tests {
     #[test]
     fn test_parse_source_multiple_statements() {
         let source = "ξ πέντε ἔστω. ξ λέγε.";
-        let ast = parse_source(source).unwrap();
+        let ast = parse(source).unwrap();
 
         assert_eq!(ast.statements.len(), 2);
     }
@@ -761,7 +801,7 @@ mod tests {
     #[test]
     fn test_word_normalization() {
         let source = "χρήστου ὄνομα λέγε.";
-        let ast = parse_source(source).unwrap();
+        let ast = parse(source).unwrap();
 
         let expr = first_expr(&ast.statements[0]);
         if let Expr::Phrase(terms) = expr
@@ -776,7 +816,7 @@ mod tests {
     fn test_parse_source_with_comma() {
         // Test that commas create multiple clauses
         let source = "εἰ ξ μεῖζον, «ναί» λέγε.";
-        let ast = parse_source(source).unwrap();
+        let ast = parse(source).unwrap();
 
         assert_eq!(ast.statements.len(), 1);
         assert_eq!(ast.statements[0].clauses().len(), 2); // Two clauses separated by comma

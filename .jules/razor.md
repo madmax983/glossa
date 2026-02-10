@@ -62,3 +62,13 @@
 **Bloat:** Wrapper function `parse_clause_as_mini_statement` in `src/semantic/control_flow.rs` used only locally.
 **Cut:** Inlined into 4 call sites.
 **Saved:** Removed unnecessary abstraction (~10 lines).
+
+## [Reduction]
+**Bloat:** Deep directory hierarchies for small modules (`experimental`, `grammar`, `ast`, `parser`, `errors`).
+**Cut:** Flattened into single files (`highlight.rs`, `grammar.rs`, `ast.rs`, `parser.rs`, `errors.rs`).
+**Saved:** Removed 5 directories and 10+ files. Simplified module structure and imports.
+
+## [Fix]
+**Issue:** `lambda_tests.rs` asserted incorrect function names (`g_map` instead of `map`) for standard iterators.
+**Fix:** Updated tests to match `codegen` logic (standard methods are not prefixed).
+**Saved:** Fixed 13 failing tests and aligned tests with documented behavior.
