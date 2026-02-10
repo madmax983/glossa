@@ -1565,4 +1565,47 @@ mod tests {
             _ => panic!("Expected NumberLiteral"),
         }
     }
+
+    #[test]
+    fn test_extract_enum_variant_from_nominative() {
+        let mut asm = AssembledStatement::default();
+        asm.nominatives.push(make_constituent("οὐδέν", Case::Nominative));
+        let scope = Scope::new();
+        let (expr, ty) = extract_value(&asm, &scope).unwrap();
+        match expr.expr {
+            AnalyzedExprKind::None => {}
+            _ => panic!("Expected None from nominative"),
+        }
+        match ty {
+            GlossaType::Option(_) => {}
+            _ => panic!("Expected Option type"),
+        }
+    }
+
+    #[test]
+    fn test_extract_binary_expression_fallback() {
+        // Test object + literal (2nd branch of extract_binary_expression)
+        let asm = AssembledStatement {
+            object: Some(make_constituent("χ", Case::Accusative)),
+            literals: vec![Literal::Number(1)],
+            operators: vec![BinaryOp::Add],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let (expr, _ty) = extract_value(&asm, &scope).unwrap();
+        match expr.expr {
+            AnalyzedExprKind::BinOp { left, op, right } => {
+                match left.expr {
+                    AnalyzedExprKind::Variable(name) => assert_eq!(name, "χ"),
+                    _ => panic!("Expected Variable left"),
+                }
+                assert_eq!(op, BinaryOp::Add);
+                match right.expr {
+                    AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 1),
+                    _ => panic!("Expected NumberLiteral right"),
+                }
+            }
+            _ => panic!("Expected BinOp"),
+        }
+    }
 }
