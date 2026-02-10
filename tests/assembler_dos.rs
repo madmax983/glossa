@@ -39,6 +39,25 @@ fn test_assembler_adjective_limit() {
 }
 
 #[test]
+fn test_limit_exceeded_error_message() {
+    let mut asm = Assembler::new();
+
+    // Trigger a limit (e.g., arrays)
+    for _ in 0..16 {
+        asm.feed_array(vec![]).unwrap();
+    }
+
+    let err = asm.feed_array(vec![]).unwrap_err();
+
+    // Verify the error message matches the expected format
+    // This ensures the Display impl is covered
+    let msg = err.to_string();
+    assert!(msg.contains("Ὑπέρβασις ὁρίου"));
+    assert!(msg.contains("arrays"));
+    assert!(msg.contains("16"));
+}
+
+#[test]
 fn test_assembler_genitive_limit() {
     let mut asm = Assembler::new();
 
