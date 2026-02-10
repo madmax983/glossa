@@ -831,4 +831,92 @@ mod tests {
             _ => panic!("Expected ParseError"),
         }
     }
+
+    #[test]
+    fn test_invalid_number_literal() {
+        // "99999999999999999999999999" overflows i64
+        let source = "99999999999999999999999999 λέγε.";
+        let result = parse(source);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::ParseError { message, .. } => {
+                assert!(message.contains("Invalid number"));
+            }
+            _ => panic!("Expected ParseError"),
+        }
+    }
+
+    #[test]
+    fn test_invalid_array_index_literal() {
+        // "πίναξ[999999999999999999999] λέγε." - index overflow
+        let source = "πίναξ[999999999999999999999] λέγε.";
+        let result = parse(source);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_array_literal_elements() {
+        // Test various elements in array literal
+        let source = "[1, «δύο», ἀληθές] λέγε.";
+        let ast = parse(source).unwrap();
+
+        let expr = first_expr(&ast.statements[0]);
+        if let Expr::Phrase(terms) = expr {
+            if let Expr::ArrayLiteral(elements) = &terms[0] {
+                assert_eq!(elements.len(), 3);
+                assert!(matches!(elements[0], Expr::NumberLiteral(1)));
+                assert!(matches!(elements[1], Expr::StringLiteral(_)));
+                assert!(matches!(elements[2], Expr::BooleanLiteral(true)));
+            } else {
+                panic!("Expected ArrayLiteral");
+            }
+        }
+    }
+
+    #[test]
+    fn test_type_definition_parsing() {
+        let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα Ὄνομα . ἡλικία Ἀριθμός }.";
+        let ast = parse(source).unwrap();
+        assert_eq!(ast.statements.len(), 1);
+        if let Statement::TypeDefinition(def) = &ast.statements[0] {
+            assert_eq!(def.name.original, "Χρήστης");
+            assert_eq!(def.fields.len(), 2);
+            assert_eq!(def.fields[0].name.original, "ὄνομα");
+            assert_eq!(def.fields[0].type_name.original, "Ὄνομα");
+        } else {
+            panic!("Expected TypeDefinition");
+        }
+    }
+
+    #[test]
+    fn test_trait_definition_parsing() {
+        let source = "χαρακτήρ Δεικτόν ὁρίζειν { δεῖ δεῖξαι . }.";
+        let ast = parse(source).unwrap();
+        assert_eq!(ast.statements.len(), 1);
+        if let Statement::TraitDefinition(def) = &ast.statements[0] {
+            assert_eq!(def.name.original, "Δεικτόν");
+            assert_eq!(def.methods.len(), 1);
+            assert_eq!(def.methods[0].name.original, "δεῖξαι");
+            assert!(!def.methods[0].is_default);
+        } else {
+            panic!("Expected TraitDefinition");
+        }
+    }
+
+    #[test]
+    fn test_trait_impl_parsing() {
+        // Trait implementation block with correct syntax from integration tests
+        // Use middle dot (·) to separate method signature from body if on one line
+        let source = "εἶδος Χρήστης τῷ Δεικτόν ἐμπίπτειν { δεῖξαι· «εγώ» λέγε. }.";
+        let ast = parse(source).unwrap();
+        assert_eq!(ast.statements.len(), 1);
+        if let Statement::TraitImpl(def) = &ast.statements[0] {
+            assert_eq!(def.type_name.original, "Χρήστης");
+            assert_eq!(def.trait_name.original, "Δεικτόν");
+            assert_eq!(def.methods.len(), 1);
+            assert_eq!(def.methods[0].name.original, "δεῖξαι");
+        } else {
+            panic!("Expected TraitImpl");
+        }
+    }
 }
