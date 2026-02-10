@@ -315,3 +315,122 @@ impl Display for GlossaReport<'_> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::semantic::{
+        AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
+    };
+
+    fn create_dummy_program() -> AnalyzedProgram {
+        let mut scope = Scope::new();
+        // Add a function to scope
+        let _ = scope.define_function("test_func", vec![], None);
+
+        let mut statements = Vec::new();
+
+        // Add a binding statement
+        let binding = AnalyzedStatement::Binding {
+            name: "x".into(),
+            value: AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(42),
+                glossa_type: GlossaType::Number,
+            },
+            mutable: false,
+        };
+        statements.push(binding);
+
+        // Add an if statement
+        let if_stmt = AnalyzedStatement::If {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: GlossaType::Boolean,
+            }),
+            then_body: vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("test".into()),
+                glossa_type: GlossaType::String,
+            }])],
+            else_body: None,
+        };
+        statements.push(if_stmt);
+
+        AnalyzedProgram { statements, scope }
+    }
+
+    #[test]
+    fn test_program_stats_coverage() {
+        let program = create_dummy_program();
+        let stats = ProgramStats::new(&program);
+
+        assert_eq!(stats.statement_count, 3); // Binding + If + Print
+        assert_eq!(stats.binding_count, 1);
+        assert_eq!(stats.conditional_count, 1);
+        assert_eq!(stats.function_count, 1);
+        assert!(stats.max_depth >= 1);
+        assert!(stats.expression_count > 0);
+    }
+
+    #[test]
+    fn test_report_generation_coverage() {
+        let program = create_dummy_program();
+        let report = GlossaReport::new(&program, "test.gl".to_string());
+        let output = format!("{}", report);
+
+        assert!(output.contains("ΑΝΑΦΟΡΑ ΓΛΩΣΣΗΣ"));
+        assert!(output.contains("test.gl"));
+        assert!(output.contains("test_func")); // Function list
+        assert!(output.contains("3")); // Statement count
+    }
+
+    #[test]
+    fn test_report_manual_ast_coverage() {
+        // Create AST nodes that might be hard to trigger via parser but need coverage
+        let scope = Scope::new();
+        let mut statements = Vec::new();
+
+        // While loop
+        statements.push(AnalyzedStatement::While {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: GlossaType::Boolean,
+            }),
+            body: vec![],
+        });
+
+        // Loop (for)
+        statements.push(AnalyzedStatement::For {
+            variable: "i".into(),
+            iterator: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Range {
+                    start: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    end: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(10),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    inclusive: false,
+                },
+                glossa_type: GlossaType::Number,
+            }),
+            body: vec![],
+        });
+
+        // Match
+        statements.push(AnalyzedStatement::Match {
+            scrutinee: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            }),
+            arms: vec![],
+        });
+
+        let program = AnalyzedProgram { statements, scope };
+        let stats = ProgramStats::new(&program);
+
+        assert_eq!(stats.loop_count, 2);
+        assert_eq!(stats.conditional_count, 1); // Match counts as conditional
+    }
+}
