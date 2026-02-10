@@ -427,10 +427,41 @@ mod tests {
             arms: vec![],
         });
 
+        // Assignment
+        statements.push(AnalyzedStatement::Assignment {
+            name: "x".into(),
+            value: AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    left: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    op: crate::morphology::lexicon::BinaryOp::Add,
+                    right: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(2),
+                        glossa_type: GlossaType::Number,
+                    }),
+                },
+                glossa_type: GlossaType::Number,
+            },
+        });
+
+        // Return
+        statements.push(AnalyzedStatement::Return {
+            value: Some(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::FunctionCall {
+                    func: "test_func".into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unit,
+            })),
+        });
+
         let program = AnalyzedProgram { statements, scope };
         let stats = ProgramStats::new(&program);
 
         assert_eq!(stats.loop_count, 2);
         assert_eq!(stats.conditional_count, 1); // Match counts as conditional
+        assert!(stats.expression_count >= 5); // Should count sub-expressions
     }
 }
