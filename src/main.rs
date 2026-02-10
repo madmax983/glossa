@@ -14,7 +14,7 @@ use std::time::SystemTime;
 use glossa::codegen::{generate_rust_file, generate_statement_code};
 use glossa::errors::GlossaError;
 use glossa::parser::parse;
-use glossa::report::GlossaReport;
+use glossa::report::{CompilationReport, GlossaReport, ProgramStats};
 use glossa::semantic::{AnalyzedStatement, GlossaType, Scope, analyze_program};
 
 #[derive(Parser)]
@@ -152,6 +152,7 @@ fn check_file_size(input: &Path) -> Result<()> {
 }
 
 fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    let start_time = std::time::Instant::now();
     check_file_size(input)?;
 
     let source = fs::read_to_string(input).into_diagnostic()?;
@@ -167,13 +168,17 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     fs::write(&output_path, &rust_code).into_diagnostic()?;
 
-    println!(
-        "{} Ἐγράφη: {} ({} statements, {} functions)",
-        "✓".green(),
-        output_path.display().to_string().bold(),
-        analyzed.statements.len(),
-        analyzed.scope.functions().count()
-    );
+    let duration = start_time.elapsed();
+    let stats = ProgramStats::new(&analyzed);
+
+    let report = CompilationReport {
+        input_path: input.display().to_string(),
+        output_path: output_path.display().to_string(),
+        stats,
+        duration,
+    };
+
+    println!("{}", report);
 
     Ok(())
 }

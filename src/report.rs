@@ -191,6 +191,35 @@ impl ProgramStats {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn test_compilation_report_display() {
+        let stats = ProgramStats {
+            statement_count: 10,
+            function_count: 2,
+            ..Default::default()
+        };
+
+        let report = CompilationReport {
+            input_path: "input.gl".to_string(),
+            output_path: "output.rs".to_string(),
+            stats,
+            duration: Duration::from_millis(150),
+        };
+
+        let output = format!("{}", report);
+
+        assert!(output.contains("ΣΥΜΠΕΡΑΣΜΑ"));
+        assert!(output.contains("input.gl"));
+        assert!(output.contains("output.rs"));
+        assert!(output.contains("SUCCESS"));
+    }
+}
+
 /// A human-readable report for an analyzed program
 pub struct GlossaReport<'a> {
     program: &'a AnalyzedProgram,
@@ -292,6 +321,60 @@ impl Display for GlossaReport<'_> {
             }
             writeln!(f, "{}", func_table)?;
         }
+
+        Ok(())
+    }
+}
+
+/// A summary report for the compilation process
+pub struct CompilationReport {
+    /// Path to the source file
+    pub input_path: String,
+    /// Path to the generated output file
+    pub output_path: String,
+    /// Statistics of the compiled program
+    pub stats: ProgramStats,
+    /// Time taken to compile
+    pub duration: std::time::Duration,
+}
+
+impl Display for CompilationReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL)
+             .set_header(vec![
+                 Cell::new("Παράμετρος (Parameter)").add_attribute(comfy_table::Attribute::Bold).fg(Color::Cyan),
+                 Cell::new("Τιμή (Value)").add_attribute(comfy_table::Attribute::Bold),
+             ]);
+
+        table.add_row(vec![
+            Cell::new("Ἀρχεῖον (Input)"),
+            Cell::new(&self.input_path).fg(Color::Yellow),
+        ]);
+        table.add_row(vec![
+            Cell::new("Ἔξοδος (Output)"),
+            Cell::new(&self.output_path).fg(Color::Yellow),
+        ]);
+        table.add_row(vec![
+            Cell::new("Προτάσεις (Statements)"),
+            Cell::new(self.stats.statement_count.to_string()),
+        ]);
+        table.add_row(vec![
+            Cell::new("Συναρτήσεις (Functions)"),
+            Cell::new(self.stats.function_count.to_string()),
+        ]);
+        table.add_row(vec![
+            Cell::new("Χρόνος (Time)"),
+            Cell::new(format!("{:.2?}", self.duration)),
+        ]);
+        table.add_row(vec![
+            Cell::new("Κατάστασις (Status)"),
+            Cell::new("ΕΠΙΤΥΧΙΑ (SUCCESS)").fg(Color::Green).add_attribute(comfy_table::Attribute::Bold),
+        ]);
+
+        writeln!(f, "\n{}", "ΣΥΜΠΕΡΑΣΜΑ (COMPILATION SUMMARY)".bold().underlined())?;
+        writeln!(f, "{}", table)?;
+        writeln!(f, "\n{} Ἐγράφη ἐπιτυχῶς! (Successfully written!)", "✨".green())?;
 
         Ok(())
     }
