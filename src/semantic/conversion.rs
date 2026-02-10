@@ -1474,4 +1474,95 @@ mod tests {
             _ => panic!("Expected ArrayLiteral"),
         }
     }
+
+    #[test]
+    fn test_extract_enum_none_subject() {
+        let asm = AssembledStatement {
+            subject: Some(make_constituent("οὐδέν", Case::Nominative)),
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let (expr, ty) = extract_value(&asm, &scope).unwrap();
+        match expr.expr {
+            AnalyzedExprKind::None => {}
+            _ => panic!("Expected None"),
+        }
+        match ty {
+            GlossaType::Option(_) => {}
+            _ => panic!("Expected Option type"),
+        }
+    }
+
+    #[test]
+    fn test_extract_enum_some_subject() {
+        let asm = AssembledStatement {
+            subject: Some(make_constituent("τί", Case::Nominative)),
+            literals: vec![Literal::Number(42)],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let (expr, _ty) = extract_value(&asm, &scope).unwrap();
+        match expr.expr {
+            AnalyzedExprKind::Some(inner) => match inner.expr {
+                AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 42),
+                _ => panic!("Expected NumberLiteral inside Some"),
+            },
+            _ => panic!("Expected Some"),
+        }
+    }
+
+    #[test]
+    fn test_extract_property_access() {
+        let asm = AssembledStatement {
+            property_accesses: vec![("x".to_string(), "len".to_string())],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let (expr, _ty) = extract_value(&asm, &scope).unwrap();
+        match expr.expr {
+            AnalyzedExprKind::MethodCall {
+                receiver, method, ..
+            } => {
+                match receiver.expr {
+                    AnalyzedExprKind::Variable(name) => assert_eq!(name, "x"),
+                    _ => panic!("Expected Variable receiver"),
+                }
+                assert_eq!(method, "len");
+            }
+            _ => panic!("Expected MethodCall"),
+        }
+    }
+
+    #[test]
+    fn test_extract_index_access() {
+        let asm = AssembledStatement {
+            index_accesses: vec![(Expr::ArrayLiteral(vec![]), Expr::NumberLiteral(0))],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let (expr, _ty) = extract_value(&asm, &scope).unwrap();
+        match expr.expr {
+            AnalyzedExprKind::IndexAccess { index, .. } => match index.expr {
+                AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 0),
+                _ => panic!("Expected NumberLiteral index"),
+            },
+            _ => panic!("Expected IndexAccess"),
+        }
+    }
+
+    #[test]
+    fn test_extract_object_numeral() {
+        // "πέντε" -> 5
+        let asm = AssembledStatement {
+            object: Some(make_constituent("πέντε", Case::Accusative)),
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let (expr, ty) = extract_value(&asm, &scope).unwrap();
+        assert_eq!(ty, GlossaType::Number);
+        match expr.expr {
+            AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 5),
+            _ => panic!("Expected NumberLiteral"),
+        }
+    }
 }
