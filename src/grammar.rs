@@ -50,7 +50,7 @@ use pest::Parser;
 use pest_derive::Parser;
 
 #[derive(Parser)]
-#[grammar = "grammar/glossa.pest"]
+#[grammar = "grammar.pest"]
 pub struct GlossaParser;
 
 /// Parse a ΓΛΩΣΣΑ source string into a pest parse tree

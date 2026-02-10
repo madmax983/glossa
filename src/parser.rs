@@ -1,25 +1,61 @@
-//! AST Builder
+//! Semantic Parser for ΓΛΩΣΣΑ
 //!
-//! This module is responsible for converting the raw Concrete Syntax Tree (CST)
-//! produced by the Pest parser into a strongly-typed Abstract Syntax Tree (AST).
+//! This module bridges the gap between the raw text parsing (Grammar) and the
+//! high-level program structure (AST).
 //!
-//! # Safety: Recursion Depth
+//! # The Parsing Flow
 //!
-//! ΓΛΩΣΣΑ implements a strict recursion depth check (`check_recursion_depth`)
-//! before parsing begins. This linear scan of the source code ensures that deep
-//! nesting (e.g., `((((...))))`) does not cause a stack overflow during the
-//! recursive descent parsing phase.
+//! 1. **Grammar (`src/grammar`)**: Uses [`pest`] (PEG parser) to tokenize the input
+//!    and verify it matches the language rules. This produces a "Concrete Syntax Tree" (CST)
+//!    of untyped pairs (e.g., `Rule::greek_word`, `Rule::number_literal`).
+//!
+//! 2. **Builder**: Walks this CST and constructs strongly-typed
+//!    [`crate::ast`] nodes. This is where we handle:
+//!    * Text normalization (converting `Ἀθῆναι` to `αθηναι`)
+//!    * Number parsing
+//!    * Structural validation (e.g., ensuring a trait method has a name)
+//!
+//! # Why separate Grammar and Builder?
+//!
+//! Separating the PEG grammar from the AST construction allows us to:
+//! * Keep the grammar file (`glossa.pest`) clean and readable.
+//! * Handle complex logic (like normalization) in Rust code, not in the grammar.
+//! * Provide better error messages during the conversion phase.
 
 use crate::ast::*;
-use crate::grammar::{Rule, parse};
+use crate::errors::GlossaError;
+use crate::grammar::{Rule, parse as pest_parse};
 use pest::iterators::Pair;
 
+impl From<ParseError> for GlossaError {
+    fn from(err: ParseError) -> Self {
+        GlossaError::parse(err.to_string())
+    }
+}
+
+/// Parse a ΓΛΩΣΣΑ source string into an AST
+///
+/// This is the main entry point for the parsing phase.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::parser::parse;
+///
+/// let source = "«χαῖρε» λέγε.";
+/// let program = parse(source).unwrap();
+/// assert_eq!(program.statements.len(), 1);
+/// ```
+pub fn parse(source: &str) -> Result<Program, GlossaError> {
+    parse_source(source).map_err(GlossaError::from)
+}
+
 /// Build an AST from source code
-pub fn parse_source(source: &str) -> Result<Program, ParseError> {
+fn parse_source(source: &str) -> Result<Program, ParseError> {
     // Check recursion depth before parsing to prevent stack overflow
     check_recursion_depth(source)?;
 
-    let pairs = parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
+    let pairs = pest_parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
 
     let mut statements = Vec::new();
 

@@ -412,7 +412,7 @@ fn feed_expr_recursive(
             // Try candidates in order until one works without error (e.g. Agreement mismatch)
             // This allows us to handle ambiguous cases like Neuter Nominative/Accusative
             // by backtracking if the first choice causes a conflict.
-            let mut last_error = None;
+            let mut last_error: Option<crate::errors::AssemblyError> = None;
             let mut success = false;
 
             for candidate in candidates {
