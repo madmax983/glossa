@@ -1299,3 +1299,262 @@ pub fn extract_value(
         GlossaType::Number,
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Expr, Word};
+    use crate::semantic::assembled::{Constituent, Literal};
+    use crate::morphology::Case;
+
+    fn constituent(lemma: &str) -> Constituent {
+        Constituent {
+            lemma: lemma.into(),
+            original: lemma.into(),
+            case: Case::Nominative,
+            number: None,
+            gender: None,
+            person: None,
+        }
+    }
+
+    fn number_literal(val: i64) -> Literal {
+        Literal::Number(val)
+    }
+
+    fn word_expr(text: &str) -> Expr {
+        Expr::Word(Word::new(text))
+    }
+
+    #[test]
+    fn test_extract_value_unwrap_priority() {
+        let scope = Scope::new();
+        let mut asm = AssembledStatement::default();
+
+        // Add unwrap expression (Highest priority)
+        asm.unwraps.push(Expr::NumberLiteral(42));
+
+        // Add conflicting lower priority items
+        asm.literals.push(number_literal(100)); // Should be ignored
+        asm.object = Some(constituent("ignore_me")); // Should be ignored
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::Unwrap(inner) = expr.expr {
+            if let AnalyzedExprKind::NumberLiteral(val) = inner.expr {
+                assert_eq!(val, 42);
+            } else {
+                panic!("Expected inner NumberLiteral");
+            }
+        } else {
+            panic!("Expected Unwrap expression, got {:?}", expr.expr);
+        }
+        assert_eq!(ty, GlossaType::Unknown);
+    }
+
+    #[test]
+    fn test_extract_value_enum_subject_none() {
+        let scope = Scope::new();
+        let mut asm = AssembledStatement::default();
+
+        // Subject is "None" (οὐδέν)
+        asm.subject = Some(constituent("οὐδέν"));
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        assert!(matches!(expr.expr, AnalyzedExprKind::None));
+        assert!(matches!(ty, GlossaType::Option(_)));
+    }
+
+    #[test]
+    fn test_extract_value_enum_subject_some() {
+        let scope = Scope::new();
+        let mut asm = AssembledStatement::default();
+
+        // Subject is "Some" (τί) with value
+        asm.subject = Some(constituent("τί"));
+        asm.literals.push(number_literal(42));
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::Some(inner) = expr.expr {
+            if let AnalyzedExprKind::NumberLiteral(val) = inner.expr {
+                assert_eq!(val, 42);
+            } else {
+                panic!("Expected inner NumberLiteral");
+            }
+        } else {
+            panic!("Expected Some expression");
+        }
+        assert!(matches!(ty, GlossaType::Option(_)));
+    }
+
+    #[test]
+    fn test_extract_value_property_access() {
+        let scope = Scope::new();
+        let mut asm = AssembledStatement::default();
+
+        // Property access: user.name
+        asm.property_accesses.push(("user".to_string(), "name".to_string()));
+
+        // Add conflicting lower priority items
+        asm.literals.push(number_literal(100)); // Should be ignored
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::MethodCall { receiver, method, args } = expr.expr {
+            assert_eq!(method, "name");
+            assert!(args.is_empty());
+            if let AnalyzedExprKind::Variable(name) = receiver.expr {
+                assert_eq!(name, "user");
+            } else {
+                panic!("Expected variable receiver");
+            }
+        } else {
+            panic!("Expected MethodCall expression (property access is lowered to method call)");
+        }
+        // Property access currently returns Number type as placeholder
+        assert_eq!(ty, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_extract_value_index_access() {
+        let mut scope = Scope::new();
+        // Define 'arr' so it can be resolved
+        scope.define("arr".to_string(), GlossaType::List(Box::new(GlossaType::Number)));
+
+        let mut asm = AssembledStatement::default();
+
+        // Index access: arr[0]
+        asm.index_accesses.push((
+            word_expr("arr"),
+            Expr::NumberLiteral(0)
+        ));
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::IndexAccess { array, index } = expr.expr {
+            if let AnalyzedExprKind::Variable(name) = array.expr {
+                assert_eq!(name, "arr");
+            } else {
+                panic!("Expected variable array");
+            }
+            if let AnalyzedExprKind::NumberLiteral(val) = index.expr {
+                assert_eq!(val, 0);
+            } else {
+                panic!("Expected literal index");
+            }
+        } else {
+            panic!("Expected IndexAccess expression");
+        }
+        assert_eq!(ty, GlossaType::Unknown);
+    }
+
+    #[test]
+    fn test_extract_value_array_literal() {
+        let scope = Scope::new();
+        let mut asm = AssembledStatement::default();
+
+        // Array literal: [1, 2]
+        asm.arrays.push(vec![
+            Expr::NumberLiteral(1),
+            Expr::NumberLiteral(2)
+        ]);
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::ArrayLiteral(elements) = expr.expr {
+            assert_eq!(elements.len(), 2);
+        } else {
+            panic!("Expected ArrayLiteral expression");
+        }
+        assert!(matches!(ty, GlossaType::List(_)));
+    }
+
+    #[test]
+    fn test_extract_value_binary_op() {
+        let scope = Scope::new();
+        let mut asm = AssembledStatement::default();
+
+        // Binary op: 1 + 2
+        asm.literals.push(number_literal(1));
+        asm.literals.push(number_literal(2));
+        asm.operators.push(crate::morphology::lexicon::BinaryOp::Add);
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::BinOp { left: _, op, right: _ } = expr.expr {
+            assert_eq!(op, crate::morphology::lexicon::BinaryOp::Add);
+        } else {
+            panic!("Expected BinOp expression");
+        }
+        // Binary ops on numbers produce number
+        assert_eq!(ty, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_extract_value_literal() {
+        let scope = Scope::new();
+        let mut asm = AssembledStatement::default();
+
+        // Literal: 42
+        asm.literals.push(number_literal(42));
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::NumberLiteral(val) = expr.expr {
+            assert_eq!(val, 42);
+        } else {
+            panic!("Expected NumberLiteral expression");
+        }
+        assert_eq!(ty, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_extract_value_object_variable() {
+        let scope = Scope::new();
+        let mut asm = AssembledStatement::default();
+
+        // Object variable: x
+        asm.object = Some(constituent("x"));
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(name, "x");
+        } else {
+            panic!("Expected Variable expression");
+        }
+        assert_eq!(ty, GlossaType::Unknown);
+    }
+
+    #[test]
+    fn test_extract_value_object_none() {
+        let scope = Scope::new();
+        let mut asm = AssembledStatement::default();
+
+        // Object is "None" (οὐδέν)
+        asm.object = Some(constituent("οὐδέν"));
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
+
+        assert!(matches!(expr.expr, AnalyzedExprKind::None));
+        assert!(matches!(ty, GlossaType::Option(_)));
+    }
+
+    #[test]
+    fn test_extract_value_fallback_default() {
+        let scope = Scope::new();
+        let asm = AssembledStatement::default(); // Empty statement
+
+        let (expr, ty) = extract_value(&asm, &scope).expect("Should return default");
+
+        // Should return 0 (Number) by default
+        if let AnalyzedExprKind::NumberLiteral(val) = expr.expr {
+            assert_eq!(val, 0);
+        } else {
+            panic!("Expected default NumberLiteral(0)");
+        }
+        assert_eq!(ty, GlossaType::Number);
+    }
+}
