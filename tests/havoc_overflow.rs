@@ -29,14 +29,17 @@ fn test_stack_overflow_expression_prevented() {
     let result = analyze_program(&ast);
 
     match result {
-        Ok(_) => panic!("Expected LimitExceeded error, but analysis succeeded! The resource limits are not working."),
+        Ok(_) => panic!(
+            "Expected LimitExceeded error, but analysis succeeded! The resource limits are not working."
+        ),
         Err(e) => {
             let msg = e.to_string();
             println!("Got expected error: {}", msg);
             // Check for localized message or debug variant name
             assert!(
                 msg.contains("LimitExceeded") || msg.contains("Ὑπέρβασις ὁρίων"),
-                "Expected LimitExceeded error, got: {}", msg
+                "Expected LimitExceeded error, got: {}",
+                msg
             );
         }
     }

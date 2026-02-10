@@ -631,7 +631,9 @@ impl Assembler {
         {
             if let Some(ref subj) = self.state.subject {
                 if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
-                    return Err(AssemblyError::LimitExceeded("property accesses".to_string()));
+                    return Err(AssemblyError::LimitExceeded(
+                        "property accesses".to_string(),
+                    ));
                 }
 
                 let delim = match self.state.literals.pop() {
@@ -725,7 +727,9 @@ impl Assembler {
             // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.state.subject {
                 if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
-                    return Err(AssemblyError::LimitExceeded("property accesses".to_string()));
+                    return Err(AssemblyError::LimitExceeded(
+                        "property accesses".to_string(),
+                    ));
                 }
                 let normalized_original = crate::text::normalize_greek(&subj.original);
                 self.state

@@ -1,5 +1,5 @@
+use glossa::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
 use glossa::semantic::Assembler;
-use glossa::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender};
 
 /// 👺 Havoc: Resource Exhaustion in Assembler
 ///
@@ -26,7 +26,8 @@ fn test_assembler_adjective_limit() {
 
     // Feed 32 adjectives (should be OK)
     for _ in 0..32 {
-        asm.feed(&adj_analysis, "καλός").expect("Failed to feed adjective within limit");
+        asm.feed(&adj_analysis, "καλός")
+            .expect("Failed to feed adjective within limit");
     }
 
     // Feed 33rd adjective (should FAIL)
@@ -43,7 +44,8 @@ fn test_assembler_literal_limit() {
 
     // Feed 32 numbers (should be OK)
     for i in 0..32 {
-        asm.feed_number(i).expect("Failed to feed number within limit");
+        asm.feed_number(i)
+            .expect("Failed to feed number within limit");
     }
 
     // Feed 33rd number (should FAIL)
@@ -60,7 +62,8 @@ fn test_assembler_string_length_limit() {
 
     // Create a string of length 65536 (should be OK)
     let safe_string = "a".repeat(65536);
-    asm.feed_string(safe_string).expect("Failed to feed string within limit");
+    asm.feed_string(safe_string)
+        .expect("Failed to feed string within limit");
 
     // Create a string of length 65537 (should FAIL)
     let dangerous_string = "a".repeat(65537);
