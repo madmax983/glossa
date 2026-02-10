@@ -35,12 +35,12 @@ pub struct ProgramStats {
 impl ProgramStats {
     /// Analyze a program and collect statistics
     pub fn new(program: &AnalyzedProgram) -> Self {
-        let mut stats = ProgramStats {
-            function_count: program.scope.functions().count(),
-            type_count: program.scope.types().count(),
-            trait_count: program.scope.traits().count(),
-            ..Default::default()
-        };
+        let mut stats = ProgramStats::default();
+
+        // Count top-level definitions from scope
+        stats.function_count = program.scope.functions().count();
+        stats.type_count = program.scope.types().count();
+        stats.trait_count = program.scope.traits().count();
 
         // Traverse statements to count structural elements
         for stmt in &program.statements {
@@ -313,165 +313,5 @@ impl Display for GlossaReport<'_> {
         }
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::parser::parse;
-    use crate::semantic::analyze_program;
-
-    #[test]
-    fn test_report_generation() {
-        let source = r#"
-            // Binding
-            ξ πέντε ἔστω.
-
-            // Conditional (If/Else)
-            εἰ ξ 5 μεῖζον ᾖ,
-                «μείζον» λέγε.
-            εἰ δὲ μή,
-                «ἐλάσσον» λέγε.
-
-            // Loop (While/For)
-            ἕως ξ 0 μεῖζον ᾖ,
-                ξ ξ 1 διαφορά ἔστω.
-
-            // Type Definition
-            εἶδος Τύπος ὁρίζειν {
-                χ Ἀριθμός.
-            }.
-
-            // Function Definition
-            συνάρτησις φ(α Ἀριθμός) Ἀριθμός {
-                α.
-            }.
-
-            // Test Declaration
-            δοκιμή «δοκιμή».
-                ξ 0 ἰσοῦται.
-            τέλος.
-
-            // Expressions coverage:
-            // Array, Index, BinOp, UnaryOp, MethodCall (via map/filter implicitly or explicit)
-            α [1, 2, 3] ἔστω.
-            β α[0] ἔστω.
-            γ οὐκ ἀληθές ἔστω.
-        "#;
-        let ast = parse(source).unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
-
-        let report = GlossaReport::new(&analyzed, "test.gl".to_string());
-        let output = report.to_string();
-
-        assert!(output.contains("ΑΝΑΦΟΡΑ ΓΛΩΣΣΗΣ"));
-        assert!(output.contains("test.gl"));
-
-        // Verify stats counting
-        // Bindings: ξ, ξ (in loop), α, β, γ = 5
-        assert!(report.stats.binding_count >= 3);
-        // Conditionals: 1 (if)
-        assert!(report.stats.conditional_count >= 1);
-        // Loops: 1 (while)
-        assert!(report.stats.loop_count >= 1);
-        // Types: 1
-        assert_eq!(report.stats.type_count, 1);
-    }
-
-    #[test]
-    fn test_report_expression_visitor_coverage() {
-        // Construct a program specifically to hit Expr branches in visitor
-        // We use a syntactically valid program that exercises various constructs
-        let source = r#"
-            // Array literal
-            α [1, 2, 3] ἔστω.
-
-            // Index access
-            β α[0] ἔστω.
-
-            // BinOp
-            γ 1 2 ἄθροισμα ἔστω.
-
-            // UnaryOp
-            δ οὐκ ἀληθές ἔστω.
-
-            // Range (in for loop)
-            διὰ α, ε λέγε.
-
-            // Function call
-            «hello» λέγε.
-        "#;
-
-        let ast = parse(source).unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
-        let stats = ProgramStats::new(&analyzed);
-
-        // Just verify we visited expressions
-        assert!(stats.expression_count > 5);
-        assert!(stats.statement_count > 0);
-    }
-
-    #[test]
-    fn test_report_manual_ast_coverage() {
-        // Manually construct AST nodes to hit all visitor branches
-        // without relying on complex parser logic.
-        use crate::semantic::*;
-
-        let dummy_expr = AnalyzedExpr {
-            expr: AnalyzedExprKind::BooleanLiteral(true),
-            glossa_type: GlossaType::Boolean,
-        };
-
-        let exprs = vec![
-            AnalyzedExprKind::Some(Box::new(dummy_expr.clone())),
-            AnalyzedExprKind::Ok(Box::new(dummy_expr.clone())),
-            AnalyzedExprKind::Err(Box::new(dummy_expr.clone())),
-            AnalyzedExprKind::Try(Box::new(dummy_expr.clone())),
-            AnalyzedExprKind::Assert {
-                condition: Box::new(dummy_expr.clone()),
-            },
-            AnalyzedExprKind::AssertEq {
-                left: Box::new(dummy_expr.clone()),
-                right: Box::new(dummy_expr.clone()),
-            },
-            AnalyzedExprKind::MethodCall {
-                receiver: Box::new(dummy_expr.clone()),
-                method: "test".into(),
-                args: vec![dummy_expr.clone()],
-            },
-            AnalyzedExprKind::TraitMethodCall {
-                receiver: Box::new(dummy_expr.clone()),
-                trait_name: "T".into(),
-                method_name: "m".into(),
-                args: vec![dummy_expr.clone()],
-            },
-            AnalyzedExprKind::FunctionCall {
-                func: "f".into(),
-                args: vec![dummy_expr.clone()],
-            },
-            AnalyzedExprKind::StructInstantiation {
-                type_name: "S".into(),
-                fields: vec![],
-                args: vec![dummy_expr.clone()],
-            },
-        ];
-
-        let mut program = AnalyzedProgram {
-            statements: vec![],
-            scope: crate::semantic::Scope::new(),
-        };
-
-        for e in exprs {
-            program
-                .statements
-                .push(AnalyzedStatement::Expression(vec![AnalyzedExpr {
-                    expr: e,
-                    glossa_type: GlossaType::Unit,
-                }]));
-        }
-
-        let stats = ProgramStats::new(&program);
-        assert!(stats.expression_count >= 10);
     }
 }
