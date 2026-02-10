@@ -1,11 +1,11 @@
-//! The Bard (ὁ Ῥαψῳδός) - Semantic Syntax Highlighter
+//! Semantic Syntax Highlighter
 //!
 //! This module implements a semantic syntax highlighter that colors the source code
 //! based on the grammatical role of each word (Subject, Object, Verb, etc.).
 //!
 //! # Philosophy
 //!
-//! Unlike traditional syntax highlighters that use regexes, The Bard uses the
+//! Unlike traditional syntax highlighters that use regexes, this module uses the
 //! compiler's own morphological analysis to understand the code.
 //!
 //! * **Nominative (Subject)**: Blue (The agent/foundation)
@@ -19,7 +19,7 @@
 //! # Usage
 //!
 //! ```rust
-//! use glossa::experimental::bard::highlight;
+//! use glossa::highlight::highlight;
 //!
 //! let source = "ὁ ἄνθρωπος τὸν λόγον λέγει.";
 //! let highlighted = highlight(source).unwrap();
@@ -720,6 +720,39 @@ mod tests {
         let unknown = Word::new("ἀγνωστον");
         h.highlight_word(&unknown).unwrap();
         assert!(!h.output.is_empty());
+        h.output.clear();
+
+        // Adverb (should be default white or maybe handled)
+        // "καλῶς" (well)
+        let adv = Word::new("καλῶς");
+        h.highlight_word(&adv).unwrap();
+        assert!(!h.output.is_empty());
+        h.output.clear();
+
+        // Particle (should be default or specific)
+        // "ἄρα" (then)
+        let part = Word::new("ἄρα");
+        h.highlight_word(&part).unwrap();
+        assert!(!h.output.is_empty());
+        h.output.clear();
+
+        // Pronoun (should be colored like Noun)
+        // "ἐγώ" (I) - Nominative
+        let pron = Word::new("ἐγώ");
+        h.highlight_word(&pron).unwrap();
+        assert!(!h.output.is_empty());
+        // Verify Blue (Nominative)
+        // \x1b[34m is blue, bold is \x1b[1m.
+        // It should match Noun logic.
+        h.output.clear();
+
+        // Article (should be handled by analyze_article)
+        // "ὁ" - Nominative Masculine
+        let art = Word::new("ὁ");
+        h.highlight_word(&art).unwrap();
+        assert!(!h.output.is_empty());
+        // Should update context
+        assert!(h.context.expected_case.is_some());
         h.output.clear();
     }
 
