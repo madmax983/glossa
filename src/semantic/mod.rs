@@ -34,7 +34,7 @@
 pub mod assembled;
 pub mod assembler;
 pub(crate) mod control_flow;
-pub(crate) mod conversion;
+pub mod conversion;
 pub(crate) mod declarations;
 pub mod expressions;
 pub(crate) mod model;
