@@ -138,6 +138,14 @@ impl Assembler {
         }
     }
 
+    /// Get a reference to the current assembled state
+    ///
+    /// This allows inspecting the internal state of the assembler, useful for
+    /// debugging and visualization tools.
+    pub fn state(&self) -> &AssembledStatement {
+        &self.state
+    }
+
     /// Mark this statement as a query
     pub fn set_query(&mut self, is_query: bool) {
         self.state.is_query = is_query;

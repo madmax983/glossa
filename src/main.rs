@@ -62,6 +62,13 @@ enum Commands {
 
     /// Start the interactive REPL
     Repl,
+
+    /// Trace the assembly process visually (Debug)
+    #[cfg(feature = "nova")]
+    Trace {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
 
 /// Maximum source file size (1MB) to prevent memory exhaustion
@@ -90,6 +97,11 @@ fn main() -> Result<()> {
 
         Some(Commands::Highlight { input }) => {
             highlight_file(&input)?;
+        }
+
+        #[cfg(feature = "nova")]
+        Some(Commands::Trace { input }) => {
+            trace_file(&input)?;
         }
 
         Some(Commands::Repl) | None => {
@@ -273,6 +285,14 @@ fn highlight_file(input: &Path) -> Result<()> {
     println!("{}", highlighted);
 
     Ok(())
+}
+
+#[cfg(feature = "nova")]
+fn trace_file(input: &Path) -> Result<()> {
+    check_file_size(input)?;
+    let source = fs::read_to_string(input).into_diagnostic()?;
+    glossa::experimental::theatro::start_theatro(&source)
+        .map_err(|e| miette::miette!("Theatro Error: {}", e))
 }
 
 fn run_repl() -> Result<()> {
