@@ -300,23 +300,136 @@ impl Display for GlossaReport<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::semantic::{AnalyzedProgram, Scope};
+    use crate::semantic::{
+        AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, CaptureMode,
+        GlossaType, Scope,
+    };
+
+    fn expr(kind: AnalyzedExprKind) -> AnalyzedExpr {
+        AnalyzedExpr {
+            expr: kind,
+            glossa_type: GlossaType::Unknown,
+        }
+    }
 
     #[test]
-    fn test_program_stats_new_coverage() {
-        // Construct a minimal program
+    fn test_report_manual_ast_coverage() {
+        let mut statements = Vec::new();
+
+        // 1. Binding with BinOp
+        statements.push(AnalyzedStatement::Binding {
+            name: "x".into(),
+            value: expr(AnalyzedExprKind::BinOp {
+                left: Box::new(expr(AnalyzedExprKind::NumberLiteral(1))),
+                op: crate::morphology::lexicon::BinaryOp::Add,
+                right: Box::new(expr(AnalyzedExprKind::NumberLiteral(2))),
+            }),
+            mutable: false,
+        });
+
+        // 2. Assignment with FunctionCall
+        statements.push(AnalyzedStatement::Assignment {
+            name: "x".into(),
+            value: expr(AnalyzedExprKind::FunctionCall {
+                func: "my_func".into(),
+                args: vec![expr(AnalyzedExprKind::StringLiteral("arg".into()))],
+            }),
+        });
+
+        // 3. Print with PropertyAccess and other exprs
+        statements.push(AnalyzedStatement::Print(vec![
+            expr(AnalyzedExprKind::PropertyAccess {
+                owner: Box::new(expr(AnalyzedExprKind::Variable("obj".into()))),
+                property: "prop".into(),
+            }),
+            expr(AnalyzedExprKind::ArrayLiteral(vec![])),
+            expr(AnalyzedExprKind::Unwrap(Box::new(expr(
+                AnalyzedExprKind::Variable("x".into()),
+            )))),
+            expr(AnalyzedExprKind::IndexAccess {
+                array: Box::new(expr(AnalyzedExprKind::Variable("arr".into()))),
+                index: Box::new(expr(AnalyzedExprKind::NumberLiteral(0))),
+            }),
+            expr(AnalyzedExprKind::MethodCall {
+                receiver: Box::new(expr(AnalyzedExprKind::Variable("obj".into()))),
+                method: "meth".into(),
+                args: vec![],
+            }),
+            expr(AnalyzedExprKind::Lambda {
+                params: vec!["p".into()],
+                body: Box::new(expr(AnalyzedExprKind::NumberLiteral(1))),
+                capture_mode: CaptureMode::Borrow,
+            }),
+        ]));
+
+        // 4. If with Block and various result types
+        statements.push(AnalyzedStatement::If {
+            condition: Box::new(expr(AnalyzedExprKind::BooleanLiteral(true))),
+            then_body: vec![AnalyzedStatement::Expression(vec![expr(
+                AnalyzedExprKind::None,
+            )])],
+            else_body: Some(vec![AnalyzedStatement::Return {
+                value: Some(Box::new(expr(AnalyzedExprKind::Ok(Box::new(expr(
+                    AnalyzedExprKind::NumberLiteral(42),
+                )))))),
+            }]),
+        });
+
+        // 5. While Loop with Break/Continue
+        statements.push(AnalyzedStatement::While {
+            condition: Box::new(expr(AnalyzedExprKind::BooleanLiteral(true))),
+            body: vec![AnalyzedStatement::Break, AnalyzedStatement::Continue],
+        });
+
+        // 6. For Loop with Range
+        statements.push(AnalyzedStatement::For {
+            variable: "i".into(),
+            iterator: Box::new(expr(AnalyzedExprKind::Range {
+                start: Box::new(expr(AnalyzedExprKind::NumberLiteral(0))),
+                end: Box::new(expr(AnalyzedExprKind::NumberLiteral(10))),
+                inclusive: false,
+            })),
+            body: vec![],
+        });
+
+        // 7. Match
+        statements.push(AnalyzedStatement::Match {
+            scrutinee: Box::new(expr(AnalyzedExprKind::Variable("x".into()))),
+            arms: vec![(expr(AnalyzedExprKind::NumberLiteral(1)), vec![])],
+        });
+
+        // 8. Test Declaration with Assert
+        statements.push(AnalyzedStatement::TestDeclaration {
+            name: "test".into(),
+            body: vec![AnalyzedStatement::Expression(vec![expr(
+                AnalyzedExprKind::Assert {
+                    condition: Box::new(expr(AnalyzedExprKind::BooleanLiteral(true))),
+                },
+            )])],
+        });
+
+        // 9. Function Definition
+        statements.push(AnalyzedStatement::FunctionDef {
+            name: "func".into(),
+            params: vec![],
+            body: vec![AnalyzedStatement::Return { value: None }],
+            return_type: None,
+        });
+
+        // Construct program
         let program = AnalyzedProgram {
-            statements: vec![],
+            statements,
             scope: Scope::new(),
         };
 
-        // Call new to exercise the code path
+        // Run stats generation (visitor)
         let stats = ProgramStats::new(&program);
 
-        // Verify default values
-        assert_eq!(stats.statement_count, 0);
-        assert_eq!(stats.function_count, 0);
-        assert_eq!(stats.type_count, 0);
-        assert_eq!(stats.trait_count, 0);
+        // Verify stats
+        assert!(stats.statement_count >= 9);
+        assert!(stats.expression_count > 10);
+        assert_eq!(stats.binding_count, 1);
+        assert_eq!(stats.loop_count, 2);
+        assert_eq!(stats.conditional_count, 2);
     }
 }
