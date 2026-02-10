@@ -1329,14 +1329,15 @@ mod tests {
     #[test]
     fn test_extract_value_unwrap_priority() {
         let scope = Scope::new();
-        let mut asm = AssembledStatement::default();
 
         // Add unwrap expression (Highest priority)
-        asm.unwraps.push(Expr::NumberLiteral(42));
-
-        // Add conflicting lower priority items
-        asm.literals.push(number_literal(100)); // Should be ignored
-        asm.object = Some(constituent("ignore_me")); // Should be ignored
+        let asm = AssembledStatement {
+            unwraps: vec![Expr::NumberLiteral(42)],
+            // Add conflicting lower priority items
+            literals: vec![number_literal(100)], // Should be ignored
+            object: Some(constituent("ignore_me")), // Should be ignored
+            ..Default::default()
+        };
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
@@ -1355,10 +1356,10 @@ mod tests {
     #[test]
     fn test_extract_value_enum_subject_none() {
         let scope = Scope::new();
-        let mut asm = AssembledStatement::default();
-
-        // Subject is "None" (οὐδέν)
-        asm.subject = Some(constituent("οὐδέν"));
+        let asm = AssembledStatement {
+            subject: Some(constituent("οὐδέν")),
+            ..Default::default()
+        };
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
@@ -1369,11 +1370,11 @@ mod tests {
     #[test]
     fn test_extract_value_enum_subject_some() {
         let scope = Scope::new();
-        let mut asm = AssembledStatement::default();
-
-        // Subject is "Some" (τί) with value
-        asm.subject = Some(constituent("τί"));
-        asm.literals.push(number_literal(42));
+        let asm = AssembledStatement {
+            subject: Some(constituent("τί")),
+            literals: vec![number_literal(42)],
+            ..Default::default()
+        };
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
@@ -1392,13 +1393,13 @@ mod tests {
     #[test]
     fn test_extract_value_property_access() {
         let scope = Scope::new();
-        let mut asm = AssembledStatement::default();
 
-        // Property access: user.name
-        asm.property_accesses.push(("user".to_string(), "name".to_string()));
-
-        // Add conflicting lower priority items
-        asm.literals.push(number_literal(100)); // Should be ignored
+        let asm = AssembledStatement {
+            property_accesses: vec![("user".to_string(), "name".to_string())],
+            // Add conflicting lower priority items
+            literals: vec![number_literal(100)], // Should be ignored
+            ..Default::default()
+        };
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
@@ -1423,13 +1424,10 @@ mod tests {
         // Define 'arr' so it can be resolved
         scope.define("arr".to_string(), GlossaType::List(Box::new(GlossaType::Number)));
 
-        let mut asm = AssembledStatement::default();
-
-        // Index access: arr[0]
-        asm.index_accesses.push((
-            word_expr("arr"),
-            Expr::NumberLiteral(0)
-        ));
+        let asm = AssembledStatement {
+            index_accesses: vec![(word_expr("arr"), Expr::NumberLiteral(0))],
+            ..Default::default()
+        };
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
@@ -1453,13 +1451,11 @@ mod tests {
     #[test]
     fn test_extract_value_array_literal() {
         let scope = Scope::new();
-        let mut asm = AssembledStatement::default();
 
-        // Array literal: [1, 2]
-        asm.arrays.push(vec![
-            Expr::NumberLiteral(1),
-            Expr::NumberLiteral(2)
-        ]);
+        let asm = AssembledStatement {
+            arrays: vec![vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)]],
+            ..Default::default()
+        };
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
@@ -1474,12 +1470,12 @@ mod tests {
     #[test]
     fn test_extract_value_binary_op() {
         let scope = Scope::new();
-        let mut asm = AssembledStatement::default();
 
-        // Binary op: 1 + 2
-        asm.literals.push(number_literal(1));
-        asm.literals.push(number_literal(2));
-        asm.operators.push(crate::morphology::lexicon::BinaryOp::Add);
+        let asm = AssembledStatement {
+            literals: vec![number_literal(1), number_literal(2)],
+            operators: vec![crate::morphology::lexicon::BinaryOp::Add],
+            ..Default::default()
+        };
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
@@ -1495,10 +1491,11 @@ mod tests {
     #[test]
     fn test_extract_value_literal() {
         let scope = Scope::new();
-        let mut asm = AssembledStatement::default();
 
-        // Literal: 42
-        asm.literals.push(number_literal(42));
+        let asm = AssembledStatement {
+            literals: vec![number_literal(42)],
+            ..Default::default()
+        };
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
@@ -1513,10 +1510,11 @@ mod tests {
     #[test]
     fn test_extract_value_object_variable() {
         let scope = Scope::new();
-        let mut asm = AssembledStatement::default();
 
-        // Object variable: x
-        asm.object = Some(constituent("x"));
+        let asm = AssembledStatement {
+            object: Some(constituent("x")),
+            ..Default::default()
+        };
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
@@ -1531,10 +1529,11 @@ mod tests {
     #[test]
     fn test_extract_value_object_none() {
         let scope = Scope::new();
-        let mut asm = AssembledStatement::default();
 
-        // Object is "None" (οὐδέν)
-        asm.object = Some(constituent("οὐδέν"));
+        let asm = AssembledStatement {
+            object: Some(constituent("οὐδέν")),
+            ..Default::default()
+        };
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
