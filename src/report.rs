@@ -411,4 +411,37 @@ mod tests {
         assert!(stats.expression_count > 5);
         assert!(stats.statement_count > 0);
     }
+
+    #[test]
+    fn test_report_extended_coverage() {
+        // Cover remaining expression types: StructInstantiation, Lambda, Unwrap
+        let source = r#"
+            εἶδος Τύπος ὁρίζειν { α Ἀριθμός }.
+
+            // Struct Instantiation
+            τ νέον Τύπος 1 ἔστω.
+
+            // Unwrap (unary op !)
+            // Assuming `τ` could be an Option/Result for parser context,
+            // or just lexically valid.
+            // Actually parser handles ! as Unwrap unary op.
+            υ τ! ἔστω.
+
+            // Lambda (via participle)
+            // [1, 2] doubled
+            [1, 2] διπλασιαζόμενα λέγε.
+
+            // Method Call (not easily expressible in pure Greek syntax without std types,
+            // but PropertyAccess is similar and covered).
+            // Let's try a chain if possible.
+        "#;
+
+        let ast = parse(source).unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+        let stats = ProgramStats::new(&analyzed);
+
+        assert!(stats.binding_count >= 2);
+        // Lambda generates a closure body expression
+        assert!(stats.expression_count > 0);
+    }
 }
