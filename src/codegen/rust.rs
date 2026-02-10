@@ -311,14 +311,17 @@ fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
     } else {
         // Multiple args - join with space
         // We need to check each argument's type to decide format string
-        let format_calls: Vec<TokenStream> = args.iter().map(|arg_expr| {
-            let arg_tokens = generate_expr(arg_expr);
-            if is_display_type(&arg_expr.glossa_type) {
-                quote! { format!("{}", #arg_tokens) }
-            } else {
-                quote! { format!("{:?}", #arg_tokens) }
-            }
-        }).collect();
+        let format_calls: Vec<TokenStream> = args
+            .iter()
+            .map(|arg_expr| {
+                let arg_tokens = generate_expr(arg_expr);
+                if is_display_type(&arg_expr.glossa_type) {
+                    quote! { format!("{}", #arg_tokens) }
+                } else {
+                    quote! { format!("{:?}", #arg_tokens) }
+                }
+            })
+            .collect();
 
         quote! { println!("{}", vec![#(#format_calls),*].join(" ")); }
     }

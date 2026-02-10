@@ -802,16 +802,24 @@ fn classify_print(
                             glossa_type: var_type.clone(),
                         },
                     );
-                } else if crate::morphology::lexicon::is_none_word(&lemma) || crate::morphology::lexicon::is_none_word(&original) {
-                    args.insert(0, AnalyzedExpr {
-                        expr: AnalyzedExprKind::None,
-                        glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
-                    });
+                } else if crate::morphology::lexicon::is_none_word(&lemma)
+                    || crate::morphology::lexicon::is_none_word(&original)
+                {
+                    args.insert(
+                        0,
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::None,
+                            glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
+                        },
+                    );
                 } else if let Some(val) = crate::morphology::lexicon::numeral_value(&lemma) {
-                    args.insert(0, AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(val),
-                        glossa_type: GlossaType::Number,
-                    });
+                    args.insert(
+                        0,
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(val),
+                            glossa_type: GlossaType::Number,
+                        },
+                    );
                 } else {
                     return Err(GlossaError::undefined(subj.original.to_string()));
                 }
@@ -826,7 +834,9 @@ fn classify_print(
                         expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                         glossa_type: var_type.clone(),
                     });
-                } else if crate::morphology::lexicon::is_none_word(&lemma) || crate::morphology::lexicon::is_none_word(&original) {
+                } else if crate::morphology::lexicon::is_none_word(&lemma)
+                    || crate::morphology::lexicon::is_none_word(&original)
+                {
                     args.push(AnalyzedExpr {
                         expr: AnalyzedExprKind::None,
                         glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
