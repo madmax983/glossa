@@ -1569,7 +1569,8 @@ mod tests {
     #[test]
     fn test_extract_enum_variant_from_nominative() {
         let mut asm = AssembledStatement::default();
-        asm.nominatives.push(make_constituent("οὐδέν", Case::Nominative));
+        asm.nominatives
+            .push(make_constituent("οὐδέν", Case::Nominative));
         let scope = Scope::new();
         let (expr, ty) = extract_value(&asm, &scope).unwrap();
         match expr.expr {
