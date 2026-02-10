@@ -194,6 +194,101 @@ impl Statement {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ast_derives_coverage() {
+        // This test exists purely to cover #[derive(Debug, Clone, PartialEq)]
+        // implementations which are counted in code coverage but not always
+        // implicitly used by other logic.
+
+        let word = Word::new("δοκιμή");
+        let expr = Expr::Word(word.clone());
+        let expr2 = expr.clone();
+
+        // Debug
+        let _ = format!("{:?}", expr);
+
+        // PartialEq
+        assert_eq!(expr, expr2);
+
+        let stmt = Statement::Regular {
+            clauses: vec![Clause { expressions: vec![expr.clone()] }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let stmt2 = stmt.clone();
+
+        let _ = format!("{:?}", stmt);
+        assert_eq!(stmt, stmt2);
+
+        // Cover enum variants
+        let binop = Expr::BinOp { left: Box::new(expr.clone()), op: BinOperator::Add, right: Box::new(expr.clone()) };
+        let _ = format!("{:?}", binop);
+        assert_eq!(binop, binop.clone());
+
+        let unary = Expr::UnaryOp { op: UnaryOperator::Not, operand: Box::new(expr.clone()) };
+        let _ = format!("{:?}", unary);
+        assert_eq!(unary, unary.clone());
+
+        let type_def = Statement::TypeDefinition(TypeDef {
+            name: Word::new("T"),
+            fields: vec![FieldDecl { name: Word::new("f"), type_name: Word::new("T2") }]
+        });
+        let _ = format!("{:?}", type_def);
+        assert_eq!(type_def, type_def.clone());
+
+        let trait_def = Statement::TraitDefinition(TraitDef {
+            name: Word::new("Tr"),
+            methods: vec![TraitMethodDecl {
+                name: Word::new("m"),
+                params: vec![],
+                is_default: false,
+                body: None
+            }]
+        });
+        let _ = format!("{:?}", trait_def);
+        assert_eq!(trait_def, trait_def.clone());
+
+        let trait_impl = Statement::TraitImpl(TraitImplDef {
+            type_name: Word::new("T"),
+            trait_name: Word::new("Tr"),
+            methods: vec![ImplMethodDef {
+                name: Word::new("m"),
+                params: vec![],
+                body: vec![]
+            }]
+        });
+        let _ = format!("{:?}", trait_impl);
+        assert_eq!(trait_impl, trait_impl.clone());
+
+        let test_decl = Statement::TestDeclaration(TestDecl {
+            name: "test".to_string(),
+            body: vec![]
+        });
+        let _ = format!("{:?}", test_decl);
+        assert_eq!(test_decl, test_decl.clone());
+
+        // Check statement helpers
+        assert!(!stmt.is_query());
+        assert!(!stmt.is_propagate());
+        assert!(!stmt.clauses().is_empty());
+
+        let query = Statement::Regular { clauses: vec![], is_query: true, is_propagate: false };
+        assert!(query.is_query());
+
+        let prop = Statement::Regular { clauses: vec![], is_query: false, is_propagate: true };
+        assert!(prop.is_propagate());
+
+        // Check TypeDef variant helpers (should return false/empty)
+        assert!(!type_def.is_query());
+        assert!(!type_def.is_propagate());
+        assert!(type_def.clauses().is_empty());
+    }
+}
+
 /// An expression in GLOSSA
 ///
 /// Expressions represent values that can be evaluated.
