@@ -1,4 +1,3 @@
-use glossa::codegen::generate_rust;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 use std::thread;
@@ -37,13 +36,21 @@ fn test_stack_overflow_expression() {
             let ast = parse(&s).expect("Failed to parse");
 
             println!("Analyzing...");
-            // This works fine (linear loop in build_expressions_from_literals_and_ops)
-            let analyzed = analyze_program(&ast).expect("Failed to analyze");
+            // This now FAILS because of DoS protection limits (MAX_LITERALS = 32)
+            // This proves we mitigated the stack overflow by preventing the construction of such deep trees!
+            let result = analyze_program(&ast);
 
-            println!("Generating...");
-            // This should pass with 32MB stack
-            let code = generate_rust(&analyzed);
-            assert!(!code.is_empty());
+            assert!(result.is_err(), "Should fail due to resource limits");
+            let err = result.unwrap_err();
+            // We expect AssemblyError::LimitExceeded
+            match err {
+                glossa::errors::GlossaError::AssemblyError(
+                    glossa::errors::AssemblyError::LimitExceeded { .. },
+                ) => {
+                    println!("Successfully prevented stack overflow via resource limits!");
+                }
+                _ => panic!("Expected LimitExceeded error, got {:?}", err),
+            }
         })
         .unwrap();
 
