@@ -51,3 +51,11 @@
 1. Moved the `impl From<ParseError> for GlossaError` block from `src/errors/mod.rs` to `src/parser/mod.rs`.
 2. Removed the dependency on `crate::parser` from `src/errors/mod.rs`.
 **Stability:** `errors` is now a lower-level module that does not depend on `parser`. The dependency graph is strictly `parser -> errors`.
+
+## [Breaking The Leak: Experimental Module]
+**Tangle:** The `src/experimental` module contained `bard.rs` (Syntax Highlighter), a stable feature used in the CLI (`main.rs`). This violated module boundaries by exposing "experimental" code in production and acting as a catch-all dumping ground.
+**Blueprint:**
+1. Moved `src/experimental/bard.rs` to `src/highlight.rs`.
+2. Updated `src/lib.rs` and `src/main.rs` to use the new module.
+3. Removed `src/experimental`.
+**Stability:** Promotes the Syntax Highlighter to a first-class citizen, flattens the module hierarchy, and removes the unstable `experimental` module.
