@@ -1,6 +1,53 @@
 //! ΓΛΩΣΣΑ Compiler CLI
 //!
 //! A compiler for ΓΛΩΣΣΑ - where Ancient Greek morphology encodes programming semantics.
+//!
+//! # The Command Line Interface
+//!
+//! The `glossa` binary acts as the primary interface for:
+//! - Running programs (`glossa run`)
+//! - Compiling to Rust (`glossa build`)
+//! - Static analysis (`glossa check`)
+//! - Syntax highlighting (`glossa highlight`)
+//! - Interactive REPL (`glossa repl`)
+//!
+//! # Examples
+//!
+//! ## Running a Program
+//!
+//! ```bash
+//! glossa run hello.γλ
+//! ```
+//!
+//! ## Building a Binary
+//!
+//! ```bash
+//! glossa build hello.γλ --output hello.rs
+//! ```
+//!
+//! ## Checking Statistics
+//!
+//! ```bash
+//! glossa check complex.γλ
+//! ```
+//!
+//! ## REPL (Interactive Shell)
+//!
+//! ```bash
+//! glossa repl
+//! # or just
+//! glossa
+//! ```
+//!
+//! Once in the REPL:
+//! ```text
+//! γλ> «χαῖρε» λέγε.
+//! ✓ Ἐκτελέσθη (Executed)
+//!   println!("χαῖρε");
+//!
+//! γλ> ξ πέντε ἔστω.
+//! ✓ ξ: Ἀριθμός
+//! ```
 
 use clap::{Parser, Subcommand};
 use comfy_table::{Cell, Color, Table, presets};

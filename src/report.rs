@@ -1,7 +1,30 @@
 //! Report generation for ΓΛΩΣΣΑ
 //!
 //! This module provides tools to generate human-readable reports and statistics
-//! for analyzed programs.
+//! for analyzed programs. It uses the `comfy-table` crate to render beautiful
+//! Unicode tables.
+//!
+//! # Example Report
+//!
+//! ```text
+//! ΑΝΑΦΟΡΑ ΓΛΩΣΣΗΣ (LANGUAGE REPORT)
+//! ┌──────────────────────┬─────────────┐
+//! │ Μετρική (Metric)     │ Τιμή (Value)│
+//! ├──────────────────────┼─────────────┤
+//! │ Ἀρχεῖον (File)       │ hello.γλ    │
+//! │ Προτάσεις (Statements)| 5           │
+//! │ Εκφράσεις (Expressions)| 12          │
+//! │ Μεταβλητές (Bindings) | 3           │
+//! │ Συναρτήσεις (Functions)| 1           │
+//! └──────────────────────┴─────────────┘
+//!
+//! ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)
+//! ┌───────────────┬─────────────────────┬────────────────────┐
+//! │ Ὄνομα (Name)  │ Παράμετροι (Params) │ Επιστροφή (Returns)│
+//! ├───────────────┼─────────────────────┼────────────────────┤
+//! │ main          │ -                   │ Οὐδέν              │
+//! └───────────────┴─────────────────────┴────────────────────┘
+//! ```
 
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
@@ -36,6 +59,9 @@ pub struct ProgramStats {
 
 impl ProgramStats {
     /// Analyze a program and collect statistics
+    ///
+    /// Walks the AST to count statements, expressions, bindings, loops,
+    /// conditionals, and calculate nesting depth.
     pub fn new(program: &AnalyzedProgram) -> Self {
         let mut stats = ProgramStats::default();
 
@@ -199,6 +225,12 @@ pub struct GlossaReport<'a> {
 }
 
 impl<'a> GlossaReport<'a> {
+    /// Create a new report for an analyzed program
+    ///
+    /// # Arguments
+    ///
+    /// * `program` - The semantic analysis result containing the AST and Scope.
+    /// * `filename` - The name of the file being reported on (for display header).
     pub fn new(program: &'a AnalyzedProgram, filename: String) -> Self {
         let stats = ProgramStats::new(program);
         Self {
