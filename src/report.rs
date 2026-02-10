@@ -451,6 +451,24 @@ mod tests {
                     glossa_type: GlossaType::Unit,
                 })),
             },
+            // Trait Definition (coverage for empty branch)
+            AnalyzedStatement::TraitDefinition {
+                name: "TestTrait".into(),
+                methods: vec![],
+            },
+            // Expression Statement with Unwrap and Assert
+            AnalyzedStatement::Expression(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::Assert {
+                    condition: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::BooleanLiteral(true),
+                            glossa_type: GlossaType::Boolean,
+                        })),
+                        glossa_type: GlossaType::Boolean,
+                    }),
+                },
+                glossa_type: GlossaType::Unit,
+            }]),
         ];
 
         let program = AnalyzedProgram { statements, scope };
