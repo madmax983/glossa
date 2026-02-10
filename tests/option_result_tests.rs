@@ -846,8 +846,10 @@ fn test_propagation_early_return() {
 #[test]
 fn test_statement_end_with_semicolon() {
     // Regular statement end (.) vs propagation (;)
-    let regular = "α τι πεντε εστω. α λεγε.";
-    let propagate = "α τι πεντε εστω; α λεγε.";
+    // We avoid 'λεγε' (print) here because printing Option types uses "{:?}",
+    // which contains a '?' character that confuses the assertion.
+    let regular = "α τι πεντε εστω.";
+    let propagate = "α τι πεντε εστω;";
 
     let regular_output = compile(regular).unwrap();
     let propagate_output = compile(propagate).unwrap();
@@ -855,7 +857,8 @@ fn test_statement_end_with_semicolon() {
     // Regular should NOT have ?
     assert!(
         !regular_output.contains("?"),
-        "Should not have ? in regular statement"
+        "Should not have ? in regular statement. Output: {}",
+        regular_output
     );
 
     // Propagate should have ?
