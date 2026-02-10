@@ -1304,8 +1304,8 @@ pub fn extract_value(
 mod tests {
     use super::*;
     use crate::ast::{Expr, Word};
-    use crate::semantic::assembled::{Constituent, Literal};
     use crate::morphology::Case;
+    use crate::semantic::assembled::{Constituent, Literal};
 
     fn constituent(lemma: &str) -> Constituent {
         Constituent {
@@ -1403,7 +1403,12 @@ mod tests {
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
-        if let AnalyzedExprKind::MethodCall { receiver, method, args } = expr.expr {
+        if let AnalyzedExprKind::MethodCall {
+            receiver,
+            method,
+            args,
+        } = expr.expr
+        {
             assert_eq!(method, "name");
             assert!(args.is_empty());
             if let AnalyzedExprKind::Variable(name) = receiver.expr {
@@ -1422,7 +1427,10 @@ mod tests {
     fn test_extract_value_index_access() {
         let mut scope = Scope::new();
         // Define 'arr' so it can be resolved
-        scope.define("arr".to_string(), GlossaType::List(Box::new(GlossaType::Number)));
+        scope.define(
+            "arr".to_string(),
+            GlossaType::List(Box::new(GlossaType::Number)),
+        );
 
         let asm = AssembledStatement {
             index_accesses: vec![(word_expr("arr"), Expr::NumberLiteral(0))],
@@ -1479,7 +1487,12 @@ mod tests {
 
         let (expr, ty) = extract_value(&asm, &scope).expect("Should extract value");
 
-        if let AnalyzedExprKind::BinOp { left: _, op, right: _ } = expr.expr {
+        if let AnalyzedExprKind::BinOp {
+            left: _,
+            op,
+            right: _,
+        } = expr.expr
+        {
             assert_eq!(op, crate::morphology::lexicon::BinaryOp::Add);
         } else {
             panic!("Expected BinOp expression");
