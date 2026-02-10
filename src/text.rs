@@ -191,4 +191,11 @@ mod tests {
         // ᾖ (eta with iota subscript + circumflex) should normalize to η
         assert_eq!(normalize_greek("ᾖ"), "η");
     }
+
+    #[test]
+    fn test_normalize_clean_non_ascii() {
+        // "«λογος»" contains non-ASCII punctuation (fails first fast path)
+        // but no diacritics (should hit second fast path / fallback)
+        assert_eq!(normalize_greek("«λογος»"), "«λογος»");
+    }
 }
