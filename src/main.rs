@@ -26,6 +26,8 @@ struct Cli {
     command: Option<Commands>,
 
     /// Run a .γλ file directly (default action)
+    ///
+    /// If no subcommand is specified, GLOSSA will try to run the provided file.
     #[arg(value_name = "FILE")]
     file: Option<PathBuf>,
 }
@@ -33,34 +35,51 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Run a .γλ file (default)
+    ///
+    /// Compiles and executes the program in one go.
+    /// Uses a local cache (`.glossa/cache`) to speed up subsequent runs.
     Run {
         /// Input file (.γλ)
         input: PathBuf,
     },
 
     /// Compile a .γλ file to Rust source
+    ///
+    /// Transpiles the Ancient Greek code into valid Rust code.
+    /// This is useful for inspecting the generated code or integrating with other Rust projects.
     Build {
         /// Input file (.γλ)
         input: PathBuf,
 
         /// Output file (.rs)
+        ///
+        /// Defaults to the input filename with a `.rs` extension.
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
 
     /// Check a .γλ file without running
+    ///
+    /// Performs parsing and semantic analysis to report errors.
+    /// Does not generate code or execute anything. Useful for quick feedback.
     Check {
         /// Input file (.γλ)
         input: PathBuf,
     },
 
     /// Highlight a .γλ file with semantic colors
+    ///
+    /// Uses the "Bard" semantic highlighter to color-code the source based on
+    /// grammatical roles (Subject, Object, Verb, etc.).
     Highlight {
         /// Input file (.γλ)
         input: PathBuf,
     },
 
     /// Start the interactive REPL
+    ///
+    /// Launches the Read-Eval-Print Loop for interactive experimentation.
+    /// Type Greek statements and see immediate results.
     Repl,
 }
 

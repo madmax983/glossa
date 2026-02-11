@@ -150,10 +150,12 @@ impl Assembler {
 
     /// Feed a morphologically-analyzed token into the assembler
     ///
-    /// This routes the token to the correct slot based on its case.
+    /// This routes the token to the correct slot based on its case, or identifies
+    /// it as an operator/modifier.
     ///
     /// # Examples
     ///
+    /// ## Basic Sentence Construction
     /// ```
     /// use glossa::semantic::Assembler;
     /// use glossa::morphology::analyze;
@@ -167,6 +169,35 @@ impl Assembler {
     /// // "λόγον" (Acc) -> Object
     /// let obj = analyze("λόγον");
     /// asm.feed(&obj, "λόγον").unwrap();
+    /// ```
+    ///
+    /// ## Operator Handling
+    ///
+    /// The assembler also recognizes operators like `καί` (and), `ἤ` (or), and
+    /// comparison adjectives like `μεῖζον` (greater).
+    ///
+    /// ```
+    /// # use glossa::semantic::Assembler;
+    /// # use glossa::morphology::analyze;
+    /// # let mut asm = Assembler::new();
+    /// // "μεῖζον" (Greater) -> Operator
+    /// let op = analyze("μεῖζον");
+    /// asm.feed(&op, "μεῖζον").unwrap();
+    /// ```
+    ///
+    /// ## Special Properties
+    ///
+    /// Certain words like `μῆκος` (length) trigger property access on the current subject.
+    ///
+    /// ```
+    /// # use glossa::semantic::Assembler;
+    /// # use glossa::morphology::analyze;
+    /// # let mut asm = Assembler::new();
+    /// // "πίναξ" (Subject)
+    /// asm.feed(&analyze("πίναξ"), "πίναξ").unwrap();
+    ///
+    /// // "μῆκος" (Length) -> Converts subject to `pinax.len()`
+    /// asm.feed(&analyze("μῆκος"), "μῆκος").unwrap();
     /// ```
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
         let normalized = normalize_greek(original);

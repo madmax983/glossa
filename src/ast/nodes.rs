@@ -216,9 +216,15 @@ pub enum Expr {
     BooleanLiteral(bool),
 
     /// An array literal: `[1, 2, 3]`
+    ///
+    /// # Example
+    /// `[1, 2, 3]` or `[«α», «β»]`
     ArrayLiteral(Vec<Expr>),
 
     /// Index access: `array[index]`
+    ///
+    /// # Example
+    /// `πίναξ[0]` (Access the first element of `πίναξ`)
     IndexAccess { array: Box<Expr>, index: Box<Expr> },
 
     /// A single Greek word with morphological information
@@ -236,8 +242,11 @@ pub enum Expr {
 
     /// A property access (genitive construction)
     ///
+    /// In Greek, possession is expressed by the genitive case.
+    /// `χρήστου` is the genitive of `χρήστης`.
+    ///
     /// # Example
-    /// `χρήστου ὄνομα` (the user's name)
+    /// `χρήστου ὄνομα` (The user's name)
     PropertyAccess {
         owner: Box<Expr>,
         property: Box<Expr>,
@@ -245,36 +254,54 @@ pub enum Expr {
 
     /// A function/verb call
     ///
+    /// Used for explicit function calls, often with parentheses.
+    ///
     /// # Example
-    /// `λέγε(«χαῖρε»)` (Explicit call syntax)
+    /// `τύπωσις(εαυτός)` (Call method `τύπωσις` with argument `εαυτός`)
     Call { verb: Word, arguments: Vec<Expr> },
 
     /// Variable binding (ἔστω construction)
     ///
+    /// The imperative `ἔστω` (let it be) is used to define variables.
+    ///
     /// # Example
-    /// `ξ πέντε ἔστω` -> `Binding { name: "ξ", value: 5 }`
+    /// `ξ πέντε ἔστω.` (Let xi be five)
     Binding { name: Word, value: Box<Expr> },
 
     /// Binary operation (arithmetic, comparison, boolean)
     ///
+    /// In Greek, operators are often adjectives (μεῖζον - greater) or particles (καί - and).
+    ///
     /// # Example
-    /// `x μεῖζον y` -> `x > y`
+    /// `ξ μεῖζον ψ` (xi is greater than psi)
     BinOp {
         left: Box<Expr>,
         op: BinOperator,
         right: Box<Expr>,
     },
 
-    /// Unary operation (negation)
+    /// Unary operation (negation, unwrapping)
     ///
     /// # Example
-    /// `οὐκ x` -> `!x`
+    /// * `οὐκ ἀληθές` (not true)
+    /// * `-5` (negative five)
+    /// * `τιμή!` (unwrap value)
     UnaryOp {
         op: UnaryOperator,
         operand: Box<Expr>,
     },
 
     /// A block of statements in braces { ... }
+    ///
+    /// Used for grouping statements, especially in control flow bodies.
+    ///
+    /// # Example
+    /// ```glossa
+    /// {
+    ///     ξ πέντε ἔστω.
+    ///     ξ λέγε.
+    /// }
+    /// ```
     Block(Vec<Statement>),
 }
 

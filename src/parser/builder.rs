@@ -36,6 +36,14 @@ pub fn parse_source(source: &str) -> Result<Program, ParseError> {
     Ok(Program { statements })
 }
 
+/// Build a statement from a parsed pair
+///
+/// Dispatches to specific builder functions based on the statement type:
+/// - Type definitions (`εἶδος ...`)
+/// - Trait definitions (`χαρακτήρ ...`)
+/// - Trait implementations (`εἶδος ... τῷ ...`)
+/// - Test declarations (`δοκιμή ...`)
+/// - Regular statements (clauses)
 fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
     let mut clauses = Vec::new();
     let mut is_query = false;
@@ -194,6 +202,13 @@ fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> 
     })
 }
 
+/// Parse method parameters from a list of words
+///
+/// Identifies parameters by the dative marker `τῷ` (to the/for the).
+///
+/// # Example
+/// Input words: `τῷ`, `self`, `τῷ`, `other`
+/// Output: `[FieldDecl { name: "self", ... }, FieldDecl { name: "other", ... }]`
 fn parse_method_parameters(words: &[Word]) -> Vec<FieldDecl> {
     let mut params = Vec::new();
     let mut i = 0;
