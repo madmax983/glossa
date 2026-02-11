@@ -685,6 +685,26 @@ mod tests {
                     },
                     glossa_type: GlossaType::Unit,
                 },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::PropertyAccess {
+                        owner: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::StringLiteral("test".into()),
+                            glossa_type: GlossaType::String,
+                        }),
+                        property: "len".into(),
+                    },
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::VerbCall {
+                        verb: "print".into(),
+                        args: vec![AnalyzedExpr {
+                            expr: AnalyzedExprKind::StringLiteral("test".into()),
+                            glossa_type: GlossaType::String,
+                        }],
+                    },
+                    glossa_type: GlossaType::Unit,
+                },
             ]),
         ];
 
