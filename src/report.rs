@@ -479,7 +479,7 @@ mod tests {
                 return_type: None,
                 body: vec![AnalyzedStatement::Break, AnalyzedStatement::Continue],
             },
-            // Expression Statement with Unwrap, Assert, and other expressions
+            // Expression Statement with Unwrap, Assert, Some, Ok, Err
             AnalyzedStatement::Expression(vec![
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::Assert {
@@ -492,6 +492,33 @@ mod tests {
                         }),
                     },
                     glossa_type: GlossaType::Unit,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    })),
+                    glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Ok(Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    })),
+                    glossa_type: GlossaType::Result(
+                        Box::new(GlossaType::Number),
+                        Box::new(GlossaType::String),
+                    ),
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Err(Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::StringLiteral("error".into()),
+                        glossa_type: GlossaType::String,
+                    })),
+                    glossa_type: GlossaType::Result(
+                        Box::new(GlossaType::Number),
+                        Box::new(GlossaType::String),
+                    ),
                 },
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::IndexAccess {

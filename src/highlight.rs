@@ -819,4 +819,12 @@ mod tests {
         // Check for some ANSI color code (start of sequence)
         assert!(output.contains("\x1b["));
     }
+
+    #[test]
+    fn test_highlight_error() {
+        // Test invalid syntax to cover error propagation
+        let source = "«unclosed string";
+        let result = highlight(source);
+        assert!(result.is_err());
+    }
 }
