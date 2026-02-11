@@ -14,6 +14,15 @@ use crate::ast::*;
 use crate::grammar::{Rule, parse};
 use pest::iterators::Pair;
 
+fn parse_number_literal(text: &str) -> Result<i64, ParseError> {
+    if let Ok(val) = text.parse::<i64>() {
+        Ok(val)
+    } else {
+        crate::experimental::numerals::parse_greek_numeral(text)
+            .map_err(|e| ParseError::InvalidNumber(format!("{} - {}", text, e)))
+    }
+}
+
 /// Build an AST from source code
 pub fn parse_source(source: &str) -> Result<Program, ParseError> {
     // Check recursion depth before parsing to prevent stack overflow
@@ -475,10 +484,7 @@ fn build_indexed_word_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
         .ok_or(ParseError::EmptyTerm)?;
     let index = match index_inner.as_rule() {
         Rule::number_literal => {
-            let value: i64 = index_inner
-                .as_str()
-                .parse()
-                .map_err(|_| ParseError::InvalidNumber(index_inner.as_str().to_string()))?;
+            let value = parse_number_literal(index_inner.as_str())?;
             Expr::NumberLiteral(value)
         }
         Rule::greek_word => Expr::Word(Word {
@@ -527,10 +533,7 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             Ok(Expr::StringLiteral(content))
         }
         Rule::number_literal => {
-            let value: i64 = inner
-                .as_str()
-                .parse()
-                .map_err(|_| ParseError::InvalidNumber(inner.as_str().to_string()))?;
+            let value = parse_number_literal(inner.as_str())?;
             Ok(Expr::NumberLiteral(value))
         }
         Rule::boolean_literal => {
@@ -565,10 +568,7 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             Ok(Expr::StringLiteral(content))
         }
         Rule::number_literal => {
-            let value: i64 = inner
-                .as_str()
-                .parse()
-                .map_err(|_| ParseError::InvalidNumber(inner.as_str().to_string()))?;
+            let value = parse_number_literal(inner.as_str())?;
             Ok(Expr::NumberLiteral(value))
         }
         Rule::boolean_literal => {
