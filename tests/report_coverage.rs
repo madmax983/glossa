@@ -1,6 +1,6 @@
+use glossa::parser::parse;
 use glossa::report::GlossaReport;
 use glossa::semantic::analyze_program;
-use glossa::parser::parse;
 
 #[test]
 fn test_report_generation_coverage() {
