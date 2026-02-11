@@ -32,11 +32,16 @@ C4Container
     Container(morphology, "Declension Resolver", "src/morphology", "Analyzes case, gender, number, and resolves agreement")
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
     Container(codegen, "Code Generator", "src/codegen", "Generates Rust source code")
+    Container(highlight, "Highlighter", "src/highlight.rs", "Semantic Syntax Highlighter")
+    Container(report, "Reporter", "src/report.rs", "Analysis Reports")
 
     Rel(lexer, parser, "Stream<Token>")
     Rel(parser, morphology, "AST (Unresolved)")
     Rel(morphology, semantic, "AST (Resolved Morphology)")
     Rel(semantic, codegen, "Analyzed Program")
+    Rel(parser, highlight, "AST")
+    Rel(morphology, highlight, "Morph Analysis")
+    Rel(semantic, report, "Analyzed Program")
 ```
 
 ## Semantic Analysis (C4 Component Level)
@@ -53,7 +58,6 @@ C4Component
         Component(converter, "Converter", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs (Iterators, Structs)")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
-        Component(oracle, "Oracle", "src/semantic/oracle.rs", "Generates human-readable explanations")
     }
 
     Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
@@ -64,5 +68,4 @@ C4Component
     Rel(converter, patterns, "Delegates complex patterns")
     Rel(patterns, model, "Produces AnalyzedStatement")
     Rel(converter, model, "Produces AnalyzedStatement")
-    Rel(oracle, assembler, "Uses (via assemble_statement)")
 ```
