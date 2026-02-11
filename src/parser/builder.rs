@@ -12,7 +12,7 @@
 
 use crate::ast::*;
 use crate::grammar::{Rule, parse};
-use pest::iterators::Pair;
+use pest::iterators::{Pair, Pairs};
 
 /// Build an AST from source code
 pub fn parse_source(source: &str) -> Result<Program, ParseError> {
@@ -37,63 +37,63 @@ pub fn parse_source(source: &str) -> Result<Program, ParseError> {
 }
 
 fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
-    let mut clauses = Vec::new();
-    let mut is_query = false;
-    let mut is_propagate = false;
-    let mut type_def = None;
-    let mut trait_def = None;
-    let mut trait_impl = None;
-    let mut test_decl = None;
+    let mut inner_rules = pair.into_inner();
+    let first = inner_rules.next();
 
-    for inner in pair.into_inner() {
-        match inner.as_rule() {
-            Rule::type_definition => {
-                type_def = Some(build_type_definition(inner)?);
-            }
+    match first {
+        Some(inner) => match inner.as_rule() {
+            Rule::type_definition => Ok(Statement::TypeDefinition(build_type_definition(inner)?)),
             Rule::trait_definition => {
-                trait_def = Some(build_trait_definition(inner)?);
+                Ok(Statement::TraitDefinition(build_trait_definition(inner)?))
             }
-            Rule::trait_impl => {
-                trait_impl = Some(build_trait_impl(inner)?);
-            }
+            Rule::trait_impl => Ok(Statement::TraitImpl(build_trait_impl(inner)?)),
             Rule::test_declaration => {
-                test_decl = Some(build_test_declaration(inner)?);
+                Ok(Statement::TestDeclaration(build_test_declaration(inner)?))
             }
-            Rule::clause_list => {
-                for clause_pair in inner.into_inner() {
-                    if clause_pair.as_rule() == Rule::clause {
-                        clauses.push(build_clause(clause_pair)?);
-                    }
-                }
-            }
-            Rule::statement_end => {
-                for end_inner in inner.into_inner() {
-                    match end_inner.as_rule() {
-                        Rule::query => is_query = true,
-                        Rule::propagate => is_propagate = true,
-                        _ => {}
-                    }
-                }
-            }
-            _ => {}
+            Rule::clause_list => build_regular_statement(inner, inner_rules),
+            _ => Err(ParseError::UnexpectedRule(format!(
+                "Unexpected start of statement: {:?}",
+                inner.as_rule()
+            ))),
+        },
+        None => Err(ParseError::UnexpectedRule("Empty statement".to_string())),
+    }
+}
+
+fn build_regular_statement(
+    clause_list_pair: Pair<'_, Rule>,
+    remaining_rules: Pairs<'_, Rule>,
+) -> Result<Statement, ParseError> {
+    let mut clauses = Vec::new();
+
+    // Process clause_list
+    for clause_pair in clause_list_pair.into_inner() {
+        if clause_pair.as_rule() == Rule::clause {
+            clauses.push(build_clause(clause_pair)?);
         }
     }
 
-    if let Some(def) = type_def {
-        Ok(Statement::TypeDefinition(def))
-    } else if let Some(def) = trait_def {
-        Ok(Statement::TraitDefinition(def))
-    } else if let Some(impl_def) = trait_impl {
-        Ok(Statement::TraitImpl(impl_def))
-    } else if let Some(test) = test_decl {
-        Ok(Statement::TestDeclaration(test))
-    } else {
-        Ok(Statement::Regular {
-            clauses,
-            is_query,
-            is_propagate,
-        })
+    let mut is_query = false;
+    let mut is_propagate = false;
+
+    // Process remaining rules (expecting statement_end)
+    for inner in remaining_rules {
+        if inner.as_rule() == Rule::statement_end {
+            for end_inner in inner.into_inner() {
+                match end_inner.as_rule() {
+                    Rule::query => is_query = true,
+                    Rule::propagate => is_propagate = true,
+                    _ => {}
+                }
+            }
+        }
     }
+
+    Ok(Statement::Regular {
+        clauses,
+        is_query,
+        is_propagate,
+    })
 }
 
 fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, ParseError> {
@@ -121,9 +121,7 @@ fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, ParseError> {
     }
 
     if type_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Type definition needs a name".to_string(),
-        ));
+        return Err(ParseError::unexpected("Type definition needs a name"));
     }
 
     Ok(TypeDef {
@@ -146,7 +144,7 @@ fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, ParseError
 
     // fieldname typename_genitive
     if words.len() != 2 {
-        return Err(ParseError::UnexpectedRule(format!(
+        return Err(ParseError::unexpected(format!(
             "Field declaration needs exactly 2 words, got {}",
             words.len()
         )));
@@ -183,9 +181,7 @@ fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> 
     }
 
     if trait_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Trait definition needs a name".to_string(),
-        ));
+        return Err(ParseError::unexpected("Trait definition needs a name"));
     }
 
     Ok(TraitDef {
@@ -195,24 +191,25 @@ fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> 
 }
 
 fn parse_method_parameters(words: &[Word]) -> Vec<FieldDecl> {
+    const DATIVE_MARKER: &str = "τω";
+    const DATIVE_MARKER_ALT: &str = "tw";
+
     let mut params = Vec::new();
     let mut i = 0;
     while i < words.len() {
         // Look for τῷ (dative marker) followed by parameter name
-        if words[i].normalized == "τω" || words[i].normalized == "tw" {
-            if i + 1 < words.len() {
-                // Parameter without type annotation (just name)
-                params.push(FieldDecl {
-                    name: words[i + 1].clone(),
-                    type_name: Word::new("_"), // Placeholder, will be inferred
-                });
-                i += 2;
-            } else {
-                i += 1;
-            }
-        } else {
-            i += 1;
+        if (words[i].normalized == DATIVE_MARKER || words[i].normalized == DATIVE_MARKER_ALT)
+            && i + 1 < words.len()
+        {
+            // Parameter without type annotation (just name)
+            params.push(FieldDecl {
+                name: words[i + 1].clone(),
+                type_name: Word::new("_"), // Placeholder, will be inferred
+            });
+            i += 2;
+            continue;
         }
+        i += 1;
     }
     params
 }
@@ -248,9 +245,7 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseErro
     // words[0] = method name
     // words[1..] = parameters (τῷ self, τῷ other, etc.)
     if words.is_empty() {
-        return Err(ParseError::UnexpectedRule(
-            "Trait method needs at least a name".to_string(),
-        ));
+        return Err(ParseError::unexpected("Trait method needs at least a name"));
     }
 
     let method_name = words[0].clone();
@@ -303,8 +298,8 @@ fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, ParseError> {
     }
 
     if type_name.is_none() || trait_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Trait impl needs type and trait names".to_string(),
+        return Err(ParseError::unexpected(
+            "Trait impl needs type and trait names",
         ));
     }
 
@@ -351,9 +346,7 @@ fn build_test_declaration(pair: Pair<'_, Rule>) -> Result<TestDecl, ParseError> 
     }
 
     if test_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Test declaration needs a name".to_string(),
-        ));
+        return Err(ParseError::unexpected("Test declaration needs a name"));
     }
 
     Ok(TestDecl {
@@ -385,9 +378,7 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> 
     // words[0] = method name
     // words[1..] = parameters (τῷ self, τῷ other, etc.)
     if words.is_empty() {
-        return Err(ParseError::UnexpectedRule(
-            "Impl method needs at least a name".to_string(),
-        ));
+        return Err(ParseError::unexpected("Impl method needs at least a name"));
     }
 
     let method_name = words[0].clone();
@@ -486,7 +477,7 @@ fn build_indexed_word_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             normalized: crate::text::normalize_greek(index_inner.as_str()),
         }),
         _ => {
-            return Err(ParseError::UnexpectedRule(format!(
+            return Err(ParseError::unexpected(format!(
                 "{:?}",
                 index_inner.as_rule()
             )));
@@ -518,37 +509,17 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
         Rule::block => build_block_expr(inner),
         Rule::array_literal => build_array_literal_expr(inner),
         Rule::indexed_word => build_indexed_word_expr(inner),
-        Rule::string_literal => {
-            let content = inner
-                .into_inner()
-                .find(|p| p.as_rule() == Rule::string_content)
-                .map(|p| p.as_str().to_string())
-                .unwrap_or_default();
-            Ok(Expr::StringLiteral(content))
-        }
-        Rule::number_literal => {
-            let value: i64 = inner
-                .as_str()
-                .parse()
-                .map_err(|_| ParseError::InvalidNumber(inner.as_str().to_string()))?;
-            Ok(Expr::NumberLiteral(value))
-        }
-        Rule::boolean_literal => {
-            let normalized = crate::text::normalize_greek(inner.as_str());
-            let value = normalized == "αληθες";
-            Ok(Expr::BooleanLiteral(value))
-        }
-        Rule::greek_word => Ok(Expr::Word(Word {
-            original: inner.as_str().into(),
-            normalized: crate::text::normalize_greek(inner.as_str()),
-        })),
+        Rule::string_literal => build_string_literal(inner),
+        Rule::number_literal => build_number_literal(inner),
+        Rule::boolean_literal => build_boolean_literal(inner),
+        Rule::greek_word => build_greek_word(inner),
         Rule::parenthesized_expr => {
             // Unwrap the parentheses and build the inner expression
             let expr_pair = inner.into_inner().next().ok_or(ParseError::EmptyTerm)?;
             build_expression(expr_pair)
         }
         Rule::unwrap_expr => build_unwrap_expr(inner),
-        _ => Err(ParseError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
+        _ => Err(ParseError::unexpected(format!("{:?}", inner.as_rule()))),
     }
 }
 
@@ -556,32 +527,42 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     let inner = pair.into_inner().next().ok_or(ParseError::EmptyTerm)?;
 
     match inner.as_rule() {
-        Rule::string_literal => {
-            let content = inner
-                .into_inner()
-                .find(|p| p.as_rule() == Rule::string_content)
-                .map(|p| p.as_str().to_string())
-                .unwrap_or_default();
-            Ok(Expr::StringLiteral(content))
-        }
-        Rule::number_literal => {
-            let value: i64 = inner
-                .as_str()
-                .parse()
-                .map_err(|_| ParseError::InvalidNumber(inner.as_str().to_string()))?;
-            Ok(Expr::NumberLiteral(value))
-        }
-        Rule::boolean_literal => {
-            let normalized = crate::text::normalize_greek(inner.as_str());
-            let value = normalized == "αληθες";
-            Ok(Expr::BooleanLiteral(value))
-        }
-        Rule::greek_word => Ok(Expr::Word(Word {
-            original: inner.as_str().into(),
-            normalized: crate::text::normalize_greek(inner.as_str()),
-        })),
-        _ => Err(ParseError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
+        Rule::string_literal => build_string_literal(inner),
+        Rule::number_literal => build_number_literal(inner),
+        Rule::boolean_literal => build_boolean_literal(inner),
+        Rule::greek_word => build_greek_word(inner),
+        _ => Err(ParseError::unexpected(format!("{:?}", inner.as_rule()))),
     }
+}
+
+fn build_string_literal(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
+    let content = inner
+        .into_inner()
+        .find(|p| p.as_rule() == Rule::string_content)
+        .map(|p| p.as_str().to_string())
+        .unwrap_or_default();
+    Ok(Expr::StringLiteral(content))
+}
+
+fn build_number_literal(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
+    let value: i64 = inner
+        .as_str()
+        .parse()
+        .map_err(|_| ParseError::InvalidNumber(inner.as_str().to_string()))?;
+    Ok(Expr::NumberLiteral(value))
+}
+
+fn build_boolean_literal(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
+    let normalized = crate::text::normalize_greek(inner.as_str());
+    let value = normalized == "αληθες";
+    Ok(Expr::BooleanLiteral(value))
+}
+
+fn build_greek_word(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
+    Ok(Expr::Word(Word {
+        original: inner.as_str().into(),
+        normalized: crate::text::normalize_greek(inner.as_str()),
+    }))
 }
 
 /// Errors that can occur during AST construction
@@ -603,6 +584,12 @@ pub enum ParseError {
     RecursionLimitExceeded(usize),
 }
 
+impl ParseError {
+    pub fn unexpected(msg: impl Into<String>) -> Self {
+        ParseError::UnexpectedRule(msg.into())
+    }
+}
+
 /// Check recursion depth to prevent stack overflows
 ///
 /// This function performs a fast linear scan of the source code to ensure that
@@ -610,69 +597,69 @@ pub enum ParseError {
 /// This prevents stack overflows during the recursive parsing phase.
 fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
     const MAX_DEPTH: usize = 500;
+    // Greek guillemets bytes
+    const GUILLEMET_START_1: u8 = 0xC2;
+    const GUILLEMET_START_2: u8 = 0xAB;
+
     let mut depth = 0;
-    let mut in_string = false;
     let bytes = source.as_bytes();
     let mut i = 0;
 
     // Optimization: Iterate bytes directly to avoid expensive UTF-8 decoding of Greek characters.
     // We only care about structural characters which are ASCII (except for « and »).
-    // « is [0xC2, 0xAB]
-    // » is [0xC2, 0xBB]
     while i < bytes.len() {
         let b = bytes[i];
-        if in_string {
-            // Check for » [0xC2, 0xBB]
-            if b == 0xC2 && i + 1 < bytes.len() && bytes[i + 1] == 0xBB {
-                in_string = false;
-                i += 2;
-            } else {
+        match b {
+            // Check for « [0xC2, 0xAB]
+            GUILLEMET_START_1 if i + 1 < bytes.len() && bytes[i + 1] == GUILLEMET_START_2 => {
+                i = skip_string_content(bytes, i + 2);
+            }
+            b'(' | b'{' | b'[' => {
+                depth += 1;
+                if depth > MAX_DEPTH {
+                    return Err(ParseError::RecursionLimitExceeded(MAX_DEPTH));
+                }
                 i += 1;
             }
-        } else {
-            match b {
-                // Check for « [0xC2, 0xAB]
-                0xC2 => {
-                    if i + 1 < bytes.len() && bytes[i + 1] == 0xAB {
-                        in_string = true;
-                        i += 2;
-                    } else {
-                        i += 1;
-                    }
-                }
-                b'(' | b'{' | b'[' => {
-                    depth += 1;
-                    if depth > MAX_DEPTH {
-                        return Err(ParseError::RecursionLimitExceeded(MAX_DEPTH));
-                    }
-                    i += 1;
-                }
-                b')' | b'}' | b']' => {
-                    depth = depth.saturating_sub(1);
-                    i += 1;
-                }
-                b'/' => {
-                    if i + 1 < bytes.len() && bytes[i + 1] == b'/' {
-                        // Skip comment
-                        i += 2;
-                        while i < bytes.len() {
-                            let c = bytes[i];
-                            i += 1;
-                            if c == b'\n' || c == b'\r' {
-                                break;
-                            }
-                        }
-                    } else {
-                        i += 1;
-                    }
-                }
-                _ => {
-                    i += 1;
-                }
+            b')' | b'}' | b']' => {
+                depth = depth.saturating_sub(1);
+                i += 1;
+            }
+            b'/' if i + 1 < bytes.len() && bytes[i + 1] == b'/' => {
+                // Skip comment
+                i = skip_comment_content(bytes, i + 2);
+            }
+            _ => {
+                i += 1;
             }
         }
     }
     Ok(())
+}
+
+fn skip_string_content(bytes: &[u8], mut i: usize) -> usize {
+    const GUILLEMET_END_1: u8 = 0xC2;
+    const GUILLEMET_END_2: u8 = 0xBB;
+
+    while i < bytes.len() {
+        // Check for » [0xC2, 0xBB]
+        if bytes[i] == GUILLEMET_END_1 && i + 1 < bytes.len() && bytes[i + 1] == GUILLEMET_END_2 {
+            return i + 2;
+        }
+        i += 1;
+    }
+    i
+}
+
+fn skip_comment_content(bytes: &[u8], mut i: usize) -> usize {
+    while i < bytes.len() {
+        let c = bytes[i];
+        i += 1;
+        if c == b'\n' || c == b'\r' {
+            break;
+        }
+    }
+    i
 }
 
 #[cfg(test)]
