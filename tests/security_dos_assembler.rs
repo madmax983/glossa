@@ -1,7 +1,7 @@
-use glossa::semantic::Assembler;
-use glossa::errors::assembly::AssemblyError;
-use glossa::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender};
 use glossa::ast::Expr;
+use glossa::errors::assembly::AssemblyError;
+use glossa::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
+use glossa::semantic::Assembler;
 use std::borrow::Cow;
 
 // Limits (should match implementation)
@@ -25,11 +25,19 @@ fn test_literal_limit() {
 
     // Next one should fail
     let result = asm.feed_number(100);
-    assert!(
-        matches!(result, Err(AssemblyError::LimitExceeded { ref limit_type, max })
-            if limit_type == "literals" && max == MAX_LITERALS),
-        "Expected LimitExceeded for literals, got {:?}", result
-    );
+    match result {
+        Err(e) => {
+            assert!(
+                matches!(e, AssemblyError::LimitExceeded { ref limit_type, max } if limit_type == "literals" && max == MAX_LITERALS),
+                "Expected LimitExceeded for literals, got {:?}",
+                e
+            );
+            // Verify error message formatting for coverage
+            assert!(e.to_string().contains("Ὑπέρβασις ὅρων"));
+            assert!(e.to_string().contains("literals"));
+        }
+        Ok(_) => panic!("Expected LimitExceeded for literals, got Ok"),
+    }
 }
 
 #[test]
@@ -43,7 +51,8 @@ fn test_string_length_limit() {
     assert!(
         matches!(result, Err(AssemblyError::LimitExceeded { ref limit_type, max })
             if limit_type == "string_length" && max == MAX_STRING_LENGTH),
-        "Expected LimitExceeded for string length, got {:?}", result
+        "Expected LimitExceeded for string length, got {:?}",
+        result
     );
 }
 
@@ -75,7 +84,8 @@ fn test_adjective_limit() {
     assert!(
         matches!(result, Err(AssemblyError::LimitExceeded { ref limit_type, max })
             if limit_type == "adjectives" && max == MAX_ADJECTIVES),
-        "Expected LimitExceeded for adjectives, got {:?}", result
+        "Expected LimitExceeded for adjectives, got {:?}",
+        result
     );
 }
 
@@ -84,12 +94,15 @@ fn test_array_element_limit() {
     let mut asm = Assembler::new();
 
     // Feed one array with too many elements
-    let huge_array: Vec<Expr> = (0..MAX_ARRAY_ELEMENTS + 1).map(|_| Expr::NumberLiteral(1)).collect();
+    let huge_array: Vec<Expr> = (0..MAX_ARRAY_ELEMENTS + 1)
+        .map(|_| Expr::NumberLiteral(1))
+        .collect();
     let result = asm.feed_array(huge_array);
     assert!(
         matches!(result, Err(AssemblyError::LimitExceeded { ref limit_type, max })
             if limit_type == "array_elements" && max == MAX_ARRAY_ELEMENTS),
-         "Expected LimitExceeded for array elements, got {:?}", result
+        "Expected LimitExceeded for array elements, got {:?}",
+        result
     );
 }
 
@@ -106,7 +119,8 @@ fn test_array_count_limit() {
     assert!(
         matches!(result, Err(AssemblyError::LimitExceeded { ref limit_type, max })
             if limit_type == "arrays" && max == MAX_ARRAYS),
-        "Expected LimitExceeded for arrays count, got {:?}", result
+        "Expected LimitExceeded for arrays count, got {:?}",
+        result
     );
 }
 
@@ -124,6 +138,7 @@ fn test_nested_phrase_limit() {
     assert!(
         matches!(result, Err(AssemblyError::LimitExceeded { ref limit_type, max })
             if limit_type == "nested_phrases" && max == MAX_NESTED_PHRASES),
-        "Expected LimitExceeded for nested phrases, got {:?}", result
+        "Expected LimitExceeded for nested phrases, got {:?}",
+        result
     );
 }

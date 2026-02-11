@@ -79,8 +79,5 @@ pub enum AssemblyError {
     /// Too many literals or adjectives
     #[error("Ὑπέρβασις ὅρων: {limit_type} (μέγιστον: {max})")]
     #[diagnostic(code(glossa::assembly::limit_exceeded))]
-    LimitExceeded {
-        limit_type: String,
-        max: usize,
-    },
+    LimitExceeded { limit_type: String, max: usize },
 }
