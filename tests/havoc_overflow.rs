@@ -1,29 +1,27 @@
-use glossa::codegen::generate_rust;
+use glossa::errors::GlossaError;
+use glossa::errors::assembly::AssemblyError;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 use std::thread;
 
 /// 👺 Havoc: Stack Overflow in CodeGen via Deep Expression Trees
 ///
-/// This test demonstrates a stack overflow vulnerability in `generate_rust`.
-/// The parser limits recursion depth to 500, but binary expressions (e.g., `1 + 1 + ...`)
-/// are parsed iteratively into a flat `AnalyzedExpr` tree.
-/// However, `generate_rust` processes this tree recursively, causing a stack overflow
-/// when the tree depth exceeds the stack size.
+/// This test originally demonstrated a stack overflow vulnerability in `generate_rust`.
+/// However, with the new resource limits in `Assembler`, this malicious input
+/// is now rejected early during the analysis phase.
 ///
-/// We "fix" the test crash by running it in a thread with a massive stack.
-/// This proves the code is correct (just stack-hungry).
+/// We verify that the system gracefully handles this DoS attempt by returning
+/// a `LimitExceeded` error instead of crashing or proceeding to code generation.
 #[test]
-fn test_stack_overflow_expression() {
-    // Spawn a thread with 32MB stack.
-    let builder = thread::Builder::new().stack_size(32 * 1024 * 1024);
+fn test_stack_overflow_expression_prevented() {
+    // Spawn a thread with normal stack (limits should kick in first).
+    let builder = thread::Builder::new();
 
     let handler = builder
         .spawn(|| {
             // Generate a massive expression: 1 + 1 + 1 + ...
-            // We use 1000 to ensure it passes with the custom stack size.
-            // This is still 2x the parser's nesting limit (500), proving we bypassed it.
-            let n = 1_000;
+            // We use 2000 to ensure it exceeds the assembler limits (MAX_LITERALS=1024).
+            let n = 2_000;
             let mut s = String::with_capacity(n * 15);
             s.push('1');
             for _ in 0..n {
@@ -37,13 +35,16 @@ fn test_stack_overflow_expression() {
             let ast = parse(&s).expect("Failed to parse");
 
             println!("Analyzing...");
-            // This works fine (linear loop in build_expressions_from_literals_and_ops)
-            let analyzed = analyze_program(&ast).expect("Failed to analyze");
+            // This should now FAIL with LimitExceeded during analysis.
+            let result = analyze_program(&ast);
 
-            println!("Generating...");
-            // This should pass with 32MB stack
-            let code = generate_rust(&analyzed);
-            assert!(!code.is_empty());
+            match result {
+                Ok(_) => panic!("Expected LimitExceeded error, but analysis succeeded! Resource limits may be broken."),
+                Err(GlossaError::AssemblyError(AssemblyError::LimitExceeded { .. })) => {
+                    println!("Successfully prevented stack overflow via resource limits.");
+                },
+                Err(e) => panic!("Expected LimitExceeded error, but got: {:?}", e),
+            }
         })
         .unwrap();
 

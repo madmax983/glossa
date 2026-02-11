@@ -102,6 +102,14 @@ use crate::semantic::assembled::{
 };
 use crate::text::normalize_greek;
 
+// Resource limits to prevent DoS
+const MAX_LITERALS: usize = 1024;
+const MAX_ADJECTIVES: usize = 1024;
+const MAX_STRING_LENGTH: usize = 65536;
+const MAX_ARRAY_ELEMENTS: usize = 1024;
+const MAX_NESTED_PHRASES: usize = 1024;
+const MAX_ARRAYS: usize = 1024;
+
 /// The slot-based assembler
 ///
 /// Feed it tokens one by one, and it routes them to the appropriate slot
@@ -214,6 +222,18 @@ impl Assembler {
     /// asm.feed_string("χαῖρε".to_string()).unwrap();
     /// ```
     pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded {
+                limit_type: "literals".to_string(),
+                max: MAX_LITERALS,
+            });
+        }
+        if value.len() > MAX_STRING_LENGTH {
+            return Err(AssemblyError::LimitExceeded {
+                limit_type: "string_length".to_string(),
+                max: MAX_STRING_LENGTH,
+            });
+        }
         self.state.literals.push(Literal::String(value));
         Ok(())
     }
@@ -229,6 +249,12 @@ impl Assembler {
     /// asm.feed_number(42).unwrap();
     /// ```
     pub fn feed_number(&mut self, value: i64) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded {
+                limit_type: "literals".to_string(),
+                max: MAX_LITERALS,
+            });
+        }
         self.state.literals.push(Literal::Number(value));
         Ok(())
     }
@@ -244,6 +270,12 @@ impl Assembler {
     /// asm.feed_boolean(true).unwrap();
     /// ```
     pub fn feed_boolean(&mut self, value: bool) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded {
+                limit_type: "literals".to_string(),
+                max: MAX_LITERALS,
+            });
+        }
         self.state.literals.push(Literal::Boolean(value));
         Ok(())
     }
@@ -261,6 +293,18 @@ impl Assembler {
     /// asm.feed_array(elements).unwrap();
     /// ```
     pub fn feed_array(&mut self, elements: Vec<Expr>) -> Result<(), AssemblyError> {
+        if self.state.arrays.len() >= MAX_ARRAYS {
+            return Err(AssemblyError::LimitExceeded {
+                limit_type: "arrays".to_string(),
+                max: MAX_ARRAYS,
+            });
+        }
+        if elements.len() > MAX_ARRAY_ELEMENTS {
+            return Err(AssemblyError::LimitExceeded {
+                limit_type: "array_elements".to_string(),
+                max: MAX_ARRAY_ELEMENTS,
+            });
+        }
         self.state.arrays.push(elements);
         Ok(())
     }
@@ -295,6 +339,12 @@ impl Assembler {
     /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]).unwrap();
     /// ```
     pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) -> Result<(), AssemblyError> {
+        if self.state.nested_phrases.len() >= MAX_NESTED_PHRASES {
+            return Err(AssemblyError::LimitExceeded {
+                limit_type: "nested_phrases".to_string(),
+                max: MAX_NESTED_PHRASES,
+            });
+        }
         self.state.nested_phrases.push(terms);
         Ok(())
     }
@@ -384,6 +434,13 @@ impl Assembler {
         analysis: &MorphAnalysis,
         original: &str,
     ) -> Result<(), AssemblyError> {
+        if self.state.adjectives.len() >= MAX_ADJECTIVES {
+            return Err(AssemblyError::LimitExceeded {
+                limit_type: "adjectives".to_string(),
+                max: MAX_ADJECTIVES,
+            });
+        }
+
         let constituent = Constituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
@@ -481,6 +538,13 @@ impl Assembler {
         analysis: &MorphAnalysis,
         original: &str,
     ) -> Result<(), AssemblyError> {
+        if self.state.adjectives.len() >= MAX_ADJECTIVES {
+            return Err(AssemblyError::LimitExceeded {
+                limit_type: "adjectives".to_string(),
+                max: MAX_ADJECTIVES,
+            });
+        }
+
         let constituent = Constituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
