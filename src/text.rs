@@ -38,16 +38,42 @@ pub fn normalize_greek(text: &str) -> SmolStr {
     } else {
         // Fast path: If all characters are already lowercase (or non-cased),
         // we can avoid the intermediate allocation and complex casing logic.
-        // `char::to_lowercase` is sufficient here.
-        let mut s = String::with_capacity(text.len());
+        // We use a stack buffer for small strings to avoid heap allocation entirely.
+
+        const STACK_BUF_SIZE: usize = 64;
+        let mut buffer = [0u8; STACK_BUF_SIZE];
+        let mut len = 0;
+        let mut heap_buffer: Option<String> = None;
+
         for c in text.nfd() {
             if !is_greek_diacritic(c) {
                 for lc in c.to_lowercase() {
-                    s.push(lc);
+                    let char_len = lc.len_utf8();
+
+                    if let Some(ref mut s) = heap_buffer {
+                        s.push(lc);
+                    } else if len + char_len <= STACK_BUF_SIZE {
+                        lc.encode_utf8(&mut buffer[len..]);
+                        len += char_len;
+                    } else {
+                        // Overflow: switch to heap buffer
+                        // Pre-allocate with some headroom (heuristic)
+                        let mut s = String::with_capacity(text.len() + 16);
+                        // Safe to unwrap because we constructed it from valid chars
+                        s.push_str(std::str::from_utf8(&buffer[..len]).unwrap());
+                        s.push(lc);
+                        heap_buffer = Some(s);
+                    }
                 }
             }
         }
-        s.into()
+
+        if let Some(s) = heap_buffer {
+            s.into()
+        } else {
+            // Safe to unwrap because we constructed it from valid chars
+            SmolStr::new(std::str::from_utf8(&buffer[..len]).unwrap())
+        }
     }
 }
 
@@ -161,5 +187,20 @@ mod tests {
     fn test_normalize_subjunctive_eimi() {
         // ᾖ (eta with iota subscript + circumflex) should normalize to η
         assert_eq!(normalize_greek("ᾖ"), "η");
+    }
+
+    #[test]
+    fn test_normalize_long_string() {
+        // Test fallback to heap allocation for strings > 64 bytes
+        // "α" is 2 bytes in UTF-8. 40 alphas = 80 bytes > 64 bytes.
+        let long_string = "α".repeat(40);
+        assert_eq!(normalize_greek(&long_string), long_string.as_str());
+
+        // With diacritics (should be stripped)
+        // "ἀ" (alpha with smooth breathing) is U+1F00 (3 bytes) or U+03B1 U+0313 (2+2 bytes decomposed)
+        // Let's use precomposed to test normalization
+        let long_polytonic = "ἀ".repeat(40);
+        let expected = "α".repeat(40);
+        assert_eq!(normalize_greek(&long_polytonic), expected.as_str());
     }
 }
