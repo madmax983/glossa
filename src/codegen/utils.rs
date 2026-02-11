@@ -180,7 +180,6 @@ mod tests {
         assert_eq!(to_rust_type(&ty), "G__u3c7_rhsths");
     }
 
-
     #[test]
     fn test_sanitize_greek_letter() {
         assert_eq!(sanitize_name("ξ"), "g_x");

@@ -96,7 +96,9 @@
 use crate::ast::{Expr, Word};
 pub use crate::errors::assembly::AssemblyError;
 use crate::morphology::lexicon::BinaryOp;
-use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
+use crate::morphology::{
+    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
+};
 use smol_str::SmolStr;
 
 /// A fully assembled statement with all grammatical roles filled

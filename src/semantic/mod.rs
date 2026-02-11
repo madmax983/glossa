@@ -42,7 +42,8 @@ mod resolver;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub use assembler::{
-    AssembledStatement, Assembler, AssemblyError, Constituent, Literal, VerbConstituent,
+    AssembledStatement, Assembler, AssemblyError, Constituent, Literal, ParticipleConstituent,
+    VerbConstituent,
 };
 pub use model::*;
 pub use resolver::*;
