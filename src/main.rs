@@ -14,7 +14,7 @@ use std::time::SystemTime;
 use glossa::codegen::{generate_rust_file, generate_statement_code};
 use glossa::errors::GlossaError;
 use glossa::parser::parse;
-use glossa::report::GlossaReport;
+use glossa::report::{CompilationReport, GlossaReport, ProgramStats};
 use glossa::semantic::{AnalyzedStatement, GlossaType, Scope, analyze_program};
 
 #[derive(Parser)]
@@ -154,7 +154,9 @@ fn check_file_size(input: &Path) -> Result<()> {
 fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     check_file_size(input)?;
 
+    let start = std::time::Instant::now();
     let source = fs::read_to_string(input).into_diagnostic()?;
+    let input_size = source.len() as u64;
 
     // Split compile to get stats
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
@@ -167,13 +169,20 @@ fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     fs::write(&output_path, &rust_code).into_diagnostic()?;
 
-    println!(
-        "{} Ἐγράφη: {} ({} statements, {} functions)",
-        "✓".green(),
-        output_path.display().to_string().bold(),
-        analyzed.statements.len(),
-        analyzed.scope.functions().count()
-    );
+    let output_size = fs::metadata(&output_path).into_diagnostic()?.len();
+    let duration = start.elapsed();
+    let stats = ProgramStats::new(&analyzed);
+
+    let report = CompilationReport {
+        input_path: input.to_path_buf(),
+        output_path,
+        input_size,
+        output_size,
+        duration,
+        stats,
+    };
+
+    println!("{}", report);
 
     Ok(())
 }
@@ -647,6 +656,29 @@ mod tests {
                 .to_string()
                 .contains("Ἀρχεῖον λίαν μέγα")
         );
+    }
+
+    #[test]
+    fn test_build_file_success() {
+        // Create a temporary input file
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«test» λέγε.".as_bytes()).unwrap();
+        }
+
+        // Call build_file
+        let result = build_file(&input_path, None);
+        assert!(result.is_ok());
+
+        // Verify output file exists
+        let output_path = input_path.with_extension("rs");
+        assert!(output_path.exists());
+
+        // Output size is > 0
+        let metadata = std::fs::metadata(&output_path).unwrap();
+        assert!(metadata.len() > 0);
     }
 
     #[test]
