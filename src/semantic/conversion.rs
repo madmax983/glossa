@@ -1155,6 +1155,13 @@ pub fn extract_value(
         ));
     }
 
+    // Check nested phrases (parenthesized expressions)
+    if let Some(terms) = asm_stmt.nested_phrases.first() {
+        let phrase_expr = Expr::Phrase(terms.clone());
+        let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
+        return Ok((analyzed.clone(), analyzed.glossa_type));
+    }
+
     // If we have operators, build a binary expression
     if !asm_stmt.operators.is_empty() {
         // Check if we can build from literals alone (2+ literals)
@@ -1298,4 +1305,60 @@ pub fn extract_value(
         },
         GlossaType::Number,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::morphology::{Case, Mood, Number, Person, Tense, Voice};
+    use crate::semantic::assembled::{VerbConstituent, Constituent};
+
+    #[test]
+    fn test_assignment_with_nested_phrase_ignored() {
+        let mut scope = Scope::new();
+        scope.define_mut("x".to_string(), GlossaType::Number);
+
+        let mut asm = AssembledStatement::default();
+
+        // Subject: "x"
+        asm.subject = Some(Constituent {
+            lemma: "x".into(),
+            original: "x".into(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: None,
+            person: None,
+        });
+
+        // Verb: "γίγνεται" (becomes)
+        asm.verb = Some(VerbConstituent {
+            lemma: "γιγνομαι".into(),
+            original: "γίγνεται".into(),
+            person: Some(Person::Third),
+            number: Some(Number::Singular),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Middle),
+        });
+
+        // Nested Phrase: (5)
+        asm.nested_phrases.push(vec![Expr::NumberLiteral(5)]);
+
+        let result = convert_assembled_to_analyzed(&asm, &mut scope);
+
+        match result {
+            Ok(AnalyzedStatement::Assignment { name, value }) => {
+                assert_eq!(name, "x");
+                // If the bug exists, value will be 0 (default) instead of 5
+                match value.expr {
+                    AnalyzedExprKind::NumberLiteral(n) => {
+                        assert_eq!(n, 5, "Expected assignment value to be 5 from nested phrase, but got {}", n);
+                    }
+                     _ => panic!("Expected NumberLiteral(5), got {:?}", value.expr),
+                }
+            }
+            Ok(s) => panic!("Expected Assignment, got {:?}", s),
+            Err(e) => panic!("Conversion failed: {:?}", e),
+        }
+    }
 }
