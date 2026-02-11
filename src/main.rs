@@ -835,4 +835,18 @@ mod tests {
         let none = ReplOutput::None;
         assert_eq!(none.to_string(), "");
     }
+
+    #[test]
+    fn test_highlight_file_coverage() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test.gl");
+        let source = "«χαῖρε» λέγε.";
+        std::fs::write(&file_path, source).unwrap();
+
+        // Call the internal function
+        // We catch stdout to avoid polluting test output, though the function prints to stdout
+        // This is mainly for code coverage
+        let result = highlight_file(&file_path);
+        assert!(result.is_ok());
+    }
 }
