@@ -456,6 +456,29 @@ mod tests {
                 name: "TestTrait".into(),
                 methods: vec![],
             },
+            // Trait Implementation (coverage for empty branch)
+            AnalyzedStatement::TraitImplementation {
+                trait_name: "TestTrait".into(),
+                type_name: "TestType".into(),
+                methods: vec![],
+            },
+            // Type Definition (coverage for empty branch)
+            AnalyzedStatement::TypeDefinition {
+                name: "TestType".into(),
+                fields: vec![],
+            },
+            // Test Declaration
+            AnalyzedStatement::TestDeclaration {
+                name: "test_decl".into(),
+                body: vec![],
+            },
+            // Function Definition in statement (not scope)
+            AnalyzedStatement::FunctionDef {
+                name: "inner_func".into(),
+                params: vec![],
+                return_type: None,
+                body: vec![AnalyzedStatement::Break, AnalyzedStatement::Continue],
+            },
             // Expression Statement with Unwrap and Assert
             AnalyzedStatement::Expression(vec![AnalyzedExpr {
                 expr: AnalyzedExprKind::Assert {
@@ -473,6 +496,9 @@ mod tests {
 
         let program = AnalyzedProgram { statements, scope };
         let stats = ProgramStats::new(&program);
+
+        // Cover Debug derive
+        println!("{:?}", stats);
 
         assert_eq!(stats.loop_count, 2);
         assert_eq!(stats.conditional_count, 1); // Match counts as conditional
