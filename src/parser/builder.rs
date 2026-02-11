@@ -768,4 +768,90 @@ mod tests {
         assert_eq!(ast.statements.len(), 1);
         assert_eq!(ast.statements[0].clauses().len(), 2); // Two clauses separated by comma
     }
+
+    #[test]
+    fn test_check_recursion_depth_limit() {
+        // Create deeply nested parentheses
+        let mut source = String::new();
+        for _ in 0..501 {
+            source.push('(');
+        }
+        for _ in 0..501 {
+            source.push(')');
+        }
+        source.push('.');
+
+        let result = check_recursion_depth(&source);
+        assert!(matches!(result, Err(ParseError::RecursionLimitExceeded(500))));
+    }
+
+    #[test]
+    fn test_check_recursion_depth_skips_strings() {
+        // (((...))) inside string should not trigger limit
+        // 501 opening parens inside string
+        let mut source = "«".to_string();
+        for _ in 0..501 {
+            source.push('(');
+        }
+        source.push('»');
+        source.push_str(" λέγε.");
+
+        let result = check_recursion_depth(&source);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_check_recursion_depth_skips_comments() {
+        // (((...))) inside comment should not trigger limit
+        let mut source = "// ".to_string();
+        for _ in 0..501 {
+            source.push('(');
+        }
+        source.push('\n');
+        source.push_str("«χαῖρε» λέγε.");
+
+        let result = check_recursion_depth(&source);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_boolean_literal() {
+        let source = "αληθες λέγε.";
+        let ast = parse_source(source).unwrap();
+        let expr = first_expr(&ast.statements[0]);
+        if let Expr::Phrase(terms) = expr {
+            assert!(matches!(&terms[0], Expr::BooleanLiteral(true)));
+        } else {
+            panic!("Expected Phrase");
+        }
+
+        let source_false = "ψευδος λέγε.";
+        let ast_false = parse_source(source_false).unwrap();
+        let expr_false = first_expr(&ast_false.statements[0]);
+        if let Expr::Phrase(terms) = expr_false {
+            assert!(matches!(&terms[0], Expr::BooleanLiteral(false)));
+        } else {
+            panic!("Expected Phrase");
+        }
+    }
+
+    #[test]
+    fn test_parse_method_parameters_mixed() {
+        // Manually invoke parser internal if possible, or construct a trait definition
+        // defined via string to ensure we cover the "tw" vs "τω" and skipping logic
+        // Grammar for trait_method: dei_keyword ~ greek_word+ ~ ...
+        // No parens or commas in the grammar for this list
+        let source = "χαρακτήρ Τεστ ὁρίζειν { δεῖ μεθοδος τῷ α tw β γ. }.";
+        let ast = parse_source(source).unwrap();
+
+        if let Statement::TraitDefinition(def) = &ast.statements[0] {
+            let method = &def.methods[0];
+            assert_eq!(method.params.len(), 2);
+            assert_eq!(method.params[0].name.normalized, "α");
+            assert_eq!(method.params[1].name.normalized, "β");
+            // 'γ' should be skipped as it has no marker
+        } else {
+            panic!("Expected TraitDefinition");
+        }
+    }
 }
