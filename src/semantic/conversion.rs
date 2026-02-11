@@ -1311,35 +1311,33 @@ pub fn extract_value(
 mod tests {
     use super::*;
     use crate::morphology::{Case, Mood, Number, Person, Tense, Voice};
-    use crate::semantic::assembled::{VerbConstituent, Constituent};
+    use crate::semantic::assembled::{Constituent, VerbConstituent};
 
     #[test]
     fn test_assignment_with_nested_phrase_ignored() {
         let mut scope = Scope::new();
         scope.define_mut("x".to_string(), GlossaType::Number);
 
-        let mut asm = AssembledStatement::default();
-
-        // Subject: "x"
-        asm.subject = Some(Constituent {
-            lemma: "x".into(),
-            original: "x".into(),
-            case: Case::Nominative,
-            number: Some(Number::Singular),
-            gender: None,
-            person: None,
-        });
-
-        // Verb: "γίγνεται" (becomes)
-        asm.verb = Some(VerbConstituent {
-            lemma: "γιγνομαι".into(),
-            original: "γίγνεται".into(),
-            person: Some(Person::Third),
-            number: Some(Number::Singular),
-            tense: Some(Tense::Present),
-            mood: Some(Mood::Indicative),
-            voice: Some(Voice::Middle),
-        });
+        let mut asm = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "x".into(),
+                original: "x".into(),
+                case: Case::Nominative,
+                number: Some(Number::Singular),
+                gender: None,
+                person: None,
+            }),
+            verb: Some(VerbConstituent {
+                lemma: "γιγνομαι".into(),
+                original: "γίγνεται".into(),
+                person: Some(Person::Third),
+                number: Some(Number::Singular),
+                tense: Some(Tense::Present),
+                mood: Some(Mood::Indicative),
+                voice: Some(Voice::Middle),
+            }),
+            ..Default::default()
+        };
 
         // Nested Phrase: (5)
         asm.nested_phrases.push(vec![Expr::NumberLiteral(5)]);
@@ -1352,9 +1350,13 @@ mod tests {
                 // If the bug exists, value will be 0 (default) instead of 5
                 match value.expr {
                     AnalyzedExprKind::NumberLiteral(n) => {
-                        assert_eq!(n, 5, "Expected assignment value to be 5 from nested phrase, but got {}", n);
+                        assert_eq!(
+                            n, 5,
+                            "Expected assignment value to be 5 from nested phrase, but got {}",
+                            n
+                        );
                     }
-                     _ => panic!("Expected NumberLiteral(5), got {:?}", value.expr),
+                    _ => panic!("Expected NumberLiteral(5), got {:?}", value.expr),
                 }
             }
             Ok(s) => panic!("Expected Assignment, got {:?}", s),
