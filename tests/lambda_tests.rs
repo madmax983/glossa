@@ -169,10 +169,7 @@ mod cycle5_filter_operation {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(
-                code_no_space.contains(".filter("),
-                "Should have .filter("
-            );
+            assert!(code_no_space.contains(".filter("), "Should have .filter(");
             assert!(
                 code_no_space.contains(">"),
                 "Should have comparison operator"
@@ -467,10 +464,7 @@ mod cycle9_combined_operations {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(
-                code_no_space.contains(".filter("),
-                "Should have .filter("
-            );
+            assert!(code_no_space.contains(".filter("), "Should have .filter(");
             assert!(code_no_space.contains(".map("), "Should have .map(");
             assert!(code_no_space.contains(">"), "Should have comparison");
             assert!(code_no_space.contains("5"), "Should compare to 5");
@@ -565,10 +559,7 @@ mod cycle11_variable_capture {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(
-                code_no_space.contains(".filter("),
-                "Should have .filter("
-            );
+            assert!(code_no_space.contains(".filter("), "Should have .filter(");
             // Should reference theta variable in closure
             // theta (θ) is mapped to _th to prevent collisions
             assert!(
@@ -629,10 +620,7 @@ mod cycle11_variable_capture {
 
             let code_no_space = code_str.replace(" ", "");
             assert!(code_no_space.contains(".iter()"), "Should have .iter()");
-            assert!(
-                code_no_space.contains(".filter("),
-                "Should have .filter("
-            );
+            assert!(code_no_space.contains(".filter("), "Should have .filter(");
             assert!(code_no_space.contains("5"), "Should use literal 5");
             // Should NOT reference theta (encoded or not)
             assert!(

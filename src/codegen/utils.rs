@@ -185,10 +185,30 @@ mod tests {
     #[test]
     fn test_transliterate_collision() {
         // These currently fail because transliterate("α") == "a" == transliterate("a")
-        assert_ne!(transliterate("α"), transliterate("a"), "Alpha should not collide with a");
-        assert_ne!(transliterate("η"), transliterate("h"), "Eta should not collide with h");
-        assert_ne!(transliterate("ω"), transliterate("w"), "Omega should not collide with w");
-        assert_ne!(transliterate("σ"), transliterate("s"), "Sigma should not collide with s");
-        assert_ne!(transliterate("αa"), transliterate("aa"), "Mixed alpha should not collide");
+        assert_ne!(
+            transliterate("α"),
+            transliterate("a"),
+            "Alpha should not collide with a"
+        );
+        assert_ne!(
+            transliterate("η"),
+            transliterate("h"),
+            "Eta should not collide with h"
+        );
+        assert_ne!(
+            transliterate("ω"),
+            transliterate("w"),
+            "Omega should not collide with w"
+        );
+        assert_ne!(
+            transliterate("σ"),
+            transliterate("s"),
+            "Sigma should not collide with s"
+        );
+        assert_ne!(
+            transliterate("αa"),
+            transliterate("aa"),
+            "Mixed alpha should not collide"
+        );
     }
 }
