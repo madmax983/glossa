@@ -1,11 +1,11 @@
-//! The Bard (ὁ Ῥαψῳδός) - Semantic Syntax Highlighter
+//! Semantic Syntax Highlighter
 //!
 //! This module implements a semantic syntax highlighter that colors the source code
 //! based on the grammatical role of each word (Subject, Object, Verb, etc.).
 //!
 //! # Philosophy
 //!
-//! Unlike traditional syntax highlighters that use regexes, The Bard uses the
+//! Unlike traditional syntax highlighters that use regexes, this uses the
 //! compiler's own morphological analysis to understand the code.
 //!
 //! * **Nominative (Subject)**: Blue (The agent/foundation)
@@ -19,7 +19,7 @@
 //! # Usage
 //!
 //! ```rust
-//! use glossa::experimental::bard::highlight;
+//! use glossa::highlight::highlight;
 //!
 //! let source = "ὁ ἄνθρωπος τὸν λόγον λέγει.";
 //! let highlighted = highlight(source).unwrap();

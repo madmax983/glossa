@@ -3,7 +3,7 @@
 //! Handles the conversion of semantic types to Rust types.
 
 use crate::codegen::utils::{capitalize, sanitize_name};
-use crate::semantic::{GlossaType, Ownership};
+use crate::semantic::GlossaType;
 
 /// Convert a Glossa type to its Rust equivalent string
 pub fn to_rust_type(ty: &GlossaType) -> String {
@@ -25,16 +25,6 @@ pub fn to_rust_type(ty: &GlossaType) -> String {
         // TODO: Better representation for function types if they appear in type signatures
         GlossaType::Function { .. } => "fn".to_string(),
         GlossaType::Unknown => "_".to_string(),
-    }
-}
-
-/// Convert ownership mode to Rust reference prefix
-pub fn to_rust_ownership(ownership: &Ownership) -> &'static str {
-    match ownership {
-        Ownership::Move => "",
-        Ownership::Borrow => "&",
-        Ownership::BorrowMut => "&mut ",
-        Ownership::Copy => "",
     }
 }
 
@@ -93,13 +83,5 @@ mod tests {
         // Sanitize: χρηστης -> g__u3c7_rhsths
         // Capitalize: g__u3c7_rhsths -> G__u3c7_rhsths
         assert_eq!(to_rust_type(&ty), "G__u3c7_rhsths");
-    }
-
-    #[test]
-    fn test_ownership() {
-        assert_eq!(to_rust_ownership(&Ownership::Move), "");
-        assert_eq!(to_rust_ownership(&Ownership::Borrow), "&");
-        assert_eq!(to_rust_ownership(&Ownership::BorrowMut), "&mut ");
-        assert_eq!(to_rust_ownership(&Ownership::Copy), "");
     }
 }

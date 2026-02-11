@@ -45,7 +45,7 @@ use super::{
 use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::morphology::{self};
-use crate::semantic::assembled::{Constituent, Literal};
+use crate::semantic::assembler::{Constituent, Literal};
 use crate::text::normalize_greek;
 
 /// Convert an AssembledStatement to an AnalyzedStatement

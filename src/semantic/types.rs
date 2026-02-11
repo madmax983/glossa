@@ -10,7 +10,7 @@
 //! - Optative mood → `Option<T>` (value that "might be")
 //! - ἀποτέλεσμα (apotelasma) → `Result<T,E>` (outcome/result)
 
-use crate::morphology::{Case, Gender};
+use crate::morphology::Gender;
 use smol_str::SmolStr;
 
 /// Types in ΓΛΩΣΣΑ
@@ -168,31 +168,6 @@ impl GlossaType {
     }
 }
 
-/// Ownership mode derived from grammatical case
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Ownership {
-    /// Move semantics (accusative, aorist)
-    Move,
-    /// Immutable borrow (genitive)
-    Borrow,
-    /// Mutable borrow (dative)
-    BorrowMut,
-    /// Copy (for Copy types)
-    Copy,
-}
-
-impl Ownership {
-    /// Derive ownership from case
-    pub fn from_case(case: Case) -> Self {
-        match case {
-            Case::Genitive => Ownership::Borrow,
-            Case::Dative => Ownership::BorrowMut,
-            Case::Accusative => Ownership::Move,
-            _ => Ownership::Copy,
-        }
-    }
-}
-
 /// Detect built-in collection types (HashSet, HashMap)
 ///
 /// Returns a tuple of (Rust collection name, GlossaType).
@@ -226,13 +201,6 @@ mod tests {
     fn test_type_to_greek() {
         assert_eq!(GlossaType::Number.to_greek(), "ἀριθμός");
         assert_eq!(GlossaType::String.to_greek(), "ὄνομα");
-    }
-
-    #[test]
-    fn test_ownership_from_case() {
-        assert_eq!(Ownership::from_case(Case::Genitive), Ownership::Borrow);
-        assert_eq!(Ownership::from_case(Case::Dative), Ownership::BorrowMut);
-        assert_eq!(Ownership::from_case(Case::Accusative), Ownership::Move);
     }
 
     #[test]
