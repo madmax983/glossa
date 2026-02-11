@@ -19,7 +19,7 @@
 //! # Usage
 //!
 //! ```rust
-//! use glossa::experimental::bard::highlight;
+//! use glossa::highlight::highlight;
 //!
 //! let source = "ὁ ἄνθρωπος τὸν λόγον λέγει.";
 //! let highlighted = highlight(source).unwrap();
@@ -805,5 +805,26 @@ mod tests {
         assert!(output_adj.contains("καλός"));
         // Check for *some* coloring (at least [3...m)
         assert!(output_adj.contains("\x1b[3"));
+    }
+
+    #[test]
+    fn test_highlight_dative() {
+        // τῷ ἀνθρώπῳ (Dative)
+        // This is mainly to cover the Dative branch in highlight_word
+        let source = "τῷ ἀνθρώπῳ δίδωμι."; // I give to the man
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("ἀνθρώπῳ"));
+        // Check for some ANSI color code (start of sequence)
+        assert!(output.contains("\x1b["));
+    }
+
+    #[test]
+    fn test_highlight_error() {
+        // Test invalid syntax to cover error propagation
+        let source = "«unclosed string";
+        let result = highlight(source);
+        assert!(result.is_err());
     }
 }
