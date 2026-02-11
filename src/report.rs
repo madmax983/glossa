@@ -316,3 +316,41 @@ impl Display for GlossaReport<'_> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::parse;
+    use crate::semantic::analyze_program;
+
+    #[test]
+    fn test_report_generation() {
+        let source = "ξ πέντε ἔστω. ξ λέγε.";
+        let ast = parse(source).unwrap();
+        let program = analyze_program(&ast).unwrap();
+        let report = GlossaReport::new(&program, "test.gl".to_string());
+
+        let output = report.to_string();
+        // Check structural elements
+        assert!(output.contains("ΑΝΑΦΟΡΑ ΓΛΩΣΣΗΣ"));
+        assert!(output.contains("test.gl"));
+        // Check statistics
+        assert!(report.stats.statement_count >= 2);
+        assert!(report.stats.binding_count >= 1);
+        assert!(report.stats.expression_count >= 2);
+    }
+
+    #[test]
+    fn test_report_with_functions() {
+        // Define a function using the valid syntax: name ὁρίζειν parameters · body.
+        let source = "προσθεσις ὁρίζειν τῷ α ἀριθμοῦ τῷ β ἀριθμοῦ· δός α β ἄθροισμα.";
+        let ast = parse(source).unwrap();
+        let program = analyze_program(&ast).unwrap();
+        let report = GlossaReport::new(&program, "func.gl".to_string());
+
+        let output = report.to_string();
+        assert!(output.contains("ΣΥΝΑΡΤΗΣΕΙΣ"));
+        assert!(output.contains("προσθεσις"));
+        assert_eq!(report.stats.function_count, 1);
+    }
+}
