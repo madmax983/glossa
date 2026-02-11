@@ -364,13 +364,22 @@ mod tests {
         let source = "42 λέγε.\n«χαῖρε» λέγε.\nἀληθές λέγε.";
         let rehearsal = rehearse(source).expect("Failed to rehearse");
 
-        let has_number = rehearsal.snapshots.iter().any(|s| s.description.contains("Fed number '42'"));
+        let has_number = rehearsal
+            .snapshots
+            .iter()
+            .any(|s| s.description.contains("Fed number '42'"));
         assert!(has_number, "Should trace number literal");
 
-        let has_string = rehearsal.snapshots.iter().any(|s| s.description.contains("Fed string \"χαῖρε\""));
+        let has_string = rehearsal
+            .snapshots
+            .iter()
+            .any(|s| s.description.contains("Fed string \"χαῖρε\""));
         assert!(has_string, "Should trace string literal");
 
-        let has_bool = rehearsal.snapshots.iter().any(|s| s.description.contains("Fed boolean 'true'"));
+        let has_bool = rehearsal
+            .snapshots
+            .iter()
+            .any(|s| s.description.contains("Fed boolean 'true'"));
         assert!(has_bool, "Should trace boolean literal");
     }
 
@@ -381,7 +390,10 @@ mod tests {
         let rehearsal = rehearse(source).expect("Failed to rehearse");
 
         // Should trace the nested expression "1"
-        let has_nested = rehearsal.snapshots.iter().any(|s| s.description.contains("Fed number '1'"));
+        let has_nested = rehearsal
+            .snapshots
+            .iter()
+            .any(|s| s.description.contains("Fed number '1'"));
         assert!(has_nested, "Should trace nested expression");
     }
 
@@ -392,16 +404,19 @@ mod tests {
         let rehearsal = rehearse(source).expect("Rehearsal should not panic on semantic error");
 
         // Should contain an error snapshot
-        let has_error = rehearsal.snapshots.iter().any(|s| s.description.contains("Error:"));
+        let has_error = rehearsal
+            .snapshots
+            .iter()
+            .any(|s| s.description.contains("Error:"));
         assert!(has_error, "Should capture semantic error in trace");
     }
 
     #[test]
     #[cfg(feature = "nova")]
     fn test_tui_rendering() {
-        use ratatui::backend::TestBackend;
-        use ratatui::Terminal;
         use crate::experimental::theatro::tui::draw_ui;
+        use ratatui::Terminal;
+        use ratatui::backend::TestBackend;
 
         // Create a dummy snapshot
         let stmt = AssembledStatement {
@@ -436,9 +451,11 @@ mod tests {
         let mut terminal = Terminal::new(backend).unwrap();
 
         // Render UI
-        terminal.draw(|f| {
-            draw_ui(f, &snapshot, 0, 10);
-        }).unwrap();
+        terminal
+            .draw(|f| {
+                draw_ui(f, &snapshot, 0, 10);
+            })
+            .unwrap();
 
         // Verify content
         let buffer = terminal.backend().buffer();
@@ -462,8 +479,8 @@ mod tests {
     #[test]
     #[cfg(feature = "nova")]
     fn test_tui_key_handling() {
-        use crossterm::event::KeyCode;
         use crate::experimental::theatro::tui::handle_key;
+        use crossterm::event::KeyCode;
 
         // Test navigation
         assert_eq!(handle_key(KeyCode::Right, 0, 10), Some(1));
