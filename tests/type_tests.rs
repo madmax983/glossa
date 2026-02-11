@@ -43,8 +43,8 @@ fn test_instantiation() {
         π νέον σημεῖον πέντε ἔστω.
     "#;
     let code = compile(source);
-    // σημεῖον -> G_shmeion
-    assert!(code.contains("G_shmeion"));
+    // σημεῖον -> G__s_h_m_e_i_o_n
+    assert!(code.contains("G__s_h_m_e_i_o_n"));
     assert!(code.contains("5"));
 }
 
@@ -55,7 +55,7 @@ fn test_instantiation_multiple_fields() {
         π νέον σημεῖον πέντε τρία ἔστω.
     "#;
     let code = compile(source);
-    assert!(code.contains("G_shmeion"));
+    assert!(code.contains("G__s_h_m_e_i_o_n"));
 }
 
 // Cycle 5: Field Access
@@ -68,8 +68,8 @@ fn test_field_access() {
     "#;
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
-    // ξ -> g_x
-    assert!(code.contains(".g_x") || code.contains(". g_x"));
+    // ξ -> g__x
+    assert!(code.contains(".g__x") || code.contains(". g__x"));
 }
 
 #[test]
@@ -82,10 +82,10 @@ fn test_field_access_multiple_fields() {
     "#;
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
-    // ξ -> g_x
-    assert!(code.contains(". g_x") || code.contains(".g_x"));
-    // ψ -> g__u3c8_
-    assert!(code.contains(". g__u3c8_") || code.contains(".g__u3c8_"));
+    // ξ -> g__x
+    assert!(code.contains(". g__x") || code.contains(".g__x"));
+    // ψ -> g__ps
+    assert!(code.contains(". g__ps") || code.contains(".g__ps"));
 }
 
 #[test]
@@ -97,9 +97,9 @@ fn test_instantiation_with_literals() {
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
     // It should generate struct instantiation, not string assignment
-    // Χρήστης -> G__u3c7_rhsths
-    assert!(code.contains("struct G__u3c7_rhsths"));
-    assert!(code.contains("let g__u3c7_rhsths = G__u3c7_rhsths"));
+    // Χρήστης -> G__ch_r_h_s_t_h_s
+    assert!(code.contains("struct G__ch_r_h_s_t_h_s"));
+    assert!(code.contains("let g__ch_r_h_s_t_h_s = G__ch_r_h_s_t_h_s"));
     assert!(code.contains("Σωκράτης"));
     assert!(code.contains("70"));
 }

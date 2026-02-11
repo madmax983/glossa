@@ -956,7 +956,8 @@ mod tests {
     fn test_generate_binding() {
         let code = compile("ξ πέντε ἔστω.");
         // Variables are now prefixed with g_
-        assert!(code.contains("let g_x"));
+        // Greek letters map to _x, so sanitize adds g_ => g__x
+        assert!(code.contains("let g__x"));
         assert!(code.contains("5"));
     }
 
@@ -971,8 +972,9 @@ mod tests {
     fn test_generate_full_program() {
         let code = compile("ξ πέντε ἔστω. ξ λέγε.");
         // Variables are now prefixed with g_
+        // Greek letters map to _x, so sanitize adds g_ => g__x
         assert!(
-            code.contains("let g_x = 5"),
+            code.contains("let g__x = 5"),
             "Expected binding in: {}",
             code
         );

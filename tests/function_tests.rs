@@ -39,8 +39,8 @@ fn test_function_with_two_params() {
     let code = compile("προσθεσις ὁρίζειν τῷ ξ τῷ ψ· δός ξ ψ ἄθροισμα.");
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("fn"));
-    // ξ -> g_x, ψ -> g__u3c8_
-    assert!(code.contains("g_x") && code.contains("g__u3c8_"));
+    // ξ -> g_x -> g__x, ψ -> g_ps -> g__ps
+    assert!(code.contains("g__x") && code.contains("g__ps"));
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn test_simple_return() {
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("return"));
     // Should return x * 2, not just a literal
-    assert!(code.contains("g_x") || code.contains("*") || code.contains("2"));
+    assert!(code.contains("g__x") || code.contains("*") || code.contains("2"));
 }
 
 #[test]
@@ -82,10 +82,11 @@ fn test_function_call() {
     ",
     );
     eprintln!("Generated code:\n{}", code);
-    // πρόσθεσις -> g_pros_u3b8_esis
+    // πρόσθεσις -> g__p_r_o_s_th_e_s_i_s
+    let name = "g__p_r_o_s_th_e_s_i_s";
     assert!(
-        code.contains("g_pros_u3b8_esis")
-            && (code.contains("g_pros_u3b8_esis(") || code.contains("g_pros_u3b8_esis ("))
+        code.contains(name)
+            && (code.contains(&format!("{}(", name)) || code.contains(&format!("{} (", name)))
     );
 }
 
@@ -99,8 +100,10 @@ fn test_nested_calls() {
     );
     eprintln!("Generated code:\n{}", code);
     // Check for nested diplasiasmos calls (allowing for whitespace)
+    // διπλασιασμος -> g__d_i_p_l_a_s_i_a_s_m_o_s
+    let name = "g__d_i_p_l_a_s_i_a_s_m_o_s";
     assert!(
-        code.matches("g_diplasiasmos").count() >= 3,
+        code.matches(name).count() >= 3,
         "Expected at least 3 occurrences of diplasiasmos (fn def + 2 calls)"
     );
     assert!(code.contains("5i64"), "Expected literal 5 as argument");
@@ -120,7 +123,8 @@ fn test_function_local_variables() {
     ",
     );
     eprintln!("Generated code:\n{}", code);
-    assert!(code.contains("let g_topikon"));
+    // τοπικον -> g__t_o_p_i_k_o_n
+    assert!(code.contains("let g__t_o_p_i_k_o_n"));
 }
 
 #[test]

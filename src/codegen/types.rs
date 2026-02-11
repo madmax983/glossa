@@ -90,9 +90,9 @@ mod tests {
             gender: crate::morphology::Gender::Masculine,
             fields: vec![],
         };
-        // Sanitize: χρηστης -> g__u3c7_rhsths
-        // Capitalize: g__u3c7_rhsths -> G__u3c7_rhsths
-        assert_eq!(to_rust_type(&ty), "G__u3c7_rhsths");
+        // Sanitize: χρηστης -> g__ch_r_h_s_t_h_s
+        // Capitalize: g__ch_r_h_s_t_h_s -> G__ch_r_h_s_t_h_s
+        assert_eq!(to_rust_type(&ty), "G__ch_r_h_s_t_h_s");
     }
 
     #[test]

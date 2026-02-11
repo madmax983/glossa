@@ -43,35 +43,53 @@ pub(crate) fn transliterate(greek: &str) -> String {
 
     for c in greek.chars() {
         let trans = match c {
-            'α' => "a",
-            'β' => "b",
-            'γ' => "g",
-            'δ' => "d",
-            'ε' => "e",
-            'ζ' => "z",
-            'η' => "h", // Distinct from 'e' (epsilon)
-            'ι' => "i",
-            'κ' => "k",
-            'λ' => "l",
-            'μ' => "m",
-            'ν' => "n",
-            'ξ' => "x",
-            'ο' => "o",
-            'π' => "p",
-            'ρ' => "r",
-            'σ' | 'ς' => "s",
-            'τ' => "t",
-            'υ' => "u",
-            'ω' => "w", // Distinct from 'o' (omicron)
-            // Digraphs and other characters are hex-encoded to prevent collisions
-            // θ, φ, χ, ψ map to _u..._ because th, ph, ch, ps collide with sequences
+            // Greek characters are prefixed with "_" to avoid collision with ASCII identifiers
+            // e.g. "α" -> "_a", but "a" -> "a"
+            'α' => "_a",
+            'β' => "_b",
+            'γ' => "_g",
+            'δ' => "_d",
+            'ε' => "_e",
+            'ζ' => "_z",
+            'η' => "_h", // Distinct from 'e' (epsilon)
+            'θ' => "_th",
+            'ι' => "_i",
+            'κ' => "_k",
+            'λ' => "_l",
+            'μ' => "_m",
+            'ν' => "_n",
+            'ξ' => "_x",
+            'ο' => "_o",
+            'π' => "_p",
+            'ρ' => "_r",
+            'σ' | 'ς' => "_s",
+            'τ' => "_t",
+            'υ' => "_u",
+            'φ' => "_ph",
+            'χ' => "_ch",
+            'ψ' => "_ps",
+            'ω' => "_w", // Distinct from 'o' (omicron)
+            // Underscore is escaped to "__" to avoid collision with prefixed Greek chars
+            // e.g. "_a" -> "__a", but "α" -> "_a"
+            '_' => "__",
             _ => {
-                // Keep only ASCII alphanumeric characters and underscore
-                if c.is_ascii_alphanumeric() || c == '_' {
+                // Keep only ASCII alphanumeric characters
+                if c.is_ascii_alphanumeric() {
                     result.push(c);
                 } else {
                     // Replace invalid characters with unique hex code to prevent collisions
                     // e.g. ϟ -> _u3df_
+                    // This is safe from collision because:
+                    // 1. Literal underscores '_' map to '__'
+                    // 2. Greek characters map to '_x' (single underscore)
+                    // 3. Hex encoding uses '_u..._' (single underscore + 'u')
+                    // 4. Literal 'u' in input maps to 'u'
+                    //
+                    // Example:
+                    // Koppa (ϟ) -> _u3df_
+                    // User input "_u3df_" -> __u3df__
+                    // User input "u3df" -> u3df
+                    // Greek Upsilon + "3df" -> _u3df (no trailing underscore)
                     use std::fmt::Write;
                     write!(result, "_u{:x}_", c as u32).unwrap();
                 }
@@ -104,20 +122,18 @@ mod tests {
 
     #[test]
     fn test_sanitize_greek_letter() {
-        assert_eq!(sanitize_name("ξ"), "g_x");
-        assert_eq!(sanitize_name("α"), "g_a");
-        assert_eq!(sanitize_name("ω"), "g_w");
+        assert_eq!(sanitize_name("ξ"), "g__x");
+        assert_eq!(sanitize_name("α"), "g__a");
+        assert_eq!(sanitize_name("ω"), "g__w");
     }
 
     #[test]
     fn test_transliterate() {
-        // χ (chi) -> hex, ρ -> r, η -> h, σ -> s, τ -> t, ο -> o, ς -> s
-        // χ is 0x3c7
-        assert_eq!(transliterate("χρηστος"), "_u3c7_rhstos");
-        assert_eq!(transliterate("λογος"), "logos");
-        // φ (phi) -> hex
-        // φ is 0x3c6
-        assert_eq!(transliterate("φιλοσοφια"), "_u3c6_iloso_u3c6_ia");
+        // χ (chi) -> _ch, ρ -> _r, η -> _h, σ -> _s, τ -> _t, ο -> _o, ς -> _s
+        assert_eq!(transliterate("χρηστος"), "_ch_r_h_s_t_o_s");
+        assert_eq!(transliterate("λογος"), "_l_o_g_o_s");
+        // φ (phi) -> _ph
+        assert_eq!(transliterate("φιλοσοφια"), "_ph_i_l_o_s_o_ph_i_a");
     }
 
     #[test]
@@ -142,7 +158,7 @@ mod tests {
         // Test mixing valid and invalid characters
         let input = "αϟβ";
         let output = transliterate(input);
-        assert_eq!(output, "a_u3df_b");
+        assert_eq!(output, "_a_u3df__b");
     }
 
     #[test]
@@ -164,5 +180,15 @@ mod tests {
         // This ensures a unique namespace for user variables
         assert_eq!(sanitize_name("x"), "g_x");
         assert_eq!(sanitize_name("foo"), "g_foo");
+    }
+
+    #[test]
+    fn test_transliterate_collision() {
+        // These currently fail because transliterate("α") == "a" == transliterate("a")
+        assert_ne!(transliterate("α"), transliterate("a"), "Alpha should not collide with a");
+        assert_ne!(transliterate("η"), transliterate("h"), "Eta should not collide with h");
+        assert_ne!(transliterate("ω"), transliterate("w"), "Omega should not collide with w");
+        assert_ne!(transliterate("σ"), transliterate("s"), "Sigma should not collide with s");
+        assert_ne!(transliterate("αa"), transliterate("aa"), "Mixed alpha should not collide");
     }
 }
