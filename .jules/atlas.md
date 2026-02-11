@@ -51,3 +51,11 @@
 1. Moved the `impl From<ParseError> for GlossaError` block from `src/errors/mod.rs` to `src/parser/mod.rs`.
 2. Removed the dependency on `crate::parser` from `src/errors/mod.rs`.
 **Stability:** `errors` is now a lower-level module that does not depend on `parser`. The dependency graph is strictly `parser -> errors`.
+
+## [Promoting The Bard: Syntax Highlighting]
+**Tangle:** The semantic syntax highlighter was hidden in `src/experimental/bard.rs`, implying it was unstable or unfinished. It was also a "Leaky Abstraction" where useful functionality was not part of the core API.
+**Blueprint:**
+1. Moved `src/experimental/bard.rs` to `src/highlight.rs`.
+2. Removed the `experimental` module entirely.
+3. Updated `src/main.rs` to use the new `highlight` module.
+**Stability:** Promotes a useful feature to a first-class citizen. Removes dead/staging code directories.

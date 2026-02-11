@@ -38,6 +38,7 @@
 //! * [`codegen`]: Rust code generation logic.
 //! * [`errors`]: Greek-native error messages and diagnostics.
 //! * [`grammar`]: PEG parser.
+//! * [`highlight`]: Semantic syntax highlighter.
 //! * [`morphology`]: Word analysis, lexicon, and participle parsing.
 //! * [`parser`]: AST Builder and parsing logic.
 //! * [`semantic`]: The slot-based assembler and semantic analysis.
@@ -46,10 +47,10 @@
 pub mod ast;
 pub mod codegen;
 pub mod errors;
-pub mod experimental;
 pub mod grammar;
+pub mod highlight;
 pub mod morphology;
 pub mod parser;
+pub mod report;
 pub mod semantic;
 pub mod text;
-pub mod report;
