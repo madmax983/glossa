@@ -195,17 +195,11 @@ mod tui {
             if event::poll(std::time::Duration::from_millis(100))? {
                 if let Event::Key(key) = event::read()? {
                     if key.kind == KeyEventKind::Press {
-                        match key.code {
-                            KeyCode::Char('q') | KeyCode::Esc => break,
-                            KeyCode::Right | KeyCode::Char('l') => {
-                                if index < max_index {
-                                    index += 1;
-                                }
-                            }
-                            KeyCode::Left | KeyCode::Char('h') => {
-                                index = index.saturating_sub(1);
-                            }
-                            _ => {}
+                        if let Some(new_index) = handle_key(key.code, index, max_index) {
+                            index = new_index;
+                        } else {
+                            // Quit signal
+                            break;
                         }
                     }
                 }
@@ -218,6 +212,21 @@ mod tui {
         terminal.show_cursor()?;
 
         Ok(())
+    }
+
+    pub(super) fn handle_key(code: KeyCode, current: usize, max: usize) -> Option<usize> {
+        match code {
+            KeyCode::Char('q') | KeyCode::Esc => None, // Signal to quit
+            KeyCode::Right | KeyCode::Char('l') => {
+                if current < max {
+                    Some(current + 1)
+                } else {
+                    Some(current)
+                }
+            }
+            KeyCode::Left | KeyCode::Char('h') => Some(current.saturating_sub(1)),
+            _ => Some(current),
+        }
     }
 
     fn ui(f: &mut Frame, snapshot: &Snapshot, index: usize, total: usize) {
@@ -448,5 +457,29 @@ mod tests {
         assert!(content.contains("TestWord"), "Trigger word missing");
         assert!(content.contains("Subject (Nom)"), "Subject label missing");
         assert!(content.contains("Verb"), "Verb label missing");
+    }
+
+    #[test]
+    #[cfg(feature = "nova")]
+    fn test_tui_key_handling() {
+        use crossterm::event::KeyCode;
+        use crate::experimental::theatro::tui::handle_key;
+
+        // Test navigation
+        assert_eq!(handle_key(KeyCode::Right, 0, 10), Some(1));
+        assert_eq!(handle_key(KeyCode::Char('l'), 0, 10), Some(1));
+        assert_eq!(handle_key(KeyCode::Left, 1, 10), Some(0));
+        assert_eq!(handle_key(KeyCode::Char('h'), 1, 10), Some(0));
+
+        // Test boundaries
+        assert_eq!(handle_key(KeyCode::Right, 10, 10), Some(10)); // Max
+        assert_eq!(handle_key(KeyCode::Left, 0, 10), Some(0)); // Min
+
+        // Test quit
+        assert_eq!(handle_key(KeyCode::Char('q'), 5, 10), None);
+        assert_eq!(handle_key(KeyCode::Esc, 5, 10), None);
+
+        // Test ignore
+        assert_eq!(handle_key(KeyCode::Char('a'), 5, 10), Some(5));
     }
 }
