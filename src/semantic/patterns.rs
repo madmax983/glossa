@@ -197,7 +197,7 @@ pub fn try_parse_struct_instantiation(
 
             // Check for built-in collection types first (HashSet, HashMap)
             if let Some((rust_type, glossa_type)) =
-                crate::semantic::types::detect_collection_type(type_name)
+                crate::semantic::detect_collection_type(type_name)
             {
                 let collection_new = AnalyzedExpr {
                     expr: AnalyzedExprKind::CollectionNew {
@@ -866,7 +866,7 @@ fn extract_comparison_value(asm_stmt: &AssembledStatement) -> AnalyzedExpr {
     } else if let Some(literal) = asm_stmt.literals.first() {
         // Literal comparison: πέντε μείζονα = "greater than five"
         let value = match literal {
-            crate::semantic::assembled::Literal::Number(n) => *n,
+            crate::semantic::Literal::Number(n) => *n,
             _ => 0,
         };
         AnalyzedExpr {

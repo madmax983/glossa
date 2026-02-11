@@ -47,8 +47,7 @@
 //! }
 //! ```
 
-use crate::codegen::types::to_rust_type;
-use crate::codegen::utils::{capitalize, sanitize_name};
+use crate::codegen::utils::{capitalize, sanitize_name, to_rust_type};
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedProgram, AnalyzedStatement,

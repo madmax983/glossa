@@ -62,3 +62,18 @@
 **Bloat:** Wrapper function `parse_clause_as_mini_statement` in `src/semantic/control_flow.rs` used only locally.
 **Cut:** Inlined into 4 call sites.
 **Saved:** Removed unnecessary abstraction (~10 lines).
+
+## [Reduction]
+**Bloat:** `src/semantic/assembled.rs` contained structs used only by `src/semantic/assembler.rs`.
+**Cut:** Merged `assembled.rs` into `assembler.rs`.
+**Saved:** Reduced file count and improved locality of reference.
+
+## [Reduction]
+**Bloat:** `src/codegen/types.rs` contained small utility functions and dead code.
+**Cut:** Merged `to_rust_type` into `src/codegen/utils.rs` and deleted `to_rust_ownership` (dead code).
+**Saved:** Removed a tiny module and dead code.
+
+## [Reduction]
+**Bloat:** `src/semantic/types.rs` defined `GlossaType` separate from `src/semantic/model.rs` which used it.
+**Cut:** Merged `types.rs` into `model.rs`.
+**Saved:** Consolidated semantic data model definition into a single file.

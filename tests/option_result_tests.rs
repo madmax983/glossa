@@ -6,7 +6,7 @@
 /// - τί (ti) → Some
 /// - ἐπιτυχία (epitychia) → Ok
 /// - σφάλμα (sphalma) → Err
-use glossa::codegen::types::to_rust_type;
+use glossa::codegen::to_rust_type;
 use glossa::semantic::GlossaType;
 
 /// Helper to compile GLOSSA source to Rust code
