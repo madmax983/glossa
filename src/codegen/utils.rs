@@ -211,4 +211,48 @@ mod tests {
             "Mixed alpha should not collide"
         );
     }
+
+    #[test]
+    fn test_transliterate_underscore() {
+        // _ maps to __
+        assert_eq!(transliterate("_"), "__");
+        assert_eq!(transliterate("a_b"), "a__b");
+    }
+
+    #[test]
+    fn test_transliterate_ascii_u() {
+        // u maps to u (ensure no collision with hex prefix _u)
+        assert_eq!(transliterate("u"), "u");
+        // Check collision with hypothetical hex code
+        // Koppa (ϟ) -> _u3df_
+        // "u3df" -> u3df
+        assert_ne!(transliterate("ϟ"), transliterate("u3df"));
+        // "_u3df_" -> __u3df__
+        assert_ne!(transliterate("ϟ"), transliterate("_u3df_"));
+    }
+
+    #[test]
+    fn test_transliterate_invalid_unicode() {
+        // ⚡ (High Voltage) -> _u26a1_
+        // 26A1 is the hex code
+        assert_eq!(transliterate("⚡"), "_u26a1_");
+    }
+
+    #[test]
+    fn test_sanitize_empty() {
+        assert_eq!(sanitize_name(""), "g__var_empty");
+    }
+
+    #[test]
+    fn test_sanitize_numeric_start() {
+        // "123" -> "_123" (via transliterate logic at end of function)
+        // sanitize_name prefixes with g_, so g_ + _123 = g__123
+        // Wait, sanitize_name calls transliterate.
+        // transliterate("123"):
+        //   result = "123".
+        //   result starts with numeric -> returns "_123".
+        // sanitize_name adds "g_".
+        // So "g__123".
+        assert_eq!(sanitize_name("123"), "g__123");
+    }
 }
