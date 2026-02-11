@@ -157,6 +157,10 @@ mod tests {
 
         // Sampi
         assert_eq!(parse_greek_numeral("\u{03E1}ʹ").unwrap(), 900);
+        assert_eq!(parse_greek_numeral("\u{03E0}ʹ").unwrap(), 900); // Sampi alt
+
+        // Keraia alt (U+02B9)
+        assert_eq!(parse_greek_numeral("α\u{02B9}").unwrap(), 1);
     }
 
     #[test]

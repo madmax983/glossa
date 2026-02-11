@@ -94,3 +94,36 @@ fn test_greek_numerals_mixed() {
     };
     assert_eq!(val, 2024);
 }
+
+#[test]
+fn test_arabic_fallback() {
+    // 42 λέγε.
+    let source = "42 λέγε.";
+    let program = parse_source(source).unwrap();
+
+    let Statement::Regular { clauses, .. } = &program.statements[0] else {
+        panic!("Expected Regular Statement");
+    };
+
+    let Expr::Phrase(terms) = &clauses[0].expressions[0] else {
+        panic!("Expected Phrase");
+    };
+
+    let Expr::NumberLiteral(val) = terms[0] else {
+        panic!("Expected NumberLiteral");
+    };
+    assert_eq!(val, 42);
+}
+
+#[test]
+fn test_invalid_greek_logic() {
+    // \u{0300}ʹ is a valid Greek char sequence in grammar (Combining Grave + Keraia)
+    // But parse_greek_numeral returns error ("Empty or invalid numeral")
+    // This tests the map_err path in parse_number_literal
+    let source = "\u{0300}ʹ λέγε.";
+    let result = parse_source(source);
+
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(format!("{}", err).contains("Invalid number"));
+}
