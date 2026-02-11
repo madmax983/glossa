@@ -6,6 +6,8 @@
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use std::fmt::Display;
+use std::path::PathBuf;
+use std::time::Duration;
 
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 
@@ -316,6 +318,77 @@ impl Display for GlossaReport<'_> {
     }
 }
 
+/// A comprehensive report for the compilation process
+pub struct CompilationReport {
+    pub input_path: PathBuf,
+    pub output_path: PathBuf,
+    pub input_size: u64,
+    pub output_size: u64,
+    pub duration: Duration,
+    pub stats: ProgramStats,
+}
+
+impl Display for CompilationReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL).set_header(vec![
+            Cell::new("Μετρική (Metric)")
+                .add_attribute(comfy_table::Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("Τιμή (Value)").add_attribute(comfy_table::Attribute::Bold),
+        ]);
+
+        // Input File
+        table.add_row(vec![
+            Cell::new("Εἴσοδος (Input)"),
+            Cell::new(self.input_path.display().to_string()).fg(Color::Yellow),
+        ]);
+
+        // Output File
+        table.add_row(vec![
+            Cell::new("Ἔξοδος (Output)"),
+            Cell::new(self.output_path.display().to_string()).fg(Color::Green),
+        ]);
+
+        // Time
+        table.add_row(vec![
+            Cell::new("Χρόνος (Time)"),
+            Cell::new(format!("{:.2?}", self.duration)),
+        ]);
+
+        // Sizes
+        table.add_row(vec![
+            Cell::new("Μέγεθος Εἰσόδου (Input Size)"),
+            Cell::new(format!("{} bytes", self.input_size)),
+        ]);
+        table.add_row(vec![
+            Cell::new("Μέγεθος Ἐξόδου (Output Size)"),
+            Cell::new(format!("{} bytes", self.output_size)),
+        ]);
+
+        // Stats summary
+        table.add_row(vec![
+            Cell::new("Προτάσεις (Statements)"),
+            Cell::new(self.stats.statement_count),
+        ]);
+        table.add_row(vec![
+            Cell::new("Συναρτήσεις (Functions)"),
+            Cell::new(self.stats.function_count),
+        ]);
+
+        writeln!(
+            f,
+            "\n{}",
+            "ΑΝΑΦΟΡΑ ΜΕΤΑΓΛΩΤΤΙΣΕΩΣ (COMPILATION REPORT)"
+                .bold()
+                .underlined()
+        )?;
+        writeln!(f, "{}", table)?;
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -381,6 +454,30 @@ mod tests {
         assert!(output.contains("test.gl"));
         assert!(output.contains("test_func")); // Function list
         assert!(output.contains("3")); // Statement count
+    }
+
+    #[test]
+    fn test_compilation_report_coverage() {
+        let program = create_dummy_program();
+        let stats = ProgramStats::new(&program);
+        let report = CompilationReport {
+            input_path: PathBuf::from("input.gl"),
+            output_path: PathBuf::from("output.rs"),
+            input_size: 100,
+            output_size: 200,
+            duration: Duration::from_millis(123),
+            stats,
+        };
+
+        let output = format!("{}", report);
+
+        assert!(output.contains("ΑΝΑΦΟΡΑ ΜΕΤΑΓΛΩΤΤΙΣΕΩΣ"));
+        assert!(output.contains("input.gl"));
+        assert!(output.contains("output.rs"));
+        assert!(output.contains("123")); // Time
+        assert!(output.contains("100 bytes")); // Input size
+        assert!(output.contains("200 bytes")); // Output size
+        assert!(output.contains("3")); // Statements
     }
 
     #[test]
