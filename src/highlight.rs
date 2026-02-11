@@ -806,4 +806,17 @@ mod tests {
         // Check for *some* coloring (at least [3...m)
         assert!(output_adj.contains("\x1b[3"));
     }
+
+    #[test]
+    fn test_highlight_dative() {
+        // τῷ ἀνθρώπῳ (Dative)
+        // This is mainly to cover the Dative branch in highlight_word
+        let source = "τῷ ἀνθρώπῳ δίδωμι."; // I give to the man
+        let result = highlight(source);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("ἀνθρώπῳ"));
+        // Check for some ANSI color code (start of sequence)
+        assert!(output.contains("\x1b["));
+    }
 }

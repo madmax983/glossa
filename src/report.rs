@@ -479,19 +479,89 @@ mod tests {
                 return_type: None,
                 body: vec![AnalyzedStatement::Break, AnalyzedStatement::Continue],
             },
-            // Expression Statement with Unwrap and Assert
-            AnalyzedStatement::Expression(vec![AnalyzedExpr {
-                expr: AnalyzedExprKind::Assert {
-                    condition: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::BooleanLiteral(true),
+            // Expression Statement with Unwrap, Assert, and other expressions
+            AnalyzedStatement::Expression(vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Assert {
+                        condition: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
+                                expr: AnalyzedExprKind::BooleanLiteral(true),
+                                glossa_type: GlossaType::Boolean,
+                            })),
                             glossa_type: GlossaType::Boolean,
-                        })),
-                        glossa_type: GlossaType::Boolean,
-                    }),
+                        }),
+                    },
+                    glossa_type: GlossaType::Unit,
                 },
-                glossa_type: GlossaType::Unit,
-            }]),
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::IndexAccess {
+                        array: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::ArrayLiteral(vec![]),
+                            glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
+                        }),
+                        index: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(0),
+                            glossa_type: GlossaType::Number,
+                        }),
+                    },
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::StructInstantiation {
+                        type_name: "MyStruct".into(),
+                        fields: vec![],
+                        args: vec![],
+                    },
+                    glossa_type: GlossaType::Unknown,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::MethodCall {
+                        receiver: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(1),
+                            glossa_type: GlossaType::Number,
+                        }),
+                        method: "abs".into(),
+                        args: vec![],
+                    },
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::TraitMethodCall {
+                        receiver: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(1),
+                            glossa_type: GlossaType::Number,
+                        }),
+                        trait_name: "Num".into(),
+                        method_name: "abs".into(),
+                        args: vec![],
+                    },
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Lambda {
+                        params: vec![],
+                        body: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(1),
+                            glossa_type: GlossaType::Number,
+                        }),
+                        capture_mode: crate::semantic::CaptureMode::Borrow,
+                    },
+                    glossa_type: GlossaType::Unknown,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::AssertEq {
+                        left: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(1),
+                            glossa_type: GlossaType::Number,
+                        }),
+                        right: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(1),
+                            glossa_type: GlossaType::Number,
+                        }),
+                    },
+                    glossa_type: GlossaType::Unit,
+                },
+            ]),
         ];
 
         let program = AnalyzedProgram { statements, scope };
