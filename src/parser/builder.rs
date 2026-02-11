@@ -782,7 +782,10 @@ mod tests {
         source.push('.');
 
         let result = check_recursion_depth(&source);
-        assert!(matches!(result, Err(ParseError::RecursionLimitExceeded(500))));
+        assert!(matches!(
+            result,
+            Err(ParseError::RecursionLimitExceeded(500))
+        ));
     }
 
     #[test]
