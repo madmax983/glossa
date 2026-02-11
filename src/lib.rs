@@ -37,7 +37,6 @@
 //! * [`ast`]: Abstract Syntax Tree definitions.
 //! * [`codegen`]: Rust code generation logic.
 //! * [`errors`]: Greek-native error messages and diagnostics.
-//! * [`experimental`]: Nova features (e.g., Greek Numerals).
 //! * [`grammar`]: PEG parser.
 //! * [`highlight`]: Semantic syntax highlighting.
 //! * [`morphology`]: Word analysis, lexicon, and participle parsing.

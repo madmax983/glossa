@@ -84,12 +84,7 @@ pub fn parse_greek_numeral(text: &str) -> Result<i64, String> {
                     'ψ' => 700,
                     'ω' => 800,
                     '\u{03E0}' | '\u{03E1}' => 900, // Sampi (03E0 / 03E1)
-                    _ => {
-                        return Err(format!(
-                            "Invalid Greek numeral character: {} (U+{:04X})",
-                            c, c as u32
-                        ));
-                    }
+                    _ => return Err(format!("Invalid Greek numeral character: {} (U+{:04X})", c, c as u32)),
                 };
 
                 total += value * multiplier;
@@ -161,6 +156,8 @@ mod tests {
 
         // Keraia alt (U+02B9)
         assert_eq!(parse_greek_numeral("α\u{02B9}").unwrap(), 1);
+        // Dexia Keraia (U+0374)
+        assert_eq!(parse_greek_numeral("α\u{0374}").unwrap(), 1);
     }
 
     #[test]
@@ -174,5 +171,27 @@ mod tests {
         // 20 = κ
         // 4 = δ
         assert_eq!(parse_greek_numeral("͵βκδʹ").unwrap(), 2024);
+    }
+
+    #[test]
+    fn test_full_coverage() {
+        // Test every single character mapping to ensure 100% coverage
+        let mappings = [
+            ("α", 1), ("β", 2), ("γ", 3), ("δ", 4), ("ε", 5),
+            ("\u{03DB}", 6), ("ς", 6), // Stigma
+            ("ζ", 7), ("η", 8), ("θ", 9),
+            ("ι", 10), ("κ", 20), ("λ", 30), ("μ", 40), ("ν", 50),
+            ("ξ", 60), ("ο", 70), ("π", 80),
+            ("\u{03D9}", 90), ("\u{03DF}", 90), // Koppa
+            ("ρ", 100), ("σ", 200), ("τ", 300), ("υ", 400), ("φ", 500),
+            ("χ", 600), ("ψ", 700), ("ω", 800),
+            ("\u{03E0}", 900), ("\u{03E1}", 900) // Sampi
+        ];
+
+        for (char_str, expected) in mappings {
+            // Test with standard keraia
+            let input = format!("{}ʹ", char_str);
+            assert_eq!(parse_greek_numeral(&input).unwrap(), expected, "Failed for {}", char_str);
+        }
     }
 }
