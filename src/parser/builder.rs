@@ -56,7 +56,7 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
                 inner.as_rule()
             ))),
         },
-        None => Err(ParseError::UnexpectedRule("Empty statement".to_string())),
+        None => panic!("Grammar guarantees statement has content"),
     }
 }
 
@@ -120,12 +120,8 @@ fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, ParseError> {
         }
     }
 
-    if type_name.is_none() {
-        return Err(ParseError::unexpected("Type definition needs a name"));
-    }
-
     Ok(TypeDef {
-        name: type_name.unwrap(),
+        name: type_name.expect("Grammar guarantees type name"),
         fields,
     })
 }
@@ -144,10 +140,10 @@ fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, ParseError
 
     // fieldname typename_genitive
     if words.len() != 2 {
-        return Err(ParseError::unexpected(format!(
-            "Field declaration needs exactly 2 words, got {}",
+        panic!(
+            "Grammar guarantees exactly 2 words for field declaration, got {}",
             words.len()
-        )));
+        );
     }
 
     Ok(FieldDecl {
@@ -180,12 +176,8 @@ fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> 
         }
     }
 
-    if trait_name.is_none() {
-        return Err(ParseError::unexpected("Trait definition needs a name"));
-    }
-
     Ok(TraitDef {
-        name: trait_name.unwrap(),
+        name: trait_name.expect("Grammar guarantees trait name"),
         methods,
     })
 }
@@ -245,7 +237,7 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseErro
     // words[0] = method name
     // words[1..] = parameters (τῷ self, τῷ other, etc.)
     if words.is_empty() {
-        return Err(ParseError::unexpected("Trait method needs at least a name"));
+        panic!("Grammar guarantees trait method has a name");
     }
 
     let method_name = words[0].clone();
@@ -297,15 +289,9 @@ fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, ParseError> {
         }
     }
 
-    if type_name.is_none() || trait_name.is_none() {
-        return Err(ParseError::unexpected(
-            "Trait impl needs type and trait names",
-        ));
-    }
-
     Ok(TraitImplDef {
-        type_name: type_name.unwrap(),
-        trait_name: trait_name.unwrap(),
+        type_name: type_name.expect("Grammar guarantees type name"),
+        trait_name: trait_name.expect("Grammar guarantees trait name"),
         methods,
     })
 }
@@ -345,12 +331,8 @@ fn build_test_declaration(pair: Pair<'_, Rule>) -> Result<TestDecl, ParseError> 
         }
     }
 
-    if test_name.is_none() {
-        return Err(ParseError::unexpected("Test declaration needs a name"));
-    }
-
     Ok(TestDecl {
-        name: test_name.unwrap(),
+        name: test_name.expect("Grammar guarantees test name"),
         body,
     })
 }
@@ -378,7 +360,7 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> 
     // words[0] = method name
     // words[1..] = parameters (τῷ self, τῷ other, etc.)
     if words.is_empty() {
-        return Err(ParseError::unexpected("Impl method needs at least a name"));
+        panic!("Grammar guarantees impl method has a name");
     }
 
     let method_name = words[0].clone();
@@ -519,7 +501,7 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             build_expression(expr_pair)
         }
         Rule::unwrap_expr => build_unwrap_expr(inner),
-        _ => Err(ParseError::unexpected(format!("{:?}", inner.as_rule()))),
+        _ => panic!("Grammar guarantees term is valid: {:?}", inner.as_rule()),
     }
 }
 
@@ -531,7 +513,10 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
         Rule::number_literal => build_number_literal(inner),
         Rule::boolean_literal => build_boolean_literal(inner),
         Rule::greek_word => build_greek_word(inner),
-        _ => Err(ParseError::unexpected(format!("{:?}", inner.as_rule()))),
+        _ => panic!(
+            "Grammar guarantees array element is valid: {:?}",
+            inner.as_rule()
+        ),
     }
 }
 
@@ -856,5 +841,33 @@ mod tests {
         } else {
             panic!("Expected TraitDefinition");
         }
+    }
+
+    #[test]
+    fn test_parse_propagate() {
+        // Test "ξ;" which should be parsed as a statement with is_propagate = true
+        // The grammar allows "greek_word ~ propagate" as "clause ~ statement_end"
+        // provided clause -> expression -> term -> greek_word
+        let source = "ξ;";
+        let ast = parse_source(source).unwrap();
+        assert!(ast.statements[0].is_propagate());
+    }
+
+    #[test]
+    fn test_check_recursion_depth_unterminated_string() {
+        // Unterminated string should not loop infinitely
+        let source = "«χαῖρε";
+        // It's valid to check recursion depth on invalid syntax (it just shouldn't hang)
+        // It should return Ok because no depth limit exceeded, even if parse will fail later
+        let result = check_recursion_depth(source);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_check_recursion_depth_unterminated_comment() {
+        // Unterminated comment should not loop infinitely
+        let source = "// χαῖρε";
+        let result = check_recursion_depth(source);
+        assert!(result.is_ok());
     }
 }
