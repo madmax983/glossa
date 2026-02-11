@@ -410,4 +410,68 @@ mod tests {
         let msg = gender_mismatch("μεγάλη", Gender::Feminine, "χρήστος", Gender::Masculine);
         assert!(msg.contains("οὐ συμφωνεῖ"));
     }
+
+    #[test]
+    fn test_number_mismatch_message() {
+        let msg = number_mismatch("ἄνθρωπος", Number::Singular, "λέγουσι", Number::Plural);
+        assert!(msg.contains("οὐ συμφωνεῖ"));
+        assert!(msg.contains("ἑνικός"));
+        assert!(msg.contains("πληθυντικός"));
+    }
+
+    #[test]
+    fn test_case_mismatch_message() {
+        let msg = case_mismatch("ἄνθρωπος", Case::Nominative, "λόγον", Case::Accusative);
+        assert!(msg.contains("οὐ συμφωνεῖ"));
+        assert!(msg.contains("ὀνομαστική"));
+        assert!(msg.contains("αἰτιατική"));
+    }
+
+    #[test]
+    fn test_immutable_assignment_message() {
+        let msg = immutable_assignment("π");
+        assert!(msg.contains("ἀμετάβλητόν ἐστιν"));
+        assert!(msg.contains("π"));
+    }
+
+    #[test]
+    fn test_parse_with_source() {
+        let span = (0, 5).into();
+        let err = GlossaError::parse_with_source("error", "source", span);
+        if let GlossaError::ParseError {
+            message,
+            src,
+            span: s,
+        } = err
+        {
+            assert_eq!(message, "error");
+            assert_eq!(src, "source");
+            assert!(s.is_some());
+        } else {
+            panic!("Expected ParseError");
+        }
+    }
+
+    #[test]
+    fn test_error_constructors() {
+        let semantic = GlossaError::semantic("msg");
+        assert!(matches!(semantic, GlossaError::SemanticError { .. }));
+        assert_eq!(semantic.category_greek(), "Σημασία");
+
+        let type_err = GlossaError::type_error("msg");
+        assert!(matches!(type_err, GlossaError::TypeError { .. }));
+        assert_eq!(type_err.category_greek(), "Τύπος");
+
+        let agreement = GlossaError::agreement("msg");
+        assert!(matches!(agreement, GlossaError::AgreementError { .. }));
+        assert_eq!(agreement.category_greek(), "Συμφωνία");
+
+        let codegen = GlossaError::codegen("msg");
+        assert!(matches!(codegen, GlossaError::CodegenError { .. }));
+        assert_eq!(codegen.category_greek(), "Κῶδιξ");
+
+        let io = GlossaError::io("msg");
+        assert!(matches!(io, GlossaError::IoError { .. }));
+        assert_eq!(io.category_greek(), "Ἀρχεῖον");
+    }
 }

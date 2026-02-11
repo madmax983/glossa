@@ -160,14 +160,8 @@ fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, ParseError> {
         }
     }
 
-    if type_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Type definition needs a name".to_string(),
-        ));
-    }
-
     Ok(TypeDef {
-        name: type_name.unwrap(),
+        name: type_name.expect("Grammar guarantees type name"),
         fields,
     })
 }
@@ -184,14 +178,7 @@ fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, ParseError
         }
     }
 
-    // fieldname typename_genitive
-    if words.len() != 2 {
-        return Err(ParseError::UnexpectedRule(format!(
-            "Field declaration needs exactly 2 words, got {}",
-            words.len()
-        )));
-    }
-
+    // fieldname typename_genitive - Grammar guarantees 2 words
     Ok(FieldDecl {
         name: words[0].clone(),
         type_name: words[1].clone(),
@@ -222,14 +209,8 @@ fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> 
         }
     }
 
-    if trait_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Trait definition needs a name".to_string(),
-        ));
-    }
-
     Ok(TraitDef {
-        name: trait_name.unwrap(),
+        name: trait_name.expect("Grammar guarantees trait name"),
         methods,
     })
 }
@@ -287,12 +268,6 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseErro
 
     // words[0] = method name
     // words[1..] = parameters (τῷ self, τῷ other, etc.)
-    if words.is_empty() {
-        return Err(ParseError::UnexpectedRule(
-            "Trait method needs at least a name".to_string(),
-        ));
-    }
-
     let method_name = words[0].clone();
 
     // Parse parameters (skip method name)
@@ -342,15 +317,9 @@ fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, ParseError> {
         }
     }
 
-    if type_name.is_none() || trait_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Trait impl needs type and trait names".to_string(),
-        ));
-    }
-
     Ok(TraitImplDef {
-        type_name: type_name.unwrap(),
-        trait_name: trait_name.unwrap(),
+        type_name: type_name.expect("Grammar guarantees type name"),
+        trait_name: trait_name.expect("Grammar guarantees trait name"),
         methods,
     })
 }
@@ -390,14 +359,8 @@ fn build_test_declaration(pair: Pair<'_, Rule>) -> Result<TestDecl, ParseError> 
         }
     }
 
-    if test_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Test declaration needs a name".to_string(),
-        ));
-    }
-
     Ok(TestDecl {
-        name: test_name.unwrap(),
+        name: test_name.expect("Grammar guarantees test name"),
         body,
     })
 }
@@ -424,12 +387,6 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> 
 
     // words[0] = method name
     // words[1..] = parameters (τῷ self, τῷ other, etc.)
-    if words.is_empty() {
-        return Err(ParseError::UnexpectedRule(
-            "Impl method needs at least a name".to_string(),
-        ));
-    }
-
     let method_name = words[0].clone();
 
     // Parse parameters (skip method name)
@@ -852,5 +809,19 @@ mod tests {
         ";
         let ast = parse(source).unwrap();
         assert_eq!(ast.statements.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_invalid_syntax() {
+        // Invalid syntax: missing period
+        let source = "«χαῖρε» λέγε";
+        let result = parse(source);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::ParseError { message, .. } => {
+                assert!(!message.is_empty());
+            }
+            _ => panic!("Expected ParseError"),
+        }
     }
 }
