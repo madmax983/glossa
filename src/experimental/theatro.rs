@@ -221,6 +221,10 @@ mod tui {
     }
 
     fn ui(f: &mut Frame, snapshot: &Snapshot, index: usize, total: usize) {
+        draw_ui(f, snapshot, index, total);
+    }
+
+    pub(super) fn draw_ui(f: &mut Frame, snapshot: &Snapshot, index: usize, total: usize) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -344,5 +348,105 @@ mod tests {
         assert!(last.statement.subject.is_some());
         assert!(last.statement.object.is_some());
         assert!(last.statement.verb.is_some());
+    }
+
+    #[test]
+    fn test_rehearse_literals() {
+        let source = "42 λέγε.\n«χαῖρε» λέγε.\nἀληθές λέγε.";
+        let rehearsal = rehearse(source).expect("Failed to rehearse");
+
+        let has_number = rehearsal.snapshots.iter().any(|s| s.description.contains("Fed number '42'"));
+        assert!(has_number, "Should trace number literal");
+
+        let has_string = rehearsal.snapshots.iter().any(|s| s.description.contains("Fed string \"χαῖρε\""));
+        assert!(has_string, "Should trace string literal");
+
+        let has_bool = rehearsal.snapshots.iter().any(|s| s.description.contains("Fed boolean 'true'"));
+        assert!(has_bool, "Should trace boolean literal");
+    }
+
+    #[test]
+    fn test_rehearse_nested_phrases() {
+        // (1) λέγε. -> Nested phrase
+        let source = "(1) λέγε.";
+        let rehearsal = rehearse(source).expect("Failed to rehearse");
+
+        // Should trace the nested expression "1"
+        let has_nested = rehearsal.snapshots.iter().any(|s| s.description.contains("Fed number '1'"));
+        assert!(has_nested, "Should trace nested expression");
+    }
+
+    #[test]
+    fn test_rehearse_error() {
+        // Invalid syntax: Double verb "λέγει γράφει."
+        let source = "λέγει γράφει.";
+        let rehearsal = rehearse(source).expect("Rehearsal should not panic on semantic error");
+
+        // Should contain an error snapshot
+        let has_error = rehearsal.snapshots.iter().any(|s| s.description.contains("Error:"));
+        assert!(has_error, "Should capture semantic error in trace");
+    }
+
+    #[test]
+    #[cfg(feature = "nova")]
+    fn test_tui_rendering() {
+        use ratatui::backend::TestBackend;
+        use ratatui::Terminal;
+        use crate::experimental::theatro::tui::draw_ui;
+
+        // Create a dummy snapshot
+        let stmt = AssembledStatement {
+            subject: Some(crate::semantic::Constituent {
+                lemma: "Subject".into(),
+                original: "Subject".into(),
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                gender: None,
+                person: None,
+            }),
+            verb: Some(crate::semantic::VerbConstituent {
+                lemma: "Verb".into(),
+                original: "Verb".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+
+        let snapshot = Snapshot {
+            statement: stmt,
+            description: "Test Description".to_string(),
+            word: Some("TestWord".to_string()),
+        };
+
+        // Setup test terminal
+        let backend = TestBackend::new(100, 20);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        // Render UI
+        terminal.draw(|f| {
+            draw_ui(f, &snapshot, 0, 10);
+        }).unwrap();
+
+        // Verify content
+        let buffer = terminal.backend().buffer();
+
+        // Convert buffer to string for checking
+        let mut content = String::new();
+        for y in 0..20 {
+            for x in 0..100 {
+                content.push(buffer[(x, y)].symbol().chars().next().unwrap_or(' '));
+            }
+            content.push('\n');
+        }
+
+        assert!(content.contains("Theatro - Step 1/11"), "Header missing");
+        assert!(content.contains("Test Description"), "Description missing");
+        assert!(content.contains("TestWord"), "Trigger word missing");
+        assert!(content.contains("Subject (Nom)"), "Subject label missing");
+        assert!(content.contains("Verb"), "Verb label missing");
     }
 }
