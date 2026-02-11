@@ -821,4 +821,36 @@ mod tests {
         assert_eq!(ast.statements.len(), 1);
         assert_eq!(ast.statements[0].clauses().len(), 2); // Two clauses separated by comma
     }
+
+    #[test]
+    fn test_recursion_limit() {
+        // Create deep nesting > 500
+        let mut source = String::new();
+        for _ in 0..501 {
+            source.push('(');
+        }
+        for _ in 0..501 {
+            source.push(')');
+        }
+        source.push_str(" λέγε.");
+
+        let result = parse(&source);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::ParseError { message, .. } => {
+                assert!(message.contains("Recursion limit exceeded"));
+            }
+            _ => panic!("Expected ParseError"),
+        }
+    }
+
+    #[test]
+    fn test_parse_comment() {
+        let source = "
+        // This is a comment
+        «χαῖρε» λέγε. // Inline comment
+        ";
+        let ast = parse(source).unwrap();
+        assert_eq!(ast.statements.len(), 1);
+    }
 }

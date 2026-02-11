@@ -227,6 +227,25 @@ impl Statement {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_word_new_normalization() {
+        let w = Word::new("Άνθρωπος");
+        assert_eq!(w.original, "Άνθρωπος");
+        assert_eq!(w.normalized, "ανθρωπος");
+    }
+
+    #[test]
+    fn test_word_new_simple() {
+        let w = Word::new("test");
+        assert_eq!(w.original, "test");
+        assert_eq!(w.normalized, "test");
+    }
+}
+
 /// An expression in GLOSSA
 ///
 /// Expressions represent values that can be evaluated.
