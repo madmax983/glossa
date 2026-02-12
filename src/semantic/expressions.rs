@@ -1089,30 +1089,32 @@ mod tests {
 
     #[test]
     fn test_phrase_errors_on_multiple_terms() {
-        let expr = Expr::Phrase(vec![
-            Expr::NumberLiteral(1),
-            Expr::NumberLiteral(2),
-        ]);
+        let expr = Expr::Phrase(vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)]);
         let scope = Scope::new();
         let result = analyze_argument_expr(&expr, &scope);
 
         // This test should fail currently because the code returns Ok(1)
-        assert!(result.is_err(), "Should error on multiple terms in non-function phrase, but got: {:?}", result);
+        assert!(
+            result.is_err(),
+            "Should error on multiple terms in non-function phrase, but got: {:?}",
+            result
+        );
     }
 
     #[test]
     fn test_build_expressions_preserves_literals() {
-        let literals = vec![
-            Literal::Number(1),
-            Literal::Number(2),
-            Literal::Number(3),
-        ];
+        let literals = vec![Literal::Number(1), Literal::Number(2), Literal::Number(3)];
         let operators = vec![crate::morphology::lexicon::BinaryOp::Add];
 
         let exprs = build_expressions_from_literals_and_ops(&literals, &operators);
 
         // This test should fail currently because the code returns [BinOp] (len 1)
-        assert_eq!(exprs.len(), 2, "Should return 2 expressions, got: {:?}", exprs);
+        assert_eq!(
+            exprs.len(),
+            2,
+            "Should return 2 expressions, got: {:?}",
+            exprs
+        );
 
         if let AnalyzedExprKind::NumberLiteral(n) = &exprs[1].expr {
             assert_eq!(*n, 3);
