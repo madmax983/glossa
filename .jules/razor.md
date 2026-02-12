@@ -62,3 +62,8 @@
 **Bloat:** Wrapper function `parse_clause_as_mini_statement` in `src/semantic/control_flow.rs` used only locally.
 **Cut:** Inlined into 4 call sites.
 **Saved:** Removed unnecessary abstraction (~10 lines).
+
+## [Reduction]
+**Bloat:** `src/semantic/assembled.rs` containing DTOs (`AssembledStatement`, `Constituent`) tightly coupled to `src/semantic/assembler.rs`.
+**Cut:** Merged `assembled.rs` into `assembler.rs` and deleted the file.
+**Saved:** Removed 1 file, reduced module indirection, improved cohesion.
