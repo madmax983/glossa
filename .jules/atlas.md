@@ -59,3 +59,11 @@
 2. Updated `src/lib.rs` and `src/main.rs` to use the new module.
 3. Removed `src/experimental`.
 **Stability:** Promotes the Syntax Highlighter to a first-class citizen, flattens the module hierarchy, and removes the unstable `experimental` module.
+
+## [Structuring The Tools: Highlight and Parser Encapsulation]
+**Tangle:** `src/highlight.rs` was a top-level file cluttering the root, and `parser::builder` exposed internal implementation details via `pub mod`.
+**Blueprint:**
+1. Moved `src/highlight.rs` to `src/tools/highlight.rs` and created `src/tools/mod.rs`.
+2. Changed `pub mod builder` to `pub(crate) mod builder` in `src/parser/mod.rs`.
+3. Updated `src/lib.rs` to export `tools` and re-export `highlight` for compatibility.
+**Stability:** Improves module organization by grouping tools and enforcing better encapsulation in the parser module.
