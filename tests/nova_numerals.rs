@@ -1,5 +1,5 @@
+use glossa::ast::{Expr, Statement};
 use glossa::parser::builder::parse_source;
-use glossa::ast::{Statement, Expr};
 
 #[test]
 fn test_greek_numerals_assignment() {
