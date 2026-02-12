@@ -478,4 +478,16 @@ mod tests {
         let none = ReplOutput::None;
         assert_eq!(none.to_string(), "");
     }
+
+    #[test]
+    fn test_repl_execution_save_types() {
+        let mut context = ReplContext::new();
+        // Test function definition (must use ὁρίζειν keyword)
+        let _ = context.execute("λειτουργία Φ(x: Ἀριθμός) -> Ἀριθμός ὁρίζειν { x }.");
+        assert_eq!(context.bindings.len(), 1);
+
+        // Test type definition (should save)
+        let _ = context.execute("εἶδος Τ ὁρίζειν { α Ἀριθμός }.");
+        assert_eq!(context.bindings.len(), 2);
+    }
 }

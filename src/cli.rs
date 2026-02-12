@@ -381,4 +381,56 @@ mod tests {
         assert!(dir.ends_with("cache"));
         assert!(dir.to_string_lossy().contains(".glossa"));
     }
+
+    // Additional coverage tests
+
+    #[test]
+    fn test_run_file_not_found() {
+        let path = PathBuf::from("non_existent_file.gl");
+        let result = run_file(&path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_run_file_compile_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("bad.gl");
+        // Write invalid syntax
+        fs::write(&src, "invalid syntax").unwrap();
+
+        let result = run_file(&src);
+        assert!(result.is_err());
+        // Compile helper returns GlossaError, so it should be mapped
+    }
+
+    #[test]
+    fn test_build_file_compile_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("bad.gl");
+        fs::write(&src, "invalid syntax").unwrap();
+
+        let result = build_file(&src, None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_check_file_compile_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("bad.gl");
+        fs::write(&src, "invalid syntax").unwrap();
+
+        let result = check_file(&src);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_highlight_file_not_found() {
+        // highlight_file reads using fs::read_to_string, which returns IoError if not found.
+        // It converts to miette diagnostic, so it's handled, but check_file_size runs first.
+        // check_file_size will fail first if file doesn't exist.
+        let path = PathBuf::from("non_existent.gl");
+        let result = highlight_file(&path);
+        assert!(result.is_err());
+    }
 }
