@@ -667,8 +667,11 @@ fn process_participles(
             continue;
         }
 
-        // For now, map present middle participles to .map()
-        if participle.voice == crate::morphology::Voice::Middle {
+        // Map Middle and Passive participles to .map()
+        // Passive voice ("being written") is semantically valid for transformation chains
+        if participle.voice == crate::morphology::Voice::Middle
+            || participle.voice == crate::morphology::Voice::Passive
+        {
             // Create a simple lambda based on the verb
             let closure_body = if verb_stem.contains("διπλασιαζ") {
                 // διπλασιαζω = "to double"
