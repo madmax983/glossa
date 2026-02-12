@@ -25,6 +25,7 @@
 //! ```
 
 use super::{Case, Gender, Number, Tense, Voice};
+use std::sync::LazyLock;
 
 /// Result of participle morphological analysis
 #[derive(Debug, Clone, PartialEq)]
@@ -465,6 +466,23 @@ const PERFECT_PASSIVE_PARTICIPLE: &[ParticiplePattern] = &[
     },
 ];
 
+/// Combined and sorted list of all participle patterns
+///
+/// Pre-computed once to avoid allocation and sorting on every call.
+static ALL_PATTERNS: LazyLock<Vec<&'static ParticiplePattern>> = LazyLock::new(|| {
+    let mut patterns = Vec::new();
+    patterns.extend(PRESENT_ACTIVE_PARTICIPLE.iter());
+    patterns.extend(PRESENT_MIDDLE_PARTICIPLE.iter());
+    patterns.extend(AORIST_ACTIVE_PARTICIPLE.iter());
+    patterns.extend(PERFECT_PASSIVE_PARTICIPLE.iter());
+
+    // Sort by ending length (longest first) for greedy matching
+    // This ensures "ομενον" is matched before "ον"
+    patterns.sort_by(|a, b| b.ending.len().cmp(&a.ending.len()));
+
+    patterns
+});
+
 /// Analyze a Greek word as a participle
 ///
 /// Attempts to match the word against known participle ending patterns.
@@ -482,18 +500,7 @@ const PERFECT_PASSIVE_PARTICIPLE: &[ParticiplePattern] = &[
 /// assert_eq!(p.tense, Tense::Present);
 /// ```
 pub fn analyze_participle(word: &str) -> Option<ParticipleAnalysis> {
-    // Combine all pattern tables into a single vector
-    let mut all_patterns: Vec<&ParticiplePattern> = Vec::new();
-    all_patterns.extend(PRESENT_ACTIVE_PARTICIPLE.iter());
-    all_patterns.extend(PRESENT_MIDDLE_PARTICIPLE.iter());
-    all_patterns.extend(AORIST_ACTIVE_PARTICIPLE.iter());
-    all_patterns.extend(PERFECT_PASSIVE_PARTICIPLE.iter());
-
-    // Sort ALL patterns by ending length (longest first) for greedy matching
-    // This ensures "ομενον" is matched before "ον"
-    all_patterns.sort_by(|a, b| b.ending.len().cmp(&a.ending.len()));
-
-    for pattern in all_patterns {
+    for pattern in ALL_PATTERNS.iter() {
         if let Some(stem) = word.strip_suffix(pattern.ending) {
             // Stem must not be empty
             if stem.is_empty() {

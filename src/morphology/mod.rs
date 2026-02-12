@@ -19,14 +19,12 @@
 //! Disambiguation uses syntactic context (article agreement, verb agreement) in the
 //! semantic analysis phase.
 
-pub mod case;
 pub mod conjugation;
 pub mod declension;
 pub mod disambiguation;
 pub mod lexicon;
 pub mod participle;
 
-pub use case::*;
 pub use conjugation::*;
 pub use declension::*;
 pub use disambiguation::*;
@@ -251,6 +249,96 @@ pub fn analyses_compatible(a: &MorphAnalysis, b: &MorphAnalysis) -> bool {
     }
 
     true
+}
+
+/// Grammatical case - determines semantic role
+///
+/// In ΓΛΩΣΣΑ:
+/// - Nominative: the subject/agent
+/// - Genitive: possession, property access, borrow (&T)
+/// - Dative: indirect object, recipient, mutable borrow (&mut T)
+/// - Accusative: direct object, function argument, move/ownership
+/// - Vocative: direct address (for error messages)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Case {
+    Nominative,
+    Genitive,
+    Dative,
+    Accusative,
+    Vocative,
+}
+
+/// Grammatical number
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Number {
+    Singular,
+    Plural,
+    // Dual omitted for MVP
+}
+
+/// Grammatical gender
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Gender {
+    Masculine,
+    Feminine,
+    Neuter,
+}
+
+/// Person (for verbs)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Person {
+    First,
+    Second,
+    Third,
+}
+
+/// Tense - encodes aspect/time
+///
+/// In ΓΛΩΣΣΑ:
+/// - Present: streaming/iterative operations
+/// - Aorist: one-shot/complete operations
+/// - Perfect: completed with lasting result
+/// - Imperfect: ongoing past (for async?)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Tense {
+    Present,
+    Imperfect,
+    Future,
+    Aorist,
+    Perfect,
+    Pluperfect,
+}
+
+/// Mood - encodes modality
+///
+/// In ΓΛΩΣΣΑ:
+/// - Indicative: statements of fact, regular execution
+/// - Imperative: commands, top-level expressions
+/// - Subjunctive: conditionals, possibility
+/// - Optative: wishes, optional execution
+/// - Infinitive: non-finite verb form
+/// - Participle: verbal adjective, used for lambdas/closures
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Mood {
+    Indicative,
+    Imperative,
+    Subjunctive,
+    Optative,
+    Infinitive,
+    Participle,
+}
+
+/// Voice - active, middle, passive
+///
+/// In ΓΛΩΣΣΑ:
+/// - Active: regular function calls
+/// - Middle: reflexive/self-affecting (method on self)
+/// - Passive: subject receives action (callback/event handler)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Voice {
+    Active,
+    Middle,
+    Passive,
 }
 
 #[cfg(test)]
