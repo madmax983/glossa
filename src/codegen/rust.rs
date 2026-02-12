@@ -851,6 +851,12 @@ fn generate_closure(
             quote! { |#(#params_idents),*| #body_tokens }
         }
         CaptureMode::Memoize => {
+            // Warden Security Check: Memoization ignores arguments, so it's only safe for 0-arity closures (thunks).
+            // If we allow arguments, we risk caching incorrect results (e.g. f(1) cached, f(2) returns cached f(1)).
+            if !params.is_empty() {
+                panic!("Memoization is only supported for 0-argument closures");
+            }
+
             // Perfect participle: lazy evaluation with caching
             quote! {
                 {

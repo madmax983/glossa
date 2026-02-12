@@ -607,7 +607,8 @@ fn process_participles(
                     // Determine capture mode based on participle tense
                     let capture_mode = match participle.tense {
                         crate::morphology::Tense::Aorist => CaptureMode::Move,
-                        crate::morphology::Tense::Perfect => CaptureMode::Memoize,
+                        // Iterator closures always take arguments, so Memoize is unsafe.
+                        crate::morphology::Tense::Perfect => CaptureMode::Borrow,
                         _ => CaptureMode::Borrow,
                     };
 
@@ -695,7 +696,9 @@ fn process_participles(
 
             let capture_mode = match participle.tense {
                 crate::morphology::Tense::Aorist => CaptureMode::Move,
-                crate::morphology::Tense::Perfect => CaptureMode::Memoize,
+                // Iterator closures always take arguments, so Memoize is unsafe.
+                // Downgrade Perfect tense to Borrow for these operations.
+                crate::morphology::Tense::Perfect => CaptureMode::Borrow,
                 _ => CaptureMode::Borrow,
             };
 
