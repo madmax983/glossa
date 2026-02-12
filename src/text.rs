@@ -26,28 +26,56 @@ use unicode_normalization::UnicodeNormalization;
 /// assert_eq!(normalize_greek("χαῖρε"), "χαιρε");
 /// ```
 pub fn normalize_greek(text: &str) -> SmolStr {
-    // Optimization: If the text contains uppercase characters, use the standard
-    // `to_lowercase()` method which correctly handles Greek final sigma (ς).
-    // This involves an extra allocation but ensures correctness.
-    if text.chars().any(char::is_uppercase) {
-        text.nfd()
-            .filter(|c| !is_greek_diacritic(*c))
-            .collect::<String>()
-            .to_lowercase()
-            .into()
-    } else {
-        // Fast path: If all characters are already lowercase (or non-cased),
-        // we can avoid the intermediate allocation and complex casing logic.
-        // `char::to_lowercase` is sufficient here.
-        let mut s = String::with_capacity(text.len());
-        for c in text.nfd() {
-            if !is_greek_diacritic(c) {
-                for lc in c.to_lowercase() {
-                    s.push(lc);
-                }
-            }
+    let mut needs_decomposition = false;
+
+    // Optimization: Fast scan for characters that require normalization
+    // This avoids all allocation for strings that are already normalized.
+    for c in text.chars() {
+        if c.is_uppercase() {
+            // Tier 2: Uppercase found.
+            // We must use full normalization with lowercasing.
+            // Using `str::to_lowercase` first ensures correct Sigma (Σ -> σ/ς) handling.
+            return text
+                .to_lowercase()
+                .nfd()
+                .filter(|c| !is_greek_diacritic(*c))
+                .collect();
         }
-        s.into()
+
+        if !is_safe_char(c) {
+            // Found a character that is not "safe" (e.g., has diacritics, or is a symbol).
+            // Mark for decomposition but continue scanning for uppercase.
+            needs_decomposition = true;
+        }
+    }
+
+    if needs_decomposition {
+        // Tier 3: No uppercase, but contains potential diacritics.
+        // We can skip the `to_lowercase` allocation since we know it's already lower.
+        return text.nfd().filter(|c| !is_greek_diacritic(*c)).collect();
+    }
+
+    // Tier 1: Text is already clean (lowercase, basic Greek/ASCII).
+    // Zero-copy for small strings (inline), or single allocation for large.
+    SmolStr::new(text)
+}
+
+/// Check if a character is "safe" (likely already normalized)
+/// Safe characters are:
+/// - ASCII characters (except uppercase letters)
+/// - Basic Greek lowercase (α-ω)
+/// - Final Sigma (ς)
+///
+/// Anything else (including diacritics, symbols like «, etc.) is considered "unsafe"
+/// and triggers the decomposition path to ensure correctness.
+#[inline]
+fn is_safe_char(c: char) -> bool {
+    if c.is_ascii() {
+        !c.is_ascii_uppercase()
+    } else {
+        // Greek lowercase block: 0x03B1 (α) to 0x03C9 (ω)
+        // Final sigma: 0x03C2 (ς)
+        ('\u{03B1}'..='\u{03C9}').contains(&c) || c == '\u{03C2}'
     }
 }
 
