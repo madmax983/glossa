@@ -213,12 +213,21 @@ pub enum Expr {
     NumberLiteral(i64),
 
     /// A boolean literal: ἀληθές or ψεῦδος
+    ///
+    /// # Example
+    /// `ἀληθές` (True), `ψεῦδος` (False)
     BooleanLiteral(bool),
 
     /// An array literal: `[1, 2, 3]`
+    ///
+    /// # Example
+    /// `[1, 2, 3]`
     ArrayLiteral(Vec<Expr>),
 
     /// Index access: `array[index]`
+    ///
+    /// # Example
+    /// `πίναξ[0]`
     IndexAccess { array: Box<Expr>, index: Box<Expr> },
 
     /// A single Greek word with morphological information
@@ -226,12 +235,17 @@ pub enum Expr {
     /// This is the most basic building block. The semantic analyzer uses
     /// the morphological information to determine if this word is a
     /// variable, a keyword, or part of a larger phrase.
+    ///
+    /// Unlike [`Phrase`](Expr::Phrase), a `Word` has been parsed as a single unit.
     Word(Word),
 
     /// Multiple terms forming a phrase
     ///
     /// Phrases are sequences of words that haven't been fully parsed into
-    /// specific grammatical structures yet.
+    /// specific grammatical structures yet (e.g. parenthesized expressions).
+    ///
+    /// # Example
+    /// `(ὁ ἄνθρωπος)`
     Phrase(Vec<Expr>),
 
     /// A property access (genitive construction)

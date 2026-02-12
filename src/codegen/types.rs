@@ -1,11 +1,51 @@
 //! Type generation for Rust
 //!
-//! Handles the conversion of semantic types to Rust types.
+//! This module handles the conversion of Semantic types ([`GlossaType`]) to their Rust equivalents.
+//!
+//! It provides the bridge between the high-level semantic analysis (where types are represented
+//! by Greek concepts like `ἀριθμός` or `ὄνομα`) and the low-level code generation (which outputs
+//! Rust `i64` or `String`).
+//!
+//! # Mapping Strategy
+//!
+//! | ΓΛΩΣΣΑ Type | Rust Type | Notes |
+//! |-------------|-----------|-------|
+//! | `ἀριθμός` | `i64` | 64-bit signed integer |
+//! | `ὄνομα` | `String` | Heap-allocated UTF-8 string |
+//! | `ἀληθές/ψεῦδος` | `bool` | Boolean |
+//! | `λίστη` | `Vec<T>` | Dynamic array |
+//! | `εὑρεθείη` | `Option<T>` | Optional value |
+//! | `ἀποτέλεσμα` | `Result<T, E>` | Success or Error |
 
 use crate::codegen::utils::{capitalize, sanitize_name};
-use crate::semantic::{GlossaType, Ownership};
+use crate::semantic::GlossaType;
 
 /// Convert a Glossa type to its Rust equivalent string
+///
+/// This function recursively traverses complex types (like `Vec<Option<i64>>`)
+/// and produces a string that is valid Rust syntax.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::codegen::types::to_rust_type;
+/// use glossa::semantic::GlossaType;
+///
+/// // Simple types
+/// assert_eq!(to_rust_type(&GlossaType::Number), "i64");
+/// assert_eq!(to_rust_type(&GlossaType::String), "String");
+///
+/// // Complex nested types
+/// let list_of_numbers = GlossaType::List(Box::new(GlossaType::Number));
+/// assert_eq!(to_rust_type(&list_of_numbers), "Vec<i64>");
+///
+/// // Result types
+/// let result_type = GlossaType::Result(
+///     Box::new(GlossaType::Number),
+///     Box::new(GlossaType::String)
+/// );
+/// assert_eq!(to_rust_type(&result_type), "Result<i64, String>");
+/// ```
 pub fn to_rust_type(ty: &GlossaType) -> String {
     match ty {
         GlossaType::Number => "i64".to_string(),
@@ -25,16 +65,6 @@ pub fn to_rust_type(ty: &GlossaType) -> String {
         // TODO: Better representation for function types if they appear in type signatures
         GlossaType::Function { .. } => "fn".to_string(),
         GlossaType::Unknown => "_".to_string(),
-    }
-}
-
-/// Convert ownership mode to Rust reference prefix
-pub fn to_rust_ownership(ownership: &Ownership) -> &'static str {
-    match ownership {
-        Ownership::Move => "",
-        Ownership::Borrow => "&",
-        Ownership::BorrowMut => "&mut ",
-        Ownership::Copy => "",
     }
 }
 
@@ -93,13 +123,5 @@ mod tests {
         // Sanitize: χρηστης -> g__u3c7_rhsths
         // Capitalize: g__u3c7_rhsths -> G__u3c7_rhsths
         assert_eq!(to_rust_type(&ty), "G__u3c7_rhsths");
-    }
-
-    #[test]
-    fn test_ownership() {
-        assert_eq!(to_rust_ownership(&Ownership::Move), "");
-        assert_eq!(to_rust_ownership(&Ownership::Borrow), "&");
-        assert_eq!(to_rust_ownership(&Ownership::BorrowMut), "&mut ");
-        assert_eq!(to_rust_ownership(&Ownership::Copy), "");
     }
 }
