@@ -194,8 +194,7 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     check_file_size(input)?;
 
     let source = fs::read_to_string(input).into_diagnostic()?;
-    let highlighted =
-        crate::highlight::highlight(&source).map_err(|e| miette::miette!("{}", e))?;
+    let highlighted = crate::highlight::highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", highlighted);
 
@@ -320,5 +319,66 @@ mod tests {
                 .to_string()
                 .contains("Ἀρχεῖον λίαν μέγα")
         );
+    }
+
+    #[test]
+    fn test_cache_key_determinism() {
+        // Use a file that exists to ensure canonicalize works
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("test.gl");
+        fs::write(&path, "content").unwrap();
+
+        let key1 = cache_key(&path);
+        let key2 = cache_key(&path);
+        assert_eq!(key1, key2);
+        assert_eq!(key1.len(), 16);
+    }
+
+    #[test]
+    fn test_cache_valid() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("source.gl");
+        let exe = dir.path().join("exe");
+
+        fs::write(&src, "content").unwrap();
+        fs::write(&exe, "content").unwrap();
+
+        // Wait a bit to ensure mtime diff
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        fs::write(&exe, "newer").unwrap();
+
+        assert!(cache_valid(&src, &exe));
+
+        // Now touch source
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        fs::write(&src, "newer source").unwrap();
+        assert!(!cache_valid(&src, &exe));
+    }
+
+    #[test]
+    fn test_check_file_success() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("test.gl");
+        fs::write(&src, "«test» λέγε.").unwrap();
+
+        let result = check_file(&src);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_highlight_file_success() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("test.gl");
+        fs::write(&src, "«test» λέγε.").unwrap();
+
+        let result = highlight_file(&src);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cache_dir_sanity() {
+        let dir = cache_dir();
+        assert!(dir.ends_with("cache"));
+        assert!(dir.to_string_lossy().contains(".glossa"));
     }
 }
