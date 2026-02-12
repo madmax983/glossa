@@ -1507,48 +1507,50 @@ fn process_adjectives(
     for adj in &asm_stmt.adjectives {
         // Look up adjective in lexicon to check if it's comparative
         // Use the ORIGINAL form, not the lemma, because comparatives are irregular
-        if let Some(entry) = crate::morphology::lexicon::lookup(&normalize_greek(&adj.original))
-            && entry.pos == crate::morphology::PartOfSpeech::Adjective
-            && let Some(rust_op) = entry.rust_equiv
-            && (rust_op == ">" || rust_op == "<")
-        {
-            // Found a comparative adjective!
-            let comparison_expr = extract_comparison_value(asm_stmt);
+        if let Some(entry) = crate::morphology::lexicon::lookup(&normalize_greek(&adj.original)) {
+            if entry.pos == crate::morphology::PartOfSpeech::Adjective {
+                if let Some(rust_op) = &entry.rust_equiv {
+                    if *rust_op == ">" || *rust_op == "<" {
+                        // Found a comparative adjective!
+                        let comparison_expr = extract_comparison_value(asm_stmt);
 
-            // Determine the binary operation
-            let bin_op = if rust_op == ">" {
-                crate::morphology::lexicon::BinaryOp::Gt
-            } else {
-                crate::morphology::lexicon::BinaryOp::Lt
-            };
+                        // Determine the binary operation
+                        let bin_op = if *rust_op == ">" {
+                            crate::morphology::lexicon::BinaryOp::Gt
+                        } else {
+                            crate::morphology::lexicon::BinaryOp::Lt
+                        };
 
-            // Create the filter predicate: |x| x > value
-            let filter_closure = create_comparison_predicate(bin_op, comparison_expr);
+                        // Create the filter predicate: |x| x > value
+                        let filter_closure = create_comparison_predicate(bin_op, comparison_expr);
 
-            // Determine which method to call based on quantifier
-            let method = if flags.is_any {
-                "any"
-            } else if flags.is_all {
-                "all"
-            } else {
-                "filter"
-            };
+                        // Determine which method to call based on quantifier
+                        let method = if flags.is_any {
+                            "any"
+                        } else if flags.is_all {
+                            "all"
+                        } else {
+                            "filter"
+                        };
 
-            // Wrap current expr
-            let new_expr = AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(current_expr.clone()),
-                    method: method.into(),
-                    args: vec![filter_closure],
-                },
-                glossa_type: if flags.is_any || flags.is_all {
-                    GlossaType::Boolean
-                } else {
-                    GlossaType::Unknown
-                },
-            };
-            *current_expr = new_expr;
-            added = true;
+                        // Wrap current expr
+                        let new_expr = AnalyzedExpr {
+                            expr: AnalyzedExprKind::MethodCall {
+                                receiver: Box::new(current_expr.clone()),
+                                method: method.into(),
+                                args: vec![filter_closure],
+                            },
+                            glossa_type: if flags.is_any || flags.is_all {
+                                GlossaType::Boolean
+                            } else {
+                                GlossaType::Unknown
+                            },
+                        };
+                        *current_expr = new_expr;
+                        added = true;
+                    }
+                }
+            }
         }
     }
     added

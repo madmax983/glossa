@@ -239,7 +239,8 @@ pub fn try_parse_struct_instantiation(
                         crate::semantic::expressions::analyze_argument_expr(term, scope)?;
 
                     // Handle special case: String literal for String type needs .to_string() wrap
-                    let final_arg = if let Expr::StringLiteral(_) = term
+                    let is_string_literal = matches!(term, Expr::StringLiteral(_));
+                    let final_arg = if is_string_literal
                         && matches!(expected_type, GlossaType::String)
                     {
                         AnalyzedExpr {
@@ -281,4 +282,3 @@ pub fn try_parse_struct_instantiation(
 
     Ok(None)
 }
-
