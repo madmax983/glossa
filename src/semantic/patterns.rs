@@ -318,6 +318,10 @@ pub fn try_parse_struct_instantiation(
                     value: struct_inst,
                     mutable: false,
                 }));
+            } else {
+                // If it looks like a struct instantiation (var νέον Type ... ἔστω)
+                // but the type is unknown, return an error instead of falling back.
+                return Err(GlossaError::undefined(type_name.to_string()));
             }
         }
     }
