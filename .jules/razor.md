@@ -62,3 +62,18 @@
 **Bloat:** Wrapper function `parse_clause_as_mini_statement` in `src/semantic/control_flow.rs` used only locally.
 **Cut:** Inlined into 4 call sites.
 **Saved:** Removed unnecessary abstraction (~10 lines).
+
+## [Reduction]
+**Bloat:** `src/semantic/assembled.rs` contained structs used only by `assembler.rs`.
+**Cut:** Merged `assembled.rs` into `assembler.rs`.
+**Saved:** Removed 1 file (Flattening).
+
+## [Reduction]
+**Bloat:** `try_parse_struct_instantiation` in `patterns.rs` duplicated AST parsing logic for literals and words.
+**Cut:** Refactored to use `analyze_argument_expr`.
+**Saved:** ~50 lines of duplicate code. Enabled support for complex expressions in struct constructors.
+
+## [Reduction]
+**Bloat:** Iterator pattern logic (`AssembledStatement` analysis) was in `patterns.rs` (AST pattern module).
+**Cut:** Moved `detect_iterator_pattern` to `conversion.rs` where `AssembledStatement` conversion happens.
+**Saved:** Better cohesion/separation of concerns. `patterns.rs` is now pure AST matching.
