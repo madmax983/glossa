@@ -482,12 +482,12 @@ mod tests {
     #[test]
     fn test_repl_execution_save_types() {
         let mut context = ReplContext::new();
-        // Test function definition (must use ὁρίζειν keyword)
-        let _ = context.execute("λειτουργία Φ(x: Ἀριθμός) -> Ἀριθμός ὁρίζειν { x }.");
+        // Test function definition (using correct syntax from function_tests.rs)
+        let _ = context.execute("Φ ὁρίζειν τῷ x ἀριθμοῦ· δός x.");
         assert_eq!(context.bindings.len(), 1);
 
-        // Test type definition (should save)
-        let _ = context.execute("εἶδος Τ ὁρίζειν { α Ἀριθμός }.");
+        // Test type definition (using correct syntax from type_tests.rs)
+        let _ = context.execute("εἶδος Τ ὁρίζειν { α ἀριθμοῦ. }.");
         assert_eq!(context.bindings.len(), 2);
     }
 }
