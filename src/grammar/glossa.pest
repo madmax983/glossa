@@ -132,7 +132,10 @@ string_literal = { "«" ~ string_content ~ "»" }
 string_content = { (!"»" ~ ANY)* }
 
 // Numbers (Arabic numerals for now, Greek numerals later)
-number_literal = @{ ASCII_DIGIT+ }
+number_literal = @{ ASCII_DIGIT+ | greek_numeral }
+
+keraia = { "\u{0374}" | "ʹ" | "\u{02B9}" }
+greek_numeral = @{ (GREEK_CHAR)+ ~ keraia }
 
 // Boolean literals
 boolean_literal = { "ἀληθές" | "ψεῦδος" | "αληθες" | "ψευδος" }
