@@ -482,12 +482,23 @@ mod tests {
     #[test]
     fn test_repl_execution_save_types() {
         let mut context = ReplContext::new();
-        // Test function definition (using correct syntax from function_tests.rs)
+        // Test function definition (must use ὁρίζειν keyword)
         let _ = context.execute("Φ ὁρίζειν τῷ x ἀριθμοῦ· δός x.");
         assert_eq!(context.bindings.len(), 1);
 
-        // Test type definition (using correct syntax from type_tests.rs)
+        // Test type definition (should save)
         let _ = context.execute("εἶδος Τ ὁρίζειν { α ἀριθμοῦ. }.");
         assert_eq!(context.bindings.len(), 2);
+    }
+
+    #[test]
+    fn test_repl_context_reset() {
+        let mut context = ReplContext::new();
+        context.execute("ξ πέντε ἔστω.").unwrap();
+        assert_eq!(context.bindings.len(), 1);
+
+        // "Reset" simply means creating a new context
+        let new_context = ReplContext::new();
+        assert_eq!(new_context.bindings.len(), 0);
     }
 }
