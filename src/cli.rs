@@ -448,30 +448,17 @@ mod tests {
         // Simple program that prints and exits
         fs::write(&src, "«success» λέγε.").unwrap();
 
-        // 1. First run (compile)
-        // Note: run_file calls rustc. rustc must be in path.
-        // If rustc is not available, this might fail. CI usually has rustc.
-        // However, `run_file` relies on `dirs_next` to resolve cache dir.
-        // We might need to override cache dir or just let it run if possible.
-        // But `run_file` calls `Command::new("rustc")`.
-        // Let's assume environment has rustc.
-
         // This test might be flaky if environment issues exist, but let's try.
         // If it fails due to rustc issues, we catch it.
         if Command::new("rustc").arg("--version").status().is_ok() {
-             let result = run_file(&src);
-             if result.is_err() {
-                 // Maybe compilation failed?
-                 eprintln!("Run failed: {:?}", result.unwrap_err());
-             } else {
-                 assert!(result.is_ok());
-             }
+            let result = run_file(&src);
+            assert!(result.is_ok(), "First run failed: {:?}", result.err());
 
-             // 2. Second run (should use cache)
-             // We can't easily verify it used cache without mocking or checking timestamps/logs.
-             // But we can check if it runs successfully again.
-             let result2 = run_file(&src);
-             assert!(result2.is_ok());
+            // 2. Second run (should use cache)
+            // We can't easily verify it used cache without mocking or checking timestamps/logs.
+            // But we can check if it runs successfully again.
+            let result2 = run_file(&src);
+            assert!(result2.is_ok(), "Second run failed: {:?}", result2.err());
         }
     }
 }
