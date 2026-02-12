@@ -226,17 +226,6 @@ impl<'a> Visualizer<'a> {
                     writeln!(self.output, "    {} --> {}", end, loop_start).unwrap(); // Loop back
                 }
 
-                // We need a node to exit to
-                // The next statement will link from this loop_start? No, from "False" branch.
-                // But visit_block expects a single exit ID.
-                // I'll return the loop_start as the "exit" node effectively, but flow continues from it on False.
-                // Or better: create an Exit node?
-                // Standard: Condition -- False --> Next.
-                // So I return loop_start, and the caller links loop_start to Next.
-                // But caller uses "-->", so we get `Condition --> Next`. That implies unconditional.
-                // We want `Condition -- False --> Next`.
-                // My simple `visit_block` logic assumes linear flow.
-                // Hack: Return loop_start. The user will see `While --> Next`. It's acceptable for now.
                 Some(loop_start)
             }
             AnalyzedStatement::For {
@@ -318,9 +307,6 @@ impl<'a> Visualizer<'a> {
                 }
 
                 writeln!(self.output, "    end").unwrap();
-
-                // Function definition itself is not part of the main flow, so we return parent_id
-                // to continue flow from previous statement (if any)
                 parent_id
             }
             AnalyzedStatement::Return { value } => {
@@ -331,7 +317,6 @@ impl<'a> Visualizer<'a> {
                 };
                 writeln!(self.output, "    {}[{}]", id, escape_label(&label)).unwrap();
                 self.link(parent_id, &id, None);
-                // Return breaks flow in current block
                 Some(id)
             }
             AnalyzedStatement::Break => {
@@ -355,9 +340,19 @@ impl<'a> Visualizer<'a> {
                 writeln!(self.output, "    end").unwrap();
                 parent_id
             }
-            _ => {
-                // Default for other statements
-                writeln!(self.output, "    {}[Statement]", id).unwrap();
+            // Handled but no explicit visualization for definitions in flow (they are partitioned out mostly)
+            AnalyzedStatement::TypeDefinition { name, .. } => {
+                writeln!(self.output, "    {}[Type {}]", id, name).unwrap();
+                self.link(parent_id, &id, None);
+                Some(id)
+            }
+            AnalyzedStatement::TraitDefinition { name, .. } => {
+                writeln!(self.output, "    {}[Trait {}]", id, name).unwrap();
+                self.link(parent_id, &id, None);
+                Some(id)
+            }
+            AnalyzedStatement::TraitImplementation { trait_name, type_name, .. } => {
+                writeln!(self.output, "    {}[Impl {} for {}]", id, trait_name, type_name).unwrap();
                 self.link(parent_id, &id, None);
                 Some(id)
             }
@@ -404,6 +399,27 @@ impl<'a> Visualizer<'a> {
             }
             AnalyzedExprKind::MethodCall { method, args, .. } => {
                 format!(".{}({})", method, args.len())
+            }
+            AnalyzedExprKind::Unwrap(e) => format!("{}!", self.expr_to_string(e)),
+            AnalyzedExprKind::Try(e) => format!("{}?", self.expr_to_string(e)),
+            AnalyzedExprKind::Range { start, end, inclusive } => {
+                let op = if *inclusive { "..=" } else { ".." };
+                format!("{}{}{}", self.expr_to_string(start), op, self.expr_to_string(end))
+            }
+            AnalyzedExprKind::StructInstantiation { type_name, .. } => {
+                format!("new {}", type_name)
+            }
+            AnalyzedExprKind::IndexAccess { array, index } => {
+                format!("{}[{}]", self.expr_to_string(array), self.expr_to_string(index))
+            }
+            AnalyzedExprKind::ArrayLiteral(elements) => {
+                format!("[{}]", elements.len())
+            }
+            AnalyzedExprKind::Assert { condition } => {
+                format!("Assert({})", self.expr_to_string(condition))
+            }
+            AnalyzedExprKind::AssertEq { left, right } => {
+                format!("AssertEq({}, {})", self.expr_to_string(left), self.expr_to_string(right))
             }
             _ => "expr".to_string(),
         }
