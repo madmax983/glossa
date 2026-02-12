@@ -102,6 +102,20 @@ use crate::semantic::assembled::{
 };
 use crate::text::normalize_greek;
 
+// Resource limits to prevent DoS attacks
+const MAX_LITERALS: usize = 1024;
+const MAX_ADJECTIVES: usize = 1024;
+const MAX_NOMINATIVES: usize = 256;
+const MAX_GENITIVES: usize = 256;
+const MAX_ARRAYS: usize = 256;
+const MAX_BLOCKS: usize = 256;
+const MAX_NESTED: usize = 256;
+const MAX_INDEXES: usize = 256;
+const MAX_UNWRAPS: usize = 256;
+const MAX_PARTICIPLES: usize = 256;
+const MAX_PROPERTIES: usize = 256;
+const MAX_OPERATORS: usize = 256;
+
 /// The slot-based assembler
 ///
 /// Feed it tokens one by one, and it routes them to the appropriate slot
@@ -214,6 +228,12 @@ impl Assembler {
     /// asm.feed_string("χαῖρε".to_string()).unwrap();
     /// ```
     pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded(format!(
+                "Too many literals (max {})",
+                MAX_LITERALS
+            )));
+        }
         self.state.literals.push(Literal::String(value));
         Ok(())
     }
@@ -229,6 +249,12 @@ impl Assembler {
     /// asm.feed_number(42).unwrap();
     /// ```
     pub fn feed_number(&mut self, value: i64) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded(format!(
+                "Too many literals (max {})",
+                MAX_LITERALS
+            )));
+        }
         self.state.literals.push(Literal::Number(value));
         Ok(())
     }
@@ -244,6 +270,12 @@ impl Assembler {
     /// asm.feed_boolean(true).unwrap();
     /// ```
     pub fn feed_boolean(&mut self, value: bool) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded(format!(
+                "Too many literals (max {})",
+                MAX_LITERALS
+            )));
+        }
         self.state.literals.push(Literal::Boolean(value));
         Ok(())
     }
@@ -261,6 +293,12 @@ impl Assembler {
     /// asm.feed_array(elements).unwrap();
     /// ```
     pub fn feed_array(&mut self, elements: Vec<Expr>) -> Result<(), AssemblyError> {
+        if self.state.arrays.len() >= MAX_ARRAYS {
+            return Err(AssemblyError::LimitExceeded(format!(
+                "Too many arrays (max {})",
+                MAX_ARRAYS
+            )));
+        }
         self.state.arrays.push(elements);
         Ok(())
     }
@@ -279,6 +317,12 @@ impl Assembler {
         &mut self,
         statements: Vec<crate::ast::Statement>,
     ) -> Result<(), AssemblyError> {
+        if self.state.blocks.len() >= MAX_BLOCKS {
+            return Err(AssemblyError::LimitExceeded(format!(
+                "Too many blocks (max {})",
+                MAX_BLOCKS
+            )));
+        }
         self.state.blocks.push(statements);
         Ok(())
     }
@@ -295,6 +339,12 @@ impl Assembler {
     /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]).unwrap();
     /// ```
     pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) -> Result<(), AssemblyError> {
+        if self.state.nested_phrases.len() >= MAX_NESTED {
+            return Err(AssemblyError::LimitExceeded(format!(
+                "Too many nested phrases (max {})",
+                MAX_NESTED
+            )));
+        }
         self.state.nested_phrases.push(terms);
         Ok(())
     }
@@ -316,6 +366,12 @@ impl Assembler {
     /// asm.feed_index_access(array, index).unwrap();
     /// ```
     pub fn feed_index_access(&mut self, array: Expr, index: Expr) -> Result<(), AssemblyError> {
+        if self.state.index_accesses.len() >= MAX_INDEXES {
+            return Err(AssemblyError::LimitExceeded(format!(
+                "Too many index accesses (max {})",
+                MAX_INDEXES
+            )));
+        }
         self.state.index_accesses.push((array, index));
         Ok(())
     }
@@ -336,6 +392,12 @@ impl Assembler {
     /// asm.feed_unwrap(expr).unwrap();
     /// ```
     pub fn feed_unwrap(&mut self, expr: Expr) -> Result<(), AssemblyError> {
+        if self.state.unwraps.len() >= MAX_UNWRAPS {
+            return Err(AssemblyError::LimitExceeded(format!(
+                "Too many unwraps (max {})",
+                MAX_UNWRAPS
+            )));
+        }
         self.state.unwraps.push(expr);
         Ok(())
     }
@@ -365,6 +427,12 @@ impl Assembler {
         analysis: &crate::morphology::ParticipleAnalysis,
         original: &str,
     ) -> Result<(), AssemblyError> {
+        if self.state.participles.len() >= MAX_PARTICIPLES {
+            return Err(AssemblyError::LimitExceeded(format!(
+                "Too many participles (max {})",
+                MAX_PARTICIPLES
+            )));
+        }
         let constituent = ParticipleConstituent {
             verb_lemma: analysis.verb_lemma().into(),
             original: original.into(),
@@ -384,6 +452,13 @@ impl Assembler {
         analysis: &MorphAnalysis,
         original: &str,
     ) -> Result<(), AssemblyError> {
+        if self.state.adjectives.len() >= MAX_ADJECTIVES {
+            return Err(AssemblyError::LimitExceeded(format!(
+                "Too many adjectives (max {})",
+                MAX_ADJECTIVES
+            )));
+        }
+
         let constituent = Constituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
@@ -405,6 +480,12 @@ impl Assembler {
 
                 if self.state.subject.is_some() {
                     // Additional nominatives stored separately for function call patterns
+                    if self.state.nominatives.len() >= MAX_NOMINATIVES {
+                        return Err(AssemblyError::LimitExceeded(format!(
+                            "Too many nominatives (max {})",
+                            MAX_NOMINATIVES
+                        )));
+                    }
                     self.state.nominatives.push(constituent);
                 } else {
                     self.state.subject = Some(constituent);
@@ -425,6 +506,12 @@ impl Assembler {
             }
             Some(Case::Genitive) => {
                 // Genitives attach to other constituents (possession, etc.)
+                if self.state.genitives.len() >= MAX_GENITIVES {
+                    return Err(AssemblyError::LimitExceeded(format!(
+                        "Too many genitives (max {})",
+                        MAX_GENITIVES
+                    )));
+                }
                 self.state.genitives.push(constituent);
             }
             Some(Case::Vocative) => {

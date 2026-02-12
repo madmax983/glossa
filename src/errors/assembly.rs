@@ -72,4 +72,12 @@ pub enum AssemblyError {
         word2: String,
         gender2: Gender,
     },
+
+    /// Resource limit exceeded (DoS prevention)
+    ///
+    /// # Example
+    /// Too many adjectives
+    #[error("Υπέρβασις ορίου: {0}")]
+    #[diagnostic(code(glossa::assembly::limit_exceeded))]
+    LimitExceeded(String),
 }
