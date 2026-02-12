@@ -60,6 +60,16 @@ enum Commands {
         input: PathBuf,
     },
 
+    /// Visualize control flow of a .γλ file
+    Visualize {
+        /// Input file (.γλ)
+        input: PathBuf,
+
+        /// Output file (.mmd)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
     /// Start the interactive REPL
     Repl,
 }
@@ -90,6 +100,10 @@ fn main() -> Result<()> {
 
         Some(Commands::Highlight { input }) => {
             highlight_file(&input)?;
+        }
+
+        Some(Commands::Visualize { input, output }) => {
+            visualize_file(&input, output.as_deref())?;
         }
 
         Some(Commands::Repl) | None => {
@@ -280,6 +294,26 @@ fn highlight_file(input: &Path) -> Result<()> {
         glossa::highlight::highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", highlighted);
+
+    Ok(())
+}
+
+fn visualize_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    check_file_size(input)?;
+
+    let source = fs::read_to_string(input).into_diagnostic()?;
+    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
+    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+
+    let mut visualizer = glossa::experimental::visualizer::Visualizer::new(&analyzed);
+    let mermaid = visualizer.generate();
+
+    if let Some(path) = output {
+        fs::write(path, mermaid).into_diagnostic()?;
+        println!("{} {}", "✓".green(), path.display());
+    } else {
+        println!("{}", mermaid);
+    }
 
     Ok(())
 }
