@@ -112,13 +112,29 @@ GLOSSA provides native test declarations using idiomatic Greek verbs:
 
 Tests transpile to Rust `#[test]` functions and can be run with standard Rust tools.
 
-## Building
+### Running Glossa Tests
+
+To run tests written in Glossa (e.g., `tests.γλ`):
+
+1. Build the file to generate Rust code:
+   ```bash
+   cargo run --release -- build tests.γλ
+   ```
+
+2. Compile and run the generated Rust test harness:
+   ```bash
+   rustc --test tests.rs && ./tests
+   ```
+
+## Compiler Development
+
+### Building the Compiler
 
 ```bash
 cargo build --release
 ```
 
-## Testing
+### Running Compiler Tests
 
 ```bash
 cargo test
