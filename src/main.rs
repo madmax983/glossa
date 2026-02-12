@@ -279,7 +279,18 @@ fn highlight_file(input: &Path) -> Result<()> {
     let highlighted =
         glossa::highlight::highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
-    println!("{}", highlighted);
+    let filename = input
+        .file_name()
+        .unwrap_or(input.as_os_str())
+        .to_string_lossy()
+        .to_string();
+
+    let frame = glossa::highlight::CodeFrame {
+        title: filename,
+        source: highlighted,
+    };
+
+    println!("{}", frame);
 
     Ok(())
 }

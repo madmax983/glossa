@@ -336,6 +336,60 @@ impl Highlighter {
     }
 }
 
+/// A polished display wrapper for highlighted code
+pub struct CodeFrame {
+    pub title: String,
+    pub source: String,
+}
+
+impl std::fmt::Display for CodeFrame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let lines: Vec<&str> = self.source.lines().collect();
+        let max_line_num = lines.len().max(1);
+        let gutter_width = max_line_num.to_string().len();
+
+        // 1. Header
+        writeln!(f, "{} {}", "┌─".dim(), self.title.as_str().blue().bold())?;
+
+        // 2. Top spacer
+        writeln!(f, "{}", "│".dim())?;
+
+        // 3. Code Lines
+        for (i, line) in lines.iter().enumerate() {
+            let line_num = i + 1;
+            writeln!(
+                f,
+                "{} {:>width$} {} {}",
+                "│".dim(),
+                line_num.to_string().yellow().dim(),
+                "│".dim(),
+                line,
+                width = gutter_width
+            )?;
+        }
+
+        if lines.is_empty() {
+            writeln!(
+                f,
+                "{} {:>width$} {} {}",
+                "│".dim(),
+                "1".yellow().dim(),
+                "│".dim(),
+                "(empty)".italic().dim(),
+                width = gutter_width
+            )?;
+        }
+
+        // 4. Bottom spacer
+        writeln!(f, "{}", "│".dim())?;
+
+        // 5. Footer
+        write!(f, "{}", "└─".dim())?;
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -826,5 +880,40 @@ mod tests {
         let source = "«unclosed string";
         let result = highlight(source);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_code_frame_display() {
+        let frame = CodeFrame {
+            title: "test.gl".to_string(),
+            source: "line 1\nline 2".to_string(),
+        };
+        let output = format!("{}", frame);
+
+        // Check for border characters
+        assert!(output.contains("┌─"));
+        assert!(output.contains("└─"));
+
+        // Check for content
+        assert!(output.contains("test.gl"));
+        assert!(output.contains("line 1"));
+        assert!(output.contains("line 2"));
+
+        // Check for line numbers
+        assert!(output.contains("1"));
+        assert!(output.contains("2"));
+    }
+
+    #[test]
+    fn test_code_frame_empty() {
+        let frame = CodeFrame {
+            title: "empty.gl".to_string(),
+            source: "".to_string(),
+        };
+        let output = format!("{}", frame);
+
+        assert!(output.contains("empty.gl"));
+        assert!(output.contains("(empty)"));
+        assert!(output.contains("1")); // Should show line 1 for empty placeholder
     }
 }
