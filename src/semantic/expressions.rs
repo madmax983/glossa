@@ -228,6 +228,11 @@ fn analyze_phrase(
     }
 
     // Not a function call - could be a complex expression
+    // If we have multiple terms but it's not a function call, that's ambiguous/invalid
+    if terms.len() > 1 {
+        return Err(GlossaError::semantic("Unexpected multiple terms in phrase"));
+    }
+
     // For now, just analyze the first term
     analyze_argument_expr_recursive(&terms[0], scope, depth + 1)
 }
@@ -597,7 +602,18 @@ pub fn build_expressions_from_literals_and_ops(
         }
     }
 
-    vec![result]
+    let mut expressions = vec![result];
+
+    // Append any remaining literals that weren't consumed by operators
+    // We consumed 1 (initial) + 1 for each operator that had a matching operand
+    // Effectively we consumed min(literals.len(), operators.len() + 1) literals
+    let consumed = (operators.len() + 1).min(literals.len());
+
+    for literal in &literals[consumed..] {
+        expressions.push(literal_to_analyzed_expr(literal));
+    }
+
+    expressions
 }
 
 /// Infer the result type of a binary operation
@@ -1069,5 +1085,39 @@ mod tests {
             "Error should be SubjectVerbDisagreement (Ἀσυμφωνία), got: {}",
             err
         );
+    }
+
+    #[test]
+    fn test_phrase_errors_on_multiple_terms() {
+        let expr = Expr::Phrase(vec![
+            Expr::NumberLiteral(1),
+            Expr::NumberLiteral(2),
+        ]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+
+        // This test should fail currently because the code returns Ok(1)
+        assert!(result.is_err(), "Should error on multiple terms in non-function phrase, but got: {:?}", result);
+    }
+
+    #[test]
+    fn test_build_expressions_preserves_literals() {
+        let literals = vec![
+            Literal::Number(1),
+            Literal::Number(2),
+            Literal::Number(3),
+        ];
+        let operators = vec![crate::morphology::lexicon::BinaryOp::Add];
+
+        let exprs = build_expressions_from_literals_and_ops(&literals, &operators);
+
+        // This test should fail currently because the code returns [BinOp] (len 1)
+        assert_eq!(exprs.len(), 2, "Should return 2 expressions, got: {:?}", exprs);
+
+        if let AnalyzedExprKind::NumberLiteral(n) = &exprs[1].expr {
+            assert_eq!(*n, 3);
+        } else {
+            panic!("Second expression should be NumberLiteral(3)");
+        }
     }
 }
