@@ -607,7 +607,8 @@ fn process_participles(
                     // Determine capture mode based on participle tense
                     let capture_mode = match participle.tense {
                         crate::morphology::Tense::Aorist => CaptureMode::Move,
-                        crate::morphology::Tense::Perfect => CaptureMode::Memoize,
+                        // Iterator closures always take arguments, so Memoize is unsafe.
+                        crate::morphology::Tense::Perfect => CaptureMode::Borrow,
                         _ => CaptureMode::Borrow,
                     };
 
@@ -666,8 +667,11 @@ fn process_participles(
             continue;
         }
 
-        // For now, map present middle participles to .map()
-        if participle.voice == crate::morphology::Voice::Middle {
+        // Map Middle and Passive participles to .map()
+        // Passive voice ("being written") is semantically valid for transformation chains
+        if participle.voice == crate::morphology::Voice::Middle
+            || participle.voice == crate::morphology::Voice::Passive
+        {
             // Create a simple lambda based on the verb
             let closure_body = if verb_stem.contains("διπλασιαζ") {
                 // διπλασιαζω = "to double"
@@ -695,7 +699,9 @@ fn process_participles(
 
             let capture_mode = match participle.tense {
                 crate::morphology::Tense::Aorist => CaptureMode::Move,
-                crate::morphology::Tense::Perfect => CaptureMode::Memoize,
+                // Iterator closures always take arguments, so Memoize is unsafe.
+                // Downgrade Perfect tense to Borrow for these operations.
+                crate::morphology::Tense::Perfect => CaptureMode::Borrow,
                 _ => CaptureMode::Borrow,
             };
 
@@ -866,7 +872,7 @@ fn extract_comparison_value(asm_stmt: &AssembledStatement) -> AnalyzedExpr {
     } else if let Some(literal) = asm_stmt.literals.first() {
         // Literal comparison: πέντε μείζονα = "greater than five"
         let value = match literal {
-            crate::semantic::assembled::Literal::Number(n) => *n,
+            crate::semantic::Literal::Number(n) => *n,
             _ => 0,
         };
         AnalyzedExpr {

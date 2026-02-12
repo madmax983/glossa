@@ -22,7 +22,7 @@
 //! * Handle complex logic (like normalization) in Rust code, not in the grammar.
 //! * Provide better error messages during the conversion phase.
 
-pub mod builder;
+pub(crate) mod builder;
 
 use crate::ast::Program;
 use crate::errors::GlossaError;

@@ -155,93 +155,183 @@ pub struct AnalyzedExpr {
 #[derive(Debug, Clone)]
 pub enum AnalyzedExprKind {
     /// String literal
+    ///
+    /// # Example
+    /// `«hello»` -> `StringLiteral("hello")`
     StringLiteral(String),
+
     /// Number literal (integer)
+    ///
+    /// # Example
+    /// `42` -> `NumberLiteral(42)`
     NumberLiteral(i64),
+
     /// Boolean literal
+    ///
+    /// # Example
+    /// `ἀληθές` -> `BooleanLiteral(true)`
     BooleanLiteral(bool),
+
     /// Variable reference
+    ///
+    /// # Example
+    /// `x` -> `Variable("x")`
     Variable(SmolStr),
+
     /// Property access (field access)
+    ///
+    /// # Example
+    /// `user.name` -> `PropertyAccess { owner: user, property: "name" }`
     PropertyAccess {
         owner: Box<AnalyzedExpr>,
         property: SmolStr,
     },
+
     /// Verb call (function call using verb syntax)
+    ///
+    /// # Example
+    /// `λέγει` (says) -> `VerbCall { verb: "say", args: [] }`
     VerbCall {
         verb: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
+
     /// Binary operation (arithmetic, comparison, boolean)
+    ///
+    /// # Example
+    /// `1 + 2` -> `BinOp { left: 1, op: Add, right: 2 }`
     BinOp {
         left: Box<AnalyzedExpr>,
         op: crate::morphology::lexicon::BinaryOp,
         right: Box<AnalyzedExpr>,
     },
+
     /// Unary operation (negation)
+    ///
+    /// # Example
+    /// `οὐκ x` -> `UnaryOp { op: Not, operand: x }`
     UnaryOp {
         op: crate::morphology::lexicon::UnaryOp,
         operand: Box<AnalyzedExpr>,
     },
+
     /// Range expression for loops (start..end or start..=end)
+    ///
+    /// # Example
+    /// `1..10`
     Range {
         start: Box<AnalyzedExpr>,
         end: Box<AnalyzedExpr>,
         inclusive: bool,
     },
+
     /// Array literal [1, 2, 3]
+    ///
+    /// # Example
+    /// `[1, 2, 3]`
     ArrayLiteral(Vec<AnalyzedExpr>),
+
     /// Some(value) - `Option<T>` constructor
+    ///
+    /// # Example
+    /// `τί` -> `Some`
     Some(Box<AnalyzedExpr>),
+
     /// None - `Option<T>` empty value
+    ///
+    /// # Example
+    /// `οὐδέν` -> `None`
     None,
+
     /// Ok(value) - `Result<T,E>` success constructor
+    ///
+    /// # Example
+    /// `ἐπιτυχία` -> `Ok`
     Ok(Box<AnalyzedExpr>),
+
     /// Err(error) - `Result<T,E>` error constructor
+    ///
+    /// # Example
+    /// `σφάλμα` -> `Err`
     Err(Box<AnalyzedExpr>),
+
     /// Unwrap operator (!) - confident extraction from `Option`/`Result`
+    ///
+    /// # Example
+    /// `x!` -> `x.unwrap()`
     Unwrap(Box<AnalyzedExpr>),
+
     /// Try operator (`;` after `Option`/`Result`) - propagates None/Err upward
+    ///
+    /// # Example
+    /// `x;` -> `x?`
     Try(Box<AnalyzedExpr>),
+
     /// Index access `array[index]`
+    ///
+    /// # Example
+    /// `arr[0]`
     IndexAccess {
         array: Box<AnalyzedExpr>,
         index: Box<AnalyzedExpr>,
     },
+
     /// Function call to user-defined function
+    ///
+    /// # Example
+    /// `my_func(arg)`
     FunctionCall {
         func: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
+
     /// Method call receiver.method(args)
+    ///
+    /// # Example
+    /// `vec.push(1)`
     MethodCall {
         receiver: Box<AnalyzedExpr>,
         method: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
+
     /// Trait method call `receiver.<TraitName>::method(args)` (from trait impl)
+    ///
+    /// # Example
+    /// `user.Show::print()`
     TraitMethodCall {
         receiver: Box<AnalyzedExpr>,
         trait_name: SmolStr,
         method_name: SmolStr,
         args: Vec<AnalyzedExpr>,
     },
+
     /// Struct instantiation: `variable νέον type_name args... ἔστω`
+    ///
+    /// # Example
+    /// `x new User "name" 42`
     StructInstantiation {
         type_name: SmolStr,
         fields: Vec<SmolStr>, // Field names from struct definition
         args: Vec<AnalyzedExpr>,
     },
+
     /// Lambda/closure |params| body
+    ///
+    /// # Example
+    /// `|x| x + 1`
     Lambda {
         params: Vec<SmolStr>,
         body: Box<AnalyzedExpr>,
         capture_mode: CaptureMode,
     },
+
     /// Collection constructor (HashSet::new(), HashMap::new())
     CollectionNew { collection_type: String },
+
     /// Boolean assertion: δεῖ (condition must be true)
     Assert { condition: Box<AnalyzedExpr> },
+
     /// Equality assertion: ἰσοῦται (values must be equal)
     AssertEq {
         left: Box<AnalyzedExpr>,
@@ -253,12 +343,19 @@ pub enum AnalyzedExprKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CaptureMode {
     /// Borrow captured variables (default for present participles)
+    ///
+    /// Used when the lambda is executed immediately (e.g. `map`, `filter`).
     Borrow,
 
     /// Move captured variables (for aorist participles)
+    ///
+    /// Used when the lambda might outlive the current scope or needs ownership.
     Move,
 
     /// Memoize result (for perfect participles)
+    ///
+    /// Used to cache the result of the lambda for identical inputs.
+    /// This turns the closure into a lazy, memoized value.
     Memoize,
 }
 

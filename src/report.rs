@@ -2,6 +2,17 @@
 //!
 //! This module provides tools to generate human-readable reports and statistics
 //! for analyzed programs.
+//!
+//! # The Mission
+//!
+//! Compiler feedback should be more than just "Error" or "Success".
+//! ΓΛΩΣΣΑ strives to provide **insights** into the code:
+//!
+//! * How complex is the program? (Cyclomatic complexity proxy via `conditional_count`)
+//! * How deep is the nesting? (`max_depth`)
+//! * How "functional" vs "imperative" is the style? (Expression vs Statement count)
+//!
+//! The [`GlossaReport`] provides a dashboard-style summary of these metrics.
 
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
@@ -12,25 +23,27 @@ use std::time::Duration;
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 
 /// Statistics for an analyzed program
+///
+/// These metrics help users understand the scale and complexity of their code.
 #[derive(Debug, Default, Clone)]
 pub struct ProgramStats {
-    /// Total number of statements
+    /// Total number of statements (imperative actions)
     pub statement_count: usize,
-    /// Total number of expressions
+    /// Total number of expressions (values evaluated)
     pub expression_count: usize,
-    /// Number of variable bindings
+    /// Number of variable bindings (let x = ...)
     pub binding_count: usize,
-    /// Number of functions defined
+    /// Number of functions defined in the scope
     pub function_count: usize,
-    /// Number of types defined
+    /// Number of user-defined types (structs)
     pub type_count: usize,
-    /// Number of traits defined
+    /// Number of trait definitions
     pub trait_count: usize,
-    /// Number of loops
+    /// Number of loops (while, for)
     pub loop_count: usize,
-    /// Number of conditional statements
+    /// Number of conditional branches (if, match) - a proxy for complexity
     pub conditional_count: usize,
-    /// Maximum nesting depth
+    /// Maximum nesting depth of statements
     pub max_depth: usize,
 }
 
