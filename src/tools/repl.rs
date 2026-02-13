@@ -559,4 +559,51 @@ mod tests {
         let output_str = String::from_utf8(output).unwrap();
         assert!(output_str.contains("Σφάλμα"), "Should report error");
     }
+
+    struct BrokenReader;
+    impl std::io::Read for BrokenReader {
+        fn read(&mut self, _buf: &mut [u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "Broken"))
+        }
+    }
+    impl std::io::BufRead for BrokenReader {
+        fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "Broken"))
+        }
+        fn consume(&mut self, _amt: usize) {}
+    }
+
+    #[test]
+    fn test_read_error() {
+        let mut reader = BrokenReader;
+        let mut output = Vec::new();
+        let result = run_repl_inner(&mut reader, &mut output);
+        assert!(result.is_err());
+    }
+
+    struct BrokenWriter;
+    impl std::io::Write for BrokenWriter {
+        fn write(&mut self, _buf: &[u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "Broken"))
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "Broken"))
+        }
+    }
+
+    #[test]
+    fn test_flush_error() {
+        let input = b".exit";
+        let mut reader = std::io::Cursor::new(input);
+        let mut writer = BrokenWriter;
+        let result = run_repl_inner(&mut reader, &mut writer);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_repl_none_output() {
+        let none = ReplOutput::None;
+        let s = none.to_string();
+        assert_eq!(s, "");
+    }
 }
