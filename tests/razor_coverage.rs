@@ -438,6 +438,20 @@ fn test_semantic_expression_errors() {
     let empty_phrase = Expr::Phrase(vec![]);
     let res_empty = analyze_argument_expr(&empty_phrase, &scope);
     assert!(res_empty.is_err());
+
+    // Nested Phrase (Parenthesized)
+    // ((1))
+    let nested = Expr::Phrase(vec![Expr::Phrase(vec![Expr::NumberLiteral(1)])]);
+    let res_nested = analyze_argument_expr(&nested, &scope);
+    assert!(res_nested.is_ok());
+    if let Ok(analyzed) = res_nested {
+        // Should unwrap to NumberLiteral
+        if let glossa::semantic::AnalyzedExprKind::NumberLiteral(n) = analyzed.expr {
+            assert_eq!(n, 1);
+        } else {
+            panic!("Expected NumberLiteral, got {:?}", analyzed.expr);
+        }
+    }
 }
 
 #[test]
