@@ -568,6 +568,9 @@ fn test_nuclear_derived_coverage() {
     let s4 = Statement::TraitImpl(TraitImplDef { type_name: Word::new("T"), trait_name: Word::new("Tr"), methods: vec![] });
     let s5 = Statement::TestDeclaration(TestDecl { name: "t".into(), body: vec![] });
 
+    // Check inequality
+    assert_ne!(s1, s2);
+
     for s in [s1, s2, s3, s4, s5] {
         assert_eq!(format!("{:?}", s), format!("{:?}", s.clone()));
         assert_eq!(s, s.clone());
@@ -588,6 +591,9 @@ fn test_nuclear_derived_coverage() {
     let e12 = Expr::UnaryOp { op: UnaryOperator::Not, operand: Box::new(e3.clone()) };
     let e13 = Expr::Block(vec![]);
 
+    // Check inequality
+    assert_ne!(e1, e2);
+
     for e in [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13] {
         assert_eq!(format!("{:?}", e), format!("{:?}", e.clone()));
         assert_eq!(e, e.clone());
@@ -595,7 +601,9 @@ fn test_nuclear_derived_coverage() {
 
     // Sub-structs
     let fd = FieldDecl { name: Word::new("n"), type_name: Word::new("t") };
+    let fd2 = FieldDecl { name: Word::new("n2"), type_name: Word::new("t") };
     assert_eq!(format!("{:?}", fd), format!("{:?}", fd.clone()));
+    assert_ne!(fd, fd2);
 
     let tmd = TraitMethodDecl { name: Word::new("m"), params: vec![], is_default: false, body: None };
     assert_eq!(format!("{:?}", tmd), format!("{:?}", tmd.clone()));
