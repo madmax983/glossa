@@ -98,6 +98,23 @@ fn test_errors_coverage() {
     let err_undef = GlossaError::undefined("x");
     assert_eq!(err_undef.category_greek(), "Ὄνομα");
 
+    // Assembly Error coverage
+    let asm_err = glossa::errors::AssemblyError::DoubleSubject;
+    let glossa_err: GlossaError = asm_err.into();
+    assert_eq!(glossa_err.category_greek(), "Συναρμογή");
+    assert!(format!("{}", glossa_err).contains("Διπλοῦν ὑποκείμενον"));
+
+    // Recursion Limit coverage
+    let deep_source = "(".repeat(600);
+    let res = glossa::parser::parse(&deep_source);
+    assert!(res.is_err());
+    // The error string might be localized or wrapped
+    let err_str = format!("{:?}", res.err());
+    assert!(
+        err_str.contains("RecursionLimitExceeded") || err_str.contains("depth"),
+        "Error should mention recursion limit: {}", err_str
+    );
+
     // Help constants
     assert!(!help::BINDING.is_empty());
     assert!(!help::PRINT.is_empty());
