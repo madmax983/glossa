@@ -17,3 +17,13 @@
 **Bloat:** `src/semantic/assembled.rs` containing DTOs (`AssembledStatement`, `Constituent`) tightly coupled to `src/semantic/assembler.rs`.
 **Cut:** Merged `assembled.rs` into `assembler.rs` and deleted the file.
 **Saved:** Removed 1 file, reduced module indirection, improved cohesion.
+
+## [Reduction]
+**Bloat:** `src/experimental/numerals.rs` duplicated in parser logic and marked experimental despite production use.
+**Cut:** Promoted to `src/parser/numerals.rs` and deleted `src/experimental/`.
+**Saved:** Removed 1 directory, 1 file, clarified code status.
+
+## [Reduction]
+**Bloat:** `src/main.rs` was a 500+ line "God Object" handling CLI, REPL, and file operations.
+**Cut:** Split into `src/tools/cli.rs`, `src/tools/repl.rs`, `src/tools/runner.rs`.
+**Saved:** `main.rs` reduced to ~50 lines; improved modularity and testability.
