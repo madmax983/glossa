@@ -320,6 +320,46 @@ fn test_parser_error_paths() {
 }
 
 #[test]
+fn test_parser_builder_precision_coverage() {
+    use glossa::parser::parse;
+    use glossa::ast::{Statement, Expr};
+
+    // 1. Check Recursion Depth Single Slash logic
+    // The loop handles b'/' by checking next char. If only one '/', it should proceed.
+    // However, the grammar currently does NOT support '/' as an operator or token unless inside a string.
+    // The grammar only defines `COMMENT = _{ "//" ... }`.
+    // So "1 / 2" fails parsing at the grammar level ("unexpected token").
+    // To test `check_recursion_depth` logic specifically, we need an input that passes grammar OR just verify `parse` returns grammar error (PestError) and NOT RecursionLimitExceeded.
+    let source_slash = "1 / 2 λέγε.";
+    let res = parse(source_slash);
+    // It should fail, but NOT with recursion limit
+    assert!(res.is_err(), "Expected parse error for slash");
+    let err_s = format!("{:?}", res.err());
+    assert!(!err_s.contains("RecursionLimitExceeded"), "Should not be recursion error: {}", err_s);
+
+    // To hit the `else { i+=1 }` branch in recursion check for valid grammar, we need a slash inside a string?
+    // Strings handle their own scanning.
+    // If the grammar doesn't support slash, we can't fully valid-parse it.
+    // But recursion check runs BEFORE grammar. So feeding it " / " tests the recursion check loop regardless of grammar failure.
+    // The previous assertion `assert!(res.is_ok())` failed because grammar rejected it.
+    // We just want to ensure it didn't panic or return recursion error.
+
+    // 2. Check build_expression single-term optimization
+    // If a clause has "word", it should be Expr::Word, not Expr::Phrase(vec![Expr::Word])
+    let source_word = "λέγε.";
+    let res_word = parse(source_word).unwrap();
+    if let Statement::Regular { clauses, .. } = &res_word.statements[0] {
+        let expr = &clauses[0].expressions[0];
+        // It's a phrase because "λέγε" is one term?
+        // Wait, builder says: if terms.len() == 1 { Ok(terms[0]) } else { Ok(Expr::Phrase(terms)) }
+        // So "λέγε" (one word) should be Expr::Word directly?
+        // Actually, the grammar for `expression` is `term+`.
+        // If I have "λέγε", that's one term. So it should be unwrapped.
+        assert!(!matches!(expr, Expr::Phrase(_)), "Single word should be unwrapped, got {:?}", expr);
+    }
+}
+
+#[test]
 fn test_trait_method_params_edge_cases() {
     use glossa::parser::parse;
 
