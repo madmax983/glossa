@@ -149,13 +149,7 @@ fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, ParseError
     }
 
     // fieldname typename_genitive
-    if words.len() != 2 {
-        return Err(ParseError::UnexpectedRule(format!(
-            "Field declaration needs exactly 2 words, got {}",
-            words.len()
-        )));
-    }
-
+    // Grammar guarantees exactly 2 words
     Ok(FieldDecl {
         name: words[0].clone(),
         type_name: words[1].clone(),

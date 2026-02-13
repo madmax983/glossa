@@ -320,6 +320,37 @@ fn test_parser_error_paths() {
 }
 
 #[test]
+fn test_trait_method_params_edge_cases() {
+    use glossa::parser::parse;
+
+    // "δεῖ φ τῷ" -> Trailing 'τῷ' without parameter name.
+    // parse_method_parameters logic: if words[i] == "τω" { if i+1 < len { push } else { i+=1 } }
+    // So it should ignore the trailing τῷ.
+    let source_trailing = "χαρακτήρ Χ ὁρίζειν { δεῖ φ τῷ. }.";
+    let res = parse(source_trailing);
+    assert!(res.is_ok());
+    if let Ok(prog) = res {
+        if let glossa::ast::Statement::TraitDefinition(def) = &prog.statements[0] {
+            assert_eq!(def.methods.len(), 1);
+            assert_eq!(def.methods[0].params.len(), 0); // Should have 0 params
+        } else {
+            panic!("Expected TraitDefinition");
+        }
+    }
+
+    // "δεῖ φ param" -> Parameter without 'τῷ'.
+    // Logic: else { i+=1 } -> Ignored.
+    let source_no_marker = "χαρακτήρ Χ ὁρίζειν { δεῖ φ param. }.";
+    let res2 = parse(source_no_marker);
+    assert!(res2.is_ok());
+    if let Ok(prog) = res2 {
+        if let glossa::ast::Statement::TraitDefinition(def) = &prog.statements[0] {
+            assert_eq!(def.methods[0].params.len(), 0); // Should have 0 params
+        }
+    }
+}
+
+#[test]
 fn test_numerals_error_paths() {
     // We can't call parse_greek_numeral directly if it's not re-exported publicly in a convenient way
     // (it is under glossa::parser::numerals which IS public now).
