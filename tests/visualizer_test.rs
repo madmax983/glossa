@@ -1,8 +1,8 @@
 use glossa::experimental::visualizer::Visualizer;
 use glossa::parser::parse;
-use glossa::semantic::analyze_program;
-use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, Scope, GlossaType};
 use glossa::semantic::AnalyzedProgram;
+use glossa::semantic::analyze_program;
+use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope};
 
 #[test]
 fn test_visualize_if_else() {
@@ -193,26 +193,21 @@ fn test_visualize_query() {
 
 #[test]
 fn test_visualize_unwrap_try() {
-    // Manually construct to bypass parser quirks if needed, or use simpler syntax.
-    // The parser issue was `τί 5!`.
-    // Maybe `(τί 5)!` ? Parenthesized expression rule exists.
-    // Or `τί!`.
-    // But let's use manual construction to be safe and ensure coverage.
     let stmt = AnalyzedStatement::Expression(vec![
         AnalyzedExpr {
             expr: AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable("x".into()),
-                glossa_type: GlossaType::Unknown
+                glossa_type: GlossaType::Unknown,
             })),
             glossa_type: GlossaType::Unknown,
         },
         AnalyzedExpr {
             expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable("y".into()),
-                glossa_type: GlossaType::Unknown
+                glossa_type: GlossaType::Unknown,
             })),
             glossa_type: GlossaType::Unknown,
-        }
+        },
     ]);
 
     let program = AnalyzedProgram {
@@ -231,8 +226,6 @@ fn test_visualize_unwrap_try() {
 
 #[test]
 fn test_visualize_array_index() {
-    // Manually construct to ensure [ ] brackets are present in input to stringifier
-    // `IndexAccess` expr.
     let stmt = AnalyzedStatement::Expression(vec![
         AnalyzedExpr {
             expr: AnalyzedExprKind::IndexAccess {
@@ -243,19 +236,17 @@ fn test_visualize_array_index() {
                 index: Box::new(AnalyzedExpr {
                     expr: AnalyzedExprKind::NumberLiteral(0),
                     glossa_type: GlossaType::Number,
-                })
+                }),
             },
             glossa_type: GlossaType::Unknown,
         },
         AnalyzedExpr {
-            expr: AnalyzedExprKind::ArrayLiteral(vec![
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(1),
-                    glossa_type: GlossaType::Number,
-                }
-            ]),
+            expr: AnalyzedExprKind::ArrayLiteral(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            }]),
             glossa_type: GlossaType::Unknown,
-        }
+        },
     ]);
 
     let program = AnalyzedProgram {
@@ -268,32 +259,21 @@ fn test_visualize_array_index() {
 
     println!("{}", mermaid);
 
-    // Escape logic: [ -> (
     assert!(mermaid.contains("arr(0)"));
-    assert!(mermaid.contains("(1)")); // Array len 1
+    assert!(mermaid.contains("(1)"));
 }
 
 #[test]
 fn test_visualize_struct_new() {
-    // The previous fail was `Type point` (lowercase) vs `Type Point`.
-    // Normalization lowercases everything.
-    // So "Point" becomes "point".
-    // I should assert "point".
-    // Also use manual construction if parsing complex struct init is flaky.
+    let stmt = AnalyzedStatement::Expression(vec![AnalyzedExpr {
+        expr: AnalyzedExprKind::StructInstantiation {
+            type_name: "Point".into(),
+            fields: vec!["x".into(), "y".into()],
+            args: vec![],
+        },
+        glossa_type: GlossaType::Unknown,
+    }]);
 
-    // Manual construction for `StructInstantiation`
-    let stmt = AnalyzedStatement::Expression(vec![
-        AnalyzedExpr {
-            expr: AnalyzedExprKind::StructInstantiation {
-                type_name: "Point".into(),
-                fields: vec!["x".into(), "y".into()],
-                args: vec![],
-            },
-            glossa_type: GlossaType::Unknown,
-        }
-    ]);
-
-    // Also TypeDefinition for coverage
     let type_def = AnalyzedStatement::TypeDefinition {
         name: "Point".into(),
         fields: vec![],
@@ -315,14 +295,13 @@ fn test_visualize_struct_new() {
 
 #[test]
 fn test_visualize_asserts() {
-    // Manual construction confirmed working
     let stmt = AnalyzedStatement::Expression(vec![
         AnalyzedExpr {
             expr: AnalyzedExprKind::Assert {
                 condition: Box::new(AnalyzedExpr {
                     expr: AnalyzedExprKind::BooleanLiteral(true),
                     glossa_type: GlossaType::Boolean,
-                })
+                }),
             },
             glossa_type: GlossaType::Unit,
         },
@@ -335,10 +314,10 @@ fn test_visualize_asserts() {
                 right: Box::new(AnalyzedExpr {
                     expr: AnalyzedExprKind::NumberLiteral(1),
                     glossa_type: GlossaType::Number,
-                })
+                }),
             },
             glossa_type: GlossaType::Unit,
-        }
+        },
     ]);
 
     let program = AnalyzedProgram {
@@ -353,4 +332,114 @@ fn test_visualize_asserts() {
 
     assert!(mermaid.contains("Assert(true)"));
     assert!(mermaid.contains("AssertEq(1, 1)"));
+}
+
+#[test]
+fn test_visualize_extended_exprs() {
+    // Tests for PropertyAccess, UnaryOp, Option/Result, Lambda, CollectionNew
+    let stmt = AnalyzedStatement::Expression(vec![
+        // PropertyAccess
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::PropertyAccess {
+                owner: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".into()),
+                    glossa_type: GlossaType::Unknown,
+                }),
+                property: "len".into(),
+            },
+            glossa_type: GlossaType::Number,
+        },
+        // UnaryOp
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::UnaryOp {
+                op: glossa::morphology::UnaryOp::Not,
+                operand: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                }),
+            },
+            glossa_type: GlossaType::Boolean,
+        },
+        // Some
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            })),
+            glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
+        },
+        // None
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
+        },
+        // Lambda
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Lambda {
+                params: vec![],
+                body: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                capture_mode: glossa::semantic::CaptureMode::Borrow,
+            },
+            glossa_type: GlossaType::Unknown,
+        },
+        // CollectionNew
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::CollectionNew {
+                collection_type: "HashSet".into(),
+            },
+            glossa_type: GlossaType::Unknown,
+        },
+    ]);
+
+    let program = AnalyzedProgram {
+        statements: vec![stmt],
+        scope: Scope::new(),
+    };
+
+    let mut visualizer = Visualizer::new(&program);
+    let mermaid = visualizer.generate();
+
+    println!("{}", mermaid);
+
+    assert!(mermaid.contains("x.len"));
+    assert!(mermaid.contains("Not true"));
+    assert!(mermaid.contains("Some(1)"));
+    assert!(mermaid.contains("None"));
+    assert!(mermaid.contains("Lambda"));
+    assert!(mermaid.contains("new HashSet"));
+}
+
+#[test]
+fn test_visualize_definitions() {
+    // TraitDefinition, TraitImplementation, TestDeclaration
+    let trait_def = AnalyzedStatement::TraitDefinition {
+        name: "Show".into(),
+        methods: vec![],
+    };
+    let trait_impl = AnalyzedStatement::TraitImplementation {
+        trait_name: "Show".into(),
+        type_name: "String".into(),
+        methods: vec![],
+    };
+    let test_decl = AnalyzedStatement::TestDeclaration {
+        name: "my_test".into(),
+        body: vec![],
+    };
+
+    let program = AnalyzedProgram {
+        statements: vec![trait_def, trait_impl, test_decl],
+        scope: Scope::new(),
+    };
+
+    let mut visualizer = Visualizer::new(&program);
+    let mermaid = visualizer.generate();
+
+    println!("{}", mermaid);
+
+    assert!(mermaid.contains("Trait Show"));
+    assert!(mermaid.contains("Impl Show for String"));
+    assert!(mermaid.contains("subgraph Test_my_test"));
 }

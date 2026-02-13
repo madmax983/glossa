@@ -340,7 +340,6 @@ impl<'a> Visualizer<'a> {
                 writeln!(self.output, "    end").unwrap();
                 parent_id
             }
-            // Handled but no explicit visualization for definitions in flow (they are partitioned out mostly)
             AnalyzedStatement::TypeDefinition { name, .. } => {
                 writeln!(self.output, "    {}[Type {}]", id, name).unwrap();
                 self.link(parent_id, &id, None);
@@ -351,8 +350,17 @@ impl<'a> Visualizer<'a> {
                 self.link(parent_id, &id, None);
                 Some(id)
             }
-            AnalyzedStatement::TraitImplementation { trait_name, type_name, .. } => {
-                writeln!(self.output, "    {}[Impl {} for {}]", id, trait_name, type_name).unwrap();
+            AnalyzedStatement::TraitImplementation {
+                trait_name,
+                type_name,
+                ..
+            } => {
+                writeln!(
+                    self.output,
+                    "    {}[Impl {} for {}]",
+                    id, trait_name, type_name
+                )
+                .unwrap();
                 self.link(parent_id, &id, None);
                 Some(id)
             }
@@ -400,17 +408,37 @@ impl<'a> Visualizer<'a> {
             AnalyzedExprKind::MethodCall { method, args, .. } => {
                 format!(".{}({})", method, args.len())
             }
+            AnalyzedExprKind::TraitMethodCall {
+                trait_name,
+                method_name,
+                ..
+            } => {
+                format!("{}::{}(...)", trait_name, method_name)
+            }
             AnalyzedExprKind::Unwrap(e) => format!("{}!", self.expr_to_string(e)),
             AnalyzedExprKind::Try(e) => format!("{}?", self.expr_to_string(e)),
-            AnalyzedExprKind::Range { start, end, inclusive } => {
+            AnalyzedExprKind::Range {
+                start,
+                end,
+                inclusive,
+            } => {
                 let op = if *inclusive { "..=" } else { ".." };
-                format!("{}{}{}", self.expr_to_string(start), op, self.expr_to_string(end))
+                format!(
+                    "{}{}{}",
+                    self.expr_to_string(start),
+                    op,
+                    self.expr_to_string(end)
+                )
             }
             AnalyzedExprKind::StructInstantiation { type_name, .. } => {
                 format!("new {}", type_name)
             }
             AnalyzedExprKind::IndexAccess { array, index } => {
-                format!("{}[{}]", self.expr_to_string(array), self.expr_to_string(index))
+                format!(
+                    "{}[{}]",
+                    self.expr_to_string(array),
+                    self.expr_to_string(index)
+                )
             }
             AnalyzedExprKind::ArrayLiteral(elements) => {
                 format!("[{}]", elements.len())
@@ -419,9 +447,26 @@ impl<'a> Visualizer<'a> {
                 format!("Assert({})", self.expr_to_string(condition))
             }
             AnalyzedExprKind::AssertEq { left, right } => {
-                format!("AssertEq({}, {})", self.expr_to_string(left), self.expr_to_string(right))
+                format!(
+                    "AssertEq({}, {})",
+                    self.expr_to_string(left),
+                    self.expr_to_string(right)
+                )
             }
-            _ => "expr".to_string(),
+            AnalyzedExprKind::PropertyAccess { owner, property } => {
+                format!("{}.{}", self.expr_to_string(owner), property)
+            }
+            AnalyzedExprKind::UnaryOp { op, operand } => {
+                format!("{:?} {}", op, self.expr_to_string(operand))
+            }
+            AnalyzedExprKind::Some(e) => format!("Some({})", self.expr_to_string(e)),
+            AnalyzedExprKind::Ok(e) => format!("Ok({})", self.expr_to_string(e)),
+            AnalyzedExprKind::Err(e) => format!("Err({})", self.expr_to_string(e)),
+            AnalyzedExprKind::None => "None".to_string(),
+            AnalyzedExprKind::Lambda { .. } => "Lambda".to_string(),
+            AnalyzedExprKind::CollectionNew { collection_type } => {
+                format!("new {}", collection_type)
+            }
         }
     }
 }
