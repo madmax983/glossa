@@ -186,6 +186,16 @@ fn test_highlight_coverage() {
         assert!(res.is_ok(), "Failed to highlight: {}", input);
         assert!(!res.unwrap().is_empty());
     }
+
+    // Explicitly test Genitive case highlighting (Magenta)
+    // "χρήστου" (of the user)
+    let res_gen = highlight("χρήστου.");
+    assert!(res_gen.is_ok());
+
+    // Explicitly test Accusative case (Red)
+    // "λόγον" (the word - can be nom/acc, but contextless defaults might vary, usually Acc if obj)
+    let res_acc = highlight("λόγον.");
+    assert!(res_acc.is_ok());
 }
 
 #[test]
