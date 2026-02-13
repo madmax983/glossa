@@ -757,3 +757,43 @@ mod tests {
         assert_eq!(ast.statements[0].clauses().len(), 2); // Two clauses separated by comma
     }
 }
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+
+    #[test]
+    fn test_check_recursion_depth_ok() {
+        let source = "(((())))"; // Depth 4, well within limit
+        assert!(check_recursion_depth(source).is_ok());
+    }
+
+    #[test]
+    fn test_check_recursion_depth_limit() {
+        // Just under limit
+        let depth = 500;
+        let source = "(".repeat(depth) + &")".repeat(depth);
+        assert!(check_recursion_depth(&source).is_ok());
+    }
+
+    #[test]
+    fn test_check_recursion_depth_fail() {
+        // Over limit
+        let depth = 501;
+        let source = "(".repeat(depth) + &")".repeat(depth);
+        assert!(check_recursion_depth(&source).is_err());
+    }
+
+    #[test]
+    fn test_check_recursion_depth_ignore_strings() {
+        let source = "«((((((((((((((((((((((((((((((((((((((((((((((((((»";
+        assert!(check_recursion_depth(source).is_ok());
+    }
+
+    #[test]
+    fn test_parse_number_literal_direct() {
+        assert_eq!(parse_number_literal("42").unwrap(), 42);
+        assert_eq!(parse_number_literal("αʹ").unwrap(), 1);
+        assert!(parse_number_literal("abc").is_err());
+    }
+}
