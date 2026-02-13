@@ -3,26 +3,24 @@ use std::io::{IsTerminal, Write};
 use std::time::Instant;
 
 /// A simple status indicator for CLI operations
-pub struct Status<W: Write> {
-    writer: W,
+pub struct Status {
+    writer: Box<dyn Write + Send>,
     is_tty: bool,
     start_time: Instant,
 }
 
-impl Status<std::io::Stderr> {
-    /// Create a new status indicator
+impl Status {
+    /// Create a new status indicator writing to stderr
     pub fn new() -> Self {
         Self {
-            writer: std::io::stderr(),
+            writer: Box::new(std::io::stderr()),
             is_tty: std::io::stderr().is_terminal(),
             start_time: Instant::now(),
         }
     }
-}
 
-impl<W: Write> Status<W> {
     /// Create a status indicator with a custom writer (for testing)
-    pub fn new_with_writer(writer: W, is_tty: bool) -> Self {
+    pub fn new_with_writer(writer: Box<dyn Write + Send>, is_tty: bool) -> Self {
         Self {
             writer,
             is_tty,
@@ -39,7 +37,12 @@ impl<W: Write> Status<W> {
             let _ = self
                 .writer
                 .queue(terminal::Clear(terminal::ClearType::FromCursorDown));
-            let _ = write!(self.writer, "{} {}", "⚙️".yellow(), message.yellow().bold());
+            let _ = write!(
+                self.writer,
+                "{} {}",
+                "⚙️".yellow(),
+                message.yellow().bold()
+            );
             let _ = self.writer.flush();
         } else {
             // Non-TTY: just print line
@@ -83,15 +86,9 @@ impl<W: Write> Status<W> {
             let _ = writeln!(self.writer, "✕ {}", message);
         }
     }
-
-    // Exposed for testing to inspect buffer
-    #[cfg(test)]
-    pub fn into_inner(self) -> W {
-        self.writer
-    }
 }
 
-impl Default for Status<std::io::Stderr> {
+impl Default for Status {
     fn default() -> Self {
         Self::new()
     }
@@ -100,48 +97,78 @@ impl Default for Status<std::io::Stderr> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{Arc, Mutex};
+
+    // A thread-safe buffer for testing
+    #[derive(Clone)]
+    struct SharedBuffer(Arc<Mutex<Vec<u8>>>);
+
+    impl SharedBuffer {
+        fn new() -> Self {
+            Self(Arc::new(Mutex::new(Vec::new())))
+        }
+
+        fn content(&self) -> String {
+            String::from_utf8(self.0.lock().unwrap().clone()).unwrap()
+        }
+
+        fn clear(&self) {
+            self.0.lock().unwrap().clear();
+        }
+    }
+
+    impl Write for SharedBuffer {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            self.0.lock().unwrap().extend_from_slice(buf);
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
 
     #[test]
     fn test_status_non_tty() {
-        let buf = Vec::new();
-        let mut status = Status::new_with_writer(buf, false);
+        let buf = SharedBuffer::new();
+        let mut status = Status::new_with_writer(Box::new(buf.clone()), false);
 
         status.start("Starting");
-        let output = String::from_utf8(status.writer.clone()).unwrap();
+        let output = buf.content();
         assert!(output.contains("⚙️ Starting"));
         assert!(!output.contains("\x1b["));
 
-        status.writer.clear();
+        buf.clear();
         status.success("Done");
-        let output = String::from_utf8(status.writer.clone()).unwrap();
+        let output = buf.content();
         assert!(output.contains("✓ Done"));
         assert!(output.contains("("));
 
-        status.writer.clear();
+        buf.clear();
         status.fail("Failed");
-        let output = String::from_utf8(status.writer.clone()).unwrap();
+        let output = buf.content();
         assert!(output.contains("✕ Failed"));
     }
 
     #[test]
     fn test_status_tty() {
-        let buf = Vec::new();
-        let mut status = Status::new_with_writer(buf, true);
+        let buf = SharedBuffer::new();
+        let mut status = Status::new_with_writer(Box::new(buf.clone()), true);
 
         status.start("Starting");
-        let output = String::from_utf8(status.writer.clone()).unwrap();
+        let output = buf.content();
         assert!(output.contains("Starting"));
         assert!(output.contains('\x1b'));
 
-        status.writer.clear();
+        buf.clear();
         status.success("Done");
-        let output = String::from_utf8(status.writer.clone()).unwrap();
+        let output = buf.content();
         assert!(output.contains("Done"));
         assert!(output.contains('\x1b'));
 
-        status.writer.clear();
+        buf.clear();
         status.fail("Failed");
-        let output = String::from_utf8(status.writer.clone()).unwrap();
+        let output = buf.content();
         assert!(output.contains("Failed"));
         assert!(output.contains('\x1b'));
     }
