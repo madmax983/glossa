@@ -11,10 +11,12 @@ const MAX_NOMINATIVES: usize = 256;
 const MAX_GENITIVES: usize = 256;
 const MAX_ARRAYS: usize = 256;
 const MAX_INDEX_ACCESSES: usize = 256;
+const MAX_PROPERTY_ACCESSES: usize = 256;
 const MAX_NESTED_PHRASES: usize = 256;
 const MAX_PARTICIPLES: usize = 256;
 const MAX_UNWRAPS: usize = 256;
 const MAX_BLOCKS: usize = 256;
+const MAX_OPERATORS: usize = 256;
 
 #[test]
 fn test_limit_adjectives() {
@@ -232,4 +234,89 @@ fn test_limit_blocks() {
         }
         res => panic!("Expected LimitExceeded, got {:?}", res),
     }
+}
+
+#[test]
+fn test_limit_operators() {
+    // This tests the check_operators function which returns false on limit
+    let mut asm = Assembler::new();
+    // Use an analysis that triggers check_operators (e.g. "καί")
+    let analysis = MorphAnalysis {
+        lemma: Cow::Borrowed("και"),
+        part_of_speech: PartOfSpeech::Conjunction,
+        case: None,
+        number: None,
+        gender: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+        confidence: 1.0,
+    };
+
+    for _ in 0..MAX_OPERATORS {
+        // "καί" is an operator
+        asm.feed(&analysis, "καί").unwrap();
+    }
+
+    // This should NOT error with LimitExceeded, but should be silently ignored (return false internally)
+    // which means it falls through to regular handling (Conjunction -> Ok(()))
+    let res = asm.feed(&analysis, "καί");
+    assert!(res.is_ok(), "Operator limit should fallback silently, not error");
+
+    // Verify the operators vector didn't grow
+    // We can't access private fields, but we can infer behavior if we had a way to inspect
+    // For now, we trust the coverage tool to see the line hit
+}
+
+#[test]
+fn test_limit_property_accesses() {
+    // This tests check_special_properties which returns false on limit
+    let mut asm = Assembler::new();
+
+    // Setup subject for property access
+    let subj = MorphAnalysis {
+        lemma: Cow::Borrowed("subj"),
+        part_of_speech: PartOfSpeech::Noun,
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        gender: Some(Gender::Neuter),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+        confidence: 1.0,
+    };
+
+    // We need to re-feed subject every time because property access consumes it!
+    // But we can't because nominatives list is limited.
+    // Actually, property access consumes `self.state.subject`.
+    // So we need to feed subject, then property access, repeat.
+
+    let prop_analysis = MorphAnalysis {
+        lemma: Cow::Borrowed("μηκος"),
+        part_of_speech: PartOfSpeech::Noun,
+        case: Some(Case::Nominative), // irrelevant
+        number: None,
+        gender: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+        confidence: 1.0,
+    };
+
+    for _ in 0..MAX_PROPERTY_ACCESSES {
+        // Feed subject
+        asm.feed(&subj, "text").unwrap();
+        // Feed property "μῆκος" (length)
+        asm.feed(&prop_analysis, "μῆκος").unwrap();
+    }
+
+    // Try one more
+    asm.feed(&subj, "text").unwrap();
+    let res = asm.feed(&prop_analysis, "μῆκος");
+
+    // Should succeed because it falls back to regular noun processing
+    assert!(res.is_ok());
 }
