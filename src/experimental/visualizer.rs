@@ -130,31 +130,31 @@ impl<'a> Visualizer<'a> {
             AnalyzedStatement::Binding { name, value, .. } => {
                 let label = format!("let {} = {}", name, self.expr_to_string(value));
                 writeln!(self.output, "    {}[{}]", id, escape_label(&label)).unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
             AnalyzedStatement::Assignment { name, value } => {
                 let label = format!("{} = {}", name, self.expr_to_string(value));
                 writeln!(self.output, "    {}[{}]", id, escape_label(&label)).unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
             AnalyzedStatement::Print(exprs) => {
                 let label = format!("Print: {}", self.exprs_to_string(exprs));
                 writeln!(self.output, "    {}[{}]:::io", id, escape_label(&label)).unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
             AnalyzedStatement::Query(exprs) => {
                 let label = format!("Query: {}", self.exprs_to_string(exprs));
                 writeln!(self.output, "    {}[{}]:::io", id, escape_label(&label)).unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
             AnalyzedStatement::Expression(exprs) => {
                 let label = self.exprs_to_string(exprs);
                 writeln!(self.output, "    {}[{}]", id, escape_label(&label)).unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
             AnalyzedStatement::If {
@@ -170,7 +170,7 @@ impl<'a> Visualizer<'a> {
                     escape_label(&cond_label)
                 )
                 .unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
 
                 // Then branch
                 let then_stmts: Vec<&AnalyzedStatement> = then_body.iter().collect();
@@ -217,7 +217,7 @@ impl<'a> Visualizer<'a> {
                     escape_label(&cond_label)
                 )
                 .unwrap();
-                self.link(parent_id, &loop_start, None);
+                self.link(parent_id, &loop_start);
 
                 let body_stmts: Vec<&AnalyzedStatement> = body.iter().collect();
                 let body_end = self.visit_block(&body_stmts, Some(loop_start.clone()));
@@ -242,7 +242,7 @@ impl<'a> Visualizer<'a> {
                     escape_label(&label)
                 )
                 .unwrap();
-                self.link(parent_id, &loop_start, None);
+                self.link(parent_id, &loop_start);
 
                 let body_stmts: Vec<&AnalyzedStatement> = body.iter().collect();
                 let body_end = self.visit_block(&body_stmts, Some(loop_start.clone()));
@@ -263,7 +263,7 @@ impl<'a> Visualizer<'a> {
                     escape_label(&label)
                 )
                 .unwrap();
-                self.link(parent_id, &match_start, None);
+                self.link(parent_id, &match_start);
 
                 let join_node = self.next_id();
                 writeln!(self.output, "    {}((Join))", join_node).unwrap();
@@ -316,17 +316,17 @@ impl<'a> Visualizer<'a> {
                     "Return".to_string()
                 };
                 writeln!(self.output, "    {}[{}]", id, escape_label(&label)).unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
             AnalyzedStatement::Break => {
                 writeln!(self.output, "    {}[Break]", id).unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
             AnalyzedStatement::Continue => {
                 writeln!(self.output, "    {}[Continue]", id).unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
             AnalyzedStatement::TestDeclaration { name, body } => {
@@ -342,12 +342,12 @@ impl<'a> Visualizer<'a> {
             }
             AnalyzedStatement::TypeDefinition { name, .. } => {
                 writeln!(self.output, "    {}[Type {}]", id, name).unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
             AnalyzedStatement::TraitDefinition { name, .. } => {
                 writeln!(self.output, "    {}[Trait {}]", id, name).unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
             AnalyzedStatement::TraitImplementation {
@@ -361,19 +361,15 @@ impl<'a> Visualizer<'a> {
                     id, trait_name, type_name
                 )
                 .unwrap();
-                self.link(parent_id, &id, None);
+                self.link(parent_id, &id);
                 Some(id)
             }
         }
     }
 
-    fn link(&mut self, from: Option<String>, to: &str, label: Option<&str>) {
+    fn link(&mut self, from: Option<String>, to: &str) {
         if let Some(f) = from {
-            if let Some(l) = label {
-                writeln!(self.output, "    {} -- {} --> {}", f, l, to).unwrap();
-            } else {
-                writeln!(self.output, "    {} --> {}", f, to).unwrap();
-            }
+            writeln!(self.output, "    {} --> {}", f, to).unwrap();
         }
     }
 
