@@ -132,8 +132,6 @@ cargo run -- examples/leetcode_working.γλ
 ξ 10 γίγνεται.                   // xi = 10
 ```
 
-**IMPORTANT:** Use numeric literals (0, 1, 5) instead of Greek number words (μηδέν, ἓν, πέντε) for assignment values to avoid parsing ambiguity.
-
 ### Arrays
 ```glossa
 ξ [1, 2, 3] ἔστω.                // let xi = vec![1, 2, 3]

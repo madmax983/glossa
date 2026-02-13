@@ -101,6 +101,7 @@ use crate::morphology::{
 };
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
+use unicode_normalization::UnicodeNormalization;
 
 // Constants for resource limits to prevent DoS
 pub const MAX_ADJECTIVES: usize = 1024;
@@ -197,7 +198,7 @@ impl Assembler {
         original: &str,
         normalized: &str,
     ) -> Result<(), AssemblyError> {
-        if self.check_special_markers(normalized) {
+        if self.check_special_markers(normalized, original) {
             return Ok(());
         }
 
@@ -642,7 +643,7 @@ impl Assembler {
     }
 
     /// Check for special markers (mutable, containment, delimiter)
-    fn check_special_markers(&mut self, normalized: &str) -> bool {
+    fn check_special_markers(&mut self, normalized: &str, original: &str) -> bool {
         // Check for mutable marker (μετά)
         if crate::morphology::lexicon::is_mutable_marker(normalized) {
             self.state.has_mutable_marker = true;
@@ -651,6 +652,13 @@ impl Assembler {
 
         // Check for containment preposition (ἐν)
         if crate::morphology::lexicon::is_containment_preposition(normalized) {
+            // DISAMBIGUATION: ἐν (in) vs ἕν (one)
+            // If original has rough breathing (U+0314 combining reversed comma above), it's "one".
+            // We check the NFD form to separate base letters from diacritics.
+            if original.nfd().any(|c| c == '\u{0314}') {
+                return false;
+            }
+
             self.state.has_containment_preposition = true;
             return true;
         }
