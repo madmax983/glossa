@@ -387,8 +387,9 @@ fn classify_assignment(
                 }
                 Some(b) if !b.mutable => {
                     let _b = b; // Silence unused variable warning while keeping guard
-                    return Err(GlossaError::semantic(crate::errors::immutable_assignment(
-                        &var_name,
+                    return Err(GlossaError::semantic(format!(
+                        "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
+                        var_name
                     )));
                 }
                 Some(_b) => {
