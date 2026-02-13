@@ -1,7 +1,8 @@
+use std::borrow::Cow;
+
 use glossa::ast::{Expr, Word};
 use glossa::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
 use glossa::semantic::{Assembler, AssemblyError};
-use std::borrow::Cow;
 
 // Constants from src/semantic/assembler.rs
 const MAX_ADJECTIVES: usize = 1024;

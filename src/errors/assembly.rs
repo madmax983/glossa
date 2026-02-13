@@ -79,8 +79,5 @@ pub enum AssemblyError {
     /// Too many adjectives in a single sentence
     #[error("Ὑπέρβασις ὁρίου: {resource} > {max}. Μηδὲν ἄγαν!")]
     #[diagnostic(code(glossa::assembly::limit_exceeded))]
-    LimitExceeded {
-        resource: String,
-        max: usize,
-    },
+    LimitExceeded { resource: String, max: usize },
 }
