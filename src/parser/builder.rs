@@ -129,14 +129,9 @@ fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, ParseError> {
         }
     }
 
-    if type_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Type definition needs a name".to_string(),
-        ));
-    }
-
+    // Grammar guarantees a name exists
     Ok(TypeDef {
-        name: type_name.unwrap(),
+        name: type_name.expect("Grammar guarantees type name"),
         fields,
     })
 }
@@ -191,14 +186,8 @@ fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> 
         }
     }
 
-    if trait_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Trait definition needs a name".to_string(),
-        ));
-    }
-
     Ok(TraitDef {
-        name: trait_name.unwrap(),
+        name: trait_name.expect("Grammar guarantees trait name"),
         methods,
     })
 }
@@ -256,16 +245,18 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseErro
 
     // words[0] = method name
     // words[1..] = parameters (τῷ self, τῷ other, etc.)
-    if words.is_empty() {
-        return Err(ParseError::UnexpectedRule(
-            "Trait method needs at least a name".to_string(),
-        ));
-    }
-
-    let method_name = words[0].clone();
+    // Grammar guarantees at least one greek_word
+    let method_name = words
+        .first()
+        .expect("Grammar guarantees trait method name")
+        .clone();
 
     // Parse parameters (skip method name)
-    let params = parse_method_parameters(&words[1..]);
+    let params = if words.len() > 1 {
+        parse_method_parameters(&words[1..])
+    } else {
+        vec![]
+    };
 
     Ok(TraitMethodDecl {
         name: method_name,
@@ -311,15 +302,9 @@ fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, ParseError> {
         }
     }
 
-    if type_name.is_none() || trait_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Trait impl needs type and trait names".to_string(),
-        ));
-    }
-
     Ok(TraitImplDef {
-        type_name: type_name.unwrap(),
-        trait_name: trait_name.unwrap(),
+        type_name: type_name.expect("Grammar guarantees type name"),
+        trait_name: trait_name.expect("Grammar guarantees trait name"),
         methods,
     })
 }
@@ -359,14 +344,8 @@ fn build_test_declaration(pair: Pair<'_, Rule>) -> Result<TestDecl, ParseError> 
         }
     }
 
-    if test_name.is_none() {
-        return Err(ParseError::UnexpectedRule(
-            "Test declaration needs a name".to_string(),
-        ));
-    }
-
     Ok(TestDecl {
-        name: test_name.unwrap(),
+        name: test_name.expect("Grammar guarantees test name"),
         body,
     })
 }
@@ -393,16 +372,18 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> 
 
     // words[0] = method name
     // words[1..] = parameters (τῷ self, τῷ other, etc.)
-    if words.is_empty() {
-        return Err(ParseError::UnexpectedRule(
-            "Impl method needs at least a name".to_string(),
-        ));
-    }
-
-    let method_name = words[0].clone();
+    // Grammar guarantees at least one greek_word (name)
+    let method_name = words
+        .first()
+        .expect("Grammar guarantees impl method name")
+        .clone();
 
     // Parse parameters (skip method name)
-    let params = parse_method_parameters(&words[1..]);
+    let params = if words.len() > 1 {
+        parse_method_parameters(&words[1..])
+    } else {
+        vec![]
+    };
 
     Ok(ImplMethodDef {
         name: method_name,
