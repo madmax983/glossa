@@ -1,11 +1,11 @@
 use glossa::ast::{Expr, Statement};
-use glossa::parser::builder::parse_source;
+use glossa::parser::parse;
 
 #[test]
 fn test_greek_numerals_assignment() {
     // x = 22 (κβʹ)
     let source = "ξ κβʹ ἔστω.";
-    let program = parse_source(source).unwrap();
+    let program = parse(source).unwrap();
 
     assert_eq!(program.statements.len(), 1);
 
@@ -29,7 +29,7 @@ fn test_greek_numerals_assignment() {
 fn test_greek_numerals_array() {
     // [1, 2, 3] = [αʹ, βʹ, γʹ]
     let source = "[αʹ, βʹ, γʹ] λέγε.";
-    let program = parse_source(source).unwrap();
+    let program = parse(source).unwrap();
 
     let Statement::Regular { clauses, .. } = &program.statements[0] else {
         panic!("Expected Regular Statement");
@@ -54,7 +54,7 @@ fn test_greek_numerals_array() {
 fn test_greek_numerals_index() {
     // arr[10] = arr[ιʹ]
     let source = "πίνακας[ιʹ] λέγε.";
-    let program = parse_source(source).unwrap();
+    let program = parse(source).unwrap();
 
     let Statement::Regular { clauses, .. } = &program.statements[0] else {
         panic!("Expected Regular Statement");
@@ -79,7 +79,7 @@ fn test_greek_numerals_index() {
 fn test_greek_numerals_mixed() {
     // 2024 (͵βκδʹ)
     let source = "͵βκδʹ λέγε.";
-    let program = parse_source(source).unwrap();
+    let program = parse(source).unwrap();
 
     let Statement::Regular { clauses, .. } = &program.statements[0] else {
         panic!("Expected Regular Statement");
@@ -99,7 +99,7 @@ fn test_greek_numerals_mixed() {
 fn test_arabic_fallback() {
     // 42 λέγε.
     let source = "42 λέγε.";
-    let program = parse_source(source).unwrap();
+    let program = parse(source).unwrap();
 
     let Statement::Regular { clauses, .. } = &program.statements[0] else {
         panic!("Expected Regular Statement");
@@ -121,7 +121,7 @@ fn test_invalid_greek_logic() {
     // But parse_greek_numeral returns error ("Empty or invalid numeral")
     // This tests the map_err path in parse_number_literal
     let source = "\u{0300}ʹ λέγε.";
-    let result = parse_source(source);
+    let result = parse(source);
 
     assert!(result.is_err());
     let err = result.unwrap_err();

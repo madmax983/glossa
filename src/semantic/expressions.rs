@@ -421,7 +421,7 @@ fn feed_expr_recursive(
             let mut success = false;
 
             for candidate in candidates {
-                match asm.feed(&candidate, &w.original) {
+                match asm.feed_with_normalized(&candidate, &w.original, &w.normalized) {
                     Ok(_) => {
                         success = true;
                         break;
@@ -471,7 +471,7 @@ fn feed_expr_recursive(
             // Set context from verb for potential subject agreement
             *context = DisambiguationContext::from_verb(&best_verb);
 
-            if let Err(e) = asm.feed(&best_verb, &verb.original) {
+            if let Err(e) = asm.feed_with_normalized(&best_verb, &verb.original, &verb.normalized) {
                 return Err(GlossaError::semantic(e.to_string()));
             }
 
@@ -485,7 +485,7 @@ fn feed_expr_recursive(
             let analyses = morphology::analyze_all(&name.normalized);
             let best_name = resolve_best(analyses, context);
 
-            if let Err(e) = asm.feed(&best_name, &name.original) {
+            if let Err(e) = asm.feed_with_normalized(&best_name, &name.original, &name.normalized) {
                 return Err(GlossaError::semantic(e.to_string()));
             }
             feed_expr_recursive(asm, value, context, depth + 1)?;
