@@ -813,4 +813,40 @@ mod coverage_tests {
         let clone_check = pest_err.clone();
         assert_eq!(pest_err, clone_check);
     }
+
+    #[test]
+    fn test_recursion_edge_cases() {
+        // Unmatched closing brace (saturating sub)
+        assert!(check_recursion_depth(")").is_ok());
+        assert!(check_recursion_depth("}").is_ok());
+        assert!(check_recursion_depth("]").is_ok());
+
+        // Other brackets
+        assert!(check_recursion_depth("[]").is_ok());
+        assert!(check_recursion_depth("{}").is_ok());
+
+        // Comments
+        assert!(check_recursion_depth("// (((((").is_ok()); // Comment ignores depth
+        assert!(check_recursion_depth("// \n (").is_ok()); // Newline ends comment
+
+        // Non-Greek string (ASCII quote) - ignored by this check, treated as normal char
+        // The check only cares about « » 0xC2 0xAB/BB
+        assert!(check_recursion_depth("\"(\"").is_ok()); // Treated as char + depth + char
+
+        // Plain chars
+        assert!(check_recursion_depth("abc").is_ok());
+
+        // Single slash (not comment)
+        assert!(check_recursion_depth("/").is_ok());
+
+        // Utf8 split (end of string)
+        // 0xC2 is start of «, but if string ends...
+        // Manually construct byte slice? check_recursion_depth takes &str.
+        // We can't pass invalid utf8 str.
+        // But we can pass "«" (bytes C2 AB).
+        // Pass a char that starts with C2 but isn't «?
+        // No, C2 is specific prefix.
+        // "«" without closing »
+        assert!(check_recursion_depth("«").is_ok());
+    }
 }

@@ -168,6 +168,8 @@ mod tests {
     #[test]
     fn test_invalid() {
         assert!(parse_greek_numeral("abc").is_err());
+        assert!(parse_greek_numeral("").is_err()); // Empty string -> total 0
+        assert!(parse_greek_numeral("ʹ").is_err()); // Just keraia -> total 0
     }
 
     #[test]
