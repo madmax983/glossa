@@ -1,8 +1,4 @@
-use crossterm::{
-    cursor,
-    style::Stylize,
-    terminal, QueueableCommand,
-};
+use crossterm::{QueueableCommand, cursor, style::Stylize, terminal};
 use std::io::{IsTerminal, Write};
 use std::time::Instant;
 
