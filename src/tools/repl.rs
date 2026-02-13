@@ -133,8 +133,12 @@ fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
         bindings.sort_by(|a, b| a.0.cmp(b.0));
 
         if bindings.is_empty() {
-            writeln!(w, "{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow())
-                .into_diagnostic()?;
+            writeln!(
+                w,
+                "{}",
+                "Οὐδεμία μεταβλητή (No variables defined).".yellow()
+            )
+            .into_diagnostic()?;
             return Ok(());
         }
 
@@ -169,8 +173,12 @@ fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
         }
         writeln!(w, "{table}").into_diagnostic()?;
     } else {
-        writeln!(w, "{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow())
-            .into_diagnostic()?;
+        writeln!(
+            w,
+            "{}",
+            "Οὐδεμία μεταβλητή (No variables defined).".yellow()
+        )
+        .into_diagnostic()?;
     }
     Ok(())
 }

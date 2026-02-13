@@ -338,7 +338,11 @@ mod tests {
         let cache = cache_dir();
         assert!(cache.exists());
         let key = cache_key(&input_path);
-        let cached_exe = cache.join(format!("{}{}", key, if cfg!(windows) { ".exe" } else { "" }));
+        let cached_exe = cache.join(format!(
+            "{}{}",
+            key,
+            if cfg!(windows) { ".exe" } else { "" }
+        ));
         assert!(cached_exe.exists());
 
         // 4. Run again to test cache hit path
