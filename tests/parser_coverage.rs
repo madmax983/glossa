@@ -1,8 +1,19 @@
+
 #[test]
 fn test_parser_coverage_complex() {
     use glossa::parser::parse;
 
     // Complex nested structure to hit parser builder branches
+    // This source includes:
+    // - Type definition (struct)
+    // - Trait definition
+    // - Trait implementation
+    // - Test declaration
+    // - Array literal
+    // - Index access
+    // - Unwrap expression
+    // - Nested phrases (limited by parser logic for now)
+
     let source = "
     εἶδος Χρήστης ὁρίζειν {
         ὄνομα ὀνόματος.
@@ -35,4 +46,8 @@ fn test_parser_coverage_complex() {
         "Failed to parse complex source: {:?}",
         res.err()
     );
+
+    let program = res.unwrap();
+    // Basic structural assertions to ensure we parsed what we expected
+    assert!(program.statements.len() >= 4, "Should have at least type, trait, impl, and test");
 }

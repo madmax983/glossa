@@ -112,7 +112,8 @@ fn test_errors_coverage() {
     let err_str = format!("{:?}", res.err());
     assert!(
         err_str.contains("RecursionLimitExceeded") || err_str.contains("depth"),
-        "Error should mention recursion limit: {}", err_str
+        "Error should mention recursion limit: {}",
+        err_str
     );
 
     // Help constants
@@ -144,6 +145,19 @@ fn test_highlight_coverage() {
         "εἰ ἀληθές, «ναί» λέγε.", // Control flow highlighting
         "ξ?",                     // Query
         "σφάλμα;",                // Propagate
+        // Part of Speech variants for highlighter coverage
+        // Note: Single words might not parse as a full statement if they don't end in period/query
+        "μετά.", // Preposition (white bold)
+        "καί.",  // Conjunction (white bold)
+        "πέντε.", // Numeral (italic)
+        "ἀγνωστον.", // Unknown (white)
+        "τῷ ἀνθρώπῳ δίδωμι.", // Dative
+        "ἄνθρωπε.", // Vocative
+        "καλός.", // Adjective
+        // Unary Neg "-ξ" might not parse if parser expects space or specific structure.
+        // Let's try explicit UnaryOp construction if parser fails, but here we test highlight(str).
+        // If "-ξ." fails, it's likely a parser issue with unary operators at start of statement.
+        // We'll remove it from this list if it's too fragile for integration test and rely on unit tests in highlight.rs
     ];
 
     for input in inputs {
