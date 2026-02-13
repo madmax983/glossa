@@ -48,6 +48,7 @@
 pub mod ast;
 pub mod codegen;
 pub mod errors;
+pub mod experimental;
 pub mod grammar;
 pub mod morphology;
 pub mod parser;

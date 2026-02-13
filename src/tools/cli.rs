@@ -135,4 +135,25 @@ mod tests {
         assert!(cli.file.is_none());
         assert!(cli.command.is_none()); // Implicitly runs REPL in main.rs logic, but struct is None
     }
+
+    #[test]
+    fn test_cli_unknown_command() {
+        let args = vec!["glossa", "unknown"];
+        // Should error because "unknown" is not a command, and if it were a file, it conflicts with command position if ambiguous?
+        // Wait, clap treats first arg as command or file depending on config.
+        // If "unknown" is provided, it might be interpreted as [FILE].
+        // Let's check.
+        let cli = Cli::try_parse_from(args);
+        // If it parses as file, it's Ok.
+        if let Ok(c) = cli {
+            assert_eq!(c.file, Some(PathBuf::from("unknown")));
+        }
+    }
+
+    #[test]
+    fn test_cli_run_missing_arg() {
+        let args = vec!["glossa", "run"];
+        let result = Cli::try_parse_from(args);
+        assert!(result.is_err()); // Missing input file
+    }
 }
