@@ -1,4 +1,3 @@
-use glossa::codegen::generate_rust;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 use std::thread;
@@ -37,13 +36,18 @@ fn test_stack_overflow_expression() {
             let ast = parse(&s).expect("Failed to parse");
 
             println!("Analyzing...");
-            // This works fine (linear loop in build_expressions_from_literals_and_ops)
-            let analyzed = analyze_program(&ast).expect("Failed to analyze");
+            // Now that we have strict resource limits (MAX_OPERATORS=256),
+            // this massive expression should be rejected gracefully.
+            let result = analyze_program(&ast);
 
-            println!("Generating...");
-            // This should pass with 32MB stack
-            let code = generate_rust(&analyzed);
-            assert!(!code.is_empty());
+            match result {
+                Ok(_) => panic!("Should have failed with LimitExceeded"),
+                Err(e) => {
+                    let msg = e.to_string();
+                    assert!(msg.contains("Ὅριον ὑπερβαῖνον"), "Expected limit error, got: {}", msg);
+                    assert!(msg.contains("operators"), "Expected operator limit, got: {}", msg);
+                }
+            }
         })
         .unwrap();
 
