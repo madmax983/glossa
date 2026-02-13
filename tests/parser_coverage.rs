@@ -53,3 +53,26 @@ fn test_parser_coverage_complex() {
         "Should have at least type, trait, impl, and test"
     );
 }
+
+#[test]
+fn test_grammar_punctuation() {
+    use glossa::parser::parse;
+
+    // Test comma (clauses), query (?), and propagate (;)
+    let source = "εἰ ἀληθές, «ναί» λέγε? σφάλμα;";
+    let res = parse(source);
+    assert!(res.is_ok(), "Failed to parse punctuation: {:?}", res.err());
+
+    let program = res.unwrap();
+    assert_eq!(program.statements.len(), 2);
+
+    // First statement: εἰ ἀληθές, «ναί» λέγε?
+    let s1 = &program.statements[0];
+    assert!(s1.is_query());
+    // Should have 2 clauses (condition, body) separated by comma
+    assert_eq!(s1.clauses().len(), 2);
+
+    // Second statement: σφάλμα;
+    let s2 = &program.statements[1];
+    assert!(s2.is_propagate());
+}

@@ -403,6 +403,16 @@ fn test_semantic_assembler_gender_mismatch() {
     };
 
     assert!(format!("{}", err).contains("Ἀσυμφωνία γένους"));
+
+    // Missing Verb Error
+    // "ὁ ἄνθρωπος" (The man) - Subject only, no verb.
+    // finalize() should return MissingVerb if strictly checked, or be lenient.
+    // The current Assembler implementation has a check:
+    // if self.state.verb.is_none() && has_content && !self.state.is_query { ... }
+    // It says "But for now, let's be lenient". So it might NOT error.
+    // However, we want to cover the AssemblyError::MissingVerb *variant code* (Display/Error impl).
+    let missing = AssemblyError::MissingVerb;
+    assert!(format!("{}", missing).contains("Ῥῆμα οὐχ εὑρέθη"));
 }
 
 #[test]
