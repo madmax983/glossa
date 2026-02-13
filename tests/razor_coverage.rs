@@ -100,8 +100,13 @@ fn test_errors_coverage() {
 
     // Display Coverage for ALL variants (thiserror derive)
     for err in [
-        &err_parse, &err_type, &err_semantic, &err_agree,
-        &err_codegen, &err_io, &err_undef
+        &err_parse,
+        &err_type,
+        &err_semantic,
+        &err_agree,
+        &err_codegen,
+        &err_io,
+        &err_undef,
     ] {
         let _ = format!("{}", err); // Execute Display trait
         let _ = format!("{:?}", err); // Execute Debug trait
@@ -214,7 +219,8 @@ fn test_highlight_coverage() {
     // Check for Cyan code (36) OR 256-color cyan (38;5;6) or just any color escape
     assert!(
         output.contains("\x1b[36m") || output.contains("\x1b[38;5;6m") || output.contains("\x1b[3"),
-        "Expected Cyan highlighting, got: {}", output
+        "Expected Cyan highlighting, got: {}",
+        output
     );
 
     // Test Numeral Highlighting (Italic)
@@ -330,8 +336,8 @@ fn test_parser_error_paths() {
 
 #[test]
 fn test_parser_builder_precision_coverage() {
+    use glossa::ast::{Expr, Statement};
     use glossa::parser::parse;
-    use glossa::ast::{Statement, Expr};
 
     // 1. Check Recursion Depth Single Slash logic
     // The loop handles b'/' by checking next char. If only one '/', it should proceed.
@@ -344,7 +350,11 @@ fn test_parser_builder_precision_coverage() {
     // It should fail, but NOT with recursion limit
     assert!(res.is_err(), "Expected parse error for slash");
     let err_s = format!("{:?}", res.err());
-    assert!(!err_s.contains("RecursionLimitExceeded"), "Should not be recursion error: {}", err_s);
+    assert!(
+        !err_s.contains("RecursionLimitExceeded"),
+        "Should not be recursion error: {}",
+        err_s
+    );
 
     // To hit the `else { i+=1 }` branch in recursion check for valid grammar, we need a slash inside a string?
     // Strings handle their own scanning.
@@ -364,7 +374,11 @@ fn test_parser_builder_precision_coverage() {
         // So "λέγε" (one word) should be Expr::Word directly?
         // Actually, the grammar for `expression` is `term+`.
         // If I have "λέγε", that's one term. So it should be unwrapped.
-        assert!(!matches!(expr, Expr::Phrase(_)), "Single word should be unwrapped, got {:?}", expr);
+        assert!(
+            !matches!(expr, Expr::Phrase(_)),
+            "Single word should be unwrapped, got {:?}",
+            expr
+        );
     }
 }
 
@@ -392,6 +406,7 @@ fn test_trait_method_params_edge_cases() {
     let source_no_marker = "χαρακτήρ Χ ὁρίζειν { δεῖ φ param. }.";
     let res2 = parse(source_no_marker);
     assert!(res2.is_ok());
+    #[allow(clippy::collapsible_if)]
     if let Ok(prog) = res2 {
         if let glossa::ast::Statement::TraitDefinition(def) = &prog.statements[0] {
             assert_eq!(def.methods[0].params.len(), 0); // Should have 0 params
@@ -425,9 +440,9 @@ fn test_numerals_error_paths() {
 
 #[test]
 fn test_semantic_assembler_errors() {
-    use glossa::semantic::Assembler;
-    use glossa::morphology::{analyze, Gender};
     use glossa::errors::AssemblyError;
+    use glossa::morphology::{Gender, analyze};
+    use glossa::semantic::Assembler;
 
     let mut asm = Assembler::new();
 
@@ -481,12 +496,14 @@ fn test_semantic_assembler_errors() {
         AssemblyError::MissingVerb,
         AssemblyError::SubjectVerbDisagreement {
             subject: (None, None),
-            verb: (None, None)
+            verb: (None, None),
         },
         AssemblyError::GenderMismatch {
-            word1: "".into(), gender1: Gender::Neuter,
-            word2: "".into(), gender2: Gender::Neuter
-        }
+            word1: "".into(),
+            gender1: Gender::Neuter,
+            word2: "".into(),
+            gender2: Gender::Neuter,
+        },
     ];
 
     for e in errs {
@@ -497,8 +514,8 @@ fn test_semantic_assembler_errors() {
 
 #[test]
 fn test_assembler_comprehensive_features() {
+    use glossa::morphology::{Case, analyze};
     use glossa::semantic::Assembler;
-    use glossa::morphology::{analyze, PartOfSpeech, Case, Number, Person};
 
     let mut asm = Assembler::new();
 
@@ -548,7 +565,11 @@ fn test_assembler_comprehensive_features() {
 
     asm2.feed_number(1).unwrap();
     let stmt2 = asm2.finalize().unwrap();
-    assert!(stmt2.operators.len() >= 3, "Expected at least 3 operators (AND, OR, GT), got {}", stmt2.operators.len());
+    assert!(
+        stmt2.operators.len() >= 3,
+        "Expected at least 3 operators (AND, OR, GT), got {}",
+        stmt2.operators.len()
+    );
 
     // 3. Properties and Methods
     let mut asm3 = Assembler::new();
@@ -590,9 +611,9 @@ fn test_assembler_comprehensive_features() {
 
 #[test]
 fn test_semantic_assembler_gender_mismatch() {
-    use glossa::semantic::Assembler;
-    use glossa::morphology::{analyze, Gender};
     use glossa::errors::AssemblyError;
+    use glossa::morphology::{Gender, analyze};
+    use glossa::semantic::Assembler;
 
     // Gender Mismatch Logic is tricky because gender agreement is often loose or context-dependent.
     // However, let's try to trigger it if implemented.
@@ -636,9 +657,9 @@ fn test_semantic_assembler_gender_mismatch() {
 
 #[test]
 fn test_semantic_expression_errors() {
-    use glossa::semantic::expressions::analyze_argument_expr;
-    use glossa::semantic::Scope;
     use glossa::ast::Expr;
+    use glossa::semantic::Scope;
+    use glossa::semantic::expressions::analyze_argument_expr;
 
     let scope = Scope::new();
 
@@ -686,11 +707,28 @@ fn test_nuclear_derived_coverage() {
     assert_eq!(prog, prog.clone());
 
     // Statements
-    let s1 = Statement::Regular { clauses: vec![], is_query: false, is_propagate: false };
-    let s2 = Statement::TypeDefinition(TypeDef { name: Word::new("T"), fields: vec![] });
-    let s3 = Statement::TraitDefinition(TraitDef { name: Word::new("Tr"), methods: vec![] });
-    let s4 = Statement::TraitImpl(TraitImplDef { type_name: Word::new("T"), trait_name: Word::new("Tr"), methods: vec![] });
-    let s5 = Statement::TestDeclaration(TestDecl { name: "t".into(), body: vec![] });
+    let s1 = Statement::Regular {
+        clauses: vec![],
+        is_query: false,
+        is_propagate: false,
+    };
+    let s2 = Statement::TypeDefinition(TypeDef {
+        name: Word::new("T"),
+        fields: vec![],
+    });
+    let s3 = Statement::TraitDefinition(TraitDef {
+        name: Word::new("Tr"),
+        methods: vec![],
+    });
+    let s4 = Statement::TraitImpl(TraitImplDef {
+        type_name: Word::new("T"),
+        trait_name: Word::new("Tr"),
+        methods: vec![],
+    });
+    let s5 = Statement::TestDeclaration(TestDecl {
+        name: "t".into(),
+        body: vec![],
+    });
 
     // Check inequality
     assert_ne!(s1, s2);
@@ -705,14 +743,33 @@ fn test_nuclear_derived_coverage() {
     let e2 = Expr::NumberLiteral(1);
     let e3 = Expr::BooleanLiteral(true);
     let e4 = Expr::ArrayLiteral(vec![]);
-    let e5 = Expr::IndexAccess { array: Box::new(e4.clone()), index: Box::new(e2.clone()) };
+    let e5 = Expr::IndexAccess {
+        array: Box::new(e4.clone()),
+        index: Box::new(e2.clone()),
+    };
     let e6 = Expr::Word(Word::new("w"));
     let e7 = Expr::Phrase(vec![]);
-    let e8 = Expr::PropertyAccess { owner: Box::new(e6.clone()), property: Box::new(e6.clone()) };
-    let e9 = Expr::Call { verb: Word::new("v"), arguments: vec![] };
-    let e10 = Expr::Binding { name: Word::new("n"), value: Box::new(e2.clone()) };
-    let e11 = Expr::BinOp { left: Box::new(e2.clone()), op: BinOperator::Add, right: Box::new(e2.clone()) };
-    let e12 = Expr::UnaryOp { op: UnaryOperator::Not, operand: Box::new(e3.clone()) };
+    let e8 = Expr::PropertyAccess {
+        owner: Box::new(e6.clone()),
+        property: Box::new(e6.clone()),
+    };
+    let e9 = Expr::Call {
+        verb: Word::new("v"),
+        arguments: vec![],
+    };
+    let e10 = Expr::Binding {
+        name: Word::new("n"),
+        value: Box::new(e2.clone()),
+    };
+    let e11 = Expr::BinOp {
+        left: Box::new(e2.clone()),
+        op: BinOperator::Add,
+        right: Box::new(e2.clone()),
+    };
+    let e12 = Expr::UnaryOp {
+        op: UnaryOperator::Not,
+        operand: Box::new(e3.clone()),
+    };
     let e13 = Expr::Block(vec![]);
 
     // Check inequality
@@ -724,28 +781,61 @@ fn test_nuclear_derived_coverage() {
     }
 
     // Sub-structs
-    let fd = FieldDecl { name: Word::new("n"), type_name: Word::new("t") };
-    let fd2 = FieldDecl { name: Word::new("n2"), type_name: Word::new("t") };
+    let fd = FieldDecl {
+        name: Word::new("n"),
+        type_name: Word::new("t"),
+    };
+    let fd2 = FieldDecl {
+        name: Word::new("n2"),
+        type_name: Word::new("t"),
+    };
     assert_eq!(format!("{:?}", fd), format!("{:?}", fd.clone()));
     assert_ne!(fd, fd2);
 
-    let tmd = TraitMethodDecl { name: Word::new("m"), params: vec![], is_default: false, body: None };
+    let tmd = TraitMethodDecl {
+        name: Word::new("m"),
+        params: vec![],
+        is_default: false,
+        body: None,
+    };
     assert_eq!(format!("{:?}", tmd), format!("{:?}", tmd.clone()));
 
-    let imd = ImplMethodDef { name: Word::new("m"), params: vec![], body: vec![] };
+    let imd = ImplMethodDef {
+        name: Word::new("m"),
+        params: vec![],
+        body: vec![],
+    };
     assert_eq!(format!("{:?}", imd), format!("{:?}", imd.clone()));
 
-    let cl = Clause { expressions: vec![] };
+    let cl = Clause {
+        expressions: vec![],
+    };
     assert_eq!(format!("{:?}", cl), format!("{:?}", cl.clone()));
 
     // Ops
-    for op in [BinOperator::Add, BinOperator::Sub, BinOperator::Mul, BinOperator::Div, BinOperator::Mod,
-               BinOperator::Eq, BinOperator::Ne, BinOperator::Lt, BinOperator::Le, BinOperator::Gt, BinOperator::Ge,
-               BinOperator::And, BinOperator::Or] {
+    for op in [
+        BinOperator::Add,
+        BinOperator::Sub,
+        BinOperator::Mul,
+        BinOperator::Div,
+        BinOperator::Mod,
+        BinOperator::Eq,
+        BinOperator::Ne,
+        BinOperator::Lt,
+        BinOperator::Le,
+        BinOperator::Gt,
+        BinOperator::Ge,
+        BinOperator::And,
+        BinOperator::Or,
+    ] {
         assert_eq!(format!("{:?}", op), format!("{:?}", op.clone()));
     }
 
-    for op in [UnaryOperator::Not, UnaryOperator::Neg, UnaryOperator::Unwrap] {
+    for op in [
+        UnaryOperator::Not,
+        UnaryOperator::Neg,
+        UnaryOperator::Unwrap,
+    ] {
         assert_eq!(format!("{:?}", op), format!("{:?}", op.clone()));
     }
 
@@ -755,25 +845,48 @@ fn test_nuclear_derived_coverage() {
     assert_eq!(format!("{:?}", asm_stmt), format!("{:?}", asm_stmt.clone()));
     // AssembledStatement doesn't implement PartialEq in code, so skipping equality check
 
-    use glossa::semantic::assembler::{Constituent, VerbConstituent, ParticipleConstituent, Literal};
     use glossa::morphology::{Case, Gender, Number, Person, Tense, Voice};
+    use glossa::semantic::assembler::{
+        Constituent, Literal, ParticipleConstituent, VerbConstituent,
+    };
 
     let cons = Constituent {
-        lemma: "l".into(), original: "o".into(), case: Case::Nominative,
-        number: Some(Number::Singular), gender: Some(Gender::Neuter), person: Some(Person::First)
+        lemma: "l".into(),
+        original: "o".into(),
+        case: Case::Nominative,
+        number: Some(Number::Singular),
+        gender: Some(Gender::Neuter),
+        person: Some(Person::First),
     };
     assert_eq!(format!("{:?}", cons), format!("{:?}", cons.clone()));
 
     let verb_cons = VerbConstituent {
-        lemma: "l".into(), original: "o".into(), person: None, number: None, tense: None, mood: None, voice: None
+        lemma: "l".into(),
+        original: "o".into(),
+        person: None,
+        number: None,
+        tense: None,
+        mood: None,
+        voice: None,
     };
-    assert_eq!(format!("{:?}", verb_cons), format!("{:?}", verb_cons.clone()));
+    assert_eq!(
+        format!("{:?}", verb_cons),
+        format!("{:?}", verb_cons.clone())
+    );
 
     let part_cons = ParticipleConstituent {
-        verb_lemma: "v".into(), original: "o".into(), tense: Tense::Present, voice: Voice::Active,
-        case: Case::Nominative, gender: Gender::Masculine, number: Number::Singular
+        verb_lemma: "v".into(),
+        original: "o".into(),
+        tense: Tense::Present,
+        voice: Voice::Active,
+        case: Case::Nominative,
+        gender: Gender::Masculine,
+        number: Number::Singular,
     };
-    assert_eq!(format!("{:?}", part_cons), format!("{:?}", part_cons.clone()));
+    assert_eq!(
+        format!("{:?}", part_cons),
+        format!("{:?}", part_cons.clone())
+    );
 
     let lit = Literal::Number(1);
     assert_eq!(format!("{:?}", lit), format!("{:?}", lit.clone()));
@@ -804,12 +917,12 @@ fn test_nuclear_derived_coverage() {
     // It's defined as `pub struct GlossaParser;` with `#[derive(Parser)]`.
     // It might not derive Debug/Clone explicitly in my code, but usually does.
     // Let's try to format it if possible, or just instantiate it.
-    let _ = glossa::parser::grammar::GlossaParser;
+    let _ = glossa::parser::GlossaParser;
 }
 
 #[test]
 fn test_parser_rules_nuclear() {
-    use glossa::parser::grammar::Rule;
+    use glossa::parser::Rule;
 
     // Exercise derived traits (Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)
     // on the generated Rule enum.
@@ -842,6 +955,7 @@ fn test_parser_rules_nuclear() {
         let _ = format!("{:?}", rule);
 
         // Clone
+        #[allow(clippy::clone_on_copy)]
         let cloned = rule.clone();
 
         // PartialEq / Eq

@@ -37,3 +37,8 @@
 **Bloat:** Separated `src/grammar` (pest) and `src/experimental` (numerals) from `src/parser`.
 **Cut:** Consolidated all parsing logic into `src/parser` (moving files, creating submodules).
 **Saved:** 2 directories, improved cohesion (all parsing in one place).
+
+## [Reduction]
+**Bloat:** `src/parser/grammar.rs` containing only a struct with a macro derivation, plus scattered test dependencies on `grammar::Rule`.
+**Cut:** Merged `grammar.rs` into `src/parser/mod.rs` and flattened module imports.
+**Saved:** 1 file, simplified module structure.

@@ -5,7 +5,7 @@
 //!
 //! # The Parsing Flow
 //!
-//! 1. **Grammar (`src/grammar`)**: Uses [`pest`] (PEG parser) to tokenize the input
+//! 1. **Grammar (`glossa.pest`)**: Uses [`pest`] (PEG parser) to tokenize the input
 //!    and verify it matches the language rules. This produces a "Concrete Syntax Tree" (CST)
 //!    of untyped pairs (e.g., `Rule::greek_word`, `Rule::number_literal`).
 //!
@@ -23,13 +23,17 @@
 //! * Provide better error messages during the conversion phase.
 
 pub(crate) mod builder;
-pub mod grammar;
 pub mod numerals;
 
 use crate::ast::Program;
 use crate::errors::GlossaError;
+use pest_derive::Parser;
 
 pub use builder::ParseError;
+
+#[derive(Parser)]
+#[grammar = "parser/glossa.pest"]
+pub struct GlossaParser;
 
 impl From<ParseError> for GlossaError {
     fn from(err: ParseError) -> Self {
@@ -52,4 +56,26 @@ impl From<ParseError> for GlossaError {
 /// ```
 pub fn parse(source: &str) -> Result<Program, GlossaError> {
     builder::parse_source(source).map_err(GlossaError::from)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pest::Parser;
+
+    #[test]
+    fn test_parse_hello_cosmos() {
+        let source = "«χαῖρε κόσμε» λέγε.";
+        let result = GlossaParser::parse(Rule::program, source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse hello cosmos: {:?}",
+            result.err()
+        );
+
+        let pairs = result.unwrap();
+        // Verify we got a program with at least one statement
+        let program = pairs.into_iter().next().unwrap();
+        assert_eq!(program.as_rule(), Rule::program);
+    }
 }

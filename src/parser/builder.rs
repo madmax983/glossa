@@ -11,7 +11,8 @@
 //! recursive descent parsing phase.
 
 use crate::ast::*;
-use crate::parser::grammar::{Rule, parse};
+use crate::parser::{GlossaParser, Rule};
+use pest::Parser;
 use pest::iterators::Pair;
 
 fn parse_number_literal(text: &str) -> Result<i64, ParseError> {
@@ -28,7 +29,8 @@ pub fn parse_source(source: &str) -> Result<Program, ParseError> {
     // Check recursion depth before parsing to prevent stack overflow
     check_recursion_depth(source)?;
 
-    let pairs = parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
+    let pairs = GlossaParser::parse(Rule::program, source)
+        .map_err(|e| ParseError::PestError(e.to_string()))?;
 
     let mut statements = Vec::new();
 
