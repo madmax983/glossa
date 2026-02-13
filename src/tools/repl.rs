@@ -563,12 +563,12 @@ mod tests {
     struct BrokenReader;
     impl std::io::Read for BrokenReader {
         fn read(&mut self, _buf: &mut [u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "Broken"))
+            Err(std::io::Error::other("Broken"))
         }
     }
     impl std::io::BufRead for BrokenReader {
         fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "Broken"))
+            Err(std::io::Error::other("Broken"))
         }
         fn consume(&mut self, _amt: usize) {}
     }
@@ -584,10 +584,10 @@ mod tests {
     struct BrokenWriter;
     impl std::io::Write for BrokenWriter {
         fn write(&mut self, _buf: &[u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "Broken"))
+            Err(std::io::Error::other("Broken"))
         }
         fn flush(&mut self) -> std::io::Result<()> {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "Broken"))
+            Err(std::io::Error::other("Broken"))
         }
     }
 
@@ -605,5 +605,41 @@ mod tests {
         let none = ReplOutput::None;
         let s = none.to_string();
         assert_eq!(s, "");
+    }
+
+    #[test]
+    fn test_repl_definitions_persist() {
+        // Test that functions and types are added to bindings (unlike simple statements)
+        let mut context = ReplContext::new();
+
+        // 1. Define a function
+        let func_def = "δοκιμη ὁρίζειν · λέγε.";
+        context.execute(func_def).unwrap();
+
+        // Should be in bindings because it's a definition
+        assert_eq!(context.bindings.len(), 1);
+        assert_eq!(context.bindings[0], func_def);
+
+        // 2. Define a type
+        let type_def = "εἶδος Ανθρωπος ὁρίζειν { ονομα ονοματος }.";
+        context.execute(type_def).unwrap();
+
+        // Should be in bindings
+        assert_eq!(context.bindings.len(), 2);
+
+        // 3. Define a trait
+        let trait_def = "χαρακτήρ Θνητος ὁρίζειν { δεῖ θνησκειν }.";
+        context.execute(trait_def).unwrap();
+        assert_eq!(context.bindings.len(), 3);
+
+        // 4. Implement trait
+        let impl_def = "εἶδος Ανθρωπος τῷ Θνητος ἐμπίπτειν { θνησκειν · κενό. }.";
+        context.execute(impl_def).unwrap();
+        assert_eq!(context.bindings.len(), 4);
+
+        // 5. Execute a simple statement (not a definition)
+        context.execute("«hello» λέγε.").unwrap();
+        // Should NOT be added
+        assert_eq!(context.bindings.len(), 4);
     }
 }
