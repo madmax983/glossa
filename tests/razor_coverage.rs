@@ -653,4 +653,32 @@ fn test_nuclear_derived_coverage() {
 
     let lit = Literal::Number(1);
     assert_eq!(format!("{:?}", lit), format!("{:?}", lit.clone()));
+
+    // Semantic Expressions (expressions.rs) types
+    // Note: AnalyzedExprKind is large enum.
+    let ae = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(1),
+        glossa_type: GlossaType::Number,
+    };
+    assert_eq!(format!("{:?}", ae), format!("{:?}", ae.clone()));
+
+    // GlossaType (types.rs)
+    let gt = GlossaType::List(Box::new(GlossaType::Number));
+    assert_eq!(format!("{:?}", gt), format!("{:?}", gt.clone()));
+    assert_eq!(gt, gt.clone());
+    assert_ne!(gt, GlossaType::Number);
+
+    // Ownership (types.rs)
+    use glossa::semantic::Ownership;
+    let own = Ownership::Move;
+    assert_eq!(format!("{:?}", own), format!("{:?}", own.clone()));
+    assert_eq!(own, Ownership::Move);
+    assert_ne!(own, Ownership::Borrow);
+
+    // Parser Struct (grammar.rs - generated)
+    // GlossaParser is unit struct, but derived Parser trait might have Debug?
+    // It's defined as `pub struct GlossaParser;` with `#[derive(Parser)]`.
+    // It might not derive Debug/Clone explicitly in my code, but usually does.
+    // Let's try to format it if possible, or just instantiate it.
+    let _ = glossa::parser::grammar::GlossaParser;
 }
