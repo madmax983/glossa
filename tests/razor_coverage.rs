@@ -147,17 +147,17 @@ fn test_highlight_coverage() {
         "σφάλμα;",                // Propagate
         // Part of Speech variants for highlighter coverage
         // Note: Single words might not parse as a full statement if they don't end in period/query
-        "μετά.", // Preposition (white bold)
-        "καί.",  // Conjunction (white bold)
-        "πέντε.", // Numeral (italic)
-        "ἀγνωστον.", // Unknown (white)
+        "μετά.",              // Preposition (white bold)
+        "καί.",               // Conjunction (white bold)
+        "πέντε.",             // Numeral (italic)
+        "ἀγνωστον.",          // Unknown (white)
         "τῷ ἀνθρώπῳ δίδωμι.", // Dative
-        "ἄνθρωπε.", // Vocative
-        "καλός.", // Adjective
-        // Unary Neg "-ξ" might not parse if parser expects space or specific structure.
-        // Let's try explicit UnaryOp construction if parser fails, but here we test highlight(str).
-        // If "-ξ." fails, it's likely a parser issue with unary operators at start of statement.
-        // We'll remove it from this list if it's too fragile for integration test and rely on unit tests in highlight.rs
+        "ἄνθρωπε.",           // Vocative
+        "καλός.",             // Adjective
+                              // Unary Neg "-ξ" might not parse if parser expects space or specific structure.
+                              // Let's try explicit UnaryOp construction if parser fails, but here we test highlight(str).
+                              // If "-ξ." fails, it's likely a parser issue with unary operators at start of statement.
+                              // We'll remove it from this list if it's too fragile for integration test and rely on unit tests in highlight.rs
     ];
 
     for input in inputs {
@@ -223,4 +223,44 @@ fn test_ast_program_struct() {
     let _ = program.clone();
     let _ = format!("{:?}", program);
     assert!(program.statements.is_empty());
+}
+
+#[test]
+fn test_parser_error_paths() {
+    use glossa::parser::parse;
+
+    // Test incomplete type definition (missing name logic hard to trigger from grammar,
+    // but we can try malformed input that passes grammar but fails builder if possible).
+    // Actually, grammar is strict, so builder errors are rarer.
+
+    // Invalid number literal logic in builder
+    // "9999999999999999999999999" fits grammar (ASCII_DIGIT+) but fails i64 parse
+    let overflow_source = "9999999999999999999999999 λέγε.";
+    let res = parse(overflow_source);
+    // Note: If parse_number_literal falls back to Greek numeral, it might fail there too.
+    // The error should be InvalidNumber.
+    assert!(res.is_err());
+    let err_str = format!("{:?}", res.err());
+    // It might be "Parse error: ... InvalidNumber" or wrapped
+    // The previous run failed assertion, so check what it actually returns.
+    // It likely returns a PestError because the digits are too long for i64,
+    // so it might fail at parse_number_literal logic OR pest might not match it if it overflows earlier?
+    // Wait, pest matches ASCII_DIGIT+.
+    // Let's broaden the check.
+    // The error is actually: "Invalid number: ... - Invalid Greek numeral character: 9"
+    // Wait, the error type is ParseError::ParseError { message: "Invalid number..." }
+    // It seems GlossaError::from(ParseError::InvalidNumber(...)) wraps it.
+    // The debug output is `Some(ParseError { message: "Invalid number...", ... })`
+    // So checking for "Invalid number" is correct for the MESSAGE field.
+    assert!(
+        err_str.contains("InvalidNumber") || err_str.contains("Invalid number"),
+        "Error was: {}", err_str
+    );
+
+    // Test Greek numeral fallback error
+    // "ααα" might look like number to grammar if defined loosely, but here we use builder check.
+    // Grammar defines greek_numeral as CHAR+ ~ keraia.
+    // If we have something that matches number_literal rule but fails logic.
+
+    // Recursion limit is already tested.
 }

@@ -1,4 +1,3 @@
-
 #[test]
 fn test_parser_coverage_complex() {
     use glossa::parser::parse;
@@ -49,5 +48,8 @@ fn test_parser_coverage_complex() {
 
     let program = res.unwrap();
     // Basic structural assertions to ensure we parsed what we expected
-    assert!(program.statements.len() >= 4, "Should have at least type, trait, impl, and test");
+    assert!(
+        program.statements.len() >= 4,
+        "Should have at least type, trait, impl, and test"
+    );
 }
