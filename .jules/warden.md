@@ -73,3 +73,11 @@
 2. **Standard Method Allowlist:** Added `GlossaType::Unknown` to `is_std_type` in `src/codegen/rust.rs` to prevent prefixing standard methods on inferred/iterator types.
 
 **Severity:** Medium (DoS via CPU exhaustion & Compilation Failure).
+
+## 2026-06-05 - Stack Overflow DoS in Semantic Analysis
+
+**Threat:** Stack Overflow (DoS) in `src/semantic/mod.rs` and `src/codegen/rust.rs`. Deeply nested expression trees (e.g., `1 + 1 + ...`) caused unbounded recursion during semantic analysis and code generation, crashing the compiler with a stack overflow.
+
+**Defense:** Implemented `check_program_depth` in `src/semantic/mod.rs` to enforce a strict recursion limit (`MAX_EXPRESSION_DEPTH = 200`). Analysis now fails gracefully with `GlossaError::LimitExceeded` if the depth is exceeded.
+
+**Severity:** High (DoS via compiler crash).

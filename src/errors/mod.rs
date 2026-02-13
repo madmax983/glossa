@@ -52,6 +52,10 @@ pub enum GlossaError {
     #[diagnostic(code(glossa::io))]
     IoError { message: String },
 
+    #[error("Ὑπέρβασις ὀρίου: {resource} ({max})")]
+    #[diagnostic(code(glossa::limit_exceeded))]
+    LimitExceeded { resource: String, max: usize },
+
     #[error(transparent)]
     #[diagnostic(transparent)]
     AssemblyError(#[from] assembly::AssemblyError),
@@ -130,6 +134,7 @@ impl GlossaError {
             GlossaError::AgreementError { .. } => "Συμφωνία",
             GlossaError::CodegenError { .. } => "Κῶδιξ",
             GlossaError::IoError { .. } => "Ἀρχεῖον",
+            GlossaError::LimitExceeded { .. } => "Όριον",
             GlossaError::AssemblyError(_) => "Συναρμογή",
         }
     }
