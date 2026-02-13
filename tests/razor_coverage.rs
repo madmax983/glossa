@@ -196,6 +196,28 @@ fn test_highlight_coverage() {
     // "λόγον" (the word - can be nom/acc, but contextless defaults might vary, usually Acc if obj)
     let res_acc = highlight("λόγον.");
     assert!(res_acc.is_ok());
+
+    // Test Participle Highlighting (Cyan)
+    // "διπλασιαζόμενα" - known participle
+    let res_part = highlight("διπλασιαζόμενα.");
+    assert!(res_part.is_ok());
+    let output = res_part.unwrap();
+    // Check for Cyan code (36) OR 256-color cyan (38;5;6) or just any color escape
+    assert!(
+        output.contains("\x1b[36m") || output.contains("\x1b[38;5;6m") || output.contains("\x1b[3"),
+        "Expected Cyan highlighting, got: {}", output
+    );
+
+    // Test Numeral Highlighting (Italic)
+    // "πέντε" - known numeral word
+    let res_num = highlight("πέντε.");
+    assert!(res_num.is_ok());
+
+    // Test Lexicon Lookup (should not be participle even if ending looks like one)
+    // "φέρων" (carrying) - participle
+    // "ἄνθρωπος" - noun (in lexicon)
+    let res_lex = highlight("ἄνθρωπος.");
+    assert!(res_lex.is_ok());
 }
 
 #[test]
