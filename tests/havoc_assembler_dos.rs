@@ -262,7 +262,10 @@ fn test_limit_operators() {
     // This should NOT error with LimitExceeded, but should be silently ignored (return false internally)
     // which means it falls through to regular handling (Conjunction -> Ok(()))
     let res = asm.feed(&analysis, "καί");
-    assert!(res.is_ok(), "Operator limit should fallback silently, not error");
+    assert!(
+        res.is_ok(),
+        "Operator limit should fallback silently, not error"
+    );
 
     // Verify the operators vector didn't grow
     // We can't access private fields, but we can infer behavior if we had a way to inspect
@@ -343,14 +346,28 @@ fn test_limit_string_method_properties() {
     let delimiter_prep = MorphAnalysis {
         lemma: Cow::Borrowed("κατα"),
         part_of_speech: PartOfSpeech::Preposition,
-        case: None, number: None, gender: None, person: None, tense: None, mood: None, voice: None, confidence: 1.0,
+        case: None,
+        number: None,
+        gender: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+        confidence: 1.0,
     };
 
     // "σχίζεται" (is split) verb
     let split_verb = MorphAnalysis {
         lemma: Cow::Borrowed("σχιζω"),
         part_of_speech: PartOfSpeech::Verb,
-        case: None, number: None, gender: None, person: None, tense: None, mood: None, voice: None, confidence: 1.0,
+        case: None,
+        number: None,
+        gender: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+        confidence: 1.0,
     };
 
     // Fill up property accesses first (using standard property access to fill buffer)
@@ -358,7 +375,13 @@ fn test_limit_string_method_properties() {
         lemma: Cow::Borrowed("μηκος"),
         part_of_speech: PartOfSpeech::Noun,
         case: Some(Case::Nominative),
-        number: None, gender: None, person: None, tense: None, mood: None, voice: None, confidence: 1.0,
+        number: None,
+        gender: None,
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+        confidence: 1.0,
     };
 
     for _ in 0..MAX_PROPERTY_ACCESSES {
