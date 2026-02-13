@@ -682,3 +682,58 @@ fn test_nuclear_derived_coverage() {
     // Let's try to format it if possible, or just instantiate it.
     let _ = glossa::parser::grammar::GlossaParser;
 }
+
+#[test]
+fn test_parser_rules_nuclear() {
+    use glossa::parser::grammar::Rule;
+
+    // Exercise derived traits (Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)
+    // on the generated Rule enum.
+    let rules = [
+        Rule::program,
+        Rule::statement,
+        Rule::type_definition,
+        Rule::trait_definition,
+        Rule::trait_impl,
+        Rule::test_declaration,
+        Rule::clause,
+        Rule::expression,
+        Rule::term,
+        Rule::greek_word,
+        Rule::number_literal,
+        Rule::string_literal,
+        Rule::boolean_literal,
+        Rule::period,
+        Rule::chain,
+        Rule::query,
+        Rule::propagate,
+        Rule::comma,
+        Rule::WHITESPACE,
+        Rule::COMMENT,
+        Rule::EOI,
+    ];
+
+    for rule in rules {
+        // Debug
+        let _ = format!("{:?}", rule);
+
+        // Clone
+        let cloned = rule.clone();
+
+        // PartialEq / Eq
+        assert_eq!(rule, cloned);
+
+        // Ord / PartialOrd (if derived) - usually pest derives these
+        assert!(rule <= cloned);
+        assert!(rule >= cloned);
+
+        // Hash
+        use std::collections::HashSet;
+        let mut set = HashSet::new();
+        set.insert(rule);
+        assert!(set.contains(&rule));
+    }
+
+    // Inequality
+    assert_ne!(Rule::program, Rule::statement);
+}
