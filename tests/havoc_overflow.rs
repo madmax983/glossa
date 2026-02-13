@@ -44,8 +44,16 @@ fn test_stack_overflow_expression() {
                 Ok(_) => panic!("Should have failed with LimitExceeded"),
                 Err(e) => {
                     let msg = e.to_string();
-                    assert!(msg.contains("Ὅριον ὑπερβαῖνον"), "Expected limit error, got: {}", msg);
-                    assert!(msg.contains("operators"), "Expected operator limit, got: {}", msg);
+                    assert!(
+                        msg.contains("Ὅριον ὑπερβαῖνον"),
+                        "Expected limit error, got: {}",
+                        msg
+                    );
+                    assert!(
+                        msg.contains("operators"),
+                        "Expected operator limit, got: {}",
+                        msg
+                    );
                 }
             }
         })

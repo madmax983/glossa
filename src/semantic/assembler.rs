@@ -418,11 +418,7 @@ impl Assembler {
         analysis: &crate::morphology::ParticipleAnalysis,
         original: &str,
     ) -> Result<(), AssemblyError> {
-        self.check_limit(
-            self.state.participles.len(),
-            MAX_PARTICIPLES,
-            "participles",
-        )?;
+        self.check_limit(self.state.participles.len(), MAX_PARTICIPLES, "participles")?;
         let constituent = ParticipleConstituent {
             verb_lemma: analysis.verb_lemma().into(),
             original: original.into(),
@@ -463,11 +459,7 @@ impl Assembler {
 
                 if self.state.subject.is_some() {
                     // Additional nominatives stored separately for function call patterns
-                    self.check_limit(
-                        self.state.nominatives.len(),
-                        MAX_NOMINATIVES,
-                        "nominatives",
-                    )?;
+                    self.check_limit(self.state.nominatives.len(), MAX_NOMINATIVES, "nominatives")?;
                     self.state.nominatives.push(constituent);
                 } else {
                     self.state.subject = Some(constituent);
@@ -679,11 +671,7 @@ impl Assembler {
     }
 
     /// Check for operators (boolean, comparison, arithmetic)
-    fn check_operators(
-        &mut self,
-        normalized: &str,
-        original: &str,
-    ) -> Result<bool, AssemblyError> {
+    fn check_operators(&mut self, normalized: &str, original: &str) -> Result<bool, AssemblyError> {
         // Boolean operators
         if matches!(original, "καί" | "και") {
             self.check_limit(self.state.operators.len(), MAX_OPERATORS, "operators")?;

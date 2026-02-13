@@ -1,6 +1,6 @@
-use glossa::semantic::Assembler;
-use glossa::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender};
 use glossa::ast::Expr;
+use glossa::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
+use glossa::semantic::Assembler;
 
 #[test]
 fn test_assembler_adjective_dos() {
@@ -28,7 +28,10 @@ fn test_assembler_adjective_dos() {
     }
 
     // The test expects the assembler to REJECT the excessive input
-    assert!(failed, "Assembler accepted infinite adjectives (DoS vulnerability)");
+    assert!(
+        failed,
+        "Assembler accepted infinite adjectives (DoS vulnerability)"
+    );
 }
 
 #[test]
@@ -44,7 +47,10 @@ fn test_assembler_literal_dos() {
         }
     }
 
-    assert!(failed, "Assembler accepted infinite string literals (DoS vulnerability)");
+    assert!(
+        failed,
+        "Assembler accepted infinite string literals (DoS vulnerability)"
+    );
 }
 
 #[test]
@@ -61,7 +67,10 @@ fn test_assembler_array_dos() {
         }
     }
 
-    assert!(failed, "Assembler accepted infinite arrays (DoS vulnerability)");
+    assert!(
+        failed,
+        "Assembler accepted infinite arrays (DoS vulnerability)"
+    );
 }
 
 #[test]
@@ -78,5 +87,8 @@ fn test_assembler_nested_phrase_dos() {
         }
     }
 
-    assert!(failed, "Assembler accepted infinite nested phrases (DoS vulnerability)");
+    assert!(
+        failed,
+        "Assembler accepted infinite nested phrases (DoS vulnerability)"
+    );
 }
