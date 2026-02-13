@@ -5,7 +5,7 @@
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
-use std::io::Write;
+use std::io::{BufRead, Write};
 
 use crate::codegen::generate_statement_code;
 use crate::errors::GlossaError;
@@ -17,60 +17,69 @@ const MAX_REPL_BINDINGS: usize = 50;
 /// Maximum total source size for REPL history
 const MAX_REPL_SOURCE_LEN: usize = 50_000;
 
+/// Run the REPL loop using stdin and stdout
 pub fn run_repl() -> Result<()> {
-    print_banner();
+    let stdin = std::io::stdin();
+    let mut handle = stdin.lock();
+    let mut stdout = std::io::stdout();
 
+    print_banner(&mut stdout)?;
+    run_repl_inner(&mut handle, &mut stdout)
+}
+
+/// Internal REPL loop logic, decoupled from I/O for testing
+fn run_repl_inner<R: BufRead, W: Write>(reader: &mut R, writer: &mut W) -> Result<()> {
     let mut context = ReplContext::new();
 
     loop {
-        print!("{}", "γλ> ".green().bold());
-        std::io::stdout().flush().into_diagnostic()?;
+        write!(writer, "{}", "γλ> ".green().bold()).into_diagnostic()?;
+        writer.flush().into_diagnostic()?;
 
         let mut input = String::new();
-        let bytes = std::io::stdin().read_line(&mut input).into_diagnostic()?;
+        let bytes = reader.read_line(&mut input).into_diagnostic()?;
 
         // Fix: Handle EOF (Ctrl+D) gracefully
         if bytes == 0 {
-            println!("\nΧαῖρε!");
+            writeln!(writer, "\nΧαῖρε!").into_diagnostic()?;
             break;
         }
 
-        let input = input.trim();
+        let trimmed = input.trim();
 
-        if input.is_empty() {
+        if trimmed.is_empty() {
             continue;
         }
 
         // Handle special commands
-        match input {
+        match trimmed {
             ".ἔξοδος" | ".exit" | ".quit" => {
-                println!("Χαῖρε!");
+                writeln!(writer, "Χαῖρε!").into_diagnostic()?;
                 break;
             }
             ".βοήθεια" | ".help" => {
-                print_help();
+                print_help(writer)?;
                 continue;
             }
             ".καθαρός" | ".clear" => {
                 context = ReplContext::new();
-                println!("{} Ἐκαθαρίσθη.", "✓".green());
+                writeln!(writer, "{} Ἐκαθαρίσθη.", "✓".green()).into_diagnostic()?;
                 continue;
             }
             ".περιβάλλον" | ".env" => {
-                print_env(&context);
+                print_env(writer, &context)?;
                 continue;
             }
             _ => {}
         }
 
-        match context.execute(input) {
+        match context.execute(trimmed) {
             Ok(output) => {
                 // Display handles formatting (empty if None)
-                print!("{}", output);
+                write!(writer, "{}", output).into_diagnostic()?;
             }
             Err(e) => {
                 // Use default error formatting but ensure it's visible
-                eprintln!("{}", format!("× Σφάλμα: {}", e).red());
+                writeln!(writer, "{}", format!("× Σφάλμα: {}", e).red()).into_diagnostic()?;
             }
         }
     }
@@ -78,19 +87,20 @@ pub fn run_repl() -> Result<()> {
     Ok(())
 }
 
-fn print_banner() {
+fn print_banner<W: Write>(w: &mut W) -> Result<()> {
     // Welcome Banner
     let version = format!("v{}", env!("CARGO_PKG_VERSION"));
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α".bold().cyan());
-    println!("   {}", "Code as the ancients intended.".italic().dim());
-    println!("   {}", version.blue());
-    println!();
-    println!("   {}", "Type .help for commands".dim());
-    println!();
+    writeln!(w).into_diagnostic()?;
+    writeln!(w, "   {}", "Γ Λ Ω Σ Σ Α".bold().cyan()).into_diagnostic()?;
+    writeln!(w, "   {}", "Code as the ancients intended.".italic().dim()).into_diagnostic()?;
+    writeln!(w, "   {}", version.blue()).into_diagnostic()?;
+    writeln!(w).into_diagnostic()?;
+    writeln!(w, "   {}", "Type .help for commands".dim()).into_diagnostic()?;
+    writeln!(w).into_diagnostic()?;
+    Ok(())
 }
 
-fn print_help() {
+fn print_help<W: Write>(w: &mut W) -> Result<()> {
     let mut table = Table::new();
     table.load_preset(presets::UTF8_FULL).set_header(vec![
         Cell::new("Ἐντολή (Command)")
@@ -115,22 +125,28 @@ fn print_help() {
         "Δεῖξαι τὰς μεταβλητάς (Show variables)",
     ]);
 
-    println!("{table}");
+    writeln!(w, "{table}").into_diagnostic()?;
 
-    println!("\n{}", "Παραδείγματα:".bold().underlined());
-    println!("  «χαῖρε κόσμε» λέγε.");
-    println!("  ξ πέντε ἔστω.");
+    writeln!(w, "\n{}", "Παραδείγματα:".bold().underlined()).into_diagnostic()?;
+    writeln!(w, "  «χαῖρε κόσμε» λέγε.").into_diagnostic()?;
+    writeln!(w, "  ξ πέντε ἔστω.").into_diagnostic()?;
+    Ok(())
 }
 
-fn print_env(context: &ReplContext) {
+fn print_env<W: Write>(w: &mut W, context: &ReplContext) -> Result<()> {
     if let Some(scope) = &context.last_scope {
         // Collect and sort bindings for consistent display
         let mut bindings: Vec<_> = scope.bindings().collect();
         bindings.sort_by(|a, b| a.0.cmp(b.0));
 
         if bindings.is_empty() {
-            println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
-            return;
+            writeln!(
+                w,
+                "{}",
+                "Οὐδεμία μεταβλητή (No variables defined).".yellow()
+            )
+            .into_diagnostic()?;
+            return Ok(());
         }
 
         let mut table = Table::new();
@@ -162,10 +178,16 @@ fn print_env(context: &ReplContext) {
                 mut_cell,
             ]);
         }
-        println!("{table}");
+        writeln!(w, "{table}").into_diagnostic()?;
     } else {
-        println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
+        writeln!(
+            w,
+            "{}",
+            "Οὐδεμία μεταβλητή (No variables defined).".yellow()
+        )
+        .into_diagnostic()?;
     }
+    Ok(())
 }
 
 /// REPL Output variants
@@ -356,10 +378,13 @@ mod tests {
     #[test]
     fn test_repl_env_coverage() {
         let mut context = ReplContext::new();
+        let mut buf = Vec::new();
 
         // 1. Initial state: No scope
         assert!(context.last_scope.is_none());
-        print_env(&context); // Should print "No variables"
+        print_env(&mut buf, &context).unwrap(); // Should print "No variables"
+        assert!(String::from_utf8(buf.clone()).unwrap().contains("Οὐδεμία"));
+        buf.clear();
 
         // 2. Execute binding
         let _ = context.execute("ξ πέντε ἔστω.").unwrap();
@@ -373,32 +398,42 @@ mod tests {
         let _ = context.execute("μετά ψ δέκα ἔστω.").unwrap();
 
         // 5. Run print_env to cover the table generation code
-        // We aren't capturing stdout, but this ensures the code runs without panicking
-        print_env(&context);
+        print_env(&mut buf, &context).unwrap();
+        let output = String::from_utf8(buf.clone()).unwrap();
+        assert!(output.contains("ξ"));
+        assert!(output.contains("ψ"));
+        buf.clear();
 
         // 6. Test clear simulation (new context)
         let context = ReplContext::new();
         assert!(context.last_scope.is_none());
-        print_env(&context);
+        print_env(&mut buf, &context).unwrap();
+        assert!(String::from_utf8(buf).unwrap().contains("Οὐδεμία"));
     }
 
     #[test]
     fn test_print_help_coverage() {
-        // Just verify it doesn't panic
-        print_help();
+        let mut buf = Vec::new();
+        print_help(&mut buf).unwrap();
+        let output = String::from_utf8(buf).unwrap();
+        assert!(output.contains("βοήθεια"));
+        assert!(output.contains("ἔξοδος"));
     }
 
     #[test]
     fn test_print_banner_coverage() {
-        // Just verify it doesn't panic
-        print_banner();
+        let mut buf = Vec::new();
+        print_banner(&mut buf).unwrap();
+        let output = String::from_utf8(buf).unwrap();
+        assert!(output.contains("Γ Λ Ω Σ Σ Α"));
     }
 
     #[test]
     fn test_print_env_empty() {
         let context = ReplContext::new();
-        // Should print "No variables defined"
-        print_env(&context);
+        let mut buf = Vec::new();
+        print_env(&mut buf, &context).unwrap();
+        assert!(String::from_utf8(buf).unwrap().contains("Οὐδεμία"));
     }
 
     #[test]
@@ -466,5 +501,62 @@ mod tests {
         // Test None display
         let none = ReplOutput::None;
         assert_eq!(none.to_string(), "");
+    }
+
+    #[test]
+    fn test_repl_session() {
+        // Simulate a full REPL session
+        let input_commands = [
+            ".help",
+            "ξ πέντε ἔστω.",
+            "ξ λέγε.",
+            ".env",
+            ".clear",
+            ".env",
+            ".exit",
+        ];
+        let input_str = input_commands.join("\n");
+        let mut input = std::io::Cursor::new(input_str);
+        let mut output = Vec::new();
+
+        run_repl_inner(&mut input, &mut output).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+
+        // Verify key interactions
+        assert!(output_str.contains("γλ>"), "Should prompt");
+        assert!(output_str.contains("βοήθεια"), "Should show help");
+        assert!(output_str.contains("ξ"), "Should echo binding name");
+        assert!(output_str.contains("println"), "Should show generated code");
+        assert!(output_str.contains("Ἐκαθαρίσθη"), "Should confirm clear");
+        assert!(output_str.contains("Χαῖρε"), "Should confirm exit");
+
+        // Count occurrences of prompt to ensure loop ran correct number of times
+        // 7 commands + 1 final prompt (maybe, depending on implementation detail of break)
+        // Actually, break happens inside loop, so prompt is printed before read.
+        // Commands:
+        // 1. .help -> continue -> prompt
+        // 2. binding -> execute -> prompt
+        // 3. statement -> execute -> prompt
+        // 4. .env -> continue -> prompt
+        // 5. .clear -> continue -> prompt
+        // 6. .env -> continue -> prompt
+        // 7. .exit -> break
+        // So prompt should appear 7 times.
+        let prompt_count = output_str.matches("γλ>").count();
+        assert_eq!(prompt_count, 7, "Prompt count mismatch");
+    }
+
+    #[test]
+    fn test_repl_error_handling() {
+        // Simulate an error
+        let input_str = "κακή εντολή\n.exit";
+        let mut input = std::io::Cursor::new(input_str);
+        let mut output = Vec::new();
+
+        run_repl_inner(&mut input, &mut output).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("Σφάλμα"), "Should report error");
     }
 }
