@@ -8,6 +8,7 @@ use miette::Result;
 use glossa::tools::cli::{Cli, Commands};
 use glossa::tools::repl::run_repl;
 use glossa::tools::runner::{build_file, check_file, highlight_file, run_file};
+use glossa::tools::stela::generate_docs;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -32,6 +33,10 @@ fn main() -> Result<()> {
 
         Some(Commands::Highlight { input }) => {
             highlight_file(&input)?;
+        }
+
+        Some(Commands::Stela { input, output }) => {
+            generate_docs(&input, output.as_deref())?;
         }
 
         Some(Commands::Repl) | None => {

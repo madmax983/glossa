@@ -44,6 +44,16 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate documentation (Stela) from a .γλ file
+    Stela {
+        /// Input file (.γλ)
+        input: PathBuf,
+
+        /// Output HTML file (optional)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
     /// Start the interactive REPL
     Repl,
 }
