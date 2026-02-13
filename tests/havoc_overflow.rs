@@ -1,6 +1,6 @@
+use glossa::errors::GlossaError;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
-use glossa::errors::GlossaError;
 
 /// 👺 Havoc: Stack Overflow Mitigation
 ///
@@ -28,7 +28,9 @@ fn test_stack_overflow_mitigation() {
     println!("Analyzing...");
     // This should fail gracefully with LimitExceeded
     match analyze_program(&ast) {
-        Ok(_) => panic!("Expected depth limit exceeded error, but analysis succeeded! The mitigation failed."),
+        Ok(_) => panic!(
+            "Expected depth limit exceeded error, but analysis succeeded! The mitigation failed."
+        ),
         Err(e) => {
             println!("Caught expected error: {:?}", e);
             if !matches!(e, GlossaError::LimitExceeded { .. }) {
