@@ -578,4 +578,19 @@ mod tests {
         let none = ReplOutput::None;
         assert_eq!(none.to_string(), "");
     }
+
+    #[test]
+    fn test_repl_context_default() {
+        let context = ReplContext::default();
+        assert!(context.last_scope.is_none());
+        assert_eq!(context.bindings.len(), 0);
+    }
+
+    #[test]
+    fn test_repl_execute_parse_error() {
+        let mut context = ReplContext::new();
+        // Invalid syntax (variable name cannot be a number)
+        let result = context.execute("1 1 ἔστω.");
+        assert!(result.is_err());
+    }
 }

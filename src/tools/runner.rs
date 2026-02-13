@@ -324,7 +324,12 @@ mod tests {
         let file_path = dir.path().join("missing.gl");
         let result = run_file(&file_path);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον οὐχ εὑρέθη"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον οὐχ εὑρέθη")
+        );
     }
 
     #[test]
@@ -334,5 +339,22 @@ mod tests {
         // Don't create the file
         let result = build_file(&file_path, None);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_build_file_success() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("success_build.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            f.write_all("«test» λέγε.".as_bytes()).unwrap();
+        }
+
+        let output_path = dir.path().join("success_build.rs");
+        let result = build_file(&file_path, Some(&output_path));
+        assert!(result.is_ok());
+        assert!(output_path.exists());
+        let content = std::fs::read_to_string(&output_path).unwrap();
+        assert!(content.contains("println"));
     }
 }
