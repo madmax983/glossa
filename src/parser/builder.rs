@@ -559,7 +559,7 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
 }
 
 /// Errors that can occur during AST construction
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum ParseError {
     #[error("Parse error: {0}")]
     PestError(String),
@@ -804,5 +804,13 @@ mod coverage_tests {
             format!("{}", rec_lim),
             "Recursion limit exceeded: depth > 500"
         );
+
+        // Coverage for PartialEq derived impl
+        assert_eq!(pest_err, ParseError::PestError("test".into()));
+        assert_ne!(pest_err, ParseError::InvalidNumber("test".into()));
+        assert_ne!(pest_err, ParseError::RecursionLimitExceeded(500));
+
+        let clone_check = pest_err.clone();
+        assert_eq!(pest_err, clone_check);
     }
 }
