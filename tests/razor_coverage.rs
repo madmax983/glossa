@@ -98,6 +98,15 @@ fn test_errors_coverage() {
     let err_undef = GlossaError::undefined("x");
     assert_eq!(err_undef.category_greek(), "Ὄνομα");
 
+    // Display Coverage for ALL variants (thiserror derive)
+    for err in [
+        &err_parse, &err_type, &err_semantic, &err_agree,
+        &err_codegen, &err_io, &err_undef
+    ] {
+        let _ = format!("{}", err); // Execute Display trait
+        let _ = format!("{:?}", err); // Execute Debug trait
+    }
+
     // Assembly Error coverage
     let asm_err = glossa::errors::AssemblyError::DoubleSubject;
     let glossa_err: GlossaError = asm_err.into();
@@ -417,7 +426,7 @@ fn test_numerals_error_paths() {
 #[test]
 fn test_semantic_assembler_errors() {
     use glossa::semantic::Assembler;
-    use glossa::morphology::analyze;
+    use glossa::morphology::{analyze, Gender};
     use glossa::errors::AssemblyError;
 
     let mut asm = Assembler::new();
@@ -462,6 +471,28 @@ fn test_semantic_assembler_errors() {
     // Assuming lexicon has basic words.
     // Let's rely on unit tests in assembler.rs for specific agreement logic coverage.
     // This integration test mainly covers the *integration* of errors into GlossaError.
+
+    // Explicitly test Display for all AssemblyError variants to satisfy coverage
+    let errs = [
+        AssemblyError::DoubleSubject,
+        AssemblyError::DoubleObject,
+        AssemblyError::DoubleIndirect,
+        AssemblyError::DoubleVerb,
+        AssemblyError::MissingVerb,
+        AssemblyError::SubjectVerbDisagreement {
+            subject: (None, None),
+            verb: (None, None)
+        },
+        AssemblyError::GenderMismatch {
+            word1: "".into(), gender1: Gender::Neuter,
+            word2: "".into(), gender2: Gender::Neuter
+        }
+    ];
+
+    for e in errs {
+        let _ = format!("{}", e);
+        let _ = format!("{:?}", e);
+    }
 }
 
 #[test]
