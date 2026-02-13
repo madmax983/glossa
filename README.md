@@ -114,16 +114,16 @@ Tests transpile to Rust `#[test]` functions and can be run with standard Rust to
 
 ### Running Glossa Tests
 
-To run tests written in Glossa (e.g., `tests.γλ`):
+To run tests written in Glossa (e.g., `my_tests.γλ`):
 
 1. Build the file to generate Rust code:
    ```bash
-   cargo run --release -- build tests.γλ
+   cargo run --release -- build my_tests.γλ
    ```
 
 2. Compile and run the generated Rust test harness:
    ```bash
-   rustc --test tests.rs && ./tests
+   rustc --test my_tests.rs && ./my_tests
    ```
 
 ## Compiler Development

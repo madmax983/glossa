@@ -402,7 +402,7 @@ fn classify_assignment(
 
                     if !has_value {
                         return Err(GlossaError::semantic(format!(
-                            "Τῇ πράξει «{} γίγνεται» δεῖ τιμῆς",
+                            "Τῇ πράξει «{} γίγνεται» δεῖ τιμῆς (Assignment requires a value)",
                             var_name
                         )));
                     }
