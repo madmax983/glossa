@@ -10,6 +10,7 @@ use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::analyze_program;
 use crate::tools::highlight::highlight;
+use crate::tools::ui::Status;
 
 /// Maximum source file size (1MB) to prevent memory exhaustion
 const MAX_FILE_SIZE: u64 = 1024 * 1024;
@@ -66,15 +67,24 @@ fn check_file_size(input: &Path) -> Result<()> {
 }
 
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    let mut status = Status::new();
     check_file_size(input)?;
+
+    status.start("Μεταγλωττίζεται (Compiling)...");
 
     let start = std::time::Instant::now();
     let source = fs::read_to_string(input).into_diagnostic()?;
     let input_size = source.len() as u64;
 
     // Split compile to get stats
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let ast = parse(&source).map_err(|e| {
+        status.fail("Σφάλμα συντάξεως (Parse Error)");
+        miette::miette!("{}", e)
+    })?;
+    let analyzed = analyze_program(&ast).map_err(|e| {
+        status.fail("Σφάλμα αναλύσεως (Analysis Error)");
+        miette::miette!("{}", e)
+    })?;
     let rust_code = generate_rust_file(&analyzed);
 
     let output_path = output
@@ -86,6 +96,8 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let output_size = fs::metadata(&output_path).into_diagnostic()?.len();
     let duration = start.elapsed();
     let stats = ProgramStats::new(&analyzed);
+
+    status.success("Ἕτοιμον (Ready)");
 
     let report = CompilationReport {
         input_path: input.to_path_buf(),
@@ -102,6 +114,8 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 }
 
 pub fn run_file(input: &Path) -> Result<()> {
+    let mut status = Status::new();
+
     // Validate file exists
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
@@ -121,20 +135,26 @@ pub fn run_file(input: &Path) -> Result<()> {
         if cfg!(windows) { ".exe" } else { "" }
     ));
 
+    status.start("Μεταγλωττίζεται (Compiling)...");
+
     // Check if we can use cached binary
     if cache_valid(input, &cached_exe) && cached_exe.exists() {
+        status.success("Ἕτοιμον (Ready) - Cached");
         // Run cached binary directly
-        let status = Command::new(&cached_exe).status().into_diagnostic()?;
+        let process_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
-        if !status.success() {
-            std::process::exit(status.code().unwrap_or(1));
+        if !process_status.success() {
+            std::process::exit(process_status.code().unwrap_or(1));
         }
         return Ok(());
     }
 
     // Compile source
     let source = fs::read_to_string(input).into_diagnostic()?;
-    let rust_code = compile(&source).map_err(|e| miette::miette!("{}", e))?;
+    let rust_code = compile(&source).map_err(|e| {
+        status.fail("Σφάλμα (Error)");
+        miette::miette!("{}", e)
+    })?;
 
     // Write Rust source to cache
     fs::write(&cached_rs, &rust_code).into_diagnostic()?;
@@ -151,28 +171,43 @@ pub fn run_file(input: &Path) -> Result<()> {
         .into_diagnostic()?;
 
     if !rustc_output.status.success() {
+        status.fail("Σφάλμα μεταγλωττίσεως (Compilation Error)");
         // Show rustc errors only on failure
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
-        return Err(miette::miette!("Σφάλμα μεταγλωττίσεως:\n{}", stderr));
+        // Wrap rustc error in GlossaError::CodegenError for better formatting
+        return Err(GlossaError::codegen(format!("\n{}", stderr)).into());
     }
 
-    // Run the compiled program
-    let status = Command::new(&cached_exe).status().into_diagnostic()?;
+    status.success("Ἕτοιμον (Ready)");
 
-    if !status.success() {
-        std::process::exit(status.code().unwrap_or(1));
+    // Run the compiled program
+    let process_status = Command::new(&cached_exe).status().into_diagnostic()?;
+
+    if !process_status.success() {
+        std::process::exit(process_status.code().unwrap_or(1));
     }
 
     Ok(())
 }
 
 pub fn check_file(input: &Path) -> Result<()> {
+    let mut status = Status::new();
     check_file_size(input)?;
+
+    status.start("Ἐλέγχεται (Checking)...");
 
     let source = fs::read_to_string(input).into_diagnostic()?;
 
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let ast = parse(&source).map_err(|e| {
+        status.fail("Σφάλμα συντάξεως (Parse Error)");
+        miette::miette!("{}", e)
+    })?;
+    let analyzed = analyze_program(&ast).map_err(|e| {
+        status.fail("Σφάλμα αναλύσεως (Analysis Error)");
+        miette::miette!("{}", e)
+    })?;
+
+    status.success("Ἕτοιμον (Ready)");
 
     let filename = input
         .file_name()
