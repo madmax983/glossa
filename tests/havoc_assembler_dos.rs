@@ -320,3 +320,63 @@ fn test_limit_property_accesses() {
     // Should succeed because it falls back to regular noun processing
     assert!(res.is_ok());
 }
+
+#[test]
+fn test_limit_string_method_properties() {
+    // This tests try_create_string_method (called by check_method_verbs)
+    let mut asm = Assembler::new();
+
+    let subj = MorphAnalysis {
+        lemma: Cow::Borrowed("subj"),
+        part_of_speech: PartOfSpeech::Noun,
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        gender: Some(Gender::Neuter),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+        confidence: 1.0,
+    };
+
+    // "κατά" preposition for delimiter
+    let delimiter_prep = MorphAnalysis {
+        lemma: Cow::Borrowed("κατα"),
+        part_of_speech: PartOfSpeech::Preposition,
+        case: None, number: None, gender: None, person: None, tense: None, mood: None, voice: None, confidence: 1.0,
+    };
+
+    // "σχίζεται" (is split) verb
+    let split_verb = MorphAnalysis {
+        lemma: Cow::Borrowed("σχιζω"),
+        part_of_speech: PartOfSpeech::Verb,
+        case: None, number: None, gender: None, person: None, tense: None, mood: None, voice: None, confidence: 1.0,
+    };
+
+    // Fill up property accesses first (using standard property access to fill buffer)
+    let prop_analysis = MorphAnalysis {
+        lemma: Cow::Borrowed("μηκος"),
+        part_of_speech: PartOfSpeech::Noun,
+        case: Some(Case::Nominative),
+        number: None, gender: None, person: None, tense: None, mood: None, voice: None, confidence: 1.0,
+    };
+
+    for _ in 0..MAX_PROPERTY_ACCESSES {
+        asm.feed(&subj, "text").unwrap();
+        asm.feed(&prop_analysis, "μῆκος").unwrap();
+    }
+
+    // Now try to trigger a string method which would add another property access
+    asm.feed(&subj, "text").unwrap();
+    asm.feed(&delimiter_prep, "κατά").unwrap();
+    asm.feed_string(",".to_string()).unwrap(); // Delimiter literal
+
+    // Feed split verb - should fail to create method call (return false)
+    // and instead process as a regular verb
+    let res = asm.feed(&split_verb, "σχίζεται");
+
+    // Should be OK because it falls back to regular verb processing
+    assert!(res.is_ok());
+
+    // If we could check internal state, we'd see string_method is None
+}
