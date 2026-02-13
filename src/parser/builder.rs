@@ -448,17 +448,19 @@ fn build_array_literal_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
 fn build_indexed_word_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     let mut parts = inner.into_inner();
     // First is the greek_word (array name)
-    let array_word = parts.next().ok_or(ParseError::EmptyTerm)?;
+    let array_word = parts.next().expect("Grammar guarantees word in index expr");
     let array = Expr::Word(Word {
         original: array_word.as_str().into(),
         normalized: crate::text::normalize_greek(array_word.as_str()),
     });
     // Second is the index_expr
-    let index_pair = parts.next().ok_or(ParseError::EmptyTerm)?;
+    let index_pair = parts
+        .next()
+        .expect("Grammar guarantees index in index expr");
     let index_inner = index_pair
         .into_inner()
         .next()
-        .ok_or(ParseError::EmptyTerm)?;
+        .expect("Grammar guarantees content in index expr");
     let index = match index_inner.as_rule() {
         Rule::number_literal => {
             let value = parse_number_literal(index_inner.as_str())?;
@@ -468,12 +470,7 @@ fn build_indexed_word_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             original: index_inner.as_str().into(),
             normalized: crate::text::normalize_greek(index_inner.as_str()),
         }),
-        _ => {
-            return Err(ParseError::UnexpectedRule(format!(
-                "{:?}",
-                index_inner.as_rule()
-            )));
-        }
+        _ => unreachable!("Grammar guarantees index is number or word"),
     };
     Ok(Expr::IndexAccess {
         array: Box::new(array),
@@ -483,7 +480,10 @@ fn build_indexed_word_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
 
 fn build_unwrap_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     // Extract the word from "word!"
-    let word_pair = inner.into_inner().next().ok_or(ParseError::EmptyTerm)?;
+    let word_pair = inner
+        .into_inner()
+        .next()
+        .expect("Grammar guarantees word in unwrap expr");
     let word = Expr::Word(Word {
         original: word_pair.as_str().into(),
         normalized: crate::text::normalize_greek(word_pair.as_str()),
@@ -495,7 +495,10 @@ fn build_unwrap_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
 }
 
 fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
-    let inner = pair.into_inner().next().ok_or(ParseError::EmptyTerm)?;
+    let inner = pair
+        .into_inner()
+        .next()
+        .expect("Grammar guarantees term content");
 
     match inner.as_rule() {
         Rule::block => build_block_expr(inner),
@@ -524,16 +527,22 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
         })),
         Rule::parenthesized_expr => {
             // Unwrap the parentheses and build the inner expression
-            let expr_pair = inner.into_inner().next().ok_or(ParseError::EmptyTerm)?;
+            let expr_pair = inner
+                .into_inner()
+                .next()
+                .expect("Grammar guarantees parenthesized expr content");
             build_expression(expr_pair)
         }
         Rule::unwrap_expr => build_unwrap_expr(inner),
-        _ => Err(ParseError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
+        _ => unreachable!("Grammar guarantees valid term rule"),
     }
 }
 
 fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
-    let inner = pair.into_inner().next().ok_or(ParseError::EmptyTerm)?;
+    let inner = pair
+        .into_inner()
+        .next()
+        .expect("Grammar guarantees array element content");
 
     match inner.as_rule() {
         Rule::string_literal => {
@@ -557,7 +566,7 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             original: inner.as_str().into(),
             normalized: crate::text::normalize_greek(inner.as_str()),
         })),
-        _ => Err(ParseError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
+        _ => unreachable!("Grammar guarantees valid array element rule"),
     }
 }
 
@@ -567,14 +576,8 @@ pub enum ParseError {
     #[error("Parse error: {0}")]
     PestError(String),
 
-    #[error("Empty term in expression")]
-    EmptyTerm,
-
     #[error("Invalid number: {0}")]
     InvalidNumber(String),
-
-    #[error("Unexpected rule: {0}")]
-    UnexpectedRule(String),
 
     #[error("Recursion limit exceeded: depth > {0}")]
     RecursionLimitExceeded(usize),
