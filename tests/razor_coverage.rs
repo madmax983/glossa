@@ -429,3 +429,101 @@ fn test_semantic_expression_errors() {
     let res_empty = analyze_argument_expr(&empty_phrase, &scope);
     assert!(res_empty.is_err());
 }
+
+#[test]
+fn test_nuclear_derived_coverage() {
+    // This test instantiates, clones, and formats EVERY struct/enum in the flattened modules
+    // to ensure derived impls (Debug, Clone, PartialEq) are covered.
+
+    use glossa::ast::*;
+
+    // Program
+    let prog = Program { statements: vec![] };
+    assert_eq!(format!("{:?}", prog), format!("{:?}", prog.clone()));
+    assert_eq!(prog, prog.clone());
+
+    // Statements
+    let s1 = Statement::Regular { clauses: vec![], is_query: false, is_propagate: false };
+    let s2 = Statement::TypeDefinition(TypeDef { name: Word::new("T"), fields: vec![] });
+    let s3 = Statement::TraitDefinition(TraitDef { name: Word::new("Tr"), methods: vec![] });
+    let s4 = Statement::TraitImpl(TraitImplDef { type_name: Word::new("T"), trait_name: Word::new("Tr"), methods: vec![] });
+    let s5 = Statement::TestDeclaration(TestDecl { name: "t".into(), body: vec![] });
+
+    for s in [s1, s2, s3, s4, s5] {
+        assert_eq!(format!("{:?}", s), format!("{:?}", s.clone()));
+        assert_eq!(s, s.clone());
+    }
+
+    // Exprs
+    let e1 = Expr::StringLiteral("s".into());
+    let e2 = Expr::NumberLiteral(1);
+    let e3 = Expr::BooleanLiteral(true);
+    let e4 = Expr::ArrayLiteral(vec![]);
+    let e5 = Expr::IndexAccess { array: Box::new(e4.clone()), index: Box::new(e2.clone()) };
+    let e6 = Expr::Word(Word::new("w"));
+    let e7 = Expr::Phrase(vec![]);
+    let e8 = Expr::PropertyAccess { owner: Box::new(e6.clone()), property: Box::new(e6.clone()) };
+    let e9 = Expr::Call { verb: Word::new("v"), arguments: vec![] };
+    let e10 = Expr::Binding { name: Word::new("n"), value: Box::new(e2.clone()) };
+    let e11 = Expr::BinOp { left: Box::new(e2.clone()), op: BinOperator::Add, right: Box::new(e2.clone()) };
+    let e12 = Expr::UnaryOp { op: UnaryOperator::Not, operand: Box::new(e3.clone()) };
+    let e13 = Expr::Block(vec![]);
+
+    for e in [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13] {
+        assert_eq!(format!("{:?}", e), format!("{:?}", e.clone()));
+        assert_eq!(e, e.clone());
+    }
+
+    // Sub-structs
+    let fd = FieldDecl { name: Word::new("n"), type_name: Word::new("t") };
+    assert_eq!(format!("{:?}", fd), format!("{:?}", fd.clone()));
+
+    let tmd = TraitMethodDecl { name: Word::new("m"), params: vec![], is_default: false, body: None };
+    assert_eq!(format!("{:?}", tmd), format!("{:?}", tmd.clone()));
+
+    let imd = ImplMethodDef { name: Word::new("m"), params: vec![], body: vec![] };
+    assert_eq!(format!("{:?}", imd), format!("{:?}", imd.clone()));
+
+    let cl = Clause { expressions: vec![] };
+    assert_eq!(format!("{:?}", cl), format!("{:?}", cl.clone()));
+
+    // Ops
+    for op in [BinOperator::Add, BinOperator::Sub, BinOperator::Mul, BinOperator::Div, BinOperator::Mod,
+               BinOperator::Eq, BinOperator::Ne, BinOperator::Lt, BinOperator::Le, BinOperator::Gt, BinOperator::Ge,
+               BinOperator::And, BinOperator::Or] {
+        assert_eq!(format!("{:?}", op), format!("{:?}", op.clone()));
+    }
+
+    for op in [UnaryOperator::Not, UnaryOperator::Neg, UnaryOperator::Unwrap] {
+        assert_eq!(format!("{:?}", op), format!("{:?}", op.clone()));
+    }
+
+    // Semantic Structs (Assembler)
+    use glossa::semantic::AssembledStatement;
+    let asm_stmt = AssembledStatement::default();
+    assert_eq!(format!("{:?}", asm_stmt), format!("{:?}", asm_stmt.clone()));
+    // AssembledStatement doesn't implement PartialEq in code, so skipping equality check
+
+    use glossa::semantic::assembler::{Constituent, VerbConstituent, ParticipleConstituent, Literal};
+    use glossa::morphology::{Case, Gender, Number, Person, Tense, Voice};
+
+    let cons = Constituent {
+        lemma: "l".into(), original: "o".into(), case: Case::Nominative,
+        number: Some(Number::Singular), gender: Some(Gender::Neuter), person: Some(Person::First)
+    };
+    assert_eq!(format!("{:?}", cons), format!("{:?}", cons.clone()));
+
+    let verb_cons = VerbConstituent {
+        lemma: "l".into(), original: "o".into(), person: None, number: None, tense: None, mood: None, voice: None
+    };
+    assert_eq!(format!("{:?}", verb_cons), format!("{:?}", verb_cons.clone()));
+
+    let part_cons = ParticipleConstituent {
+        verb_lemma: "v".into(), original: "o".into(), tense: Tense::Present, voice: Voice::Active,
+        case: Case::Nominative, gender: Gender::Masculine, number: Number::Singular
+    };
+    assert_eq!(format!("{:?}", part_cons), format!("{:?}", part_cons.clone()));
+
+    let lit = Literal::Number(1);
+    assert_eq!(format!("{:?}", lit), format!("{:?}", lit.clone()));
+}
