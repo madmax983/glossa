@@ -81,10 +81,7 @@ pub fn immutable_assignment(name: &str) -> String {
 pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gender) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
-        word1,
-        gender1,
-        word2,
-        gender2
+        word1, gender1, word2, gender2
     )
 }
 
@@ -104,10 +101,7 @@ pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gende
 pub fn number_mismatch(word1: &str, num1: Number, word2: &str, num2: Number) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
-        word1,
-        num1,
-        word2,
-        num2
+        word1, num1, word2, num2
     )
 }
 
@@ -127,10 +121,7 @@ pub fn number_mismatch(word1: &str, num1: Number, word2: &str, num2: Number) -> 
 pub fn case_mismatch(word1: &str, case1: Case, word2: &str, case2: Case) -> String {
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
-        word1,
-        case1,
-        word2,
-        case2
+        word1, case1, word2, case2
     )
 }
 

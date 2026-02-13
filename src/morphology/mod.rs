@@ -377,6 +377,22 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_display_impls() {
+        assert_eq!(Case::Nominative.to_string(), "ὀνομαστική");
+        assert_eq!(Case::Genitive.to_string(), "γενική");
+        assert_eq!(Case::Dative.to_string(), "δοτική");
+        assert_eq!(Case::Accusative.to_string(), "αἰτιατική");
+        assert_eq!(Case::Vocative.to_string(), "κλητική");
+
+        assert_eq!(Number::Singular.to_string(), "ἑνικός");
+        assert_eq!(Number::Plural.to_string(), "πληθυντικός");
+
+        assert_eq!(Gender::Masculine.to_string(), "ἀρσενικόν");
+        assert_eq!(Gender::Feminine.to_string(), "θηλυκόν");
+        assert_eq!(Gender::Neuter.to_string(), "οὐδέτερον");
+    }
+
+    #[test]
     fn test_analyze_nominative() {
         let analysis = analyze("χρήστος");
         assert_eq!(analysis.case, Some(Case::Nominative));
