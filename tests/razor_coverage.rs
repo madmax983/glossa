@@ -254,7 +254,8 @@ fn test_parser_error_paths() {
     // So checking for "Invalid number" is correct for the MESSAGE field.
     assert!(
         err_str.contains("InvalidNumber") || err_str.contains("Invalid number"),
-        "Error was: {}", err_str
+        "Error was: {}",
+        err_str
     );
 
     // Test Greek numeral fallback error
@@ -263,4 +264,79 @@ fn test_parser_error_paths() {
     // If we have something that matches number_literal rule but fails logic.
 
     // Recursion limit is already tested.
+}
+
+#[test]
+fn test_semantic_assembler_errors() {
+    use glossa::semantic::Assembler;
+    use glossa::morphology::analyze;
+    use glossa::errors::AssemblyError;
+
+    let mut asm = Assembler::new();
+
+    // Double Subject Error
+    let subj1 = analyze("ἄνθρωπος");
+    asm.feed(&subj1, "ἄνθρωπος").unwrap();
+
+    // Create a second subject constituent
+    // Note: The Assembler now allows multiple nominatives for function calls!
+    // But finalize() checks agreement if verb exists.
+    // DoubleSubject error is returned if `feed` is called with Nominative and state.subject is Some AND not compatible?
+    // Actually, `handle_nominal` pushes to `nominatives` list if subject is full.
+    // So DoubleSubject isn't returned for Nominative anymore.
+    // Let's check DoubleObject.
+
+    // Double Object Error
+    let obj1 = analyze("λόγον");
+    asm.feed(&obj1, "λόγον").unwrap();
+    let obj2 = analyze("λόγον");
+    let res = asm.feed(&obj2, "λόγον");
+    assert!(matches!(res, Err(AssemblyError::DoubleObject)));
+
+    // Double Indirect Object Error
+    let mut asm2 = Assembler::new();
+    let ind1 = analyze("ανθρωπω"); // Dative
+    asm2.feed(&ind1, "ἀνθρώπῳ").unwrap();
+    let ind2 = analyze("ανθρωπω");
+    let res2 = asm2.feed(&ind2, "ἀνθρώπῳ");
+    assert!(matches!(res2, Err(AssemblyError::DoubleIndirect)));
+
+    // Double Verb Error
+    let mut asm3 = Assembler::new();
+    let verb1 = analyze("λεγει");
+    asm3.feed(&verb1, "λέγει").unwrap();
+    let verb2 = analyze("γραφει");
+    let res3 = asm3.feed(&verb2, "γράφει");
+    assert!(matches!(res3, Err(AssemblyError::DoubleVerb)));
+
+    // Agreement Error (Person)
+    // We can use mock analysis or known words.
+    // Assuming lexicon has basic words.
+    // Let's rely on unit tests in assembler.rs for specific agreement logic coverage.
+    // This integration test mainly covers the *integration* of errors into GlossaError.
+}
+
+#[test]
+fn test_semantic_expression_errors() {
+    use glossa::semantic::expressions::analyze_argument_expr;
+    use glossa::semantic::Scope;
+    use glossa::ast::Expr;
+
+    let scope = Scope::new();
+
+    // Recursion Limit in Expressions
+    // Nest expressions deep enough
+    let mut expr = Expr::NumberLiteral(1);
+    for _ in 0..60 {
+        expr = Expr::Phrase(vec![expr]);
+    }
+
+    let res = analyze_argument_expr(&expr, &scope);
+    assert!(res.is_err());
+    assert!(format!("{:?}", res.err()).contains("Recursion limit exceeded"));
+
+    // Empty Phrase
+    let empty_phrase = Expr::Phrase(vec![]);
+    let res_empty = analyze_argument_expr(&empty_phrase, &scope);
+    assert!(res_empty.is_err());
 }
