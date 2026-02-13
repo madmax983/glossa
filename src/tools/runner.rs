@@ -190,8 +190,7 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     check_file_size(input)?;
 
     let source = fs::read_to_string(input).into_diagnostic()?;
-    let highlighted =
-        crate::highlight::highlight(&source).map_err(|e| miette::miette!("{}", e))?;
+    let highlighted = crate::highlight::highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", highlighted);
 

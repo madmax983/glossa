@@ -7,7 +7,7 @@ use crate::semantic::{AnalyzedStatement, GlossaType, Scope, analyze_program};
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
-use std::io::Write;
+use std::io::{BufRead, Write};
 
 /// Maximum number of bindings to track in REPL history
 pub const MAX_REPL_BINDINGS: usize = 50;
@@ -15,20 +15,27 @@ pub const MAX_REPL_BINDINGS: usize = 50;
 pub const MAX_REPL_SOURCE_LEN: usize = 50_000;
 
 pub fn run_repl() -> Result<()> {
-    print_banner();
+    let stdin = std::io::stdin();
+    let mut stdout = std::io::stdout();
+    run_repl_inner(stdin.lock(), &mut stdout)
+}
+
+/// Inner REPL loop logic for testing
+pub fn run_repl_inner<R: BufRead, W: Write>(mut reader: R, mut writer: W) -> Result<()> {
+    print_banner_to(&mut writer)?;
 
     let mut context = ReplContext::new();
 
     loop {
-        print!("{}", "γλ> ".green().bold());
-        std::io::stdout().flush().into_diagnostic()?;
+        write!(writer, "{}", "γλ> ".green().bold()).into_diagnostic()?;
+        writer.flush().into_diagnostic()?;
 
         let mut input = String::new();
-        let bytes = std::io::stdin().read_line(&mut input).into_diagnostic()?;
+        let bytes = reader.read_line(&mut input).into_diagnostic()?;
 
         // Fix: Handle EOF (Ctrl+D) gracefully
         if bytes == 0 {
-            println!("\nΧαῖρε!");
+            writeln!(writer, "\nΧαῖρε!").into_diagnostic()?;
             break;
         }
 
@@ -41,20 +48,20 @@ pub fn run_repl() -> Result<()> {
         // Handle special commands
         match input {
             ".ἔξοδος" | ".exit" | ".quit" => {
-                println!("Χαῖρε!");
+                writeln!(writer, "Χαῖρε!").into_diagnostic()?;
                 break;
             }
             ".βοήθεια" | ".help" => {
-                print_help();
+                print_help_to(&mut writer)?;
                 continue;
             }
             ".καθαρός" | ".clear" => {
                 context = ReplContext::new();
-                println!("{} Ἐκαθαρίσθη.", "✓".green());
+                writeln!(writer, "{} Ἐκαθαρίσθη.", "✓".green()).into_diagnostic()?;
                 continue;
             }
             ".περιβάλλον" | ".env" => {
-                print_env(&context);
+                print_env_to(&context, &mut writer)?;
                 continue;
             }
             _ => {}
@@ -63,11 +70,11 @@ pub fn run_repl() -> Result<()> {
         match context.execute(input) {
             Ok(output) => {
                 // Display handles formatting (empty if None)
-                print!("{}", output);
+                write!(writer, "{}", output).into_diagnostic()?;
             }
             Err(e) => {
                 // Use default error formatting but ensure it's visible
-                eprintln!("{}", format!("× Σφάλμα: {}", e).red());
+                writeln!(writer, "{}", format!("× Σφάλμα: {}", e).red()).into_diagnostic()?;
             }
         }
     }
@@ -75,19 +82,25 @@ pub fn run_repl() -> Result<()> {
     Ok(())
 }
 
-fn print_banner() {
+fn print_banner_to<W: Write>(writer: &mut W) -> Result<()> {
     // Welcome Banner
     let version = format!("v{}", env!("CARGO_PKG_VERSION"));
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α".bold().cyan());
-    println!("   {}", "Code as the ancients intended.".italic().dim());
-    println!("   {}", version.blue());
-    println!();
-    println!("   {}", "Type .help for commands".dim());
-    println!();
+    writeln!(writer).into_diagnostic()?;
+    writeln!(writer, "   {}", "Γ Λ Ω Σ Σ Α".bold().cyan()).into_diagnostic()?;
+    writeln!(writer, "   {}", "Code as the ancients intended.".italic().dim()).into_diagnostic()?;
+    writeln!(writer, "   {}", version.blue()).into_diagnostic()?;
+    writeln!(writer).into_diagnostic()?;
+    writeln!(writer, "   {}", "Type .help for commands".dim()).into_diagnostic()?;
+    writeln!(writer).into_diagnostic()?;
+    Ok(())
 }
 
-fn print_help() {
+pub fn print_banner() {
+    let mut stdout = std::io::stdout();
+    let _ = print_banner_to(&mut stdout);
+}
+
+fn print_help_to<W: Write>(writer: &mut W) -> Result<()> {
     let mut table = Table::new();
     table.load_preset(presets::UTF8_FULL).set_header(vec![
         Cell::new("Ἐντολή (Command)")
@@ -112,22 +125,33 @@ fn print_help() {
         "Δεῖξαι τὰς μεταβλητάς (Show variables)",
     ]);
 
-    println!("{table}");
+    writeln!(writer, "{table}").into_diagnostic()?;
 
-    println!("\n{}", "Παραδείγματα:".bold().underlined());
-    println!("  «χαῖρε κόσμε» λέγε.");
-    println!("  ξ πέντε ἔστω.");
+    writeln!(writer, "\n{}", "Παραδείγματα:".bold().underlined()).into_diagnostic()?;
+    writeln!(writer, "  «χαῖρε κόσμε» λέγε.").into_diagnostic()?;
+    writeln!(writer, "  ξ πέντε ἔστω.").into_diagnostic()?;
+    Ok(())
 }
 
-fn print_env(context: &ReplContext) {
+pub fn print_help() {
+    let mut stdout = std::io::stdout();
+    let _ = print_help_to(&mut stdout);
+}
+
+fn print_env_to<W: Write>(context: &ReplContext, writer: &mut W) -> Result<()> {
     if let Some(scope) = &context.last_scope {
         // Collect and sort bindings for consistent display
         let mut bindings: Vec<_> = scope.bindings().collect();
         bindings.sort_by(|a, b| a.0.cmp(b.0));
 
         if bindings.is_empty() {
-            println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
-            return;
+            writeln!(
+                writer,
+                "{}",
+                "Οὐδεμία μεταβλητή (No variables defined).".yellow()
+            )
+            .into_diagnostic()?;
+            return Ok(());
         }
 
         let mut table = Table::new();
@@ -159,10 +183,21 @@ fn print_env(context: &ReplContext) {
                 mut_cell,
             ]);
         }
-        println!("{table}");
+        writeln!(writer, "{table}").into_diagnostic()?;
     } else {
-        println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
+        writeln!(
+            writer,
+            "{}",
+            "Οὐδεμία μεταβλητή (No variables defined).".yellow()
+        )
+        .into_diagnostic()?;
     }
+    Ok(())
+}
+
+pub fn print_env(context: &ReplContext) {
+    let mut stdout = std::io::stdout();
+    let _ = print_env_to(context, &mut stdout);
 }
 
 /// REPL Output variants
@@ -316,6 +351,51 @@ impl ReplContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
+
+    #[test]
+    fn test_repl_inner_loop() {
+        // Simulate input: binding, usage, clear, exit
+        let input = "ξ πέντε ἔστω.\nξ λέγε.\n.clear\n.exit\n";
+        let mut output = Vec::new();
+        let reader = Cursor::new(input);
+
+        let result = run_repl_inner(reader, &mut output);
+        assert!(result.is_ok());
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("ξ"));
+        assert!(output_str.contains("Ἐκτελέσθη"));
+        assert!(output_str.contains("Ἐκαθαρίσθη"));
+        assert!(output_str.contains("Χαῖρε!"));
+    }
+
+    #[test]
+    fn test_repl_help_and_env() {
+        let input = ".help\n.env\n.exit\n";
+        let mut output = Vec::new();
+        let reader = Cursor::new(input);
+
+        let result = run_repl_inner(reader, &mut output);
+        assert!(result.is_ok());
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("Ἐντολή")); // Help header
+        assert!(output_str.contains("Οὐδεμία μεταβλητή")); // Empty env
+    }
+
+    #[test]
+    fn test_repl_eof() {
+        let input = ""; // Immediate EOF
+        let mut output = Vec::new();
+        let reader = Cursor::new(input);
+
+        let result = run_repl_inner(reader, &mut output);
+        assert!(result.is_ok());
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("Χαῖρε!"));
+    }
 
     #[test]
     fn test_repl_binding_limit() {
@@ -341,8 +421,6 @@ mod tests {
         let mut context = ReplContext::new();
 
         // Create a huge input that exceeds the limit immediately
-        // The check happens before parsing, so content validity doesn't matter much
-        // as long as it triggers the length check.
         let huge_input = " ".repeat(MAX_REPL_SOURCE_LEN + 1);
 
         let result = context.execute(&huge_input);
@@ -376,7 +454,6 @@ mod tests {
         let _ = context.execute("μετά ψ δέκα ἔστω.").unwrap();
 
         // 5. Run print_env to cover the table generation code
-        // We aren't capturing stdout, but this ensures the code runs without panicking
         print_env(&context);
 
         // 6. Test clear simulation (new context)
@@ -387,20 +464,17 @@ mod tests {
 
     #[test]
     fn test_print_help_coverage() {
-        // Just verify it doesn't panic
         print_help();
     }
 
     #[test]
     fn test_print_banner_coverage() {
-        // Just verify it doesn't panic
         print_banner();
     }
 
     #[test]
     fn test_print_env_empty() {
         let context = ReplContext::new();
-        // Should print "No variables defined"
         print_env(&context);
     }
 
