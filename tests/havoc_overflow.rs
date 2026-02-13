@@ -1,51 +1,41 @@
-use glossa::codegen::generate_rust;
+use glossa::errors::GlossaError;
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
-use std::thread;
 
-/// 👺 Havoc: Stack Overflow in CodeGen via Deep Expression Trees
+/// 👺 Havoc: Stack Overflow Mitigation
 ///
-/// This test demonstrates a stack overflow vulnerability in `generate_rust`.
-/// The parser limits recursion depth to 500, but binary expressions (e.g., `1 + 1 + ...`)
-/// are parsed iteratively into a flat `AnalyzedExpr` tree.
-/// However, `generate_rust` processes this tree recursively, causing a stack overflow
-/// when the tree depth exceeds the stack size.
+/// This test originally demonstrated a stack overflow in `generate_rust` due to deep recursion.
+/// Warden has mitigated this by enforcing a semantic depth limit (MAX_EXPRESSION_DEPTH).
 ///
-/// We "fix" the test crash by running it in a thread with a massive stack.
-/// This proves the code is correct (just stack-hungry).
+/// Instead of needing a massive stack to survive, the compiler should now strictly reject
+/// deeply nested expressions with a `LimitExceeded` error.
 #[test]
-fn test_stack_overflow_expression() {
-    // Spawn a thread with 32MB stack.
-    let builder = thread::Builder::new().stack_size(32 * 1024 * 1024);
+fn test_stack_overflow_mitigation() {
+    // Generate a massive expression: 1 + 1 + 1 + ...
+    // Depth 1000 exceeds the limit (200)
+    let n = 1_000;
+    let mut s = String::with_capacity(n * 15);
+    s.push('1');
+    for _ in 0..n {
+        // "ἄθροισμα" means "+" (sum)
+        s.push_str(" ἄθροισμα 1");
+    }
+    s.push_str(" λέγε.");
 
-    let handler = builder
-        .spawn(|| {
-            // Generate a massive expression: 1 + 1 + 1 + ...
-            // We use 1000 to ensure it passes with the custom stack size.
-            // This is still 2x the parser's nesting limit (500), proving we bypassed it.
-            let n = 1_000;
-            let mut s = String::with_capacity(n * 15);
-            s.push('1');
-            for _ in 0..n {
-                // "ἄθροισμα" means "+" (sum)
-                s.push_str(" ἄθροισμα 1");
+    println!("Parsing...");
+    let ast = parse(&s).expect("Failed to parse");
+
+    println!("Analyzing...");
+    // This should fail gracefully with LimitExceeded
+    match analyze_program(&ast) {
+        Ok(_) => panic!(
+            "Expected depth limit exceeded error, but analysis succeeded! The mitigation failed."
+        ),
+        Err(e) => {
+            println!("Caught expected error: {:?}", e);
+            if !matches!(e, GlossaError::LimitExceeded { .. }) {
+                panic!("Expected LimitExceeded error, got: {:?}", e);
             }
-            s.push_str(" λέγε.");
-
-            println!("Parsing...");
-            // This works fine (linear loop in parser)
-            let ast = parse(&s).expect("Failed to parse");
-
-            println!("Analyzing...");
-            // This works fine (linear loop in build_expressions_from_literals_and_ops)
-            let analyzed = analyze_program(&ast).expect("Failed to analyze");
-
-            println!("Generating...");
-            // This should pass with 32MB stack
-            let code = generate_rust(&analyzed);
-            assert!(!code.is_empty());
-        })
-        .unwrap();
-
-    handler.join().unwrap();
+        }
+    }
 }
