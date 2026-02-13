@@ -67,3 +67,12 @@
 2. Changed `pub mod builder` to `pub(crate) mod builder` in `src/parser/mod.rs`.
 3. Updated `src/lib.rs` to export `tools` and re-export `highlight` for compatibility.
 **Stability:** Improves module organization by grouping tools and enforcing better encapsulation in the parser module.
+
+## [Refactoring The Monolith: Main Module Sprawl]
+**Tangle:** `src/main.rs` was a "God File" containing over 1000 lines of mixed responsibilities: CLI argument parsing, REPL implementation, file compilation/caching logic, and test suites. This violated the Single Responsibility Principle and made the entry point hard to maintain.
+**Blueprint:**
+1. Created `src/tools/cli.rs` for `clap` argument definitions.
+2. Created `src/tools/repl.rs` for the interactive shell logic and state management.
+3. Created `src/tools/runner.rs` for the compilation, execution, and caching logic.
+4. Refactored `src/main.rs` to be a minimal entry point that delegates to these modules.
+**Stability:** Decouples the CLI interface from the core logic. `main.rs` is now a thin wrapper, and each tool component is testable in isolation.
