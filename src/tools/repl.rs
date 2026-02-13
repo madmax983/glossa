@@ -1,6 +1,7 @@
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
+use std::io::{BufRead, Write};
 
 use crate::codegen::generate_statement_code;
 use crate::errors::GlossaError;
@@ -12,61 +13,68 @@ const MAX_REPL_BINDINGS: usize = 50;
 /// Maximum total source size for REPL history
 const MAX_REPL_SOURCE_LEN: usize = 50_000;
 
+/// Entry point for the REPL using stdin/stdout
 pub fn run_repl() -> Result<()> {
     print_banner();
+    let stdin = std::io::stdin();
+    let mut stdout = std::io::stdout();
+    run_repl_inner(&mut stdin.lock(), &mut stdout)
+}
 
+/// Internal REPL loop that can be tested with arbitrary streams
+fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
     let mut context = ReplContext::new();
 
     loop {
-        print!("{}", "γλ> ".green().bold());
-        use std::io::Write;
-        std::io::stdout().flush().into_diagnostic()?;
+        // We ignore write errors for the prompt as they might happen in non-interactive tests
+        let _ = write!(output, "{}", "γλ> ".green().bold());
+        let _ = output.flush();
 
-        let mut input = String::new();
-        let bytes = std::io::stdin().read_line(&mut input).into_diagnostic()?;
+        let mut line = String::new();
+        let bytes = input.read_line(&mut line).into_diagnostic()?;
 
-        // Fix: Handle EOF (Ctrl+D) gracefully
+        // Handle EOF
         if bytes == 0 {
-            println!("\nΧαῖρε!");
+            writeln!(output, "\nΧαῖρε!").into_diagnostic()?;
             break;
         }
 
-        let input = input.trim();
+        let trimmed = line.trim();
 
-        if input.is_empty() {
+        if trimmed.is_empty() {
             continue;
         }
 
         // Handle special commands
-        match input {
+        match trimmed {
             ".ἔξοδος" | ".exit" | ".quit" => {
-                println!("Χαῖρε!");
+                writeln!(output, "Χαῖρε!").into_diagnostic()?;
                 break;
             }
             ".βοήθεια" | ".help" => {
-                print_help();
+                print_help(output)?;
                 continue;
             }
             ".καθαρός" | ".clear" => {
                 context = ReplContext::new();
-                println!("{} Ἐκαθαρίσθη.", "✓".green());
+                writeln!(output, "{} Ἐκαθαρίσθη.", "✓".green()).into_diagnostic()?;
                 continue;
             }
             ".περιβάλλον" | ".env" => {
-                print_env(&context);
+                print_env(&context, output)?;
                 continue;
             }
             _ => {}
         }
 
-        match context.execute(input) {
-            Ok(output) => {
+        match context.execute(trimmed) {
+            Ok(repl_output) => {
                 // Display handles formatting (empty if None)
-                print!("{}", output);
+                write!(output, "{}", repl_output).into_diagnostic()?;
             }
             Err(e) => {
                 // Use default error formatting but ensure it's visible
-                eprintln!("{}", format!("× Σφάλμα: {}", e).red());
+                writeln!(output, "{}", format!("× Σφάλμα: {}", e).red()).into_diagnostic()?;
             }
         }
     }
@@ -86,7 +94,7 @@ fn print_banner() {
     println!();
 }
 
-fn print_help() {
+fn print_help<W: Write>(w: &mut W) -> Result<()> {
     let mut table = Table::new();
     table.load_preset(presets::UTF8_FULL).set_header(vec![
         Cell::new("Ἐντολή (Command)")
@@ -111,22 +119,23 @@ fn print_help() {
         "Δεῖξαι τὰς μεταβλητάς (Show variables)",
     ]);
 
-    println!("{table}");
-
-    println!("\n{}", "Παραδείγματα:".bold().underlined());
-    println!("  «χαῖρε κόσμε» λέγε.");
-    println!("  ξ πέντε ἔστω.");
+    writeln!(w, "{table}").into_diagnostic()?;
+    writeln!(w, "\n{}", "Παραδείγματα:".bold().underlined()).into_diagnostic()?;
+    writeln!(w, "  «χαῖρε κόσμε» λέγε.").into_diagnostic()?;
+    writeln!(w, "  ξ πέντε ἔστω.").into_diagnostic()?;
+    Ok(())
 }
 
-fn print_env(context: &ReplContext) {
+fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
     if let Some(scope) = &context.last_scope {
         // Collect and sort bindings for consistent display
         let mut bindings: Vec<_> = scope.bindings().collect();
         bindings.sort_by(|a, b| a.0.cmp(b.0));
 
         if bindings.is_empty() {
-            println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
-            return;
+            writeln!(w, "{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow())
+                .into_diagnostic()?;
+            return Ok(());
         }
 
         let mut table = Table::new();
@@ -158,10 +167,12 @@ fn print_env(context: &ReplContext) {
                 mut_cell,
             ]);
         }
-        println!("{table}");
+        writeln!(w, "{table}").into_diagnostic()?;
     } else {
-        println!("{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow());
+        writeln!(w, "{}", "Οὐδεμία μεταβλητή (No variables defined).".yellow())
+            .into_diagnostic()?;
     }
+    Ok(())
 }
 
 /// REPL Output variants
@@ -355,7 +366,8 @@ mod tests {
 
         // 1. Initial state: No scope
         assert!(context.last_scope.is_none());
-        print_env(&context); // Should print "No variables"
+        let mut buf = Vec::new();
+        print_env(&context, &mut buf).unwrap();
 
         // 2. Execute binding
         let _ = context.execute("ξ πέντε ἔστω.").unwrap();
@@ -369,19 +381,21 @@ mod tests {
         let _ = context.execute("μετά ψ δέκα ἔστω.").unwrap();
 
         // 5. Run print_env to cover the table generation code
-        // We aren't capturing stdout, but this ensures the code runs without panicking
-        print_env(&context);
+        print_env(&context, &mut buf).unwrap();
 
         // 6. Test clear simulation (new context)
         let context = ReplContext::new();
         assert!(context.last_scope.is_none());
-        print_env(&context);
+        print_env(&context, &mut buf).unwrap();
     }
 
     #[test]
     fn test_print_help_coverage() {
         // Just verify it doesn't panic
-        print_help();
+        let mut buf = Vec::new();
+        print_help(&mut buf).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert!(s.contains("βοήθεια"));
     }
 
     #[test]
@@ -393,8 +407,10 @@ mod tests {
     #[test]
     fn test_print_env_empty() {
         let context = ReplContext::new();
-        // Should print "No variables defined"
-        print_env(&context);
+        let mut buf = Vec::new();
+        print_env(&context, &mut buf).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert!(s.contains("No variables defined"));
     }
 
     #[test]
@@ -425,16 +441,6 @@ mod tests {
         }
 
         // Test None execution (no new statement, e.g. comment or empty)
-        // Comments are stripped by parser usually, but let's try an empty input or just re-running without change
-        // Actually, execute appends input.
-        // Let's try an input that parses but produces no statements (e.g. just whitespace)
-        // But parse likely fails on empty.
-        // Let's try a comment if parser supports it.
-        // "Using strict parser..."
-        // If we can't easily generate 0 statements from valid input, we can check that
-        // the statement count logic works by manually manipulating if possible,
-        // but since we can't, let's trust the logic if we can verify state updates.
-        // Let's rely on the logic that if we add a statement, count increases.
         assert_eq!(context.statement_count, 2);
     }
 
@@ -473,5 +479,60 @@ mod tests {
         // Test None display
         let none = ReplOutput::None;
         assert_eq!(none.to_string(), "");
+    }
+
+    #[test]
+    fn test_run_repl_inner_workflow() {
+        let input_data = "\
+ξ πέντε ἔστω.\n\
+.env\n\
+.clear\n\
+.env\n\
+.exit\n";
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        let result = run_repl_inner(&mut input, &mut output);
+        assert!(result.is_ok());
+
+        let output_str = String::from_utf8(output).unwrap();
+        // Verify prompts
+        assert!(output_str.contains("γλ>"));
+        // Verify binding execution
+        assert!(output_str.contains("ξ"));
+        assert!(output_str.contains("Ἀριθμός"));
+        // Verify clear
+        assert!(output_str.contains("Ἐκαθαρίσθη"));
+        // Verify env after clear (should be empty)
+        assert!(output_str.contains("No variables defined"));
+        // Verify exit
+        assert!(output_str.contains("Χαῖρε"));
+    }
+
+    #[test]
+    fn test_run_repl_inner_help() {
+        let input_data = ".help\n.exit\n";
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        let result = run_repl_inner(&mut input, &mut output);
+        assert!(result.is_ok());
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("βοήθεια"));
+        assert!(output_str.contains("Περιγραφή"));
+    }
+
+    #[test]
+    fn test_run_repl_inner_eof() {
+        // Empty input simulates immediate EOF
+        let input_data = "";
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        let result = run_repl_inner(&mut input, &mut output);
+        assert!(result.is_ok());
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("Χαῖρε"));
     }
 }

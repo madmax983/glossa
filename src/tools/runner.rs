@@ -316,4 +316,61 @@ mod tests {
                 .contains("Ἀρχεῖον λίαν μέγα")
         );
     }
+
+    #[test]
+    fn test_run_file_success() {
+        // 1. Create a temporary Glossa file
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("run_test.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«test» λέγε.".as_bytes()).unwrap();
+        }
+
+        // 2. Run it
+        // This exercises: run_file -> check_file_size -> cache_dir -> cache_key -> compile -> rustc -> execution
+        let result = run_file(&input_path);
+
+        // Note: this test requires `rustc` to be in the path, which is true for `cargo test`.
+        assert!(result.is_ok());
+
+        // 3. Verify cache exists
+        let cache = cache_dir();
+        assert!(cache.exists());
+        let key = cache_key(&input_path);
+        let cached_exe = cache.join(format!("{}{}", key, if cfg!(windows) { ".exe" } else { "" }));
+        assert!(cached_exe.exists());
+
+        // 4. Run again to test cache hit path
+        let result_cached = run_file(&input_path);
+        assert!(result_cached.is_ok());
+    }
+
+    #[test]
+    fn test_check_file_valid() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("check.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
+        }
+
+        let result = check_file(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_highlight_file_valid() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("highlight.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
+        }
+
+        // We can't easily capture stdout here without a lot of plumbing,
+        // but we can ensure it doesn't error.
+        let result = highlight_file(&input_path);
+        assert!(result.is_ok());
+    }
 }
