@@ -243,5 +243,4 @@ mod tests {
         let err = GlossaError::semantic("test");
         assert_eq!(err.category_greek(), "Σημασία");
     }
-
 }
