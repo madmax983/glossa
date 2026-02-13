@@ -102,6 +102,20 @@ use crate::morphology::{
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
 
+// Constants for resource limits to prevent DoS
+pub const MAX_ADJECTIVES: usize = 1024;
+pub const MAX_LITERALS: usize = 1024;
+pub const MAX_NOMINATIVES: usize = 256;
+pub const MAX_GENITIVES: usize = 256;
+pub const MAX_ARRAYS: usize = 256;
+pub const MAX_INDEX_ACCESSES: usize = 256;
+pub const MAX_PROPERTY_ACCESSES: usize = 256;
+pub const MAX_NESTED_PHRASES: usize = 256;
+pub const MAX_PARTICIPLES: usize = 256;
+pub const MAX_UNWRAPS: usize = 256;
+pub const MAX_OPERATORS: usize = 256;
+pub const MAX_BLOCKS: usize = 256;
+
 /// The slot-based assembler
 ///
 /// Feed it tokens one by one, and it routes them to the appropriate slot
@@ -226,6 +240,12 @@ impl Assembler {
     /// asm.feed_string("χαῖρε".to_string()).unwrap();
     /// ```
     pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Literals".to_string(),
+                max: MAX_LITERALS,
+            });
+        }
         self.state.literals.push(Literal::String(value));
         Ok(())
     }
@@ -241,6 +261,12 @@ impl Assembler {
     /// asm.feed_number(42).unwrap();
     /// ```
     pub fn feed_number(&mut self, value: i64) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Literals".to_string(),
+                max: MAX_LITERALS,
+            });
+        }
         self.state.literals.push(Literal::Number(value));
         Ok(())
     }
@@ -256,6 +282,12 @@ impl Assembler {
     /// asm.feed_boolean(true).unwrap();
     /// ```
     pub fn feed_boolean(&mut self, value: bool) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Literals".to_string(),
+                max: MAX_LITERALS,
+            });
+        }
         self.state.literals.push(Literal::Boolean(value));
         Ok(())
     }
@@ -273,6 +305,12 @@ impl Assembler {
     /// asm.feed_array(elements).unwrap();
     /// ```
     pub fn feed_array(&mut self, elements: Vec<Expr>) -> Result<(), AssemblyError> {
+        if self.state.arrays.len() >= MAX_ARRAYS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Arrays".to_string(),
+                max: MAX_ARRAYS,
+            });
+        }
         self.state.arrays.push(elements);
         Ok(())
     }
@@ -291,6 +329,12 @@ impl Assembler {
         &mut self,
         statements: Vec<crate::ast::Statement>,
     ) -> Result<(), AssemblyError> {
+        if self.state.blocks.len() >= MAX_BLOCKS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Blocks".to_string(),
+                max: MAX_BLOCKS,
+            });
+        }
         self.state.blocks.push(statements);
         Ok(())
     }
@@ -307,6 +351,12 @@ impl Assembler {
     /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]).unwrap();
     /// ```
     pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) -> Result<(), AssemblyError> {
+        if self.state.nested_phrases.len() >= MAX_NESTED_PHRASES {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Nested Phrases".to_string(),
+                max: MAX_NESTED_PHRASES,
+            });
+        }
         self.state.nested_phrases.push(terms);
         Ok(())
     }
@@ -328,6 +378,12 @@ impl Assembler {
     /// asm.feed_index_access(array, index).unwrap();
     /// ```
     pub fn feed_index_access(&mut self, array: Expr, index: Expr) -> Result<(), AssemblyError> {
+        if self.state.index_accesses.len() >= MAX_INDEX_ACCESSES {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Index Accesses".to_string(),
+                max: MAX_INDEX_ACCESSES,
+            });
+        }
         self.state.index_accesses.push((array, index));
         Ok(())
     }
@@ -348,6 +404,12 @@ impl Assembler {
     /// asm.feed_unwrap(expr).unwrap();
     /// ```
     pub fn feed_unwrap(&mut self, expr: Expr) -> Result<(), AssemblyError> {
+        if self.state.unwraps.len() >= MAX_UNWRAPS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Unwraps".to_string(),
+                max: MAX_UNWRAPS,
+            });
+        }
         self.state.unwraps.push(expr);
         Ok(())
     }
@@ -377,6 +439,12 @@ impl Assembler {
         analysis: &crate::morphology::ParticipleAnalysis,
         original: &str,
     ) -> Result<(), AssemblyError> {
+        if self.state.participles.len() >= MAX_PARTICIPLES {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Participles".to_string(),
+                max: MAX_PARTICIPLES,
+            });
+        }
         let constituent = ParticipleConstituent {
             verb_lemma: analysis.verb_lemma().into(),
             original: original.into(),
@@ -417,6 +485,12 @@ impl Assembler {
 
                 if self.state.subject.is_some() {
                     // Additional nominatives stored separately for function call patterns
+                    if self.state.nominatives.len() >= MAX_NOMINATIVES {
+                        return Err(AssemblyError::LimitExceeded {
+                            resource: "Nominatives".to_string(),
+                            max: MAX_NOMINATIVES,
+                        });
+                    }
                     self.state.nominatives.push(constituent);
                 } else {
                     self.state.subject = Some(constituent);
@@ -437,6 +511,12 @@ impl Assembler {
             }
             Some(Case::Genitive) => {
                 // Genitives attach to other constituents (possession, etc.)
+                if self.state.genitives.len() >= MAX_GENITIVES {
+                    return Err(AssemblyError::LimitExceeded {
+                        resource: "Genitives".to_string(),
+                        max: MAX_GENITIVES,
+                    });
+                }
                 self.state.genitives.push(constituent);
             }
             Some(Case::Vocative) => {
@@ -502,6 +582,12 @@ impl Assembler {
             person: None, // Adjectives don't really have person
         };
 
+        if self.state.adjectives.len() >= MAX_ADJECTIVES {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Adjectives".to_string(),
+                max: MAX_ADJECTIVES,
+            });
+        }
         self.state.adjectives.push(constituent);
         Ok(())
     }
@@ -585,6 +671,10 @@ impl Assembler {
             && matches!(self.state.literals.last(), Some(Literal::String(_)))
         {
             if let Some(ref subj) = self.state.subject {
+                if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
+                    return false;
+                }
+
                 let delim = match self.state.literals.pop() {
                     Some(Literal::String(s)) => s,
                     _ => unreachable!(),
@@ -624,10 +714,16 @@ impl Assembler {
     fn check_operators(&mut self, normalized: &str, original: &str) -> bool {
         // Boolean operators
         if matches!(original, "καί" | "και") {
+            if self.state.operators.len() >= MAX_OPERATORS {
+                return false;
+            }
             self.state.operators.push(BinaryOp::And);
             return true;
         }
         if matches!(original, "ἤ" | "ή") {
+            if self.state.operators.len() >= MAX_OPERATORS {
+                return false;
+            }
             // ἤ with breathing+accent, but not ᾖ
             self.state.operators.push(BinaryOp::Or);
             return true;
@@ -635,12 +731,18 @@ impl Assembler {
 
         // Comparison operators
         if let Some(op) = crate::morphology::lexicon::comparison_operator(normalized) {
+            if self.state.operators.len() >= MAX_OPERATORS {
+                return false;
+            }
             self.state.operators.push(op);
             return true;
         }
 
         // Arithmetic operators
         if let Some(op) = crate::morphology::lexicon::arithmetic_operator(normalized) {
+            if self.state.operators.len() >= MAX_OPERATORS {
+                return false;
+            }
             self.state.operators.push(op);
             return true;
         }
@@ -660,6 +762,9 @@ impl Assembler {
         if crate::morphology::lexicon::is_length_property(normalized) {
             // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.state.subject {
+                if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
+                    return false;
+                }
                 let normalized_original = crate::text::normalize_greek(&subj.original);
                 self.state
                     .property_accesses
@@ -675,6 +780,9 @@ impl Assembler {
             if let Some(ref subj) = self.state.subject
                 && let Some(index) = crate::morphology::lexicon::ordinal_to_index(normalized)
             {
+                if self.state.index_accesses.len() >= MAX_INDEX_ACCESSES {
+                    return false;
+                }
                 // Create array and index expressions (use normalized original, not lemma)
                 let normalized_original = crate::text::normalize_greek(&subj.original);
                 let array = Expr::Word(Word {
