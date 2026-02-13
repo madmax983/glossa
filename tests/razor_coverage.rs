@@ -4,8 +4,8 @@ use glossa::ast::{
 };
 use glossa::errors::{GlossaError, help};
 use glossa::highlight::highlight;
-use glossa::report::ProgramStats;
-use glossa::semantic::{AnalyzedProgram, AssembledStatement, Scope};
+use glossa::report::{GlossaReport, ProgramStats};
+use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, AssembledStatement, GlossaType, Scope};
 
 #[test]
 fn test_ast_derives_and_methods() {
@@ -65,22 +65,35 @@ fn test_ast_derives_and_methods() {
     let _ = format!("{:?}", stmt_regular);
 
     let binop = BinOperator::Add;
-    let _ = binop.clone();
     assert_eq!(binop, BinOperator::Add);
 
     let unop = UnaryOperator::Not;
-    let _ = unop.clone();
     assert_eq!(unop, UnaryOperator::Not);
 }
 
 #[test]
 fn test_errors_coverage() {
     // Coverage for help messages and error constructors
-    let _ = GlossaError::parse_with_source("msg", "src", (0, 1).into());
-    let _ = GlossaError::type_error("msg");
-    let _ = GlossaError::agreement("msg");
-    let _ = GlossaError::codegen("msg");
-    let _ = GlossaError::io("msg");
+    let err_parse = GlossaError::parse_with_source("msg", "src", (0, 1).into());
+    assert_eq!(err_parse.category_greek(), "Σύνταξις");
+
+    let err_type = GlossaError::type_error("msg");
+    assert_eq!(err_type.category_greek(), "Τύπος");
+
+    let err_semantic = GlossaError::semantic("msg");
+    assert_eq!(err_semantic.category_greek(), "Σημασία");
+
+    let err_agree = GlossaError::agreement("msg");
+    assert_eq!(err_agree.category_greek(), "Συμφωνία");
+
+    let err_codegen = GlossaError::codegen("msg");
+    assert_eq!(err_codegen.category_greek(), "Κῶδιξ");
+
+    let err_io = GlossaError::io("msg");
+    assert_eq!(err_io.category_greek(), "Ἀρχεῖον");
+
+    let err_undef = GlossaError::undefined("x");
+    assert_eq!(err_undef.category_greek(), "Ὄνομα");
 
     // Help constants
     assert!(!help::BINDING.is_empty());
@@ -107,6 +120,10 @@ fn test_highlight_coverage() {
         "δοκιμή «test». τέλος.",
         "εἶδος Τ ὁρίζειν { }.",
         "χαρακτήρ Χ ὁρίζειν { }.",
+        "εἶδος Τ τῷ Χ ἐμπίπτειν { }.",
+        "εἰ ἀληθές, «ναί» λέγε.", // Control flow highlighting
+        "ξ?", // Query
+        "σφάλμα;", // Propagate
     ];
 
     for input in inputs {
@@ -122,13 +139,41 @@ fn test_program_stats_coverage() {
     let stats = ProgramStats::default();
     assert_eq!(stats.statement_count, 0);
 
-    let scope = Scope::new();
+    let mut scope = Scope::new();
+    scope.define_function("f", vec![], None); // Function count
+
+    // define_type expects (name, type), not fields.
+    // To increment type count in stats, we need a struct in scope.
+    // The Scope implementation of `types()` likely iterates over defined structs.
+    // define_type takes (name, GlossaType).
+    // We use GlossaType::Struct for custom types.
+    scope.define_type("T", GlossaType::Struct {
+        name: "T".into(),
+        gender: glossa::morphology::Gender::Masculine,
+        fields: vec![]
+    }); // Type count
+
     let program = AnalyzedProgram {
-        statements: vec![],
+        statements: vec![
+            AnalyzedStatement::Print(vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number
+                }
+            ])
+        ],
         scope,
     };
     let stats_new = ProgramStats::new(&program);
-    assert_eq!(stats_new.statement_count, 0);
+    assert_eq!(stats_new.statement_count, 1);
+    assert_eq!(stats_new.function_count, 1);
+    assert_eq!(stats_new.type_count, 1);
+
+    // Test GlossaReport Display
+    let report = GlossaReport::new(&program, "test.gl".to_string());
+    let output = format!("{}", report);
+    assert!(output.contains("ΑΝΑΦΟΡΑ ΓΛΩΣΣΗΣ"));
+    assert!(output.contains("Προτάσεις"));
 }
 
 #[test]
