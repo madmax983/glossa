@@ -82,9 +82,9 @@ pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gende
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
         word1,
-        gender_name(gender1),
+        gender1,
         word2,
-        gender_name(gender2)
+        gender2
     )
 }
 
@@ -105,9 +105,9 @@ pub fn number_mismatch(word1: &str, num1: Number, word2: &str, num2: Number) -> 
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
         word1,
-        number_name(num1),
+        num1,
         word2,
-        number_name(num2)
+        num2
     )
 }
 
@@ -128,38 +128,10 @@ pub fn case_mismatch(word1: &str, case1: Case, word2: &str, case2: Case) -> Stri
     format!(
         "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
         word1,
-        case_name(case1),
+        case1,
         word2,
-        case_name(case2)
+        case2
     )
-}
-
-/// Get the Greek name for a gender
-pub fn gender_name(gender: Gender) -> &'static str {
-    match gender {
-        Gender::Masculine => "ἀρσενικόν",
-        Gender::Feminine => "θηλυκόν",
-        Gender::Neuter => "οὐδέτερον",
-    }
-}
-
-/// Get the Greek name for a number
-pub fn number_name(number: Number) -> &'static str {
-    match number {
-        Number::Singular => "ἑνικός",
-        Number::Plural => "πληθυντικός",
-    }
-}
-
-/// Get the Greek name for a case
-pub fn case_name(case: Case) -> &'static str {
-    match case {
-        Case::Nominative => "ὀνομαστική",
-        Case::Genitive => "γενική",
-        Case::Dative => "δοτική",
-        Case::Accusative => "αἰτιατική",
-        Case::Vocative => "κλητική",
-    }
 }
 
 /// Help messages in Greek

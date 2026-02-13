@@ -341,6 +341,37 @@ pub enum Voice {
     Passive,
 }
 
+impl std::fmt::Display for Case {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Case::Nominative => write!(f, "ὀνομαστική"),
+            Case::Genitive => write!(f, "γενική"),
+            Case::Dative => write!(f, "δοτική"),
+            Case::Accusative => write!(f, "αἰτιατική"),
+            Case::Vocative => write!(f, "κλητική"),
+        }
+    }
+}
+
+impl std::fmt::Display for Number {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Number::Singular => write!(f, "ἑνικός"),
+            Number::Plural => write!(f, "πληθυντικός"),
+        }
+    }
+}
+
+impl std::fmt::Display for Gender {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Gender::Masculine => write!(f, "ἀρσενικόν"),
+            Gender::Feminine => write!(f, "θηλυκόν"),
+            Gender::Neuter => write!(f, "οὐδέτερον"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

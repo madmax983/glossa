@@ -18,7 +18,7 @@ fn parse_number_literal(text: &str) -> Result<i64, ParseError> {
     if let Ok(val) = text.parse::<i64>() {
         Ok(val)
     } else {
-        crate::experimental::numerals::parse_greek_numeral(text)
+        crate::parser::numerals::parse_greek_numeral(text)
             .map_err(|e| ParseError::InvalidNumber(format!("{} - {}", text, e)))
     }
 }
