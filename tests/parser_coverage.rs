@@ -1,4 +1,3 @@
-
 #[test]
 fn test_parser_coverage_complex() {
     use glossa::parser::parse;
@@ -31,5 +30,9 @@ fn test_parser_coverage_complex() {
     ";
 
     let res = parse(source);
-    assert!(res.is_ok(), "Failed to parse complex source: {:?}", res.err());
+    assert!(
+        res.is_ok(),
+        "Failed to parse complex source: {:?}",
+        res.err()
+    );
 }

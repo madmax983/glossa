@@ -5,7 +5,10 @@ use glossa::ast::{
 use glossa::errors::{GlossaError, help};
 use glossa::highlight::highlight;
 use glossa::report::{GlossaReport, ProgramStats};
-use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, AssembledStatement, GlossaType, Scope};
+use glossa::semantic::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, AssembledStatement,
+    GlossaType, Scope,
+};
 
 #[test]
 fn test_ast_derives_and_methods() {
@@ -122,8 +125,8 @@ fn test_highlight_coverage() {
         "χαρακτήρ Χ ὁρίζειν { }.",
         "εἶδος Τ τῷ Χ ἐμπίπτειν { }.",
         "εἰ ἀληθές, «ναί» λέγε.", // Control flow highlighting
-        "ξ?", // Query
-        "σφάλμα;", // Propagate
+        "ξ?",                     // Query
+        "σφάλμα;",                // Propagate
     ];
 
     for input in inputs {
@@ -147,21 +150,20 @@ fn test_program_stats_coverage() {
     // The Scope implementation of `types()` likely iterates over defined structs.
     // define_type takes (name, GlossaType).
     // We use GlossaType::Struct for custom types.
-    scope.define_type("T", GlossaType::Struct {
-        name: "T".into(),
-        gender: glossa::morphology::Gender::Masculine,
-        fields: vec![]
-    }); // Type count
+    scope.define_type(
+        "T",
+        GlossaType::Struct {
+            name: "T".into(),
+            gender: glossa::morphology::Gender::Masculine,
+            fields: vec![],
+        },
+    ); // Type count
 
     let program = AnalyzedProgram {
-        statements: vec![
-            AnalyzedStatement::Print(vec![
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(1),
-                    glossa_type: GlossaType::Number
-                }
-            ])
-        ],
+        statements: vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        }])],
         scope,
     };
     let stats_new = ProgramStats::new(&program);
