@@ -901,4 +901,31 @@ mod tests {
         let none = ReplOutput::None;
         assert_eq!(none.to_string(), "");
     }
+
+    #[test]
+    fn test_visualize_command() {
+        // Create a temporary input file
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«test» λέγε.".as_bytes()).unwrap();
+        }
+
+        // Test stdout output (file arg, no output arg)
+        // We can't easily capture stdout here, but we can verify it doesn't panic
+        let result = visualize_file(&input_path, None);
+        assert!(result.is_ok());
+
+        // Test file output
+        let output_path = dir.path().join("test.mmd");
+        let result = visualize_file(&input_path, Some(&output_path));
+        assert!(result.is_ok());
+
+        // Verify output exists and content
+        let content = std::fs::read_to_string(&output_path).unwrap();
+        assert!(content.contains("flowchart TD"));
+        assert!(content.contains("Start"));
+        assert!(content.contains("test"));
+    }
 }
