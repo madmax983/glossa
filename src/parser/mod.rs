@@ -23,6 +23,8 @@
 //! * Provide better error messages during the conversion phase.
 
 pub(crate) mod builder;
+pub mod grammar;
+pub mod numerals;
 
 use crate::ast::Program;
 use crate::errors::GlossaError;

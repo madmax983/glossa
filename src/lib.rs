@@ -14,8 +14,8 @@
 //!
 //! The compiler follows a standard multi-pass architecture, but with a unique "Assembler" phase:
 //!
-//! 1. **Parsing** (`grammar`):
-//!    * Uses a PEG grammar (`glossa.pest`) to tokenize the input.
+//! 1. **Parsing** (`parser`):
+//!    * Uses a PEG grammar (`src/parser/glossa.pest`) to tokenize the input.
 //!    * Normalizes polytonic Greek (with accents/breathings) to monotonic forms.
 //!
 //! 2. **Morphological Analysis** (`morphology`):
@@ -37,10 +37,9 @@
 //! * [`ast`]: Abstract Syntax Tree definitions.
 //! * [`codegen`]: Rust code generation logic.
 //! * [`errors`]: Greek-native error messages and diagnostics.
-//! * [`grammar`]: PEG parser.
 //! * [`highlight`]: Semantic syntax highlighting.
 //! * [`morphology`]: Word analysis, lexicon, and participle parsing.
-//! * [`parser`]: AST Builder and parsing logic.
+//! * [`parser`]: Grammar, AST Builder, and parsing logic.
 //! * [`report`]: Report generation and statistics.
 //! * [`semantic`]: The slot-based assembler and semantic analysis.
 //! * [`text`]: Text utilities and normalization.
@@ -48,13 +47,9 @@
 pub mod ast;
 pub mod codegen;
 pub mod errors;
-pub mod experimental;
-pub mod grammar;
+pub mod highlight;
 pub mod morphology;
 pub mod parser;
 pub mod report;
 pub mod semantic;
 pub mod text;
-pub mod tools;
-
-pub use tools::highlight;

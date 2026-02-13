@@ -6,7 +6,7 @@
 //!
 //! # The Grammar (`glossa.pest`)
 //!
-//! The language syntax is defined in [glossa.pest](https://github.com/madmax983/glossa/blob/trunk/src/grammar/glossa.pest).
+//! The language syntax is defined in [glossa.pest](https://github.com/madmax983/glossa/blob/trunk/src/parser/glossa.pest).
 //!
 //! ## High-Level Structure
 //!
@@ -34,7 +34,7 @@
 //! # Example
 //!
 //! ```
-//! use glossa::grammar::parse;
+//! use glossa::parser::grammar::parse;
 //!
 //! let source = "«χαῖρε» λέγε.";
 //! let pairs = parse(source).unwrap();
@@ -50,7 +50,7 @@ use pest::Parser;
 use pest_derive::Parser;
 
 #[derive(Parser)]
-#[grammar = "grammar/glossa.pest"]
+#[grammar = "parser/glossa.pest"]
 pub struct GlossaParser;
 
 /// Parse a ΓΛΩΣΣΑ source string into a pest parse tree

@@ -11,14 +11,14 @@
 //! recursive descent parsing phase.
 
 use crate::ast::*;
-use crate::grammar::{Rule, parse};
+use crate::parser::grammar::{Rule, parse};
 use pest::iterators::Pair;
 
 fn parse_number_literal(text: &str) -> Result<i64, ParseError> {
     if let Ok(val) = text.parse::<i64>() {
         Ok(val)
     } else {
-        crate::experimental::numerals::parse_greek_numeral(text)
+        crate::parser::numerals::parse_greek_numeral(text)
             .map_err(|e| ParseError::InvalidNumber(format!("{} - {}", text, e)))
     }
 }
