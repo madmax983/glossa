@@ -1,8 +1,8 @@
 use glossa::experimental::visualizer::Visualizer;
 use glossa::parser::parse;
-use glossa::semantic::AnalyzedProgram;
 use glossa::semantic::analyze_program;
 use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope};
+use glossa::semantic::AnalyzedProgram;
 
 #[test]
 fn test_visualize_if_else() {
@@ -337,6 +337,7 @@ fn test_visualize_asserts() {
 #[test]
 fn test_visualize_extended_exprs() {
     // Tests for PropertyAccess, UnaryOp, Option/Result, Lambda, CollectionNew
+    // ADDED: Ok, Err, TraitMethodCall
     let stmt = AnalyzedStatement::Expression(vec![
         // PropertyAccess
         AnalyzedExpr {
@@ -368,6 +369,28 @@ fn test_visualize_extended_exprs() {
             })),
             glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
         },
+        // Ok
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Ok(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(2),
+                glossa_type: GlossaType::Number,
+            })),
+            glossa_type: GlossaType::Result(
+                Box::new(GlossaType::Number),
+                Box::new(GlossaType::String),
+            ),
+        },
+        // Err
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Err(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("e".into()),
+                glossa_type: GlossaType::String,
+            })),
+            glossa_type: GlossaType::Result(
+                Box::new(GlossaType::Number),
+                Box::new(GlossaType::String),
+            ),
+        },
         // None
         AnalyzedExpr {
             expr: AnalyzedExprKind::None,
@@ -392,6 +415,19 @@ fn test_visualize_extended_exprs() {
             },
             glossa_type: GlossaType::Unknown,
         },
+        // TraitMethodCall
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::TraitMethodCall {
+                receiver: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".into()),
+                    glossa_type: GlossaType::Unknown,
+                }),
+                trait_name: "Show".into(),
+                method_name: "print".into(),
+                args: vec![],
+            },
+            glossa_type: GlossaType::Unit,
+        },
     ]);
 
     let program = AnalyzedProgram {
@@ -407,9 +443,12 @@ fn test_visualize_extended_exprs() {
     assert!(mermaid.contains("x.len"));
     assert!(mermaid.contains("Not true"));
     assert!(mermaid.contains("Some(1)"));
+    assert!(mermaid.contains("Ok(2)"));
+    assert!(mermaid.contains("Err(«e»)"));
     assert!(mermaid.contains("None"));
     assert!(mermaid.contains("Lambda"));
     assert!(mermaid.contains("new HashSet"));
+    assert!(mermaid.contains("Show::print(...)"));
 }
 
 #[test]
