@@ -34,6 +34,7 @@ C4Container
     Container(highlight, "Highlighter", "src/highlight.rs", "Semantic syntax highlighting")
     Container(report, "Reporter", "src/report.rs", "Generates statistics and structured reports")
     Container(codegen, "Code Generator", "src/codegen", "Generates Rust source code")
+    Container(storage, "Storage", "src/storage", "Decoupled Persistence Logic")
 
     Rel(lexer, parser, "Stream<Token>")
     Rel(parser, morphology, "AST (Unresolved)")
@@ -41,6 +42,17 @@ C4Container
     Rel(morphology, semantic, "AST (Resolved Morphology)")
     Rel(semantic, report, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
+    Rel(semantic, storage, "Uses (Trait Bound)")
+```
+
+## Storage Architecture (Class Diagram)
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+  %% Removed the circular dependency arrow
 ```
 
 ## Semantic Analysis (C4 Component Level)
