@@ -170,20 +170,32 @@ impl Assembler {
     /// ```
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
         let normalized = normalize_greek(original);
+        self.feed_with_normalized(analysis, original, &normalized)
+    }
 
-        if self.check_special_markers(&normalized) {
+    /// Feed a morphologically-analyzed token with pre-computed normalization
+    ///
+    /// This is a zero-allocation path when the normalized form is already known (e.g. from AST).
+    /// It bypasses the costly `normalize_greek` call which may allocate strings.
+    pub fn feed_with_normalized(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+        normalized: &str,
+    ) -> Result<(), AssemblyError> {
+        if self.check_special_markers(normalized) {
             return Ok(());
         }
 
-        if self.check_method_verbs(&normalized) {
+        if self.check_method_verbs(normalized) {
             return Ok(());
         }
 
-        if self.check_operators(&normalized, original) {
+        if self.check_operators(normalized, original) {
             return Ok(());
         }
 
-        if self.check_special_properties(&normalized) {
+        if self.check_special_properties(normalized) {
             return Ok(());
         }
 
