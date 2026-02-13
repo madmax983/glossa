@@ -1,15 +1,3 @@
-//! AST Builder
-//!
-//! This module is responsible for converting the raw Concrete Syntax Tree (CST)
-//! produced by the Pest parser into a strongly-typed Abstract Syntax Tree (AST).
-//!
-//! # Safety: Recursion Depth
-//!
-//! ΓΛΩΣΣΑ implements a strict recursion depth check (`check_recursion_depth`)
-//! before parsing begins. This linear scan of the source code ensures that deep
-//! nesting (e.g., `((((...))))`) does not cause a stack overflow during the
-//! recursive descent parsing phase.
-
 use crate::ast::*;
 use crate::parser::{GlossaParser, Rule};
 use pest::Parser;
@@ -800,5 +788,21 @@ mod coverage_tests {
         assert_eq!(parse_number_literal("42").unwrap(), 42);
         assert_eq!(parse_number_literal("αʹ").unwrap(), 1);
         assert!(parse_number_literal("abc").is_err());
+    }
+
+    #[test]
+    fn test_parse_error_display() {
+        // Force coverage of ParseError display impl
+        let pest_err = ParseError::PestError("test".into());
+        assert_eq!(format!("{}", pest_err), "Parse error: test");
+
+        let inv_num = ParseError::InvalidNumber("123".into());
+        assert_eq!(format!("{}", inv_num), "Invalid number: 123");
+
+        let rec_lim = ParseError::RecursionLimitExceeded(500);
+        assert_eq!(
+            format!("{}", rec_lim),
+            "Recursion limit exceeded: depth > 500"
+        );
     }
 }
