@@ -412,4 +412,36 @@ mod tests {
         let result = highlight_file(&input_path);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_build_file_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("error.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // Invalid syntax
+            f.write_all("ξ πέντε".as_bytes()).unwrap();
+        }
+
+        let result = build_file(&input_path, None);
+        assert!(result.is_err());
+        // Check for the Greek error message from GlossaError
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα συντάξεως"));
+    }
+
+    #[test]
+    fn test_run_file_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("error_run.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // Invalid syntax
+            f.write_all("ξ πέντε".as_bytes()).unwrap();
+        }
+
+        let result = run_file(&input_path);
+        assert!(result.is_err());
+        // Check for the Greek error message from GlossaError
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα συντάξεως"));
+    }
 }

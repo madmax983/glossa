@@ -39,12 +39,7 @@ impl<W: Write> Status<W> {
             let _ = self
                 .writer
                 .queue(terminal::Clear(terminal::ClearType::FromCursorDown));
-            let _ = write!(
-                self.writer,
-                "{} {}",
-                "⚙️".yellow(),
-                message.yellow().bold()
-            );
+            let _ = write!(self.writer, "{} {}", "⚙️".yellow(), message.yellow().bold());
             let _ = self.writer.flush();
         } else {
             // Non-TTY: just print line
