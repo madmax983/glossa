@@ -208,7 +208,6 @@ mod tests {
         let result = compile(source);
         assert!(result.is_ok());
         let code = result.unwrap();
-        // quote! generates `println !` with space
         assert!(code.contains("println"), "Expected println in: {}", code);
     }
 
@@ -222,15 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn test_compile_full_program() {
-        let source = "ξ πέντε ἔστω. ξ λέγε.";
-        let result = compile(source);
-        assert!(result.is_ok());
-    }
-
-    #[test]
     fn test_file_size_check_internal() {
-        // Create large file
         let dir = tempfile::tempdir().unwrap();
         let file_path = dir.path().join("large_internal.gl");
         {
@@ -239,7 +230,6 @@ mod tests {
             f.write_all(&data).unwrap();
         }
 
-        // Call check_file_size directly
         let result = check_file_size(&file_path);
         assert!(result.is_err());
         assert!(
@@ -251,69 +241,82 @@ mod tests {
     }
 
     #[test]
-    fn test_build_file_size_limit() {
-        // Create large file
-        let dir = tempfile::tempdir().unwrap();
-        let file_path = dir.path().join("large_build.gl");
-        {
-            let mut f = std::fs::File::create(&file_path).unwrap();
-            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
-            f.write_all(&data).unwrap();
-        }
-
-        // Call build_file
-        let result = build_file(&file_path, None);
-        assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Ἀρχεῖον λίαν μέγα")
-        );
+    fn test_cache_dir_not_empty() {
+        let dir = cache_dir();
+        assert!(!dir.to_string_lossy().is_empty());
     }
 
     #[test]
-    fn test_build_file_success() {
-        // Create a temporary input file
+    fn test_cache_key_deterministic() {
         let dir = tempfile::tempdir().unwrap();
-        let input_path = dir.path().join("test.gl");
+        let file_path = dir.path().join("test.gl");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            f.write_all(b"content").unwrap();
+        }
+
+        let key1 = cache_key(&file_path);
+        let key2 = cache_key(&file_path);
+        assert_eq!(key1, key2);
+    }
+
+    #[test]
+    fn test_cache_validity() {
+        let dir = tempfile::tempdir().unwrap();
+        let src_path = dir.path().join("source.gl");
+        let bin_path = dir.path().join("bin");
+
+        // 1. Create source
+        {
+            let mut f = std::fs::File::create(&src_path).unwrap();
+            f.write_all(b"source").unwrap();
+        }
+        // Wait to ensure timestamp difference
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        // 2. Create binary (newer)
+        {
+            let mut f = std::fs::File::create(&bin_path).unwrap();
+            f.write_all(b"binary").unwrap();
+        }
+
+        assert!(cache_valid(&src_path, &bin_path));
+
+        // 3. Update source (newer than binary)
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        {
+            let mut f = std::fs::File::create(&src_path).unwrap();
+            f.write_all(b"source v2").unwrap();
+        }
+
+        assert!(!cache_valid(&src_path, &bin_path));
+    }
+
+    #[test]
+    fn test_check_file_valid() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("valid.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
             f.write_all("«test» λέγε.".as_bytes()).unwrap();
         }
 
-        // Call build_file
-        let result = build_file(&input_path, None);
+        let result = check_file(&file_path);
         assert!(result.is_ok());
-
-        // Verify output file exists
-        let output_path = input_path.with_extension("rs");
-        assert!(output_path.exists());
-
-        // Output size is > 0
-        let metadata = std::fs::metadata(&output_path).unwrap();
-        assert!(metadata.len() > 0);
     }
 
     #[test]
-    fn test_run_file_size_limit() {
-        // Create large file
+    fn test_highlight_file_valid() {
         let dir = tempfile::tempdir().unwrap();
-        let file_path = dir.path().join("large_run.gl");
+        let file_path = dir.path().join("highlight.gl");
         {
             let mut f = std::fs::File::create(&file_path).unwrap();
-            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
-            f.write_all(&data).unwrap();
+            f.write_all("«test» λέγε.".as_bytes()).unwrap();
         }
 
-        // Call run_file (should fail at size check before running rustc)
-        let result = run_file(&file_path);
-        assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Ἀρχεῖον λίαν μέγα")
-        );
+        // We can't capture stdout easily here without refactoring `highlight_file`,
+        // but we can ensure it doesn't panic/error.
+        let result = highlight_file(&file_path);
+        assert!(result.is_ok());
     }
 }

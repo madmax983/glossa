@@ -87,7 +87,12 @@ fn print_banner_to<W: Write>(writer: &mut W) -> Result<()> {
     let version = format!("v{}", env!("CARGO_PKG_VERSION"));
     writeln!(writer).into_diagnostic()?;
     writeln!(writer, "   {}", "Γ Λ Ω Σ Σ Α".bold().cyan()).into_diagnostic()?;
-    writeln!(writer, "   {}", "Code as the ancients intended.".italic().dim()).into_diagnostic()?;
+    writeln!(
+        writer,
+        "   {}",
+        "Code as the ancients intended.".italic().dim()
+    )
+    .into_diagnostic()?;
     writeln!(writer, "   {}", version.blue()).into_diagnostic()?;
     writeln!(writer).into_diagnostic()?;
     writeln!(writer, "   {}", "Type .help for commands".dim()).into_diagnostic()?;
@@ -382,6 +387,25 @@ mod tests {
         let output_str = String::from_utf8(output).unwrap();
         assert!(output_str.contains("Ἐντολή")); // Help header
         assert!(output_str.contains("Οὐδεμία μεταβλητή")); // Empty env
+    }
+
+    #[test]
+    fn test_repl_empty_line_and_invalid_command() {
+        // Empty line should be ignored, unknown command handled gracefully (as syntax error usually)
+        // But "." commands are special. If not matched, they are treated as syntax?
+        // No, current logic:
+        // match input { ... _ => {} }
+        // then execute(input)
+        // So ".unknown" is sent to parser, which will likely fail.
+        let input = "\n.unknown\n.exit\n";
+        let mut output = Vec::new();
+        let reader = Cursor::new(input);
+
+        let result = run_repl_inner(reader, &mut output);
+        assert!(result.is_ok());
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("Σφάλμα")); // Error from parser on ".unknown"
     }
 
     #[test]
