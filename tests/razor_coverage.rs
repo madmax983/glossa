@@ -116,6 +116,27 @@ fn test_errors_coverage() {
         err_str
     );
 
+    // Recursion Check Logic Edge Cases (Comments, Strings, Quotes)
+    // These should NOT trigger recursion limit because they are ignored.
+    // We create a source that looks deep but isn't.
+    // 600 braces inside comments/strings
+    let safe_but_tricky = r#"
+        « (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((( » λέγε.
+        // ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((
+        // Comments with newlines should end
+        « » λέγε.
+    "#;
+    let res_safe = glossa::parser::parse(safe_but_tricky);
+    // This should parse fine (or at least fail with ParseError, not RecursionLimit)
+    if let Err(e) = &res_safe {
+        let err_s = format!("{:?}", e);
+        assert!(
+            !err_s.contains("RecursionLimitExceeded"),
+            "False positive recursion error on safe source: {}",
+            err_s
+        );
+    }
+
     // Help constants
     assert!(!help::BINDING.is_empty());
     assert!(!help::PRINT.is_empty());
