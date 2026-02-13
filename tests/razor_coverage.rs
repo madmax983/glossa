@@ -320,6 +320,30 @@ fn test_parser_error_paths() {
 }
 
 #[test]
+fn test_numerals_error_paths() {
+    // We can't call parse_greek_numeral directly if it's not re-exported publicly in a convenient way
+    // (it is under glossa::parser::numerals which IS public now).
+    use glossa::parser::numerals::parse_greek_numeral;
+
+    // Test empty
+    // Actually the parser might not even pass empty string to this function if grammar enforces GREEK_CHAR+
+    // But unit test call handles it.
+    let res_empty = parse_greek_numeral("");
+    // Current impl: loops over chars, if total==0 returns "Empty or invalid"
+    assert!(res_empty.is_err());
+
+    // Test invalid char (e.g. latin 'a')
+    // parse_greek_numeral loops and returns Err on invalid char
+    let res_invalid = parse_greek_numeral("a");
+    assert!(res_invalid.is_err());
+    assert!(format!("{:?}", res_invalid.err()).contains("Invalid Greek numeral character"));
+
+    // Test valid lower keraia logic explicitly
+    // ͵α = 1000
+    assert_eq!(parse_greek_numeral("͵α").unwrap(), 1000);
+}
+
+#[test]
 fn test_semantic_assembler_errors() {
     use glossa::semantic::Assembler;
     use glossa::morphology::analyze;
