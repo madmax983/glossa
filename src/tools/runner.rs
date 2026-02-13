@@ -444,4 +444,49 @@ mod tests {
         // Check for the Greek error message from GlossaError
         assert!(result.unwrap_err().to_string().contains("Σφάλμα συντάξεως"));
     }
+
+    #[test]
+    fn test_build_file_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("semantic_error.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // Binding without subject (Semantic Error)
+            f.write_all("5 ἔστω.".as_bytes()).unwrap();
+        }
+
+        let result = build_file(&input_path, None);
+        assert!(result.is_err());
+        // Expect Semantic Error (Σημασία)
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα σημασίας"));
+    }
+
+    #[test]
+    fn test_check_file_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("check_parse.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ".as_bytes()).unwrap();
+        }
+
+        let result = check_file(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα συντάξεως"));
+    }
+
+    #[test]
+    fn test_check_file_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("check_semantic.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // Binding without subject (Semantic Error)
+            f.write_all("5 ἔστω.".as_bytes()).unwrap();
+        }
+
+        let result = check_file(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα σημασίας"));
+    }
 }
