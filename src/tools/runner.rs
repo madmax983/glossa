@@ -314,9 +314,25 @@ mod tests {
             f.write_all("«test» λέγε.".as_bytes()).unwrap();
         }
 
-        // We can't capture stdout easily here without refactoring `highlight_file`,
-        // but we can ensure it doesn't panic/error.
         let result = highlight_file(&file_path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_file_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("missing.gl");
+        let result = run_file(&file_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_build_file_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("missing_build.gl");
+        // Don't create the file
+        let result = build_file(&file_path, None);
+        assert!(result.is_err());
     }
 }

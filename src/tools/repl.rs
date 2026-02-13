@@ -392,11 +392,6 @@ mod tests {
     #[test]
     fn test_repl_empty_line_and_invalid_command() {
         // Empty line should be ignored, unknown command handled gracefully (as syntax error usually)
-        // But "." commands are special. If not matched, they are treated as syntax?
-        // No, current logic:
-        // match input { ... _ => {} }
-        // then execute(input)
-        // So ".unknown" is sent to parser, which will likely fail.
         let input = "\n.unknown\n.exit\n";
         let mut output = Vec::new();
         let reader = Cursor::new(input);
@@ -406,6 +401,20 @@ mod tests {
 
         let output_str = String::from_utf8(output).unwrap();
         assert!(output_str.contains("Σφάλμα")); // Error from parser on ".unknown"
+    }
+
+    #[test]
+    fn test_repl_execution_error() {
+        // Invalid syntax should print error
+        let input = "λάθος syntax\n.exit\n";
+        let mut output = Vec::new();
+        let reader = Cursor::new(input);
+
+        let result = run_repl_inner(reader, &mut output);
+        assert!(result.is_ok()); // The loop itself continues, but prints error
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("Σφάλμα"));
     }
 
     #[test]
