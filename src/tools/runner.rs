@@ -583,7 +583,8 @@ mod tests {
             // Rust has `String` in prelude. `struct String` might conflict?
             //
             // Let's try redefining a builtin type name.
-            f.write_all("εἶδος String ὁρίζειν { χ Ἀριθμός. }.".as_bytes()).unwrap();
+            f.write_all("εἶδος String ὁρίζειν { χ Ἀριθμός. }.".as_bytes())
+                .unwrap();
         }
 
         // If this compiles, then I need another strategy.
@@ -595,7 +596,7 @@ mod tests {
         // We want result to be Err, and specifically Codegen error (rustc failed).
         // If it's Analysis error, we change test expectation.
         if let Err(e) = &result {
-             println!("Error: {}", e);
+            println!("Error: {}", e);
         }
         // assert!(result.is_err());
         // assert!(result.unwrap_err().to_string().contains("μεταγλωττίσεως"));
@@ -612,5 +613,20 @@ mod tests {
 
         let result = highlight_file(&input_path);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_build_file_with_output() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test.gl");
+        let output_path = dir.path().join("custom_output.rs");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
+        }
+
+        let result = build_file(&input_path, Some(&output_path));
+        assert!(result.is_ok());
+        assert!(output_path.exists());
     }
 }
