@@ -341,9 +341,56 @@ pub enum Voice {
     Passive,
 }
 
+impl std::fmt::Display for Case {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Case::Nominative => write!(f, "ὀνομαστική"),
+            Case::Genitive => write!(f, "γενική"),
+            Case::Dative => write!(f, "δοτική"),
+            Case::Accusative => write!(f, "αἰτιατική"),
+            Case::Vocative => write!(f, "κλητική"),
+        }
+    }
+}
+
+impl std::fmt::Display for Number {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Number::Singular => write!(f, "ἑνικός"),
+            Number::Plural => write!(f, "πληθυντικός"),
+        }
+    }
+}
+
+impl std::fmt::Display for Gender {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Gender::Masculine => write!(f, "ἀρσενικόν"),
+            Gender::Feminine => write!(f, "θηλυκόν"),
+            Gender::Neuter => write!(f, "οὐδέτερον"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_display_impls() {
+        assert_eq!(Case::Nominative.to_string(), "ὀνομαστική");
+        assert_eq!(Case::Genitive.to_string(), "γενική");
+        assert_eq!(Case::Dative.to_string(), "δοτική");
+        assert_eq!(Case::Accusative.to_string(), "αἰτιατική");
+        assert_eq!(Case::Vocative.to_string(), "κλητική");
+
+        assert_eq!(Number::Singular.to_string(), "ἑνικός");
+        assert_eq!(Number::Plural.to_string(), "πληθυντικός");
+
+        assert_eq!(Gender::Masculine.to_string(), "ἀρσενικόν");
+        assert_eq!(Gender::Feminine.to_string(), "θηλυκόν");
+        assert_eq!(Gender::Neuter.to_string(), "οὐδέτερον");
+    }
 
     #[test]
     fn test_analyze_nominative() {

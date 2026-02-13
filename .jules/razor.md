@@ -17,3 +17,13 @@
 **Bloat:** `src/semantic/assembled.rs` containing DTOs (`AssembledStatement`, `Constituent`) tightly coupled to `src/semantic/assembler.rs`.
 **Cut:** Merged `assembled.rs` into `assembler.rs` and deleted the file.
 **Saved:** Removed 1 file, reduced module indirection, improved cohesion.
+
+## [Reduction]
+**Bloat:** `src/experimental/numerals.rs` was a fully functional module inside a misleading "experimental" folder.
+**Cut:** Moved to `src/parser/numerals.rs` and deleted `src/experimental`.
+**Saved:** 1 folder, clearer project structure.
+
+## [Reduction]
+**Bloat:** Ad-hoc helper functions (`case_name`, `gender_name`, `number_name`) in `src/errors/messages.rs` for string conversion.
+**Cut:** Implemented `std::fmt::Display` for `Case`, `Gender`, and `Number` enums in `src/morphology/mod.rs`.
+**Saved:** Removed 3 helper functions, enforced standard Rust traits.
