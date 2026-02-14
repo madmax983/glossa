@@ -97,7 +97,25 @@ fn test_dangling_propagation() {
     let output = compile_to_rust(source);
 
     assert!(!output.contains(">"), "Should not contain comparison");
-    assert!(output.contains("?"), "Should contain try operator on the fallback variable");
+    assert!(
+        output.contains("?"),
+        "Should contain try operator on the fallback variable"
+    );
+}
+
+#[test]
+fn test_excess_operators_ignored() {
+    // Test case with more operators than operands can consume.
+    // "10 2 sum difference" -> "10 2 + -"
+    // Should consume +, but ignore -.
+    // Expect: "10 + 2" (checked_add).
+
+    let source = "10 2 ἄθροισμα διαφορά λέγε.";
+
+    let output = compile_to_rust(source);
+
+    assert!(output.contains("checked_add"), "Should contain checked_add");
+    assert!(!output.contains("checked_sub"), "Should NOT contain checked_sub");
 }
 
 #[test]
