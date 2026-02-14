@@ -434,10 +434,11 @@ fn feed_expr_recursive(
             }
 
             if !success {
-                let msg = last_error
-                    .map(|e| e.to_string())
-                    .unwrap_or_else(|| "Unknown assembly error".to_string());
-                return Err(GlossaError::semantic(msg));
+                if let Some(e) = last_error {
+                    return Err(GlossaError::from(e));
+                } else {
+                    return Err(GlossaError::semantic("Unknown assembly error"));
+                }
             }
 
             // Clear context after use (it was consumed by the following noun)

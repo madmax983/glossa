@@ -202,15 +202,15 @@ impl Assembler {
             return Ok(());
         }
 
-        if self.check_method_verbs(normalized) {
+        if self.check_method_verbs(normalized)? {
             return Ok(());
         }
 
-        if self.check_operators(normalized, original) {
+        if self.check_operators(normalized, original)? {
             return Ok(());
         }
 
-        if self.check_special_properties(normalized) {
+        if self.check_special_properties(normalized)? {
             return Ok(());
         }
 
@@ -674,13 +674,16 @@ impl Assembler {
 
     /// Helper to create a string method call if conditions are met
     #[allow(clippy::collapsible_if)]
-    fn try_create_string_method(&mut self, method_name: &str) -> bool {
+    fn try_create_string_method(&mut self, method_name: &str) -> Result<bool, AssemblyError> {
         if self.state.has_delimiter_preposition
             && matches!(self.state.literals.last(), Some(Literal::String(_)))
         {
             if let Some(ref subj) = self.state.subject {
                 if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
-                    return false;
+                    return Err(AssemblyError::LimitExceeded {
+                        resource: "Property Accesses".to_string(),
+                        max: MAX_PROPERTY_ACCESSES,
+                    });
                 }
 
                 let delim = match self.state.literals.pop() {
@@ -693,77 +696,89 @@ impl Assembler {
                 self.state
                     .property_accesses
                     .push((normalized_original.to_string(), method_name.to_string()));
-                return true;
+                return Ok(true);
             }
         }
-        false
+        Ok(false)
     }
 
     /// Check for method verbs (split, join)
-    fn check_method_verbs(&mut self, normalized: &str) -> bool {
+    fn check_method_verbs(&mut self, normalized: &str) -> Result<bool, AssemblyError> {
         // Check for split verb
         if crate::morphology::lexicon::is_split_verb(normalized)
-            && self.try_create_string_method("split")
+            && self.try_create_string_method("split")?
         {
-            return true;
+            return Ok(true);
         }
 
         // Check for join verb
         if crate::morphology::lexicon::is_join_verb(normalized)
-            && self.try_create_string_method("join")
+            && self.try_create_string_method("join")?
         {
-            return true;
+            return Ok(true);
         }
 
-        false
+        Ok(false)
     }
 
     /// Check for operators (boolean, comparison, arithmetic)
-    fn check_operators(&mut self, normalized: &str, original: &str) -> bool {
+    fn check_operators(&mut self, normalized: &str, original: &str) -> Result<bool, AssemblyError> {
         // Boolean operators
         if matches!(original, "καί" | "και") {
             if self.state.operators.len() >= MAX_OPERATORS {
-                return false;
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Operators".to_string(),
+                    max: MAX_OPERATORS,
+                });
             }
             self.state.operators.push(BinaryOp::And);
-            return true;
+            return Ok(true);
         }
         if matches!(original, "ἤ" | "ή") {
             if self.state.operators.len() >= MAX_OPERATORS {
-                return false;
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Operators".to_string(),
+                    max: MAX_OPERATORS,
+                });
             }
             // ἤ with breathing+accent, but not ᾖ
             self.state.operators.push(BinaryOp::Or);
-            return true;
+            return Ok(true);
         }
 
         // Comparison operators
         if let Some(op) = crate::morphology::lexicon::comparison_operator(normalized) {
             if self.state.operators.len() >= MAX_OPERATORS {
-                return false;
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Operators".to_string(),
+                    max: MAX_OPERATORS,
+                });
             }
             self.state.operators.push(op);
-            return true;
+            return Ok(true);
         }
 
         // Arithmetic operators
         if let Some(op) = crate::morphology::lexicon::arithmetic_operator(normalized) {
             if self.state.operators.len() >= MAX_OPERATORS {
-                return false;
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Operators".to_string(),
+                    max: MAX_OPERATORS,
+                });
             }
             self.state.operators.push(op);
-            return true;
+            return Ok(true);
         }
 
-        false
+        Ok(false)
     }
 
     /// Check for special properties (numerals, length, ordinals)
-    fn check_special_properties(&mut self, normalized: &str) -> bool {
+    fn check_special_properties(&mut self, normalized: &str) -> Result<bool, AssemblyError> {
         // Numeral words
         if let Some(value) = crate::morphology::lexicon::numeral_value(normalized) {
             self.state.literals.push(Literal::Number(value));
-            return true;
+            return Ok(true);
         }
 
         // Property nouns (μῆκος)
@@ -771,14 +786,17 @@ impl Assembler {
             // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.state.subject {
                 if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
-                    return false;
+                    return Err(AssemblyError::LimitExceeded {
+                        resource: "Property Accesses".to_string(),
+                        max: MAX_PROPERTY_ACCESSES,
+                    });
                 }
                 let normalized_original = crate::text::normalize_greek(&subj.original);
                 self.state
                     .property_accesses
                     .push((normalized_original.to_string(), "len".to_string()));
                 self.state.subject = None; // Consume the subject
-                return true;
+                return Ok(true);
             }
         }
 
@@ -789,7 +807,10 @@ impl Assembler {
                 && let Some(index) = crate::morphology::lexicon::ordinal_to_index(normalized)
             {
                 if self.state.index_accesses.len() >= MAX_INDEX_ACCESSES {
-                    return false;
+                    return Err(AssemblyError::LimitExceeded {
+                        resource: "Index Accesses".to_string(),
+                        max: MAX_INDEX_ACCESSES,
+                    });
                 }
                 // Create array and index expressions (use normalized original, not lemma)
                 let normalized_original = crate::text::normalize_greek(&subj.original);
@@ -801,11 +822,11 @@ impl Assembler {
 
                 self.state.index_accesses.push((array, index_expr));
                 self.state.subject = None; // Consume the subject
-                return true;
+                return Ok(true);
             }
         }
 
-        false
+        Ok(false)
     }
 
     /// Check if the assembler has any pending content

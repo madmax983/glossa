@@ -259,17 +259,13 @@ fn test_limit_operators() {
         asm.feed(&analysis, "καί").unwrap();
     }
 
-    // This should NOT error with LimitExceeded, but should be silently ignored (return false internally)
-    // which means it falls through to regular handling (Conjunction -> Ok(()))
-    let res = asm.feed(&analysis, "καί");
-    assert!(
-        res.is_ok(),
-        "Operator limit should fallback silently, not error"
-    );
-
-    // Verify the operators vector didn't grow
-    // We can't access private fields, but we can infer behavior if we had a way to inspect
-    // For now, we trust the coverage tool to see the line hit
+    match asm.feed(&analysis, "καί") {
+        Err(AssemblyError::LimitExceeded { resource, max }) => {
+            assert_eq!(resource, "Operators");
+            assert_eq!(max, MAX_OPERATORS);
+        }
+        res => panic!("Expected LimitExceeded, got {:?}", res),
+    }
 }
 
 #[test]
@@ -318,10 +314,13 @@ fn test_limit_property_accesses() {
 
     // Try one more
     asm.feed(&subj, "text").unwrap();
-    let res = asm.feed(&prop_analysis, "μῆκος");
-
-    // Should succeed because it falls back to regular noun processing
-    assert!(res.is_ok());
+    match asm.feed(&prop_analysis, "μῆκος") {
+        Err(AssemblyError::LimitExceeded { resource, max }) => {
+            assert_eq!(resource, "Property Accesses");
+            assert_eq!(max, MAX_PROPERTY_ACCESSES);
+        }
+        res => panic!("Expected LimitExceeded, got {:?}", res),
+    }
 }
 
 #[test]
@@ -395,11 +394,11 @@ fn test_limit_string_method_properties() {
     asm.feed_string(",".to_string()).unwrap(); // Delimiter literal
 
     // Feed split verb - should fail to create method call (return false)
-    // and instead process as a regular verb
-    let res = asm.feed(&split_verb, "σχίζεται");
-
-    // Should be OK because it falls back to regular verb processing
-    assert!(res.is_ok());
-
-    // If we could check internal state, we'd see string_method is None
+    match asm.feed(&split_verb, "σχίζεται") {
+        Err(AssemblyError::LimitExceeded { resource, max }) => {
+            assert_eq!(resource, "Property Accesses");
+            assert_eq!(max, MAX_PROPERTY_ACCESSES);
+        }
+        res => panic!("Expected LimitExceeded, got {:?}", res),
+    }
 }
