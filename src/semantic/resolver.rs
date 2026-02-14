@@ -518,4 +518,79 @@ mod tests {
         // Should NOT find as type anymore (shadowed by variable)
         assert!(scope.lookup_type("Τ").is_none());
     }
+
+    #[test]
+    fn test_scope_trait_coverage() {
+        use crate::semantic::model::TraitDef;
+        let mut scope = Scope::new();
+        let trait_name = "Δεικτόν";
+        let trait_def = TraitDef {
+            name: trait_name.into(),
+            methods: vec![],
+        };
+
+        scope.define_trait(trait_name.to_string(), trait_def);
+
+        assert!(scope.lookup_trait(trait_name).is_some());
+        assert!(scope.traits().any(|(k, _)| k == trait_name));
+
+        // Ensure lookup_symbol covers Trait branch
+        assert!(scope.is_defined(trait_name));
+    }
+
+    #[test]
+    fn test_scope_function_coverage() {
+        let mut scope = Scope::new();
+        let func_name = "λέγε";
+
+        scope.define_function(
+            func_name.to_string(),
+            vec![GlossaType::String],
+            Some(GlossaType::Unit)
+        );
+
+        assert!(scope.lookup_function(func_name).is_some());
+        assert!(scope.is_function(func_name));
+        assert!(scope.functions().any(|f| f.name == func_name));
+
+        // Ensure lookup_symbol covers Function branch
+        assert!(scope.is_defined(func_name));
+    }
+
+    #[test]
+    fn test_scope_type_coverage() {
+        let mut scope = Scope::new();
+        let type_name = "Χρήστης";
+
+        scope.define_type(type_name.to_string(), GlossaType::Number);
+
+        assert!(scope.lookup_type(type_name).is_some());
+        assert!(scope.types().any(|(k, _)| k == type_name));
+
+        // Ensure lookup_symbol covers Type branch
+        assert!(scope.is_defined(type_name));
+    }
+
+    #[test]
+    fn test_scope_mixed_namespace_collisions() {
+        let mut scope = Scope::new();
+        let name = "κοινόν";
+
+        // Define as function
+        scope.define_function(
+            name.to_string(),
+            vec![],
+            None
+        );
+
+        // Verify it is a function
+        assert!(scope.is_function(name));
+
+        // Overwrite with variable (shadowing)
+        scope.define(name.to_string(), GlossaType::Number);
+
+        // Should now be a variable, not a function (in lookups specific to functions)
+        assert!(!scope.is_function(name));
+        assert!(scope.lookup(name).is_some());
+    }
 }
