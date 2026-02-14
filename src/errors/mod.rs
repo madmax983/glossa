@@ -32,10 +32,6 @@ pub enum GlossaError {
     #[diagnostic(code(glossa::semantic))]
     SemanticError { message: String },
 
-    #[error("Σφάλμα τύπου: {message}")]
-    #[diagnostic(code(glossa::type_error))]
-    TypeError { message: String },
-
     #[error("Ἄγνωστον ὄνομα: {name}")]
     #[diagnostic(code(glossa::undefined))]
     UndefinedName { name: String },
@@ -47,10 +43,6 @@ pub enum GlossaError {
     #[error("Σφάλμα κώδικος: {message}")]
     #[diagnostic(code(glossa::codegen))]
     CodegenError { message: String },
-
-    #[error("Σφάλμα ἀρχείου: {message}")]
-    #[diagnostic(code(glossa::io))]
-    IoError { message: String },
 
     #[error("Ὑπέρβασις ὀρίου: {resource} ({max})")]
     #[diagnostic(code(glossa::limit_exceeded))]
@@ -91,13 +83,6 @@ impl GlossaError {
         }
     }
 
-    /// Create a type error
-    pub fn type_error(message: impl Into<String>) -> Self {
-        GlossaError::TypeError {
-            message: message.into(),
-        }
-    }
-
     /// Create an undefined name error
     pub fn undefined(name: impl Into<String>) -> Self {
         GlossaError::UndefinedName { name: name.into() }
@@ -117,23 +102,14 @@ impl GlossaError {
         }
     }
 
-    /// Create an IO error
-    pub fn io(message: impl Into<String>) -> Self {
-        GlossaError::IoError {
-            message: message.into(),
-        }
-    }
-
     /// Get the Greek error category
     pub fn category_greek(&self) -> &'static str {
         match self {
             GlossaError::ParseError { .. } => "Σύνταξις",
             GlossaError::SemanticError { .. } => "Σημασία",
-            GlossaError::TypeError { .. } => "Τύπος",
             GlossaError::UndefinedName { .. } => "Ὄνομα",
             GlossaError::AgreementError { .. } => "Συμφωνία",
             GlossaError::CodegenError { .. } => "Κῶδιξ",
-            GlossaError::IoError { .. } => "Ἀρχεῖον",
             GlossaError::LimitExceeded { .. } => "Όριον",
             GlossaError::AssemblyError(_) => "Συναρμογή",
         }

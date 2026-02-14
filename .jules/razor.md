@@ -27,3 +27,18 @@
 **Bloat:** Ad-hoc helper functions (`case_name`, `gender_name`, `number_name`) in `src/errors/messages.rs` for string conversion.
 **Cut:** Implemented `std::fmt::Display` for `Case`, `Gender`, and `Number` enums in `src/morphology/mod.rs`.
 **Saved:** Removed 3 helper functions, enforced standard Rust traits.
+
+## [Reduction]
+**Bloat:** `src/semantic/resolver.rs` maintained 4 separate HashMaps (`bindings`, `functions`, `types`, `traits`) and duplicate code for each.
+**Cut:** Unified all symbols into a single `HashMap<SmolStr, Symbol>` using a `Symbol` enum.
+**Saved:** Reduced code duplication, simplified lookup logic, enforced single namespace clarity.
+
+## [Reduction]
+**Bloat:** `src/semantic/types.rs` contained an `Ownership` enum ("Move/Borrow/Copy") used only in self-tests, likely speculative future-proofing.
+**Cut:** Deleted the `Ownership` enum and its tests.
+**Saved:** Removed dead code (~30 lines).
+
+## [Reduction]
+**Bloat:** `src/errors/mod.rs` defined `TypeError` and `IoError` variants that were never used by the compiler.
+**Cut:** Deleted these error variants and their helper functions.
+**Saved:** Removed dead code and reduced error surface area.
