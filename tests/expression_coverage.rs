@@ -115,7 +115,10 @@ fn test_excess_operators_ignored() {
     let output = compile_to_rust(source);
 
     assert!(output.contains("checked_add"), "Should contain checked_add");
-    assert!(!output.contains("checked_sub"), "Should NOT contain checked_sub");
+    assert!(
+        !output.contains("checked_sub"),
+        "Should NOT contain checked_sub"
+    );
 }
 
 #[test]
