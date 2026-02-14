@@ -120,6 +120,32 @@ fn test_arithmetic_product() {
     );
 }
 
+#[test]
+fn test_arithmetic_quotient() {
+    // μέρος means "quotient" - should compile to / (or checked_div)
+    let source = "δέκα δύο μέρος λέγε.";
+    let output = compile_to_rust(source);
+
+    assert!(
+        output.contains("/") || output.contains("checked_div"),
+        "Expected / in output: {}",
+        output
+    );
+}
+
+#[test]
+fn test_arithmetic_remainder() {
+    // ὑπόλοιπον means "remainder" - should compile to % (or checked_rem)
+    let source = "δέκα τριῶν ὑπόλοιπον λέγε.";
+    let output = compile_to_rust(source);
+
+    assert!(
+        output.contains("%") || output.contains("checked_rem"),
+        "Expected % in output: {}",
+        output
+    );
+}
+
 // =============================================================================
 // Combined expression tests
 // =============================================================================
