@@ -14,22 +14,6 @@
 
 use crate::morphology::{Case, Gender, Number};
 
-/// Get a Greek message for a type mismatch
-///
-/// Returns: "Ἐδόκει {expected} εὑρεῖν, ἀλλ' εὗρον {got}"
-///
-/// # Examples
-///
-/// ```
-/// use glossa::errors::type_mismatch;
-///
-/// let msg = type_mismatch("ἀριθμόν", "ὄνομα");
-/// assert_eq!(msg, "Ἐδόκει ἀριθμόν εὑρεῖν, ἀλλ' εὗρον ὄνομα");
-/// ```
-pub fn type_mismatch(expected: &str, got: &str) -> String {
-    format!("Ἐδόκει {} εὑρεῖν, ἀλλ' εὗρον {}", expected, got)
-}
-
 /// Get a Greek message for an undefined variable
 ///
 /// Returns: "Οὐκ οἶδα τὸ ὄνομα «{name}»"
@@ -146,12 +130,6 @@ pub mod help {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_type_mismatch_message() {
-        let msg = type_mismatch("ἀριθμός", "ὄνομα");
-        assert!(msg.contains("Ἐδόκει"));
-    }
 
     #[test]
     fn test_undefined_variable_message() {
