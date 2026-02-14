@@ -1,7 +1,12 @@
 use glossa::morphology::analyze;
+use glossa::semantic::assembler::checks::{
+    check_agreement, check_method_verbs, check_operators, check_special_markers,
+    check_special_properties,
+};
+use glossa::semantic::assembler::state::{AssembledStatement, Constituent, VerbConstituent};
 use glossa::semantic::assembler::ParticipleConstituent;
 use glossa::semantic::{
-    AssembledStatement, Assembler, AssemblyError, Constituent, Literal, VerbConstituent,
+    Assembler, AssemblyError, Constituent as PublicConstituent, Literal, VerbConstituent as PublicVerbConstituent,
 };
 
 #[test]
@@ -18,11 +23,26 @@ fn test_assembled_statement_derive_coverage() {
 }
 
 #[test]
+fn test_assembled_statement_fields_empty() {
+    // Explicitly test empty vector fields to ensure full coverage of default state
+    let stmt = AssembledStatement::default();
+    assert!(stmt.blocks.is_empty());
+    assert!(stmt.nested_phrases.is_empty());
+    assert!(stmt.unwraps.is_empty());
+    assert!(stmt.arrays.is_empty());
+    assert!(stmt.operators.is_empty());
+    assert!(stmt.literals.is_empty());
+    assert!(stmt.adjectives.is_empty());
+    assert!(stmt.genitives.is_empty());
+    assert!(stmt.participles.is_empty());
+}
+
+#[test]
 fn test_constituent_derive_coverage() {
     use glossa::morphology::Case;
     use smol_str::SmolStr;
 
-    let c = Constituent {
+    let c = PublicConstituent {
         lemma: SmolStr::new("test"),
         original: SmolStr::new("test"),
         case: Case::Nominative,
@@ -40,7 +60,7 @@ fn test_constituent_derive_coverage() {
 fn test_verb_constituent_derive_coverage() {
     use smol_str::SmolStr;
 
-    let v = VerbConstituent {
+    let v = PublicVerbConstituent {
         lemma: SmolStr::new("run"),
         original: SmolStr::new("runs"),
         person: None,
@@ -92,6 +112,51 @@ fn test_literal_derive_coverage() {
     let cloned_bool = l_bool.clone();
     let debug_bool = format!("{:?}", cloned_bool);
     assert!(debug_bool.contains("Boolean"));
+}
+
+#[test]
+fn test_checks_false_paths() {
+    let mut stmt = AssembledStatement::default();
+
+    // check_special_markers false path
+    assert!(!check_special_markers(&mut stmt, "random", "random"));
+
+    // check_method_verbs false path
+    assert!(!check_method_verbs(&mut stmt, "random"));
+
+    // check_operators false path
+    assert!(!check_operators(&mut stmt, "random", "random"));
+
+    // check_special_properties false path
+    assert!(!check_special_properties(&mut stmt, "random"));
+}
+
+#[test]
+fn test_check_agreement_none_paths() {
+    use glossa::morphology::Case;
+    use smol_str::SmolStr;
+
+    let c = Constituent {
+        lemma: SmolStr::new("test"),
+        original: SmolStr::new("test"),
+        case: Case::Nominative,
+        number: None, // No number
+        gender: None,
+        person: None,
+    };
+
+    let v = VerbConstituent {
+        lemma: SmolStr::new("run"),
+        original: SmolStr::new("runs"),
+        person: None,
+        number: None, // No number
+        tense: None,
+        mood: None,
+        voice: None,
+    };
+
+    // Should pass because info is missing
+    assert!(check_agreement(&c, &v).is_ok());
 }
 
 #[test]
@@ -301,19 +366,4 @@ fn test_assembler_boolean_or_coverage() {
     asm.feed(&or, "ἤ").unwrap();
     let stmt = asm.finalize().unwrap();
     assert!(!stmt.operators.is_empty());
-}
-
-#[test]
-fn test_assembled_statement_fields_empty() {
-    // Explicitly test empty vector fields to ensure full coverage of default state
-    let stmt = AssembledStatement::default();
-    assert!(stmt.blocks.is_empty());
-    assert!(stmt.nested_phrases.is_empty());
-    assert!(stmt.unwraps.is_empty());
-    assert!(stmt.arrays.is_empty());
-    assert!(stmt.operators.is_empty());
-    assert!(stmt.literals.is_empty());
-    assert!(stmt.adjectives.is_empty());
-    assert!(stmt.genitives.is_empty());
-    assert!(stmt.participles.is_empty());
 }
