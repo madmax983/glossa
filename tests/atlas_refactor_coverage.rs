@@ -302,3 +302,18 @@ fn test_assembler_boolean_or_coverage() {
     let stmt = asm.finalize().unwrap();
     assert!(!stmt.operators.is_empty());
 }
+
+#[test]
+fn test_assembled_statement_fields_empty() {
+    // Explicitly test empty vector fields to ensure full coverage of default state
+    let stmt = AssembledStatement::default();
+    assert!(stmt.blocks.is_empty());
+    assert!(stmt.nested_phrases.is_empty());
+    assert!(stmt.unwraps.is_empty());
+    assert!(stmt.arrays.is_empty());
+    assert!(stmt.operators.is_empty());
+    assert!(stmt.literals.is_empty());
+    assert!(stmt.adjectives.is_empty());
+    assert!(stmt.genitives.is_empty());
+    assert!(stmt.participles.is_empty());
+}
