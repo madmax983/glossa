@@ -1,8 +1,7 @@
-
-use std::borrow::Cow;
-use glossa::morphology::{MorphAnalysis, PartOfSpeech, Case, Number, Gender};
+use glossa::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
+use glossa::semantic::assembler::{MAX_INDEX_ACCESSES, MAX_OPERATORS};
 use glossa::semantic::{Assembler, AssemblyError};
-use glossa::semantic::assembler::{MAX_OPERATORS, MAX_INDEX_ACCESSES};
+use std::borrow::Cow;
 
 #[test]
 fn test_limit_operators_or() {
