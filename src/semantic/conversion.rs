@@ -1284,65 +1284,6 @@ pub fn extract_value(
             let ty = bin_expr.glossa_type.clone();
             return Ok((bin_expr, ty));
         }
-
-        // Check for Object + Nominative + Operator (e.g. x y +)
-        if let Some(ref obj) = asm_stmt.object
-            && let Some(nom) = asm_stmt.nominatives.first()
-        {
-            // Build: object op nominative
-            let left_type = scope
-                .lookup(&obj.lemma)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown);
-            let left = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: left_type,
-            };
-
-            let right_type = scope
-                .lookup(&nom.lemma)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown);
-            let right = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
-                glossa_type: right_type,
-            };
-
-            let op = asm_stmt.operators[0];
-            let bin_expr = build_binary_expr(left, op, right);
-            let ty = bin_expr.glossa_type.clone();
-            return Ok((bin_expr, ty));
-        }
-
-        // Check for Nominative + Nominative + Operator (e.g. x y >)
-        // In assignment, if Subject is target, remaining variables might be nominatives.
-        if asm_stmt.nominatives.len() >= 2 {
-            let left_nom = &asm_stmt.nominatives[0];
-            let right_nom = &asm_stmt.nominatives[1];
-
-            let left_type = scope
-                .lookup(&left_nom.lemma)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown);
-            let left = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(left_nom.lemma.clone()),
-                glossa_type: left_type,
-            };
-
-            let right_type = scope
-                .lookup(&right_nom.lemma)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown);
-            let right = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(right_nom.lemma.clone()),
-                glossa_type: right_type,
-            };
-
-            let op = asm_stmt.operators[0];
-            let bin_expr = build_binary_expr(left, op, right);
-            let ty = bin_expr.glossa_type.clone();
-            return Ok((bin_expr, ty));
-        }
     }
 
     // Prefer literals (single value, no operators)
