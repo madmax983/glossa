@@ -722,11 +722,7 @@ impl Assembler {
     }
 
     /// Check for operators (boolean, comparison, arithmetic)
-    fn check_operators(
-        &mut self,
-        normalized: &str,
-        original: &str,
-    ) -> Result<bool, AssemblyError> {
+    fn check_operators(&mut self, normalized: &str, original: &str) -> Result<bool, AssemblyError> {
         // Boolean operators
         if matches!(original, "καί" | "και") {
             if self.state.operators.len() >= MAX_OPERATORS {
