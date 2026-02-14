@@ -1,8 +1,8 @@
 use glossa::morphology::analyze;
+use glossa::semantic::assembler::ParticipleConstituent;
 use glossa::semantic::{
     AssembledStatement, Assembler, AssemblyError, Constituent, Literal, VerbConstituent,
 };
-use glossa::semantic::assembler::ParticipleConstituent;
 
 #[test]
 fn test_assembled_statement_derive_coverage() {
@@ -269,4 +269,36 @@ fn test_assembler_error_cases_coverage() {
     asm.feed(&ind, "ἀνθρώπῳ").unwrap();
     let result = asm.feed(&ind, "ἀνθρώπῳ");
     assert!(matches!(result, Err(AssemblyError::DoubleIndirect)));
+}
+
+#[test]
+fn test_assembler_length_property_coverage() {
+    let mut asm = Assembler::new();
+    let subj = analyze("λογος");
+    asm.feed(&subj, "λόγος").unwrap(); // Subject
+
+    let length = analyze("μηκος");
+    asm.feed(&length, "μῆκος").unwrap(); // Property
+
+    let stmt = asm.finalize().unwrap();
+    assert!(!stmt.property_accesses.is_empty());
+    assert_eq!(stmt.property_accesses[0].1, "len");
+}
+
+#[test]
+fn test_assembler_comparison_coverage() {
+    let mut asm = Assembler::new();
+    let comp = analyze("μειζον");
+    asm.feed(&comp, "μεῖζον").unwrap();
+    let stmt = asm.finalize().unwrap();
+    assert!(!stmt.operators.is_empty());
+}
+
+#[test]
+fn test_assembler_boolean_or_coverage() {
+    let mut asm = Assembler::new();
+    let or = analyze("η");
+    asm.feed(&or, "ἤ").unwrap();
+    let stmt = asm.finalize().unwrap();
+    assert!(!stmt.operators.is_empty());
 }
