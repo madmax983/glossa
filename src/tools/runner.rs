@@ -6,6 +6,7 @@ use std::time::SystemTime;
 
 use crate::codegen::generate_rust_file;
 use crate::errors::GlossaError;
+use crate::experimental::bard::tell_tale;
 use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::analyze_program;
@@ -193,6 +194,19 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", highlighted);
+
+    Ok(())
+}
+
+pub fn bard_file(input: &Path) -> Result<()> {
+    check_file_size(input)?;
+
+    let source = fs::read_to_string(input).into_diagnostic()?;
+    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
+    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+
+    let tale = tell_tale(&analyzed);
+    println!("{}", tale);
 
     Ok(())
 }
