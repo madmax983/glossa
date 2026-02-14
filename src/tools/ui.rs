@@ -1,4 +1,4 @@
-use crossterm::{cursor, style::Stylize, terminal, ExecutableCommand};
+use crossterm::{ExecutableCommand, cursor, style::Stylize, terminal};
 use std::io::{self, IsTerminal, Write};
 use std::time::Instant;
 
@@ -13,8 +13,13 @@ pub struct Status {
 impl Status {
     /// Create a new status indicator
     pub fn start(message: impl Into<String>) -> Self {
-        let message = message.into();
         let is_tty = io::stderr().is_terminal();
+        Self::new(message, is_tty)
+    }
+
+    /// Internal constructor for testing
+    fn new(message: impl Into<String>, is_tty: bool) -> Self {
+        let message = message.into();
 
         if is_tty {
             let mut stderr = io::stderr();
@@ -73,11 +78,21 @@ impl Status {
             eprint!("\r");
             let _ = stderr.execute(terminal::Clear(terminal::ClearType::UntilNewLine));
             // Print success
-            eprintln!("{} {} {}", "✓".green(), self.message.as_str().bold(), time_str);
+            eprintln!(
+                "{} {} {}",
+                "✓".green(),
+                self.message.as_str().bold(),
+                time_str
+            );
             // Show cursor
             let _ = stderr.execute(cursor::Show);
         } else {
-            eprintln!("{} {} {}", "✓".green(), self.message.as_str().bold(), time_str);
+            eprintln!(
+                "{} {} {}",
+                "✓".green(),
+                self.message.as_str().bold(),
+                time_str
+            );
         }
 
         self.active = false;
@@ -109,6 +124,59 @@ impl Drop for Status {
     fn drop(&mut self) {
         if self.active && self.is_tty {
             let _ = io::stderr().execute(cursor::Show);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_status_tty_success() {
+        let status = Status::new("Testing TTY", true);
+        // Should execute TTY branches
+        status.success();
+    }
+
+    #[test]
+    fn test_status_tty_update() {
+        let mut status = Status::new("Testing TTY Update", true);
+        status.update("Updated");
+        status.success();
+    }
+
+    #[test]
+    fn test_status_tty_error() {
+        let status = Status::new("Testing TTY Error", true);
+        status.error("Something went wrong");
+    }
+
+    #[test]
+    fn test_status_no_tty_success() {
+        let status = Status::new("Testing No-TTY", false);
+        // Should execute non-TTY branches
+        status.success();
+    }
+
+    #[test]
+    fn test_status_no_tty_update() {
+        let mut status = Status::new("Testing No-TTY Update", false);
+        status.update("Updated");
+        status.success();
+    }
+
+    #[test]
+    fn test_status_no_tty_error() {
+        let status = Status::new("Testing No-TTY Error", false);
+        status.error("Something went wrong");
+    }
+
+    #[test]
+    fn test_status_drop() {
+        {
+            let _status = Status::new("Testing Drop", true);
+            // Should execute Drop (show cursor)
         }
     }
 }
