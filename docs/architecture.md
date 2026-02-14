@@ -68,3 +68,15 @@ C4Component
     Rel(patterns, model, "Produces AnalyzedStatement")
     Rel(converter, model, "Produces AnalyzedStatement")
 ```
+
+## Core Class Structure
+
+The relationship between Core and Storage modules has been decoupled to avoid circular dependencies.
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+  %% Removed the circular dependency arrow
+```
