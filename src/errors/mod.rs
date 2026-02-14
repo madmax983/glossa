@@ -14,8 +14,14 @@ use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 /// Main error type for ΓΛΩΣΣΑ
+///
+/// This enum captures all possible failures in the compiler pipeline, providing
+/// Greek-localized error messages and diagnostics.
 #[derive(Debug, Clone, Error, Diagnostic)]
 pub enum GlossaError {
+    /// Syntax error (Parsing phase)
+    ///
+    /// Occurs when the code violates the grammar rules.
     #[error("Σφάλμα συντάξεως: {message}")]
     #[diagnostic(code(glossa::parse))]
     ParseError {
@@ -28,34 +34,58 @@ pub enum GlossaError {
         span: Option<SourceSpan>,
     },
 
+    /// Semantic error (Analysis phase)
+    ///
+    /// General semantic issues like invalid control flow or logical contradictions.
     #[error("Σφάλμα σημασίας: {message}")]
     #[diagnostic(code(glossa::semantic))]
     SemanticError { message: String },
 
+    /// Type error (Analysis phase)
+    ///
+    /// Mismatched types (e.g., adding a string to a number).
     #[error("Σφάλμα τύπου: {message}")]
     #[diagnostic(code(glossa::type_error))]
     TypeError { message: String },
 
+    /// Undefined name error (Resolution phase)
+    ///
+    /// Occurs when referencing a variable or function that hasn't been defined.
     #[error("Ἄγνωστον ὄνομα: {name}")]
     #[diagnostic(code(glossa::undefined))]
     UndefinedName { name: String },
 
+    /// Agreement error (Assembly phase)
+    ///
+    /// Grammatical agreement failure (e.g., Subject-Verb number mismatch).
     #[error("Σφάλμα συμφωνίας: {message}")]
     #[diagnostic(code(glossa::agreement))]
     AgreementError { message: String },
 
+    /// Code generation error (Codegen phase)
+    ///
+    /// Issues translating the analyzed program to Rust (e.g., invalid identifier).
     #[error("Σφάλμα κώδικος: {message}")]
     #[diagnostic(code(glossa::codegen))]
     CodegenError { message: String },
 
+    /// I/O error (System)
+    ///
+    /// File reading/writing failures.
     #[error("Σφάλμα ἀρχείου: {message}")]
     #[diagnostic(code(glossa::io))]
     IoError { message: String },
 
+    /// Resource limit exceeded (DoS Protection)
+    ///
+    /// Triggered when the program exceeds safety limits (recursion depth, file size).
     #[error("Ὑπέρβασις ὀρίου: {resource} ({max})")]
     #[diagnostic(code(glossa::limit_exceeded))]
     LimitExceeded { resource: String, max: usize },
 
+    /// Assembly error (Assembly phase)
+    ///
+    /// Wraps errors from the [`crate::semantic::Assembler`].
     #[error(transparent)]
     #[diagnostic(transparent)]
     AssemblyError(#[from] assembly::AssemblyError),

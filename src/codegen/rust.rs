@@ -59,6 +59,37 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
 /// Generate Rust code from an Analyzed Program
+///
+/// This function handles the final transpilation step. It takes the semantics-aware
+/// `AnalyzedProgram` and produces a string of valid Rust code.
+///
+/// # Logic
+/// 1. Scans the program to check if standard collections (`HashMap`, `HashSet`) are used.
+/// 2. Iterates through statements, separating them into:
+///    - Trait definitions
+///    - Struct definitions
+///    - Trait implementations
+///    - Function definitions
+///    - Test declarations
+///    - Main body statements
+/// 3. Assembles the final code with imports, definitions, and the `main()` function.
+///
+/// # Example
+///
+/// ```
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::codegen::generate_rust;
+///
+/// let code = "«χαῖρε» λέγε.";
+/// let ast = parse(code).unwrap();
+/// let analyzed = analyze_program(&ast).unwrap();
+/// let rust_code = generate_rust(&analyzed);
+///
+/// assert!(rust_code.contains("fn main"));
+/// assert!(rust_code.contains("println"));
+/// assert!(rust_code.contains("χαῖρε"));
+/// ```
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
     // Check if we need collection imports
     let needs_collections = uses_collections(program);
@@ -189,6 +220,10 @@ fn expr_uses_collections(expr: &AnalyzedExpr) -> bool {
 }
 
 /// Generate a complete Rust file with proper formatting
+///
+/// Wraps [`generate_rust`] but adds:
+/// - A header comment indicating autogeneration.
+/// - `#![allow(...)]` attributes to suppress warnings for Greek variable names (non-snake-case).
 pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
     let code = generate_rust(program);
 
@@ -200,6 +235,19 @@ pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
 }
 
 /// Generate Rust code for a single analyzed statement
+///
+/// Useful for REPLs or partial code generation where a full `main()` wrapper isn't needed.
+///
+/// # Example
+///
+/// ```
+/// use glossa::semantic::AnalyzedStatement;
+/// use glossa::codegen::generate_statement_code;
+///
+/// // Assume we have a statement...
+/// // let stmt = ...;
+/// // let code = generate_statement_code(&stmt);
+/// ```
 pub fn generate_statement_code(stmt: &AnalyzedStatement) -> String {
     generate_statement(stmt).to_string()
 }

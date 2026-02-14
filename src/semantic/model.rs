@@ -10,6 +10,8 @@ use smol_str::SmolStr;
 ///
 /// Represents a statement after semantic analysis, where names are resolved,
 /// types are inferred, and word order is normalized.
+///
+/// This is the primary unit of code generation.
 #[derive(Debug, Clone)]
 pub enum AnalyzedStatement {
     /// Variable binding
@@ -145,13 +147,19 @@ pub struct AnalyzedMethod {
 }
 
 /// Analyzed expression with type information
+///
+/// Wraps an expression kind with its inferred type.
 #[derive(Debug, Clone)]
 pub struct AnalyzedExpr {
+    /// The actual expression logic (literal, operation, call).
     pub expr: AnalyzedExprKind,
+    /// The inferred type of the expression.
     pub glossa_type: GlossaType,
 }
 
 /// Kind of analyzed expression
+///
+/// Detailed representation of all possible expression forms in the language.
 #[derive(Debug, Clone)]
 pub enum AnalyzedExprKind {
     /// String literal

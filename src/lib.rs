@@ -47,7 +47,7 @@
 //!
 //! Here is a simple program that defines a user struct and greets them.
 //!
-//! ```
+//! ```text
 //! // Define a type (struct)
 //! // εἶδος Χρήστης ὁρίζειν {
 //! //    ὄνομα ὀνόματος.      // field: String
@@ -64,7 +64,7 @@
 //! // Access property and print
 //! // "of the user" (genitive) "name" (nominative) "say" (verb)
 //! // χρήστου ὄνομα λέγε.
-//! ```
+//! ```text
 //!
 //! # Module Guide
 //!

@@ -61,7 +61,33 @@ use self::expressions::feed_expr_to_assembler_with_context;
 use self::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
 
 /// Perform semantic analysis on a program using the slot-based assembler
-/// This is the primary entry point that provides word-order independence
+///
+/// This is the primary entry point for the semantic phase. It transforms the raw AST
+/// into a fully resolved, typed, and assembled program ready for code generation.
+///
+/// # The Hero's Journey
+///
+/// 1. **Input**: A raw AST from the parser (`Program`).
+/// 2. **Process**:
+///    - Iterates through each statement.
+///    - Analyzes type definitions and trait definitions first.
+///    - Uses the [`Assembler`] to parse sentences based on grammatical case.
+///    - Resolves names and infers types using the [`Scope`].
+///    - Checks for recursion depth limits to prevent stack overflows.
+/// 3. **Output**: An `AnalyzedProgram` containing resolved statements and the final scope.
+///
+/// # Example
+///
+/// ```
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+///
+/// let code = "«χαῖρε» λέγε.";
+/// let ast = parse(code).unwrap();
+/// let analyzed = analyze_program(&ast).unwrap();
+///
+/// assert_eq!(analyzed.statements.len(), 1);
+/// ```
 pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError> {
     let mut scope = Scope::new();
     let mut analyzed_statements = Vec::new();
@@ -107,6 +133,10 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
 
 const MAX_EXPRESSION_DEPTH: usize = 200;
 
+// Warden Security Check: Enforce recursion limits to prevent Stack Overflow DoS.
+// Deeply nested expressions (e.g. 1+1+1...) can cause the compiler to crash.
+// We strictly limit the depth of the expression tree during semantic analysis.
+// See .jules/warden.md "2026-06-05 - Stack Overflow DoS"
 fn check_program_depth(program: &AnalyzedProgram) -> Result<(), GlossaError> {
     for stmt in &program.statements {
         check_statement_depth(stmt, 0)?;
@@ -256,6 +286,15 @@ fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> Result<(), GlossaError
 }
 
 /// Analyze a single statement (which might produce multiple analyzed statements if it's a block)
+///
+/// This function acts as a dispatcher:
+/// 1. Checks for control flow (if, while) which have special structure.
+/// 2. Checks for special patterns (struct instantiation, trait methods).
+/// 3. Falls back to the [`Assembler`] for regular sentences.
+///
+/// # Returns
+/// A vector of statements because a single block statement `{ ... }` might expand
+/// into multiple analyzed statements.
 pub fn analyze_statement(
     stmt: &Statement,
     scope: &mut Scope,
@@ -321,6 +360,12 @@ fn extract_block_statements(stmt: &Statement) -> Option<&Vec<Statement>> {
 }
 
 /// Analyze a single statement using the slot-based assembler
+///
+/// This wraps the [`Assembler`] state machine. It:
+/// 1. Creates a new Assembler.
+/// 2. Feeds each word from the statement into the assembler.
+/// 3. Maintains disambiguation context (e.g. tracking articles).
+/// 4. Finalizes the assembly, returning the semantic roles (Subject, Verb, Object).
 pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
     let mut asm = Assembler::new();
     asm.set_query(stmt.is_query());
@@ -342,9 +387,13 @@ pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, Glossa
 }
 
 /// Analyzed program with resolved names and types
+///
+/// This is the final output of the semantic analysis phase.
 #[derive(Debug, Clone)]
 pub struct AnalyzedProgram {
+    /// The list of fully analyzed and resolved statements.
     pub statements: Vec<AnalyzedStatement>,
+    /// The global scope containing all top-level definitions (functions, types, traits).
     pub scope: Scope,
 }
 
