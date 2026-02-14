@@ -42,3 +42,28 @@
 **Bloat:** `src/errors/mod.rs` defined `TypeError` and `IoError` variants that were never used by the compiler.
 **Cut:** Deleted these error variants and their helper functions.
 **Saved:** Removed dead code and reduced error surface area.
+
+## [Reduction]
+**Bloat:** `src/cli.rs` was a dead duplicate of `src/tools/cli.rs`.
+**Cut:** Deleted `src/cli.rs`.
+**Saved:** 1 file, eliminated confusion.
+
+## [Reduction]
+**Bloat:** `src/ast/` directory contained only `mod.rs` and `nodes.rs`.
+**Cut:** Flattened to `src/ast.rs`.
+**Saved:** 1 folder, 1 file, reduced module depth.
+
+## [Reduction]
+**Bloat:** `src/codegen/` directory split logic across 4 files unnecessarily.
+**Cut:** Flattened to `src/codegen.rs`.
+**Saved:** 1 folder, 3 files, simplified imports.
+
+## [Reduction]
+**Bloat:** `src/grammar/` directory wrapper for a single pest file.
+**Cut:** Flattened to `src/grammar.rs` and `src/grammar.pest`.
+**Saved:** 1 folder, reduced module depth.
+
+## [Reduction]
+**Bloat:** `src/parser/` directory logic split between `mod.rs` and `builder.rs`.
+**Cut:** Merged into `src/parser.rs` (keeping `numerals.rs` as submodule).
+**Saved:** 1 file, improved cohesion.
