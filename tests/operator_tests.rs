@@ -120,6 +120,20 @@ fn test_arithmetic_product() {
     );
 }
 
+#[test]
+fn test_arithmetic_remainder() {
+    // ὑπόλοιπον means "remainder" - should compile to checked_rem
+    // Using simple literals to ensure operator parsing
+    let source = "πέντε τριῶν ὑπόλοιπον λέγε.";
+    let output = compile_to_rust(source);
+
+    assert!(
+        output.contains("checked_rem"),
+        "Expected checked_rem in output: {}",
+        output
+    );
+}
+
 // =============================================================================
 // Combined expression tests
 // =============================================================================
