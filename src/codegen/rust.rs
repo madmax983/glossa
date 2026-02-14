@@ -1014,4 +1014,29 @@ mod tests {
         assert!(code.contains("println"));
         assert!(code.contains("χαῖρε"));
     }
+
+    #[test]
+    fn test_generate_unreachable_operators() {
+        // Manually trigger fallback operators like Le/Ge that aren't parsed yet
+        let left = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+        let right = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(10),
+            glossa_type: GlossaType::Number,
+        };
+
+        // Test Ge (Greater or Equal)
+        let op_ge = BinaryOp::Ge;
+        let tokens_ge = generate_bin_op(op_ge, &left, &right);
+        let code_ge = tokens_ge.to_string();
+        assert!(code_ge.contains(">="));
+
+        // Test Le (Less or Equal)
+        let op_le = BinaryOp::Le;
+        let tokens_le = generate_bin_op(op_le, &left, &right);
+        let code_le = tokens_le.to_string();
+        assert!(code_le.contains("<="));
+    }
 }

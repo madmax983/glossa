@@ -81,11 +81,3 @@
 **Defense:** Implemented `check_program_depth` in `src/semantic/mod.rs` to enforce a strict recursion limit (`MAX_EXPRESSION_DEPTH = 200`). Analysis now fails gracefully with `GlossaError::LimitExceeded` if the depth is exceeded.
 
 **Severity:** High (DoS via compiler crash).
-
-## 2026-02-14 - Integer Overflow Hardening
-
-**Threat:** Integer Overflow / Wrapping Arithmetic. Standard Rust arithmetic operators (`+`, `-`, `*`) wrap on overflow in release mode (default for `rustc -O`). This allows large numbers to silently wrap to small/negative values, potentially leading to logic errors or buffer underflows if used for allocation sizing.
-
-**Defense:** Replaced all generated arithmetic operators with checked methods (`checked_add`, `checked_sub`, `checked_mul`, `checked_div`, `checked_rem`) and explicit panics (`.expect("arithmetic overflow")`). This ensures the program terminates safely on overflow or division by zero.
-
-**Severity:** Medium (Logic Bug / Potential Safety Issue).

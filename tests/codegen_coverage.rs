@@ -125,9 +125,6 @@ fn test_number_comparison_ops_codegen() {
     // 5 5 greater say
     let output_gt = compile_to_rust("5 5 μεῖζον λέγε.");
     assert!(output_gt.contains(">"), "Number > should use >");
-
-    // We don't have <= / >= keywords easily available in current lexicon/parser for tests
-    // but the code paths exist. If we add them later, we can test them.
 }
 
 #[test]

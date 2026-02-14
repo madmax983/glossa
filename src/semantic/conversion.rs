@@ -394,7 +394,6 @@ fn classify_assignment(
                 Some(_b) => {
                     let has_value = !asm_stmt.literals.is_empty()
                         || asm_stmt.object.is_some()
-                        || !asm_stmt.nominatives.is_empty()
                         || !asm_stmt.arrays.is_empty()
                         || !asm_stmt.unwraps.is_empty()
                         || !asm_stmt.index_accesses.is_empty()
@@ -773,55 +772,25 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-            // Special case: Subject Op Object (binary expression in print)
-            // e.g. "a b sum say" -> print(a + b)
-            if args.is_empty()
-                && !asm_stmt.operators.is_empty()
-                && let Some(ref subj) = asm_stmt.subject
-                && let Some(ref obj) = asm_stmt.object
+            if let Some(ref subj) = asm_stmt.subject
+                && let Some(var_type) = scope.lookup(&subj.lemma)
             {
-                let left_type = scope
-                    .lookup(&subj.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown);
-                let left = AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                    glossa_type: left_type,
-                };
-
-                let right_type = scope
-                    .lookup(&obj.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown);
-                let right = AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: right_type,
-                };
-
-                let op = asm_stmt.operators[0];
-                let bin_expr = build_binary_expr(left, op, right);
-                args.push(bin_expr);
-            } else {
-                if let Some(ref subj) = asm_stmt.subject
-                    && let Some(var_type) = scope.lookup(&subj.lemma)
-                {
-                    args.insert(
-                        0,
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                            glossa_type: var_type.clone(),
-                        },
-                    );
-                }
-
-                if let Some(ref obj) = asm_stmt.object
-                    && let Some(var_type) = scope.lookup(&obj.lemma)
-                {
-                    args.push(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                args.insert(
+                    0,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                         glossa_type: var_type.clone(),
-                    });
-                }
+                    },
+                );
+            }
+
+            if let Some(ref obj) = asm_stmt.object
+                && let Some(var_type) = scope.lookup(&obj.lemma)
+            {
+                args.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                });
             }
 
             return Ok(Some(AnalyzedStatement::Print(args)));
@@ -910,53 +879,44 @@ fn classify_query(
 
 /// Helper: Default expression
 fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatement, GlossaError> {
-    let mut exprs = Vec::new();
+    let mut exprs =
+        build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-    // Check for Subject-based binary operations
-    if !asm_stmt.operators.is_empty()
-        && let Some(ref subj) = asm_stmt.subject
-    {
-        // Case: Subject Op Literal (e.g., x > 5)
-        if let Some(lit) = asm_stmt.literals.first() {
-            let left = AnalyzedExpr {
+    // If we have operators but couldn't build a full expression from literals alone (usually implies literals < 2),
+    // we should look for Subject/Object to complete the binary expression.
+    if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2 {
+        let op = asm_stmt.operators[0];
+
+        let left = if let Some(ref subj) = asm_stmt.subject {
+            Some(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
-            };
-            let right = literal_to_analyzed_expr(lit);
-            let op = asm_stmt.operators[0];
-            exprs.push(build_binary_expr(left, op, right));
-        }
-        // Case: Subject Op Object (e.g., x > y)
-        else if let Some(ref obj) = asm_stmt.object {
-            let left = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            };
-            let right = AnalyzedExpr {
+            })
+        } else {
+            None
+        };
+
+        // Try to get right operand from exprs (literal) or object or nominatives
+        let right = if let Some(lit_expr) = exprs.first() {
+            Some(lit_expr.clone())
+        } else if let Some(ref obj) = asm_stmt.object {
+            Some(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
-            };
-            let op = asm_stmt.operators[0];
-            exprs.push(build_binary_expr(left, op, right));
-        }
-        // Case: Subject Op Nominative (e.g., x y > where y is parsed as nominative)
-        else if let Some(nom) = asm_stmt.nominatives.first() {
-            let left = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            };
-            let right = AnalyzedExpr {
+            })
+        } else if let Some(ref nom) = asm_stmt.nominatives.first() {
+            Some(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
-            };
-            let op = asm_stmt.operators[0];
-            exprs.push(build_binary_expr(left, op, right));
-        }
-    }
+            })
+        } else {
+            None
+        };
 
-    // If no subject-based op, try literals/ops
-    if exprs.is_empty() {
-        exprs = build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
+        if let (Some(l), Some(r)) = (left, right) {
+            let bin_expr = build_binary_expr(l, op, r);
+            exprs = vec![bin_expr];
+        }
     }
 
     // Fallback: If no literals/ops, check Subject/Object
@@ -1249,34 +1209,9 @@ pub fn extract_value(
             && !asm_stmt.literals.is_empty()
         {
             // Build: object op literal
-            let left_type = scope
-                .lookup(&obj.lemma)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown);
             let left = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: left_type,
-            };
-            let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
-            let op = asm_stmt.operators[0];
-            let bin_expr = build_binary_expr(left, op, right);
-            let ty = bin_expr.glossa_type.clone();
-            return Ok((bin_expr, ty));
-        }
-
-        // Check if we can combine nominative + literal with operator (e.g. x = x * 2)
-        // In assignment, subject is the target, so the value might be in nominatives.
-        if let Some(nom) = asm_stmt.nominatives.first()
-            && !asm_stmt.literals.is_empty()
-        {
-            // Build: nominative op literal
-            let left_type = scope
-                .lookup(&nom.lemma)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown);
-            let left = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
-                glossa_type: left_type,
+                glossa_type: GlossaType::Unknown, // Will be inferred
             };
             let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
             let op = asm_stmt.operators[0];

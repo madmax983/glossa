@@ -27,10 +27,7 @@ fn test_standalone_subject_op_object() {
     // Should compile to a comparison
     assert!(output.contains(">"), "Output should contain > operator");
     // Variables might be renamed, so we just check for the structure
-    assert!(
-        !output.contains("checked_"),
-        "Comparison should not use checked math"
-    );
+    assert!(!output.contains("checked_"), "Comparison should not use checked math");
 }
 
 #[test]
@@ -57,13 +54,5 @@ fn test_checked_arithmetic_codegen() {
 
     let output = compile_to_rust(source);
 
-    assert!(
-        output.contains("checked_div"),
-        "Should generate checked_div for division"
-    );
+    assert!(output.contains("checked_div"), "Should generate checked_div for division");
 }
-
-// Tests for assignment with complex patterns (Object+Nominative, Nominative+Nominative)
-// are removed as they are currently not reliably parsed/extracted.
-// They were causing failures and coverage issues.
-// We rely on standard Subject+Literal or Subject+Object+Literal patterns for now.
