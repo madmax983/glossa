@@ -69,8 +69,10 @@ impl DisambiguationContext {
 ///
 /// Returns analyses filtered and re-ranked by how well they match the context.
 /// The first element is the best match.
+///
+/// Optimization: Sorts in-place to avoid intermediate vector allocations.
 pub fn disambiguate(
-    analyses: Vec<MorphAnalysis>,
+    mut analyses: Vec<MorphAnalysis>,
     context: &DisambiguationContext,
 ) -> Vec<MorphAnalysis> {
     if analyses.is_empty() {
@@ -86,36 +88,33 @@ pub fn disambiguate(
         return analyses;
     }
 
-    // Score each analysis by how well it matches the context
-    let mut scored: Vec<(MorphAnalysis, f32)> = analyses
-        .into_iter()
-        .map(|a| {
-            let score = score_analysis(&a, context);
-            (a, score)
-        })
-        .collect();
-
     // Sort by score (descending), then by original confidence
-    scored.sort_by(|a, b| {
-        let score_cmp = b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal);
+    // We recompute score_analysis during sort to avoid allocating a wrapper struct.
+    // score_analysis is cheap (field comparisons).
+    analyses.sort_by(|a, b| {
+        let score_a = score_analysis(a, context);
+        let score_b = score_analysis(b, context);
+
+        let score_cmp = score_b
+            .partial_cmp(&score_a)
+            .unwrap_or(std::cmp::Ordering::Equal);
+
         if score_cmp == std::cmp::Ordering::Equal {
-            b.0.confidence
-                .partial_cmp(&a.0.confidence)
+            b.confidence
+                .partial_cmp(&a.confidence)
                 .unwrap_or(std::cmp::Ordering::Equal)
         } else {
             score_cmp
         }
     });
 
-    // Return with updated confidence
-    scored
-        .into_iter()
-        .map(|(mut a, score)| {
-            // Boost confidence for matching, penalize for non-matching
-            a.confidence = (a.confidence * 0.5 + score * 0.5).min(1.0);
-            a
-        })
-        .collect()
+    // Update confidence in-place
+    for analysis in &mut analyses {
+        let score = score_analysis(analysis, context);
+        analysis.confidence = (analysis.confidence * 0.5 + score * 0.5).min(1.0);
+    }
+
+    analyses
 }
 
 /// Score how well an analysis matches the context (0.0 - 1.0)
@@ -167,17 +166,19 @@ fn score_analysis(analysis: &MorphAnalysis, context: &DisambiguationContext) -> 
 /// This is the main entry point for disambiguation. It returns the single
 /// best analysis based on context, or the highest-confidence one if no
 /// context matches.
+///
+/// Optimization: Takes ownership of analyses vector to avoid cloning.
 pub fn resolve_best(
     analyses: Vec<MorphAnalysis>,
     context: &DisambiguationContext,
 ) -> MorphAnalysis {
-    let disambiguated = disambiguate(analyses.clone(), context);
-    disambiguated.into_iter().next().unwrap_or_else(|| {
-        analyses
-            .into_iter()
-            .next()
-            .unwrap_or_else(|| MorphAnalysis::new("?".to_string(), PartOfSpeech::Unknown))
-    })
+    let mut disambiguated = disambiguate(analyses, context);
+    if disambiguated.is_empty() {
+        MorphAnalysis::new("?".to_string(), PartOfSpeech::Unknown)
+    } else {
+        // Efficiently extract the best (first) element
+        disambiguated.swap_remove(0)
+    }
 }
 
 /// Known Greek articles for context building
