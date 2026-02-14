@@ -1,5 +1,8 @@
 use glossa::morphology::analyze;
-use glossa::semantic::{AssembledStatement, Assembler, AssemblyError, Constituent};
+use glossa::semantic::{
+    AssembledStatement, Assembler, AssemblyError, Constituent, Literal, VerbConstituent,
+};
+use glossa::semantic::assembler::ParticipleConstituent;
 
 #[test]
 fn test_assembled_statement_derive_coverage() {
@@ -12,6 +15,83 @@ fn test_assembled_statement_derive_coverage() {
     // Cover internal fields being None/Empty by default
     assert!(stmt.subject.is_none());
     assert!(stmt.nominatives.is_empty());
+}
+
+#[test]
+fn test_constituent_derive_coverage() {
+    use glossa::morphology::Case;
+    use smol_str::SmolStr;
+
+    let c = Constituent {
+        lemma: SmolStr::new("test"),
+        original: SmolStr::new("test"),
+        case: Case::Nominative,
+        number: None,
+        gender: None,
+        person: None,
+    };
+
+    let cloned = c.clone();
+    let debug = format!("{:?}", cloned);
+    assert!(debug.contains("test"));
+}
+
+#[test]
+fn test_verb_constituent_derive_coverage() {
+    use smol_str::SmolStr;
+
+    let v = VerbConstituent {
+        lemma: SmolStr::new("run"),
+        original: SmolStr::new("runs"),
+        person: None,
+        number: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    };
+
+    let cloned = v.clone();
+    let debug = format!("{:?}", cloned);
+    assert!(debug.contains("run"));
+}
+
+#[test]
+fn test_participle_constituent_derive_coverage() {
+    use glossa::morphology::{Case, Gender, Number, Tense, Voice};
+    use smol_str::SmolStr;
+
+    let p = ParticipleConstituent {
+        verb_lemma: SmolStr::new("run"),
+        original: SmolStr::new("running"),
+        tense: Tense::Present,
+        voice: Voice::Active,
+        case: Case::Nominative,
+        gender: Gender::Masculine,
+        number: Number::Singular,
+    };
+
+    let cloned = p.clone();
+    let debug = format!("{:?}", cloned);
+    assert!(debug.contains("running"));
+}
+
+#[test]
+fn test_literal_derive_coverage() {
+    let l_str = Literal::String("test".to_string());
+    let l_num = Literal::Number(42);
+    let l_bool = Literal::Boolean(true);
+
+    let cloned_str = l_str.clone();
+    let debug_str = format!("{:?}", cloned_str);
+    assert!(debug_str.contains("String"));
+
+    let cloned_num = l_num.clone();
+    let debug_num = format!("{:?}", cloned_num);
+    assert!(debug_num.contains("Number"));
+
+    let cloned_bool = l_bool.clone();
+    let debug_bool = format!("{:?}", cloned_bool);
+    assert!(debug_bool.contains("Boolean"));
 }
 
 #[test]
@@ -189,23 +269,4 @@ fn test_assembler_error_cases_coverage() {
     asm.feed(&ind, "ἀνθρώπῳ").unwrap();
     let result = asm.feed(&ind, "ἀνθρώπῳ");
     assert!(matches!(result, Err(AssemblyError::DoubleIndirect)));
-}
-
-#[test]
-fn test_constituent_derive_coverage() {
-    use glossa::morphology::Case;
-    use smol_str::SmolStr;
-
-    let c = Constituent {
-        lemma: SmolStr::new("test"),
-        original: SmolStr::new("test"),
-        case: Case::Nominative,
-        number: None,
-        gender: None,
-        person: None,
-    };
-
-    let cloned = c.clone();
-    let debug = format!("{:?}", cloned);
-    assert!(debug.contains("test"));
 }
