@@ -793,20 +793,51 @@ fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> T
     let left_tokens = generate_expr(left);
     let right_tokens = generate_expr(right);
 
-    match op {
-        BinaryOp::Add => quote! { (#left_tokens).checked_add(#right_tokens).expect("arithmetic overflow") },
-        BinaryOp::Sub => quote! { (#left_tokens).checked_sub(#right_tokens).expect("arithmetic overflow") },
-        BinaryOp::Mul => quote! { (#left_tokens).checked_mul(#right_tokens).expect("arithmetic overflow") },
-        BinaryOp::Div => quote! { (#left_tokens).checked_div(#right_tokens).expect("division by zero or overflow") },
-        BinaryOp::Mod => quote! { (#left_tokens).checked_rem(#right_tokens).expect("division by zero or overflow") },
-        BinaryOp::Eq => quote! { (#left_tokens == #right_tokens) },
-        BinaryOp::Ne => quote! { (#left_tokens != #right_tokens) },
-        BinaryOp::Lt => quote! { (#left_tokens < #right_tokens) },
-        BinaryOp::Le => quote! { (#left_tokens <= #right_tokens) },
-        BinaryOp::Gt => quote! { (#left_tokens > #right_tokens) },
-        BinaryOp::Ge => quote! { (#left_tokens >= #right_tokens) },
-        BinaryOp::And => quote! { (#left_tokens && #right_tokens) },
-        BinaryOp::Or => quote! { (#left_tokens || #right_tokens) },
+    // Use checked arithmetic only for numeric types
+    // Strings use + for concatenation, which does not have checked_add
+    if matches!(left.glossa_type, GlossaType::Number) {
+        match op {
+            BinaryOp::Add => {
+                quote! { (#left_tokens).checked_add(#right_tokens).expect("arithmetic overflow") }
+            }
+            BinaryOp::Sub => {
+                quote! { (#left_tokens).checked_sub(#right_tokens).expect("arithmetic overflow") }
+            }
+            BinaryOp::Mul => {
+                quote! { (#left_tokens).checked_mul(#right_tokens).expect("arithmetic overflow") }
+            }
+            BinaryOp::Div => {
+                quote! { (#left_tokens).checked_div(#right_tokens).expect("division by zero or overflow") }
+            }
+            BinaryOp::Mod => {
+                quote! { (#left_tokens).checked_rem(#right_tokens).expect("division by zero or overflow") }
+            }
+            BinaryOp::Eq => quote! { (#left_tokens == #right_tokens) },
+            BinaryOp::Ne => quote! { (#left_tokens != #right_tokens) },
+            BinaryOp::Lt => quote! { (#left_tokens < #right_tokens) },
+            BinaryOp::Le => quote! { (#left_tokens <= #right_tokens) },
+            BinaryOp::Gt => quote! { (#left_tokens > #right_tokens) },
+            BinaryOp::Ge => quote! { (#left_tokens >= #right_tokens) },
+            BinaryOp::And => quote! { (#left_tokens && #right_tokens) },
+            BinaryOp::Or => quote! { (#left_tokens || #right_tokens) },
+        }
+    } else {
+        // Fallback for non-numeric types (e.g. String concatenation)
+        match op {
+            BinaryOp::Add => quote! { (#left_tokens + #right_tokens) },
+            BinaryOp::Sub => quote! { (#left_tokens - #right_tokens) },
+            BinaryOp::Mul => quote! { (#left_tokens * #right_tokens) },
+            BinaryOp::Div => quote! { (#left_tokens / #right_tokens) },
+            BinaryOp::Mod => quote! { (#left_tokens % #right_tokens) },
+            BinaryOp::Eq => quote! { (#left_tokens == #right_tokens) },
+            BinaryOp::Ne => quote! { (#left_tokens != #right_tokens) },
+            BinaryOp::Lt => quote! { (#left_tokens < #right_tokens) },
+            BinaryOp::Le => quote! { (#left_tokens <= #right_tokens) },
+            BinaryOp::Gt => quote! { (#left_tokens > #right_tokens) },
+            BinaryOp::Ge => quote! { (#left_tokens >= #right_tokens) },
+            BinaryOp::And => quote! { (#left_tokens && #right_tokens) },
+            BinaryOp::Or => quote! { (#left_tokens || #right_tokens) },
+        }
     }
 }
 

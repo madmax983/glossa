@@ -87,7 +87,11 @@ fn test_arithmetic_sum() {
     let source = "πέντε τριῶν ἄθροισμα λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("checked_add"), "Expected checked_add in output: {}", output);
+    assert!(
+        output.contains("checked_add"),
+        "Expected checked_add in output: {}",
+        output
+    );
 }
 
 #[test]
@@ -96,7 +100,11 @@ fn test_arithmetic_difference() {
     let source = "πέντε τριῶν διαφορά λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("checked_sub"), "Expected checked_sub in output: {}", output);
+    assert!(
+        output.contains("checked_sub"),
+        "Expected checked_sub in output: {}",
+        output
+    );
 }
 
 #[test]
@@ -105,7 +113,11 @@ fn test_arithmetic_product() {
     let source = "πέντε τριῶν γινόμενον λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("checked_mul"), "Expected checked_mul in output: {}", output);
+    assert!(
+        output.contains("checked_mul"),
+        "Expected checked_mul in output: {}",
+        output
+    );
 }
 
 // =============================================================================
@@ -129,5 +141,30 @@ fn test_arithmetic_in_binding() {
     let output = compile_to_rust(source);
 
     assert!(output.contains("let"), "Expected let binding");
-    assert!(output.contains("checked_add"), "Expected checked_add operation");
+    assert!(
+        output.contains("checked_add"),
+        "Expected checked_add operation"
+    );
+}
+
+#[test]
+fn test_assignment_with_nominative_and_operator() {
+    // a = b * 2
+    // "α β 2 γινόμενον γίγνεται."
+    // α is subject (target), β is nominative (source), 2 is literal.
+    // This triggers the Nominative Op Literal path in extract_value.
+    let source = "
+    μετά α 1 ἔστω.
+    β 5 ἔστω.
+    α β 2 γινόμενον γίγνεται.
+    α λέγε.";
+    let output = compile_to_rust(source);
+
+    assert!(
+        output.contains("checked_mul"),
+        "Expected checked_mul operation"
+    );
+    assert!(output.contains("g_a ="), "Expected assignment to a");
+    // b transliterates to g_b
+    assert!(output.contains("g_b"), "Expected usage of b");
 }
