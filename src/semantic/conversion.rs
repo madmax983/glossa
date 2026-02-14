@@ -882,6 +882,37 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
     let mut exprs =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
+    // If we have operators but couldn't build a full expression from literals alone (usually implies literals < 2),
+    // we should look for Subject/Object to complete the binary expression.
+    if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2 {
+        let op = asm_stmt.operators[0];
+
+        let left = asm_stmt.subject.as_ref().map(|subj| AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+            glossa_type: GlossaType::Unknown,
+        });
+
+        // Try to get right operand from exprs (literal) or object or nominatives
+        let right = if let Some(lit_expr) = exprs.first() {
+            Some(lit_expr.clone())
+        } else if let Some(ref obj) = asm_stmt.object {
+            Some(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            })
+        } else {
+            asm_stmt.nominatives.first().map(|nom| AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            })
+        };
+
+        if let (Some(l), Some(r)) = (left, right) {
+            let bin_expr = build_binary_expr(l, op, r);
+            exprs = vec![bin_expr];
+        }
+    }
+
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {

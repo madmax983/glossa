@@ -293,6 +293,24 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         },
     );
 
+    // μεῖζον ἢ ἴσον - greater or equal
+    m.insert(
+        "μειζον_ισον", // Mocked key for internal representation if needed, but parser usually sees separate words
+        LexiconEntry {
+            lemma: "μειζον_ισον",
+            pos: PartOfSpeech::Adjective,
+            gender: Some(Gender::Neuter),
+            meaning: "greater or equal",
+            rust_equiv: Some(">="),
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
     // χρήστου - of user (genitive)
     m.insert(
         "χρηστου",

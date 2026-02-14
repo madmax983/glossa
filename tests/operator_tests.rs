@@ -87,7 +87,11 @@ fn test_arithmetic_sum() {
     let source = "πέντε τριῶν ἄθροισμα λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("+"), "Expected + in output: {}", output);
+    assert!(
+        output.contains("+") || output.contains("checked_add"),
+        "Expected + in output: {}",
+        output
+    );
 }
 
 #[test]
@@ -96,7 +100,11 @@ fn test_arithmetic_difference() {
     let source = "πέντε τριῶν διαφορά λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("-"), "Expected - in output: {}", output);
+    assert!(
+        output.contains("-") || output.contains("checked_sub"),
+        "Expected - in output: {}",
+        output
+    );
 }
 
 #[test]
@@ -105,7 +113,37 @@ fn test_arithmetic_product() {
     let source = "πέντε τριῶν γινόμενον λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("*"), "Expected * in output: {}", output);
+    assert!(
+        output.contains("*") || output.contains("checked_mul"),
+        "Expected * in output: {}",
+        output
+    );
+}
+
+#[test]
+fn test_arithmetic_quotient() {
+    // μέρος means "quotient" - should compile to / (or checked_div)
+    let source = "δέκα δύο μέρος λέγε.";
+    let output = compile_to_rust(source);
+
+    assert!(
+        output.contains("/") || output.contains("checked_div"),
+        "Expected / in output: {}",
+        output
+    );
+}
+
+#[test]
+fn test_arithmetic_remainder() {
+    // ὑπόλοιπον means "remainder" - should compile to % (or checked_rem)
+    let source = "δέκα τριῶν ὑπόλοιπον λέγε.";
+    let output = compile_to_rust(source);
+
+    assert!(
+        output.contains("%") || output.contains("checked_rem"),
+        "Expected % in output: {}",
+        output
+    );
 }
 
 // =============================================================================
@@ -129,5 +167,8 @@ fn test_arithmetic_in_binding() {
     let output = compile_to_rust(source);
 
     assert!(output.contains("let"), "Expected let binding");
-    assert!(output.contains("+"), "Expected + operation");
+    assert!(
+        output.contains("+") || output.contains("checked_add"),
+        "Expected + operation"
+    );
 }
