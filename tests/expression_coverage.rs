@@ -48,6 +48,25 @@ fn test_standalone_subject_op_literal() {
 }
 
 #[test]
+fn test_operator_only_ignored() {
+    // Test case where ONLY an operator exists (no subject, no literal, no object).
+    // "Greater."
+    // Left operand = None (no subject).
+    // Right operand = None (no literals, no object, no nominatives).
+    // Should fall through binary expression builder.
+
+    let source = "μεῖζον.";
+
+    let output = compile_to_rust(source);
+
+    // Should NOT contain >
+    assert!(
+        !output.contains(">"),
+        "Operator-only statement should not generate comparison"
+    );
+}
+
+#[test]
 fn test_standalone_subject_op_nominative() {
     // "a" "b" greater (no verb) where "b" is parsed as a nominative (because Subject "a" is filled)
     // This hits the "Subject Op Nominative" branch in classify_expression fallback logic
@@ -102,7 +121,10 @@ fn test_dangling_operator_ignored() {
     let output = compile_to_rust(source);
 
     // Should NOT contain > because the binary expression couldn't be built
-    assert!(!output.contains(">"), "Dangling operator should be ignored/not generate invalid code");
+    assert!(
+        !output.contains(">"),
+        "Dangling operator should be ignored/not generate invalid code"
+    );
     // Should just print/emit 'a' (or whatever the default behavior is)
     // The default classify_expression falls back to build_expressions_from_literals_and_ops
     // If that's empty, it checks subject/object.
@@ -120,6 +142,9 @@ fn test_operator_without_subject_ignored() {
 
     let output = compile_to_rust(source);
 
-    assert!(!output.contains(">"), "Operator without subject should be ignored");
+    assert!(
+        !output.contains(">"),
+        "Operator without subject should be ignored"
+    );
     assert!(output.contains("5"), "Should output the literal");
 }
