@@ -1137,16 +1137,22 @@ mod tests {
     fn test_trait_method_call_method_not_in_trait() {
         let mut scope = Scope::new();
         // Define a struct but no trait impl
-        scope.define_type("Τύπος", GlossaType::Struct {
-            name: "Τύπος".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![]
-        });
-        scope.define("τ", GlossaType::Struct {
-            name: "Τύπος".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![]
-        });
+        scope.define_type(
+            "Τύπος",
+            GlossaType::Struct {
+                name: "Τύπος".into(),
+                gender: crate::morphology::Gender::Neuter,
+                fields: vec![],
+            },
+        );
+        scope.define(
+            "τ",
+            GlossaType::Struct {
+                name: "Τύπος".into(),
+                gender: crate::morphology::Gender::Neuter,
+                fields: vec![],
+            },
+        );
 
         // "method t"
         let stmt = make_stmt(vec!["μέθοδος", "τ"]);
@@ -1161,8 +1167,12 @@ mod tests {
         let mut scope = Scope::new();
 
         // Construct AST manually for complex clauses
-        let if_clause = Clause { expressions: vec![Expr::Word(Word::new("εἰ"))] };
-        let then_clause = Clause { expressions: vec![Expr::Word(Word::new("σῶμα"))] }; // body
+        let if_clause = Clause {
+            expressions: vec![Expr::Word(Word::new("εἰ"))],
+        };
+        let then_clause = Clause {
+            expressions: vec![Expr::Word(Word::new("σῶμα"))],
+        }; // body
 
         let stmt = Statement::Regular {
             clauses: vec![if_clause, then_clause],
@@ -1189,8 +1199,12 @@ mod tests {
 
         let stmt = Statement::Regular {
             clauses: vec![
-                Clause { expressions: vec![range_expr] },
-                Clause { expressions: vec![Expr::Word(Word::new("body"))] }
+                Clause {
+                    expressions: vec![range_expr],
+                },
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("body"))],
+                },
             ],
             is_query: false,
             is_propagate: false,
@@ -1212,7 +1226,7 @@ mod tests {
         if let Statement::Regular { clauses, .. } = &mut stmt {
             clauses[0].expressions = vec![Expr::Phrase(vec![
                 Expr::Word(Word::new("δός")),
-                Expr::StringLiteral("hello".into())
+                Expr::StringLiteral("hello".into()),
             ])];
         }
 
@@ -1229,11 +1243,13 @@ mod tests {
         if let Statement::Regular { clauses, .. } = &mut stmt_bool {
             clauses[0].expressions = vec![Expr::Phrase(vec![
                 Expr::Word(Word::new("δός")),
-                Expr::BooleanLiteral(true)
+                Expr::BooleanLiteral(true),
             ])];
         }
 
-        let result_bool = parse_return_statement(&stmt_bool, &mut scope).unwrap().unwrap();
+        let result_bool = parse_return_statement(&stmt_bool, &mut scope)
+            .unwrap()
+            .unwrap();
         if let AnalyzedStatement::Return { value } = result_bool {
             let val = value.unwrap();
             assert!(matches!(val.expr, AnalyzedExprKind::BooleanLiteral(true)));
@@ -1248,8 +1264,12 @@ mod tests {
         // κατὰ χ · (empty)
         let stmt = Statement::Regular {
             clauses: vec![
-                Clause { expressions: vec![Expr::Word(Word::new("κατὰ")), Expr::Word(Word::new("χ"))] },
-                Clause { expressions: vec![Expr::Phrase(vec![])] } // Empty pattern
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("κατὰ")), Expr::Word(Word::new("χ"))],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![])],
+                }, // Empty pattern
             ],
             is_query: false,
             is_propagate: false,
@@ -1265,12 +1285,12 @@ mod tests {
         let mut scope = Scope::new();
         // ὁρίζειν · body (missing name)
         let stmt = Statement::Regular {
-            clauses: vec![
-                Clause { expressions: vec![
+            clauses: vec![Clause {
+                expressions: vec![
                     Expr::Phrase(vec![Expr::Word(Word::new("ὁρίζειν"))]), // Header without name
-                    Expr::Word(Word::new("body"))
-                ]}
-            ],
+                    Expr::Word(Word::new("body")),
+                ],
+            }],
             is_query: false,
             is_propagate: false,
         };
