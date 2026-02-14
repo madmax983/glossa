@@ -46,63 +46,68 @@ pub fn parse_source(source: &str) -> Result<Program, ParseError> {
 }
 
 fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
+    let mut pairs = pair.into_inner();
+    let first = pairs
+        .next()
+        .ok_or(ParseError::UnexpectedRule("Empty statement".into()))?;
+
+    match first.as_rule() {
+        Rule::test_declaration => Ok(Statement::TestDeclaration(build_test_declaration(first)?)),
+        Rule::type_definition => {
+            // Consume statement_end
+            let _ = pairs.next();
+            Ok(Statement::TypeDefinition(build_type_definition(first)?))
+        }
+        Rule::trait_definition => {
+            // Consume statement_end
+            let _ = pairs.next();
+            Ok(Statement::TraitDefinition(build_trait_definition(first)?))
+        }
+        Rule::trait_impl => {
+            // Consume statement_end
+            let _ = pairs.next();
+            Ok(Statement::TraitImpl(build_trait_impl(first)?))
+        }
+        Rule::clause_list => {
+            let clauses = build_clauses(first)?;
+            let end_pair = pairs
+                .next()
+                .ok_or(ParseError::UnexpectedRule("Missing statement end".into()))?;
+            let (is_query, is_propagate) = parse_statement_end(end_pair);
+            Ok(Statement::Regular {
+                clauses,
+                is_query,
+                is_propagate,
+            })
+        }
+        _ => Err(ParseError::UnexpectedRule(format!(
+            "Unexpected start of statement: {:?}",
+            first.as_rule()
+        ))),
+    }
+}
+
+fn build_clauses(pair: Pair<'_, Rule>) -> Result<Vec<Clause>, ParseError> {
     let mut clauses = Vec::new();
+    for clause_pair in pair.into_inner() {
+        if clause_pair.as_rule() == Rule::clause {
+            clauses.push(build_clause(clause_pair)?);
+        }
+    }
+    Ok(clauses)
+}
+
+fn parse_statement_end(pair: Pair<'_, Rule>) -> (bool, bool) {
     let mut is_query = false;
     let mut is_propagate = false;
-    let mut type_def = None;
-    let mut trait_def = None;
-    let mut trait_impl = None;
-    let mut test_decl = None;
-
     for inner in pair.into_inner() {
         match inner.as_rule() {
-            Rule::type_definition => {
-                type_def = Some(build_type_definition(inner)?);
-            }
-            Rule::trait_definition => {
-                trait_def = Some(build_trait_definition(inner)?);
-            }
-            Rule::trait_impl => {
-                trait_impl = Some(build_trait_impl(inner)?);
-            }
-            Rule::test_declaration => {
-                test_decl = Some(build_test_declaration(inner)?);
-            }
-            Rule::clause_list => {
-                for clause_pair in inner.into_inner() {
-                    if clause_pair.as_rule() == Rule::clause {
-                        clauses.push(build_clause(clause_pair)?);
-                    }
-                }
-            }
-            Rule::statement_end => {
-                for end_inner in inner.into_inner() {
-                    match end_inner.as_rule() {
-                        Rule::query => is_query = true,
-                        Rule::propagate => is_propagate = true,
-                        _ => {}
-                    }
-                }
-            }
+            Rule::query => is_query = true,
+            Rule::propagate => is_propagate = true,
             _ => {}
         }
     }
-
-    if let Some(def) = type_def {
-        Ok(Statement::TypeDefinition(def))
-    } else if let Some(def) = trait_def {
-        Ok(Statement::TraitDefinition(def))
-    } else if let Some(impl_def) = trait_impl {
-        Ok(Statement::TraitImpl(impl_def))
-    } else if let Some(test) = test_decl {
-        Ok(Statement::TestDeclaration(test))
-    } else {
-        Ok(Statement::Regular {
-            clauses,
-            is_query,
-            is_propagate,
-        })
-    }
+    (is_query, is_propagate)
 }
 
 fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, ParseError> {
@@ -205,22 +210,18 @@ fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> 
 
 fn parse_method_parameters(words: &[Word]) -> Vec<FieldDecl> {
     let mut params = Vec::new();
-    let mut i = 0;
-    while i < words.len() {
+    let mut iter = words.iter();
+    while let Some(word) = iter.next() {
         // Look for τῷ (dative marker) followed by parameter name
-        if words[i].normalized == "τω" || words[i].normalized == "tw" {
-            if i + 1 < words.len() {
+        if word.normalized == "τω" || word.normalized == "tw" {
+            #[allow(clippy::collapsible_if)]
+            if let Some(name) = iter.next() {
                 // Parameter without type annotation (just name)
                 params.push(FieldDecl {
-                    name: words[i + 1].clone(),
+                    name: name.clone(),
                     type_name: Word::new("_"), // Placeholder, will be inferred
                 });
-                i += 2;
-            } else {
-                i += 1;
             }
-        } else {
-            i += 1;
         }
     }
     params
@@ -524,43 +525,29 @@ fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
         Rule::block => build_block_expr(inner),
         Rule::array_literal => build_array_literal_expr(inner),
         Rule::indexed_word => build_indexed_word_expr(inner),
-        Rule::string_literal => {
-            let content = inner
-                .into_inner()
-                .find(|p| p.as_rule() == Rule::string_content)
-                .map(|p| p.as_str().to_string())
-                .unwrap_or_default();
-            Ok(Expr::StringLiteral(content))
-        }
-        Rule::number_literal => {
-            let value = parse_number_literal(inner.as_str())?;
-            Ok(Expr::NumberLiteral(value))
-        }
-        Rule::boolean_literal => {
-            let normalized = crate::text::normalize_greek(inner.as_str());
-            let value = normalized == "αληθες";
-            Ok(Expr::BooleanLiteral(value))
-        }
-        Rule::greek_word => Ok(Expr::Word(Word {
-            original: inner.as_str().into(),
-            normalized: crate::text::normalize_greek(inner.as_str()),
-        })),
         Rule::parenthesized_expr => {
             // Unwrap the parentheses and build the inner expression
             let expr_pair = inner.into_inner().next().ok_or(ParseError::EmptyTerm)?;
             build_expression(expr_pair)
         }
         Rule::unwrap_expr => build_unwrap_expr(inner),
+        // Literals
+        Rule::string_literal | Rule::number_literal | Rule::boolean_literal | Rule::greek_word => {
+            build_literal(inner)
+        }
         _ => Err(ParseError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
     }
 }
 
 fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     let inner = pair.into_inner().next().ok_or(ParseError::EmptyTerm)?;
+    build_literal(inner)
+}
 
-    match inner.as_rule() {
+fn build_literal(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
+    match pair.as_rule() {
         Rule::string_literal => {
-            let content = inner
+            let content = pair
                 .into_inner()
                 .find(|p| p.as_rule() == Rule::string_content)
                 .map(|p| p.as_str().to_string())
@@ -568,19 +555,22 @@ fn build_array_element(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             Ok(Expr::StringLiteral(content))
         }
         Rule::number_literal => {
-            let value = parse_number_literal(inner.as_str())?;
+            let value = parse_number_literal(pair.as_str())?;
             Ok(Expr::NumberLiteral(value))
         }
         Rule::boolean_literal => {
-            let normalized = crate::text::normalize_greek(inner.as_str());
+            let normalized = crate::text::normalize_greek(pair.as_str());
             let value = normalized == "αληθες";
             Ok(Expr::BooleanLiteral(value))
         }
         Rule::greek_word => Ok(Expr::Word(Word {
-            original: inner.as_str().into(),
-            normalized: crate::text::normalize_greek(inner.as_str()),
+            original: pair.as_str().into(),
+            normalized: crate::text::normalize_greek(pair.as_str()),
         })),
-        _ => Err(ParseError::UnexpectedRule(format!("{:?}", inner.as_rule()))),
+        _ => Err(ParseError::UnexpectedRule(format!(
+            "Not a literal: {:?}",
+            pair.as_rule()
+        ))),
     }
 }
 
