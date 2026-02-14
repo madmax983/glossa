@@ -67,6 +67,40 @@ fn test_operator_only_ignored() {
 }
 
 #[test]
+fn test_expression_propagation() {
+    // Test propagation (;) on a binary expression.
+    // "a" "b" greater;
+    // Should generate a Try operator (?) on the result.
+
+    let source = "
+    α 1 ἔστω.
+    β 2 ἔστω.
+    α β μεῖζον;";
+
+    let output = compile_to_rust(source);
+
+    assert!(output.contains(">"), "Should contain comparison");
+    assert!(output.contains("?"), "Should contain try operator");
+}
+
+#[test]
+fn test_dangling_propagation() {
+    // Test propagation (;) on a dangling expression.
+    // "a" greater;
+    // Build binary expr fails. Falls back to Subject "a".
+    // Should generate "a?"
+
+    let source = "
+    α 1 ἔστω.
+    α μεῖζον;";
+
+    let output = compile_to_rust(source);
+
+    assert!(!output.contains(">"), "Should not contain comparison");
+    assert!(output.contains("?"), "Should contain try operator on the fallback variable");
+}
+
+#[test]
 fn test_standalone_subject_op_nominative() {
     // "a" "b" greater (no verb) where "b" is parsed as a nominative (because Subject "a" is filled)
     // This hits the "Subject Op Nominative" branch in classify_expression fallback logic
