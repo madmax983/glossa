@@ -546,7 +546,7 @@ mod tests {
         scope.define_function(
             func_name.to_string(),
             vec![GlossaType::String],
-            Some(GlossaType::Unit)
+            Some(GlossaType::Unit),
         );
 
         assert!(scope.lookup_function(func_name).is_some());
@@ -577,11 +577,7 @@ mod tests {
         let name = "κοινόν";
 
         // Define as function
-        scope.define_function(
-            name.to_string(),
-            vec![],
-            None
-        );
+        scope.define_function(name.to_string(), vec![], None);
 
         // Verify it is a function
         assert!(scope.is_function(name));
