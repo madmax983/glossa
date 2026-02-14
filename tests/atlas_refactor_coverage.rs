@@ -6,7 +6,8 @@ use glossa::semantic::assembler::checks::{
 use glossa::semantic::assembler::state::{AssembledStatement, Constituent, VerbConstituent};
 use glossa::semantic::assembler::ParticipleConstituent;
 use glossa::semantic::{
-    Assembler, AssemblyError, Constituent as PublicConstituent, Literal, VerbConstituent as PublicVerbConstituent,
+    Assembler, AssemblyError, Constituent as PublicConstituent, Literal,
+    VerbConstituent as PublicVerbConstituent,
 };
 
 #[test]
@@ -20,6 +21,35 @@ fn test_assembled_statement_derive_coverage() {
     // Cover internal fields being None/Empty by default
     assert!(stmt.subject.is_none());
     assert!(stmt.nominatives.is_empty());
+}
+
+#[test]
+fn test_assembled_statement_full_clone_coverage() {
+    use glossa::ast::{Expr, Word};
+    use glossa::morphology::{Case, Number};
+    use smol_str::SmolStr;
+
+    let mut stmt = AssembledStatement::default();
+    stmt.literals.push(Literal::Number(42));
+    stmt.is_query = true;
+    stmt.nominatives.push(Constituent {
+        lemma: SmolStr::new("test"),
+        original: SmolStr::new("test"),
+        case: Case::Nominative,
+        number: Some(Number::Singular),
+        gender: None,
+        person: None,
+    });
+    stmt.arrays.push(vec![Expr::NumberLiteral(1)]);
+
+    let cloned = stmt.clone();
+    assert_eq!(cloned.literals.len(), 1);
+    assert!(cloned.is_query);
+    assert_eq!(cloned.nominatives.len(), 1);
+    assert_eq!(cloned.arrays.len(), 1);
+
+    let debug = format!("{:?}", cloned);
+    assert!(debug.contains("Number(42)"));
 }
 
 #[test]
