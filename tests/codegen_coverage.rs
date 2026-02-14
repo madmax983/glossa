@@ -104,3 +104,39 @@ fn test_arithmetic_ops_fallback() {
         "String mod should not use checked_rem"
     );
 }
+
+#[test]
+fn test_number_comparison_ops_codegen() {
+    // Ensures coverage for BinaryOp::Eq, Ne, Lt, Le, Gt, Ge when left is Number
+    // These use standard operators even for numbers, but we want to exercise the match arm.
+
+    // 5 5 equal say
+    let output_eq = compile_to_rust("5 5 ἴσον λέγε.");
+    assert!(output_eq.contains("=="), "Number == should use ==");
+
+    // 5 5 unequal say
+    let output_ne = compile_to_rust("5 5 ἄνισον λέγε.");
+    assert!(output_ne.contains("!="), "Number != should use !=");
+
+    // 5 5 less say
+    let output_lt = compile_to_rust("5 5 ἔλαττον λέγε.");
+    assert!(output_lt.contains("<"), "Number < should use <");
+
+    // 5 5 greater say
+    let output_gt = compile_to_rust("5 5 μεῖζον λέγε.");
+    assert!(output_gt.contains(">"), "Number > should use >");
+
+    // We don't have <= / >= keywords easily available in current lexicon/parser for tests
+    // but the code paths exist. If we add them later, we can test them.
+}
+
+#[test]
+fn test_number_boolean_ops_codegen() {
+    // Ensures coverage for BinaryOp::And, Or when left is Number
+    // Semantically questionable (Number && Number) but syntactically possible
+    // and handled in codegen (might fail rustc compile later if types mismatch, but codegen runs).
+
+    // 5 5 and say
+    let output_and = compile_to_rust("5 5 καί λέγε.");
+    assert!(output_and.contains("&&"), "Number && should use &&");
+}
