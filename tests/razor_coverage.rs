@@ -6,13 +6,10 @@
 //! We use the "Nuclear Option" of constructing all enum variants and calling all methods
 //! to ensure no code path is left behind.
 
-use glossa::ast::{
-    Clause, Expr, Statement, TestDecl, TraitDef,
-    TraitImplDef, TypeDef, Word,
-};
+use glossa::ast::{Clause, Expr, Statement, TestDecl, TraitDef, TraitImplDef, TypeDef, Word};
 use glossa::errors::{
-    case_mismatch, gender_mismatch, immutable_assignment, number_mismatch, type_mismatch,
-    undefined_variable, AssemblyError, GlossaError,
+    AssemblyError, GlossaError, case_mismatch, gender_mismatch, immutable_assignment,
+    number_mismatch, type_mismatch, undefined_variable,
 };
 use glossa::morphology::{Case, Gender, Number, Person};
 use miette::SourceSpan;
@@ -172,7 +169,7 @@ fn test_error_category_greek() {
 #[test]
 fn test_error_constructors() {
     // parse_with_source
-    let _ = GlossaError::parse_with_source("msg", "src", SourceSpan::new(0usize.into(), 0usize.into()));
+    let _ = GlossaError::parse_with_source("msg", "src", SourceSpan::new(0usize.into(), 0usize));
 
     // Verify debug formatting
     let err = GlossaError::parse("test");
