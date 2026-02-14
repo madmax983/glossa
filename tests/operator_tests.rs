@@ -83,29 +83,29 @@ fn test_boolean_not() {
 
 #[test]
 fn test_arithmetic_sum() {
-    // ἄθροισμα means "sum" - should compile to +
+    // ἄθροισμα means "sum" - should compile to checked_add
     let source = "πέντε τριῶν ἄθροισμα λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("+"), "Expected + in output: {}", output);
+    assert!(output.contains("checked_add"), "Expected checked_add in output: {}", output);
 }
 
 #[test]
 fn test_arithmetic_difference() {
-    // διαφορά means "difference" - should compile to -
+    // διαφορά means "difference" - should compile to checked_sub
     let source = "πέντε τριῶν διαφορά λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("-"), "Expected - in output: {}", output);
+    assert!(output.contains("checked_sub"), "Expected checked_sub in output: {}", output);
 }
 
 #[test]
 fn test_arithmetic_product() {
-    // γινόμενον means "product" - should compile to *
+    // γινόμενον means "product" - should compile to checked_mul
     let source = "πέντε τριῶν γινόμενον λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("*"), "Expected * in output: {}", output);
+    assert!(output.contains("checked_mul"), "Expected checked_mul in output: {}", output);
 }
 
 // =============================================================================
@@ -129,5 +129,5 @@ fn test_arithmetic_in_binding() {
     let output = compile_to_rust(source);
 
     assert!(output.contains("let"), "Expected let binding");
-    assert!(output.contains("+"), "Expected + operation");
+    assert!(output.contains("checked_add"), "Expected checked_add operation");
 }

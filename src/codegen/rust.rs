@@ -794,11 +794,11 @@ fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> T
     let right_tokens = generate_expr(right);
 
     match op {
-        BinaryOp::Add => quote! { (#left_tokens + #right_tokens) },
-        BinaryOp::Sub => quote! { (#left_tokens - #right_tokens) },
-        BinaryOp::Mul => quote! { (#left_tokens * #right_tokens) },
-        BinaryOp::Div => quote! { (#left_tokens / #right_tokens) },
-        BinaryOp::Mod => quote! { (#left_tokens % #right_tokens) },
+        BinaryOp::Add => quote! { (#left_tokens).checked_add(#right_tokens).expect("arithmetic overflow") },
+        BinaryOp::Sub => quote! { (#left_tokens).checked_sub(#right_tokens).expect("arithmetic overflow") },
+        BinaryOp::Mul => quote! { (#left_tokens).checked_mul(#right_tokens).expect("arithmetic overflow") },
+        BinaryOp::Div => quote! { (#left_tokens).checked_div(#right_tokens).expect("division by zero or overflow") },
+        BinaryOp::Mod => quote! { (#left_tokens).checked_rem(#right_tokens).expect("division by zero or overflow") },
         BinaryOp::Eq => quote! { (#left_tokens == #right_tokens) },
         BinaryOp::Ne => quote! { (#left_tokens != #right_tokens) },
         BinaryOp::Lt => quote! { (#left_tokens < #right_tokens) },

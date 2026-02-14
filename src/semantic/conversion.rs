@@ -879,8 +879,41 @@ fn classify_query(
 
 /// Helper: Default expression
 fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatement, GlossaError> {
-    let mut exprs =
-        build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
+    let mut exprs = Vec::new();
+
+    // Check for Subject-based binary operations
+    if !asm_stmt.operators.is_empty() {
+        if let Some(ref subj) = asm_stmt.subject {
+            // Case: Subject Op Literal (e.g., x > 5)
+            if let Some(lit) = asm_stmt.literals.first() {
+                let left = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: GlossaType::Unknown,
+                };
+                let right = literal_to_analyzed_expr(lit);
+                let op = asm_stmt.operators[0];
+                exprs.push(build_binary_expr(left, op, right));
+            }
+            // Case: Subject Op Object (e.g., x > y)
+            else if let Some(ref obj) = asm_stmt.object {
+                let left = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: GlossaType::Unknown,
+                };
+                let right = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: GlossaType::Unknown,
+                };
+                let op = asm_stmt.operators[0];
+                exprs.push(build_binary_expr(left, op, right));
+            }
+        }
+    }
+
+    // If no subject-based op, try literals/ops
+    if exprs.is_empty() {
+        exprs = build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
+    }
 
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
@@ -1174,6 +1207,23 @@ pub fn extract_value(
             // Build: object op literal
             let left = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: GlossaType::Unknown, // Will be inferred
+            };
+            let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+            let op = asm_stmt.operators[0];
+            let bin_expr = build_binary_expr(left, op, right);
+            let ty = bin_expr.glossa_type.clone();
+            return Ok((bin_expr, ty));
+        }
+
+        // Check if we can combine nominative + literal with operator (e.g. x = x * 2)
+        // In assignment, subject is the target, so the value might be in nominatives.
+        if let Some(ref nom) = asm_stmt.nominatives.first()
+            && !asm_stmt.literals.is_empty()
+        {
+            // Build: nominative op literal
+            let left = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
                 glossa_type: GlossaType::Unknown, // Will be inferred
             };
             let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
