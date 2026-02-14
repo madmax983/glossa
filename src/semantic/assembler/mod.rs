@@ -93,29 +93,14 @@
 //! assert!(stmt.object.is_some());
 //! ```
 
-use crate::ast::{Expr, Word};
+use crate::ast::Expr;
 pub use crate::errors::assembly::AssemblyError;
-use crate::morphology::lexicon::BinaryOp;
-use crate::morphology::{
-    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
-};
+use crate::morphology::{Case, MorphAnalysis, PartOfSpeech};
 use crate::text::normalize_greek;
-use smol_str::SmolStr;
-use unicode_normalization::UnicodeNormalization;
 
-// Constants for resource limits to prevent DoS
-pub const MAX_ADJECTIVES: usize = 1024;
-pub const MAX_LITERALS: usize = 1024;
-pub const MAX_NOMINATIVES: usize = 256;
-pub const MAX_GENITIVES: usize = 256;
-pub const MAX_ARRAYS: usize = 256;
-pub const MAX_INDEX_ACCESSES: usize = 256;
-pub const MAX_PROPERTY_ACCESSES: usize = 256;
-pub const MAX_NESTED_PHRASES: usize = 256;
-pub const MAX_PARTICIPLES: usize = 256;
-pub const MAX_UNWRAPS: usize = 256;
-pub const MAX_OPERATORS: usize = 256;
-pub const MAX_BLOCKS: usize = 256;
+pub mod checks;
+pub mod state;
+pub use state::*;
 
 /// The slot-based assembler
 ///
@@ -134,7 +119,7 @@ pub const MAX_BLOCKS: usize = 256;
 /// This allows tokens to arrive in any order (Subject-Verb-Object, Verb-Object-Subject, etc.)
 /// and still fill the correct semantic roles.
 pub struct Assembler {
-    state: AssembledStatement,
+    pub(crate) state: AssembledStatement,
 }
 
 impl Assembler {
@@ -198,19 +183,19 @@ impl Assembler {
         original: &str,
         normalized: &str,
     ) -> Result<(), AssemblyError> {
-        if self.check_special_markers(normalized, original) {
+        if checks::check_special_markers(&mut self.state, normalized, original) {
             return Ok(());
         }
 
-        if self.check_method_verbs(normalized) {
+        if checks::check_method_verbs(&mut self.state, normalized) {
             return Ok(());
         }
 
-        if self.check_operators(normalized, original) {
+        if checks::check_operators(&mut self.state, normalized, original) {
             return Ok(());
         }
 
-        if self.check_special_properties(normalized) {
+        if checks::check_special_properties(&mut self.state, normalized) {
             return Ok(());
         }
 
@@ -480,7 +465,7 @@ impl Assembler {
                 if let Some(verb) = &self.state.verb {
                     // Don't check agreement if we already have a subject (this is an extra nominative)
                     if self.state.subject.is_none() {
-                        self.check_agreement(&constituent, verb)?;
+                        checks::check_agreement(&constituent, verb)?;
                     }
                 }
 
@@ -560,7 +545,7 @@ impl Assembler {
 
         // If we already have a subject, check agreement immediately!
         if let Some(subject) = &self.state.subject {
-            self.check_agreement(subject, &verb_constituent)?;
+            checks::check_agreement(subject, &verb_constituent)?;
         }
 
         self.state.verb = Some(verb_constituent);
@@ -634,178 +619,12 @@ impl Assembler {
 
         // Check subject-verb agreement if both present
         if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {
-            self.check_agreement(subject, verb)?;
+            checks::check_agreement(subject, verb)?;
         }
 
         // Return the assembled statement
         let statement = std::mem::take(&mut self.state);
         Ok(statement)
-    }
-
-    /// Check for special markers (mutable, containment, delimiter)
-    fn check_special_markers(&mut self, normalized: &str, original: &str) -> bool {
-        // Check for mutable marker (μετά)
-        if crate::morphology::lexicon::is_mutable_marker(normalized) {
-            self.state.has_mutable_marker = true;
-            return true;
-        }
-
-        // Check for containment preposition (ἐν)
-        if crate::morphology::lexicon::is_containment_preposition(normalized) {
-            // DISAMBIGUATION: ἐν (in) vs ἕν (one)
-            // If original has rough breathing (U+0314 combining reversed comma above), it's "one".
-            // We check the NFD form to separate base letters from diacritics.
-            if original.nfd().any(|c| c == '\u{0314}') {
-                return false;
-            }
-
-            self.state.has_containment_preposition = true;
-            return true;
-        }
-
-        // Check for delimiter preposition (κατά)
-        if crate::morphology::lexicon::is_delimiter_preposition(normalized) {
-            self.state.has_delimiter_preposition = true;
-            return true;
-        }
-
-        false
-    }
-
-    /// Helper to create a string method call if conditions are met
-    #[allow(clippy::collapsible_if)]
-    fn try_create_string_method(&mut self, method_name: &str) -> bool {
-        if self.state.has_delimiter_preposition
-            && matches!(self.state.literals.last(), Some(Literal::String(_)))
-        {
-            if let Some(ref subj) = self.state.subject {
-                if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
-                    return false;
-                }
-
-                let delim = match self.state.literals.pop() {
-                    Some(Literal::String(s)) => s,
-                    _ => unreachable!(),
-                };
-
-                let normalized_original = normalize_greek(&subj.original);
-                self.state.string_method = Some((method_name.to_string(), delim));
-                self.state
-                    .property_accesses
-                    .push((normalized_original.to_string(), method_name.to_string()));
-                return true;
-            }
-        }
-        false
-    }
-
-    /// Check for method verbs (split, join)
-    fn check_method_verbs(&mut self, normalized: &str) -> bool {
-        // Check for split verb
-        if crate::morphology::lexicon::is_split_verb(normalized)
-            && self.try_create_string_method("split")
-        {
-            return true;
-        }
-
-        // Check for join verb
-        if crate::morphology::lexicon::is_join_verb(normalized)
-            && self.try_create_string_method("join")
-        {
-            return true;
-        }
-
-        false
-    }
-
-    /// Check for operators (boolean, comparison, arithmetic)
-    fn check_operators(&mut self, normalized: &str, original: &str) -> bool {
-        // Boolean operators
-        if matches!(original, "καί" | "και") {
-            if self.state.operators.len() >= MAX_OPERATORS {
-                return false;
-            }
-            self.state.operators.push(BinaryOp::And);
-            return true;
-        }
-        if matches!(original, "ἤ" | "ή") {
-            if self.state.operators.len() >= MAX_OPERATORS {
-                return false;
-            }
-            // ἤ with breathing+accent, but not ᾖ
-            self.state.operators.push(BinaryOp::Or);
-            return true;
-        }
-
-        // Comparison operators
-        if let Some(op) = crate::morphology::lexicon::comparison_operator(normalized) {
-            if self.state.operators.len() >= MAX_OPERATORS {
-                return false;
-            }
-            self.state.operators.push(op);
-            return true;
-        }
-
-        // Arithmetic operators
-        if let Some(op) = crate::morphology::lexicon::arithmetic_operator(normalized) {
-            if self.state.operators.len() >= MAX_OPERATORS {
-                return false;
-            }
-            self.state.operators.push(op);
-            return true;
-        }
-
-        false
-    }
-
-    /// Check for special properties (numerals, length, ordinals)
-    fn check_special_properties(&mut self, normalized: &str) -> bool {
-        // Numeral words
-        if let Some(value) = crate::morphology::lexicon::numeral_value(normalized) {
-            self.state.literals.push(Literal::Number(value));
-            return true;
-        }
-
-        // Property nouns (μῆκος)
-        if crate::morphology::lexicon::is_length_property(normalized) {
-            // If we have a subject, create a property access (use normalized original, not lemma)
-            if let Some(ref subj) = self.state.subject {
-                if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
-                    return false;
-                }
-                let normalized_original = crate::text::normalize_greek(&subj.original);
-                self.state
-                    .property_accesses
-                    .push((normalized_original.to_string(), "len".to_string()));
-                self.state.subject = None; // Consume the subject
-                return true;
-            }
-        }
-
-        // Ordinal adjectives
-        if crate::morphology::lexicon::is_ordinal(normalized) {
-            // If we have a subject, create an index access with the ordinal index
-            if let Some(ref subj) = self.state.subject
-                && let Some(index) = crate::morphology::lexicon::ordinal_to_index(normalized)
-            {
-                if self.state.index_accesses.len() >= MAX_INDEX_ACCESSES {
-                    return false;
-                }
-                // Create array and index expressions (use normalized original, not lemma)
-                let normalized_original = crate::text::normalize_greek(&subj.original);
-                let array = Expr::Word(Word {
-                    original: subj.original.clone(),
-                    normalized: normalized_original.clone(),
-                });
-                let index_expr = Expr::NumberLiteral(index);
-
-                self.state.index_accesses.push((array, index_expr));
-                self.state.subject = None; // Consume the subject
-                return true;
-            }
-        }
-
-        false
     }
 
     /// Check if the assembler has any pending content
@@ -820,42 +639,6 @@ impl Assembler {
             || !self.state.index_accesses.is_empty()
             || !self.state.property_accesses.is_empty()
     }
-
-    /// Check subject-verb agreement
-    fn check_agreement(
-        &self,
-        subject: &Constituent,
-        verb: &VerbConstituent,
-    ) -> Result<(), AssemblyError> {
-        if let (Some(verb_person), Some(verb_number), Some(subj_number)) =
-            (verb.person, verb.number, subject.number)
-        {
-            // Determine subject person (default to 3rd for nouns if not specified)
-            let subj_person = subject.person.unwrap_or(Person::Third);
-
-            // Check person agreement
-            // Exception: Allow Imperative verbs to disagree (e.g. "User, print!" uses 2nd person verb with 3rd person subject)
-            let is_imperative = verb.mood == Some(Mood::Imperative);
-            if !is_imperative && subj_person != verb_person {
-                return Err(AssemblyError::SubjectVerbDisagreement {
-                    subject: (Some(subj_person), Some(subj_number)),
-                    verb: (Some(verb_person), Some(verb_number)),
-                });
-            }
-
-            // Special rule: Neuter plural nouns take singular verbs in Greek!
-            let is_neuter_plural =
-                subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
-
-            if !is_neuter_plural && subj_number != verb_number {
-                return Err(AssemblyError::SubjectVerbDisagreement {
-                    subject: (Some(subj_person), Some(subj_number)),
-                    verb: (Some(verb_person), Some(verb_number)),
-                });
-            }
-        }
-        Ok(())
-    }
 }
 
 impl Default for Assembler {
@@ -864,158 +647,13 @@ impl Default for Assembler {
     }
 }
 
-/// A fully assembled statement with all grammatical roles filled
-///
-/// This struct represents the "final state" of a sentence after parsing.
-/// It contains all the semantic components (subject, verb, object, etc.)
-/// extracted from the input stream.
-#[derive(Debug, Clone, Default)]
-pub struct AssembledStatement {
-    /// The subject (nominative) - the agent/doer
-    pub subject: Option<Constituent>,
-
-    /// Additional nominatives (for function names, etc.)
-    pub nominatives: Vec<Constituent>,
-
-    /// The verb - the action
-    pub verb: Option<VerbConstituent>,
-
-    /// The direct object (accusative) - receives the action
-    pub object: Option<Constituent>,
-
-    /// The indirect object (dative) - recipient/beneficiary
-    pub indirect: Option<Constituent>,
-
-    /// Possessors/sources (genitive) - attached to other constituents
-    pub genitives: Vec<Constituent>,
-
-    /// Adjectives modifying nouns
-    pub adjectives: Vec<Constituent>,
-
-    /// Literal values (strings, numbers) that appeared
-    pub literals: Vec<Literal>,
-
-    /// Array literals that appeared
-    pub arrays: Vec<Vec<Expr>>,
-
-    /// Index accesses (array, index)
-    pub index_accesses: Vec<(Expr, Expr)>,
-
-    /// Property accesses (owner, property)
-    pub property_accesses: Vec<(String, String)>,
-
-    /// Binary operators found between expressions
-    pub operators: Vec<BinaryOp>,
-
-    /// Parenthesized blocks (nested expressions)
-    pub blocks: Vec<Vec<crate::ast::Statement>>,
-
-    /// Nested phrases (parenthesized function calls)
-    pub nested_phrases: Vec<Vec<Expr>>,
-
-    /// Participles (used for lambdas/closures)
-    pub participles: Vec<ParticipleConstituent>,
-
-    /// Unwrap expressions (expr!)
-    pub unwraps: Vec<Expr>,
-
-    /// Whether this is a query (ends with ?)
-    pub is_query: bool,
-
-    /// Whether this statement propagates (ends with ;)
-    pub is_propagate: bool,
-
-    /// Whether this binding has the mutable marker (μετά)
-    pub has_mutable_marker: bool,
-
-    /// Whether this statement has the containment preposition (ἐν)
-    pub has_containment_preposition: bool,
-
-    /// Whether this statement has the delimiter preposition (κατά)
-    pub has_delimiter_preposition: bool,
-
-    /// String method call: (method_name, delimiter)
-    pub string_method: Option<(String, String)>,
-}
-
-/// A noun/pronoun constituent with its grammatical info
-#[derive(Debug, Clone)]
-pub struct Constituent {
-    /// The dictionary form
-    pub lemma: SmolStr,
-
-    /// Original text as it appeared
-    pub original: SmolStr,
-
-    /// Grammatical case
-    pub case: Case,
-
-    /// Grammatical number
-    pub number: Option<Number>,
-
-    /// Grammatical gender
-    pub gender: Option<Gender>,
-
-    /// Grammatical person (1st, 2nd, 3rd)
-    pub person: Option<Person>,
-}
-
-/// A verb constituent with its grammatical info
-#[derive(Debug, Clone)]
-pub struct VerbConstituent {
-    /// The dictionary form
-    pub lemma: SmolStr,
-
-    /// Original text as it appeared
-    pub original: SmolStr,
-
-    /// Person (1st, 2nd, 3rd)
-    pub person: Option<Person>,
-
-    /// Number (singular, plural)
-    pub number: Option<Number>,
-
-    /// Tense (present, aorist, etc.)
-    pub tense: Option<Tense>,
-
-    /// Mood (indicative, imperative, etc.)
-    pub mood: Option<Mood>,
-
-    /// Voice (active, middle, passive)
-    pub voice: Option<Voice>,
-}
-
-/// A participle constituent (used for lambdas/closures)
-#[derive(Debug, Clone)]
-pub struct ParticipleConstituent {
-    /// The verb stem extracted from the participle
-    pub verb_lemma: SmolStr,
-    /// Original text as it appeared
-    pub original: SmolStr,
-    /// Tense (present, aorist, perfect)
-    pub tense: Tense,
-    /// Voice (active, middle, passive)
-    pub voice: Voice,
-    /// Case (adjectival property)
-    pub case: Case,
-    /// Gender (adjectival property)
-    pub gender: Gender,
-    /// Number (adjectival property)
-    pub number: Number,
-}
-
-/// A literal value
-#[derive(Debug, Clone)]
-pub enum Literal {
-    String(String),
-    Number(i64),
-    Boolean(bool),
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::morphology::{Tense, Voice, analyze};
+    use crate::morphology::lexicon::BinaryOp;
+    use crate::morphology::{
+        Case, Gender, Mood, Number, PartOfSpeech, Person, Tense, Voice, analyze,
+    };
 
     #[test]
     fn test_operator_detection() {
