@@ -1457,3 +1457,148 @@ pub fn try_parse_struct_instantiation(
 
     Ok(None)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Clause, Expr, Statement, Word};
+    use crate::semantic::{GlossaType, Scope};
+
+    // Helper to create a dummy statement
+    fn make_stmt(words: Vec<&str>) -> Statement {
+        let expressions: Vec<Expr> = words
+            .into_iter()
+            .map(|w| Expr::Word(Word::new(w)))
+            .collect();
+
+        // If multiple words, wrap in Phrase as parser would, unless it's a single word
+        let expr = if expressions.len() == 1 {
+            expressions[0].clone()
+        } else {
+            Expr::Phrase(expressions)
+        };
+
+        Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![expr],
+            }],
+            is_query: false,
+            is_propagate: false,
+        }
+    }
+
+    #[test]
+    fn test_analyze_control_flow_empty_statement() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope);
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_analyze_control_flow_break() {
+        let mut scope = Scope::new();
+        let stmt = make_stmt(vec!["παῦε"]);
+        let result = analyze_control_flow(&stmt, &mut scope).unwrap();
+        assert!(matches!(result, Some(AnalyzedStatement::Break)));
+    }
+
+    #[test]
+    fn test_analyze_control_flow_continue() {
+        let mut scope = Scope::new();
+        let stmt = make_stmt(vec!["συνέχιζε"]);
+        let result = analyze_control_flow(&stmt, &mut scope).unwrap();
+        assert!(matches!(result, Some(AnalyzedStatement::Continue)));
+    }
+
+    #[test]
+    fn test_struct_instantiation_not_enough_terms() {
+        let mut scope = Scope::new();
+        // "x new Type" (missing "let")
+        let stmt = make_stmt(vec!["χ", "νέον", "Τύπος"]);
+        let result = try_parse_struct_instantiation(&stmt, &mut scope).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_struct_instantiation_wrong_verb() {
+        let mut scope = Scope::new();
+        // "x new Type wrong"
+        let stmt = make_stmt(vec!["χ", "νέον", "Τύπος", "λάθος"]);
+        let result = try_parse_struct_instantiation(&stmt, &mut scope).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_struct_instantiation_not_new() {
+        let mut scope = Scope::new();
+        // "x old Type let"
+        let stmt = make_stmt(vec!["χ", "παλαιόν", "Τύπος", "ἔστω"]);
+        let result = try_parse_struct_instantiation(&stmt, &mut scope).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_struct_instantiation_unknown_type() {
+        let mut scope = Scope::new();
+        // "x new UnknownType let" - should ERROR, not return None
+        let stmt = make_stmt(vec!["χ", "νέον", "Ἄγνωστον", "ἔστω"]);
+        let result = try_parse_struct_instantiation(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Ἄγνωστον"));
+    }
+
+    #[test]
+    fn test_trait_method_call_wrong_length() {
+        let mut scope = Scope::new();
+        // "method receiver extra"
+        let stmt = make_stmt(vec!["μέθοδος", "δέκτης", "ἄλλο"]);
+        let result = try_parse_trait_method_call(&stmt, &mut scope).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_trait_method_call_unknown_receiver() {
+        let mut scope = Scope::new();
+        // "method unknown"
+        let stmt = make_stmt(vec!["μέθοδος", "ἄγνωστος"]);
+        let result = try_parse_trait_method_call(&stmt, &mut scope).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_trait_method_call_receiver_not_struct() {
+        let mut scope = Scope::new();
+        scope.define("χ", GlossaType::Number);
+        // "method x" (x is Number, not Struct)
+        let stmt = make_stmt(vec!["μέθοδος", "χ"]);
+        let result = try_parse_trait_method_call(&stmt, &mut scope).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_trait_method_call_method_not_in_trait() {
+        let mut scope = Scope::new();
+        // Define a struct but no trait impl
+        scope.define_type("Τύπος", GlossaType::Struct {
+            name: "Τύπος".into(),
+            gender: crate::morphology::Gender::Neuter,
+            fields: vec![]
+        });
+        scope.define("τ", GlossaType::Struct {
+            name: "Τύπος".into(),
+            gender: crate::morphology::Gender::Neuter,
+            fields: vec![]
+        });
+
+        // "method t"
+        let stmt = make_stmt(vec!["μέθοδος", "τ"]);
+        let result = try_parse_trait_method_call(&stmt, &mut scope).unwrap();
+        assert!(result.is_none());
+    }
+}
