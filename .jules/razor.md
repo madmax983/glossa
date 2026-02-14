@@ -42,3 +42,8 @@
 **Bloat:** `src/errors/mod.rs` defined `TypeError` and `IoError` variants that were never used by the compiler.
 **Cut:** Deleted these error variants and their helper functions.
 **Saved:** Removed dead code and reduced error surface area.
+
+## [Reduction]
+**Bloat:** Fragmented semantic logic in `control_flow.rs`, `declarations.rs`, and `patterns.rs` causing tight coupling and circular logic.
+**Cut:** Merged all into `src/semantic/statements.rs` and moved `detect_iterator_pattern` to `conversion.rs`.
+**Saved:** 3 files, reduced module indirection, clarified analyzing vs converting responsibilities.

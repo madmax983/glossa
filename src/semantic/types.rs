@@ -10,6 +10,7 @@
 //! - Optative mood → `Option<T>` (value that "might be")
 //! - ἀποτέλεσμα (apotelasma) → `Result<T,E>` (outcome/result)
 
+use super::Scope;
 use crate::morphology::Gender;
 use smol_str::SmolStr;
 
@@ -190,6 +191,28 @@ pub fn detect_collection_type(type_name: &str) -> Option<(&'static str, GlossaTy
             GlossaType::Map(Box::new(GlossaType::Unknown), Box::new(GlossaType::Unknown)),
         )),
         _ => None,
+    }
+}
+
+/// Map a genitive type name to a GlossaType
+pub fn resolve_type_name(name: &str, scope: &Scope) -> GlossaType {
+    match name {
+        // ἀριθμοῦ (genitive of ἀριθμός) → Number
+        "αριθμου" => GlossaType::Number,
+        // ὀνόματος (genitive of ὄνομα) → String
+        "ονοματος" => GlossaType::String,
+        // λιστης (genitive of λίστα) → List
+        "λιστης" => GlossaType::List(Box::new(GlossaType::Unknown)),
+        _ => {
+            // Check for user-defined types
+            // Strip genitive ending and look up the nominative form
+            // For now, just try the name as-is
+            if let Some(ty) = scope.lookup_type(name) {
+                ty.clone()
+            } else {
+                GlossaType::Unknown
+            }
+        }
     }
 }
 
