@@ -25,7 +25,7 @@ fn test_assembled_statement_derive_coverage() {
 
 #[test]
 fn test_assembled_statement_full_clone_coverage() {
-    use glossa::ast::{Expr, Word};
+    use glossa::ast::Expr;
     use glossa::morphology::{Case, Number};
     use smol_str::SmolStr;
 
