@@ -56,7 +56,7 @@ pub fn parse_greek_numeral(text: &str) -> Result<i64, String> {
 
             // Letters
             _ => {
-                let value = match c {
+                let value: i64 = match c {
                     'α' => 1,
                     'β' => 2,
                     'γ' => 3,
@@ -92,7 +92,14 @@ pub fn parse_greek_numeral(text: &str) -> Result<i64, String> {
                     }
                 };
 
-                total += value * multiplier;
+                let term = value
+                    .checked_mul(multiplier)
+                    .ok_or_else(|| "Numeric overflow".to_string())?;
+
+                total = total
+                    .checked_add(term)
+                    .ok_or_else(|| "Numeric overflow".to_string())?;
+
                 // Reset multiplier after applying it to one digit
                 multiplier = 1;
             }
