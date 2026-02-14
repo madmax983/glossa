@@ -1205,7 +1205,10 @@ pub fn extract_value(
             && !asm_stmt.literals.is_empty()
         {
             // Build: object op literal
-            let left_type = scope.lookup(&obj.lemma).cloned().unwrap_or(GlossaType::Unknown);
+            let left_type = scope
+                .lookup(&obj.lemma)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown);
             let left = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: left_type,
@@ -1223,7 +1226,10 @@ pub fn extract_value(
             && !asm_stmt.literals.is_empty()
         {
             // Build: nominative op literal
-            let left_type = scope.lookup(&nom.lemma).cloned().unwrap_or(GlossaType::Unknown);
+            let left_type = scope
+                .lookup(&nom.lemma)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown);
             let left = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
                 glossa_type: left_type,
