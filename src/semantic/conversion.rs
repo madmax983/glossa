@@ -887,14 +887,10 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
     if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2 {
         let op = asm_stmt.operators[0];
 
-        let left = if let Some(ref subj) = asm_stmt.subject {
-            Some(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            })
-        } else {
-            None
-        };
+        let left = asm_stmt.subject.as_ref().map(|subj| AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+            glossa_type: GlossaType::Unknown,
+        });
 
         // Try to get right operand from exprs (literal) or object or nominatives
         let right = if let Some(lit_expr) = exprs.first() {
@@ -904,13 +900,11 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             })
-        } else if let Some(ref nom) = asm_stmt.nominatives.first() {
-            Some(AnalyzedExpr {
+        } else {
+            asm_stmt.nominatives.first().map(|nom| AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             })
-        } else {
-            None
         };
 
         if let (Some(l), Some(r)) = (left, right) {

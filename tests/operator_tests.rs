@@ -87,7 +87,11 @@ fn test_arithmetic_sum() {
     let source = "πέντε τριῶν ἄθροισμα λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("+") || output.contains("checked_add"), "Expected + in output: {}", output);
+    assert!(
+        output.contains("+") || output.contains("checked_add"),
+        "Expected + in output: {}",
+        output
+    );
 }
 
 #[test]
@@ -96,7 +100,11 @@ fn test_arithmetic_difference() {
     let source = "πέντε τριῶν διαφορά λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("-") || output.contains("checked_sub"), "Expected - in output: {}", output);
+    assert!(
+        output.contains("-") || output.contains("checked_sub"),
+        "Expected - in output: {}",
+        output
+    );
 }
 
 #[test]
@@ -105,7 +113,11 @@ fn test_arithmetic_product() {
     let source = "πέντε τριῶν γινόμενον λέγε.";
     let output = compile_to_rust(source);
 
-    assert!(output.contains("*") || output.contains("checked_mul"), "Expected * in output: {}", output);
+    assert!(
+        output.contains("*") || output.contains("checked_mul"),
+        "Expected * in output: {}",
+        output
+    );
 }
 
 // =============================================================================
@@ -129,5 +141,8 @@ fn test_arithmetic_in_binding() {
     let output = compile_to_rust(source);
 
     assert!(output.contains("let"), "Expected let binding");
-    assert!(output.contains("+") || output.contains("checked_add"), "Expected + operation");
+    assert!(
+        output.contains("+") || output.contains("checked_add"),
+        "Expected + operation"
+    );
 }
