@@ -1,58 +1,28 @@
-use crossterm::style::Stylize;
-use miette::{IntoDiagnostic, Result};
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::time::SystemTime;
-
 use crate::codegen::generate_rust_file;
-use crate::errors::GlossaError;
 use crate::experimental::bard::tell_tale;
 use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
-use crate::semantic::analyze_program;
+use crate::semantic::{AnalyzedProgram, analyze_program};
+use crate::tools::cache::Cache;
 use crate::tools::highlight::highlight;
 use crate::tools::ui::Status;
+use crossterm::style::Stylize;
+use miette::{IntoDiagnostic, Result};
+use std::fs;
+use std::path::Path;
+use std::process::{Command, Stdio};
 
 /// Maximum source file size (1MB) to prevent memory exhaustion
 const MAX_FILE_SIZE: u64 = 1024 * 1024;
 
-fn compile(source: &str) -> std::result::Result<String, GlossaError> {
-    let ast = parse(source)?;
-    let analyzed = analyze_program(&ast)?;
+fn analyze_source(source: &str) -> Result<AnalyzedProgram> {
+    let ast = parse(source).map_err(|e| miette::miette!("{}", e))?;
+    analyze_program(&ast).map_err(|e| miette::miette!("{}", e))
+}
+
+fn compile(source: &str) -> Result<String> {
+    let analyzed = analyze_source(source)?;
     Ok(generate_rust_file(&analyzed))
-}
-
-/// Get the cache directory for compiled programs
-fn cache_dir() -> PathBuf {
-    let base = dirs_next::cache_dir()
-        .or_else(dirs_next::home_dir)
-        .unwrap_or_else(|| PathBuf::from("."));
-    base.join(".glossa").join("cache")
-}
-
-/// Generate a cache key from source file path
-fn cache_key(input: &Path) -> String {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-
-    let canonical = input.canonicalize().unwrap_or_else(|_| input.to_path_buf());
-    let mut hasher = DefaultHasher::new();
-    canonical.hash(&mut hasher);
-    format!("{:016x}", hasher.finish())
-}
-
-/// Check if cached binary is still valid (source not modified since compile)
-fn cache_valid(input: &Path, cached_exe: &Path) -> bool {
-    let source_modified = fs::metadata(input)
-        .and_then(|m| m.modified())
-        .unwrap_or(SystemTime::UNIX_EPOCH);
-
-    let exe_modified = fs::metadata(cached_exe)
-        .and_then(|m| m.modified())
-        .unwrap_or(SystemTime::UNIX_EPOCH);
-
-    exe_modified > source_modified
 }
 
 /// Check file size to prevent DoS
@@ -68,17 +38,22 @@ fn check_file_size(input: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
+fn load_source(input: &Path) -> Result<String> {
+    if !input.exists() {
+        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
+    }
     check_file_size(input)?;
+    fs::read_to_string(input).into_diagnostic()
+}
 
+pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let status = Status::start("Μεταγλώττισις (Compiling)...");
     let start = std::time::Instant::now();
-    let source = fs::read_to_string(input).into_diagnostic()?;
+    let source = load_source(input)?;
     let input_size = source.len() as u64;
 
     // Split compile to get stats
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let analyzed = analyze_source(&source)?;
     let rust_code = generate_rust_file(&analyzed);
 
     let output_path = output
@@ -108,27 +83,19 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 }
 
 pub fn run_file(input: &Path) -> Result<()> {
-    // Validate file exists
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
-
     check_file_size(input)?;
 
-    // Set up cache directory
-    let cache = cache_dir();
-    fs::create_dir_all(&cache).into_diagnostic()?;
+    // Set up cache
+    let cache = Cache::new();
+    cache.init().into_diagnostic()?;
 
-    let key = cache_key(input);
-    let cached_rs = cache.join(format!("{}.rs", key));
-    let cached_exe = cache.join(format!(
-        "{}{}",
-        key,
-        if cfg!(windows) { ".exe" } else { "" }
-    ));
+    let (cached_rs, cached_exe) = cache.get_paths(input);
 
     // Check if we can use cached binary
-    if cache_valid(input, &cached_exe) && cached_exe.exists() {
+    if cache.is_valid(input, &cached_exe) && cached_exe.exists() {
         // Run cached binary directly
         let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
@@ -141,13 +108,13 @@ pub fn run_file(input: &Path) -> Result<()> {
     let mut status = Status::start("Μεταγλώττισις (Compiling)...");
 
     // Compile source
-    let source = fs::read_to_string(input).into_diagnostic()?;
+    let source = load_source(input)?;
 
     let rust_code = match compile(&source) {
         Ok(code) => code,
         Err(e) => {
             status.error("Σφάλμα μεταγλωττίσεως");
-            return Err(miette::miette!("{}", e));
+            return Err(e);
         }
     };
 
@@ -186,12 +153,9 @@ pub fn run_file(input: &Path) -> Result<()> {
 }
 
 pub fn check_file(input: &Path) -> Result<()> {
-    check_file_size(input)?;
+    let source = load_source(input)?;
 
-    let source = fs::read_to_string(input).into_diagnostic()?;
-
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let analyzed = analyze_source(&source)?;
 
     let filename = input
         .file_name()
@@ -206,9 +170,7 @@ pub fn check_file(input: &Path) -> Result<()> {
 }
 
 pub fn highlight_file(input: &Path) -> Result<()> {
-    check_file_size(input)?;
-
-    let source = fs::read_to_string(input).into_diagnostic()?;
+    let source = load_source(input)?;
     let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", highlighted);
@@ -217,11 +179,8 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 }
 
 pub fn bard_file(input: &Path) -> Result<()> {
-    check_file_size(input)?;
-
-    let source = fs::read_to_string(input).into_diagnostic()?;
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let source = load_source(input)?;
+    let analyzed = analyze_source(&source)?;
 
     let tale = tell_tale(&analyzed);
     println!("{}", tale);
@@ -367,14 +326,10 @@ mod tests {
         assert!(result.is_ok());
 
         // 3. Verify cache exists
-        let cache = cache_dir();
-        assert!(cache.exists());
-        let key = cache_key(&input_path);
-        let cached_exe = cache.join(format!(
-            "{}{}",
-            key,
-            if cfg!(windows) { ".exe" } else { "" }
-        ));
+        let cache = Cache::new();
+        // We can't easily check internal dir existence without exposing it,
+        // but we can check if the exe exists via get_paths
+        let (_, cached_exe) = cache.get_paths(&input_path);
         assert!(cached_exe.exists());
 
         // 4. Run again to test cache hit path

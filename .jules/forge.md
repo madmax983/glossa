@@ -5,3 +5,7 @@
 **Refactoring `build_statement` in parser**
 **Learning:** Pest parser AST construction often defaults to iterating over all children (`into_inner()`) and accumulating state. When the grammar guarantees mutually exclusive alternatives (e.g., `statement = { A | B | C }`), inspecting the first child (`pairs.next()`) allows for direct dispatch, eliminating mutable state variables and loops.
 **Action:** Review grammar rules for "choice" patterns and refactor corresponding builder functions to use dispatch logic instead of accumulation loops.
+
+**Refactoring `runner.rs` tool orchestration**
+**Learning:** CLI tools often repeat validation and setup logic (file existence, size checks, cache management) across multiple commands. Extracting these into helper functions (`load_source`, `analyze_source`) and dedicated modules (`cache.rs`) clarifies the core intent of each command.
+**Action:** Identify repeated "pre-flight" checks in command handlers and unify them into a single pipeline or context struct early.
