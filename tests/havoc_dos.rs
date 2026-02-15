@@ -1,7 +1,7 @@
 use std::path::Path;
+use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
-use std::sync::mpsc;
 
 #[test]
 fn test_dos_dev_zero() {
