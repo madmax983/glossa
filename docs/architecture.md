@@ -34,6 +34,7 @@ C4Container
     Container(highlight, "Highlighter", "src/highlight.rs", "Semantic syntax highlighting")
     Container(report, "Reporter", "src/report.rs", "Generates statistics and structured reports")
     Container(codegen, "Code Generator", "src/codegen", "Generates Rust source code")
+    Container(storage, "Storage", "src/tools/cache.rs", "Manages file system, caching, and persistence")
 
     Rel(lexer, parser, "Stream<Token>")
     Rel(parser, morphology, "AST (Unresolved)")
@@ -41,6 +42,58 @@ C4Container
     Rel(morphology, semantic, "AST (Resolved Morphology)")
     Rel(semantic, report, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
+    Rel(codegen, storage, "Persists Artifacts")
+```
+
+## Core vs Storage (Class Diagram)
+
+This diagram illustrates the decoupling between the core compiler logic and the storage/persistence layer.
+
+```mermaid
+classDiagram
+    class Core {
+        +parse()
+        +analyze()
+        +compile()
+    }
+    class Storage {
+        +read_source()
+        +write_artifact()
+        +check_cache()
+    }
+    class Runner {
+        +run()
+    }
+
+    Runner --> Core : Orchestrates
+    Runner --> Storage : Uses
+    Core ..> Storage : Uses (Trait Bound)
+```
+
+## Compilation Flow (Sequence Diagram)
+
+This diagram shows the interaction between the Runner, Storage, and Core during a typical build/run cycle.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Runner
+    participant Storage
+    participant Core
+
+    User->>Runner: glossa run main.γλ
+    Runner->>Storage: check_cache(main.γλ)
+    alt Cache Valid
+        Storage-->>Runner: Returns cached binary path
+    else Cache Invalid
+        Storage-->>Runner: Cache miss
+        Runner->>Storage: read_source(main.γλ)
+        Storage-->>Runner: Source Content
+        Runner->>Core: compile(Source)
+        Core-->>Runner: Generated Rust Code
+        Runner->>Storage: write_artifact(Rust Code)
+    end
+    Runner->>User: Executes Binary
 ```
 
 ## Semantic Analysis (C4 Component Level)
