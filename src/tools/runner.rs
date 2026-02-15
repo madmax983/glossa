@@ -1,6 +1,7 @@
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
-use std::fs;
+use std::fs::{self, File};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::SystemTime;
@@ -16,6 +17,43 @@ use crate::tools::ui::Status;
 
 /// Maximum source file size (1MB) to prevent memory exhaustion
 const MAX_FILE_SIZE: u64 = 1024 * 1024;
+
+/// Load source file with strict size limit check
+///
+/// This function enforces the size limit by reading up to `MAX_FILE_SIZE + 1` bytes.
+/// If the file is larger, it returns an error. This protects against files that report
+/// a small size in metadata (like /dev/zero) but are actually infinite/large.
+fn load_source(path: &Path) -> Result<String> {
+    // 1. Fast path: Check metadata size (if available/reliable)
+    if let Ok(metadata) = fs::metadata(path)
+        && metadata.len() > MAX_FILE_SIZE
+    {
+        return Err(miette::miette!(
+            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
+            metadata.len(),
+            MAX_FILE_SIZE
+        ));
+    }
+
+    // 2. Safe read: Read up to limit + 1
+    let file = File::open(path).into_diagnostic()?;
+    let mut buffer = Vec::with_capacity((MAX_FILE_SIZE + 1) as usize);
+
+    // Using take() limits the read
+    file.take(MAX_FILE_SIZE + 1)
+        .read_to_end(&mut buffer)
+        .into_diagnostic()?;
+
+    if buffer.len() as u64 > MAX_FILE_SIZE {
+        return Err(miette::miette!(
+            "Ἀρχεῖον λίαν μέγα (File too large): > {} bytes",
+            MAX_FILE_SIZE
+        ));
+    }
+
+    // 3. Convert to String (UTF-8 check)
+    String::from_utf8(buffer).map_err(|e| miette::miette!("Invalid UTF-8: {}", e))
+}
 
 fn compile(source: &str) -> std::result::Result<String, GlossaError> {
     let ast = parse(source)?;
@@ -55,25 +93,10 @@ fn cache_valid(input: &Path, cached_exe: &Path) -> bool {
     exe_modified > source_modified
 }
 
-/// Check file size to prevent DoS
-fn check_file_size(input: &Path) -> Result<()> {
-    let metadata = fs::metadata(input).into_diagnostic()?;
-    if metadata.len() > MAX_FILE_SIZE {
-        return Err(miette::miette!(
-            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
-            metadata.len(),
-            MAX_FILE_SIZE
-        ));
-    }
-    Ok(())
-}
-
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
-    check_file_size(input)?;
-
     let status = Status::start("Μεταγλώττισις (Compiling)...");
     let start = std::time::Instant::now();
-    let source = fs::read_to_string(input).into_diagnostic()?;
+    let source = load_source(input)?;
     let input_size = source.len() as u64;
 
     // Split compile to get stats
@@ -113,8 +136,6 @@ pub fn run_file(input: &Path) -> Result<()> {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
 
-    check_file_size(input)?;
-
     // Set up cache directory
     let cache = cache_dir();
     fs::create_dir_all(&cache).into_diagnostic()?;
@@ -141,7 +162,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     let mut status = Status::start("Μεταγλώττισις (Compiling)...");
 
     // Compile source
-    let source = fs::read_to_string(input).into_diagnostic()?;
+    let source = load_source(input)?;
 
     let rust_code = match compile(&source) {
         Ok(code) => code,
@@ -186,9 +207,7 @@ pub fn run_file(input: &Path) -> Result<()> {
 }
 
 pub fn check_file(input: &Path) -> Result<()> {
-    check_file_size(input)?;
-
-    let source = fs::read_to_string(input).into_diagnostic()?;
+    let source = load_source(input)?;
 
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
     let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
@@ -206,9 +225,7 @@ pub fn check_file(input: &Path) -> Result<()> {
 }
 
 pub fn highlight_file(input: &Path) -> Result<()> {
-    check_file_size(input)?;
-
-    let source = fs::read_to_string(input).into_diagnostic()?;
+    let source = load_source(input)?;
     let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", highlighted);
@@ -217,9 +234,7 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 }
 
 pub fn bard_file(input: &Path) -> Result<()> {
-    check_file_size(input)?;
-
-    let source = fs::read_to_string(input).into_diagnostic()?;
+    let source = load_source(input)?;
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
     let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
 
@@ -262,6 +277,11 @@ mod tests {
 
     #[test]
     fn test_file_size_check_internal() {
+        // This test used to test check_file_size directly.
+        // Now we test load_source which replaces it.
+        // We reuse the logic in test_load_source_limit, but keeping this
+        // to ensure we cover the case that was previously covered.
+
         // Create large file
         let dir = tempfile::tempdir().unwrap();
         let file_path = dir.path().join("large_internal.gl");
@@ -271,8 +291,8 @@ mod tests {
             f.write_all(&data).unwrap();
         }
 
-        // Call check_file_size directly
-        let result = check_file_size(&file_path);
+        // Call load_source
+        let result = load_source(&file_path);
         assert!(result.is_err());
         assert!(
             result
@@ -453,5 +473,27 @@ mod tests {
 
         let result = bard_file(&input_path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_load_source_limit() {
+        // Create large file
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("large_load.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
+            f.write_all(&data).unwrap();
+        }
+
+        // Call load_source
+        let result = load_source(&file_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον λίαν μέγα")
+        );
     }
 }
