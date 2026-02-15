@@ -939,6 +939,12 @@ fn resolve_variable(name: &str, scope: &Scope) -> Result<AnalyzedExpr, GlossaErr
             expr: AnalyzedExprKind::Variable(name.into()),
             glossa_type: ty.clone(),
         })
+    } else if let Some(sig) = scope.lookup_function(name) {
+        let return_type = sig.return_type.clone().unwrap_or(GlossaType::Unknown);
+        Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(name.into()),
+            glossa_type: return_type,
+        })
     } else {
         Err(GlossaError::undefined(name))
     }
