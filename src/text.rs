@@ -80,7 +80,7 @@ fn is_safe_char(c: char) -> bool {
 }
 
 /// Check if a character is a Greek diacritical mark to be stripped
-fn is_greek_diacritic(c: char) -> bool {
+pub(crate) fn is_greek_diacritic(c: char) -> bool {
     matches!(
         c,
         '\u{0300}'          // Combining grave accent
