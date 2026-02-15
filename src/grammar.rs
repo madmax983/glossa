@@ -4,9 +4,9 @@
 //! It handles the initial stage of the compiler pipeline: converting raw source code
 //! into a Concrete Syntax Tree (via [`pest`]) or an Abstract Syntax Tree (via the `ast` module).
 //!
-//! # The Grammar (`glossa.pest`)
+//! # The Grammar (`grammar.pest`)
 //!
-//! The language syntax is defined in [glossa.pest](https://github.com/madmax983/glossa/blob/trunk/src/grammar/glossa.pest).
+//! The language syntax is defined in `grammar.pest`.
 //!
 //! ## High-Level Structure
 //!
@@ -23,13 +23,13 @@
 //!    We normalize everything to monotonic lowercase to simplify processing.
 //!    `ἄνθρωπος` -> `ανθρωπος`.
 //!
-//! 2. **PEG Parsing** (`glossa.pest`):
-//!    We use a Parsing Expression Grammar (PEG) defined in `glossa.pest`.
+//! 2. **PEG Parsing** (`grammar.pest`):
+//!    We use a Parsing Expression Grammar (PEG) defined in `grammar.pest`.
 //!    This grammar handles the raw tokenization and structure of the language.
 //!
 //! 3. **AST Construction**:
 //!    The `parse` function returns a `pest` Pair iterator, which is then typically
-//!    converted into our AST (see `crate::ast::build_ast`).
+//!    converted into our AST (see `crate::parser::parse`).
 //!
 //! # Example
 //!
@@ -50,7 +50,7 @@ use pest::Parser;
 use pest_derive::Parser;
 
 #[derive(Parser)]
-#[grammar = "grammar/glossa.pest"]
+#[grammar = "grammar.pest"]
 pub struct GlossaParser;
 
 /// Parse a ΓΛΩΣΣΑ source string into a pest parse tree
