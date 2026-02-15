@@ -1,17 +1,15 @@
 use crate::codegen::generate_rust_file;
-use crate::experimental::bard::tell_tale;
 use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::{AnalyzedProgram, analyze_program};
-use crate::tools::cache::Cache;
 use crate::tools::highlight::highlight;
-use crate::tools::ui::Status;
-use crossterm::style::Stylize;
+use crossterm::{ExecutableCommand, cursor, style::Stylize, terminal};
 use miette::{IntoDiagnostic, Result};
 use std::fs;
-use std::io::Read;
-use std::path::Path;
+use std::io::{self, IsTerminal, Read, Write};
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::time::{Instant, SystemTime};
 
 /// Maximum source file size (1MB) to prevent memory exhaustion
 const MAX_FILE_SIZE: u64 = 1024 * 1024;
@@ -195,14 +193,196 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn bard_file(input: &Path) -> Result<()> {
-    let source = load_source(input)?;
-    let analyzed = analyze_source(&source)?;
+// --- Internal Modules (Flattened) ---
 
-    let tale = tell_tale(&analyzed);
-    println!("{}", tale);
+/// Manages the build cache for compiled programs.
+struct Cache {
+    base_dir: PathBuf,
+}
 
-    Ok(())
+impl Default for Cache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Cache {
+    /// Create a new Cache manager, resolving the cache directory.
+    fn new() -> Self {
+        let base_dir = dirs_next::cache_dir()
+            .or_else(dirs_next::home_dir)
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".glossa")
+            .join("cache");
+        Self { base_dir }
+    }
+
+    /// Ensure the cache directory exists.
+    fn init(&self) -> std::io::Result<()> {
+        fs::create_dir_all(&self.base_dir)
+    }
+
+    /// Generate a cache key from the source file path.
+    fn key(&self, input: &Path) -> String {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let canonical = input.canonicalize().unwrap_or_else(|_| input.to_path_buf());
+        let mut hasher = DefaultHasher::new();
+        canonical.hash(&mut hasher);
+        format!("{:016x}", hasher.finish())
+    }
+
+    /// Get the paths for the cached Rust source and executable.
+    fn get_paths(&self, input: &Path) -> (PathBuf, PathBuf) {
+        let key = self.key(input);
+        let cached_rs = self.base_dir.join(format!("{}.rs", key));
+        let cached_exe = self.base_dir.join(format!(
+            "{}{}",
+            key,
+            if cfg!(windows) { ".exe" } else { "" }
+        ));
+        (cached_rs, cached_exe)
+    }
+
+    /// Check if the cached binary is still valid (source not modified since compile).
+    fn is_valid(&self, input: &Path, cached_exe: &Path) -> bool {
+        let source_modified = fs::metadata(input)
+            .and_then(|m| m.modified())
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+
+        let exe_modified = fs::metadata(cached_exe)
+            .and_then(|m| m.modified())
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+
+        exe_modified > source_modified
+    }
+}
+
+/// Status indicator for long-running operations
+struct Status {
+    message: String,
+    start: Instant,
+    is_tty: bool,
+    active: bool,
+}
+
+impl Status {
+    /// Create a new status indicator
+    fn start(message: impl Into<String>) -> Self {
+        let is_tty = io::stderr().is_terminal();
+        Self::new(message, is_tty)
+    }
+
+    /// Internal constructor for testing
+    fn new(message: impl Into<String>, is_tty: bool) -> Self {
+        let message = message.into();
+
+        if is_tty {
+            let mut stderr = io::stderr();
+            // Hide cursor
+            let _ = stderr.execute(cursor::Hide);
+            // Print status
+            eprint!("{} {}...", "⚡".yellow(), message.clone().bold());
+            let _ = io::stderr().flush();
+        } else {
+            // For non-TTY, just print line
+            eprintln!("{} {}...", "⚡".yellow(), message.clone().bold());
+        }
+
+        Self {
+            message,
+            start: Instant::now(),
+            is_tty,
+            active: true,
+        }
+    }
+
+    /// Update the status message
+    fn update(&mut self, message: impl Into<String>) {
+        if !self.active {
+            return;
+        }
+
+        let message = message.into();
+        self.message = message.clone();
+
+        if self.is_tty {
+            let mut stderr = io::stderr();
+            // Clear current line
+            eprint!("\r");
+            let _ = stderr.execute(terminal::Clear(terminal::ClearType::UntilNewLine));
+            // Print new status
+            eprint!("{} {}...", "⚡".yellow(), message.bold());
+            let _ = io::stderr().flush();
+        } else {
+            eprintln!("{} {}...", "⚡".yellow(), message.bold());
+        }
+    }
+
+    /// Mark the operation as complete success
+    fn success(mut self) {
+        if !self.active {
+            return;
+        }
+
+        let duration = self.start.elapsed();
+        let time_str = format!("({:.2?})", duration).dim();
+
+        if self.is_tty {
+            let mut stderr = io::stderr();
+            // Clear line
+            eprint!("\r");
+            let _ = stderr.execute(terminal::Clear(terminal::ClearType::UntilNewLine));
+            // Print success
+            eprintln!(
+                "{} {} {}",
+                "✓".green(),
+                self.message.as_str().bold(),
+                time_str
+            );
+            // Show cursor
+            let _ = stderr.execute(cursor::Show);
+        } else {
+            eprintln!(
+                "{} {} {}",
+                "✓".green(),
+                self.message.as_str().bold(),
+                time_str
+            );
+        }
+
+        self.active = false;
+    }
+
+    /// Mark the operation as failed
+    fn error(mut self, err: impl std::fmt::Display) {
+        if !self.active {
+            return;
+        }
+
+        if self.is_tty {
+            let mut stderr = io::stderr();
+            eprint!("\r");
+            let _ = stderr.execute(terminal::Clear(terminal::ClearType::UntilNewLine));
+            eprintln!("{} {}", "✕".red(), self.message.as_str().bold());
+            // Show cursor
+            let _ = stderr.execute(cursor::Show);
+        } else {
+            eprintln!("{} {}", "✕".red(), self.message.as_str().bold());
+        }
+
+        eprintln!("{}", err);
+        self.active = false;
+    }
+}
+
+impl Drop for Status {
+    fn drop(&mut self) {
+        if self.active && self.is_tty {
+            let _ = io::stderr().execute(cursor::Show);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -411,19 +591,6 @@ mod tests {
         // We can't easily capture stdout here without a lot of plumbing,
         // but we can ensure it doesn't error.
         let result = highlight_file(&input_path);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_bard_file_valid() {
-        let dir = tempfile::tempdir().unwrap();
-        let input_path = dir.path().join("bard.gl");
-        {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
-        }
-
-        let result = bard_file(&input_path);
         assert!(result.is_ok());
     }
 }
