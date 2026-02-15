@@ -7,6 +7,7 @@ use std::time::SystemTime;
 
 use crate::codegen::generate_rust_file;
 use crate::errors::GlossaError;
+use crate::experimental::bard::tell_tale;
 use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::analyze_program;
@@ -211,6 +212,19 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", highlighted);
+
+    Ok(())
+}
+
+pub fn bard_file(input: &Path) -> Result<()> {
+    check_file_size(input)?;
+
+    let source = fs::read_to_string(input).into_diagnostic()?;
+    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
+    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+
+    let tale = tell_tale(&analyzed);
+    println!("{}", tale);
 
     Ok(())
 }
@@ -425,6 +439,19 @@ mod tests {
         // We can't easily capture stdout here without a lot of plumbing,
         // but we can ensure it doesn't error.
         let result = highlight_file(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_bard_file_valid() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("bard.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
+        }
+
+        let result = bard_file(&input_path);
         assert!(result.is_ok());
     }
 }
