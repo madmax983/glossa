@@ -531,6 +531,8 @@ impl Assembler {
                 // Default to accusative (object) if we have no object
                 if self.state.object.is_none() {
                     self.state.object = Some(constituent);
+                } else {
+                    return Err(AssemblyError::DoubleObject);
                 }
             }
         }
@@ -1588,6 +1590,216 @@ mod tests {
         assert!(
             matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
             "Expected immediate agreement failure for SVO"
+        );
+    }
+
+    fn make_analysis(
+        lemma: &str,
+        pos: PartOfSpeech,
+        case: Option<Case>,
+        number: Option<Number>,
+    ) -> MorphAnalysis {
+        MorphAnalysis {
+            lemma: std::borrow::Cow::Owned(lemma.to_string()),
+            part_of_speech: pos,
+            case,
+            number,
+            gender: None,
+            person: None,
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        }
+    }
+
+    #[test]
+    fn test_max_literals_exceeded() {
+        let mut asm = Assembler::new();
+        for i in 0..MAX_LITERALS {
+            asm.feed_number(i as i64).unwrap();
+        }
+        let result = asm.feed_number(0);
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Literals" && max == MAX_LITERALS)
+        );
+    }
+
+    #[test]
+    fn test_max_nominatives_exceeded() {
+        let mut asm = Assembler::new();
+        let subj = make_analysis(
+            "subject",
+            PartOfSpeech::Noun,
+            Some(Case::Nominative),
+            Some(Number::Singular),
+        );
+        asm.feed(&subj, "subject").unwrap();
+
+        for i in 0..MAX_NOMINATIVES {
+            let nom = make_analysis(
+                &format!("nom_{}", i),
+                PartOfSpeech::Noun,
+                Some(Case::Nominative),
+                Some(Number::Singular),
+            );
+            asm.feed(&nom, &format!("nom_{}", i)).unwrap();
+        }
+
+        let nom = make_analysis(
+            "overflow",
+            PartOfSpeech::Noun,
+            Some(Case::Nominative),
+            Some(Number::Singular),
+        );
+        let result = asm.feed(&nom, "overflow");
+
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Nominatives" && max == MAX_NOMINATIVES)
+        );
+    }
+
+    #[test]
+    fn test_max_adjectives_exceeded() {
+        let mut asm = Assembler::new();
+        for i in 0..MAX_ADJECTIVES {
+            let adj = make_analysis(
+                &format!("adj_{}", i),
+                PartOfSpeech::Adjective,
+                Some(Case::Nominative),
+                Some(Number::Singular),
+            );
+            asm.feed(&adj, &format!("adj_{}", i)).unwrap();
+        }
+
+        let adj = make_analysis(
+            "overflow",
+            PartOfSpeech::Adjective,
+            Some(Case::Nominative),
+            Some(Number::Singular),
+        );
+        let result = asm.feed(&adj, "overflow");
+
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Adjectives" && max == MAX_ADJECTIVES)
+        );
+    }
+
+    #[test]
+    fn test_max_operators_exceeded() {
+        let mut asm = Assembler::new();
+        let op_analysis = make_analysis("και", PartOfSpeech::Conjunction, None, None);
+        for _ in 0..MAX_OPERATORS {
+            asm.feed(&op_analysis, "καί").unwrap();
+        }
+        let result = asm.feed(&op_analysis, "καί");
+
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Operators" && max == MAX_OPERATORS)
+        );
+    }
+
+    #[test]
+    fn test_max_genitives_exceeded() {
+        let mut asm = Assembler::new();
+        for i in 0..MAX_GENITIVES {
+            let genitive = make_analysis(
+                &format!("gen_{}", i),
+                PartOfSpeech::Noun,
+                Some(Case::Genitive),
+                Some(Number::Singular),
+            );
+            asm.feed(&genitive, &format!("gen_{}", i)).unwrap();
+        }
+
+        let genitive = make_analysis(
+            "overflow",
+            PartOfSpeech::Noun,
+            Some(Case::Genitive),
+            Some(Number::Singular),
+        );
+        let result = asm.feed(&genitive, "overflow");
+
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Genitives" && max == MAX_GENITIVES)
+        );
+    }
+
+    #[test]
+    fn test_silent_swallowing_of_unknown_case() {
+        let mut asm = Assembler::new();
+        let obj = make_analysis(
+            "object",
+            PartOfSpeech::Noun,
+            Some(Case::Accusative),
+            Some(Number::Singular),
+        );
+        asm.feed(&obj, "object").unwrap();
+
+        let unknown = make_analysis("unknown", PartOfSpeech::Noun, None, Some(Number::Singular));
+        let result = asm.feed(&unknown, "unknown");
+
+        assert!(
+            matches!(result, Err(AssemblyError::DoubleObject)),
+            "Expected DoubleObject error for unknown case when object slot is full, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_neuter_plural_subject_first_person_verb() {
+        let mut asm = Assembler::new();
+        let subj = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("dwron"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Nominative),
+            number: Some(Number::Plural),
+            gender: Some(Gender::Neuter),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&subj, "δῶρα").unwrap();
+
+        let verb = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("blepw"),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(Number::Singular),
+            gender: None,
+            person: Some(Person::First),
+            tense: Some(Tense::Present),
+            mood: Some(Mood::Indicative),
+            voice: Some(Voice::Active),
+            confidence: 1.0,
+        };
+
+        let result = asm.feed(&verb, "βλέπω");
+        assert!(
+            matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
+            "Neuter plural subject (3rd) should NOT agree with 1st person verb, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_disambiguation_en_vs_hen() {
+        let mut asm = Assembler::new();
+        let analysis = make_analysis("εν", PartOfSpeech::Preposition, None, None);
+
+        asm.feed(&analysis, "ἐν").unwrap();
+        let stmt = asm.finalize().unwrap();
+        assert!(stmt.has_containment_preposition);
+
+        let mut asm = Assembler::new();
+        let hen = "ἕν";
+        asm.feed(&analysis, hen).unwrap();
+        let stmt = asm.finalize().unwrap();
+        assert!(
+            !stmt.has_containment_preposition,
+            "Should not detect containment preposition for 'one' (hen)"
         );
     }
 }
