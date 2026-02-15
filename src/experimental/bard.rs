@@ -1,3 +1,39 @@
+//! The Bard 🎻 - Storyteller of Logic
+//!
+//! "Code is not just for machines; it is for the soul." — The Bard
+//!
+//! This module implements the "Bard" feature, which takes the compiled semantic model
+//! (the `AnalyzedProgram`) and translates it back into a whimsical English narrative.
+//!
+//! # Purpose
+//!
+//! 1.  **Debugging**: Sometimes looking at the raw AST or Rust code is overwhelming.
+//!     The Bard tells you exactly what the compiler *thinks* your code means.
+//! 2.  **Accessibility**: It provides a natural language explanation of the program logic.
+//! 3.  **Joy**: Because programming should be fun.
+//!
+//! # The "Tale" Format
+//!
+//! The generated story follows a ritualistic structure:
+//! *   It begins with "The Scroll of Logic begins..."
+//! *   Each statement is narrated as an action (e.g., "Proclaim to the world", "Let there be a variable").
+//! *   Control flow is described as conditions ("If it is true that...").
+//! *   It ends with "...and thus the ritual is complete."
+//!
+//! # Example
+//!
+//! ```glossa
+//! ξ πέντε ἔστω.
+//! «χαῖρε» λέγε.
+//! ```
+//!
+//! Becomes:
+//!
+//! > The Scroll of Logic begins...
+//! > Let there be a variable named `ξ` with the value the number 5.
+//! > Proclaim to the world: the text "χαῖρε".
+//! > ...and thus the ritual is complete.
+
 use crate::semantic::CaptureMode;
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType,
@@ -6,6 +42,21 @@ use crate::semantic::{
 /// Tells the tale of the program in English.
 ///
 /// This function translates the semantic meaning of the program into a readable English narrative.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::experimental::bard::tell_tale;
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+///
+/// let source = "ξ πέντε ἔστω.";
+/// let ast = parse(source).unwrap();
+/// let analyzed = analyze_program(&ast).unwrap();
+///
+/// let tale = tell_tale(&analyzed);
+/// assert!(tale.contains("Let there be a variable named `ξ`"));
+/// ```
 pub fn tell_tale(program: &AnalyzedProgram) -> String {
     let mut tale = String::new();
     tale.push_str("The Scroll of Logic begins...\n\n");

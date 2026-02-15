@@ -1,3 +1,27 @@
+//! The REPL (Read-Eval-Print Loop) 🐍
+//!
+//! This module implements the interactive shell for ΓΛΩΣΣΑ, allowing users to
+//! converse with the compiler in real-time.
+//!
+//! # Philosophy
+//!
+//! The REPL is not just a debugging tool; it is a conversation.
+//! *   **Read**: The oracle listens to your Greek commands.
+//! *   **Eval**: The assembler constructs meaning from your words.
+//! *   **Print**: The system responds with the result or an error (in Greek).
+//! *   **Loop**: The dialogue continues.
+//!
+//! # Architecture
+//!
+//! The REPL operates by maintaining a growing buffer of valid statements.
+//! Every time you enter a line:
+//! 1.  It appends the line to the history.
+//! 2.  It re-compiles the *entire* history to ensure validity and updated scope.
+//! 3.  It executes the latest statement or displays the new binding.
+//!
+//! This approach ensures that earlier definitions (variables, functions) remain
+//! available for later commands.
+
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
@@ -183,18 +207,18 @@ fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
     Ok(())
 }
 
-/// REPL Output variants
+/// Represents the result of a single REPL interaction
 #[derive(Debug)]
 pub enum ReplOutput {
-    /// A new variable binding
+    /// A new variable binding was created (e.g., `x = 5`)
     Binding {
         name: String,
         type_: GlossaType,
         mutable: bool,
     },
-    /// Code execution (compilation)
+    /// A statement was executed (e.g., `print("hello")`)
     Statement { code: String },
-    /// No output (e.g. empty line)
+    /// No output (e.g., empty line or comment)
     None,
 }
 
@@ -232,7 +256,17 @@ impl std::fmt::Display for ReplOutput {
     }
 }
 
-struct ReplContext {
+/// Maintains the state of the REPL session
+///
+/// This struct holds the history of all entered commands (bindings) and the
+/// current scope (variables).
+///
+/// # Logic
+///
+/// *   **Bindings**: A list of valid Glossa statements entered so far.
+/// *   **Last Scope**: The symbol table resulting from compiling the bindings.
+/// *   **Statement Count**: Optimization to detect if a new command added code.
+pub struct ReplContext {
     bindings: Vec<String>,
     last_scope: Option<Scope>,
     statement_count: usize,
@@ -247,6 +281,13 @@ impl ReplContext {
         }
     }
 
+    /// Execute a single line of input against the current context
+    ///
+    /// This function:
+    /// 1. Appends the input to the current history.
+    /// 2. Attempts to parse and analyze the full history.
+    /// 3. If successful, updates the state and returns the output.
+    /// 4. If failed, returns the error and leaves state unchanged.
     fn execute(&mut self, input: &str) -> std::result::Result<ReplOutput, GlossaError> {
         // Check binding count limit
         if self.bindings.len() > MAX_REPL_BINDINGS {
