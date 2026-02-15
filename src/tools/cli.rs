@@ -46,10 +46,4 @@ pub enum Commands {
 
     /// Start the interactive REPL
     Repl,
-
-    /// Translate a .γλ file to English logic (Experimental)
-    Bard {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
 }

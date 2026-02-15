@@ -1,5 +1,4 @@
 use crate::codegen::generate_rust_file;
-use crate::experimental::bard::tell_tale;
 use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::{AnalyzedProgram, analyze_program};
@@ -174,16 +173,6 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", highlighted);
-
-    Ok(())
-}
-
-pub fn bard_file(input: &Path) -> Result<()> {
-    let source = load_source(input)?;
-    let analyzed = analyze_source(&source)?;
-
-    let tale = tell_tale(&analyzed);
-    println!("{}", tale);
 
     Ok(())
 }
@@ -394,19 +383,6 @@ mod tests {
         // We can't easily capture stdout here without a lot of plumbing,
         // but we can ensure it doesn't error.
         let result = highlight_file(&input_path);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_bard_file_valid() {
-        let dir = tempfile::tempdir().unwrap();
-        let input_path = dir.path().join("bard.gl");
-        {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
-        }
-
-        let result = bard_file(&input_path);
         assert!(result.is_ok());
     }
 }
