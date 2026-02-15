@@ -47,7 +47,7 @@ fn load_source(input: &Path) -> Result<String> {
 }
 
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
-    let status = Status::start("Μεταγλώττισις (Compiling)...");
+    let status = Status::start("Μεταγλώττισις (Compiling)");
     let start = std::time::Instant::now();
     let source = load_source(input)?;
     let input_size = source.len() as u64;
@@ -105,7 +105,7 @@ pub fn run_file(input: &Path) -> Result<()> {
         return Ok(());
     }
 
-    let mut status = Status::start("Μεταγλώττισις (Compiling)...");
+    let mut status = Status::start("Μεταγλώττισις (Compiling)");
 
     // Compile source
     let source = load_source(input)?;
@@ -121,7 +121,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     // Write Rust source to cache
     fs::write(&cached_rs, &rust_code).into_diagnostic()?;
 
-    status.update("Οἰκοδόμησις (Building)...");
+    status.update("Οἰκοδόμησις (Building)");
 
     // Compile with rustc (hide output)
     let rustc_output = Command::new("rustc")
