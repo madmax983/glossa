@@ -12,7 +12,7 @@
 //! The "keraia" (ʹ, U+0374) marks a number (e.g., `αʹ` = 1).
 //! The "lower keraia" (͵, U+0375) multiplies the following digit by 1000 (e.g., `͵α` = 1000).
 
-use crate::text::normalize_greek;
+use unicode_normalization::UnicodeNormalization;
 
 /// Parse a Greek numeral string into an integer
 ///
@@ -34,14 +34,18 @@ use crate::text::normalize_greek;
 /// assert_eq!(parse_greek_numeral("͵ααʹ").unwrap(), 1001);
 /// ```
 pub fn parse_greek_numeral(text: &str) -> Result<i64, String> {
-    // Normalize first to handle case and diacritics
-    // Note: normalize_greek lowercases everything
-    let normalized = normalize_greek(text);
-
     let mut total: i64 = 0;
     let mut multiplier: i64 = 1;
 
-    for c in normalized.chars() {
+    // Iterate over normalized characters directly to avoid allocation
+    // and ensure correct Sigma handling (char::to_lowercase vs str::to_lowercase)
+    let chars = text
+        .chars()
+        .flat_map(char::to_lowercase)
+        .nfd()
+        .filter(|c| !crate::text::is_greek_diacritic(*c));
+
+    for c in chars {
         match c {
             // Keraia (numeral sign) - ignore, it just marks the end or acts as punctuation
             // U+0374 (Dexia Keraia) or U+02B9 (Modifier Letter Prime) often used interchangeably
@@ -183,6 +187,15 @@ mod tests {
         // 20 = κ
         // 4 = δ
         assert_eq!(parse_greek_numeral("͵βκδʹ").unwrap(), 2024);
+    }
+
+    #[test]
+    fn test_sigma_uppercase() {
+        // Regression test for Sigma handling
+        // Σ should always be 200, never 6 (stigma/final sigma)
+        assert_eq!(parse_greek_numeral("Σʹ").unwrap(), 200);
+        assert_eq!(parse_greek_numeral("ΣΣʹ").unwrap(), 400); // 200 + 200
+        assert_eq!(parse_greek_numeral("ΣΣΣʹ").unwrap(), 600); // 200 + 200 + 200
     }
 
     #[test]
