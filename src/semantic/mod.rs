@@ -32,13 +32,12 @@
 //! without changing the semantic meaning.
 
 pub mod assembler;
-pub(crate) mod control_flow;
 pub(crate) mod conversion;
-pub(crate) mod declarations;
 pub mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
 mod resolver;
+pub(crate) mod statements;
 mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
@@ -52,13 +51,13 @@ pub use types::*;
 use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
 
-use self::control_flow::analyze_control_flow;
 use self::conversion::convert_assembled_to_analyzed;
-use self::declarations::{
-    analyze_test_declaration, analyze_trait_definition, analyze_trait_impl, analyze_type_definition,
-};
 use self::expressions::feed_expr_to_assembler_with_context;
 use self::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
+use self::statements::{
+    analyze_control_flow, analyze_test_declaration, analyze_trait_definition, analyze_trait_impl,
+    analyze_type_definition,
+};
 
 /// Perform semantic analysis on a program using the slot-based assembler
 /// This is the primary entry point that provides word-order independence
