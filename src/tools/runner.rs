@@ -1,3 +1,4 @@
+use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -10,6 +11,7 @@ use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::analyze_program;
 use crate::tools::highlight::highlight;
+use crate::tools::ui::Status;
 
 /// Maximum source file size (1MB) to prevent memory exhaustion
 const MAX_FILE_SIZE: u64 = 1024 * 1024;
@@ -68,6 +70,7 @@ fn check_file_size(input: &Path) -> Result<()> {
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     check_file_size(input)?;
 
+    let status = Status::start("Μεταγλώττισις (Compiling)...");
     let start = std::time::Instant::now();
     let source = fs::read_to_string(input).into_diagnostic()?;
     let input_size = source.len() as u64;
@@ -86,6 +89,8 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let output_size = fs::metadata(&output_path).into_diagnostic()?.len();
     let duration = start.elapsed();
     let stats = ProgramStats::new(&analyzed);
+
+    status.success();
 
     let report = CompilationReport {
         input_path: input.to_path_buf(),
@@ -124,20 +129,31 @@ pub fn run_file(input: &Path) -> Result<()> {
     // Check if we can use cached binary
     if cache_valid(input, &cached_exe) && cached_exe.exists() {
         // Run cached binary directly
-        let status = Command::new(&cached_exe).status().into_diagnostic()?;
+        let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
-        if !status.success() {
-            std::process::exit(status.code().unwrap_or(1));
+        if !exit_status.success() {
+            std::process::exit(exit_status.code().unwrap_or(1));
         }
         return Ok(());
     }
 
+    let mut status = Status::start("Μεταγλώττισις (Compiling)...");
+
     // Compile source
     let source = fs::read_to_string(input).into_diagnostic()?;
-    let rust_code = compile(&source).map_err(|e| miette::miette!("{}", e))?;
+
+    let rust_code = match compile(&source) {
+        Ok(code) => code,
+        Err(e) => {
+            status.error("Σφάλμα μεταγλωττίσεως");
+            return Err(miette::miette!("{}", e));
+        }
+    };
 
     // Write Rust source to cache
     fs::write(&cached_rs, &rust_code).into_diagnostic()?;
+
+    status.update("Οἰκοδόμησις (Building)...");
 
     // Compile with rustc (hide output)
     let rustc_output = Command::new("rustc")
@@ -151,16 +167,18 @@ pub fn run_file(input: &Path) -> Result<()> {
         .into_diagnostic()?;
 
     if !rustc_output.status.success() {
-        // Show rustc errors only on failure
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
-        return Err(miette::miette!("Σφάλμα μεταγλωττίσεως:\n{}", stderr));
+        status.error("Σφάλμα κώδικος (Codegen Error)");
+        return Err(miette::miette!("{}\n{}", "Rustc Error:".red(), stderr));
     }
 
-    // Run the compiled program
-    let status = Command::new(&cached_exe).status().into_diagnostic()?;
+    status.success();
 
-    if !status.success() {
-        std::process::exit(status.code().unwrap_or(1));
+    // Run the compiled program
+    let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+
+    if !exit_status.success() {
+        std::process::exit(exit_status.code().unwrap_or(1));
     }
 
     Ok(())
@@ -348,6 +366,38 @@ mod tests {
         // 4. Run again to test cache hit path
         let result_cached = run_file(&input_path);
         assert!(result_cached.is_ok());
+    }
+
+    #[test]
+    fn test_run_compile_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("error.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("invalid syntax".as_bytes()).unwrap();
+        }
+
+        let result = run_file(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα"));
+    }
+
+    #[test]
+    fn test_run_rustc_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("rustc_error.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // This is valid Glossa but invalid Rust (redefining String)
+            // Memory says: εἶδος String ὁρίζειν...
+            f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes())
+                .unwrap();
+        }
+
+        let result = run_file(&input_path);
+        assert!(result.is_err());
+        // Verify it hits the rustc error path
+        assert!(result.unwrap_err().to_string().contains("Rustc Error"));
     }
 
     #[test]
