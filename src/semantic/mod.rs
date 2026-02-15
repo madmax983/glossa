@@ -36,8 +36,8 @@ pub(crate) mod conversion;
 pub mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
-pub(crate) mod statements;
 mod resolver;
+pub(crate) mod statements;
 mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};

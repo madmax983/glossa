@@ -4,11 +4,11 @@
 //! - Control flow (if, while, for, match, return, break, continue)
 //! - Declarations (functions, types, traits, tests)
 
-use super::{
-    analyze_statement, assemble_statement, convert_assembled_to_analyzed, AnalyzedExpr,
-    AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, GlossaType, Scope,
-};
 use super::expressions::{contains_function_definition_verb, get_first_word};
+use super::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, GlossaType, Scope,
+    analyze_statement, assemble_statement, convert_assembled_to_analyzed,
+};
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, lexicon};
