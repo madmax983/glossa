@@ -1,6 +1,6 @@
 use glossa::errors::{
-    case_mismatch, gender_mismatch, help, immutable_assignment, number_mismatch,
-    undefined_variable, AssemblyError, GlossaError,
+    AssemblyError, GlossaError, case_mismatch, gender_mismatch, help, immutable_assignment,
+    number_mismatch, undefined_variable,
 };
 use glossa::morphology::{Case, Gender, Number, Person};
 use miette::SourceSpan;
@@ -75,7 +75,7 @@ fn test_glossa_error_coverage() {
     let parse_source = GlossaError::parse_with_source(
         "parse error",
         "src",
-        SourceSpan::new(0usize.into(), 0usize.into()),
+        SourceSpan::new(0usize.into(), 0usize),
     );
     let semantic = GlossaError::semantic("semantic error");
     let undefined = GlossaError::undefined("undefined");
