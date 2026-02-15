@@ -643,7 +643,8 @@ mod cycle11_variable_capture {
             // Should NOT reference theta (encoded or not)
             assert!(
                 !code_no_space.contains("theta")
-                    && !code_no_space.contains("θ")
+                    // Note: panic hook now contains "θ" in Greek error messages
+                    // so we only check for variable identifier patterns
                     && !code_no_space.contains("_u3b8_"),
                 "Should NOT capture theta"
             );
