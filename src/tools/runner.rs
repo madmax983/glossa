@@ -357,9 +357,10 @@ mod tests {
         let input_path = dir.path().join("rustc_error.gl");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            // This is valid Glossa but invalid Rust (redefining String)
-            // Memory says: εἶδος String ὁρίζειν...
-            f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes())
+            // Create a recursive struct definition (infinite size)
+            // This passes semantic analysis (as we don't detect recursion loops yet)
+            // but causes a Rust compiler error [E0072]
+            f.write_all("εἶδος Α ὁρίζειν { β Β. }. εἶδος Β ὁρίζειν { α Α. }.".as_bytes())
                 .unwrap();
         }
 

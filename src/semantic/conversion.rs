@@ -816,7 +816,10 @@ fn classify_query(
 }
 
 /// Helper: Default expression
-fn classify_expression(asm_stmt: &AssembledStatement, scope: &Scope) -> Result<AnalyzedStatement, GlossaError> {
+fn classify_expression(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<AnalyzedStatement, GlossaError> {
     let mut exprs =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
@@ -836,12 +839,10 @@ fn classify_expression(asm_stmt: &AssembledStatement, scope: &Scope) -> Result<A
             Some(lit_expr.clone())
         } else if let Some(ref obj) = asm_stmt.object {
             Some(resolve_variable(&obj.lemma, scope)?)
+        } else if let Some(nom) = asm_stmt.nominatives.first() {
+            Some(resolve_variable(&nom.lemma, scope)?)
         } else {
-            if let Some(nom) = asm_stmt.nominatives.first() {
-                Some(resolve_variable(&nom.lemma, scope)?)
-            } else {
-                None
-            }
+            None
         };
 
         if let (Some(l), Some(r)) = (left, right) {
