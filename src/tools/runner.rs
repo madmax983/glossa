@@ -9,6 +9,7 @@ use crate::tools::ui::Status;
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
+use std::io::Read;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -43,7 +44,23 @@ fn load_source(input: &Path) -> Result<String> {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
     check_file_size(input)?;
-    fs::read_to_string(input).into_diagnostic()
+
+    let file = fs::File::open(input).into_diagnostic()?;
+    let mut content = String::new();
+
+    // Use take to limit the read, preventing OOM on infinite streams (e.g. /dev/zero)
+    file.take(MAX_FILE_SIZE + 1)
+        .read_to_string(&mut content)
+        .into_diagnostic()?;
+
+    if content.len() as u64 > MAX_FILE_SIZE {
+        return Err(miette::miette!(
+            "Ἀρχεῖον λίαν μέγα (File too large): > {} bytes",
+            MAX_FILE_SIZE
+        ));
+    }
+
+    Ok(content)
 }
 
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
