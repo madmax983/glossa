@@ -1188,7 +1188,10 @@ mod tests {
         // τ is 0x3c4
         // ο is 0x3bf
         // ς is 0x3c2
-        assert_eq!(transliterate("χρηστος"), "_u3c7__u3c1__u3b7__u3c3__u3c4__u3bf__u3c2_");
+        assert_eq!(
+            transliterate("χρηστος"),
+            "_u3c7__u3c1__u3b7__u3c3__u3c4__u3bf__u3c2_"
+        );
 
         // λ (lambda) -> _u3bb_
         // ο (omicron) -> _u3bf_

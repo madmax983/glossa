@@ -15,7 +15,11 @@ fn test_known_collision_alpha() {
     assert_ne!(greek, latin);
 
     // They should transliterate to different strings to avoid collision.
-    assert_ne!(transliterate(greek), transliterate(latin), "Collision detected: α maps to same output as a");
+    assert_ne!(
+        transliterate(greek),
+        transliterate(latin),
+        "Collision detected: α maps to same output as a"
+    );
 }
 
 proptest! {

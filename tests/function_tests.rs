@@ -85,7 +85,11 @@ fn test_function_call() {
     // πρόσθεσις -> hex encoded
     // π(3c0) ρ(3c1) ο(3bf) σ(3c3) θ(3b8) ε(3b5) σ(3c3) ι(3b9) ς(3c2)
     let expected = "g__u3c0__u3c1__u3bf__u3c3__u3b8__u3b5__u3c3__u3b9__u3c2_";
-    assert!(code.contains(expected), "Expected function name: {}", expected);
+    assert!(
+        code.contains(expected),
+        "Expected function name: {}",
+        expected
+    );
 }
 
 #[test]
