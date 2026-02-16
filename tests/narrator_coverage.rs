@@ -1,13 +1,34 @@
-use glossa::experimental::bard::tell_tale;
+use glossa::tools::narrator::tell_tale;
 use glossa::parser::parse;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, CaptureMode, GlossaType, analyze_program,
 };
 
+fn strip_ansi(s: &str) -> String {
+    let mut output = String::new();
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            if let Some('[') = chars.peek() {
+                chars.next(); // consume '['
+                // consume until 'm'
+                while let Some(c2) = chars.next() {
+                    if c2 == 'm' {
+                        break;
+                    }
+                }
+            }
+        } else {
+            output.push(c);
+        }
+    }
+    output
+}
+
 fn compile_and_tell(source: &str) -> String {
     let ast = parse(source).expect("AST build failed");
     let analyzed = analyze_program(&ast).expect("Analysis failed");
-    tell_tale(&analyzed)
+    strip_ansi(&tell_tale(&analyzed))
 }
 
 #[test]
@@ -26,13 +47,13 @@ fn test_bard_binding_mutable() {
         scope: glossa::semantic::Scope::new(),
     };
 
-    let tale = tell_tale(&program);
-    assert!(tale.contains("mutable variable named `x`"));
+    let tale = strip_ansi(&tell_tale(&program));
+    assert!(tale.contains("mutable variable named x"));
+    assert!(tale.contains("with the value 5"));
 }
 
 #[test]
 fn test_bard_assignment() {
-    // Manually construct assignment to avoid mutable syntax issues in parser
     let stmt = AnalyzedStatement::Assignment {
         name: "x".into(),
         value: AnalyzedExpr {
@@ -44,15 +65,18 @@ fn test_bard_assignment() {
         statements: vec![stmt],
         scope: glossa::semantic::Scope::new(),
     };
-    let tale = tell_tale(&program);
-    assert!(tale.contains("Update `x` to become the number 10"));
+    let tale = strip_ansi(&tell_tale(&program));
+    assert!(tale.contains("Update x to become 10"));
 }
 
 #[test]
 fn test_bard_print_multiple() {
     let source = "«α», «β» λέγε.";
     let tale = compile_and_tell(source);
-    assert!(tale.contains("Proclaim to the world: the text \"α\", the text \"β\""));
+    // "Proclaim to the world: "α", "β""
+    assert!(tale.contains("Proclaim to the world"));
+    assert!(tale.contains("\"α\""));
+    assert!(tale.contains("\"β\""));
 }
 
 #[test]
@@ -65,15 +89,15 @@ fn test_bard_expression_stmt() {
         statements: vec![stmt],
         scope: glossa::semantic::Scope::new(),
     };
-    let tale = tell_tale(&program);
-    assert!(tale.contains("Perform the following: the text \"test\""));
+    let tale = strip_ansi(&tell_tale(&program));
+    assert!(tale.contains("Perform the following: \"test\""));
 }
 
 #[test]
 fn test_bard_query() {
     let source = "ξ πέντε ἔστω. ξ?";
     let tale = compile_and_tell(source);
-    assert!(tale.contains("Query the oracle about: `ξ`"));
+    assert!(tale.contains("Query the oracle about: ξ"));
 }
 
 #[test]
@@ -88,26 +112,25 @@ fn test_bard_while() {
 fn test_bard_for() {
     let source = "ἀπὸ μηδενὸς μέχρι πέντε, ι λέγε.";
     let tale = compile_and_tell(source);
-    assert!(tale.contains("For each `ι` found in"));
+    assert!(tale.contains("For each ι found in"));
 }
 
 #[test]
 fn test_bard_match() {
     let source = "ξ πέντε ἔστω. κατὰ ξ· μηδὲν ᾖ, «μηδέν» λέγε.";
     let tale = compile_and_tell(source);
-    assert!(tale.contains("Consider the nature of `ξ`"));
+    assert!(tale.contains("Consider the nature of ξ"));
     assert!(tale.contains("In the case of"));
 }
 
 #[test]
 fn test_bard_break_continue() {
-    // Manually construct to ensure we hit the variants
     let stmts = vec![AnalyzedStatement::Break, AnalyzedStatement::Continue];
     let program = glossa::semantic::AnalyzedProgram {
         statements: stmts,
         scope: glossa::semantic::Scope::new(),
     };
-    let tale = tell_tale(&program);
+    let tale = strip_ansi(&tell_tale(&program));
     assert!(tale.contains("Break the cycle"));
     assert!(tale.contains("Continue to the next iteration"));
 }
@@ -124,21 +147,20 @@ fn test_bard_return() {
         statements: vec![stmt],
         scope: glossa::semantic::Scope::new(),
     };
-    let tale = tell_tale(&program);
-    assert!(tale.contains("Return with the offering the number 42"));
+    let tale = strip_ansi(&tell_tale(&program));
+    assert!(tale.contains("Return with the offering 42"));
 
     let stmt_empty = AnalyzedStatement::Return { value: None };
     let program_empty = glossa::semantic::AnalyzedProgram {
         statements: vec![stmt_empty],
         scope: glossa::semantic::Scope::new(),
     };
-    let tale_empty = tell_tale(&program_empty);
+    let tale_empty = strip_ansi(&tell_tale(&program_empty));
     assert!(tale_empty.contains("Return with nothing"));
 }
 
 #[test]
 fn test_bard_function_def() {
-    // Manually construct
     let stmt = AnalyzedStatement::FunctionDef {
         name: "my_func".into(),
         params: vec![("p1".into(), Some(GlossaType::Number))],
@@ -150,9 +172,9 @@ fn test_bard_function_def() {
         statements: vec![stmt],
         scope: glossa::semantic::Scope::new(),
     };
-    let tale = tell_tale(&program);
-    assert!(tale.contains("Define a ritual called `my_func`"));
-    assert!(tale.contains("expecting [`p1` (Number)]"));
+    let tale = strip_ansi(&tell_tale(&program));
+    assert!(tale.contains("Define a ritual called my_func"));
+    assert!(tale.contains("expecting [p1 (Number)]"));
     assert!(tale.contains("returns Truth"));
 }
 
@@ -166,9 +188,9 @@ fn test_bard_type_def() {
         statements: vec![stmt],
         scope: glossa::semantic::Scope::new(),
     };
-    let tale = tell_tale(&program);
-    assert!(tale.contains("Declare a new form `MyType`"));
-    assert!(tale.contains("attributes: `field1` as Number"));
+    let tale = strip_ansi(&tell_tale(&program));
+    assert!(tale.contains("Declare a new form MyType"));
+    assert!(tale.contains("attributes: field1 as Number"));
 }
 
 #[test]
@@ -181,8 +203,8 @@ fn test_bard_trait_def() {
         statements: vec![stmt],
         scope: glossa::semantic::Scope::new(),
     };
-    let tale = tell_tale(&program);
-    assert!(tale.contains("Declare a characteristic named `MyTrait`"));
+    let tale = strip_ansi(&tell_tale(&program));
+    assert!(tale.contains("Declare a characteristic named MyTrait"));
 }
 
 #[test]
@@ -196,8 +218,8 @@ fn test_bard_trait_impl() {
         statements: vec![stmt],
         scope: glossa::semantic::Scope::new(),
     };
-    let tale = tell_tale(&program);
-    assert!(tale.contains("Imbue `MyType` with the characteristic of `MyTrait`"));
+    let tale = strip_ansi(&tell_tale(&program));
+    assert!(tale.contains("Imbue MyType with the characteristic of MyTrait"));
 }
 
 #[test]
@@ -210,8 +232,8 @@ fn test_bard_test_decl() {
         statements: vec![stmt],
         scope: glossa::semantic::Scope::new(),
     };
-    let tale = tell_tale(&program);
-    assert!(tale.contains("Define a trial named `my_test`"));
+    let tale = strip_ansi(&tell_tale(&program));
+    assert!(tale.contains("Define a trial named my_test"));
 }
 
 // --- Expression Coverage ---
@@ -229,7 +251,7 @@ fn test_expr_tale(kind: AnalyzedExprKind, expected: &str) {
         statements: vec![stmt],
         scope: glossa::semantic::Scope::new(),
     };
-    let tale = tell_tale(&program);
+    let tale = strip_ansi(&tell_tale(&program));
     assert!(
         tale.contains(expected),
         "Expected '{}' in '{}'",
@@ -240,7 +262,7 @@ fn test_expr_tale(kind: AnalyzedExprKind, expected: &str) {
 
 #[test]
 fn test_bard_exprs() {
-    test_expr_tale(AnalyzedExprKind::BooleanLiteral(true), "the truth true");
+    test_expr_tale(AnalyzedExprKind::BooleanLiteral(true), "true");
     test_expr_tale(
         AnalyzedExprKind::PropertyAccess {
             owner: Box::new(AnalyzedExpr {
@@ -249,7 +271,7 @@ fn test_bard_exprs() {
             }),
             property: "prop".into(),
         },
-        "the `prop` of `obj`",
+        "the prop of obj",
     );
 
     test_expr_tale(
@@ -268,7 +290,7 @@ fn test_bard_exprs() {
                 glossa_type: GlossaType::Boolean,
             }),
         },
-        "(Not the truth true)",
+        "(Not true)",
     );
 
     test_expr_tale(
@@ -283,12 +305,12 @@ fn test_bard_exprs() {
             }),
             inclusive: true,
         },
-        "from the number 1 through the number 10",
+        "from 1 through 10",
     );
 
     test_expr_tale(
         AnalyzedExprKind::ArrayLiteral(vec![]),
-        "a list containing []",
+        "[]",
     );
 
     test_expr_tale(
@@ -296,22 +318,22 @@ fn test_bard_exprs() {
             expr: AnalyzedExprKind::NumberLiteral(1),
             glossa_type: GlossaType::Number,
         })),
-        "something (the number 1)",
+        "Some(1)",
     );
-    test_expr_tale(AnalyzedExprKind::None, "nothing");
+    test_expr_tale(AnalyzedExprKind::None, "None");
     test_expr_tale(
         AnalyzedExprKind::Ok(Box::new(AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(1),
             glossa_type: GlossaType::Number,
         })),
-        "success (the number 1)",
+        "Ok(1)",
     );
     test_expr_tale(
         AnalyzedExprKind::Err(Box::new(AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(1),
             glossa_type: GlossaType::Number,
         })),
-        "failure (the number 1)",
+        "Err(1)",
     );
 
     test_expr_tale(
@@ -319,14 +341,14 @@ fn test_bard_exprs() {
             expr: AnalyzedExprKind::Variable("x".into()),
             glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
         })),
-        "the essence of `x`",
+        "unwrap(x)",
     );
     test_expr_tale(
         AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable("x".into()),
             glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
         })),
-        "attempting `x`",
+        "try(x)",
     );
 
     test_expr_tale(
@@ -340,7 +362,7 @@ fn test_bard_exprs() {
                 glossa_type: GlossaType::Number,
             }),
         },
-        "the item at the number 0 in `arr`",
+        "arr at index 0",
     );
 
     test_expr_tale(
@@ -348,7 +370,7 @@ fn test_bard_exprs() {
             func: "f".into(),
             args: vec![],
         },
-        "calling `f` with []",
+        "call f()",
     );
 
     test_expr_tale(
@@ -360,7 +382,7 @@ fn test_bard_exprs() {
             method: "m".into(),
             args: vec![],
         },
-        "invoking `m` on `obj` with []",
+        "obj.m()",
     );
 
     test_expr_tale(
@@ -373,7 +395,7 @@ fn test_bard_exprs() {
             method_name: "m".into(),
             args: vec![],
         },
-        "invoking `m` (as `T`) on `obj` with []",
+        "<T>.m(obj, )",
     );
 
     test_expr_tale(
@@ -385,7 +407,7 @@ fn test_bard_exprs() {
                 glossa_type: GlossaType::Number,
             }],
         },
-        "a new `S` with fields [f] set to [the number 1]",
+        "S { f: 1 }",
     );
 
     test_expr_tale(
@@ -397,7 +419,7 @@ fn test_bard_exprs() {
             }),
             capture_mode: CaptureMode::Borrow,
         },
-        "a spirit borrowing [p] that produces `p`",
+        "|p| p",
     );
 
     test_expr_tale(
@@ -409,7 +431,7 @@ fn test_bard_exprs() {
             }),
             capture_mode: CaptureMode::Move,
         },
-        "a spirit moving []",
+        "move || None",
     );
 
     test_expr_tale(
@@ -421,14 +443,14 @@ fn test_bard_exprs() {
             }),
             capture_mode: CaptureMode::Memoize,
         },
-        "a spirit remembering []",
+        "memo || None",
     );
 
     test_expr_tale(
         AnalyzedExprKind::CollectionNew {
             collection_type: "HashSet".into(),
         },
-        "a new empty HashSet",
+        "new HashSet",
     );
 
     test_expr_tale(
@@ -438,7 +460,7 @@ fn test_bard_exprs() {
                 glossa_type: GlossaType::Boolean,
             }),
         },
-        "asserting that the truth true is true",
+        "assert(true)",
     );
 
     test_expr_tale(
@@ -452,7 +474,7 @@ fn test_bard_exprs() {
                 glossa_type: GlossaType::Number,
             }),
         },
-        "asserting that the number 1 equals the number 1",
+        "assert_eq(1, 1)",
     );
 }
 
@@ -469,7 +491,7 @@ fn test_bard_types() {
             statements: vec![stmt],
             scope: glossa::semantic::Scope::new(),
         };
-        let tale = tell_tale(&program);
+        let tale = strip_ansi(&tell_tale(&program));
         assert!(
             tale.contains(expected),
             "Expected '{}' in '{}'",
@@ -480,23 +502,23 @@ fn test_bard_types() {
 
     check_type(
         GlossaType::List(Box::new(GlossaType::Number)),
-        "List of Number",
+        "List<Number>",
     );
     check_type(
         GlossaType::Set(Box::new(GlossaType::Number)),
-        "Set of Number",
+        "Set<Number>",
     );
     check_type(
         GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number)),
-        "Map from Text to Number",
+        "Map<Text, Number>",
     );
     check_type(
         GlossaType::Option(Box::new(GlossaType::Number)),
-        "Maybe Number",
+        "Option<Number>",
     );
     check_type(
         GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String)),
-        "Result of Number or Text",
+        "Result<Number, Text>",
     );
     check_type(
         GlossaType::Struct {
@@ -504,15 +526,15 @@ fn test_bard_types() {
             gender: glossa::morphology::Gender::Neuter,
             fields: vec![],
         },
-        "Form `S`",
+        "S",
     );
     check_type(
         GlossaType::Function {
             params: vec![GlossaType::Number],
             returns: Box::new(GlossaType::Boolean),
         },
-        "Function(Number) -> Truth",
+        "fn(Number) -> Truth",
     );
-    check_type(GlossaType::Unit, "Nothing");
-    check_type(GlossaType::Unknown, "Mystery");
+    check_type(GlossaType::Unit, "()");
+    check_type(GlossaType::Unknown, "?");
 }

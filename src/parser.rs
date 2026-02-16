@@ -749,6 +749,7 @@ mod tests {
     fn test_recursion_limit_exceeded() {
         // 501 nested parentheses
         let source = "(".repeat(501) + &")".repeat(501);
+        // parse_source calls check_recursion_depth internally
         let result = parse_source(&source);
         assert!(matches!(
             result,
@@ -761,7 +762,7 @@ mod tests {
         // 500 nested parentheses (should pass check, though pest might fail to parse empty parens)
         let source = "(".repeat(500) + &")".repeat(500);
         // We only care about the recursion check here
-        let result = check_recursion_depth(&source);
+        let result = recursion::check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 
@@ -769,7 +770,7 @@ mod tests {
     fn test_recursion_limit_ignored_in_string() {
         // Parentheses inside string literal shouldn't count
         let source = "«".to_string() + &"(".repeat(600) + "»";
-        let result = check_recursion_depth(&source);
+        let result = recursion::check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 
@@ -777,7 +778,7 @@ mod tests {
     fn test_recursion_limit_ignored_in_comment() {
         // Parentheses inside comment shouldn't count
         let source = "// ".to_string() + &"(".repeat(600);
-        let result = check_recursion_depth(&source);
+        let result = recursion::check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 
@@ -791,7 +792,7 @@ mod tests {
             + &"]".repeat(101)
             + &"}".repeat(200)
             + &")".repeat(200);
-        let result = check_recursion_depth(&source);
+        let result = recursion::check_recursion_depth(&source);
         assert!(matches!(
             result,
             Err(ParseError::RecursionLimitExceeded(500))
@@ -804,7 +805,7 @@ mod tests {
         // (((...))) then (((...))) - sequential, not nested
         let part = "(".repeat(400) + &")".repeat(400);
         let source = part.clone() + &part;
-        let result = check_recursion_depth(&source);
+        let result = recursion::check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 }
