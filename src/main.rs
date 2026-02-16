@@ -5,6 +5,7 @@
 use clap::Parser;
 use miette::Result;
 
+use glossa::experimental::muse::invoke_muse;
 use glossa::tools::cli::{Cli, Commands};
 use glossa::tools::dictionary::lookup_word;
 use glossa::tools::repl::run_repl;
@@ -41,6 +42,10 @@ fn main() -> Result<()> {
 
         Some(Commands::Lookup { word }) => {
             lookup_word(&word)?;
+        }
+
+        Some(Commands::Muse { inspiration }) => {
+            println!("{}", invoke_muse(inspiration));
         }
 
         Some(Commands::Repl) | None => {

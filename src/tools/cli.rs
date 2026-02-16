@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+use crate::experimental::muse::Inspiration;
+
 #[derive(Parser)]
 #[command(name = "glossa")]
 #[command(about = "ΓΛΩΣΣΑ - Ancient Greek morphology as programming semantics")]
@@ -57,5 +59,12 @@ pub enum Commands {
     Lookup {
         /// The Greek word to analyze
         word: String,
+    },
+
+    /// Invoke the Muse for inspiration (generates code snippets)
+    Muse {
+        /// The type of inspiration to seek (hero, myth, chorus, epic)
+        #[arg(value_enum)]
+        inspiration: Inspiration,
     },
 }
