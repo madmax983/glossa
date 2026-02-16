@@ -15,3 +15,9 @@
 However, this design means the `Assembler` must handle *all* possible combinations, leading to its complexity. Future refactoring should consider splitting the `Assembler` into smaller, specialized assemblers (e.g., `PredicateAssembler`, `LoopAssembler`) or using a more formal state machine transition system.
 
 For now, the documentation clarifies *how* it works, even if the implementation is heavy.
+
+## 2026-01-29 - The Conversational REPL
+
+**Confusion:** Users (and devs) might expect the REPL to work like Python's, where statements are executed and state is mutated in memory.
+
+**Clarification:** Documented that the ΓΛΩΣΣΑ REPL uses a "Conversational" model where the *entire history* is re-compiled on every line. This ensures consistent scope resolution without duplicating compiler logic, but relies on the compiler being fast enough. I added limits (`MAX_REPL_BINDINGS`) to prevent this from spiraling out of control.

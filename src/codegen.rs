@@ -85,11 +85,11 @@
 //!
 //! # Architecture
 //!
-//! The codegen process uses the [`quote`] crate to construct a Rust AST (TokenStream)
+//! The codegen process uses the [`mod@quote`] crate to construct a Rust AST (TokenStream)
 //! directly from the Semantic Analysis model. This ensures that the generated code
 //! is syntactically valid Rust and avoids "stringly typed" code generation errors.
 //!
-//! 1. **Semantic Analysis**: Produces an [`AnalyzedProgram`](crate::semantic::AnalyzedProgram).
+//! 1. **Semantic Analysis**: Produces an [`AnalyzedProgram`].
 //! 2. **Code Generation**: [`generate_rust`] takes the program and produces a Rust source string.
 
 #![allow(clippy::needless_doctest_main)]

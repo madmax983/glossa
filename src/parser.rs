@@ -83,6 +83,10 @@ fn parse_source(source: &str) -> Result<Program, ParseError> {
     Ok(Program { statements })
 }
 
+/// Build a strongly-typed statement from a Pest pair
+///
+/// This functions dispatches to specific builders based on the rule type
+/// (Regular, TypeDefinition, TraitDefinition, etc.).
 fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
     let mut pairs = pair.into_inner();
     let first = pairs
@@ -125,6 +129,9 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
     }
 }
 
+/// Build a list of clauses from a clause_list rule
+///
+/// Clauses are separated by commas in the grammar.
 fn build_clauses(pair: Pair<'_, Rule>) -> Result<Vec<Clause>, ParseError> {
     let mut clauses = Vec::new();
     for clause_pair in pair.into_inner() {
@@ -465,6 +472,9 @@ fn build_clause(pair: Pair<'_, Rule>) -> Result<Clause, ParseError> {
     Ok(Clause { expressions })
 }
 
+/// Build an AST expression from an expression rule
+///
+/// This handles multi-term phrases (e.g. "verb object") as well as single terms.
 fn build_expression(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     let mut terms = Vec::new();
 

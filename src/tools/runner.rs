@@ -63,6 +63,22 @@ fn load_source(input: &Path) -> Result<String> {
     Ok(content)
 }
 
+/// Compile a ΓΛΩΣΣΑ file to a Rust executable (Ahead-Of-Time compilation)
+///
+/// This command:
+/// 1. Reads and parses the source file.
+/// 2. Performs semantic analysis.
+/// 3. Generates a standalone `.rs` file (or `output` path).
+/// 4. Prints a [`CompilationReport`] with statistics.
+///
+/// # Examples
+///
+/// ```no_run
+/// use glossa::tools::runner::build_file;
+/// use std::path::Path;
+///
+/// build_file(Path::new("hello.gl"), None).unwrap();
+/// ```
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let status = Status::start("Μεταγλώττισις (Compiling)");
     let start = std::time::Instant::now();
@@ -99,6 +115,27 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     Ok(())
 }
 
+/// Compile and run a ΓΛΩΣΣΑ file (Just-In-Time execution)
+///
+/// This command simulates "running" a script by:
+/// 1. Checking the cache for a valid compiled binary.
+/// 2. If cached, running it immediately.
+/// 3. If not cached, compiling to a temporary binary in `~/.cache/glossa`.
+/// 4. Executing the binary.
+///
+/// # Security
+///
+/// This function enforces a strict `MAX_FILE_SIZE` (1MB) check to prevent
+/// memory exhaustion attacks from large inputs.
+///
+/// # Examples
+///
+/// ```no_run
+/// use glossa::tools::runner::run_file;
+/// use std::path::Path;
+///
+/// run_file(Path::new("script.gl")).unwrap();
+/// ```
 pub fn run_file(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
@@ -169,6 +206,9 @@ pub fn run_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Check a ΓΛΩΣΣΑ file for errors without compiling
+///
+/// This performs parsing and semantic analysis, then prints a [`GlossaReport`].
 pub fn check_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
 
@@ -186,6 +226,10 @@ pub fn check_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Print the syntax-highlighted source code to stdout
+///
+/// This uses the [`crate::tools::highlight`] module to colorize the output
+/// based on semantic analysis.
 pub fn highlight_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
     let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
@@ -195,6 +239,10 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Print the "Bard's Tale" (narrative explanation) of the code
+///
+/// This is an experimental feature that translates the code logic into
+/// a human-readable story.
 pub fn bard_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
     let analyzed = analyze_source(&source)?;

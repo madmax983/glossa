@@ -1,3 +1,29 @@
+//! Interactive Read-Eval-Print Loop (REPL) for ΓΛΩΣΣΑ
+//!
+//! This module provides a conversational interface for writing and executing ΓΛΩΣΣΑ code.
+//!
+//! # Architecture: The "Conversational" Model
+//!
+//! Unlike traditional REPLs that execute statements line-by-line and maintain a complex internal state,
+//! the ΓΛΩΣΣΑ REPL treats the interaction as a growing conversation (source file).
+//!
+//! When you type a line:
+//! 1. It is appended to a list of previous "bindings" (valid history).
+//! 2. The *entire* history + the new line is re-compiled from scratch.
+//! 3. If compilation succeeds, the new line is committed to history.
+//! 4. If it fails, the new line is discarded (like a misunderstanding in a conversation).
+//!
+//! This approach ensures:
+//! * **Correct Scope Resolution**: Variable visibility is handled naturally by the compiler.
+//! * **State Validity**: It is impossible to have an invalid state caused by a previous failed statement.
+//! * **Simplicity**: The REPL doesn't need to duplicate the compiler's semantic analysis logic.
+//!
+//! # Safety Limits
+//!
+//! To prevent memory exhaustion during this re-compilation loop, strict limits are enforced:
+//! * `MAX_REPL_BINDINGS`: Maximum number of history items (50).
+//! * `MAX_REPL_SOURCE_LEN`: Maximum total characters (50KB).
+
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
@@ -14,6 +40,21 @@ const MAX_REPL_BINDINGS: usize = 50;
 const MAX_REPL_SOURCE_LEN: usize = 50_000;
 
 /// Entry point for the REPL using stdin/stdout
+///
+/// This function blocks until the user types `.exit` or sends EOF (Ctrl+D).
+/// It handles the main loop of reading input, executing it, and printing the result.
+///
+/// # Examples
+///
+/// This function is typically called from `main.rs` when no file argument is provided:
+///
+/// ```no_run
+/// use glossa::tools::repl::run_repl;
+///
+/// fn main() {
+///     // glossa::tools::repl::run_repl().unwrap();
+/// }
+/// ```
 pub fn run_repl() -> Result<()> {
     print_banner();
     let stdin = std::io::stdin();
@@ -232,9 +273,16 @@ impl std::fmt::Display for ReplOutput {
     }
 }
 
+/// The REPL Execution Context
+///
+/// Maintains the history of executed statements and the current scope state.
+/// This context is reset when the user types `.clear`.
 struct ReplContext {
+    /// History of successful binding statements (e.g., "let x = 5")
     bindings: Vec<String>,
+    /// The scope resulting from the last successful compilation
     last_scope: Option<Scope>,
+    /// Number of statements processed so far
     statement_count: usize,
 }
 
@@ -247,6 +295,12 @@ impl ReplContext {
         }
     }
 
+    /// Execute a single line of input
+    ///
+    /// This attempts to compile `bindings + input`.
+    /// * If successful, and `input` was a binding/definition, it is added to `bindings`.
+    /// * If successful, but `input` was just an expression/print, it is executed but NOT added to history (to avoid side effects repeating).
+    /// * If failed, an error is returned and `bindings` remains unchanged.
     fn execute(&mut self, input: &str) -> std::result::Result<ReplOutput, GlossaError> {
         // Check binding count limit
         if self.bindings.len() > MAX_REPL_BINDINGS {
