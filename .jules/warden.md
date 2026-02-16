@@ -81,3 +81,11 @@
 **Defense:** Implemented `check_program_depth` in `src/semantic/mod.rs` to enforce a strict recursion limit (`MAX_EXPRESSION_DEPTH = 200`). Analysis now fails gracefully with `GlossaError::LimitExceeded` if the depth is exceeded.
 
 **Severity:** High (DoS via compiler crash).
+
+## 2026-06-06 - Insecure Cache Key Hashing
+
+**Threat:** The build cache in `src/tools/cache.rs` used `std::collections::hash_map::DefaultHasher` to compute cache keys from file paths. `DefaultHasher` is not cryptographically secure and its stability across releases or environments is not guaranteed. This could lead to cache collisions (incorrect binary execution) or unstable keys (cache thrashing/DoS).
+
+**Defense:** Replaced `DefaultHasher` with `sha2::Sha256` to ensure deterministic, cryptographically secure, and collision-resistant cache keys (64-character hex strings).
+
+**Severity:** Medium (Cache Collision / DoS).

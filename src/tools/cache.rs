@@ -31,13 +31,20 @@ impl Cache {
 
     /// Generate a cache key from the source file path.
     pub fn key(&self, input: &Path) -> String {
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
+        use sha2::{Digest, Sha256};
 
         let canonical = input.canonicalize().unwrap_or_else(|_| input.to_path_buf());
-        let mut hasher = DefaultHasher::new();
-        canonical.hash(&mut hasher);
-        format!("{:016x}", hasher.finish())
+        // Convert path to bytes. On unix this is OsStr bytes, on Windows it's UTF-8 if valid or WTF-8.
+        // We use to_string_lossy() to get a consistent string representation for hashing.
+        // Ideally we'd use OsStr bytes directly but that's platform specific (OsStrExt).
+        // For cross-platform consistency in this context (local cache), stringified path is fine.
+        let path_str = canonical.to_string_lossy();
+
+        let mut hasher = Sha256::new();
+        hasher.update(path_str.as_bytes());
+        let result = hasher.finalize();
+
+        hex::encode(result)
     }
 
     /// Get the paths for the cached Rust source and executable.
