@@ -23,6 +23,7 @@
 //! recursive descent parsing phase.
 
 pub mod numerals;
+pub mod recursion;
 
 use crate::ast::*;
 use crate::errors::GlossaError;
@@ -64,7 +65,7 @@ fn parse_number_literal(text: &str) -> Result<i64, ParseError> {
 /// Build an AST from source code
 fn parse_source(source: &str) -> Result<Program, ParseError> {
     // Check recursion depth before parsing to prevent stack overflow
-    check_recursion_depth(source)?;
+    recursion::check_recursion_depth(source)?;
 
     let pairs = grammar_parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
 
@@ -106,23 +107,28 @@ fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
             let _ = pairs.next();
             Ok(Statement::TraitImpl(build_trait_impl(first)?))
         }
-        Rule::clause_list => {
-            let clauses = build_clauses(first)?;
-            let end_pair = pairs
-                .next()
-                .ok_or(ParseError::UnexpectedRule("Missing statement end".into()))?;
-            let (is_query, is_propagate) = parse_statement_end(end_pair);
-            Ok(Statement::Regular {
-                clauses,
-                is_query,
-                is_propagate,
-            })
-        }
+        Rule::clause_list => build_regular_statement(first, pairs),
         _ => Err(ParseError::UnexpectedRule(format!(
             "Unexpected start of statement: {:?}",
             first.as_rule()
         ))),
     }
+}
+
+fn build_regular_statement(
+    clause_list_pair: Pair<'_, Rule>,
+    mut statement_pairs: pest::iterators::Pairs<'_, Rule>,
+) -> Result<Statement, ParseError> {
+    let clauses = build_clauses(clause_list_pair)?;
+    let end_pair = statement_pairs
+        .next()
+        .ok_or(ParseError::UnexpectedRule("Missing statement end".into()))?;
+    let (is_query, is_propagate) = parse_statement_end(end_pair);
+    Ok(Statement::Regular {
+        clauses,
+        is_query,
+        is_propagate,
+    })
 }
 
 fn build_clauses(pair: Pair<'_, Rule>) -> Result<Vec<Clause>, ParseError> {
@@ -251,15 +257,16 @@ fn parse_method_parameters(words: &[Word]) -> Vec<FieldDecl> {
     let mut iter = words.iter();
     while let Some(word) = iter.next() {
         // Look for τῷ (dative marker) followed by parameter name
-        if word.normalized == "τω" || word.normalized == "tw" {
-            #[allow(clippy::collapsible_if)]
-            if let Some(name) = iter.next() {
-                // Parameter without type annotation (just name)
-                params.push(FieldDecl {
-                    name: name.clone(),
-                    type_name: Word::new("_"), // Placeholder, will be inferred
-                });
-            }
+        if word.normalized != "τω" && word.normalized != "tw" {
+            continue;
+        }
+
+        if let Some(name) = iter.next() {
+            // Parameter without type annotation (just name)
+            params.push(FieldDecl {
+                name: name.clone(),
+                type_name: Word::new("_"), // Placeholder, will be inferred
+            });
         }
     }
     params
@@ -629,78 +636,6 @@ pub enum ParseError {
 
     #[error("Recursion limit exceeded: depth > {0}")]
     RecursionLimitExceeded(usize),
-}
-
-/// Check recursion depth to prevent stack overflows
-///
-/// This function performs a fast linear scan of the source code to ensure that
-/// parentheses, braces, and brackets are not nested deeper than `MAX_DEPTH` (500).
-/// This prevents stack overflows during the recursive parsing phase.
-fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
-    const MAX_DEPTH: usize = 500;
-    let mut depth = 0;
-    let mut in_string = false;
-    let bytes = source.as_bytes();
-    let mut i = 0;
-
-    // Optimization: Iterate bytes directly to avoid expensive UTF-8 decoding of Greek characters.
-    // We only care about structural characters which are ASCII (except for « and »).
-    // « is [0xC2, 0xAB]
-    // » is [0xC2, 0xBB]
-    while i < bytes.len() {
-        let b = bytes[i];
-        if in_string {
-            // Check for » [0xC2, 0xBB]
-            if b == 0xC2 && i + 1 < bytes.len() && bytes[i + 1] == 0xBB {
-                in_string = false;
-                i += 2;
-            } else {
-                i += 1;
-            }
-        } else {
-            match b {
-                // Check for « [0xC2, 0xAB]
-                0xC2 => {
-                    if i + 1 < bytes.len() && bytes[i + 1] == 0xAB {
-                        in_string = true;
-                        i += 2;
-                    } else {
-                        i += 1;
-                    }
-                }
-                b'(' | b'{' | b'[' => {
-                    depth += 1;
-                    if depth > MAX_DEPTH {
-                        return Err(ParseError::RecursionLimitExceeded(MAX_DEPTH));
-                    }
-                    i += 1;
-                }
-                b')' | b'}' | b']' => {
-                    depth = depth.saturating_sub(1);
-                    i += 1;
-                }
-                b'/' => {
-                    if i + 1 < bytes.len() && bytes[i + 1] == b'/' {
-                        // Skip comment
-                        i += 2;
-                        while i < bytes.len() {
-                            let c = bytes[i];
-                            i += 1;
-                            if c == b'\n' || c == b'\r' {
-                                break;
-                            }
-                        }
-                    } else {
-                        i += 1;
-                    }
-                }
-                _ => {
-                    i += 1;
-                }
-            }
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]

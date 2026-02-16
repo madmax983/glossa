@@ -9,3 +9,7 @@
 **Refactoring `runner.rs` tool orchestration**
 **Learning:** CLI tools often repeat validation and setup logic (file existence, size checks, cache management) across multiple commands. Extracting these into helper functions (`load_source`, `analyze_source`) and dedicated modules (`cache.rs`) clarifies the core intent of each command.
 **Action:** Identify repeated "pre-flight" checks in command handlers and unify them into a single pipeline or context struct early.
+
+**Refactoring `src/parser.rs`**
+**Learning:** Moving complex validation logic like recursion depth checking into its own module (`parser/recursion.rs`) keeps the main parser file focused on AST construction.
+**Action:** Identify large, standalone validation functions and extract them to dedicated modules, even if they are only used in one place, to reduce cognitive load in the main file.
