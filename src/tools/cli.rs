@@ -52,4 +52,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Lookup a word in the built-in lexicon
+    Lookup {
+        /// The Greek word to analyze
+        word: String,
+    },
 }

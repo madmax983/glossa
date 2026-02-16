@@ -6,6 +6,7 @@ use clap::Parser;
 use miette::Result;
 
 use glossa::tools::cli::{Cli, Commands};
+use glossa::tools::dictionary::lookup_word;
 use glossa::tools::repl::run_repl;
 use glossa::tools::runner::{bard_file, build_file, check_file, highlight_file, run_file};
 
@@ -36,6 +37,10 @@ fn main() -> Result<()> {
 
         Some(Commands::Bard { input }) => {
             bard_file(&input)?;
+        }
+
+        Some(Commands::Lookup { word }) => {
+            lookup_word(&word)?;
         }
 
         Some(Commands::Repl) | None => {
