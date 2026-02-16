@@ -67,3 +67,8 @@
 **Bloat:** `src/parser/` directory logic split between `mod.rs` and `builder.rs`.
 **Cut:** Merged into `src/parser.rs` (keeping `numerals.rs` as submodule).
 **Saved:** 1 file, improved cohesion.
+
+## [Reduction]
+**Bloat:** `src/experimental/bard.rs` was a fully functional tool hidden in an "experimental" module.
+**Cut:** Promoted to `src/tools/narrator.rs` and deleted `src/experimental`.
+**Saved:** 1 folder, 2 files, clearer project structure.

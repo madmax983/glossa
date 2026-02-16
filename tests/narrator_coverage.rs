@@ -1,5 +1,5 @@
-use glossa::experimental::bard::tell_tale;
 use glossa::parser::parse;
+use glossa::tools::narrator::tell_tale;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, CaptureMode, GlossaType, analyze_program,
 };
