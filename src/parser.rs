@@ -809,4 +809,67 @@ mod tests {
         assert_eq!(ast.statements.len(), 1);
         assert_eq!(ast.statements[0].clauses().len(), 2); // Two clauses separated by comma
     }
+
+    #[test]
+    fn test_recursion_limit_exceeded() {
+        // 501 nested parentheses
+        let source = "(".repeat(501) + &")".repeat(501);
+        let result = parse_source(&source);
+        assert!(matches!(
+            result,
+            Err(ParseError::RecursionLimitExceeded(500))
+        ));
+    }
+
+    #[test]
+    fn test_recursion_limit_not_exceeded() {
+        // 500 nested parentheses (should pass check, though pest might fail to parse empty parens)
+        let source = "(".repeat(500) + &")".repeat(500);
+        // We only care about the recursion check here
+        let result = check_recursion_depth(&source);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_recursion_limit_ignored_in_string() {
+        // Parentheses inside string literal shouldn't count
+        let source = "«".to_string() + &"(".repeat(600) + "»";
+        let result = check_recursion_depth(&source);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_recursion_limit_ignored_in_comment() {
+        // Parentheses inside comment shouldn't count
+        let source = "// ".to_string() + &"(".repeat(600);
+        let result = check_recursion_depth(&source);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_recursion_limit_mixed_brackets() {
+        // Mixed brackets should all count towards the same limit
+        // 200 (, 200 {, 101 [ = 501 total
+        let source = "(".repeat(200)
+            + &"{".repeat(200)
+            + &"[".repeat(101)
+            + &"]".repeat(101)
+            + &"}".repeat(200)
+            + &")".repeat(200);
+        let result = check_recursion_depth(&source);
+        assert!(matches!(
+            result,
+            Err(ParseError::RecursionLimitExceeded(500))
+        ));
+    }
+
+    #[test]
+    fn test_recursion_limit_unbalanced_but_safe() {
+        // Unbalanced brackets that don't exceed depth
+        // (((...))) then (((...))) - sequential, not nested
+        let part = "(".repeat(400) + &")".repeat(400);
+        let source = part.clone() + &part;
+        let result = check_recursion_depth(&source);
+        assert!(result.is_ok());
+    }
 }

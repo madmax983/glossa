@@ -1122,4 +1122,21 @@ mod tests {
             panic!("Second expression should be NumberLiteral(3)");
         }
     }
+
+    #[test]
+    fn test_recursion_limit_expression_analysis() {
+        // Construct a deeply nested Expr structure
+        // Expr::Phrase -> Expr::Phrase -> ... (51 times)
+        let mut deep_expr = Expr::NumberLiteral(1);
+        for _ in 0..52 {
+            deep_expr = Expr::Phrase(vec![deep_expr]);
+        }
+
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&deep_expr, &scope);
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Recursion limit exceeded"));
+    }
 }
