@@ -12,7 +12,6 @@ use super::{
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, lexicon};
-use crate::text::normalize_greek;
 use smol_str::SmolStr;
 
 // =================================================================================================
@@ -32,11 +31,10 @@ pub fn analyze_control_flow(
 
     // Get the first word to check for control flow particles
     // If this fails (e.g., statement starts with literal), it's not control flow
-    let first_word = match get_first_word(stmt) {
+    let normalized = match get_first_word(stmt) {
         Ok(word) => word,
         Err(_) => return Ok(None),
     };
-    let normalized = normalize_greek(&first_word);
 
     // Conditional: εἰ/ἐάν condition, body [, εἰ δὲ μή, else_body]
     if lexicon::is_conditional_particle(&normalized) {
@@ -178,7 +176,7 @@ fn parse_for_range_loop(
 
     // Check if it's inclusive (ἕως) or exclusive (μέχρι) - word at index 2
     let inclusive = if let Expr::Word(w) = &words[2] {
-        normalize_greek(&w.original) == "εως"
+        w.normalized == "εως"
     } else {
         false
     };
@@ -462,10 +460,10 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
     if words.len() == 1 {
         match words[0] {
             Expr::Word(w) => {
-                let normalized = normalize_greek(&w.original);
+                let normalized = &w.normalized;
 
                 // Check if it's a numeral
-                if let Some(val) = lexicon::numeral_value(&normalized) {
+                if let Some(val) = lexicon::numeral_value(normalized) {
                     return Ok(AnalyzedExpr {
                         expr: AnalyzedExprKind::NumberLiteral(val),
                         glossa_type: GlossaType::Number,
@@ -474,11 +472,11 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
 
                 // Treat as variable
                 let var_type = scope
-                    .lookup(&normalized)
+                    .lookup(normalized)
                     .cloned()
                     .unwrap_or(GlossaType::Unknown);
                 return Ok(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(normalized),
+                    expr: AnalyzedExprKind::Variable(normalized.clone()),
                     glossa_type: var_type,
                 });
             }
@@ -522,7 +520,7 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
 
         // Get first word (the pattern value)
         if let Expr::Word(w) = &terms[0] {
-            let normalized = normalize_greek(&w.original);
+            let normalized = &w.normalized;
 
             // Check if it's ἄλλο (wildcard)
             if normalized == "αλλο" {
@@ -533,7 +531,7 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
             }
 
             // Check if it's a numeral
-            if let Some(val) = lexicon::numeral_value(&normalized) {
+            if let Some(val) = lexicon::numeral_value(normalized) {
                 return Ok(AnalyzedExpr {
                     expr: AnalyzedExprKind::NumberLiteral(val),
                     glossa_type: GlossaType::Number,
@@ -542,16 +540,16 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
 
             // Otherwise, treat as variable reference
             let var_type = scope
-                .lookup(&normalized)
+                .lookup(normalized)
                 .cloned()
                 .unwrap_or(GlossaType::Number);
             return Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(normalized),
+                expr: AnalyzedExprKind::Variable(normalized.clone()),
                 glossa_type: var_type,
             });
         }
     } else if let Expr::Word(w) = expr {
-        let normalized = normalize_greek(&w.original);
+        let normalized = &w.normalized;
 
         // Check for wildcard
         if normalized == "αλλο" {
@@ -562,7 +560,7 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
         }
 
         // Check for numeral
-        if let Some(val) = lexicon::numeral_value(&normalized) {
+        if let Some(val) = lexicon::numeral_value(normalized) {
             return Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::NumberLiteral(val),
                 glossa_type: GlossaType::Number,
@@ -722,7 +720,7 @@ fn check_else_pattern_in_expression(expr: &Expr) -> bool {
             .take(3)
             .filter_map(|term| {
                 if let Expr::Word(w) = term {
-                    Some(normalize_greek(&w.original).to_string())
+                    Some(w.normalized.to_string())
                 } else {
                     None
                 }
@@ -742,13 +740,13 @@ fn check_conditional_start(expr: &Expr) -> bool {
     let first_word = if let Expr::Phrase(terms) = expr {
         terms.first().and_then(|term| {
             if let Expr::Word(w) = term {
-                Some(normalize_greek(&w.original))
+                Some(w.normalized.clone())
             } else {
                 None
             }
         })
     } else if let Expr::Word(w) = expr {
-        Some(normalize_greek(&w.original))
+        Some(w.normalized.clone())
     } else {
         None
     };
@@ -770,16 +768,16 @@ pub fn analyze_type_definition(
     scope: &mut Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
     // Extract type name
-    let type_name = normalize_greek(&type_def.name.original);
+    let type_name = type_def.name.normalized.clone();
 
     // Analyze fields
     let mut fields = Vec::new();
     for field in &type_def.fields {
-        let field_name = normalize_greek(&field.name.original);
-        let type_name_gen = normalize_greek(&field.type_name.original);
+        let field_name = field.name.normalized.clone();
+        let type_name_gen = &field.type_name.normalized;
 
         // Map genitive type names to GlossaType
-        let field_type = resolve_type_name(&type_name_gen, scope);
+        let field_type = resolve_type_name(type_name_gen, scope);
         fields.push((field_name, field_type));
     }
 
@@ -805,7 +803,7 @@ pub fn analyze_trait_definition(
     scope: &mut Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
     // Extract trait name
-    let trait_name = normalize_greek(&trait_def.name.original);
+    let trait_name = trait_def.name.normalized.clone();
 
     // Check for duplicate trait definition
     if scope.lookup_trait(&trait_name).is_some() {
@@ -819,12 +817,12 @@ pub fn analyze_trait_definition(
     let mut analyzed_methods = Vec::new();
 
     for method in &trait_def.methods {
-        let method_name = normalize_greek(&method.name.original);
+        let method_name = method.name.normalized.clone();
 
         // Analyze method parameters
         let mut params = Vec::new();
         for param in &method.params {
-            let param_name = normalize_greek(&param.name.original);
+            let param_name = param.name.normalized.clone();
             // For now, trait method parameters don't have explicit types
             // They'll be inferred based on the impl
             params.push((param_name, GlossaType::Unknown));
@@ -894,8 +892,8 @@ pub fn analyze_trait_impl(
     scope: &mut Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
     // Extract type and trait names
-    let type_name = normalize_greek(&trait_impl.type_name.original);
-    let trait_name = normalize_greek(&trait_impl.trait_name.original);
+    let type_name = trait_impl.type_name.normalized.clone();
+    let trait_name = trait_impl.trait_name.normalized.clone();
 
     // Validate: trait must exist
     let trait_def = scope
@@ -914,12 +912,12 @@ pub fn analyze_trait_impl(
     let mut analyzed_methods = Vec::new();
 
     for method in &trait_impl.methods {
-        let method_name = normalize_greek(&method.name.original);
+        let method_name = method.name.normalized.clone();
 
         // Analyze method parameters
         let mut params = Vec::new();
         for param in &method.params {
-            let param_name = normalize_greek(&param.name.original);
+            let param_name = param.name.normalized.clone();
             // For now, trait method parameters don't have explicit types
             params.push((param_name, GlossaType::Unknown));
         }
@@ -1078,7 +1076,7 @@ fn extract_function_name_from_expr(expr: &Expr) -> Result<SmolStr, GlossaError> 
     let mut function_name = None;
 
     for word in &words {
-        let normalized = normalize_greek(&word.original);
+        let normalized = &word.normalized;
 
         // Stop at ὁρίζειν
         if normalized == "οριζειν" {
@@ -1095,7 +1093,7 @@ fn extract_function_name_from_expr(expr: &Expr) -> Result<SmolStr, GlossaError> 
             && analysis.part_of_speech != morphology::PartOfSpeech::Verb
         {
             // This could be the function name
-            function_name = Some(normalized);
+            function_name = Some(normalized.clone());
         }
     }
 
@@ -1116,7 +1114,7 @@ fn extract_parameters_from_expr(
     // Find the position of ὁρίζειν
     let mut start_pos = None;
     for (i, word) in words.iter().enumerate() {
-        let normalized = normalize_greek(&word.original);
+        let normalized = &word.normalized;
         if normalized == "οριζειν" {
             start_pos = Some(i + 1); // Start after ὁρίζειν
             break;
@@ -1137,7 +1135,7 @@ fn extract_parameters_from_expr(
             // Next word should be the parameter name
             if i + 1 < words.len() {
                 let param_word = &words[i + 1];
-                let param_name = normalize_greek(&param_word.original);
+                let param_name = param_word.normalized.clone();
 
                 // Check if word after param is a genitive (type annotation)
                 let mut param_type = None;
@@ -1146,8 +1144,8 @@ fn extract_parameters_from_expr(
                     let next_analysis = morphology::analyze(&next_word.original);
                     if next_analysis.case == Some(morphology::Case::Genitive) {
                         // Map genitive type to GlossaType
-                        let type_name = normalize_greek(&next_word.original);
-                        param_type = Some(resolve_type_name(&type_name, scope));
+                        let type_name = &next_word.normalized;
+                        param_type = Some(resolve_type_name(type_name, scope));
                         i += 1; // Skip the type annotation
                     }
                 }
