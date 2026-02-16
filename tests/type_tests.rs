@@ -43,8 +43,10 @@ fn test_instantiation() {
         π νέον σημεῖον πέντε ἔστω.
     "#;
     let code = compile(source);
-    // σημεῖον -> G_shmeion
-    assert!(code.contains("G_shmeion"));
+    // σημεῖον -> hex encoded
+    // σ(3c3) η(3b7) μ(3bc) ε(3b5) ι(3b9) ο(3bf) ν(3bd)
+    let expected = "G__u3c3__u3b7__u3bc__u3b5__u3b9__u3bf__u3bd_";
+    assert!(code.contains(expected));
     assert!(code.contains("5"));
 }
 
@@ -55,7 +57,9 @@ fn test_instantiation_multiple_fields() {
         π νέον σημεῖον πέντε τρία ἔστω.
     "#;
     let code = compile(source);
-    assert!(code.contains("G_shmeion"));
+    // σημεῖον -> hex encoded
+    let expected = "G__u3c3__u3b7__u3bc__u3b5__u3b9__u3bf__u3bd_";
+    assert!(code.contains(expected));
 }
 
 // Cycle 5: Field Access
@@ -68,8 +72,9 @@ fn test_field_access() {
     "#;
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
-    // ξ -> g_x
-    assert!(code.contains(".g_x") || code.contains(". g_x"));
+    // ξ -> g__u3be_
+    let var = "g__u3be_";
+    assert!(code.contains(&format!(".{var}")) || code.contains(&format!(". {var}")));
 }
 
 #[test]
@@ -82,10 +87,12 @@ fn test_field_access_multiple_fields() {
     "#;
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
-    // ξ -> g_x
-    assert!(code.contains(". g_x") || code.contains(".g_x"));
+    // ξ -> g__u3be_
+    let x = "g__u3be_";
+    assert!(code.contains(&format!(".{x}")) || code.contains(&format!(". {x}")));
     // ψ -> g__u3c8_
-    assert!(code.contains(". g__u3c8_") || code.contains(".g__u3c8_"));
+    let psi = "g__u3c8_";
+    assert!(code.contains(&format!(".{psi}")) || code.contains(&format!(". {psi}")));
 }
 
 #[test]
@@ -97,9 +104,12 @@ fn test_instantiation_with_literals() {
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
     // It should generate struct instantiation, not string assignment
-    // Χρήστης -> G__u3c7_rhsths
-    assert!(code.contains("struct G__u3c7_rhsths"));
-    assert!(code.contains("let g__u3c7_rhsths = G__u3c7_rhsths"));
+    // Χρήστης -> hex encoded
+    // χ(3c7) ρ(3c1) η(3b7) σ(3c3) τ(3c4) η(3b7) ς(3c2)
+    let struct_name = "G__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_";
+    let var_name = "g__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_";
+    assert!(code.contains(&format!("struct {struct_name}")));
+    assert!(code.contains(&format!("let {var_name} = {struct_name}")));
     assert!(code.contains("Σωκράτης"));
     assert!(code.contains("70"));
 }

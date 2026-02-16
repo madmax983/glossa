@@ -39,8 +39,8 @@ fn test_function_with_two_params() {
     let code = compile("προσθεσις ὁρίζειν τῷ ξ τῷ ψ· δός ξ ψ ἄθροισμα.");
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("fn"));
-    // ξ -> g_x, ψ -> g__u3c8_
-    assert!(code.contains("g_x") && code.contains("g__u3c8_"));
+    // ξ -> g__u3be_, ψ -> g__u3c8_
+    assert!(code.contains("g__u3be_") && code.contains("g__u3c8_"));
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn test_simple_return() {
     eprintln!("Generated code:\n{}", code);
     assert!(code.contains("return"));
     // Should return x * 2, not just a literal
-    assert!(code.contains("g_x") || code.contains("*") || code.contains("2"));
+    assert!(code.contains("g__u3be_") || code.contains("*") || code.contains("2"));
 }
 
 #[test]
@@ -82,11 +82,10 @@ fn test_function_call() {
     ",
     );
     eprintln!("Generated code:\n{}", code);
-    // πρόσθεσις -> g_pros_u3b8_esis
-    assert!(
-        code.contains("g_pros_u3b8_esis")
-            && (code.contains("g_pros_u3b8_esis(") || code.contains("g_pros_u3b8_esis ("))
-    );
+    // πρόσθεσις -> hex encoded
+    // π(3c0) ρ(3c1) ο(3bf) σ(3c3) θ(3b8) ε(3b5) σ(3c3) ι(3b9) ς(3c2)
+    let expected = "g__u3c0__u3c1__u3bf__u3c3__u3b8__u3b5__u3c3__u3b9__u3c2_";
+    assert!(code.contains(expected), "Expected function name: {}", expected);
 }
 
 #[test]
@@ -99,8 +98,11 @@ fn test_nested_calls() {
     );
     eprintln!("Generated code:\n{}", code);
     // Check for nested diplasiasmos calls (allowing for whitespace)
+    // διπλασιασμος -> hex encoded
+    // δ(3b4) ι(3b9) π(3c0) λ(3bb) α(3b1) σ(3c3) ι(3b9) α(3b1) σ(3c3) μ(3bc) ο(3bf) ς(3c2)
+    let expected = "g__u3b4__u3b9__u3c0__u3bb__u3b1__u3c3__u3b9__u3b1__u3c3__u3bc__u3bf__u3c2_";
     assert!(
-        code.matches("g_diplasiasmos").count() >= 3,
+        code.matches(expected).count() >= 3,
         "Expected at least 3 occurrences of diplasiasmos (fn def + 2 calls)"
     );
     assert!(code.contains("5i64"), "Expected literal 5 as argument");
@@ -120,7 +122,10 @@ fn test_function_local_variables() {
     ",
     );
     eprintln!("Generated code:\n{}", code);
-    assert!(code.contains("let g_topikon"));
+    // τοπικον -> hex encoded
+    // τ(3c4) ο(3bf) π(3c0) ι(3b9) κ(3ba) ο(3bf) ν(3bd)
+    let expected = "g__u3c4__u3bf__u3c0__u3b9__u3ba__u3bf__u3bd_";
+    assert!(code.contains(expected));
 }
 
 #[test]

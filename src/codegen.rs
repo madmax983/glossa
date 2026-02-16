@@ -145,47 +145,20 @@ pub(crate) fn sanitize_name(name: &str) -> String {
 }
 
 /// Transliterate Greek to Latin characters
-pub(crate) fn transliterate(greek: &str) -> String {
+pub fn transliterate(greek: &str) -> String {
     let mut result = String::new();
 
     for c in greek.chars() {
-        let trans = match c {
-            'α' => "a",
-            'β' => "b",
-            'γ' => "g",
-            'δ' => "d",
-            'ε' => "e",
-            'ζ' => "z",
-            'η' => "h", // Distinct from 'e' (epsilon)
-            'ι' => "i",
-            'κ' => "k",
-            'λ' => "l",
-            'μ' => "m",
-            'ν' => "n",
-            'ξ' => "x",
-            'ο' => "o",
-            'π' => "p",
-            'ρ' => "r",
-            'σ' | 'ς' => "s",
-            'τ' => "t",
-            'υ' => "u",
-            'ω' => "w", // Distinct from 'o' (omicron)
-            // Digraphs and other characters are hex-encoded to prevent collisions
-            // θ, φ, χ, ψ map to _u..._ because th, ph, ch, ps collide with sequences
-            _ => {
-                // Keep only ASCII alphanumeric characters and underscore
-                if c.is_ascii_alphanumeric() || c == '_' {
-                    result.push(c);
-                } else {
-                    // Replace invalid characters with unique hex code to prevent collisions
-                    // e.g. ϟ -> _u3df_
-                    use std::fmt::Write;
-                    write!(result, "_u{:x}_", c as u32).unwrap();
-                }
-                continue;
-            }
-        };
-        result.push_str(trans);
+        // Keep only ASCII alphanumeric characters and underscore
+        if c.is_ascii_alphanumeric() || c == '_' {
+            result.push(c);
+        } else {
+            // Replace invalid characters with unique hex code to prevent collisions
+            // e.g. ϟ -> _u3df_
+            // e.g. α -> _u3b1_ (Distinct from 'a')
+            use std::fmt::Write;
+            write!(result, "_u{:x}_", c as u32).unwrap();
+        }
     }
 
     // Ensure it starts with a letter or underscore (valid Rust identifier)
@@ -1200,20 +1173,29 @@ mod tests {
 
     #[test]
     fn test_sanitize_greek_letter() {
-        assert_eq!(sanitize_name("ξ"), "g_x");
-        assert_eq!(sanitize_name("α"), "g_a");
-        assert_eq!(sanitize_name("ω"), "g_w");
+        assert_eq!(sanitize_name("ξ"), "g__u3be_");
+        assert_eq!(sanitize_name("α"), "g__u3b1_");
+        assert_eq!(sanitize_name("ω"), "g__u3c9_");
     }
 
     #[test]
     fn test_transliterate() {
-        // χ (chi) -> hex, ρ -> r, η -> h, σ -> s, τ -> t, ο -> o, ς -> s
+        // χ (chi) -> hex, ρ -> hex, etc.
         // χ is 0x3c7
-        assert_eq!(transliterate("χρηστος"), "_u3c7_rhstos");
-        assert_eq!(transliterate("λογος"), "logos");
-        // φ (phi) -> hex
-        // φ is 0x3c6
-        assert_eq!(transliterate("φιλοσοφια"), "_u3c6_iloso_u3c6_ia");
+        // ρ is 0x3c1
+        // η is 0x3b7
+        // σ is 0x3c3
+        // τ is 0x3c4
+        // ο is 0x3bf
+        // ς is 0x3c2
+        assert_eq!(transliterate("χρηστος"), "_u3c7__u3c1__u3b7__u3c3__u3c4__u3bf__u3c2_");
+
+        // λ (lambda) -> _u3bb_
+        // ο (omicron) -> _u3bf_
+        // γ (gamma) -> _u3b3_
+        // ο (omicron) -> _u3bf_
+        // ς (final sigma) -> _u3c2_
+        assert_eq!(transliterate("λογος"), "_u3bb__u3bf__u3b3__u3bf__u3c2_");
     }
 
     #[test]
@@ -1236,7 +1218,7 @@ mod tests {
     #[test]
     fn test_transliterate_mixed_valid_invalid() {
         // Test mixing valid and invalid characters
-        let input = "αϟβ";
+        let input = "aϟb";
         let output = transliterate(input);
         assert_eq!(output, "a_u3df_b");
     }
@@ -1311,9 +1293,13 @@ mod tests {
             gender: crate::morphology::Gender::Masculine,
             fields: vec![],
         };
-        // Sanitize: χρηστης -> g__u3c7_rhsths
-        // Capitalize: g__u3c7_rhsths -> G__u3c7_rhsths
-        assert_eq!(to_rust_type(&ty), "G__u3c7_rhsths");
+        // Sanitize: χρηστης -> g__u3c7_rhsths (Old)
+        // New: All chars hex encoded
+        // χ(3c7) ρ(3c1) η(3b7) σ(3c3) τ(3c4) η(3b7) ς(3c2)
+        // g__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_
+        // Capitalized: G__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_
+        let expected = "G__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_";
+        assert_eq!(to_rust_type(&ty), expected);
     }
 
     // --- Rust Codegen Tests ---
@@ -1336,7 +1322,8 @@ mod tests {
     fn test_generate_binding() {
         let code = compile("ξ πέντε ἔστω.");
         // Variables are now prefixed with g_
-        assert!(code.contains("let g_x"));
+        // ξ -> _u3be_
+        assert!(code.contains("let g__u3be_"));
         assert!(code.contains("5"));
     }
 
@@ -1351,8 +1338,9 @@ mod tests {
     fn test_generate_full_program() {
         let code = compile("ξ πέντε ἔστω. ξ λέγε.");
         // Variables are now prefixed with g_
+        // ξ -> _u3be_
         assert!(
-            code.contains("let g_x = 5"),
+            code.contains("let g__u3be_ = 5"),
             "Expected binding in: {}",
             code
         );

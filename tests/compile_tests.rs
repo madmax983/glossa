@@ -21,16 +21,17 @@ fn test_hello_cosmos() {
 #[test]
 fn test_variable_binding() {
     let code = compile("ξ πέντε ἔστω.").unwrap();
-    assert!(code.contains("let g_x"));
+    assert!(code.contains("let g__u3be_"));
     assert!(code.contains("5"));
 }
 
 #[test]
 fn test_variable_binding_and_use() {
     let code = compile("ξ πέντε ἔστω. ξ λέγε.").unwrap();
-    assert!(code.contains("let g_x = 5"));
+    // ξ -> _u3be_
+    assert!(code.contains("let g__u3be_ = 5"));
     assert!(code.contains("println"));
-    assert!(code.contains("g_x"));
+    assert!(code.contains("g__u3be_"));
 }
 
 #[test]
@@ -42,8 +43,9 @@ fn test_number_literal() {
 #[test]
 fn test_multiple_statements() {
     let code = compile("α πέντε ἔστω. β δέκα ἔστω. α λέγε.").unwrap();
-    assert!(code.contains("let g_a = 5"));
-    assert!(code.contains("let g_b = 10"));
+    // α -> _u3b1_, β -> _u3b2_
+    assert!(code.contains("let g__u3b1_ = 5"));
+    assert!(code.contains("let g__u3b2_ = 10"));
 }
 
 #[test]
@@ -61,15 +63,17 @@ fn test_preserves_greek_in_strings() {
 #[test]
 fn test_mutable_binding() {
     let code = compile("μετά ξ πέντε ἔστω.").unwrap();
-    assert!(code.contains("let mut g_x"));
+    // ξ -> _u3be_
+    assert!(code.contains("let mut g__u3be_"));
     assert!(code.contains("5"));
 }
 
 #[test]
 fn test_assignment_codegen() {
     let code = compile("μετά ξ πέντε ἔστω. ξ δέκα γίγνεται.").unwrap();
-    assert!(code.contains("let mut g_x = 5"));
-    assert!(code.contains("g_x = 10"));
+    // ξ -> _u3be_
+    assert!(code.contains("let mut g__u3be_ = 5"));
+    assert!(code.contains("g__u3be_ = 10"));
 }
 
 #[test]
@@ -89,8 +93,9 @@ fn test_undefined_assignment_error() {
 #[test]
 fn test_mutable_binding_and_reassignment() {
     let code = compile("μετά ξ πέντε ἔστω. ξ λέγε. ξ δέκα γίγνεται. ξ λέγε.").unwrap();
-    assert!(code.contains("let mut g_x = 5"));
-    assert!(code.contains("g_x = 10"));
+    // ξ -> _u3be_
+    assert!(code.contains("let mut g__u3be_ = 5"));
+    assert!(code.contains("g__u3be_ = 10"));
     assert!(code.matches("println").count() >= 2);
 }
 
