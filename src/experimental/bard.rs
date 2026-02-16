@@ -1,5 +1,3 @@
-//! The Narrator - Tells the tale of the program in English.
-
 use crate::semantic::CaptureMode;
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType,
