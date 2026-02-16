@@ -680,7 +680,6 @@ fn classify_print(
         let verb_lemma = normalize_greek(&verb.lemma);
 
         if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
-            // Binary expr with operator
             if !asm_stmt.operators.is_empty() {
                 let left = if let Some(ref subj) = asm_stmt.subject {
                     scope.lookup(&subj.lemma).map(|var_type| AnalyzedExpr {
@@ -772,25 +771,35 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
-            if let Some(ref subj) = asm_stmt.subject
-                && let Some(var_type) = scope.lookup(&subj.lemma)
-            {
-                args.insert(
-                    0,
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: var_type.clone(),
-                    },
-                );
+            if let Some(ref subj) = asm_stmt.subject {
+                if let Some(var_type) = scope.lookup(&subj.lemma) {
+                    args.insert(
+                        0,
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                            glossa_type: var_type.clone(),
+                        },
+                    );
+                } else {
+                    return Err(GlossaError::semantic(format!(
+                        "Unknown variable: {}",
+                        subj.lemma
+                    )));
+                }
             }
 
-            if let Some(ref obj) = asm_stmt.object
-                && let Some(var_type) = scope.lookup(&obj.lemma)
-            {
-                args.push(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                });
+            if let Some(ref obj) = asm_stmt.object {
+                if let Some(var_type) = scope.lookup(&obj.lemma) {
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    });
+                } else {
+                    return Err(GlossaError::semantic(format!(
+                        "Unknown variable: {}",
+                        obj.lemma
+                    )));
+                }
             }
 
             return Ok(Some(AnalyzedStatement::Print(args)));

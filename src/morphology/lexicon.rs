@@ -1781,6 +1781,60 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
         },
     );
 
+    // self - trait instance reference
+    m.insert(
+        "self",
+        LexiconEntry {
+            lemma: "self",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "self",
+            rust_equiv: Some("self"),
+            case: Some(Case::Nominative),
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // selfου - of self (genitive)
+    m.insert(
+        "selfου",
+        LexiconEntry {
+            lemma: "self",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "of self",
+            rust_equiv: Some("self"),
+            case: Some(Case::Genitive),
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
+    // selfω - to self (dative) - normalized from selfῳ
+    m.insert(
+        "selfω",
+        LexiconEntry {
+            lemma: "self",
+            pos: PartOfSpeech::Noun,
+            gender: Some(Gender::Masculine),
+            meaning: "to self",
+            rust_equiv: Some("self"),
+            case: Some(Case::Dative),
+            number: Some(Number::Singular),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+        },
+    );
+
     // χρήστης - user
     m.insert(
         "χρηστης",

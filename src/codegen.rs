@@ -531,13 +531,35 @@ fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
         quote! { println!(); }
     } else if args.len() == 1 {
         let arg = generate_expr(&args[0]);
-        // Use Display formatting
-        quote! { println!("{}", #arg); }
+        // Check type to determine formatting trait (Display vs Debug)
+        if is_std_display_type(&args[0].glossa_type) {
+            quote! { println!("{}", #arg); }
+        } else {
+            quote! { println!("{:?}", #arg); }
+        }
     } else {
         // Multiple args - join with space
-        let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-        quote! { println!("{}", vec![#(format!("{}", #arg_tokens)),*].join(" ")); }
+        let arg_tokens: Vec<TokenStream> = args
+            .iter()
+            .map(|arg| {
+                let tokens = generate_expr(arg);
+                if is_std_display_type(&arg.glossa_type) {
+                    quote! { format!("{}", #tokens) }
+                } else {
+                    quote! { format!("{:?}", #tokens) }
+                }
+            })
+            .collect();
+        quote! { println!("{}", vec![#(#arg_tokens),*].join(" ")); }
     }
+}
+
+/// Check if a type implements Display (primitive types)
+fn is_std_display_type(ty: &GlossaType) -> bool {
+    matches!(
+        ty,
+        GlossaType::Number | GlossaType::String | GlossaType::Boolean
+    )
 }
 
 fn generate_if(
