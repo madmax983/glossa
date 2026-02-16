@@ -67,3 +67,8 @@
 **Bloat:** `src/parser/` directory logic split between `mod.rs` and `builder.rs`.
 **Cut:** Merged into `src/parser.rs` (keeping `numerals.rs` as submodule).
 **Saved:** 1 file, improved cohesion.
+
+## [Reduction]
+**Bloat:** `src/experimental/bard.rs` (Narrative Generation) - a "fun" feature translating code to English, marked experimental and unused in core compilation.
+**Cut:** Deleted the entire feature, CLI command, and tests.
+**Saved:** ~500 lines of code/tests, removed cognitive load of maintaining a second "view" of the code.

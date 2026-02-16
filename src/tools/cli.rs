@@ -47,12 +47,6 @@ pub enum Commands {
     /// Start the interactive REPL
     Repl,
 
-    /// Translate a .γλ file to English logic (Experimental)
-    Bard {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
-
     /// Lookup a word in the built-in lexicon
     Lookup {
         /// The Greek word to analyze
