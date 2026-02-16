@@ -1,8 +1,8 @@
-use glossa::tools::narrator::tell_tale;
 use glossa::parser::parse;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, CaptureMode, GlossaType, analyze_program,
 };
+use glossa::tools::narrator::tell_tale;
 
 fn compile_and_tell(source: &str) -> String {
     let ast = parse(source).expect("AST build failed");
