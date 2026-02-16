@@ -16,7 +16,6 @@ use super::{AnalyzedExpr, AnalyzedExprKind, Assembler, GlossaType, Literal, Scop
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
-use crate::text::normalize_greek;
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
 ///
@@ -85,10 +84,10 @@ fn analyze_argument_expr_recursive(
 }
 
 fn analyze_word(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
-    let normalized = normalize_greek(&w.original);
+    let normalized = &w.normalized;
 
     // Check if it's a numeral
-    if let Some(val) = crate::morphology::lexicon::numeral_value(&normalized) {
+    if let Some(val) = crate::morphology::lexicon::numeral_value(normalized) {
         return Ok(AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(val),
             glossa_type: GlossaType::Number,
@@ -96,9 +95,9 @@ fn analyze_word(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, Glo
     }
 
     // Check if it's a variable
-    if let Some(var_type) = scope.lookup(&normalized) {
+    if let Some(var_type) = scope.lookup(normalized) {
         return Ok(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(normalized),
+            expr: AnalyzedExprKind::Variable(normalized.clone()),
             glossa_type: var_type.clone(),
         });
     }
@@ -182,7 +181,7 @@ fn analyze_property_access(
         Ok(AnalyzedExpr {
             expr: AnalyzedExprKind::PropertyAccess {
                 owner: Box::new(owner_analyzed),
-                property: normalize_greek(&prop_word.original),
+                property: prop_word.normalized.clone(),
             },
             glossa_type: GlossaType::Unknown,
         })
@@ -203,9 +202,9 @@ fn analyze_phrase(
 
     // Check if first term is a function name
     if let Expr::Word(w) = &terms[0] {
-        let func_name = normalize_greek(&w.original);
+        let func_name = &w.normalized;
 
-        if scope.is_function(&func_name) {
+        if scope.is_function(func_name) {
             // It's a function call - recursively analyze arguments
             let mut args = Vec::new();
             for arg_expr in &terms[1..] {
@@ -213,13 +212,13 @@ fn analyze_phrase(
             }
 
             let return_type = scope
-                .lookup_function(&func_name)
+                .lookup_function(func_name)
                 .and_then(|sig| sig.return_type.clone())
                 .unwrap_or(GlossaType::Unknown);
 
             return Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::FunctionCall {
-                    func: func_name,
+                    func: func_name.clone(),
                     args,
                 },
                 glossa_type: return_type,
@@ -304,7 +303,7 @@ fn analyze_unaryop(
 }
 
 /// Get the first word from a statement for pattern detection
-pub fn get_first_word(stmt: &Statement) -> Result<String, GlossaError> {
+pub fn get_first_word(stmt: &Statement) -> Result<smol_str::SmolStr, GlossaError> {
     if let Some(first_clause) = stmt.clauses().first()
         && let Some(first_expr) = first_clause.expressions.first()
     {
@@ -312,10 +311,10 @@ pub fn get_first_word(stmt: &Statement) -> Result<String, GlossaError> {
             if let Some(first_term) = terms.first()
                 && let Expr::Word(word) = first_term
             {
-                return Ok(word.original.to_string());
+                return Ok(word.normalized.clone());
             }
         } else if let Expr::Word(word) = first_expr {
-            return Ok(word.original.to_string());
+            return Ok(word.normalized.clone());
         }
     }
     Err(GlossaError::semantic("Empty statement"))
@@ -336,7 +335,7 @@ pub fn contains_function_definition_verb(stmt: &Statement) -> bool {
 /// Helper to check if an expression contains a specific verb
 pub fn contains_verb_in_expr(expr: &Expr, verb: &str) -> bool {
     match expr {
-        Expr::Word(word) => normalize_greek(&word.original) == verb,
+        Expr::Word(word) => word.normalized == verb,
         Expr::Phrase(terms) => terms.iter().any(|t| contains_verb_in_expr(t, verb)),
         _ => false,
     }
