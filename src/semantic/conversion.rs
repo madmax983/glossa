@@ -802,6 +802,20 @@ fn classify_print(
                 }
             }
 
+            for nom in &asm_stmt.nominatives {
+                if let Some(var_type) = scope.lookup(&nom.lemma) {
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    });
+                } else {
+                    return Err(GlossaError::semantic(format!(
+                        "Unknown variable: {}",
+                        nom.lemma
+                    )));
+                }
+            }
+
             return Ok(Some(AnalyzedStatement::Print(args)));
         }
     }
