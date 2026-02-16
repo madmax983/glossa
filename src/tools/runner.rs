@@ -593,4 +593,108 @@ mod tests {
         let result = highlight_file(&input_path);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_status_tty_success() {
+        // TTY branches
+        let status = Status::new("Testing TTY", true);
+        status.success();
+    }
+
+    #[test]
+    fn test_status_tty_update() {
+        let mut status = Status::new("Testing TTY Update", true);
+        status.update("Updated");
+        status.success();
+    }
+
+    #[test]
+    fn test_status_tty_error() {
+        let status = Status::new("Testing TTY Error", true);
+        status.error("Something went wrong");
+    }
+
+    #[test]
+    fn test_status_no_tty_success() {
+        // Non-TTY branches
+        let status = Status::new("Testing No-TTY", false);
+        status.success();
+    }
+
+    #[test]
+    fn test_status_no_tty_update() {
+        let mut status = Status::new("Testing No-TTY Update", false);
+        status.update("Updated");
+        status.success();
+    }
+
+    #[test]
+    fn test_status_no_tty_error() {
+        let status = Status::new("Testing No-TTY Error", false);
+        status.error("Something went wrong");
+    }
+
+    #[test]
+    fn test_status_drop() {
+        {
+            let _status = Status::new("Testing Drop", true);
+            // Should execute Drop (show cursor)
+        }
+    }
+
+    #[test]
+    fn test_cache_key_generation() {
+        let cache = Cache::new();
+        let path = Path::new("test.gl");
+        let key1 = cache.key(path);
+        let key2 = cache.key(path);
+        // Keys should be deterministic
+        assert_eq!(key1, key2);
+        // SHA-256 hash length (hex)
+        assert_eq!(key1.len(), 16);
+    }
+
+    #[test]
+    fn test_cache_is_valid() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("src.gl");
+        let output = dir.path().join("out.exe");
+
+        // Create input file
+        {
+            let mut f = std::fs::File::create(&input).unwrap();
+            f.write_all(b"content").unwrap();
+        }
+
+        // Wait to ensure timestamp difference
+        std::thread::sleep(std::time::Duration::from_millis(50));
+
+        // Create output file (newer)
+        {
+            let mut f = std::fs::File::create(&output).unwrap();
+            f.write_all(b"exe").unwrap();
+        }
+
+        let cache = Cache::new();
+        // Output is newer than input -> valid
+        assert!(
+            cache.is_valid(&input, &output),
+            "Cache should be valid when output is newer"
+        );
+
+        // Wait again
+        std::thread::sleep(std::time::Duration::from_millis(50));
+
+        // Touch input to make it newer
+        {
+            let mut f = std::fs::File::create(&input).unwrap();
+            f.write_all(b"new content").unwrap();
+        }
+
+        // Input is newer than output -> invalid
+        assert!(
+            !cache.is_valid(&input, &output),
+            "Cache should be invalid when input is newer"
+        );
+    }
 }
