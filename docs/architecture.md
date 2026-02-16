@@ -27,11 +27,12 @@ The compiler is organized as a pipeline of modules, transforming source text int
 C4Container
     title Container Diagram for ΓΛΩΣΣΑ Compiler
 
-    Container(lexer, "Lexer", "src/grammar", "Tokenizes source, handling Unicode normalization")
+    Container(lexer, "Lexer", "src/grammar.rs", "Tokenizes source, handling Unicode normalization")
     Container(parser, "Parser", "src/parser", "Constructs AST, enforcing recursion limits (max depth 500)")
     Container(morphology, "Declension Resolver", "src/morphology", "Analyzes case, gender, number, and resolves agreement")
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
-    Container(highlight, "Highlighter", "src/highlight.rs", "Semantic syntax highlighting")
+    Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
+    Container(narrator, "Narrator", "src/tools/narrator.rs", "Generates English narrative from AST")
     Container(report, "Reporter", "src/report.rs", "Generates statistics and structured reports")
     Container(codegen, "Code Generator", "src/codegen", "Generates Rust source code")
 
@@ -40,6 +41,7 @@ C4Container
     Rel(parser, highlight, "AST (Unresolved)")
     Rel(morphology, semantic, "AST (Resolved Morphology)")
     Rel(semantic, report, "Analyzed Program")
+    Rel(semantic, narrator, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 ```
 

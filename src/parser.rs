@@ -641,6 +641,7 @@ pub enum ParseError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::recursion::check_recursion_depth;
 
     /// Helper to get the first expression of the first clause
     fn first_expr(stmt: &Statement) -> &Expr {

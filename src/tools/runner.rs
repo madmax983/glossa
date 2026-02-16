@@ -1,5 +1,5 @@
 use crate::codegen::generate_rust_file;
-use crate::experimental::bard::tell_tale;
+use crate::tools::narrator::tell_tale;
 use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::{AnalyzedProgram, analyze_program};
