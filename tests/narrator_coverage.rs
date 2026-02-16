@@ -1,8 +1,8 @@
-use glossa::tools::narrator::tell_tale;
 use glossa::parser::parse;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, CaptureMode, GlossaType, analyze_program,
 };
+use glossa::tools::narrator::tell_tale;
 
 fn strip_ansi(s: &str) -> String {
     let mut output = String::new();
@@ -12,7 +12,7 @@ fn strip_ansi(s: &str) -> String {
             if let Some('[') = chars.peek() {
                 chars.next(); // consume '['
                 // consume until 'm'
-                while let Some(c2) = chars.next() {
+                for c2 in chars.by_ref() {
                     if c2 == 'm' {
                         break;
                     }
@@ -308,10 +308,7 @@ fn test_bard_exprs() {
         "from 1 through 10",
     );
 
-    test_expr_tale(
-        AnalyzedExprKind::ArrayLiteral(vec![]),
-        "[]",
-    );
+    test_expr_tale(AnalyzedExprKind::ArrayLiteral(vec![]), "[]");
 
     test_expr_tale(
         AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
@@ -504,10 +501,7 @@ fn test_bard_types() {
         GlossaType::List(Box::new(GlossaType::Number)),
         "List<Number>",
     );
-    check_type(
-        GlossaType::Set(Box::new(GlossaType::Number)),
-        "Set<Number>",
-    );
+    check_type(GlossaType::Set(Box::new(GlossaType::Number)), "Set<Number>");
     check_type(
         GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number)),
         "Map<Text, Number>",

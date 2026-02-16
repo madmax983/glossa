@@ -11,13 +11,17 @@ use crate::semantic::{
 /// This function translates the semantic meaning of the program into a readable English narrative.
 pub fn tell_tale(program: &AnalyzedProgram) -> String {
     let mut table = Table::new();
-    table
-        .load_preset(presets::UTF8_FULL)
-        .set_header(vec![
-            Cell::new("#").add_attribute(Attribute::Bold).fg(Color::DarkGrey),
-            Cell::new("Act").add_attribute(Attribute::Bold).fg(Color::Cyan),
-            Cell::new("The Narrative").add_attribute(Attribute::Bold).fg(Color::Yellow),
-        ]);
+    table.load_preset(presets::UTF8_FULL).set_header(vec![
+        Cell::new("#")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::DarkGrey),
+        Cell::new("Act")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
+        Cell::new("The Narrative")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Yellow),
+    ]);
 
     for (i, stmt) in program.statements.iter().enumerate() {
         let (act, narrative) = tell_statement(stmt, 0);
@@ -383,12 +387,7 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
                 CaptureMode::Move => "move |",
                 CaptureMode::Memoize => "memo |",
             };
-            format!(
-                "{}{}| {}",
-                mode,
-                params.join(", "),
-                tell_expr(body)
-            )
+            format!("{}{}| {}", mode, params.join(", "), tell_expr(body))
         }
         AnalyzedExprKind::CollectionNew { collection_type } => {
             format!("new {}", collection_type)
@@ -396,11 +395,9 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
         AnalyzedExprKind::Assert { condition } => {
             format!("assert({})", tell_expr(condition))
         }
-        AnalyzedExprKind::AssertEq { left, right } => format!(
-            "assert_eq({}, {})",
-            tell_expr(left),
-            tell_expr(right)
-        ),
+        AnalyzedExprKind::AssertEq { left, right } => {
+            format!("assert_eq({}, {})", tell_expr(left), tell_expr(right))
+        }
     }
 }
 
@@ -417,11 +414,7 @@ fn tell_type(ty: &GlossaType) -> String {
         GlossaType::Struct { name, .. } => name.to_string(),
         GlossaType::Function { params, returns } => {
             let params_str: Vec<String> = params.iter().map(tell_type).collect();
-            format!(
-                "fn({}) -> {}",
-                params_str.join(", "),
-                tell_type(returns)
-            )
+            format!("fn({}) -> {}", params_str.join(", "), tell_type(returns))
         }
         GlossaType::Unit => "()".to_string(),
         GlossaType::Unknown => "?".to_string(),
