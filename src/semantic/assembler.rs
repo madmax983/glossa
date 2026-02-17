@@ -216,13 +216,13 @@ impl Assembler {
 
         match analysis.part_of_speech {
             PartOfSpeech::Noun | PartOfSpeech::Pronoun => {
-                self.handle_nominal(analysis, original, &normalized)
+                self.handle_nominal(analysis, original, normalized)
             }
-            PartOfSpeech::Adjective => self.handle_adjective(analysis, original, &normalized),
-            PartOfSpeech::Verb => self.handle_verb(analysis, original, &normalized),
+            PartOfSpeech::Adjective => self.handle_adjective(analysis, original, normalized),
+            PartOfSpeech::Verb => self.handle_verb(analysis, original, normalized),
             PartOfSpeech::Numeral => {
                 // Already handled above, but keep this for explicit numeral POS
-                self.handle_nominal(analysis, original, &normalized)
+                self.handle_nominal(analysis, original, normalized)
             }
             PartOfSpeech::Conjunction => {
                 // Non-operator conjunctions are ignored for now

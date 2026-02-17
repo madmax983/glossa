@@ -949,3 +949,6 @@ test src/tools/highlight.rs - tools::highlight (line 21) ... ok
 test result: ok. 35 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.03s
 
 all doctests ran in 0.59s; merged doctests compilation took 0.56s compiles successfully.
+**[Clippy Needless Borrow]**
+**Learning:**  flags explicit references (e.g. ) when the value is already a reference (e.g.  is ) and the function takes that reference type. Rust auto-derefs  to , but Clippy prefers passing  directly.
+**Action:** When a variable is already a reference (like ), pass it directly to functions expecting that reference type, instead of re-borrowing it.
