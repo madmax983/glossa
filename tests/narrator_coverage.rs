@@ -300,10 +300,7 @@ fn test_bard_exprs() {
         "1..=10",
     );
 
-    test_expr_tale(
-        AnalyzedExprKind::ArrayLiteral(vec![]),
-        "[]",
-    );
+    test_expr_tale(AnalyzedExprKind::ArrayLiteral(vec![]), "[]");
 
     test_expr_tale(
         AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
@@ -492,14 +489,8 @@ fn test_bard_types() {
         );
     }
 
-    check_type(
-        GlossaType::List(Box::new(GlossaType::Number)),
-        "[Number]",
-    );
-    check_type(
-        GlossaType::Set(Box::new(GlossaType::Number)),
-        "Set<Number>",
-    );
+    check_type(GlossaType::List(Box::new(GlossaType::Number)), "[Number]");
+    check_type(GlossaType::Set(Box::new(GlossaType::Number)), "Set<Number>");
     check_type(
         GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number)),
         "Map<String, Number>",

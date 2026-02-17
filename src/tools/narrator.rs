@@ -34,9 +34,15 @@ pub fn tell_tale(program: &AnalyzedProgram) -> String {
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("Act").add_attribute(Attribute::Bold).fg(Color::Cyan),
-            Cell::new("The Scroll of Logic").add_attribute(Attribute::Bold).fg(Color::Yellow),
-            Cell::new("Notes").add_attribute(Attribute::Bold).fg(Color::Magenta),
+            Cell::new("Act")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("The Scroll of Logic")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Yellow),
+            Cell::new("Notes")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Magenta),
         ]);
 
     for stmt in &program.statements {
@@ -46,7 +52,9 @@ pub fn tell_tale(program: &AnalyzedProgram) -> String {
     // Add a footer
     table.add_row(vec![
         Cell::new("FIN").fg(Color::DarkGrey),
-        Cell::new("...and thus the ritual is complete.").fg(Color::DarkGrey).add_attribute(Attribute::Italic),
+        Cell::new("...and thus the ritual is complete.")
+            .fg(Color::DarkGrey)
+            .add_attribute(Attribute::Italic),
         Cell::new("").fg(Color::DarkGrey),
     ]);
 
@@ -225,7 +233,12 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
                 .map(tell_type)
                 .unwrap_or("Nothing".to_string());
 
-            let script = format!("Define `{}` ({}) -> {}:", name, params_str.join(", "), ret_str);
+            let script = format!(
+                "Define `{}` ({}) -> {}:",
+                name,
+                params_str.join(", "),
+                ret_str
+            );
             table.add_row(vec![
                 Cell::new("FUNC").fg(Color::Cyan),
                 Cell::new(format!("{}{}", prefix, script)),
@@ -360,14 +373,12 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
         } => {
             let args_str: Vec<String> = args.iter().map(tell_expr).collect();
             // Zip fields and args for better display
-            let fields_args: Vec<String> = fields.iter().zip(args_str.iter())
+            let fields_args: Vec<String> = fields
+                .iter()
+                .zip(args_str.iter())
                 .map(|(f, a)| format!("{}: {}", f, a))
                 .collect();
-            format!(
-                "{} {{ {} }}",
-                type_name,
-                fields_args.join(", ")
-            )
+            format!("{} {{ {} }}", type_name, fields_args.join(", "))
         }
         AnalyzedExprKind::Lambda {
             params,
@@ -379,12 +390,7 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
                 CaptureMode::Move => "move ",
                 CaptureMode::Memoize => "memo ",
             };
-            format!(
-                "{}|{}| {}",
-                mode,
-                params.join(", "),
-                tell_expr(body)
-            )
+            format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
         }
         AnalyzedExprKind::CollectionNew { collection_type } => {
             format!("{}::new()", collection_type)
@@ -392,11 +398,9 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
         AnalyzedExprKind::Assert { condition } => {
             format!("assert({})", tell_expr(condition))
         }
-        AnalyzedExprKind::AssertEq { left, right } => format!(
-            "assert_eq({}, {})",
-            tell_expr(left),
-            tell_expr(right)
-        ),
+        AnalyzedExprKind::AssertEq { left, right } => {
+            format!("assert_eq({}, {})", tell_expr(left), tell_expr(right))
+        }
     }
 }
 
@@ -413,11 +417,7 @@ fn tell_type(ty: &GlossaType) -> String {
         GlossaType::Struct { name, .. } => name.to_string(),
         GlossaType::Function { params, returns } => {
             let params_str: Vec<String> = params.iter().map(tell_type).collect();
-            format!(
-                "Fn({}) -> {}",
-                params_str.join(", "),
-                tell_type(returns)
-            )
+            format!("Fn({}) -> {}", params_str.join(", "), tell_type(returns))
         }
         GlossaType::Unit => "()".to_string(),
         GlossaType::Unknown => "?".to_string(),
