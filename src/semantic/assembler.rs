@@ -95,12 +95,10 @@
 
 use crate::ast::{Expr, Word};
 pub use crate::errors::assembly::AssemblyError;
+use crate::morphology::lexicon::BinaryOp;
+use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person};
 use crate::semantic::assembly_model::{
     AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
-};
-use crate::morphology::lexicon::BinaryOp;
-use crate::morphology::{
-    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person,
 };
 use crate::text::normalize_greek;
 use unicode_normalization::UnicodeNormalization;
