@@ -185,8 +185,14 @@ mod tests {
         match result.expr {
             AnalyzedExprKind::BinOp { left, op, right } => {
                 // Expected: alpha + beta
-                assert!(matches!(left.expr, AnalyzedExprKind::Variable(name) if name == "α"), "Left should be alpha");
-                assert!(matches!(right.expr, AnalyzedExprKind::Variable(name) if name == "β"), "Right should be beta");
+                assert!(
+                    matches!(left.expr, AnalyzedExprKind::Variable(name) if name == "α"),
+                    "Left should be alpha"
+                );
+                assert!(
+                    matches!(right.expr, AnalyzedExprKind::Variable(name) if name == "β"),
+                    "Right should be beta"
+                );
                 assert_eq!(op, BinaryOp::Add);
             }
             _ => panic!("Expected BinOp"),
@@ -220,7 +226,7 @@ mod tests {
         scope.define("τρεχων", GlossaType::Number); // Define as original for simplicity
 
         let expr = Expr::Phrase(vec![
-            Expr::Word(Word::new("Α")), // Subject
+            Expr::Word(Word::new("Α")),      // Subject
             Expr::Word(Word::new("τρέχων")), // Participle
             Expr::Word(Word::new("ἄθροισμα")),
         ]);
@@ -229,8 +235,14 @@ mod tests {
 
         match result.expr {
             AnalyzedExprKind::BinOp { left, op, right } => {
-                assert!(matches!(left.expr, AnalyzedExprKind::Variable(name) if name == "α"), "Left should be alpha");
-                assert!(matches!(right.expr, AnalyzedExprKind::Variable(name) if name == "τρεχων"), "Right should be trexon");
+                assert!(
+                    matches!(left.expr, AnalyzedExprKind::Variable(name) if name == "α"),
+                    "Left should be alpha"
+                );
+                assert!(
+                    matches!(right.expr, AnalyzedExprKind::Variable(name) if name == "τρεχων"),
+                    "Right should be trexon"
+                );
                 assert_eq!(op, BinaryOp::Add);
             }
             _ => panic!("Expected BinOp"),
@@ -252,9 +264,7 @@ mod tests {
             is_propagate: false,
         };
 
-        let expr = Expr::Phrase(vec![
-            Expr::Block(vec![stmt_in_block])
-        ]);
+        let expr = Expr::Phrase(vec![Expr::Block(vec![stmt_in_block])]);
 
         let result = analyze_argument_expr(&expr, &scope).expect("Analysis failed");
 
@@ -277,5 +287,63 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.to_string().contains("Undefined variable"));
+    }
+
+    #[test]
+    fn test_phrase_complex_expressions() {
+        // Create a phrase containing various expression types to exercise
+        // feed_expr_to_assembler_with_context branches
+        let mut scope = Scope::new();
+        scope.define("x", GlossaType::Number);
+        scope.define("arr", GlossaType::List(Box::new(GlossaType::Number)));
+
+        // 1. Unary Op (Unwrap) - Postfix "!"
+        let unwrap_expr = Expr::UnaryOp {
+            op: glossa::ast::UnaryOperator::Unwrap,
+            operand: Box::new(Expr::Word(Word::new("x"))),
+        };
+
+        // 2. Array Literal - [1, 2]
+        let array_expr = Expr::ArrayLiteral(vec![
+            Expr::NumberLiteral(1),
+            Expr::NumberLiteral(2)
+        ]);
+
+        // 3. Index Access - arr#0
+        let index_expr = Expr::IndexAccess {
+            array: Box::new(Expr::Word(Word::new("arr"))),
+            index: Box::new(Expr::NumberLiteral(0)),
+        };
+
+        // 4. Boolean Literal
+        let bool_expr = Expr::BooleanLiteral(true);
+
+        // 5. String Literal
+        let string_expr = Expr::StringLiteral("test".into());
+
+        // Construct phrase: (x! [1, 2] arr#0 true "test")
+        let expr = Expr::Phrase(vec![
+            unwrap_expr,
+            array_expr,
+            index_expr,
+            bool_expr,
+            string_expr
+        ]);
+
+        // It might error during convert if it can't build a valid expression from this soup,
+        // but we are primarily testing that feed_expr_to_assembler handles these types.
+        let result = analyze_argument_expr(&expr, &scope);
+
+        match result {
+            Ok(analyzed) => {
+                match analyzed.expr {
+                    AnalyzedExprKind::StringLiteral(s) => assert_eq!(s, "test"),
+                    _ => panic!("Expected StringLiteral, got {:?}", analyzed.expr),
+                }
+            },
+            Err(e) => {
+                panic!("Analysis failed: {:?}", e);
+            }
+        }
     }
 }
