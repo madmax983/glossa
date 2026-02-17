@@ -12,7 +12,9 @@
 //! 2. **Recursive Analysis**: Nested expressions (args inside a function call) are analyzed
 //!    recursively to produce an [`AnalyzedExpr`]. See [`analyze_argument_expr`].
 
-use super::{AnalyzedExpr, AnalyzedExprKind, AssembledStatement, Assembler, GlossaType, Literal, Scope};
+use super::{
+    AnalyzedExpr, AnalyzedExprKind, AssembledStatement, Assembler, GlossaType, Literal, Scope,
+};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
@@ -1180,17 +1182,26 @@ mod tests {
     }
 
     #[test]
-    fn test_phrase_errors_on_multiple_terms() {
+    fn test_phrase_allows_multiple_terms() {
+        // We now allow multiple terms in a phrase (implicit sequencing or RPN preparation)
+        // (1 2) -> feeds 1, feeds 2. Result is likely the last one if no operators consume them.
         let expr = Expr::Phrase(vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)]);
         let scope = Scope::new();
         let result = analyze_argument_expr(&expr, &scope);
 
-        // This test should fail currently because the code returns Ok(1)
         assert!(
-            result.is_err(),
-            "Should error on multiple terms in non-function phrase, but got: {:?}",
+            result.is_ok(),
+            "Should allow multiple terms in phrase now (for complex expressions), but got error: {:?}",
             result
         );
+
+        // Optionally verify it returns the last value (2) as is current behavior of convert_assembled_to_expr
+        match result.unwrap().expr {
+            AnalyzedExprKind::NumberLiteral(n) => {
+                assert_eq!(n, 2, "Expected implicit return of last value (2)")
+            }
+            _ => panic!("Expected NumberLiteral"),
+        }
     }
 
     #[test]

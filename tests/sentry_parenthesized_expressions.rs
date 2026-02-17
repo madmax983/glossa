@@ -1,4 +1,3 @@
-
 #[cfg(test)]
 mod tests {
     use glossa::codegen::generate_rust;
@@ -15,7 +14,10 @@ mod tests {
 
         // It should include "hello"
         assert!(rust.contains("hello"), "It should include hello in print");
-        assert!(!rust.contains("println ! ()"), "Should NOT generate empty println");
+        assert!(
+            !rust.contains("println ! ()"),
+            "Should NOT generate empty println"
+        );
     }
 
     #[test]
@@ -28,16 +30,22 @@ mod tests {
         let rust = generate_rust(&analyzed);
 
         // It should contain addition logic
-        assert!(rust.contains("checked_add"), "Should contain addition logic");
+        assert!(
+            rust.contains("checked_add"),
+            "Should contain addition logic"
+        );
     }
 
     #[test]
     fn test_function_call_with_complex_args() {
-         // "λέγε(1 2 ἄθροισμα)." is effectively a function call to print with a complex arg.
-         // This confirms that analyze_phrase now supports assembling expressions.
-         let source = "λέγε(1 2 ἄθροισμα).";
-         let ast = parse(source).expect("Parse failed");
-         let result = analyze_program(&ast);
-         assert!(result.is_ok(), "Should successfully analyze complex expression in argument");
+        // "λέγε(1 2 ἄθροισμα)." is effectively a function call to print with a complex arg.
+        // This confirms that analyze_phrase now supports assembling expressions.
+        let source = "λέγε(1 2 ἄθροισμα).";
+        let ast = parse(source).expect("Parse failed");
+        let result = analyze_program(&ast);
+        assert!(
+            result.is_ok(),
+            "Should successfully analyze complex expression in argument"
+        );
     }
 }
