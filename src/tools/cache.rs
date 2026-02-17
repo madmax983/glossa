@@ -76,3 +76,22 @@ const fn fnv1a_64(bytes: &[u8]) -> u64 {
     }
     hash
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fnv1a_64_empty() {
+        assert_eq!(fnv1a_64(b""), 0xcbf29ce484222325);
+    }
+
+    #[test]
+    fn test_fnv1a_64_known_values() {
+        // Known FNV-1a 64-bit hash values
+        // "a"
+        assert_eq!(fnv1a_64(b"a"), 0xaf63dc4c8601ec8c);
+        // "foobar"
+        assert_eq!(fnv1a_64(b"foobar"), 0x85944171f73967e8);
+    }
+}
