@@ -86,6 +86,7 @@ fn analyze_argument_expr_recursive(
     }
 }
 
+#[allow(clippy::collapsible_if)]
 fn analyze_word(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
     let normalized = &w.normalized;
 
