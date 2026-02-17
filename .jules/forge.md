@@ -13,3 +13,7 @@
 **Refactoring `src/parser.rs`**
 **Learning:** Moving complex validation logic like recursion depth checking into its own module (`parser/recursion.rs`) keeps the main parser file focused on AST construction.
 **Action:** Identify large, standalone validation functions and extract them to dedicated modules, even if they are only used in one place, to reduce cognitive load in the main file.
+
+**Refactoring `runner.rs` file handling**
+**Learning:** Encapsulating file loading and validation (size checks, existence) into a `SourceFile` struct simplifies downstream logic significantly. It replaces scattered `if !exists` and `fs::read_to_string` calls with a single, safe abstraction.
+**Action:** When multiple CLI commands operate on the same input type (e.g., a source file), create a struct to handle its loading and validation immediately, rather than repeating checks in each command.

@@ -10,11 +10,56 @@ use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// Maximum source file size (1MB) to prevent memory exhaustion
 const MAX_FILE_SIZE: u64 = 1024 * 1024;
+
+/// Represents a loaded source file
+#[derive(Debug)]
+pub struct SourceFile {
+    pub path: PathBuf,
+    pub content: String,
+}
+
+impl SourceFile {
+    /// Load a source file with validation (existence, size)
+    pub fn load(path: &Path) -> Result<Self> {
+        if !path.exists() {
+            return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", path.display()));
+        }
+
+        let metadata = fs::metadata(path).into_diagnostic()?;
+        if metadata.len() > MAX_FILE_SIZE {
+            return Err(miette::miette!(
+                "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
+                metadata.len(),
+                MAX_FILE_SIZE
+            ));
+        }
+
+        let file = fs::File::open(path).into_diagnostic()?;
+        let mut content = String::new();
+
+        // Use take to limit the read, preventing OOM on infinite streams (e.g. /dev/zero)
+        file.take(MAX_FILE_SIZE + 1)
+            .read_to_string(&mut content)
+            .into_diagnostic()?;
+
+        if content.len() as u64 > MAX_FILE_SIZE {
+            return Err(miette::miette!(
+                "Ἀρχεῖον λίαν μέγα (File too large): > {} bytes",
+                MAX_FILE_SIZE
+            ));
+        }
+
+        Ok(Self {
+            path: path.to_path_buf(),
+            content,
+        })
+    }
+}
 
 fn analyze_source(source: &str) -> Result<AnalyzedProgram> {
     let ast = parse(source).map_err(|e| miette::miette!("{}", e))?;
@@ -26,51 +71,34 @@ fn compile(source: &str) -> Result<String> {
     Ok(generate_rust_file(&analyzed))
 }
 
-/// Check file size to prevent DoS
-fn check_file_size(input: &Path) -> Result<()> {
-    let metadata = fs::metadata(input).into_diagnostic()?;
-    if metadata.len() > MAX_FILE_SIZE {
-        return Err(miette::miette!(
-            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
-            metadata.len(),
-            MAX_FILE_SIZE
-        ));
-    }
-    Ok(())
-}
-
-fn load_source(input: &Path) -> Result<String> {
-    if !input.exists() {
-        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
-    }
-    check_file_size(input)?;
-
-    let file = fs::File::open(input).into_diagnostic()?;
-    let mut content = String::new();
-
-    // Use take to limit the read, preventing OOM on infinite streams (e.g. /dev/zero)
-    file.take(MAX_FILE_SIZE + 1)
-        .read_to_string(&mut content)
+fn compile_rust_source(source_path: &Path, output_path: &Path) -> Result<()> {
+    // Compile with rustc (hide output)
+    let rustc_output = Command::new("rustc")
+        .arg(source_path)
+        .arg("-o")
+        .arg(output_path)
+        .arg("-O") // Optimize for speed
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
         .into_diagnostic()?;
 
-    if content.len() as u64 > MAX_FILE_SIZE {
-        return Err(miette::miette!(
-            "Ἀρχεῖον λίαν μέγα (File too large): > {} bytes",
-            MAX_FILE_SIZE
-        ));
+    if !rustc_output.status.success() {
+        let stderr = String::from_utf8_lossy(&rustc_output.stderr);
+        return Err(miette::miette!("{}\n{}", "Rustc Error:".red(), stderr));
     }
 
-    Ok(content)
+    Ok(())
 }
 
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let status = Status::start("Μεταγλώττισις (Compiling)");
     let start = std::time::Instant::now();
-    let source = load_source(input)?;
-    let input_size = source.len() as u64;
+    let source_file = SourceFile::load(input)?;
+    let input_size = source_file.content.len() as u64;
 
     // Split compile to get stats
-    let analyzed = analyze_source(&source)?;
+    let analyzed = analyze_source(&source_file.content)?;
     let rust_code = generate_rust_file(&analyzed);
 
     let output_path = output
@@ -100,10 +128,7 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 }
 
 pub fn run_file(input: &Path) -> Result<()> {
-    if !input.exists() {
-        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
-    }
-    check_file_size(input)?;
+    let source_file = SourceFile::load(input)?;
 
     // Set up cache
     let cache = Cache::new();
@@ -124,10 +149,7 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     let mut status = Status::start("Μεταγλώττισις (Compiling)");
 
-    // Compile source
-    let source = load_source(input)?;
-
-    let rust_code = match compile(&source) {
+    let rust_code = match compile(&source_file.content) {
         Ok(code) => code,
         Err(e) => {
             status.error("Σφάλμα μεταγλωττίσεως");
@@ -140,21 +162,9 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     status.update("Οἰκοδόμησις (Building)");
 
-    // Compile with rustc (hide output)
-    let rustc_output = Command::new("rustc")
-        .arg(&cached_rs)
-        .arg("-o")
-        .arg(&cached_exe)
-        .arg("-O") // Optimize for speed
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .into_diagnostic()?;
-
-    if !rustc_output.status.success() {
-        let stderr = String::from_utf8_lossy(&rustc_output.stderr);
+    if let Err(e) = compile_rust_source(&cached_rs, &cached_exe) {
         status.error("Σφάλμα κώδικος (Codegen Error)");
-        return Err(miette::miette!("{}\n{}", "Rustc Error:".red(), stderr));
+        return Err(e);
     }
 
     status.success();
@@ -170,9 +180,9 @@ pub fn run_file(input: &Path) -> Result<()> {
 }
 
 pub fn check_file(input: &Path) -> Result<()> {
-    let source = load_source(input)?;
+    let source_file = SourceFile::load(input)?;
 
-    let analyzed = analyze_source(&source)?;
+    let analyzed = analyze_source(&source_file.content)?;
 
     let filename = input
         .file_name()
@@ -187,8 +197,8 @@ pub fn check_file(input: &Path) -> Result<()> {
 }
 
 pub fn highlight_file(input: &Path) -> Result<()> {
-    let source = load_source(input)?;
-    let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
+    let source_file = SourceFile::load(input)?;
+    let highlighted = highlight(&source_file.content).map_err(|e| miette::miette!("{}", e))?;
 
     println!("{}", highlighted);
 
@@ -196,8 +206,8 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 }
 
 pub fn bard_file(input: &Path) -> Result<()> {
-    let source = load_source(input)?;
-    let analyzed = analyze_source(&source)?;
+    let source_file = SourceFile::load(input)?;
+    let analyzed = analyze_source(&source_file.content)?;
 
     let tale = tell_tale(&analyzed);
     println!("{}", tale);
@@ -247,8 +257,8 @@ mod tests {
             f.write_all(&data).unwrap();
         }
 
-        // Call check_file_size directly
-        let result = check_file_size(&file_path);
+        // Call SourceFile::load directly
+        let result = SourceFile::load(&file_path);
         assert!(result.is_err());
         assert!(
             result
@@ -314,7 +324,7 @@ mod tests {
             f.write_all(&data).unwrap();
         }
 
-        // Call run_file (should fail at size check before running rustc)
+        // Call run_file
         let result = run_file(&file_path);
         assert!(result.is_err());
         assert!(
@@ -336,16 +346,11 @@ mod tests {
         }
 
         // 2. Run it
-        // This exercises: run_file -> check_file_size -> cache_dir -> cache_key -> compile -> rustc -> execution
         let result = run_file(&input_path);
-
-        // Note: this test requires `rustc` to be in the path, which is true for `cargo test`.
         assert!(result.is_ok());
 
         // 3. Verify cache exists
         let cache = Cache::new();
-        // We can't easily check internal dir existence without exposing it,
-        // but we can check if the exe exists via get_paths
         let (_, cached_exe) = cache.get_paths(&input_path);
         assert!(cached_exe.exists());
 
@@ -374,15 +379,12 @@ mod tests {
         let input_path = dir.path().join("rustc_error.gl");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            // This is valid Glossa but invalid Rust (redefining String)
-            // Memory says: εἶδος String ὁρίζειν...
             f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes())
                 .unwrap();
         }
 
         let result = run_file(&input_path);
         assert!(result.is_err());
-        // Verify it hits the rustc error path
         assert!(result.unwrap_err().to_string().contains("Rustc Error"));
     }
 
@@ -408,8 +410,6 @@ mod tests {
             f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
         }
 
-        // We can't easily capture stdout here without a lot of plumbing,
-        // but we can ensure it doesn't error.
         let result = highlight_file(&input_path);
         assert!(result.is_ok());
     }
