@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
     use glossa::ast::{Expr, Word};
+    use glossa::morphology::lexicon::BinaryOp;
     use glossa::semantic::expressions::analyze_argument_expr;
     use glossa::semantic::{AnalyzedExprKind, GlossaType, Scope};
-    use glossa::morphology::lexicon::BinaryOp;
 
     #[test]
     fn test_subject_operator_literal_expression() {
@@ -92,7 +92,7 @@ mod tests {
         let result = analyze_argument_expr(&outer, &scope).expect("Analysis failed");
 
         match result.expr {
-            AnalyzedExprKind::NumberLiteral(1) => {},
+            AnalyzedExprKind::NumberLiteral(1) => {}
             _ => panic!("Expected NumberLiteral(1), got {:?}", result.expr),
         }
     }
@@ -103,9 +103,7 @@ mod tests {
         let mut scope = Scope::new();
         scope.define("λογον", GlossaType::Number);
 
-        let expr = Expr::Phrase(vec![
-            Expr::Word(Word::new("λόγον")),
-        ]);
+        let expr = Expr::Phrase(vec![Expr::Word(Word::new("λόγον"))]);
 
         let result = analyze_argument_expr(&expr, &scope).expect("Analysis failed");
 
@@ -161,9 +159,7 @@ mod tests {
 
         scope.define("δωρα", GlossaType::Number); // Defined as plural form
 
-        let expr = Expr::Phrase(vec![
-            Expr::Word(Word::new("δῶρα")),
-        ]);
+        let expr = Expr::Phrase(vec![Expr::Word(Word::new("δῶρα"))]);
 
         let result = analyze_argument_expr(&expr, &scope).expect("Analysis failed");
 

@@ -55,3 +55,6 @@
 **[Participle as Variable in Expressions Coverage]**
 **Learning:** Adding unit tests for specific logic branches (like `convert_assembled_to_expr`) is crucial to maintain high coverage, especially when refactoring semantic analysis code that deals with multiple grammatical slots. These tests must be preserved and not deleted before submission. I learned that `codecov` accurately reports low coverage when these edge-case tests are missing.
 **Action:** Restored and formalized the coverage tests in `tests/expression_logic_coverage.rs` to ensure the complex fallback logic for Participles and operands in expressions is thoroughly tested and coverage metrics are satisfied.
+**[Participle as Variable in Expressions Coverage]**
+**Learning:** Adding unit tests for specific logic branches (like `convert_assembled_to_expr`) is crucial to maintain high coverage, especially when refactoring semantic analysis code that deals with multiple grammatical slots. These tests must be preserved and not deleted before submission. I learned that `codecov` accurately reports low coverage when these edge-case tests are missing.
+**Action:** Restored and formalized the coverage tests in `tests/expression_logic_coverage.rs` to ensure the complex fallback logic for Participles and operands in expressions is thoroughly tested and coverage metrics are satisfied.
