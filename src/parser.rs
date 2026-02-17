@@ -640,7 +640,6 @@ pub enum ParseError {
 
 #[cfg(test)]
 mod tests {
-    use super::recursion::check_recursion_depth;
     use super::*;
     use crate::parser::recursion::check_recursion_depth;
 

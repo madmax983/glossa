@@ -131,12 +131,17 @@ pub(crate) fn capitalize(s: &str) -> String {
 ///
 /// # Examples
 ///
+/// ```rust
+/// use glossa::codegen::sanitize_name;
+///
+/// // Standard transliteration (prefixed with g_ for namespace safety)
+/// assert_eq!(sanitize_name("ξ"), "g_x");
+/// assert_eq!(sanitize_name("χρηστης"), "g__u3c7_rhsths");
+///
+/// // Keyword safety (even Rust keywords are safe due to g_ prefix)
+/// assert_eq!(sanitize_name("if"), "g_if");
 /// ```
-/// // These are internal functions, but here is how they behave:
-/// // sanitize_name("ξ") -> "xi"
-/// // sanitize_name("χρήστης") -> "chrestes"
-/// ```
-pub(crate) fn sanitize_name(name: &str) -> String {
+pub fn sanitize_name(name: &str) -> String {
     // Directly transliterate without special casing single letters
     // This prevents collisions between single letters and their full names
     // e.g. "σ" (sigma) vs "σίγμα" (sigma)
@@ -145,7 +150,31 @@ pub(crate) fn sanitize_name(name: &str) -> String {
 }
 
 /// Transliterate Greek to Latin characters
-pub(crate) fn transliterate(greek: &str) -> String {
+///
+/// This function maps Greek characters to their Latin equivalents or hex-encoded sequences.
+/// It ensures that the output contains only valid Rust identifier characters (alphanumeric + underscore).
+///
+/// **Note:** This function expects normalized (monotonic) Greek text. Accented characters
+/// will be hex-encoded if not normalized first.
+///
+/// # Mapping Strategy
+///
+/// * **Direct Mapping**: Single characters that map cleanly (e.g., `α` -> `a`, `β` -> `b`).
+/// * **Hex Encoding**: Characters that would create ambiguity or have no direct equivalent
+///   are hex-encoded as `_uXXXX_` where `XXXX` is the Unicode scalar value.
+///   * `θ` (theta) -> `_u3b8_` (to avoid collision with `th`)
+///   * `φ` (phi) -> `_u3c6_` (to avoid collision with `ph`)
+///   * `χ` (chi) -> `_u3c7_` (to avoid collision with `ch`)
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::codegen::transliterate;
+///
+/// assert_eq!(transliterate("λογος"), "logos");
+/// assert_eq!(transliterate("φιλοσοφια"), "_u3c6_iloso_u3c6_ia");
+/// ```
+pub fn transliterate(greek: &str) -> String {
     let mut result = String::new();
 
     for c in greek.chars() {
