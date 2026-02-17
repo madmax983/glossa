@@ -25,19 +25,6 @@ fn compile(source: &str) -> Result<String> {
     Ok(generate_rust_file(&analyzed))
 }
 
-/// Check file size to prevent DoS
-fn check_file_size(input: &Path) -> Result<()> {
-    let metadata = fs::metadata(input).into_diagnostic()?;
-    if metadata.len() > MAX_FILE_SIZE {
-        return Err(miette::miette!(
-            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
-            metadata.len(),
-            MAX_FILE_SIZE
-        ));
-    }
-    Ok(())
-}
-
 /// Load source code from a file with strict size limits
 ///
 /// This function enforces a strict 1MB size limit to prevent Denial of Service (DoS)
@@ -113,7 +100,6 @@ pub fn run_file(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
-    check_file_size(input)?;
 
     // Set up cache
     let cache = Cache::new();
@@ -240,28 +226,6 @@ mod tests {
         let source = "ξ πέντε ἔστω. ξ λέγε.";
         let result = compile(source);
         assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_file_size_check_internal() {
-        // Create large file
-        let dir = tempfile::tempdir().unwrap();
-        let file_path = dir.path().join("large_internal.gl");
-        {
-            let mut f = std::fs::File::create(&file_path).unwrap();
-            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
-            f.write_all(&data).unwrap();
-        }
-
-        // Call check_file_size directly
-        let result = check_file_size(&file_path);
-        assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Ἀρχεῖον λίαν μέγα")
-        );
     }
 
     #[test]
@@ -421,12 +385,27 @@ mod tests {
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
             // This compiles but panics at runtime
-            f.write_all("1 2 ἰσοῦται.".as_bytes()).unwrap();
+            f.write_all("χ 1 ἔστω. χ 2 ἰσοῦται.".as_bytes()).unwrap();
         }
 
         let result = run_file(&input_path);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Πρόγραμμα ἐξῆλθε"));
+    }
+
+    #[test]
+    fn test_check_file_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("semantic_error.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("χ 1 γίγνεται.".as_bytes()).unwrap();
+        }
+
+        let result = check_file(&input_path);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("οὐχ ὡρίσθη"));
     }
 
     #[test]
