@@ -208,10 +208,10 @@ fn test_limit_participles() {
     };
 
     for _ in 0..MAX_PARTICIPLES {
-        asm.feed_participle(&analysis, "part").unwrap();
+        asm.feed_participle(&analysis, "part", "part").unwrap();
     }
 
-    match asm.feed_participle(&analysis, "part") {
+    match asm.feed_participle(&analysis, "part", "part") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Participles");
             assert_eq!(max, MAX_PARTICIPLES);

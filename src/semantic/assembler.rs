@@ -215,12 +215,14 @@ impl Assembler {
         }
 
         match analysis.part_of_speech {
-            PartOfSpeech::Noun | PartOfSpeech::Pronoun => self.handle_nominal(analysis, original),
-            PartOfSpeech::Adjective => self.handle_adjective(analysis, original),
-            PartOfSpeech::Verb => self.handle_verb(analysis, original),
+            PartOfSpeech::Noun | PartOfSpeech::Pronoun => {
+                self.handle_nominal(analysis, original, normalized)
+            }
+            PartOfSpeech::Adjective => self.handle_adjective(analysis, original, normalized),
+            PartOfSpeech::Verb => self.handle_verb(analysis, original, normalized),
             PartOfSpeech::Numeral => {
                 // Already handled above, but keep this for explicit numeral POS
-                self.handle_nominal(analysis, original)
+                self.handle_nominal(analysis, original, normalized)
             }
             PartOfSpeech::Conjunction => {
                 // Non-operator conjunctions are ignored for now
@@ -433,12 +435,13 @@ impl Assembler {
     ///     number: Number::Plural,
     ///     confidence: 1.0,
     /// };
-    /// asm.feed_participle(&analysis, "διπλασιαζόμενα").unwrap();
+    /// asm.feed_participle(&analysis, "διπλασιαζόμενα", "διπλασιαζομενα").unwrap();
     /// ```
     pub fn feed_participle(
         &mut self,
         analysis: &crate::morphology::ParticipleAnalysis,
         original: &str,
+        normalized: &str,
     ) -> Result<(), AssemblyError> {
         if self.state.participles.len() >= MAX_PARTICIPLES {
             return Err(AssemblyError::LimitExceeded {
@@ -449,6 +452,7 @@ impl Assembler {
         let constituent = ParticipleConstituent {
             verb_lemma: analysis.verb_lemma().into(),
             original: original.into(),
+            normalized: normalized.into(),
             tense: analysis.tense,
             voice: analysis.voice,
             case: analysis.case,
@@ -464,10 +468,12 @@ impl Assembler {
         &mut self,
         analysis: &MorphAnalysis,
         original: &str,
+        normalized: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
+            normalized: normalized.into(),
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
@@ -545,6 +551,7 @@ impl Assembler {
         &mut self,
         analysis: &MorphAnalysis,
         original: &str,
+        normalized: &str,
     ) -> Result<(), AssemblyError> {
         if self.state.verb.is_some() {
             return Err(AssemblyError::DoubleVerb);
@@ -553,6 +560,7 @@ impl Assembler {
         let verb_constituent = VerbConstituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
+            normalized: normalized.into(),
             person: analysis.person,
             number: analysis.number,
             tense: analysis.tense,
@@ -575,10 +583,12 @@ impl Assembler {
         &mut self,
         analysis: &MorphAnalysis,
         original: &str,
+        normalized: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
+            normalized: normalized.into(),
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
@@ -693,11 +703,10 @@ impl Assembler {
                     _ => unreachable!(),
                 };
 
-                let normalized_original = normalize_greek(&subj.original);
                 self.state.string_method = Some((method_name.to_string(), delim));
                 self.state
                     .property_accesses
-                    .push((normalized_original.to_string(), method_name.to_string()));
+                    .push((subj.normalized.to_string(), method_name.to_string()));
                 return Ok(true);
             }
         }
@@ -793,10 +802,9 @@ impl Assembler {
                         max: MAX_PROPERTY_ACCESSES,
                     });
                 }
-                let normalized_original = crate::text::normalize_greek(&subj.original);
                 self.state
                     .property_accesses
-                    .push((normalized_original.to_string(), "len".to_string()));
+                    .push((subj.normalized.to_string(), "len".to_string()));
                 self.state.subject = None; // Consume the subject
                 return Ok(true);
             }
@@ -815,10 +823,9 @@ impl Assembler {
                     });
                 }
                 // Create array and index expressions (use normalized original, not lemma)
-                let normalized_original = crate::text::normalize_greek(&subj.original);
                 let array = Expr::Word(Word {
                     original: subj.original.clone(),
-                    normalized: normalized_original.clone(),
+                    normalized: subj.normalized.clone(),
                 });
                 let index_expr = Expr::NumberLiteral(index);
 
@@ -970,6 +977,9 @@ pub struct Constituent {
     /// Original text as it appeared
     pub original: SmolStr,
 
+    /// Normalized text (lowercase, no diacritics)
+    pub normalized: SmolStr,
+
     /// Grammatical case
     pub case: Case,
 
@@ -991,6 +1001,9 @@ pub struct VerbConstituent {
 
     /// Original text as it appeared
     pub original: SmolStr,
+
+    /// Normalized text (lowercase, no diacritics)
+    pub normalized: SmolStr,
 
     /// Person (1st, 2nd, 3rd)
     pub person: Option<Person>,
@@ -1015,6 +1028,8 @@ pub struct ParticipleConstituent {
     pub verb_lemma: SmolStr,
     /// Original text as it appeared
     pub original: SmolStr,
+    /// Normalized text (lowercase, no diacritics)
+    pub normalized: SmolStr,
     /// Tense (present, aorist, perfect)
     pub tense: Tense,
     /// Voice (active, middle, passive)
