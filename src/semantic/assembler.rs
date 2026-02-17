@@ -215,14 +215,12 @@ impl Assembler {
         }
 
         match analysis.part_of_speech {
-            PartOfSpeech::Noun | PartOfSpeech::Pronoun => {
-                self.handle_nominal(analysis, original, normalized)
-            }
-            PartOfSpeech::Adjective => self.handle_adjective(analysis, original, normalized),
-            PartOfSpeech::Verb => self.handle_verb(analysis, original, normalized),
+            PartOfSpeech::Noun | PartOfSpeech::Pronoun => self.handle_nominal(analysis, original),
+            PartOfSpeech::Adjective => self.handle_adjective(analysis, original),
+            PartOfSpeech::Verb => self.handle_verb(analysis, original),
             PartOfSpeech::Numeral => {
                 // Already handled above, but keep this for explicit numeral POS
-                self.handle_nominal(analysis, original, normalized)
+                self.handle_nominal(analysis, original)
             }
             PartOfSpeech::Conjunction => {
                 // Non-operator conjunctions are ignored for now
@@ -435,13 +433,12 @@ impl Assembler {
     ///     number: Number::Plural,
     ///     confidence: 1.0,
     /// };
-    /// asm.feed_participle(&analysis, "διπλασιαζόμενα", "διπλασιαζομενα").unwrap();
+    /// asm.feed_participle(&analysis, "διπλασιαζόμενα").unwrap();
     /// ```
     pub fn feed_participle(
         &mut self,
         analysis: &crate::morphology::ParticipleAnalysis,
         original: &str,
-        normalized: &str,
     ) -> Result<(), AssemblyError> {
         if self.state.participles.len() >= MAX_PARTICIPLES {
             return Err(AssemblyError::LimitExceeded {
@@ -452,7 +449,6 @@ impl Assembler {
         let constituent = ParticipleConstituent {
             verb_lemma: analysis.verb_lemma().into(),
             original: original.into(),
-            normalized: normalized.into(),
             tense: analysis.tense,
             voice: analysis.voice,
             case: analysis.case,
@@ -468,12 +464,10 @@ impl Assembler {
         &mut self,
         analysis: &MorphAnalysis,
         original: &str,
-        normalized: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
-            normalized: normalized.into(),
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
@@ -551,7 +545,6 @@ impl Assembler {
         &mut self,
         analysis: &MorphAnalysis,
         original: &str,
-        normalized: &str,
     ) -> Result<(), AssemblyError> {
         if self.state.verb.is_some() {
             return Err(AssemblyError::DoubleVerb);
@@ -560,7 +553,6 @@ impl Assembler {
         let verb_constituent = VerbConstituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
-            normalized: normalized.into(),
             person: analysis.person,
             number: analysis.number,
             tense: analysis.tense,
@@ -583,12 +575,10 @@ impl Assembler {
         &mut self,
         analysis: &MorphAnalysis,
         original: &str,
-        normalized: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
-            normalized: normalized.into(),
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
@@ -980,9 +970,6 @@ pub struct Constituent {
     /// Original text as it appeared
     pub original: SmolStr,
 
-    /// Normalized text (lowercase, no diacritics)
-    pub normalized: SmolStr,
-
     /// Grammatical case
     pub case: Case,
 
@@ -1004,9 +991,6 @@ pub struct VerbConstituent {
 
     /// Original text as it appeared
     pub original: SmolStr,
-
-    /// Normalized text (lowercase, no diacritics)
-    pub normalized: SmolStr,
 
     /// Person (1st, 2nd, 3rd)
     pub person: Option<Person>,
@@ -1031,8 +1015,6 @@ pub struct ParticipleConstituent {
     pub verb_lemma: SmolStr,
     /// Original text as it appeared
     pub original: SmolStr,
-    /// Normalized text (lowercase, no diacritics)
-    pub normalized: SmolStr,
     /// Tense (present, aorist, perfect)
     pub tense: Tense,
     /// Voice (active, middle, passive)

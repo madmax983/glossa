@@ -32,7 +32,7 @@
 //! without changing the semantic meaning.
 
 pub mod assembler;
-pub mod conversion;
+pub(crate) mod conversion;
 pub mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;

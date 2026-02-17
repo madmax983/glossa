@@ -401,7 +401,7 @@ fn feed_expr_recursive(
             if !in_lexicon && !is_numeral {
                 let participle_check = morphology::analyze_participle(&w.normalized);
                 if let Some(participle_analysis) = participle_check {
-                    asm.feed_participle(&participle_analysis, &w.original, &w.normalized)?;
+                    asm.feed_participle(&participle_analysis, &w.original)?;
                     return Ok(());
                 }
             }

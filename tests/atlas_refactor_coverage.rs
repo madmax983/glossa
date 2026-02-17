@@ -199,7 +199,6 @@ fn test_constituent_derive_coverage() {
     let c = Constituent {
         lemma: SmolStr::new("test"),
         original: SmolStr::new("test"),
-        normalized: SmolStr::new("test"),
         case: Case::Nominative,
         number: None,
         gender: None,
