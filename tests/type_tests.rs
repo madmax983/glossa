@@ -43,8 +43,8 @@ fn test_instantiation() {
         π νέον σημεῖον πέντε ἔστω.
     "#;
     let code = compile(source);
-    // σημεῖον -> G_shmeion
-    assert!(code.contains("G_shmeion"));
+    // σημεῖον -> G__u3c3__u3b7__u3bc__u3b5__u3b9__u3bf__u3bd_
+    assert!(code.contains("G__u3c3__u3b7__u3bc__u3b5__u3b9__u3bf__u3bd_"));
     assert!(code.contains("5"));
 }
 
@@ -55,7 +55,8 @@ fn test_instantiation_multiple_fields() {
         π νέον σημεῖον πέντε τρία ἔστω.
     "#;
     let code = compile(source);
-    assert!(code.contains("G_shmeion"));
+    // σημεῖον -> G__u3c3__u3b7__u3bc__u3b5__u3b9__u3bf__u3bd_
+    assert!(code.contains("G__u3c3__u3b7__u3bc__u3b5__u3b9__u3bf__u3bd_"));
 }
 
 // Cycle 5: Field Access
@@ -68,8 +69,8 @@ fn test_field_access() {
     "#;
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
-    // ξ -> g_x
-    assert!(code.contains(".g_x") || code.contains(". g_x"));
+    // ξ -> g__u3be_
+    assert!(code.contains(".g__u3be_") || code.contains(". g__u3be_"));
 }
 
 #[test]
@@ -82,8 +83,8 @@ fn test_field_access_multiple_fields() {
     "#;
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
-    // ξ -> g_x
-    assert!(code.contains(". g_x") || code.contains(".g_x"));
+    // ξ -> g__u3be_
+    assert!(code.contains(". g__u3be_") || code.contains(".g__u3be_"));
     // ψ -> g__u3c8_
     assert!(code.contains(". g__u3c8_") || code.contains(".g__u3c8_"));
 }
@@ -97,9 +98,12 @@ fn test_instantiation_with_literals() {
     let code = compile(source);
     eprintln!("Generated code:\n{}", code);
     // It should generate struct instantiation, not string assignment
-    // Χρήστης -> G__u3c7_rhsths
-    assert!(code.contains("struct G__u3c7_rhsths"));
-    assert!(code.contains("let g__u3c7_rhsths = G__u3c7_rhsths"));
+    // Χρήστης -> G__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_
+    let name = "G__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_";
+    assert!(code.contains(&format!("struct {}", name)));
+    // Variable name lower case g_...
+    let var_name = "g__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_";
+    assert!(code.contains(&format!("let {} = {}", var_name, name)));
     assert!(code.contains("Σωκράτης"));
     assert!(code.contains("70"));
 }
