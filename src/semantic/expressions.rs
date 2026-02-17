@@ -15,10 +15,10 @@
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AssembledStatement, Assembler, GlossaType, Literal, Scope,
 };
-use crate::semantic::assembler::ParticipleConstituent;
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
+use crate::semantic::assembler::ParticipleConstituent;
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
 ///
