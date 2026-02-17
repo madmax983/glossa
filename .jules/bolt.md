@@ -958,3 +958,6 @@ all doctests ran in 0.59s; merged doctests compilation took 0.56s compiles succe
 **[Test Compilation and Coverage]**
 **Learning:** If a new test file fails to compile (e.g. unused imports in CI), the tests won't run, and Codecov will report low coverage for the code those tests were meant to cover.
 **Action:** Always ensure new tests compile cleanly with  or  before submitting.
+**[Diff Coverage: Modified Logic]**
+**Learning:** Modifying a function (like replacing  with a field access) puts the *entire* function in the diff for coverage purposes. If existing tests don't cover all branches of that function (e.g., specific  arms), coverage drops.
+**Action:** When refactoring a complex function, ensure tests exist for all its control flow paths, not just the ones you conceptually changed.
