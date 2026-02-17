@@ -31,19 +31,12 @@ impl Status {
 
     /// Update the status message
     pub fn update(&mut self, message: impl Into<String>) {
-        if !self.active {
-            return;
-        }
         self.message = message.into();
         self.print_running(true);
     }
 
     /// Mark the operation as complete success
     pub fn success(mut self) {
-        if !self.active {
-            return;
-        }
-
         let duration = self.start.elapsed();
         let time_str = format!("({:.2?})", duration).dim();
         let msg = format!("{} {}", self.message.as_str().bold(), time_str);
@@ -54,10 +47,6 @@ impl Status {
 
     /// Mark the operation as failed
     pub fn error(mut self, err: impl std::fmt::Display) {
-        if !self.active {
-            return;
-        }
-
         let msg = self.message.as_str().bold().to_string();
         self.print_done("✕".red(), &msg);
         eprintln!("{}", err);
@@ -107,6 +96,12 @@ impl Drop for Status {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_status_start() {
+        let status = Status::start("Testing Start");
+        status.success();
+    }
 
     #[test]
     fn test_status_tty_success() {

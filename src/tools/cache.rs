@@ -149,4 +149,12 @@ mod tests {
         let key = cache.key(path);
         assert_eq!(key.len(), 16);
     }
+
+    #[test]
+    fn test_cache_default() {
+        let cache = Cache::default();
+        // Just verify it doesn't panic and has a valid base dir
+        // We can't check internal base_dir, but we can call init()
+        assert!(cache.init().is_ok());
+    }
 }

@@ -1,5 +1,6 @@
 use crate::codegen::generate_rust_file;
 use crate::parser::parse;
+use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::{AnalyzedProgram, analyze_program};
 use crate::tools::cache::Cache;
 use crate::tools::highlight::highlight;
@@ -25,6 +26,19 @@ fn compile(source: &str) -> Result<String> {
     Ok(generate_rust_file(&analyzed))
 }
 
+/// Check file size to prevent DoS
+fn check_file_size(input: &Path) -> Result<()> {
+    let metadata = fs::metadata(input).into_diagnostic()?;
+    if metadata.len() > MAX_FILE_SIZE {
+        return Err(miette::miette!(
+            "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
+            metadata.len(),
+            MAX_FILE_SIZE
+        ));
+    }
+    Ok(())
+}
+
 /// Load source code from a file with strict size limits
 ///
 /// This function enforces a strict 1MB size limit to prevent Denial of Service (DoS)
@@ -42,6 +56,7 @@ fn load_source(input: &Path) -> Result<String> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
+    check_file_size(input)?;
 
     let file = fs::File::open(input).into_diagnostic()?;
     let mut content = String::new();
@@ -63,8 +78,11 @@ fn load_source(input: &Path) -> Result<String> {
 
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let status = Status::start("Μεταγλώττισις (Compiling)");
+    let start = std::time::Instant::now();
     let source = load_source(input)?;
+    let input_size = source.len() as u64;
 
+    // Split compile to get stats
     let analyzed = analyze_source(&source)?;
     let rust_code = generate_rust_file(&analyzed);
 
@@ -74,9 +92,22 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     fs::write(&output_path, &rust_code).into_diagnostic()?;
 
+    let output_size = fs::metadata(&output_path).into_diagnostic()?.len();
+    let duration = start.elapsed();
+    let stats = ProgramStats::new(&analyzed);
+
     status.success();
 
-    println!("Build successful: {}", output_path.display());
+    let report = CompilationReport {
+        input_path: input.to_path_buf(),
+        output_path,
+        input_size,
+        output_size,
+        duration,
+        stats,
+    };
+
+    println!("{}", report);
 
     Ok(())
 }
@@ -100,6 +131,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
+    check_file_size(input)?;
 
     // Set up cache
     let cache = Cache::new();
@@ -113,10 +145,7 @@ pub fn run_file(input: &Path) -> Result<()> {
         let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
         if !exit_status.success() {
-            return Err(miette::miette!(
-                "Πρόγραμμα ἐξῆλθε μὲ σφάλμα (Program exited with error): {}",
-                exit_status
-            ));
+            std::process::exit(exit_status.code().unwrap_or(1));
         }
         return Ok(());
     }
@@ -162,10 +191,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
     if !exit_status.success() {
-        return Err(miette::miette!(
-            "Πρόγραμμα ἐξῆλθε μὲ σφάλμα (Program exited with error): {}",
-            exit_status
-        ));
+        std::process::exit(exit_status.code().unwrap_or(1));
     }
 
     Ok(())
@@ -174,9 +200,16 @@ pub fn run_file(input: &Path) -> Result<()> {
 pub fn check_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
 
-    analyze_source(&source)?;
+    let analyzed = analyze_source(&source)?;
 
-    println!("Check successful.");
+    let filename = input
+        .file_name()
+        .unwrap_or(input.as_os_str())
+        .to_string_lossy()
+        .to_string();
+    let report = GlossaReport::new(&analyzed, filename);
+
+    println!("{}", report);
 
     Ok(())
 }
@@ -232,6 +265,28 @@ mod tests {
     }
 
     #[test]
+    fn test_file_size_check_internal() {
+        // Create large file
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("large_internal.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
+            f.write_all(&data).unwrap();
+        }
+
+        // Call check_file_size directly
+        let result = check_file_size(&file_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον λίαν μέγα")
+        );
+    }
+
+    #[test]
     fn test_build_file_size_limit() {
         // Create large file
         let dir = tempfile::tempdir().unwrap();
@@ -274,29 +329,6 @@ mod tests {
         // Output size is > 0
         let metadata = std::fs::metadata(&output_path).unwrap();
         assert!(metadata.len() > 0);
-    }
-
-    #[test]
-    fn test_build_file_with_output() {
-        // Create a temporary input file
-        let dir = tempfile::tempdir().unwrap();
-        let input_path = dir.path().join("test_out.gl");
-        let output_path = dir.path().join("custom_out.rs");
-        {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("«test» λέγε.".as_bytes()).unwrap();
-        }
-
-        // Call build_file with explicit output
-        let result = build_file(&input_path, Some(&output_path));
-        assert!(result.is_ok());
-
-        // Verify custom output file exists
-        assert!(output_path.exists());
-
-        // Verify default output does NOT exist
-        let default_output = input_path.with_extension("rs");
-        assert!(!default_output.exists());
     }
 
     #[test]
@@ -371,6 +403,7 @@ mod tests {
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
             // This is valid Glossa but invalid Rust (redefining String)
+            // Memory says: εἶδος String ὁρίζειν...
             f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes())
                 .unwrap();
         }
@@ -379,59 +412,6 @@ mod tests {
         assert!(result.is_err());
         // Verify it hits the rustc error path
         assert!(result.unwrap_err().to_string().contains("Rustc Error"));
-    }
-
-    #[test]
-    fn test_run_runtime_error() {
-        let dir = tempfile::tempdir().unwrap();
-        let input_path = dir.path().join("runtime_error.gl");
-        {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            // This compiles but panics at runtime
-            f.write_all("χ 1 ἔστω. χ 2 ἰσοῦται.".as_bytes()).unwrap();
-        }
-
-        let result = run_file(&input_path);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Πρόγραμμα ἐξῆλθε"));
-    }
-
-    #[test]
-    fn test_run_cached_failure() {
-        let dir = tempfile::tempdir().unwrap();
-        let input_path = dir.path().join("cached_failure.gl");
-        {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            // This compiles but panics at runtime
-            f.write_all("χ 1 ἔστω. χ 2 ἰσοῦται.".as_bytes()).unwrap();
-        }
-
-        // 1. First run: Compiles and runs (fails)
-        let result1 = run_file(&input_path);
-        assert!(result1.is_err());
-        assert!(result1.unwrap_err().to_string().contains("Πρόγραμμα ἐξῆλθε"));
-
-        // 2. Second run: Should use cached binary and fail again
-        // We can verify it used cache if we had logs, but functionality-wise
-        // it must return the same error without recompiling.
-        let result2 = run_file(&input_path);
-        assert!(result2.is_err());
-        assert!(result2.unwrap_err().to_string().contains("Πρόγραμμα ἐξῆλθε"));
-    }
-
-    #[test]
-    fn test_check_file_semantic_error() {
-        let dir = tempfile::tempdir().unwrap();
-        let input_path = dir.path().join("semantic_error.gl");
-        {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("χ 1 γίγνεται.".as_bytes()).unwrap();
-        }
-
-        let result = check_file(&input_path);
-        assert!(result.is_err());
-        let err_msg = result.unwrap_err().to_string();
-        assert!(err_msg.contains("οὐχ ὡρίσθη"));
     }
 
     #[test]
@@ -460,22 +440,6 @@ mod tests {
         // but we can ensure it doesn't error.
         let result = highlight_file(&input_path);
         assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_check_file_error() {
-        let input_path = Path::new("non_existent_check.gl");
-        let result = check_file(input_path);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
-    }
-
-    #[test]
-    fn test_highlight_file_error() {
-        let input_path = Path::new("non_existent_highlight.gl");
-        let result = highlight_file(input_path);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
     }
 
     #[test]

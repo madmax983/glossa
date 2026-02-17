@@ -19,7 +19,7 @@ fn test_cache_key_format() {
     let path = Path::new("src/main.rs");
     let key = cache.key(path);
 
-    // FNV-1a hex string is 16 chars
+    // FNV-1a 64-bit hex string is 16 chars
     assert_eq!(
         key.len(),
         16,

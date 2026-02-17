@@ -17,6 +17,9 @@ quote = "1"
 proc-macro2 = "1"
 smol_str = "0.3"
 rustc-hash = "2"
+comfy-table = "7.2.2"
+sha2 = "0.10"
+hex = "0.4"
 
 [dev-dependencies]
 insta = "1"

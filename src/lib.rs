@@ -75,6 +75,7 @@
 //! * [`highlight`]: **The Scribe** - Semantic syntax highlighting for the CLI.
 //! * [`morphology`]: **The Analyst** - Word analysis, lexicon lookup, and participle parsing.
 //! * [`parser`]: **The Builder** - Constructs the AST from the raw parse tree.
+//! * [`report`]: **The Chronicler** - Report generation and statistics.
 //! * [`semantic`]: **The Assembler** - The slot-based engine that assembles sentences from words.
 //! * [`text`]: **The Sizer** - Text utilities and normalization (polytonic -> monotonic).
 
@@ -84,6 +85,7 @@ pub mod errors;
 pub mod grammar;
 pub mod morphology;
 pub mod parser;
+pub mod report;
 pub mod semantic;
 pub mod text;
 pub mod tools;
