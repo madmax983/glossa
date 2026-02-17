@@ -1,6 +1,6 @@
 use crate::codegen::generate_rust_file;
 use crate::experimental::bard::tell_tale;
-use crate::experimental::muse::{invoke_muse, Inspiration};
+use crate::experimental::muse::{Inspiration, invoke_muse};
 use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::{AnalyzedProgram, analyze_program};
@@ -436,8 +436,17 @@ mod tests {
 
     #[test]
     fn test_muse_inspiration_valid() {
-        // Just verify it runs without error (prints to stdout)
-        let result = muse_inspiration(Inspiration::Hero);
-        assert!(result.is_ok());
+        // Verify all variants work
+        let inspirations = vec![
+            Inspiration::Hero,
+            Inspiration::Myth,
+            Inspiration::Chorus,
+            Inspiration::Epic,
+        ];
+
+        for insp in inspirations {
+            let result = muse_inspiration(insp);
+            assert!(result.is_ok());
+        }
     }
 }
