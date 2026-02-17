@@ -94,4 +94,30 @@ mod tests {
         // "foobar"
         assert_eq!(fnv1a_64(b"foobar"), 0x85944171f73967e8);
     }
+
+    #[test]
+    fn test_is_valid_logic() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("source.rs");
+        let exe = dir.path().join("binary.exe");
+
+        // 1. Neither exists -> valid = false (default UNIX_EPOCH > UNIX_EPOCH is false)
+        let cache = Cache::new();
+        assert!(!cache.is_valid(&src, &exe));
+
+        // 2. Source exists, Exe missing -> valid = false
+        fs::write(&src, "source").unwrap();
+        assert!(!cache.is_valid(&src, &exe));
+
+        // 3. Both exist, Exe newer -> valid = true
+        // Sleep to ensure timestamp diff
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        fs::write(&exe, "binary").unwrap();
+        assert!(cache.is_valid(&src, &exe));
+
+        // 4. Source newer -> valid = false
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        fs::write(&src, "newer source").unwrap();
+        assert!(!cache.is_valid(&src, &exe));
+    }
 }

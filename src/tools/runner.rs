@@ -308,6 +308,29 @@ mod tests {
     }
 
     #[test]
+    fn test_build_file_with_output() {
+        // Create a temporary input file
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_out.gl");
+        let output_path = dir.path().join("custom_out.rs");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«test» λέγε.".as_bytes()).unwrap();
+        }
+
+        // Call build_file with explicit output
+        let result = build_file(&input_path, Some(&output_path));
+        assert!(result.is_ok());
+
+        // Verify custom output file exists
+        assert!(output_path.exists());
+
+        // Verify default output does NOT exist
+        let default_output = input_path.with_extension("rs");
+        assert!(!default_output.exists());
+    }
+
+    #[test]
     fn test_run_file_size_limit() {
         // Create large file
         let dir = tempfile::tempdir().unwrap();
