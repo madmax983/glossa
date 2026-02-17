@@ -31,5 +31,8 @@ fn test_type_identifier_collision() {
 
     // We expect this to SUCCEED now, because 'x' maps to 'G_x' and 'Ξ' maps to 'G__u3be_' (hex encoded).
     // No collision occurs.
-    assert!(result.is_ok(), "Should succeed as identifier collision is fixed");
+    assert!(
+        result.is_ok(),
+        "Should succeed as identifier collision is fixed"
+    );
 }

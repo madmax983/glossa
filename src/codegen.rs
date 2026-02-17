@@ -1214,9 +1214,15 @@ mod tests {
         // ρ -> _u3c1_
         // η -> _u3b7_
         // ...
-        assert_eq!(transliterate("χρηστος"), "_u3c7__u3c1__u3b7__u3c3__u3c4__u3bf__u3c2_");
+        assert_eq!(
+            transliterate("χρηστος"),
+            "_u3c7__u3c1__u3b7__u3c3__u3c4__u3bf__u3c2_"
+        );
         assert_eq!(transliterate("λογος"), "_u3bb__u3bf__u3b3__u3bf__u3c2_");
-        assert_eq!(transliterate("φιλοσοφια"), "_u3c6__u3b9__u3bb__u3bf__u3c3__u3bf__u3c6__u3b9__u3b1_");
+        assert_eq!(
+            transliterate("φιλοσοφια"),
+            "_u3c6__u3b9__u3bb__u3bf__u3c3__u3bf__u3c6__u3b9__u3b1_"
+        );
     }
 
     #[test]
@@ -1319,7 +1325,10 @@ mod tests {
         };
         // Sanitize: χρηστης -> g__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_
         // Capitalize: g_... -> G_...
-        assert_eq!(to_rust_type(&ty), "G__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_");
+        assert_eq!(
+            to_rust_type(&ty),
+            "G__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_"
+        );
     }
 
     // --- Rust Codegen Tests ---
