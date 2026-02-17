@@ -37,3 +37,59 @@ pub fn match_suffix<'w, 'p, T, S, F>(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_match_suffix_greedy() {
+        // Test early exit (false)
+        let patterns = vec!["c", "bc", "abc"];
+        // 1. "abc" ends with "c" -> stem "ab". Match. Stop.
+        let mut matches = Vec::new();
+        match_suffix("abc", &patterns, |p| p, |stem, pat| {
+            matches.push((stem.to_string(), *pat));
+            false // Stop after first match
+        });
+        assert_eq!(matches, vec![("ab".to_string(), "c")]);
+    }
+
+    #[test]
+    fn test_match_suffix_exhaustive() {
+        // Test continue (true)
+        let patterns = vec!["c", "bc", "abc"];
+        let mut matches = Vec::new();
+        match_suffix("abc", &patterns, |p| p, |stem, pat| {
+            matches.push((stem.to_string(), *pat));
+            true // Continue
+        });
+        // 1. "c" -> stem "ab"
+        // 2. "bc" -> stem "a"
+        // 3. "abc" -> stem "" -> Should be skipped by !stem.is_empty() check
+        assert_eq!(matches, vec![("ab".to_string(), "c"), ("a".to_string(), "bc")]);
+    }
+
+    #[test]
+    fn test_match_suffix_empty_stem_ignored() {
+        // Should verify that if the suffix equals the word, it's ignored
+        let patterns = vec!["test"];
+        let mut called = false;
+        match_suffix("test", &patterns, |p| p, |_stem, _pat| {
+            called = true;
+            true
+        });
+        assert!(!called, "Should not match when stem is empty");
+    }
+
+    #[test]
+    fn test_match_suffix_no_match() {
+        let patterns = vec!["xyz"];
+        let mut called = false;
+        match_suffix("abc", &patterns, |p| p, |_stem, _pat| {
+            called = true;
+            true
+        });
+        assert!(!called);
+    }
+}
