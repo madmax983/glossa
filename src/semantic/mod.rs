@@ -42,7 +42,7 @@ mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub use assembler::{
-    Assembler, AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent,
+    AssembledStatement, Assembler, AssemblyError, Constituent, Literal, ParticipleConstituent,
     VerbConstituent,
 };
 pub use model::*;
