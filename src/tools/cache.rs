@@ -71,7 +71,7 @@ const fn fnv1a_64(bytes: &[u8]) -> u64 {
     let mut i = 0;
     while i < bytes.len() {
         hash ^= bytes[i] as u64;
-        hash = hash.wrapping_mul(0x100000001b3);
+        hash = hash.wrapping_mul(0x100000001b3); // Correct FNV prime
         i += 1;
     }
     hash
