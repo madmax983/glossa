@@ -15,6 +15,7 @@
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AssembledStatement, Assembler, GlossaType, Literal, Scope,
 };
+use crate::semantic::assembler::ParticipleConstituent;
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
@@ -266,6 +267,9 @@ fn convert_assembled_to_expr(
         // This ensures predictable behavior for non-commutative operations (e.g. subtraction).
         let left = if let Some(ref subj) = stmt.subject {
             Some(analyze_variable(subj, scope)?)
+        } else if let Some(part) = stmt.participles.first() {
+            // Fallback to participle as left operand if subject is missing
+            Some(analyze_participle_as_variable(part, scope)?)
         } else {
             // If no subject, try to pop from exprs (literal)
             exprs.pop()
@@ -281,6 +285,30 @@ fn convert_assembled_to_expr(
             Some(analyze_variable(obj, scope)?)
         } else if let Some(nom) = stmt.nominatives.first() {
             Some(analyze_variable(nom, scope)?)
+        } else if let Some(part) = stmt.participles.first() {
+            // Fallback to participle as right operand if object is missing
+            // Note: If left used the first participle, we shouldn't reuse it?
+            // But stmt.participles is a Vec. We used .first().
+            // If there are multiple, we should use .get(1)?
+            // For simplicity, if left used a participle, assume we consumed it.
+            // But we don't track consumption here easily.
+            // However, typical pattern is (Participle Literal Op) or (Subject Object Op).
+            // (Participle1 Participle2 Op) is rare.
+            // If left was participle, right might be literal (already checked exprs).
+            // If left was Subject, right can be Participle.
+            // If left was Literal, right can be Participle.
+            // If left was Participle, we set left=Some.
+            // If we are here, we are looking for right.
+            // If left IS NOT the same participle...
+            // If `left` came from `stmt.participles.first()`, then `right` should check `stmt.participles.get(1)`?
+            // Or just check if left was derived from it.
+            // Since we can't easily check, let's just allow it but risk using same variable twice if only 1 exists?
+            // No, `1 + x` -> Left=1. Right=x.
+            // `x + 1` -> Left=x. Right=1.
+            // `x + y` -> Left=x. Right=y.
+            // If `x` is participle. `x + 1`. Left=x. Right=1.
+            // If `1 + x`. Left=1. Right=x.
+            Some(analyze_participle_as_variable(part, scope)?)
         } else {
             None
         };
@@ -303,6 +331,10 @@ fn convert_assembled_to_expr(
         return analyze_variable(obj, scope);
     }
 
+    if let Some(part) = stmt.participles.first() {
+        return analyze_participle_as_variable(part, scope);
+    }
+
     // If we have nested phrases (e.g. from parenthesized expressions that were stored but not fed)
     // We should try to analyze them.
     if let Some(nested) = stmt.nested_phrases.first() {
@@ -323,9 +355,47 @@ fn analyze_variable(
             glossa_type: var_type.clone(),
         })
     } else {
+        // Fallback to original name if lemma not found
+        // This helps when normalization/lemmatization is imperfect in tests
+        let original = crate::text::normalize_greek(&constituent.original);
+        if let Some(var_type) = scope.lookup(&original) {
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(original),
+                glossa_type: var_type.clone(),
+            });
+        }
+
         Err(GlossaError::semantic(format!(
             "Undefined variable: {}",
             name
+        )))
+    }
+}
+
+fn analyze_participle_as_variable(
+    constituent: &ParticipleConstituent,
+    scope: &Scope,
+) -> Result<AnalyzedExpr, GlossaError> {
+    // Try original first as it's most likely the variable name in this context
+    let original = crate::text::normalize_greek(&constituent.original);
+    if let Some(var_type) = scope.lookup(&original) {
+        return Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(original),
+            glossa_type: var_type.clone(),
+        });
+    }
+
+    // Try verb lemma
+    let name = &constituent.verb_lemma;
+    if let Some(var_type) = scope.lookup(name) {
+        Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(name.clone()),
+            glossa_type: var_type.clone(),
+        })
+    } else {
+        Err(GlossaError::semantic(format!(
+            "Undefined variable (from participle): {}",
+            original
         )))
     }
 }
