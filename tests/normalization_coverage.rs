@@ -1,5 +1,5 @@
 use glossa::morphology::analyze;
-use glossa::semantic::{Assembler, Constituent};
+use glossa::semantic::Assembler;
 
 #[test]
 fn test_binding_normalization() {
@@ -81,7 +81,8 @@ fn test_participle_normalization_in_binding() {
     };
 
     // Feed with diacritics
-    asm.feed_participle(&part_analysis, "λεγόμενον", "λεγομενον").unwrap();
+    asm.feed_participle(&part_analysis, "λεγόμενον", "λεγομενον")
+        .unwrap();
 
     // Binding verb
     let verb = analyze("ἔστω");
@@ -95,4 +96,130 @@ fn test_participle_normalization_in_binding() {
     // Check participle list
     assert!(!stmt.participles.is_empty());
     assert_eq!(stmt.participles[0].normalized, "λεγομενον");
+}
+
+#[test]
+fn test_adjective_normalization() {
+    let mut asm = Assembler::new();
+
+    // Adjective "καλός" (good)
+    let adj = analyze("καλός");
+    asm.feed(&adj, "καλός").unwrap();
+
+    let stmt = asm.finalize().unwrap();
+
+    assert!(!stmt.adjectives.is_empty());
+    assert_eq!(stmt.adjectives[0].normalized, "καλος");
+}
+
+#[test]
+fn test_collection_ops_normalization() {
+    let mut asm = Assembler::new();
+
+    // Subject "λίστη" (list)
+    let subj = analyze("λίστη");
+    asm.feed(&subj, "λίστη").unwrap();
+
+    // Push verb "ὠθεῖ" (pushes)
+    let verb = analyze("ὠθεῖ");
+    asm.feed(&verb, "ὠθεῖ").unwrap();
+
+    // Value to push
+    asm.feed_number(5).unwrap();
+
+    let stmt = asm.finalize().unwrap();
+
+    let subj_const = stmt.subject.as_ref().unwrap();
+    assert_eq!(subj_const.normalized, "λιστη");
+
+    // Also verify verb normalized form
+    let verb_const = stmt.verb.as_ref().unwrap();
+    assert_eq!(verb_const.normalized, "ωθει");
+}
+
+#[test]
+fn test_assertion_normalization() {
+    let mut asm = Assembler::new();
+
+    // "χ" (chi - variable)
+    let subj = analyze("χ");
+    asm.feed(&subj, "χ").unwrap();
+
+    // "ἐν" (in - containment) - triggers assertion logic
+    let en = analyze("ἐν");
+    asm.feed(&en, "ἐν").unwrap();
+
+    // "λίστῃ" (list - dative)
+    let _collection = analyze("λίστῃ"); // normalized "λιστη"
+    // Use feed_with_normalized to simulate context where it might be recognized as variable
+    // Usually collection goes to different slot, but for "element in collection",
+    // Assembler puts "element" as subject?
+    // Wait, "2 ἐν χ δεῖ" -> Subject is 2? No, subject slot.
+    // Let's use "χ ἐν ψ δεῖ".
+    // "χ" (Nom) -> Subject.
+    // "ἐν" (Prep) -> flag.
+    // "ψ" -> Object? Or part of prep phrase?
+    // Assembler doesn't have prep slots, usually handles this via flags or special handling.
+    // Let's look at `classify_assertion` in conversion.rs:
+    // `if asm_stmt.has_containment_preposition && let Some(ref subj) = asm_stmt.subject`
+    // It treats subject as collection!
+    // "2 ἐν χ δεῖ" -> "2" is literal. "χ" is subject?
+    // If word order is "2 ἐν χ δεῖ":
+    // Feed 2 (literal). Feed ἐν (flag). Feed χ (Nom/Dat/Acc). Feed δεῖ (Verb).
+    // If χ is Nom, it goes to Subject.
+    // So "2 in X must" -> Subject=X.
+
+    // Subject "χάρτης" (map)
+    let map = analyze("χάρτης");
+    asm.feed(&map, "χάρτης").unwrap();
+
+    // "δεῖ" (must)
+    let verb = analyze("δεῖ");
+    asm.feed(&verb, "δεῖ").unwrap();
+
+    let stmt = asm.finalize().unwrap();
+
+    let subj_const = stmt.subject.as_ref().unwrap();
+    assert_eq!(subj_const.normalized, "χαρτης");
+    assert!(stmt.has_containment_preposition);
+}
+
+#[test]
+fn test_equality_normalization() {
+    let mut asm = Assembler::new();
+
+    // "τιμή" (value)
+    let subj = analyze("τιμή");
+    asm.feed(&subj, "τιμή").unwrap();
+
+    // "ἰσοῦται" (equals)
+    let verb = analyze("ἰσοῦται");
+    asm.feed(&verb, "ἰσοῦται").unwrap();
+
+    // 5
+    asm.feed_number(5).unwrap();
+
+    let stmt = asm.finalize().unwrap();
+
+    let subj_const = stmt.subject.as_ref().unwrap();
+    assert_eq!(subj_const.normalized, "τιμη");
+
+    let verb_const = stmt.verb.as_ref().unwrap();
+    assert_eq!(verb_const.normalized, "ισουται");
+}
+
+#[test]
+fn test_query_normalization() {
+    let mut asm = Assembler::new();
+
+    // "κόσμος" (world)
+    let subj = analyze("κόσμος");
+    asm.feed(&subj, "κόσμος").unwrap();
+
+    asm.set_query(true);
+
+    let stmt = asm.finalize().unwrap();
+
+    let subj_const = stmt.subject.as_ref().unwrap();
+    assert_eq!(subj_const.normalized, "κοσμος");
 }

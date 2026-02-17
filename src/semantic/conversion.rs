@@ -34,6 +34,9 @@
 //!    - **Operations**: `1 + 2`.
 //!    - **Try/Propagate**: `expr;` (becomes `expr?`).
 
+// Allow collapsible_if because we cannot use let_chains on stable Rust yet.
+#![allow(clippy::collapsible_if)]
+
 use super::expressions::{
     analyze_argument_expr, build_binary_expr, build_expressions_from_literals_and_ops,
     literal_to_analyzed_expr, literal_to_type,
@@ -1180,19 +1183,19 @@ pub fn extract_value(
         }
 
         // Or check if we can combine object + literal with operator
-        if let Some(ref obj) = asm_stmt.object
-            && !asm_stmt.literals.is_empty()
-        {
-            // Build: object op literal
-            let left = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown, // Will be inferred
-            };
-            let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
-            let op = asm_stmt.operators[0];
-            let bin_expr = build_binary_expr(left, op, right);
-            let ty = bin_expr.glossa_type.clone();
-            return Ok((bin_expr, ty));
+        if let Some(ref obj) = asm_stmt.object {
+            if !asm_stmt.literals.is_empty() {
+                // Build: object op literal
+                let left = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: GlossaType::Unknown, // Will be inferred
+                };
+                let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+                let op = asm_stmt.operators[0];
+                let bin_expr = build_binary_expr(left, op, right);
+                let ty = bin_expr.glossa_type.clone();
+                return Ok((bin_expr, ty));
+            }
         }
     }
 

@@ -11,3 +11,6 @@
 ## [Performance] Complex Unicode Casing vs Allocation
 **Learning:** `char::to_lowercase` is efficient (iterator) but incorrect for context-sensitive casing (like Greek final sigma). `String::to_lowercase` is correct but allocates. A hybrid approach checking for the presence of uppercase characters allows using the fast path for the common case (lowercase identifiers) while preserving correctness for edge cases.
 **Action:** When optimizing casing operations, check if the input is already in a state that allows a simpler, allocation-free transformation.
+**[Clippy Collapsible If vs Stable Rust]**
+**Learning:**  often conflicts with the need to avoid unstable  () in stable Rust. When nesting  statements to stay on stable,  complains.
+**Action:** Use  at the module or function level when forced to nest s due to  bindings in conditions.
