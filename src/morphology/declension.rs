@@ -8,6 +8,7 @@
 use std::borrow::Cow;
 
 use super::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
+use crate::morphology::matcher::match_suffix;
 
 /// Declension pattern
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -172,13 +173,15 @@ fn match_endings_all<F>(word: &str, endings: &[(&str, Case, Number)], mut callba
 where
     F: FnMut(&str, Case, Number),
 {
-    for (ending, case, number) in endings {
-        if let Some(stem) = word.strip_suffix(ending)
-            && !stem.is_empty()
-        {
-            callback(stem, *case, *number);
-        }
-    }
+    match_suffix(
+        word,
+        endings,
+        |e| e.0,
+        |stem, pattern| {
+            callback(stem, pattern.1, pattern.2);
+            true
+        },
+    );
 }
 
 /// Analyze a word as a noun, returning ALL possible analyses
