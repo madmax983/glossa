@@ -640,6 +640,7 @@ pub enum ParseError {
 
 #[cfg(test)]
 mod tests {
+    use super::recursion::check_recursion_depth;
     use super::*;
 
     /// Helper to get the first expression of the first clause
