@@ -1,4 +1,3 @@
-use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::io::{BufRead, Write};
@@ -95,31 +94,32 @@ fn print_banner() {
 }
 
 fn print_help<W: Write>(w: &mut W) -> Result<()> {
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL).set_header(vec![
-        Cell::new("Ἐντολή (Command)")
-            .fg(Color::Cyan)
-            .add_attribute(comfy_table::Attribute::Bold),
-        Cell::new("Περιγραφή (Description)")
-            .fg(Color::Cyan)
-            .add_attribute(comfy_table::Attribute::Bold),
-    ]);
+    writeln!(w, "{}", "Ἐντολαί (Commands):".bold().underlined()).into_diagnostic()?;
+    writeln!(
+        w,
+        "  {}    - Δεῖξαι τήνδε τὴν βοήθειαν (Show this help)",
+        ".βοήθεια / .help".cyan()
+    )
+    .into_diagnostic()?;
+    writeln!(
+        w,
+        "  {}    - Ἐξελθεῖν (Exit REPL)",
+        ".ἔξοδος / .exit".cyan()
+    )
+    .into_diagnostic()?;
+    writeln!(
+        w,
+        "  {}  - Καθαρίσαι τὸ περιβάλλον (Clear history)",
+        ".καθαρός / .clear".cyan()
+    )
+    .into_diagnostic()?;
+    writeln!(
+        w,
+        "  {}    - Δεῖξαι τὰς μεταβλητάς (Show variables)",
+        ".περιβάλλον / .env".cyan()
+    )
+    .into_diagnostic()?;
 
-    table.add_row(vec![
-        ".βοήθεια / .help",
-        "Δεῖξαι τήνδε τὴν βοήθειαν (Show this help)",
-    ]);
-    table.add_row(vec![".ἔξοδος / .exit", "Ἐξελθεῖν (Exit REPL)"]);
-    table.add_row(vec![
-        ".καθαρός / .clear",
-        "Καθαρίσαι τὸ περιβάλλον (Clear history)",
-    ]);
-    table.add_row(vec![
-        ".περιβάλλον / .env",
-        "Δεῖξαι τὰς μεταβλητάς (Show variables)",
-    ]);
-
-    writeln!(w, "{table}").into_diagnostic()?;
     writeln!(w, "\n{}", "Παραδείγματα:".bold().underlined()).into_diagnostic()?;
     writeln!(w, "  «χαῖρε κόσμε» λέγε.").into_diagnostic()?;
     writeln!(w, "  ξ πέντε ἔστω.").into_diagnostic()?;
@@ -142,36 +142,18 @@ fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
             return Ok(());
         }
 
-        let mut table = Table::new();
-        table.load_preset(presets::UTF8_FULL).set_header(vec![
-            Cell::new("Μεταβλητή (Var)")
-                .fg(Color::Magenta)
-                .add_attribute(comfy_table::Attribute::Bold),
-            Cell::new("Τύπος (Type)").add_attribute(comfy_table::Attribute::Bold),
-            Cell::new("Μεταβλητότης (Mut)").add_attribute(comfy_table::Attribute::Bold),
-        ]);
-
+        writeln!(w, "{}", "Μεταβληταί (Variables):".bold().underlined()).into_diagnostic()?;
         for (name, binding) in bindings {
-            let mut_str = if binding.mutable {
-                "Ναί (Yes)"
-            } else {
-                "Οὔ (No)"
-            };
-
-            let mut_cell = Cell::new(mut_str);
-            let mut_cell = if binding.mutable {
-                mut_cell.fg(Color::Yellow)
-            } else {
-                mut_cell.fg(Color::DarkGrey)
-            };
-
-            table.add_row(vec![
-                Cell::new(name).fg(Color::Green),
-                Cell::new(&binding.glossa_type),
-                mut_cell,
-            ]);
+            let mut_str = if binding.mutable { " (mut)" } else { "" };
+            writeln!(
+                w,
+                "  {}: {}{}",
+                name.green().bold(),
+                binding.glossa_type,
+                mut_str.yellow()
+            )
+            .into_diagnostic()?;
         }
-        writeln!(w, "{table}").into_diagnostic()?;
     } else {
         writeln!(
             w,

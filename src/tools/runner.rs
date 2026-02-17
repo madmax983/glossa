@@ -1,6 +1,5 @@
 use crate::codegen::generate_rust_file;
 use crate::parser::parse;
-use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::{AnalyzedProgram, analyze_program};
 use crate::tools::cache::Cache;
 use crate::tools::highlight::highlight;
@@ -78,11 +77,8 @@ fn load_source(input: &Path) -> Result<String> {
 
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let status = Status::start("Μεταγλώττισις (Compiling)");
-    let start = std::time::Instant::now();
     let source = load_source(input)?;
-    let input_size = source.len() as u64;
 
-    // Split compile to get stats
     let analyzed = analyze_source(&source)?;
     let rust_code = generate_rust_file(&analyzed);
 
@@ -92,22 +88,9 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     fs::write(&output_path, &rust_code).into_diagnostic()?;
 
-    let output_size = fs::metadata(&output_path).into_diagnostic()?.len();
-    let duration = start.elapsed();
-    let stats = ProgramStats::new(&analyzed);
-
     status.success();
 
-    let report = CompilationReport {
-        input_path: input.to_path_buf(),
-        output_path,
-        input_size,
-        output_size,
-        duration,
-        stats,
-    };
-
-    println!("{}", report);
+    println!("Build successful: {}", output_path.display());
 
     Ok(())
 }
@@ -200,16 +183,9 @@ pub fn run_file(input: &Path) -> Result<()> {
 pub fn check_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
 
-    let analyzed = analyze_source(&source)?;
+    analyze_source(&source)?;
 
-    let filename = input
-        .file_name()
-        .unwrap_or(input.as_os_str())
-        .to_string_lossy()
-        .to_string();
-    let report = GlossaReport::new(&analyzed, filename);
-
-    println!("{}", report);
+    println!("Check successful.");
 
     Ok(())
 }

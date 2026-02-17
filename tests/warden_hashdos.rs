@@ -19,11 +19,11 @@ fn test_cache_key_format() {
     let path = Path::new("src/main.rs");
     let key = cache.key(path);
 
-    // SHA-256 hex string is 64 chars
+    // FNV-1a hex string is 16 chars
     assert_eq!(
         key.len(),
-        64,
-        "Cache key must be 64 characters long (SHA-256 hex)"
+        16,
+        "Cache key must be 16 characters long (FNV-1a hex)"
     );
 
     // Check if it's hex
