@@ -123,18 +123,18 @@ fn classify_iterator_pattern(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     let has_find_or_print_verb = if let Some(ref verb) = asm_stmt.verb {
-        crate::morphology::lexicon::is_print_verb(&verb.lemma)
-            || crate::morphology::lexicon::is_find_verb(&verb.lemma)
+        let verb_lemma = &verb.lemma;
+        crate::morphology::lexicon::is_print_verb(verb_lemma)
+            || crate::morphology::lexicon::is_find_verb(verb_lemma)
     } else {
         false
     };
 
-    if (!asm_stmt.participles.is_empty()
-        || !asm_stmt.adjectives.is_empty()
-        || has_find_or_print_verb)
-        && let Some(analyzed) = detect_iterator_pattern(asm_stmt, scope)?
+    if !asm_stmt.participles.is_empty() || !asm_stmt.adjectives.is_empty() || has_find_or_print_verb
     {
-        return Ok(Some(AnalyzedStatement::Print(vec![analyzed])));
+        if let Some(analyzed) = detect_iterator_pattern(asm_stmt, scope)? {
+            return Ok(Some(AnalyzedStatement::Print(vec![analyzed])));
+        }
     }
 
     Ok(None)
@@ -146,32 +146,34 @@ fn classify_property_access_print(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        if crate::morphology::lexicon::is_print_verb(&verb.lemma) && !asm_stmt.genitives.is_empty()
+        let verb_lemma = &verb.lemma;
+
+        if crate::morphology::lexicon::is_print_verb(verb_lemma)
+            && !asm_stmt.genitives.is_empty()
+            && let Some(subject) = &asm_stmt.subject
         {
-            if let Some(subject) = &asm_stmt.subject {
-                // Get owner from genitive (use lemma to get base variable name)
-                let owner_lemma = &asm_stmt.genitives[0].lemma;
+            // Get owner from genitive (use lemma to get base variable name)
+            let owner_lemma = &asm_stmt.genitives[0].lemma;
 
-                // Get property from subject (nominative)
-                let property = &subject.normalized;
+            // Get property from subject (nominative)
+            let property = &subject.normalized;
 
-                // Check if owner is a struct type in scope
-                if let Some(owner_type) = scope.lookup(owner_lemma) {
-                    if matches!(owner_type, GlossaType::Struct { .. }) {
-                        // Build property access
-                        let prop_access = AnalyzedExpr {
-                            expr: AnalyzedExprKind::PropertyAccess {
-                                owner: Box::new(AnalyzedExpr {
-                                    expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
-                                    glossa_type: owner_type.clone(),
-                                }),
-                                property: property.clone(),
-                            },
-                            glossa_type: GlossaType::Unknown, // TODO: Look up field type
-                        };
+            // Check if owner is a struct type in scope
+            if let Some(owner_type) = scope.lookup(owner_lemma) {
+                if matches!(owner_type, GlossaType::Struct { .. }) {
+                    // Build property access
+                    let prop_access = AnalyzedExpr {
+                        expr: AnalyzedExprKind::PropertyAccess {
+                            owner: Box::new(AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
+                                glossa_type: owner_type.clone(),
+                            }),
+                            property: property.clone(),
+                        },
+                        glossa_type: GlossaType::Unknown, // TODO: Look up field type
+                    };
 
-                        return Ok(Some(AnalyzedStatement::Print(vec![prop_access])));
-                    }
+                    return Ok(Some(AnalyzedStatement::Print(vec![prop_access])));
                 }
             }
         }
@@ -185,8 +187,10 @@ fn classify_function_call(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = &verb.lemma;
+
         // Check if verb is a binding verb
-        if crate::morphology::lexicon::is_binding_verb(&verb.lemma) {
+        if crate::morphology::lexicon::is_binding_verb(verb_lemma) {
             // Check if object/nominative/genitive is a user-defined function
             let mut func_name = None;
             for nominative in &asm_stmt.nominatives {
@@ -262,7 +266,9 @@ fn classify_subjunctive_comparison(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        if crate::morphology::lexicon::is_binding_verb(&verb.lemma)
+        let verb_lemma = &verb.lemma;
+
+        if crate::morphology::lexicon::is_binding_verb(verb_lemma)
             && !asm_stmt.operators.is_empty()
             && !asm_stmt.literals.is_empty()
             && verb.mood == Some(crate::morphology::Mood::Subjunctive)
@@ -297,7 +303,9 @@ fn classify_variable_binding(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        if crate::morphology::lexicon::is_binding_verb(&verb.lemma) {
+        let verb_lemma = &verb.lemma;
+
+        if crate::morphology::lexicon::is_binding_verb(verb_lemma) {
             let has_false_participle = !asm_stmt.participles.is_empty()
                 && morphology::lexicon::lookup(&asm_stmt.participles[0].verb_lemma).is_none();
 
@@ -363,7 +371,9 @@ fn classify_assignment(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        if crate::morphology::lexicon::is_assignment_verb(&verb.lemma) {
+        let verb_lemma = &verb.lemma;
+
+        if crate::morphology::lexicon::is_assignment_verb(verb_lemma) {
             let var_name = if let Some(ref subject) = asm_stmt.subject {
                 subject.normalized.clone()
             } else {
@@ -419,8 +429,10 @@ fn classify_collection_mutation(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
+        let verb_lemma = &verb.lemma;
+
         // Pop
-        if crate::morphology::lexicon::is_pop_verb(&verb.lemma) {
+        if crate::morphology::lexicon::is_pop_verb(verb_lemma) {
             if let Some(ref subject) = asm_stmt.subject {
                 let receiver = AnalyzedExpr {
                     expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
@@ -444,7 +456,7 @@ fn classify_collection_mutation(
         }
 
         // Push
-        if crate::morphology::lexicon::is_push_verb(&verb.lemma) {
+        if crate::morphology::lexicon::is_push_verb(verb_lemma) {
             if let Some(ref subject) = asm_stmt.subject {
                 let receiver = AnalyzedExpr {
                     expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
@@ -485,7 +497,7 @@ fn classify_collection_mutation(
         }
 
         // Insert
-        if crate::morphology::lexicon::is_insert_verb(&verb.lemma) {
+        if crate::morphology::lexicon::is_insert_verb(verb_lemma) {
             if let Some(ref subject) = asm_stmt.subject {
                 let subj_name = &subject.normalized;
                 let subj_type = scope
@@ -548,7 +560,9 @@ fn classify_assertion(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        if crate::morphology::lexicon::is_assert_verb(&verb.lemma) {
+        let verb_lemma = &verb.lemma;
+
+        if crate::morphology::lexicon::is_assert_verb(verb_lemma) {
             // The condition is everything except the verb
             // Common pattern: <element> ἐν <collection> δεῖ
 
@@ -622,7 +636,9 @@ fn classify_equality_assertion(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        if crate::morphology::lexicon::is_equals_verb(&verb.lemma) {
+        let verb_lemma = &verb.lemma;
+
+        if crate::morphology::lexicon::is_equals_verb(verb_lemma) {
             // We need two values to compare
             let mut left_expr = None;
             let mut right_expr = None;
@@ -664,7 +680,9 @@ fn classify_print(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        if crate::morphology::lexicon::is_print_verb(&verb.lemma) {
+        let verb_lemma = &verb.lemma;
+
+        if crate::morphology::lexicon::is_print_verb(verb_lemma) {
             // Binary expr with operator
             if !asm_stmt.operators.is_empty() {
                 let left = if let Some(ref subj) = asm_stmt.subject {

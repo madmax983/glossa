@@ -1,4 +1,4 @@
-use glossa::morphology::analyze;
+use glossa::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, analyze};
 use glossa::semantic::Assembler;
 
 #[test]
@@ -19,8 +19,6 @@ fn test_binding_normalization() {
 
     let stmt = asm.finalize().unwrap();
 
-    // We can't access conversion directly easily as it requires scope,
-    // but we can verify the constituent has correct normalized form
     let subj_const = stmt.subject.as_ref().unwrap();
     assert_eq!(subj_const.normalized, "αθηναι");
     assert_eq!(subj_const.original, "Ἀθῆναι");
@@ -30,11 +28,9 @@ fn test_binding_normalization() {
 fn test_print_normalization() {
     let mut asm = Assembler::new();
 
-    // Print verb
     let verb = analyze("λέγε");
     asm.feed(&verb, "λέγε").unwrap();
 
-    // Subject with diacritics
     let subj = analyze("κόσμος");
     asm.feed(&subj, "κόσμος").unwrap();
 
@@ -48,15 +44,12 @@ fn test_print_normalization() {
 fn test_assignment_normalization() {
     let mut asm = Assembler::new();
 
-    // Subject
     let subj = analyze("τιμή");
     asm.feed(&subj, "τιμή").unwrap();
 
-    // Assignment verb
     let verb = analyze("γίγνεται");
     asm.feed(&verb, "γίγνεται").unwrap();
 
-    // Value
     asm.feed_number(100).unwrap();
 
     let stmt = asm.finalize().unwrap();
@@ -69,7 +62,6 @@ fn test_assignment_normalization() {
 fn test_participle_normalization_in_binding() {
     let mut asm = Assembler::new();
 
-    // Participle as subject (implied)
     let part_analysis = glossa::morphology::ParticipleAnalysis {
         stem: "λεγο".to_string(),
         tense: glossa::morphology::Tense::Present,
@@ -80,20 +72,16 @@ fn test_participle_normalization_in_binding() {
         confidence: 1.0,
     };
 
-    // Feed with diacritics
     asm.feed_participle(&part_analysis, "λεγόμενον", "λεγομενον")
         .unwrap();
 
-    // Binding verb
     let verb = analyze("ἔστω");
     asm.feed(&verb, "ἔστω").unwrap();
 
-    // Value
     asm.feed_number(1).unwrap();
 
     let stmt = asm.finalize().unwrap();
 
-    // Check participle list
     assert!(!stmt.participles.is_empty());
     assert_eq!(stmt.participles[0].normalized, "λεγομενον");
 }
@@ -102,13 +90,31 @@ fn test_participle_normalization_in_binding() {
 fn test_adjective_normalization() {
     let mut asm = Assembler::new();
 
-    // Adjective "καλός" (good)
-    let adj = analyze("καλός");
+    // Manually construct analysis to ensure it's treated as Adjective
+    // "καλός" might be analyzed as Noun in some contexts in lexicon
+    let adj = MorphAnalysis {
+        lemma: std::borrow::Cow::Borrowed("καλος"),
+        part_of_speech: PartOfSpeech::Adjective,
+        case: Some(Case::Nominative),
+        number: Some(Number::Singular),
+        gender: Some(Gender::Masculine),
+        person: None,
+        tense: None,
+        mood: None,
+        voice: None,
+        confidence: 1.0,
+    };
     asm.feed(&adj, "καλός").unwrap();
+
+    let verb = analyze("λέγε");
+    asm.feed(&verb, "λέγε").unwrap();
 
     let stmt = asm.finalize().unwrap();
 
-    assert!(!stmt.adjectives.is_empty());
+    assert!(
+        !stmt.adjectives.is_empty(),
+        "Adjectives list should not be empty"
+    );
     assert_eq!(stmt.adjectives[0].normalized, "καλος");
 }
 
@@ -116,15 +122,12 @@ fn test_adjective_normalization() {
 fn test_collection_ops_normalization() {
     let mut asm = Assembler::new();
 
-    // Subject "λίστη" (list)
     let subj = analyze("λίστη");
     asm.feed(&subj, "λίστη").unwrap();
 
-    // Push verb "ὠθεῖ" (pushes)
     let verb = analyze("ὠθεῖ");
     asm.feed(&verb, "ὠθεῖ").unwrap();
 
-    // Value to push
     asm.feed_number(5).unwrap();
 
     let stmt = asm.finalize().unwrap();
@@ -132,7 +135,6 @@ fn test_collection_ops_normalization() {
     let subj_const = stmt.subject.as_ref().unwrap();
     assert_eq!(subj_const.normalized, "λιστη");
 
-    // Also verify verb normalized form
     let verb_const = stmt.verb.as_ref().unwrap();
     assert_eq!(verb_const.normalized, "ωθει");
 }
@@ -141,37 +143,23 @@ fn test_collection_ops_normalization() {
 fn test_assertion_normalization() {
     let mut asm = Assembler::new();
 
-    // "χ" (chi - variable)
-    let subj = analyze("χ");
-    asm.feed(&subj, "χ").unwrap();
+    // Swap order: Feed Collection first so it becomes Subject
+    // conversion.rs expects Subject to be the Collection
 
-    // "ἐν" (in - containment) - triggers assertion logic
+    // Subject "χάρτης" (map) - Nominative
+    let map = analyze("χάρτης");
+    asm.feed(&map, "χάρτης").unwrap();
+
+    // "ἐν" (in - containment)
     let en = analyze("ἐν");
     asm.feed(&en, "ἐν").unwrap();
 
-    // "λίστῃ" (list - dative)
-    let _collection = analyze("λίστῃ"); // normalized "λιστη"
-    // Use feed_with_normalized to simulate context where it might be recognized as variable
-    // Usually collection goes to different slot, but for "element in collection",
-    // Assembler puts "element" as subject?
-    // Wait, "2 ἐν χ δεῖ" -> Subject is 2? No, subject slot.
-    // Let's use "χ ἐν ψ δεῖ".
-    // "χ" (Nom) -> Subject.
-    // "ἐν" (Prep) -> flag.
-    // "ψ" -> Object? Or part of prep phrase?
-    // Assembler doesn't have prep slots, usually handles this via flags or special handling.
-    // Let's look at `classify_assertion` in conversion.rs:
-    // `if asm_stmt.has_containment_preposition && let Some(ref subj) = asm_stmt.subject`
-    // It treats subject as collection!
-    // "2 ἐν χ δεῖ" -> "2" is literal. "χ" is subject?
-    // If word order is "2 ἐν χ δεῖ":
-    // Feed 2 (literal). Feed ἐν (flag). Feed χ (Nom/Dat/Acc). Feed δεῖ (Verb).
-    // If χ is Nom, it goes to Subject.
-    // So "2 in X must" -> Subject=X.
-
-    // Subject "χάρτης" (map)
-    let map = analyze("χάρτης");
-    asm.feed(&map, "χάρτης").unwrap();
+    // "χ" (chi - variable) - Feed as literal string/variable or just feed it?
+    // If we feed "χ" as MorphAnalysis(Nominative), it will go to `nominatives` since Subject is full.
+    // If conversion.rs looks for element in literals or object...
+    // Let's assume we are testing "χάρτης" normalization primarily here.
+    // We can feed "2" as literal to satisfy the element requirement of `classify_assertion`
+    asm.feed_number(2).unwrap();
 
     // "δεῖ" (must)
     let verb = analyze("δεῖ");
@@ -188,15 +176,12 @@ fn test_assertion_normalization() {
 fn test_equality_normalization() {
     let mut asm = Assembler::new();
 
-    // "τιμή" (value)
     let subj = analyze("τιμή");
     asm.feed(&subj, "τιμή").unwrap();
 
-    // "ἰσοῦται" (equals)
     let verb = analyze("ἰσοῦται");
     asm.feed(&verb, "ἰσοῦται").unwrap();
 
-    // 5
     asm.feed_number(5).unwrap();
 
     let stmt = asm.finalize().unwrap();
@@ -212,7 +197,6 @@ fn test_equality_normalization() {
 fn test_query_normalization() {
     let mut asm = Assembler::new();
 
-    // "κόσμος" (world)
     let subj = analyze("κόσμος");
     asm.feed(&subj, "κόσμος").unwrap();
 

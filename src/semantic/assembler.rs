@@ -703,10 +703,11 @@ impl Assembler {
                     _ => unreachable!(),
                 };
 
+                let normalized_original = normalize_greek(&subj.original);
                 self.state.string_method = Some((method_name.to_string(), delim));
                 self.state
                     .property_accesses
-                    .push((subj.normalized.to_string(), method_name.to_string()));
+                    .push((normalized_original.to_string(), method_name.to_string()));
                 return Ok(true);
             }
         }
@@ -802,9 +803,10 @@ impl Assembler {
                         max: MAX_PROPERTY_ACCESSES,
                     });
                 }
+                let normalized_original = crate::text::normalize_greek(&subj.original);
                 self.state
                     .property_accesses
-                    .push((subj.normalized.to_string(), "len".to_string()));
+                    .push((normalized_original.to_string(), "len".to_string()));
                 self.state.subject = None; // Consume the subject
                 return Ok(true);
             }
@@ -823,9 +825,10 @@ impl Assembler {
                     });
                 }
                 // Create array and index expressions (use normalized original, not lemma)
+                let normalized_original = crate::text::normalize_greek(&subj.original);
                 let array = Expr::Word(Word {
                     original: subj.original.clone(),
-                    normalized: subj.normalized.clone(),
+                    normalized: normalized_original.clone(),
                 });
                 let index_expr = Expr::NumberLiteral(index);
 
