@@ -105,6 +105,17 @@ fn analyze_word(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, Glo
         });
     }
 
+    // Check if it's a participle and the verb lemma is a variable
+    // This allows using participles (e.g. "τρέχων") to refer to the verb variable (e.g. "τρεχω")
+    if let Some(analysis) = crate::morphology::analyze_participle(normalized) {
+        if let Some(var_type) = scope.lookup(&analysis.verb_lemma()) {
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(analysis.verb_lemma().into()),
+                glossa_type: var_type.clone(),
+            });
+        }
+    }
+
     // Unknown variable
     Err(GlossaError::semantic(format!(
         "Undefined variable: {}",
