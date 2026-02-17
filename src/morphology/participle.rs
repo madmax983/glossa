@@ -502,22 +502,27 @@ static ALL_PATTERNS: LazyLock<Vec<&'static ParticiplePattern>> = LazyLock::new(|
 /// ```
 pub fn analyze_participle(word: &str) -> Option<ParticipleAnalysis> {
     let mut result = None;
-    match_suffix(word, &ALL_PATTERNS, |p| p.ending, |stem, pattern| {
-        if result.is_none() {
-            result = Some(ParticipleAnalysis {
-                stem: stem.to_string(),
-                tense: pattern.tense,
-                voice: pattern.voice,
-                case: pattern.case,
-                gender: pattern.gender,
-                number: pattern.number,
-                confidence: 0.9,
-            });
-            false // Stop after first match
-        } else {
-            true
-        }
-    });
+    match_suffix(
+        word,
+        &ALL_PATTERNS,
+        |p| p.ending,
+        |stem, pattern| {
+            if result.is_none() {
+                result = Some(ParticipleAnalysis {
+                    stem: stem.to_string(),
+                    tense: pattern.tense,
+                    voice: pattern.voice,
+                    case: pattern.case,
+                    gender: pattern.gender,
+                    number: pattern.number,
+                    confidence: 0.9,
+                });
+                false // Stop after first match
+            } else {
+                true
+            }
+        },
+    );
     result
 }
 

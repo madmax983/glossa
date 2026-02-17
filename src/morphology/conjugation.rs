@@ -438,14 +438,19 @@ fn match_verb_endings<'a>(
     endings: &[(&str, Person, Number)],
 ) -> Option<(&'a str, Person, Number)> {
     let mut result = None;
-    match_suffix(word, endings, |e| e.0, |stem, pattern| {
-        if result.is_none() {
-            result = Some((stem, pattern.1, pattern.2));
-            false // Stop after first match
-        } else {
-            true // Should not happen if we stop, but safe default
-        }
-    });
+    match_suffix(
+        word,
+        endings,
+        |e| e.0,
+        |stem, pattern| {
+            if result.is_none() {
+                result = Some((stem, pattern.1, pattern.2));
+                false // Stop after first match
+            } else {
+                true // Should not happen if we stop, but safe default
+            }
+        },
+    );
     result
 }
 
@@ -454,10 +459,15 @@ fn match_verb_endings_all<F>(word: &str, endings: &[(&str, Person, Number)], mut
 where
     F: FnMut(&str, Person, Number),
 {
-    match_suffix(word, endings, |e| e.0, |stem, pattern| {
-        callback(stem, pattern.1, pattern.2);
-        true // Continue searching
-    });
+    match_suffix(
+        word,
+        endings,
+        |e| e.0,
+        |stem, pattern| {
+            callback(stem, pattern.1, pattern.2);
+            true // Continue searching
+        },
+    );
 }
 
 /// Analyze a word as a verb, returning ALL possible analyses

@@ -173,10 +173,15 @@ fn match_endings_all<F>(word: &str, endings: &[(&str, Case, Number)], mut callba
 where
     F: FnMut(&str, Case, Number),
 {
-    match_suffix(word, endings, |e| e.0, |stem, pattern| {
-        callback(stem, pattern.1, pattern.2);
-        true
-    });
+    match_suffix(
+        word,
+        endings,
+        |e| e.0,
+        |stem, pattern| {
+            callback(stem, pattern.1, pattern.2);
+            true
+        },
+    );
 }
 
 /// Analyze a word as a noun, returning ALL possible analyses

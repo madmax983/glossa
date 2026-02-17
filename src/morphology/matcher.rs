@@ -31,10 +31,8 @@ pub fn match_suffix<'w, 'p, T, S, F>(
         if let Some(stem) = word.strip_suffix(suffix) {
             // Stem must not be empty (avoid matching the entire word as a suffix if stem disappears)
             // e.g. "ω" matching "ω" ending -> stem "" -> usually invalid for our morphology rules
-            if !stem.is_empty() {
-                if !callback(stem, pattern) {
-                    return;
-                }
+            if !stem.is_empty() && !callback(stem, pattern) {
+                return;
             }
         }
     }
