@@ -236,7 +236,16 @@ fn analyze_phrase(
         let mut context = DisambiguationContext::new();
 
         for term in terms {
-            feed_expr_to_assembler_with_context(&mut asm, term, &mut context)?;
+            // Unwrap nested phrases one level deep to avoid them being sequestered
+            // into nested_phrases slot, which breaks binary expression building.
+            // ( (1) 2 + ) -> 1 2 +
+            if let Expr::Phrase(sub_terms) = term {
+                for sub in sub_terms {
+                    feed_expr_to_assembler_with_context(&mut asm, sub, &mut context)?;
+                }
+            } else {
+                feed_expr_to_assembler_with_context(&mut asm, term, &mut context)?;
+            }
         }
 
         let stmt = asm.finalize()?;
@@ -337,6 +346,8 @@ fn convert_assembled_to_expr(
 
     // If we have nested phrases (e.g. from parenthesized expressions that were stored but not fed)
     // We should try to analyze them.
+    // Note: With flatten logic in analyze_phrase, this is unlikely to be hit for simple parens,
+    // but remains relevant if nested phrases are produced by other means (e.g. macro expansion?).
     if let Some(nested) = stmt.nested_phrases.first() {
         return analyze_phrase(nested, scope, depth + 1);
     }
