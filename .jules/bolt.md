@@ -952,3 +952,6 @@ all doctests ran in 0.59s; merged doctests compilation took 0.56s compiles succe
 **[Clippy Needless Borrow]**
 **Learning:**  flags explicit references (e.g. ) when the value is already a reference (e.g.  is ) and the function takes that reference type. Rust auto-derefs  to , but Clippy prefers passing  directly.
 **Action:** When a variable is already a reference (like ), pass it directly to functions expecting that reference type, instead of re-borrowing it.
+**[Diff Coverage Traps]**
+**Learning:** Codecov analyzes coverage *on the diff*. If you refactor a function (e.g., adding an argument), you touch lines that handle rare edge cases (like  or ). If existing tests don't hit those edge cases, the diff coverage drops, failing CI.
+**Action:** When refactoring core logic (like a dispatcher or main match block), audit *all* branches to ensure at least one test case hits each branch, or add new tests to cover the gaps.
