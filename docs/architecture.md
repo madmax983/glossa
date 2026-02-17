@@ -34,7 +34,8 @@ C4Container
     Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
     Container(narrator, "Narrator", "src/tools/narrator.rs", "Generates English narrative from AST")
     Container(report, "Reporter", "src/report.rs", "Generates statistics and structured reports")
-    Container(codegen, "Code Generator", "src/codegen", "Generates Rust source code")
+    Container(codegen, "Code Generator", "src/codegen", "Generates Rust source code with strict sanitization")
+    Container(storage, "Storage Layer", "src/storage", "Decoupled persistence logic")
 
     Rel(lexer, parser, "Stream<Token>")
     Rel(parser, morphology, "AST (Unresolved)")
@@ -43,6 +44,8 @@ C4Container
     Rel(semantic, report, "Analyzed Program")
     Rel(semantic, narrator, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
+    Rel(parser, storage, "Reads Source")
+    Rel(codegen, storage, "Writes Output")
 ```
 
 ## Semantic Analysis (C4 Component Level)
@@ -69,4 +72,26 @@ C4Component
     Rel(converter, patterns, "Delegates complex patterns")
     Rel(patterns, model, "Produces AnalyzedStatement")
     Rel(converter, model, "Produces AnalyzedStatement")
+```
+
+## Code Generation Strategy
+
+The code generation phase acts as a security boundary ("The Rust Shield"), transforming the analyzed Greek program into safe, strictly namespaced Rust code.
+
+```mermaid
+sequenceDiagram
+    participant Semantic as Semantic Analyzer
+    participant Codegen as Code Generator
+    participant Sanitizer as Name Sanitizer
+    participant RustC as Rust Compiler
+
+    Semantic->>Codegen: AnalyzedProgram
+    loop For each Identifier
+        Codegen->>Sanitizer: Greek Name (e.g. "χρήστης")
+        Sanitizer->>Sanitizer: Transliterate (Hex Encode Ambiguous Chars)
+        Sanitizer->>Sanitizer: Apply Namespace Prefix ("g_")
+        Sanitizer-->>Codegen: Safe Rust Identifier (e.g. "g__u3c7_rhsths")
+    end
+    Codegen->>Codegen: Construct Rust AST (TokenStream)
+    Codegen-->>RustC: Valid Rust Source Code
 ```
