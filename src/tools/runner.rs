@@ -39,6 +39,19 @@ fn check_file_size(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Load source code from a file with strict size limits
+///
+/// This function enforces a strict 1MB size limit to prevent Denial of Service (DoS)
+/// attacks via memory exhaustion. It uses `take()` to limit the read operation,
+/// ensuring we never read more than `MAX_FILE_SIZE` bytes even from infinite streams
+/// (like `/dev/zero`).
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The file does not exist.
+/// - The file metadata indicates it is too large.
+/// - The file content exceeds the 1MB limit.
 fn load_source(input: &Path) -> Result<String> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
@@ -99,6 +112,21 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     Ok(())
 }
 
+/// Compile and run a ΓΛΩΣΣΑ file
+///
+/// This is the main entry point for the `run` command. It handles the full pipeline:
+/// 1. **Validation**: Checks file existence and size limits.
+/// 2. **Caching**: Checks if a compiled binary already exists for this source file.
+///    The cache key is based on the file path and content hash.
+/// 3. **Compilation**: If not cached, runs the full compiler pipeline (Lex -> Parse -> Analyze -> Codegen).
+/// 4. **Build**: Invokes `rustc` to compile the generated Rust code into a native binary.
+/// 5. **Execution**: Runs the resulting binary.
+///
+/// # Caching Strategy
+///
+/// To speed up repeated runs, we cache the compiled binary in the system's cache directory
+/// (e.g., `~/.cache/glossa`). If the source file hasn't changed, we skip compilation
+/// and run the cached binary directly.
 pub fn run_file(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));

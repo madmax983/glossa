@@ -1,3 +1,31 @@
+//! The Narrator Tool ("Bard")
+//!
+//! This module implements the "Bard" functionality, which translates the semantic meaning
+//! of a ΓΛΩΣΣΑ program into a readable English narrative, known as "The Scroll of Logic".
+//!
+//! # Purpose
+//!
+//! This tool serves two main purposes:
+//! 1. **Debugging**: It allows developers to verify how the compiler is interpreting their code.
+//!    If the English narrative doesn't match their intent, there's likely a parsing or semantic error.
+//! 2. **Education**: It helps users understand the mapping between Ancient Greek syntax and
+//!    computational logic.
+//!
+//! # How it works
+//!
+//! The `tell_tale` function takes an [`AnalyzedProgram`] (the output of the semantic analysis phase)
+//! and recursively traverses the AST, generating English sentences for each statement and expression.
+//!
+//! # Example
+//!
+//! ```glossa
+//! ξ πέντε ἔστω.
+//! ```
+//!
+//! Becomes:
+//!
+//! > Let there be a variable named `ξ` with the value the number 5.
+
 use crate::semantic::CaptureMode;
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType,
@@ -6,6 +34,22 @@ use crate::semantic::{
 /// Tells the tale of the program in English.
 ///
 /// This function translates the semantic meaning of the program into a readable English narrative.
+/// It acts as the entry point for the "Bard" tool.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::tools::narrator::tell_tale;
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+///
+/// let source = "ξ πέντε ἔστω.";
+/// let ast = parse(source).unwrap();
+/// let analyzed = analyze_program(&ast).unwrap();
+///
+/// let tale = tell_tale(&analyzed);
+/// assert!(tale.contains("Let there be a variable named `ξ`"));
+/// ```
 pub fn tell_tale(program: &AnalyzedProgram) -> String {
     let mut tale = String::new();
     tale.push_str("The Scroll of Logic begins...\n\n");
