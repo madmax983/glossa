@@ -120,4 +120,22 @@ mod tests {
         fs::write(&src, "newer source").unwrap();
         assert!(!cache.is_valid(&src, &exe));
     }
+
+    #[test]
+    fn test_get_paths() {
+        let cache = Cache::new();
+        let path = Path::new("test.gl");
+        let (rs, exe) = cache.get_paths(path);
+
+        assert!(rs.to_string_lossy().ends_with(".rs"));
+
+        if cfg!(windows) {
+            assert!(exe.to_string_lossy().ends_with(".exe"));
+        } else {
+            // On Unix it should likely end with the hash (hex)
+            // The key is 16 chars hex
+            let s = exe.to_string_lossy();
+            assert!(s.len() >= 16);
+        }
+    }
 }

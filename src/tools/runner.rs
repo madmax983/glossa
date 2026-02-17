@@ -442,6 +442,22 @@ mod tests {
     }
 
     #[test]
+    fn test_check_file_error() {
+        let input_path = Path::new("non_existent_check.gl");
+        let result = check_file(input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_highlight_file_error() {
+        let input_path = Path::new("non_existent_highlight.gl");
+        let result = highlight_file(input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
     fn test_bard_file_valid() {
         let dir = tempfile::tempdir().unwrap();
         let input_path = dir.path().join("bard.gl");
