@@ -50,7 +50,7 @@ fn test_assembler_method_verbs_join_coverage() {
     asm.feed(&kata, "κατά").unwrap();
 
     // 3. Delimiter Literal: ","
-    asm.feed_string(",".to_string()).unwrap();
+    asm.feed_string(",").unwrap();
 
     // 4. Join Verb: "ἑνοῦνται"
     let join = analyze("ενουνται");
@@ -115,7 +115,7 @@ fn test_assembler_has_content_coverage() {
     let mut asm = Assembler::new();
     assert!(!asm.has_content());
 
-    asm.feed_string("test".to_string()).unwrap();
+    asm.feed_string("test").unwrap();
     assert!(asm.has_content());
 
     let _ = asm.finalize().unwrap();
@@ -135,7 +135,7 @@ fn test_assembler_method_verbs_split_coverage() {
     asm.feed(&kata, "κατά").unwrap();
 
     // 3. Delimiter Literal: "."
-    asm.feed_string(".".to_string()).unwrap();
+    asm.feed_string(".").unwrap();
 
     // 4. Split Verb: "σχίζεται"
     let split = analyze("σχιζεται");

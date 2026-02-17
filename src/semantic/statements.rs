@@ -488,7 +488,7 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
             }
             Expr::StringLiteral(s) => {
                 return Ok(AnalyzedExpr {
-                    expr: AnalyzedExprKind::StringLiteral(s.clone()),
+                    expr: AnalyzedExprKind::StringLiteral(s.clone().into()),
                     glossa_type: GlossaType::String,
                 });
             }

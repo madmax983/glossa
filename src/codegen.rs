@@ -844,7 +844,8 @@ fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
 fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => {
-            quote! { #s }
+            let s_str = s.as_str();
+            quote! { #s_str }
         }
 
         AnalyzedExprKind::NumberLiteral(n) => {

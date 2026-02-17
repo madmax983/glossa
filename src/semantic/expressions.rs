@@ -116,7 +116,7 @@ fn analyze_literal(expr: &Expr) -> Result<AnalyzedExpr, GlossaError> {
             glossa_type: GlossaType::Number,
         }),
         Expr::StringLiteral(s) => Ok(AnalyzedExpr {
-            expr: AnalyzedExprKind::StringLiteral(s.clone()),
+            expr: AnalyzedExprKind::StringLiteral(s.into()),
             glossa_type: GlossaType::String,
         }),
         Expr::BooleanLiteral(b) => Ok(AnalyzedExpr {
@@ -374,7 +374,7 @@ fn feed_expr_recursive(
 
     match expr {
         Expr::StringLiteral(s) => {
-            asm.feed_string(s.clone())?;
+            asm.feed_string(s.as_str())?;
         }
         Expr::NumberLiteral(n) => {
             asm.feed_number(*n)?;

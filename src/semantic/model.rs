@@ -158,7 +158,7 @@ pub enum AnalyzedExprKind {
     ///
     /// # Example
     /// `«hello»` -> `StringLiteral("hello")`
-    StringLiteral(String),
+    StringLiteral(SmolStr),
 
     /// Number literal (integer)
     ///

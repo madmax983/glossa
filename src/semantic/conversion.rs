@@ -711,7 +711,7 @@ fn classify_print(
                     let method_args = if let Some((ref meth, ref delim)) = asm_stmt.string_method {
                         if meth == method {
                             vec![AnalyzedExpr {
-                                expr: AnalyzedExprKind::StringLiteral(delim.clone()),
+                                expr: AnalyzedExprKind::StringLiteral(delim.clone().into()),
                                 glossa_type: GlossaType::String,
                             }]
                         } else {
@@ -1335,7 +1335,7 @@ pub fn extract_value(
 mod tests {
     use super::*;
     use crate::ast::{Expr, Word};
-    use crate::morphology::{analyze, Case, Gender};
+    use crate::morphology::{Case, Gender, analyze};
     use crate::semantic::Assembler;
 
     fn setup_scope() -> Scope {
@@ -1399,7 +1399,9 @@ mod tests {
             let expr = &exprs[0];
 
             match &expr.expr {
-                AnalyzedExprKind::PropertyAccess { owner, property, .. } => {
+                AnalyzedExprKind::PropertyAccess {
+                    owner, property, ..
+                } => {
                     // Property access is what classify_property_access_print produces
                     assert_eq!(property, "μηκος");
                     if let AnalyzedExprKind::Variable(name) = &owner.expr {

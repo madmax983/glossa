@@ -269,7 +269,7 @@ pub fn try_parse_struct_instantiation(
                         }
                         Expr::StringLiteral(s) => {
                             let lit_expr = AnalyzedExpr {
-                                expr: AnalyzedExprKind::StringLiteral(s.clone()),
+                                expr: AnalyzedExprKind::StringLiteral(s.clone().into()),
                                 glossa_type: GlossaType::String,
                             };
 

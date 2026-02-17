@@ -391,7 +391,7 @@ fn test_limit_string_method_properties() {
     // Now try to trigger a string method which would add another property access
     asm.feed(&subj, "text").unwrap();
     asm.feed(&delimiter_prep, "κατά").unwrap();
-    asm.feed_string(",".to_string()).unwrap(); // Delimiter literal
+    asm.feed_string(",").unwrap(); // Delimiter literal
 
     // Feed split verb - should fail to create method call (return false)
     match asm.feed(&split_verb, "σχίζεται") {

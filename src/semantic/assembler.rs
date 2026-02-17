@@ -238,16 +238,16 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_string("χαῖρε".to_string()).unwrap();
+    /// asm.feed_string("χαῖρε".into()).unwrap();
     /// ```
-    pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
+    pub fn feed_string(&mut self, value: impl Into<SmolStr>) -> Result<(), AssemblyError> {
         if self.state.literals.len() >= MAX_LITERALS {
             return Err(AssemblyError::LimitExceeded {
                 resource: "Literals".to_string(),
                 max: MAX_LITERALS,
             });
         }
-        self.state.literals.push(Literal::String(value));
+        self.state.literals.push(Literal::String(value.into()));
         Ok(())
     }
 
@@ -694,7 +694,7 @@ impl Assembler {
                 };
 
                 let normalized_original = normalize_greek(&subj.original);
-                self.state.string_method = Some((method_name.to_string(), delim));
+                self.state.string_method = Some((method_name.to_string(), delim.to_string()));
                 self.state
                     .property_accesses
                     .push((normalized_original.to_string(), method_name.to_string()));
@@ -1030,7 +1030,7 @@ pub struct ParticipleConstituent {
 /// A literal value
 #[derive(Debug, Clone)]
 pub enum Literal {
-    String(String),
+    String(SmolStr),
     Number(i64),
     Boolean(bool),
 }
@@ -1189,7 +1189,7 @@ mod tests {
     fn test_literals() {
         let mut asm = Assembler::new();
 
-        asm.feed_string("χαῖρε κόσμε".to_string()).unwrap();
+        asm.feed_string("χαῖρε κόσμε").unwrap();
 
         let verb = analyze("λεγε");
         asm.feed(&verb, "λέγε").unwrap();
@@ -1478,7 +1478,7 @@ mod tests {
         asm.feed(&marker_analysis, "κατά").unwrap();
 
         // 3. Delimiter Literal: ","
-        asm.feed_string(",".to_string()).unwrap();
+        asm.feed_string(",").unwrap();
 
         // 4. Split Verb: "σχίζεται" (is split)
         let split_verb = MorphAnalysis {
