@@ -2,8 +2,8 @@
 
 use glossa::tools::tester::run_tests;
 use std::io::Write;
-use tempfile::Builder;
 use std::path::PathBuf;
+use tempfile::Builder;
 
 #[test]
 fn test_run_tests_success() {
@@ -64,7 +64,12 @@ fn test_run_tests_file_not_found() {
     let path = PathBuf::from("non_existent_file.gl");
     let result = run_tests(&path);
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον οὐχ εὑρέθη"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Ἀρχεῖον οὐχ εὑρέθη")
+    );
 }
 
 #[test]
