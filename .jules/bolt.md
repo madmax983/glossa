@@ -955,3 +955,6 @@ all doctests ran in 0.59s; merged doctests compilation took 0.56s compiles succe
 **[Diff Coverage Traps]**
 **Learning:** Codecov analyzes coverage *on the diff*. If you refactor a function (e.g., adding an argument), you touch lines that handle rare edge cases (like  or ). If existing tests don't hit those edge cases, the diff coverage drops, failing CI.
 **Action:** When refactoring core logic (like a dispatcher or main match block), audit *all* branches to ensure at least one test case hits each branch, or add new tests to cover the gaps.
+**[Test Compilation and Coverage]**
+**Learning:** If a new test file fails to compile (e.g. unused imports in CI), the tests won't run, and Codecov will report low coverage for the code those tests were meant to cover.
+**Action:** Always ensure new tests compile cleanly with  or  before submitting.

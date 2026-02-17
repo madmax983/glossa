@@ -1,5 +1,5 @@
-use glossa::morphology::{analyze, MorphAnalysis, PartOfSpeech, Case, Number};
-use glossa::semantic::{Assembler, AssemblyError};
+use glossa::morphology::{Case, MorphAnalysis, Number, PartOfSpeech};
+use glossa::semantic::Assembler;
 use std::borrow::Cow;
 
 #[test]
