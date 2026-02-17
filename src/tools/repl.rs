@@ -510,7 +510,7 @@ mod tests {
 
         let output_str = String::from_utf8(output).unwrap();
         assert!(output_str.contains("βοήθεια"));
-        assert!(output_str.contains("Περιγραφή"));
+        assert!(output_str.contains("Ἐντολαί")); // New header
     }
 
     #[test]
