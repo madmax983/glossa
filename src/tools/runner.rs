@@ -113,7 +113,10 @@ pub fn run_file(input: &Path) -> Result<()> {
         let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
         if !exit_status.success() {
-            std::process::exit(exit_status.code().unwrap_or(1));
+            return Err(miette::miette!(
+                "Πρόγραμμα ἐξῆλθε μὲ σφάλμα (Program exited with error): {}",
+                exit_status
+            ));
         }
         return Ok(());
     }
@@ -391,6 +394,29 @@ mod tests {
         let result = run_file(&input_path);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Πρόγραμμα ἐξῆλθε"));
+    }
+
+    #[test]
+    fn test_run_cached_failure() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("cached_failure.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // This compiles but panics at runtime
+            f.write_all("χ 1 ἔστω. χ 2 ἰσοῦται.".as_bytes()).unwrap();
+        }
+
+        // 1. First run: Compiles and runs (fails)
+        let result1 = run_file(&input_path);
+        assert!(result1.is_err());
+        assert!(result1.unwrap_err().to_string().contains("Πρόγραμμα ἐξῆλθε"));
+
+        // 2. Second run: Should use cached binary and fail again
+        // We can verify it used cache if we had logs, but functionality-wise
+        // it must return the same error without recompiling.
+        let result2 = run_file(&input_path);
+        assert!(result2.is_err());
+        assert!(result2.unwrap_err().to_string().contains("Πρόγραμμα ἐξῆλθε"));
     }
 
     #[test]

@@ -138,4 +138,15 @@ mod tests {
             assert!(s.len() >= 16);
         }
     }
+
+    #[test]
+    fn test_cache_key_non_existent_file() {
+        let cache = Cache::new();
+        // Path that definitely doesn't exist
+        let path = Path::new("/path/to/non_existent_file_xyz_123.gl");
+
+        // This should not panic, but use to_path_buf fallback
+        let key = cache.key(path);
+        assert_eq!(key.len(), 16);
+    }
 }
