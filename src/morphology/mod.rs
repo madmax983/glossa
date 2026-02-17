@@ -23,6 +23,7 @@ pub mod conjugation;
 pub mod declension;
 pub mod disambiguation;
 pub mod lexicon;
+pub mod matcher;
 pub mod participle;
 
 pub use conjugation::*;

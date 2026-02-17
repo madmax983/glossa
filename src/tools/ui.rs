@@ -19,26 +19,14 @@ impl Status {
 
     /// Internal constructor for testing
     fn new(message: impl Into<String>, is_tty: bool) -> Self {
-        let message = message.into();
-
-        if is_tty {
-            let mut stderr = io::stderr();
-            // Hide cursor
-            let _ = stderr.execute(cursor::Hide);
-            // Print status
-            eprint!("{} {}...", "⚡".yellow(), message.clone().bold());
-            let _ = io::stderr().flush();
-        } else {
-            // For non-TTY, just print line
-            eprintln!("{} {}...", "⚡".yellow(), message.clone().bold());
-        }
-
-        Self {
-            message,
+        let status = Self {
+            message: message.into(),
             start: Instant::now(),
             is_tty,
             active: true,
-        }
+        };
+        status.print_running(false);
+        status
     }
 
     /// Update the status message
@@ -46,21 +34,8 @@ impl Status {
         if !self.active {
             return;
         }
-
-        let message = message.into();
-        self.message = message.clone();
-
-        if self.is_tty {
-            let mut stderr = io::stderr();
-            // Clear current line
-            eprint!("\r");
-            let _ = stderr.execute(terminal::Clear(terminal::ClearType::UntilNewLine));
-            // Print new status
-            eprint!("{} {}...", "⚡".yellow(), message.bold());
-            let _ = io::stderr().flush();
-        } else {
-            eprintln!("{} {}...", "⚡".yellow(), message.bold());
-        }
+        self.message = message.into();
+        self.print_running(true);
     }
 
     /// Mark the operation as complete success
@@ -71,30 +46,9 @@ impl Status {
 
         let duration = self.start.elapsed();
         let time_str = format!("({:.2?})", duration).dim();
+        let msg = format!("{} {}", self.message.as_str().bold(), time_str);
 
-        if self.is_tty {
-            let mut stderr = io::stderr();
-            // Clear line
-            eprint!("\r");
-            let _ = stderr.execute(terminal::Clear(terminal::ClearType::UntilNewLine));
-            // Print success
-            eprintln!(
-                "{} {} {}",
-                "✓".green(),
-                self.message.as_str().bold(),
-                time_str
-            );
-            // Show cursor
-            let _ = stderr.execute(cursor::Show);
-        } else {
-            eprintln!(
-                "{} {} {}",
-                "✓".green(),
-                self.message.as_str().bold(),
-                time_str
-            );
-        }
-
+        self.print_done("✓".green(), &msg);
         self.active = false;
     }
 
@@ -104,19 +58,41 @@ impl Status {
             return;
         }
 
+        let msg = self.message.as_str().bold().to_string();
+        self.print_done("✕".red(), &msg);
+        eprintln!("{}", err);
+        self.active = false;
+    }
+
+    fn print_running(&self, clear: bool) {
+        let symbol = "⚡".yellow();
+        let msg = format!("{}...", self.message.as_str().bold());
+
+        if self.is_tty {
+            let mut stderr = io::stderr();
+            if clear {
+                eprint!("\r");
+                let _ = stderr.execute(terminal::Clear(terminal::ClearType::UntilNewLine));
+            } else {
+                let _ = stderr.execute(cursor::Hide);
+            }
+            eprint!("{} {}", symbol, msg);
+            let _ = io::stderr().flush();
+        } else {
+            eprintln!("{} {}", symbol, msg);
+        }
+    }
+
+    fn print_done(&self, symbol: impl std::fmt::Display, message: &str) {
         if self.is_tty {
             let mut stderr = io::stderr();
             eprint!("\r");
             let _ = stderr.execute(terminal::Clear(terminal::ClearType::UntilNewLine));
-            eprintln!("{} {}", "✕".red(), self.message.as_str().bold());
-            // Show cursor
+            eprintln!("{} {}", symbol, message);
             let _ = stderr.execute(cursor::Show);
         } else {
-            eprintln!("{} {}", "✕".red(), self.message.as_str().bold());
+            eprintln!("{} {}", symbol, message);
         }
-
-        eprintln!("{}", err);
-        self.active = false;
     }
 }
 

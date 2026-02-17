@@ -25,6 +25,7 @@
 //! ```
 
 use super::{Case, Gender, Number, Tense, Voice};
+use crate::morphology::matcher::match_suffix;
 use std::sync::LazyLock;
 
 /// Result of participle morphological analysis
@@ -500,14 +501,10 @@ static ALL_PATTERNS: LazyLock<Vec<&'static ParticiplePattern>> = LazyLock::new(|
 /// assert_eq!(p.tense, Tense::Present);
 /// ```
 pub fn analyze_participle(word: &str) -> Option<ParticipleAnalysis> {
-    for pattern in ALL_PATTERNS.iter() {
-        if let Some(stem) = word.strip_suffix(pattern.ending) {
-            // Stem must not be empty
-            if stem.is_empty() {
-                continue;
-            }
-
-            return Some(ParticipleAnalysis {
+    let mut result = None;
+    match_suffix(word, &ALL_PATTERNS, |p| p.ending, |stem, pattern| {
+        if result.is_none() {
+            result = Some(ParticipleAnalysis {
                 stem: stem.to_string(),
                 tense: pattern.tense,
                 voice: pattern.voice,
@@ -516,10 +513,12 @@ pub fn analyze_participle(word: &str) -> Option<ParticipleAnalysis> {
                 number: pattern.number,
                 confidence: 0.9,
             });
+            false // Stop after first match
+        } else {
+            true
         }
-    }
-
-    None
+    });
+    result
 }
 
 #[cfg(test)]

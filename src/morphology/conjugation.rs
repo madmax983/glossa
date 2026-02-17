@@ -8,6 +8,7 @@
 use std::borrow::Cow;
 
 use super::{Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
+use crate::morphology::matcher::match_suffix;
 use crate::text::normalize_greek;
 
 /// Present Active Indicative endings (ω-conjugation)
@@ -436,15 +437,16 @@ fn match_verb_endings<'a>(
     word: &'a str,
     endings: &[(&str, Person, Number)],
 ) -> Option<(&'a str, Person, Number)> {
-    // Endings are pre-sorted by length (longest first)
-    for (ending, person, number) in endings {
-        if let Some(stem) = word.strip_suffix(ending)
-            && !stem.is_empty()
-        {
-            return Some((stem, *person, *number));
+    let mut result = None;
+    match_suffix(word, endings, |e| e.0, |stem, pattern| {
+        if result.is_none() {
+            result = Some((stem, pattern.1, pattern.2));
+            false // Stop after first match
+        } else {
+            true // Should not happen if we stop, but safe default
         }
-    }
-    None
+    });
+    result
 }
 
 /// Match a word against ALL verb endings (for ambiguity resolution)
@@ -452,13 +454,10 @@ fn match_verb_endings_all<F>(word: &str, endings: &[(&str, Person, Number)], mut
 where
     F: FnMut(&str, Person, Number),
 {
-    for (ending, person, number) in endings {
-        if let Some(stem) = word.strip_suffix(ending)
-            && !stem.is_empty()
-        {
-            callback(stem, *person, *number);
-        }
-    }
+    match_suffix(word, endings, |e| e.0, |stem, pattern| {
+        callback(stem, pattern.1, pattern.2);
+        true // Continue searching
+    });
 }
 
 /// Analyze a word as a verb, returning ALL possible analyses
