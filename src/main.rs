@@ -5,11 +5,12 @@
 use clap::Parser;
 use miette::Result;
 
-use glossa::experimental::muse::invoke_muse;
 use glossa::tools::cli::{Cli, Commands};
 use glossa::tools::dictionary::lookup_word;
 use glossa::tools::repl::run_repl;
-use glossa::tools::runner::{bard_file, build_file, check_file, highlight_file, run_file};
+use glossa::tools::runner::{
+    bard_file, build_file, check_file, highlight_file, muse_inspiration, run_file,
+};
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -45,7 +46,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Muse { inspiration }) => {
-            println!("{}", invoke_muse(inspiration));
+            muse_inspiration(inspiration)?;
         }
 
         Some(Commands::Repl) | None => {

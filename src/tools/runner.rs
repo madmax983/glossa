@@ -1,5 +1,6 @@
 use crate::codegen::generate_rust_file;
 use crate::experimental::bard::tell_tale;
+use crate::experimental::muse::{invoke_muse, Inspiration};
 use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::{AnalyzedProgram, analyze_program};
@@ -96,6 +97,12 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     println!("{}", report);
 
+    Ok(())
+}
+
+pub fn muse_inspiration(inspiration: Inspiration) -> Result<()> {
+    let content = invoke_muse(inspiration);
+    println!("{}", content);
     Ok(())
 }
 
@@ -424,6 +431,13 @@ mod tests {
         }
 
         let result = bard_file(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_muse_inspiration_valid() {
+        // Just verify it runs without error (prints to stdout)
+        let result = muse_inspiration(Inspiration::Hero);
         assert!(result.is_ok());
     }
 }
