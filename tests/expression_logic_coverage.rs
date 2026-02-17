@@ -318,6 +318,11 @@ mod tests {
             right: Box::new(Expr::NumberLiteral(2)),
         };
 
+        let prop_expr = Expr::PropertyAccess {
+            owner: Box::new(Expr::Word(Word::new("arr"))),
+            property: Box::new(Expr::Word(Word::new("length"))),
+        };
+
         let expr = Expr::Phrase(vec![
             unwrap_expr,
             array_expr,
@@ -326,6 +331,7 @@ mod tests {
             binding_expr,
             call_expr,
             binop_expr,
+            prop_expr,
             string_expr
         ]);
 
