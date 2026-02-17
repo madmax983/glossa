@@ -25,3 +25,6 @@
 ## [Silent Token Swallowing in Assembler Fallback]
 **Learning:** In `src/semantic/assembler.rs`, the fallback logic for unknown case tokens was silently swallowing tokens if the object slot was already full. It would attempt to set `state.object`, find it occupied, and then do nothing (returning `Ok(())`), leading to data loss.
 **Action:** Changed fallback logic to return `Err(AssemblyError::DoubleObject)` when the object slot is full, ensuring no tokens are silently ignored.
+**[Silent failure in parenthesized expressions]**
+**Learning:** The parser handles multi-term parenthesized expressions (e.g. `(1 2 +)`) by producing a `Phrase` with multiple terms. However, the semantic analyzer's `classify_print` function silently ignored these nested phrases, leading to valid code compiling but doing nothing. This highlights the importance of checking all fields of `AssembledStatement` during conversion, especially those that might hide content like `nested_phrases`.
+**Action:** When implementing new classifiers or modifying existing ones, always audit unused fields in `AssembledStatement` to ensure no user intent is dropped. Also, `analyze_phrase` was modified to support assembling complex expressions on the fly using a temporary `Assembler`, which is a powerful pattern for handling "mini-sentences" in arguments.

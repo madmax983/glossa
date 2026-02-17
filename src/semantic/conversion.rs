@@ -772,6 +772,12 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators);
 
+            for nested_terms in &asm_stmt.nested_phrases {
+                let phrase_expr = Expr::Phrase(nested_terms.clone());
+                let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
+                args.push(analyzed);
+            }
+
             if let Some(ref subj) = asm_stmt.subject
                 && let Some(var_type) = scope.lookup(&subj.lemma)
             {

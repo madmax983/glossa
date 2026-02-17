@@ -12,7 +12,7 @@
 //! 2. **Recursive Analysis**: Nested expressions (args inside a function call) are analyzed
 //!    recursively to produce an [`AnalyzedExpr`]. See [`analyze_argument_expr`].
 
-use super::{AnalyzedExpr, AnalyzedExprKind, Assembler, GlossaType, Literal, Scope};
+use super::{AnalyzedExpr, AnalyzedExprKind, AssembledStatement, Assembler, GlossaType, Literal, Scope};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
@@ -226,14 +226,106 @@ fn analyze_phrase(
         }
     }
 
-    // Not a function call - could be a complex expression
-    // If we have multiple terms but it's not a function call, that's ambiguous/invalid
+    // Not a function call - try to parse as a complex expression using the Assembler
+    // This allows for expressions like "1 2 +" or "x y +" inside parentheses
     if terms.len() > 1 {
-        return Err(GlossaError::semantic("Unexpected multiple terms in phrase"));
+        let mut asm = Assembler::new();
+        let mut context = DisambiguationContext::new();
+
+        for term in terms {
+            feed_expr_to_assembler_with_context(&mut asm, term, &mut context)?;
+        }
+
+        let stmt = asm.finalize()?;
+        return convert_assembled_to_expr(&stmt, scope, depth);
     }
 
-    // For now, just analyze the first term
+    // Just one term
     analyze_argument_expr_recursive(&terms[0], scope, depth + 1)
+}
+
+/// Convert an AssembledStatement into an AnalyzedExpr
+///
+/// This helper handles resolving Subject/Object/Nominatives from the Scope
+/// and combining them with Literals and Operators to form an expression tree.
+fn convert_assembled_to_expr(
+    stmt: &AssembledStatement,
+    scope: &Scope,
+    depth: usize,
+) -> Result<AnalyzedExpr, GlossaError> {
+    let mut exprs = build_expressions_from_literals_and_ops(&stmt.literals, &stmt.operators);
+
+    // If we have operators but couldn't build a full expression from literals alone (usually implies literals < 2),
+    // we should look for Subject/Object to complete the binary expression.
+    if !stmt.operators.is_empty() && stmt.literals.len() < 2 {
+        let op = stmt.operators[0];
+
+        // Note: Consistent with classify_expression in conversion.rs, Subject is treated as Left operand.
+        // This ensures predictable behavior for non-commutative operations (e.g. subtraction).
+        let left = if let Some(ref subj) = stmt.subject {
+            Some(analyze_variable(subj, scope)?)
+        } else {
+            // If no subject, try to pop from exprs (literal)
+            exprs.pop()
+        };
+
+        // Try to get right operand from exprs (literal) or object or nominatives
+        // Note: exprs.pop() gets the LAST literal. If we have [1], it pops 1.
+        // If we have Subject "x", Literal "1", Op "+":
+        // Left = x. Right = 1. -> x + 1.
+        let right = if !exprs.is_empty() {
+            exprs.pop()
+        } else if let Some(ref obj) = stmt.object {
+            Some(analyze_variable(obj, scope)?)
+        } else if let Some(nom) = stmt.nominatives.first() {
+            Some(analyze_variable(nom, scope)?)
+        } else {
+            None
+        };
+
+        if let (Some(l), Some(r)) = (left, right) {
+            return Ok(build_binary_expr(l, op, r));
+        }
+    }
+
+    // If no operators (or binary build failed/partial), return the single expression found
+    if let Some(expr) = exprs.pop() {
+        return Ok(expr);
+    }
+
+    if let Some(ref subj) = stmt.subject {
+        return analyze_variable(subj, scope);
+    }
+
+    if let Some(ref obj) = stmt.object {
+        return analyze_variable(obj, scope);
+    }
+
+    // If we have nested phrases (e.g. from parenthesized expressions that were stored but not fed)
+    // We should try to analyze them.
+    if let Some(nested) = stmt.nested_phrases.first() {
+        return analyze_phrase(nested, scope, depth + 1);
+    }
+
+    Err(GlossaError::semantic("Empty expression in phrase"))
+}
+
+fn analyze_variable(
+    constituent: &crate::semantic::Constituent,
+    scope: &Scope,
+) -> Result<AnalyzedExpr, GlossaError> {
+    let name = &constituent.lemma;
+    if let Some(var_type) = scope.lookup(name) {
+        Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(name.clone()),
+            glossa_type: var_type.clone(),
+        })
+    } else {
+        Err(GlossaError::semantic(format!(
+            "Undefined variable: {}",
+            name
+        )))
+    }
 }
 
 fn analyze_block(
