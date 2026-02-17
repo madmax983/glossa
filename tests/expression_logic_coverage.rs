@@ -144,19 +144,6 @@ mod tests {
         // Fallback to "NonNormalized" (original).
         let mut scope = Scope::new();
         // Manually insert non-normalized key
-        // Scope::define normalizes, so we must be clever.
-        // Actually, Scope keys are SmolStr.
-        // The issue is if the lexicon produces a lemma that is DIFFERENT from the original-normalized.
-        // e.g. "dwra" (gifts) -> lemma "dwron" (gift).
-        // If I define "dwra" (the plural form used in text) as variable?
-        // Glossa usually binds normalized form.
-        // `Esto` uses `subject.original` normalized.
-        // `Assembler` stores `lemma`.
-        // If I define "δῶρα" (gifts). Scope has "δωρα".
-        // Assembler sees "δῶρα", lemma "δωρον".
-        // `analyze_variable` looks up "δωρον". Not found.
-        // Fallback: look up "δωρα" (normalized original). Found!
-
         scope.define("δωρα", GlossaType::Number); // Defined as plural form
 
         let expr = Expr::Phrase(vec![Expr::Word(Word::new("δῶρα"))]);
@@ -166,6 +153,90 @@ mod tests {
         match result.expr {
             AnalyzedExprKind::Variable(name) => assert_eq!(name, "δωρα"),
             _ => panic!("Expected Variable"),
+        }
+    }
+
+    #[test]
+    fn test_subject_nominative_expression() {
+        // Subject + Nominative + Op
+        // If we feed two Nominatives, the first becomes Subject, the second becomes Nominative (in nominatives list).
+        // Expression logic should use Subject as Left, Nominative as Right.
+        let mut scope = Scope::new();
+        scope.define("α", GlossaType::Number);
+        scope.define("β", GlossaType::Number);
+
+        let expr = Expr::Phrase(vec![
+            Expr::Word(Word::new("Α")), // Alpha (Nom)
+            Expr::Word(Word::new("Β")), // Beta (Nom)
+            Expr::Word(Word::new("ἄθροισμα")),
+        ]);
+
+        let result = analyze_argument_expr(&expr, &scope).expect("Analysis failed");
+
+        match result.expr {
+            AnalyzedExprKind::BinOp { left, op, right } => {
+                // Expected: alpha + beta
+                assert!(
+                    matches!(left.expr, AnalyzedExprKind::Variable(name) if name == "α"),
+                    "Left should be alpha"
+                );
+                assert!(
+                    matches!(right.expr, AnalyzedExprKind::Variable(name) if name == "β"),
+                    "Right should be beta"
+                );
+                assert_eq!(op, BinaryOp::Add);
+            }
+            _ => panic!("Expected BinOp, got {:?}", result.expr),
+        }
+    }
+
+    #[test]
+    fn test_participle_verb_lemma_fallback() {
+        // Define the VERB in scope, not the participle form.
+        // Participle: τρέχων (running). Lemma: τρέχω (run).
+        let mut scope = Scope::new();
+        scope.define("τρεχω", GlossaType::Number);
+
+        // "τρέχων" should resolve to "τρεχω" variable via lemma fallback
+        let expr = Expr::Phrase(vec![Expr::Word(Word::new("τρέχων"))]);
+
+        let result = analyze_argument_expr(&expr, &scope).expect("Analysis failed");
+
+        match result.expr {
+            AnalyzedExprKind::Variable(name) => assert_eq!(name, "τρεχω"),
+            _ => panic!("Expected Variable 'τρεχω', got {:?}", result.expr),
+        }
+    }
+
+    #[test]
+    fn test_subject_participle_expression() {
+        // Subject + Participle + Op
+        // Left should be Subject. Right should fallback to Participle.
+        let mut scope = Scope::new();
+        scope.define("α", GlossaType::Number);
+        scope.define("τρεχων", GlossaType::Number); // Define as original for simplicity
+
+        let expr = Expr::Phrase(vec![
+            Expr::Word(Word::new("Α")),      // Subject
+            Expr::Word(Word::new("τρέχων")), // Participle
+            Expr::Word(Word::new("ἄθροισμα")),
+        ]);
+
+        let result = analyze_argument_expr(&expr, &scope).expect("Analysis failed");
+
+        match result.expr {
+            AnalyzedExprKind::BinOp { left, op, right } => {
+                assert!(
+                    matches!(left.expr, AnalyzedExprKind::Variable(name) if name == "α"),
+                    "Left should be alpha"
+                );
+                assert!(
+                    matches!(right.expr, AnalyzedExprKind::Variable(name) if name == "τρεχων"),
+                    "Right should be trexon"
+                );
+                assert_eq!(op, BinaryOp::Add);
+            }
+            _ => panic!("Expected BinOp, got {:?}", result.expr),
         }
     }
 }
