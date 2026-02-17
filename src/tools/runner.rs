@@ -55,7 +55,6 @@ fn load_source(input: &Path) -> Result<String> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
-    check_file_size(input)?;
 
     let file = fs::File::open(input).into_diagnostic()?;
     let mut content = String::new();
@@ -174,7 +173,10 @@ pub fn run_file(input: &Path) -> Result<()> {
     let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
     if !exit_status.success() {
-        std::process::exit(exit_status.code().unwrap_or(1));
+        return Err(miette::miette!(
+            "Πρόγραμμα ἐξῆλθε μὲ σφάλμα (Program exited with error): {}",
+            exit_status
+        ));
     }
 
     Ok(())
@@ -402,7 +404,6 @@ mod tests {
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
             // This is valid Glossa but invalid Rust (redefining String)
-            // Memory says: εἶδος String ὁρίζειν...
             f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes())
                 .unwrap();
         }
@@ -411,6 +412,21 @@ mod tests {
         assert!(result.is_err());
         // Verify it hits the rustc error path
         assert!(result.unwrap_err().to_string().contains("Rustc Error"));
+    }
+
+    #[test]
+    fn test_run_runtime_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("runtime_error.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // This compiles but panics at runtime
+            f.write_all("1 2 ἰσοῦται.".as_bytes()).unwrap();
+        }
+
+        let result = run_file(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Πρόγραμμα ἐξῆλθε"));
     }
 
     #[test]
