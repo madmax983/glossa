@@ -3,6 +3,7 @@
 use glossa::tools::tester::run_tests;
 use std::io::Write;
 use tempfile::Builder;
+use std::path::PathBuf;
 
 #[test]
 fn test_run_tests_success() {
@@ -56,4 +57,44 @@ fn test_run_tests_failure() {
     assert!(result.is_err(), "Test runner should have failed");
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("Tests failed"));
+}
+
+#[test]
+fn test_run_tests_file_not_found() {
+    let path = PathBuf::from("non_existent_file.gl");
+    let result = run_tests(&path);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον οὐχ εὑρέθη"));
+}
+
+#[test]
+fn test_run_tests_syntax_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "invalid syntax").expect("Failed to write");
+
+    let result = run_tests(temp_file.path());
+    assert!(result.is_err());
+    // Error could be from parser or analyzer, but it should fail
+}
+
+#[test]
+fn test_run_tests_rustc_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    // This creates valid Glossa code that produces invalid Rust code (redefining String)
+    // "εἶδος String ὁρίζειν { }." -> "struct String { }" -> conflicts with std::string::String
+    let source = "εἶδος String ὁρίζειν { }. τέλος.";
+    write!(temp_file, "{}", source).expect("Failed to write");
+
+    let result = run_tests(temp_file.path());
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(err_msg.contains("Rustc Error"));
 }
