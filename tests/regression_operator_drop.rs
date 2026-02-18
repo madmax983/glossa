@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use glossa::semantic::expressions::build_expressions_from_literals_and_ops;
-    use glossa::semantic::Literal;
     use glossa::morphology::lexicon::BinaryOp;
+    use glossa::semantic::Literal;
+    use glossa::semantic::expressions::build_expressions_from_literals_and_ops;
 
     #[test]
     fn test_dropped_operator() {
@@ -16,9 +16,17 @@ mod tests {
 
         let result = build_expressions_from_literals_and_ops(&literals, &operators);
 
-        assert!(result.is_err(), "Expected error for dangling operator, got {:?}", result);
+        assert!(
+            result.is_err(),
+            "Expected error for dangling operator, got {:?}",
+            result
+        );
 
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Insufficient literals"), "Unexpected error message: {}", err);
+        assert!(
+            err.to_string().contains("Insufficient literals"),
+            "Unexpected error message: {}",
+            err
+        );
     }
 }

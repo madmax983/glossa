@@ -884,20 +884,16 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
     // If literals < operators + 1, build_expressions_from_literals_and_ops will fail.
     // In that case, we only build literals and let the fallback logic handle operators.
 
-    let (literals_to_build, operators_to_build) =
-        if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < asm_stmt.operators.len() + 1
-        {
-            // Fallback case: operators likely depend on Subject/Object
-            (asm_stmt.literals.as_slice(), &[][..])
-        } else {
-            (
-                asm_stmt.literals.as_slice(),
-                asm_stmt.operators.as_slice(),
-            )
-        };
+    let (literals_to_build, operators_to_build) = if !asm_stmt.operators.is_empty()
+        && asm_stmt.literals.len() < asm_stmt.operators.len() + 1
+    {
+        // Fallback case: operators likely depend on Subject/Object
+        (asm_stmt.literals.as_slice(), &[][..])
+    } else {
+        (asm_stmt.literals.as_slice(), asm_stmt.operators.as_slice())
+    };
 
-    let mut exprs =
-        build_expressions_from_literals_and_ops(literals_to_build, operators_to_build)?;
+    let mut exprs = build_expressions_from_literals_and_ops(literals_to_build, operators_to_build)?;
 
     // If we have operators but couldn't build a full expression from literals alone (usually implies literals < 2),
     // we should look for Subject/Object to complete the binary expression.
