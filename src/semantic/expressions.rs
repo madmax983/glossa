@@ -572,48 +572,52 @@ pub fn build_binary_expr(
 pub fn build_expressions_from_literals_and_ops(
     literals: &[Literal],
     operators: &[crate::morphology::lexicon::BinaryOp],
-) -> Vec<AnalyzedExpr> {
+) -> Result<Vec<AnalyzedExpr>, GlossaError> {
     // If no operators, just return literals as separate expressions
     if operators.is_empty() {
-        return literals.iter().map(literal_to_analyzed_expr).collect();
+        return Ok(literals.iter().map(literal_to_analyzed_expr).collect());
     }
 
-    // If we have operators, build a binary expression
-    // Pattern: lit0 op0 lit1 op1 lit2 ... -> ((lit0 op0 lit1) op1 lit2) ...
-    if literals.len() < 2 || operators.is_empty() {
-        return literals.iter().map(literal_to_analyzed_expr).collect();
+    // Check if we have enough literals to cover operators (left-associative: op requires left and right)
+    // ops=1 -> literals>=2. ops=2 -> literals>=3.
+    // Basically literals.len() must be >= operators.len() + 1
+    if literals.len() < operators.len() + 1 {
+        return Err(GlossaError::semantic(format!(
+            "Insufficient literals for operators. Operators: {}, Literals: {}. Expected at least {} literals.",
+            operators.len(),
+            literals.len(),
+            operators.len() + 1
+        )));
     }
 
     // Build left-associative tree
     let mut result = literal_to_analyzed_expr(&literals[0]);
 
     for (i, op) in operators.iter().enumerate() {
-        if i + 1 < literals.len() {
-            let right = literal_to_analyzed_expr(&literals[i + 1]);
-            let result_type = infer_binop_type(op);
-            result = AnalyzedExpr {
-                expr: AnalyzedExprKind::BinOp {
-                    left: Box::new(result),
-                    op: *op,
-                    right: Box::new(right),
-                },
-                glossa_type: result_type,
-            };
-        }
+        // We guaranteed i+1 < literals.len() above
+        let right = literal_to_analyzed_expr(&literals[i + 1]);
+        let result_type = infer_binop_type(op);
+        result = AnalyzedExpr {
+            expr: AnalyzedExprKind::BinOp {
+                left: Box::new(result),
+                op: *op,
+                right: Box::new(right),
+            },
+            glossa_type: result_type,
+        };
     }
 
     let mut expressions = vec![result];
 
     // Append any remaining literals that weren't consumed by operators
-    // We consumed 1 (initial) + 1 for each operator that had a matching operand
-    // Effectively we consumed min(literals.len(), operators.len() + 1) literals
-    let consumed = (operators.len() + 1).min(literals.len());
+    // We consumed 1 (initial) + 1 for each operator
+    let consumed = operators.len() + 1;
 
     for literal in &literals[consumed..] {
         expressions.push(literal_to_analyzed_expr(literal));
     }
 
-    expressions
+    Ok(expressions)
 }
 
 /// Infer the result type of a binary operation
@@ -1106,7 +1110,7 @@ mod tests {
         let literals = vec![Literal::Number(1), Literal::Number(2), Literal::Number(3)];
         let operators = vec![crate::morphology::lexicon::BinaryOp::Add];
 
-        let exprs = build_expressions_from_literals_and_ops(&literals, &operators);
+        let exprs = build_expressions_from_literals_and_ops(&literals, &operators).unwrap();
 
         // This test should fail currently because the code returns [BinOp] (len 1)
         assert_eq!(
