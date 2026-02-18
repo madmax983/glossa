@@ -2,6 +2,7 @@ use crate::codegen::generate_rust_file;
 use crate::parser::parse;
 use crate::semantic::analyze_program;
 use crate::tools::ui::Status;
+use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
@@ -9,6 +10,43 @@ use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 use tempfile::Builder;
+
+#[derive(Debug, PartialEq)]
+enum TestStatus {
+    Ok,
+    Failed,
+    Ignored,
+}
+
+#[derive(Debug)]
+struct TestResult {
+    name: String,
+    status: TestStatus,
+}
+
+fn parse_test_output(output: &str) -> Vec<TestResult> {
+    let mut results = Vec::new();
+    for line in output.lines() {
+        // Standard rustc test output line format: "test test_name ... status"
+        if line.starts_with("test ") && (line.ends_with(" ... ok") || line.ends_with(" ... FAILED") || line.ends_with(" ... ignored")) {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            // Expected parts: ["test", "test_name", "...", "status"]
+            // Sometimes there might be extra info, but name is usually at index 1
+            if parts.len() >= 4 {
+                let name = parts[1].to_string();
+                let status_str = parts.last().unwrap();
+                let status = match *status_str {
+                    "ok" => TestStatus::Ok,
+                    "FAILED" => TestStatus::Failed,
+                    "ignored" => TestStatus::Ignored,
+                    _ => continue,
+                };
+                results.push(TestResult { name, status });
+            }
+        }
+    }
+    results
+}
 
 /// Run tests defined in a Glossa file
 ///
@@ -79,32 +117,141 @@ pub fn run_tests(input: &Path) -> Result<()> {
     // The executable must be deleted manually.
     let _ = fs::remove_file(&exe_path);
 
-    // 7. Report results
+    // 7. Parse and Report results
+    let stdout = String::from_utf8_lossy(&test_output.stdout);
+    let results = parse_test_output(&stdout);
+
     if test_output.status.success() {
         status.success();
         println!();
         println!(
-            "{}",
+            "   {}",
             "✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed)"
                 .green()
                 .bold()
         );
-        println!("{}", String::from_utf8_lossy(&test_output.stdout));
     } else {
         status.error("Ἀποτυχία (Failure)");
         println!();
         println!(
-            "{}",
+            "   {}",
             "✕ Τινὲς δοκιμασίαι ἀπέτυχαν (Some tests failed)"
                 .red()
                 .bold()
         );
-        println!("{}", String::from_utf8_lossy(&test_output.stdout));
-        if !test_output.stderr.is_empty() {
-            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+    }
+
+    println!();
+
+    if !results.is_empty() {
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL)
+            .set_header(vec![
+                Cell::new("Test Case").add_attribute(Attribute::Bold).fg(Color::Cyan),
+                Cell::new("Status").add_attribute(Attribute::Bold),
+            ]);
+
+        for result in &results {
+            let status_cell = match result.status {
+                TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
+                TestStatus::Failed => Cell::new("FAILED").fg(Color::Red).add_attribute(Attribute::Bold),
+                TestStatus::Ignored => Cell::new("IGNORED").fg(Color::Yellow),
+            };
+
+            // Clean up test name (remove module prefix if any)
+            // e.g., "tests::test_name" -> "test_name"
+            let display_name = result.name.split("::").last().unwrap_or(&result.name);
+
+            table.add_row(vec![
+                Cell::new(display_name),
+                status_cell,
+            ]);
         }
+        println!("{table}");
+    } else {
+         println!("{}", "   No tests found.".yellow());
+    }
+
+    // If there were failures, print the raw output below for debugging details
+    if !test_output.status.success() {
+        println!();
+        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+        // Filter stdout to show only failures if possible, but raw is safer for now
+        println!("{}", stdout);
+        if !test_output.stderr.is_empty() {
+             println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+        }
+    } else if results.is_empty() {
+        // Fallback for empty results but success (e.g. no tests run)
+        println!("{}", stdout.dim());
+    }
+
+    if !test_output.status.success() {
         return Err(miette::miette!("Tests failed"));
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_output_basic() {
+        let output = "
+running 2 tests
+test test_one ... ok
+test test_two ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+";
+        let results = parse_test_output(output);
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].name, "test_one");
+        assert_eq!(results[0].status, TestStatus::Ok);
+        assert_eq!(results[1].name, "test_two");
+        assert_eq!(results[1].status, TestStatus::Ok);
+    }
+
+    #[test]
+    fn test_parse_output_failure() {
+        let output = "
+running 2 tests
+test test_one ... FAILED
+test test_two ... ok
+
+failures:
+
+---- test_one stdout ----
+thread 'test_one' panicked at 'assertion failed: `(left == right)`
+  left: `5`,
+ right: `4`', src/lib.rs:2:5
+
+failures:
+    test_one
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+";
+        let results = parse_test_output(output);
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].name, "test_one");
+        assert_eq!(results[0].status, TestStatus::Failed);
+        assert_eq!(results[1].name, "test_two");
+        assert_eq!(results[1].status, TestStatus::Ok);
+    }
+
+    #[test]
+    fn test_parse_output_ignored() {
+        let output = "
+running 1 test
+test test_ignore ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+";
+        let results = parse_test_output(output);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "test_ignore");
+        assert_eq!(results[0].status, TestStatus::Ignored);
+    }
 }
