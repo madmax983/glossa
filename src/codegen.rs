@@ -135,8 +135,8 @@ pub(crate) fn capitalize(s: &str) -> String {
 /// use glossa::codegen::sanitize_name;
 ///
 /// // Standard transliteration (prefixed with g_ for namespace safety)
-/// assert_eq!(sanitize_name("ξ"), "g_x");
-/// assert_eq!(sanitize_name("χρηστης"), "g__u3c7_rhsths");
+/// assert_eq!(sanitize_name("ξ"), "g__u3be_");
+/// assert_eq!(sanitize_name("χρηστης"), "g__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_");
 ///
 /// // Keyword safety (even Rust keywords are safe due to g_ prefix)
 /// assert_eq!(sanitize_name("if"), "g_if");
@@ -171,50 +171,23 @@ pub fn sanitize_name(name: &str) -> String {
 /// ```rust
 /// use glossa::codegen::transliterate;
 ///
-/// assert_eq!(transliterate("λογος"), "logos");
-/// assert_eq!(transliterate("φιλοσοφια"), "_u3c6_iloso_u3c6_ia");
+/// assert_eq!(transliterate("λογος"), "_u3bb__u3bf__u3b3__u3bf__u3c2_");
+/// assert_eq!(transliterate("φιλοσοφια"), "_u3c6__u3b9__u3bb__u3bf__u3c3__u3bf__u3c6__u3b9__u3b1_");
 /// ```
 pub fn transliterate(greek: &str) -> String {
     let mut result = String::new();
 
     for c in greek.chars() {
-        let trans = match c {
-            'α' => "a",
-            'β' => "b",
-            'γ' => "g",
-            'δ' => "d",
-            'ε' => "e",
-            'ζ' => "z",
-            'η' => "h", // Distinct from 'e' (epsilon)
-            'ι' => "i",
-            'κ' => "k",
-            'λ' => "l",
-            'μ' => "m",
-            'ν' => "n",
-            'ξ' => "x",
-            'ο' => "o",
-            'π' => "p",
-            'ρ' => "r",
-            'σ' | 'ς' => "s",
-            'τ' => "t",
-            'υ' => "u",
-            'ω' => "w", // Distinct from 'o' (omicron)
-            // Digraphs and other characters are hex-encoded to prevent collisions
-            // θ, φ, χ, ψ map to _u..._ because th, ph, ch, ps collide with sequences
-            _ => {
-                // Keep only ASCII alphanumeric characters and underscore
-                if c.is_ascii_alphanumeric() || c == '_' {
-                    result.push(c);
-                } else {
-                    // Replace invalid characters with unique hex code to prevent collisions
-                    // e.g. ϟ -> _u3df_
-                    use std::fmt::Write;
-                    write!(result, "_u{:x}_", c as u32).unwrap();
-                }
-                continue;
-            }
-        };
-        result.push_str(trans);
+        // We now hex-encode ALL Greek characters to avoid collisions with ASCII.
+        // Previously, 'ξ' mapped to 'x', causing collision with ASCII 'x'.
+        // Now, 'ξ' maps to '_u3be_', which is distinct from 'x' (which stays 'x').
+        if c.is_ascii_alphanumeric() || c == '_' {
+            result.push(c);
+        } else {
+            // Replace invalid characters with unique hex code to prevent collisions
+            use std::fmt::Write;
+            write!(result, "_u{:x}_", c as u32).unwrap();
+        }
     }
 
     // Ensure it starts with a letter or underscore (valid Rust identifier)
@@ -1229,20 +1202,27 @@ mod tests {
 
     #[test]
     fn test_sanitize_greek_letter() {
-        assert_eq!(sanitize_name("ξ"), "g_x");
-        assert_eq!(sanitize_name("α"), "g_a");
-        assert_eq!(sanitize_name("ω"), "g_w");
+        assert_eq!(sanitize_name("ξ"), "g__u3be_");
+        assert_eq!(sanitize_name("α"), "g__u3b1_");
+        assert_eq!(sanitize_name("ω"), "g__u3c9_");
     }
 
     #[test]
     fn test_transliterate() {
-        // χ (chi) -> hex, ρ -> r, η -> h, σ -> s, τ -> t, ο -> o, ς -> s
-        // χ is 0x3c7
-        assert_eq!(transliterate("χρηστος"), "_u3c7_rhstos");
-        assert_eq!(transliterate("λογος"), "logos");
-        // φ (phi) -> hex
-        // φ is 0x3c6
-        assert_eq!(transliterate("φιλοσοφια"), "_u3c6_iloso_u3c6_ia");
+        // All Greek characters are now hex encoded to avoid ASCII collisions
+        // χ (chi) -> _u3c7_
+        // ρ -> _u3c1_
+        // η -> _u3b7_
+        // ...
+        assert_eq!(
+            transliterate("χρηστος"),
+            "_u3c7__u3c1__u3b7__u3c3__u3c4__u3bf__u3c2_"
+        );
+        assert_eq!(transliterate("λογος"), "_u3bb__u3bf__u3b3__u3bf__u3c2_");
+        assert_eq!(
+            transliterate("φιλοσοφια"),
+            "_u3c6__u3b9__u3bb__u3bf__u3c3__u3bf__u3c6__u3b9__u3b1_"
+        );
     }
 
     #[test]
@@ -1265,9 +1245,12 @@ mod tests {
     #[test]
     fn test_transliterate_mixed_valid_invalid() {
         // Test mixing valid and invalid characters
+        // α -> _u3b1_
+        // ϟ -> _u3df_
+        // β -> _u3b2_
         let input = "αϟβ";
         let output = transliterate(input);
-        assert_eq!(output, "a_u3df_b");
+        assert_eq!(output, "_u3b1__u3df__u3b2_");
     }
 
     #[test]
@@ -1340,9 +1323,12 @@ mod tests {
             gender: crate::morphology::Gender::Masculine,
             fields: vec![],
         };
-        // Sanitize: χρηστης -> g__u3c7_rhsths
-        // Capitalize: g__u3c7_rhsths -> G__u3c7_rhsths
-        assert_eq!(to_rust_type(&ty), "G__u3c7_rhsths");
+        // Sanitize: χρηστης -> g__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_
+        // Capitalize: g_... -> G_...
+        assert_eq!(
+            to_rust_type(&ty),
+            "G__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_"
+        );
     }
 
     // --- Rust Codegen Tests ---
@@ -1364,8 +1350,8 @@ mod tests {
     #[test]
     fn test_generate_binding() {
         let code = compile("ξ πέντε ἔστω.");
-        // Variables are now prefixed with g_
-        assert!(code.contains("let g_x"));
+        // Variables are now prefixed with g_ and hex encoded
+        assert!(code.contains("let g__u3be_"));
         assert!(code.contains("5"));
     }
 
@@ -1379,9 +1365,9 @@ mod tests {
     #[test]
     fn test_generate_full_program() {
         let code = compile("ξ πέντε ἔστω. ξ λέγε.");
-        // Variables are now prefixed with g_
+        // Variables are now prefixed with g_ and hex encoded
         assert!(
-            code.contains("let g_x = 5"),
+            code.contains("let g__u3be_ = 5"),
             "Expected binding in: {}",
             code
         );

@@ -582,7 +582,8 @@ fn test_standalone_method_call() {
     let code = compile(source);
 
     // Should contain the method call
-    assert!(code.contains("g_p . g_show") || code.contains("g_p.g_show"));
+    // π -> g__u3c0_
+    assert!(code.contains("g__u3c0_ . g_show") || code.contains("g__u3c0_.g_show"));
 }
 
 // ============================================================================
