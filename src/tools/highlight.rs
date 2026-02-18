@@ -113,9 +113,7 @@ impl Highlighter {
     fn highlight_expr(&mut self, expr: &Expr) -> Result<(), GlossaError> {
         match expr {
             Expr::StringLiteral(s) => {
-                // Sanitize string to prevent terminal injection
-                let content = s.escape_debug().to_string();
-                write!(self.output, "«{}»", content.italic()).unwrap();
+                write!(self.output, "«{}»", s.as_str().italic()).unwrap();
             }
             Expr::NumberLiteral(n) => {
                 write!(self.output, "{}", n.to_string().italic()).unwrap();

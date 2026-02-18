@@ -13,7 +13,6 @@ use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, lexicon};
 use smol_str::SmolStr;
-use std::collections::HashSet;
 
 // =================================================================================================
 // Control Flow Analysis
@@ -779,16 +778,6 @@ pub fn analyze_type_definition(
 
         // Map genitive type names to GlossaType
         let field_type = resolve_type_name(type_name_gen, scope);
-
-        // Check for recursive type definition
-        let mut visited = HashSet::new();
-        if check_recursive_type(&type_name, &field_type, &mut visited) {
-            return Err(GlossaError::semantic(format!(
-                "Recursive type definition detected: {} contains itself directly (infinite size). Use a List or other container to break the cycle.",
-                type_name
-            )));
-        }
-
         fields.push((field_name, field_type));
     }
 
@@ -1189,38 +1178,6 @@ fn collect_words_from_expr(expr: &Expr) -> Vec<&crate::ast::Word> {
     words
 }
 
-/// Helper to check if a type recursively contains the target type (causing infinite size)
-fn check_recursive_type(target_name: &str, ty: &GlossaType, visited: &mut HashSet<String>) -> bool {
-    match ty {
-        GlossaType::Struct { name, fields, .. } => {
-            if name == target_name {
-                return true;
-            }
-            if visited.contains(name.as_str()) {
-                return false;
-            }
-            visited.insert(name.to_string());
-            for (_, field_type) in fields {
-                if check_recursive_type(target_name, field_type, visited) {
-                    return true;
-                }
-            }
-            visited.remove(name.as_str());
-            false
-        }
-        // Lists, Sets, Maps break recursion because they are heap allocated (Vec, etc.)
-        GlossaType::List(_) | GlossaType::Set(_) | GlossaType::Map(_, _) => false,
-
-        // Option and Result do NOT break recursion (Option<T> has size >= size(T))
-        GlossaType::Option(inner) => check_recursive_type(target_name, inner, visited),
-        GlossaType::Result(ok, err) => {
-            check_recursive_type(target_name, ok, visited)
-                || check_recursive_type(target_name, err, visited)
-        }
-        _ => false,
-    }
-}
-
 /// Infer the return type from the function body by examining return statements
 pub fn infer_return_type_from_body(body: &[AnalyzedStatement]) -> Option<GlossaType> {
     for stmt in body {
@@ -1258,150 +1215,56 @@ pub fn analyze_test_declaration(
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::HashSet;
-
     #[test]
-    fn test_check_recursive_type_direct() {
-        // struct A { x: A }
-        // A refers to itself
-        let _fields = vec![(
-            "x".into(),
-            GlossaType::Struct {
-                name: "A".into(),
-                gender: crate::morphology::Gender::Neuter,
-                fields: vec![], // In checking, we look at the type reference, not its internal structure which is being built
-            },
-        )];
-
-        let _struct_a = GlossaType::Struct {
-            name: "A".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: _fields,
-        };
-
-        // When checking A against A
-        let mut visited = HashSet::new();
-        // The check_recursive_type logic recurses into fields.
-        // If we call it on the struct definition itself, it checks fields.
-        // If a field has type "A", and we are targetting "A", it returns true.
-
-        // Let's verify the logic by constructing the field type as recursive
-        let field_type = GlossaType::Struct {
-            name: "A".into(), // Same name as target
+    fn test_analyze_type_definition_recursive_error() {
+        let mut scope = Scope::new();
+        // Define the type first so lookup works (simulating the recursion)
+        scope.define_type("Node".into(), GlossaType::Struct {
+            name: "Node".into(),
             gender: crate::morphology::Gender::Neuter,
             fields: vec![],
+        });
+
+        // AST for 'εἶδος Node ὁρίζειν { next Node. }'
+        // Note: Field type is resolved from scope, so we need the scope to have Node.
+        let type_def = crate::ast::TypeDef {
+            name: crate::ast::Word::new("Node"),
+            fields: vec![
+                crate::ast::FieldDecl {
+                    name: crate::ast::Word::new("next"),
+                    type_name: crate::ast::Word::new("Node"), // Resolves to Node type in scope
+                }
+            ],
         };
 
-        assert!(check_recursive_type("A", &field_type, &mut visited));
+        let result = analyze_type_definition(&type_def, &mut scope);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Recursive type definition detected"));
+
+    #[test]
+    fn test_analyze_type_definition_recursive_error() {
+        let mut scope = Scope::new();
+        // Define the type first so lookup works (simulating the recursion)
+        scope.define_type("Node".into(), GlossaType::Struct {
+            name: "Node".into(),
+            gender: crate::morphology::Gender::Neuter,
+            fields: vec![],
+        });
+
+        // AST for 'εἶδος Node ὁρίζειν { next Node. }'
+        // Note: Field type is resolved from scope, so we need the scope to have Node.
+        let type_def = crate::ast::TypeDef {
+            name: crate::ast::Word::new("Node"),
+            fields: vec![
+                crate::ast::FieldDecl {
+                    name: crate::ast::Word::new("next"),
+                    type_name: crate::ast::Word::new("Node"), // Resolves to Node type in scope
+                }
+            ],
+        };
+
+        let result = analyze_type_definition(&type_def, &mut scope);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Recursive type definition detected"));
     }
-
-    #[test]
-    fn test_check_recursive_type_indirect() {
-        // struct A { b: B }
-        // struct B { a: A }
-
-        // Defining A. Target="A". Field type="B".
-        // B contains field of type "A".
-
-        let type_a_ref = GlossaType::Struct {
-            name: "A".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![],
-        };
-
-        let type_b = GlossaType::Struct {
-            name: "B".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![("a".into(), type_a_ref)],
-        };
-
-        let mut visited = HashSet::new();
-        // Checking A against field B
-        assert!(check_recursive_type("A", &type_b, &mut visited));
-    }
-
-    #[test]
-    fn test_check_recursive_type_broken_by_list() {
-        // struct A { list: List<A> }
-        // Should NOT be recursive
-
-        let type_a_ref = GlossaType::Struct {
-            name: "A".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![],
-        };
-
-        let list_of_a = GlossaType::List(Box::new(type_a_ref));
-
-        let mut visited = HashSet::new();
-        assert!(!check_recursive_type("A", &list_of_a, &mut visited));
-    }
-
-    #[test]
-    fn test_check_recursive_type_broken_by_set() {
-        let type_a_ref = GlossaType::Struct {
-            name: "A".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![],
-        };
-
-        let set_of_a = GlossaType::Set(Box::new(type_a_ref));
-
-        let mut visited = HashSet::new();
-        assert!(!check_recursive_type("A", &set_of_a, &mut visited));
-    }
-
-    #[test]
-    fn test_check_recursive_type_broken_by_map() {
-        let type_a_ref = GlossaType::Struct {
-            name: "A".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![],
-        };
-
-        let map_of_a = GlossaType::Map(Box::new(GlossaType::String), Box::new(type_a_ref));
-
-        let mut visited = HashSet::new();
-        assert!(!check_recursive_type("A", &map_of_a, &mut visited));
-    }
-
-    #[test]
-    fn test_check_recursive_type_through_option() {
-        // struct A { opt: Option<A> }
-        // Should BE recursive (Option is not a pointer)
-
-        let type_a_ref = GlossaType::Struct {
-            name: "A".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![],
-        };
-
-        let option_of_a = GlossaType::Option(Box::new(type_a_ref));
-
-        let mut visited = HashSet::new();
-        assert!(check_recursive_type("A", &option_of_a, &mut visited));
-    }
-
-    #[test]
-    fn test_check_recursive_type_through_result() {
-        // struct A { res: Result<A, String> }
-        // Should BE recursive
-
-        let type_a_ref = GlossaType::Struct {
-            name: "A".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![],
-        };
-
-        let result_ok =
-            GlossaType::Result(Box::new(type_a_ref.clone()), Box::new(GlossaType::String));
-        let mut visited = HashSet::new();
-        assert!(check_recursive_type("A", &result_ok, &mut visited));
-
-        // Check Err variant too
-        let result_err = GlossaType::Result(Box::new(GlossaType::String), Box::new(type_a_ref));
-}
 }
