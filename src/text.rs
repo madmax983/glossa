@@ -4,6 +4,9 @@
 //! a normalized monotonic form for easier processing.
 
 use smol_str::SmolStr;
+use std::char::ToLowercase;
+use std::iter::Peekable;
+use std::str::CharIndices;
 use unicode_normalization::UnicodeNormalization;
 
 /// Normalize polytonic Greek to monotonic form
@@ -33,10 +36,9 @@ pub fn normalize_greek(text: &str) -> SmolStr {
     for c in text.chars() {
         if c.is_uppercase() {
             // Tier 2: Uppercase found.
-            // We must use full normalization with lowercasing.
-            // Using `str::to_lowercase` first ensures correct Sigma (Σ -> σ/ς) handling.
-            return text
-                .to_lowercase()
+            // We use a zero-allocation iterator to handle lowercasing on the fly.
+            // This avoids creating an intermediate `String` just to lowercase it.
+            return GreekLowercaseIterator::new(text)
                 .nfd()
                 .filter(|c| !is_greek_diacritic(*c))
                 .collect();
@@ -58,6 +60,84 @@ pub fn normalize_greek(text: &str) -> SmolStr {
     // Tier 1: Text is already clean (lowercase, basic Greek/ASCII).
     // Zero-copy for small strings (inline), or single allocation for large.
     SmolStr::new(text)
+}
+
+/// Iterator that lowercases Greek text on the fly, correctly handling Sigma (σ/ς).
+///
+/// This iterator avoids allocating an intermediate `String` when lowercasing.
+/// It implements the Sigma logic:
+/// - Final Sigma (ς) if preceded by a cased letter and NOT followed by a cased letter.
+/// - Medial Sigma (σ) otherwise.
+struct GreekLowercaseIterator<'a> {
+    text: &'a str,
+    iter: Peekable<CharIndices<'a>>,
+    last_cased: bool,
+    current_expansion: ToLowercase,
+}
+
+impl<'a> GreekLowercaseIterator<'a> {
+    fn new(text: &'a str) -> Self {
+        let mut slf = Self {
+            text,
+            iter: text.char_indices().peekable(),
+            last_cased: false,
+            // Initialize with dummy that we drain immediately
+            current_expansion: ' '.to_lowercase(),
+        };
+        slf.current_expansion.next();
+        slf
+    }
+}
+
+impl<'a> Iterator for GreekLowercaseIterator<'a> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Yield chars from current expansion (e.g. if one char became multiple)
+        if let Some(c) = self.current_expansion.next() {
+            return Some(c);
+        }
+
+        // Fetch next char from input
+        let (idx, c) = self.iter.next()?;
+        let mut char_to_process = c;
+
+        if c == 'Σ' {
+            if self.last_cased {
+                let mut is_followed_by_cased = false;
+                // Peek ahead in text skipping diacritics
+                // We use idx + c.len_utf8() to get the rest of the string
+                let remaining = &self.text[idx + c.len_utf8()..];
+                for next_c in remaining.chars() {
+                    if is_greek_diacritic(next_c) {
+                        continue;
+                    }
+                    // Check if next char is cased
+                    if next_c.is_lowercase() || next_c.is_uppercase() {
+                        is_followed_by_cased = true;
+                    }
+                    break;
+                }
+
+                if !is_followed_by_cased {
+                    char_to_process = 'ς';
+                } else {
+                    char_to_process = 'σ';
+                }
+            } else {
+                char_to_process = 'σ';
+            }
+        }
+
+        // Update last_cased for FUTURE iterations
+        // Skip updating state if current char is a diacritic (Case_Ignorable)
+        if !is_greek_diacritic(c) {
+            self.last_cased = c.is_lowercase() || c.is_uppercase();
+        }
+
+        self.current_expansion = char_to_process.to_lowercase();
+        self.current_expansion.next()
+    }
 }
 
 /// Check if a character is "safe" (likely already normalized)
@@ -189,5 +269,26 @@ mod tests {
     fn test_normalize_subjunctive_eimi() {
         // ᾖ (eta with iota subscript + circumflex) should normalize to η
         assert_eq!(normalize_greek("ᾖ"), "η");
+    }
+
+    #[test]
+    fn test_normalize_sigma_cases() {
+        // Test various Sigma cases using our zero-alloc iterator
+        assert_eq!(normalize_greek("Σ"), "σ");
+        assert_eq!(normalize_greek("Σ."), "σ.");
+        assert_eq!(normalize_greek("AΣ"), "aς");
+        assert_eq!(normalize_greek("AΣ."), "aς.");
+        assert_eq!(normalize_greek("AΣA"), "aσa");
+        assert_eq!(normalize_greek("1Σ"), "1σ");
+        assert_eq!(normalize_greek("Σ́"), "σ"); // Diacritic stripped
+    }
+
+    #[test]
+    fn test_normalize_diacritics_with_sigma() {
+        // AΣ́ -> aς (A + Sigma + Acute).
+        // Sigma preceded by A (cased).
+        // Followed by Acute (diacritic, ignored) then EOF.
+        // So Final Sigma.
+        assert_eq!(normalize_greek("AΣ́"), "aς");
     }
 }
