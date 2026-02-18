@@ -1566,7 +1566,7 @@ mod tests {
             GlossaType::Unknown,
             GlossaType::Function {
                 params: vec![],
-                return_type: Box::new(GlossaType::Unit),
+                returns: Box::new(GlossaType::Unit),
             },
         ];
 
@@ -1603,15 +1603,16 @@ mod tests {
             fields: vec![("d".into(), type_d.clone())],
         };
 
-        let type_a = GlossaType::Struct {
-            name: "A".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![("b".into(), type_b), ("c".into(), type_c)],
-        };
+            // Check A's fields (B and C) against A
+            // We don't construct A here because check_recursive_type("A", &A) returns true by definition
 
         let mut visited = HashSet::new();
-        // A is not recursive
-        assert!(!check_recursive_type("A", &type_a, &mut visited));
+            // Field b (type B) does not lead to A
+            assert!(!check_recursive_type("A", &type_b, &mut visited));
+
+            let mut visited = HashSet::new();
+            // Field c (type C) does not lead to A
+            assert!(!check_recursive_type("A", &type_c, &mut visited));
     }
 
     #[test]
@@ -1647,15 +1648,11 @@ mod tests {
         };
 
         // A contains B
-        let type_a = GlossaType::Struct {
-            name: "A".into(),
-            gender: crate::morphology::Gender::Neuter,
-            fields: vec![("b".into(), type_b)],
-        };
+            // Check field B against A
 
         let mut visited = HashSet::new();
         // Should return false (safe) and not hang
-        assert!(!check_recursive_type("A", &type_a, &mut visited));
+            assert!(!check_recursive_type("A", &type_b, &mut visited));
     }
 }
 }
