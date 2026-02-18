@@ -104,21 +104,16 @@ fn test_dangling_propagation() {
 }
 
 #[test]
-fn test_excess_operators_ignored() {
+#[should_panic(expected = "Insufficient literals")]
+fn test_excess_operators_error() {
     // Test case with more operators than operands can consume.
     // "10 2 sum difference" -> "10 2 + -"
-    // Should consume +, but ignore -.
-    // Expect: "10 + 2" (checked_add).
+    // Previously ignored, now strictly validated.
+    // Should fail because we have 2 literals and 2 operators (need 3 literals).
 
     let source = "10 2 ἄθροισμα διαφορά λέγε.";
 
-    let output = compile_to_rust(source);
-
-    assert!(output.contains("checked_add"), "Should contain checked_add");
-    assert!(
-        !output.contains("checked_sub"),
-        "Should NOT contain checked_sub"
-    );
+    compile_to_rust(source);
 }
 
 #[test]
