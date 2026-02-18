@@ -30,5 +30,9 @@ fn test_recursive_struct_rejection() {
     // Ideally check the error message too
     let err = result.unwrap_err();
     let msg = err.to_string();
-    assert!(msg.contains("Recursive type") || msg.contains("infinite size"), "Error message should mention recursion, got: {}", msg);
+    assert!(
+        msg.contains("Recursive type") || msg.contains("infinite size"),
+        "Error message should mention recursion, got: {}",
+        msg
+    );
 }
