@@ -113,7 +113,9 @@ impl Highlighter {
     fn highlight_expr(&mut self, expr: &Expr) -> Result<(), GlossaError> {
         match expr {
             Expr::StringLiteral(s) => {
-                write!(self.output, "«{}»", s.as_str().italic()).unwrap();
+                // Sanitize string to prevent terminal injection
+                let sanitized: String = s.chars().flat_map(|c| c.escape_debug()).collect();
+                write!(self.output, "«{}»", sanitized.as_str().italic()).unwrap();
             }
             Expr::NumberLiteral(n) => {
                 write!(self.output, "{}", n.to_string().italic()).unwrap();
@@ -826,5 +828,24 @@ mod tests {
         let source = "«unclosed string";
         let result = highlight(source);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_highlight_string_injection() {
+        // Inject RED color code into string literal
+        let source = "«\x1b[31mRED» λέγε.";
+        let result = highlight(source).unwrap();
+
+        // Should NOT contain raw escape code (vulnerable behavior)
+        assert!(
+            !result.contains("\x1b[31m"),
+            "Raw escape code should be sanitized"
+        );
+
+        // Should contain escaped form
+        assert!(
+            result.contains("\\u{1b}[31m"),
+            "Escaped control char should be present"
+        );
     }
 }
