@@ -71,7 +71,7 @@
 //!
 //! This same process works regardless of the input order.
 //!
-//! ```
+//! ```ignore
 //! use glossa::semantic::{Assembler, AssembledStatement};
 //! use glossa::morphology::{analyze, Case, PartOfSpeech};
 //!
@@ -104,18 +104,18 @@ use crate::text::normalize_greek;
 use unicode_normalization::UnicodeNormalization;
 
 // Constants for resource limits to prevent DoS
-pub const MAX_ADJECTIVES: usize = 1024;
-pub const MAX_LITERALS: usize = 1024;
-pub const MAX_NOMINATIVES: usize = 256;
-pub const MAX_GENITIVES: usize = 256;
-pub const MAX_ARRAYS: usize = 256;
-pub const MAX_INDEX_ACCESSES: usize = 256;
-pub const MAX_PROPERTY_ACCESSES: usize = 256;
-pub const MAX_NESTED_PHRASES: usize = 256;
-pub const MAX_PARTICIPLES: usize = 256;
-pub const MAX_UNWRAPS: usize = 256;
-pub const MAX_OPERATORS: usize = 256;
-pub const MAX_BLOCKS: usize = 256;
+pub(crate) const MAX_ADJECTIVES: usize = 1024;
+pub(crate) const MAX_LITERALS: usize = 1024;
+pub(crate) const MAX_NOMINATIVES: usize = 256;
+pub(crate) const MAX_GENITIVES: usize = 256;
+pub(crate) const MAX_ARRAYS: usize = 256;
+pub(crate) const MAX_INDEX_ACCESSES: usize = 256;
+pub(crate) const MAX_PROPERTY_ACCESSES: usize = 256;
+pub(crate) const MAX_NESTED_PHRASES: usize = 256;
+pub(crate) const MAX_PARTICIPLES: usize = 256;
+pub(crate) const MAX_UNWRAPS: usize = 256;
+pub(crate) const MAX_OPERATORS: usize = 256;
+pub(crate) const MAX_BLOCKS: usize = 256;
 
 /// The slot-based assembler
 ///
@@ -133,7 +133,7 @@ pub const MAX_BLOCKS: usize = 256;
 ///
 /// This allows tokens to arrive in any order (Subject-Verb-Object, Verb-Object-Subject, etc.)
 /// and still fill the correct semantic roles.
-pub struct Assembler {
+pub(crate) struct Assembler {
     state: AssembledStatement,
 }
 
@@ -142,7 +142,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     ///
     /// let asm = Assembler::new();
@@ -169,7 +169,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     /// use glossa::morphology::analyze;
     ///
@@ -183,6 +183,7 @@ impl Assembler {
     /// let obj = analyze("λόγον");
     /// asm.feed(&obj, "λόγον").unwrap();
     /// ```
+    #[allow(dead_code)]
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
         let normalized = normalize_greek(original);
         self.feed_with_normalized(analysis, original, &normalized)
@@ -234,7 +235,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
@@ -255,7 +256,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
@@ -276,7 +277,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
@@ -297,7 +298,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::{Expr, Word};
     ///
@@ -320,7 +321,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
@@ -344,7 +345,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::Expr;
     ///
@@ -366,7 +367,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::{Expr, Word};
     ///
@@ -393,7 +394,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::{Expr, Word};
     ///
@@ -419,7 +420,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     /// use glossa::morphology::{ParticipleAnalysis, Tense, Voice, Case, Gender, Number};
     ///
@@ -602,7 +603,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use glossa::semantic::Assembler;
     /// use glossa::morphology::analyze;
     ///
@@ -829,19 +830,6 @@ impl Assembler {
         }
 
         Ok(false)
-    }
-
-    /// Check if the assembler has any pending content
-    pub fn has_content(&self) -> bool {
-        self.state.subject.is_some()
-            || self.state.object.is_some()
-            || self.state.indirect.is_some()
-            || self.state.verb.is_some()
-            || !self.state.genitives.is_empty()
-            || !self.state.literals.is_empty()
-            || !self.state.arrays.is_empty()
-            || !self.state.index_accesses.is_empty()
-            || !self.state.property_accesses.is_empty()
     }
 
     /// Check subject-verb agreement
