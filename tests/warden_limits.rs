@@ -10,7 +10,7 @@ fn test_operator_limit() {
 
     // Create a chain of additions: 1 αθροισμα 1 αθροισμα ... (257 times)
     // 257 operators require 258 literals.
-    let limit = glossa::semantic::assembler::MAX_OPERATORS;
+    let limit = 256;
     let mut code = "1 ".to_string();
     for _ in 0..(limit + 1) {
         code.push_str("αθροισμα 1 ");

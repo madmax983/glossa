@@ -352,7 +352,7 @@ pub fn contains_verb_in_expr(expr: &Expr, verb: &str) -> bool {
 /// The `DisambiguationContext` is crucial. For example, if we just saw the article "τὸν" (accusative),
 /// the context expects an Accusative noun next. This helps resolve ambiguity for words that
 /// could be either Nominative or Accusative.
-pub fn feed_expr_to_assembler_with_context(
+pub(crate) fn feed_expr_to_assembler_with_context(
     asm: &mut Assembler,
     expr: &Expr,
     context: &mut DisambiguationContext,
@@ -523,7 +523,7 @@ fn feed_expr_recursive(
 }
 
 /// Convert a Literal to an AnalyzedExpr
-pub fn literal_to_analyzed_expr(lit: &Literal) -> AnalyzedExpr {
+pub(crate) fn literal_to_analyzed_expr(lit: &Literal) -> AnalyzedExpr {
     match lit {
         Literal::String(s) => AnalyzedExpr {
             expr: AnalyzedExprKind::StringLiteral(s.clone()),
@@ -541,7 +541,7 @@ pub fn literal_to_analyzed_expr(lit: &Literal) -> AnalyzedExpr {
 }
 
 /// Get the type of a Literal
-pub fn literal_to_type(lit: &Literal) -> GlossaType {
+pub(crate) fn literal_to_type(lit: &Literal) -> GlossaType {
     match lit {
         Literal::String(_) => GlossaType::String,
         Literal::Number(_) => GlossaType::Number,
@@ -550,7 +550,7 @@ pub fn literal_to_type(lit: &Literal) -> GlossaType {
 }
 
 /// Build a binary expression from two analyzed expressions and an operator
-pub fn build_binary_expr(
+pub(crate) fn build_binary_expr(
     left: AnalyzedExpr,
     op: crate::morphology::lexicon::BinaryOp,
     right: AnalyzedExpr,
@@ -569,7 +569,7 @@ pub fn build_binary_expr(
 /// Build expressions from literals and operators
 /// If there are operators, builds a binary expression tree
 /// Otherwise, returns the literals as-is
-pub fn build_expressions_from_literals_and_ops(
+pub(crate) fn build_expressions_from_literals_and_ops(
     literals: &[Literal],
     operators: &[crate::morphology::lexicon::BinaryOp],
 ) -> Result<Vec<AnalyzedExpr>, GlossaError> {
@@ -621,7 +621,7 @@ pub fn build_expressions_from_literals_and_ops(
 }
 
 /// Infer the result type of a binary operation
-pub fn infer_binop_type(op: &crate::morphology::lexicon::BinaryOp) -> GlossaType {
+pub(crate) fn infer_binop_type(op: &crate::morphology::lexicon::BinaryOp) -> GlossaType {
     use crate::morphology::lexicon::BinaryOp;
 
     match op {
