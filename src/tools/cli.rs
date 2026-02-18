@@ -65,4 +65,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Visualize the semantic structure of a .γλ file (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Mosaic {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

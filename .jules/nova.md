@@ -9,3 +9,8 @@
 **Concept:** A semantic syntax highlighter (`glossa highlight`) that colors code based on morphological analysis (Subject=Blue, Object=Red, etc.) instead of regexes.
 **Fate:** Merged
 **Lesson:** Visualizing the compiler's understanding reveals subtle analysis behaviors (like "λόγον" being potentially analyzed as an Adjective). It proves the morphological engine is robust enough for reverse-mapping.
+
+## 🌟 Mosaic (τὸ Μωσαϊκόν)
+**Concept:** A dashboard-style visualizer (`glossa mosaic`) that displays the exact `AssembledStatement` structure in a table, showing how words fill grammatical slots like Subject, Verb, Object, Extra Nominatives, and Participles.
+**Fate:** Merged
+**Lesson:** The visualizer exposed a core behavior: words ending in `-ον` (like `ἄνθρωπον`) are aggressively analyzed as Participles if not found in the lexicon, bypassing Noun analysis. To validate the visualizer, I had to use lexicon-native nouns like `γινόμενον` (product). This tool serves as a powerful debugger for the compiler itself.

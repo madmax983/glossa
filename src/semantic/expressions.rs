@@ -1143,4 +1143,19 @@ mod tests {
         let err = result.unwrap_err();
         assert!(err.to_string().contains("Recursion limit exceeded"));
     }
+
+    #[test]
+    fn test_dropped_operator_error() {
+        let literals = vec![Literal::Number(1), Literal::Number(2)];
+        let operators = vec![
+            crate::morphology::lexicon::BinaryOp::Add,
+            crate::morphology::lexicon::BinaryOp::Add,
+        ];
+        let result = build_expressions_from_literals_and_ops(&literals, &operators);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Insufficient literals"));
+    }
 }
