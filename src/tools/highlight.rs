@@ -837,9 +837,15 @@ mod tests {
         let result = highlight(source).unwrap();
 
         // Should NOT contain raw escape code (vulnerable behavior)
-        assert!(!result.contains("\x1b[31m"), "Raw escape code should be sanitized");
+        assert!(
+            !result.contains("\x1b[31m"),
+            "Raw escape code should be sanitized"
+        );
 
         // Should contain escaped form
-        assert!(result.contains("\\u{1b}[31m"), "Escaped control char should be present");
+        assert!(
+            result.contains("\\u{1b}[31m"),
+            "Escaped control char should be present"
+        );
     }
 }
