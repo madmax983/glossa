@@ -1158,9 +1158,7 @@ fn extract_unwrap(
     Ok(None)
 }
 
-fn extract_enum_from_subject(
-    asm_stmt: &AssembledStatement,
-) -> Option<(AnalyzedExpr, GlossaType)> {
+fn extract_enum_from_subject(asm_stmt: &AssembledStatement) -> Option<(AnalyzedExpr, GlossaType)> {
     if let Some(ref subj) = asm_stmt.subject {
         return detect_enum_variant(subj, &asm_stmt.literals);
     }
