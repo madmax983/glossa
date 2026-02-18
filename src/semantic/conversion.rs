@@ -111,6 +111,111 @@ pub fn classify_assembled_statement(
     classify_expression(asm_stmt)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::Expr;
+    use crate::morphology::{Case, Number};
+    use crate::semantic::{AnalyzedExprKind, Constituent, Literal, Scope};
+
+    // Helper to create a basic constituent
+    fn make_constituent(lemma: &str) -> Constituent {
+        Constituent {
+            lemma: lemma.into(),
+            original: lemma.into(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: None,
+            person: None,
+        }
+    }
+
+    #[test]
+    fn test_extract_enum_from_subject() {
+        let mut asm = AssembledStatement::default();
+        asm.subject = Some(make_constituent("καποιο")); // "Some"
+        asm.literals.push(Literal::Number(42));
+
+        let scope = Scope::new();
+        let result = extract_value(&asm, &scope).unwrap();
+
+        // Should be Some(Number(42))
+        if let AnalyzedExprKind::Some(inner) = result.0.expr {
+            if let AnalyzedExprKind::NumberLiteral(val) = inner.expr {
+                assert_eq!(val, 42);
+            } else {
+                panic!("Expected NumberLiteral inside Some");
+            }
+        } else {
+            panic!("Expected Some variant from subject");
+        }
+    }
+
+    #[test]
+    fn test_extract_enum_from_nominatives() {
+        let mut asm = AssembledStatement::default();
+        // Subject is just a placeholder
+        asm.subject = Some(make_constituent("x"));
+
+        // Nominative has the enum variant
+        asm.nominatives.push(make_constituent("ουδεν")); // "None"
+
+        let scope = Scope::new();
+        let result = extract_value(&asm, &scope).unwrap();
+
+        // Should be None
+        if !matches!(result.0.expr, AnalyzedExprKind::None) {
+            panic!("Expected None variant from nominatives");
+        }
+    }
+
+    #[test]
+    fn test_extract_array() {
+        let mut asm = AssembledStatement::default();
+        asm.arrays.push(vec![Expr::NumberLiteral(1)]);
+
+        let scope = Scope::new();
+        let result = extract_value(&asm, &scope).unwrap();
+
+        if let AnalyzedExprKind::ArrayLiteral(elements) = result.0.expr {
+            assert_eq!(elements.len(), 1);
+        } else {
+            panic!("Expected ArrayLiteral");
+        }
+    }
+
+    #[test]
+    fn test_extract_literal_fallback() {
+        let mut asm = AssembledStatement::default();
+        asm.literals.push(Literal::String("test".to_string()));
+
+        let scope = Scope::new();
+        let result = extract_value(&asm, &scope).unwrap();
+
+        if let AnalyzedExprKind::StringLiteral(s) = result.0.expr {
+            assert_eq!(s, "test");
+        } else {
+            panic!("Expected StringLiteral");
+        }
+    }
+
+    #[test]
+    fn test_extract_object_variable() {
+        let mut asm = AssembledStatement::default();
+        asm.object = Some(make_constituent("x"));
+
+        let scope = Scope::new();
+        // No definition needed for extraction, it just creates a variable reference
+        let result = extract_value(&asm, &scope).unwrap();
+
+        if let AnalyzedExprKind::Variable(name) = result.0.expr {
+            assert_eq!(name, "x");
+        } else {
+            panic!("Expected Variable from object");
+        }
+    }
+}
+
 // -------------------------------------------------------------------------------------------------
 // Helper functions for classify_assembled_statement
 // -------------------------------------------------------------------------------------------------
