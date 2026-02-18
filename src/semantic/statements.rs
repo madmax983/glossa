@@ -13,6 +13,7 @@ use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, lexicon};
 use smol_str::SmolStr;
+use std::collections::HashSet;
 
 // =================================================================================================
 // Control Flow Analysis
@@ -778,6 +779,16 @@ pub fn analyze_type_definition(
 
         // Map genitive type names to GlossaType
         let field_type = resolve_type_name(type_name_gen, scope);
+
+        // Check for recursive type definition
+        let mut visited = HashSet::new();
+        if check_recursive_type(&type_name, &field_type, &mut visited) {
+            return Err(GlossaError::semantic(format!(
+                "Recursive type definition detected: {} contains itself directly (infinite size). Use a List or other container to break the cycle.",
+                type_name
+            )));
+        }
+
         fields.push((field_name, field_type));
     }
 
@@ -1176,6 +1187,37 @@ fn collect_words_from_expr(expr: &Expr) -> Vec<&crate::ast::Word> {
     }
 
     words
+}
+
+/// Helper to check if a type recursively contains the target type (causing infinite size)
+fn check_recursive_type(target_name: &str, ty: &GlossaType, visited: &mut HashSet<String>) -> bool {
+    match ty {
+        GlossaType::Struct { name, fields, .. } => {
+            if name == target_name {
+                return true;
+            }
+            if visited.contains(name.as_str()) {
+                return false;
+            }
+            visited.insert(name.to_string());
+            for (_, field_type) in fields {
+                if check_recursive_type(target_name, field_type, visited) {
+                    return true;
+                }
+            }
+            visited.remove(name.as_str());
+            false
+        }
+        // Lists, Sets, Maps break recursion because they are heap allocated (Vec, etc.)
+        GlossaType::List(_) | GlossaType::Set(_) | GlossaType::Map(_, _) => false,
+
+        // Option and Result do NOT break recursion (Option<T> has size >= size(T))
+        GlossaType::Option(inner) => check_recursive_type(target_name, inner, visited),
+        GlossaType::Result(ok, err) => {
+            check_recursive_type(target_name, ok, visited) || check_recursive_type(target_name, err, visited)
+        }
+        _ => false,
+    }
 }
 
 /// Infer the return type from the function body by examining return statements
