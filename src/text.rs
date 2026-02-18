@@ -16,6 +16,12 @@ use unicode_normalization::UnicodeNormalization;
 ///
 /// And converts to lowercase for consistent comparison.
 ///
+/// # Important: The Koronis
+///
+/// The Greek Koronis (᾽, U+1FBD), used in crasis (e.g., κἀγώ), is technically a
+/// modifier letter, not a diacritic. `normalize_greek` **preserves** it.
+/// This means `κἀγώ` normalizes to `κα᾽γω` (roughly), not `καγω`.
+///
 /// # Examples
 ///
 /// ```
@@ -24,6 +30,16 @@ use unicode_normalization::UnicodeNormalization;
 /// assert_eq!(normalize_greek("ἄνθρωπος"), "ανθρωπος");
 /// assert_eq!(normalize_greek("Ἀθῆναι"), "αθηναι");
 /// assert_eq!(normalize_greek("χαῖρε"), "χαιρε");
+///
+/// // Koronis is preserved!
+/// // Note: This string explicitly uses U+1FBD (Koronis), not the combining smooth breathing.
+/// // Standard crasis like "κἀγώ" often uses combining marks which ARE stripped.
+/// // But if you use the standalone character, it stays.
+/// let text_with_koronis = "κ\u{1FBD}αγώ";
+/// let normalized = normalize_greek(text_with_koronis);
+///
+/// assert!(normalized.contains('\u{1FBD}'));
+/// assert_eq!(normalized, "κ\u{1FBD}αγω");
 /// ```
 pub fn normalize_greek(text: &str) -> SmolStr {
     let mut needs_decomposition = false;

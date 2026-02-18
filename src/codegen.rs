@@ -119,22 +119,26 @@ pub(crate) fn capitalize(s: &str) -> String {
 /// Sanitize a Greek name for use as a Rust identifier
 ///
 /// This function performs the critical step of converting Ancient Greek identifiers
-/// into valid ASCII Rust identifiers. It uses a combination of name mapping
-/// (for single letters like `α`) and transliteration (for words like `χρήστης`).
+/// into valid ASCII Rust identifiers. It exclusively uses hex-encoding for all
+/// non-ASCII characters to guarantee uniqueness and prevent collisions.
 ///
-/// # Edge Cases
+/// # The Strategy: Hex Encoding
 ///
-/// Characters that do not have a standard Latin mapping (like `ϟ` Koppa) are
-/// hex-encoded to ensure uniqueness and prevent collisions.
+/// Instead of trying to map Greek letters to Latin letters (which is lossy and
+/// prone to collisions like `χ` -> `ch` vs `c` + `h`), we simply hex-encode
+/// the Unicode scalar value of every non-ASCII character.
 ///
-/// * `ϟ` -> `_u3df_`
+/// * `α` (U+03B1) -> `_u3b1_`
+/// * `ξ` (U+03BE) -> `_u3be_`
+///
+/// This ensures that `x` (ASCII) and `ξ` (Greek Xi) are distinct in the generated Rust code.
 ///
 /// # Examples
 ///
 /// ```rust
 /// use glossa::codegen::sanitize_name;
 ///
-/// // Standard transliteration (prefixed with g_ for namespace safety)
+/// // Hex encoding (prefixed with g_ for namespace safety)
 /// assert_eq!(sanitize_name("ξ"), "g__u3be_");
 /// assert_eq!(sanitize_name("χρηστης"), "g__u3c7__u3c1__u3b7__u3c3__u3c4__u3b7__u3c2_");
 ///
@@ -149,22 +153,21 @@ pub fn sanitize_name(name: &str) -> String {
     format!("g_{}", transliterate(name))
 }
 
-/// Transliterate Greek to Latin characters
+/// Transliterate Greek to Latin characters via Hex Encoding
 ///
-/// This function maps Greek characters to their Latin equivalents or hex-encoded sequences.
-/// It ensures that the output contains only valid Rust identifier characters (alphanumeric + underscore).
+/// This function maps Greek characters (and any non-ASCII character) to a
+/// hex-encoded sequence `_uXXXX_`. It ensures that the output contains only
+/// valid Rust identifier characters (alphanumeric + underscore).
 ///
-/// **Note:** This function expects normalized (monotonic) Greek text. Accented characters
-/// will be hex-encoded if not normalized first.
+/// **Note:** This function expects normalized (monotonic) Greek text, but will
+/// work correctly (by hex-encoding) on any input.
 ///
 /// # Mapping Strategy
 ///
-/// * **Direct Mapping**: Single characters that map cleanly (e.g., `α` -> `a`, `β` -> `b`).
-/// * **Hex Encoding**: Characters that would create ambiguity or have no direct equivalent
-///   are hex-encoded as `_uXXXX_` where `XXXX` is the Unicode scalar value.
-///   * `θ` (theta) -> `_u3b8_` (to avoid collision with `th`)
-///   * `φ` (phi) -> `_u3c6_` (to avoid collision with `ph`)
-///   * `χ` (chi) -> `_u3c7_` (to avoid collision with `ch`)
+/// * **ASCII Alphanumeric + `_`**: Kept as-is.
+/// * **Everything else**: Hex-encoded as `_uXXXX_`.
+///
+/// This strategy is "lossless" for identifiers and guarantees no collisions.
 ///
 /// # Examples
 ///

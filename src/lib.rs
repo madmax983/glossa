@@ -47,23 +47,47 @@
 //!
 //! Here is a simple program that defines a user struct and greets them.
 //!
-//! ```
+//! ```text
 //! // Define a type (struct)
-//! // εἶδος Χρήστης ὁρίζειν {
-//! //    ὄνομα ὀνόματος.      // field: String
-//! //    ἡλικία ἀριθμοῦ.   // field: i64
-//! // }.
+//! εἶδος Χρήστης ὁρίζειν {
+//!    ὄνομα ὀνόματος.      // field: String
+//!    ἡλικία ἀριθμοῦ.   // field: i64
+//! }.
 //!
 //! // Create a new user instance
 //! // "user" (nominative) "new" (adjective) "User" (type) ...
-//! // χρήστης νέον Χρήστης
-//! //    «Σωκράτης»
-//! //    70
-//! // ἔστω.
+//! χρήστης νέον Χρήστης
+//!    «Σωκράτης»
+//!    70
+//! ἔστω.
 //!
 //! // Access property and print
 //! // "of the user" (genitive) "name" (nominative) "say" (verb)
-//! // χρήστου ὄνομα λέγε.
+//! χρήστου ὄνομα λέγε.
+//! ```
+//!
+//! # Invoking the Compiler Programmatically
+//!
+//! You can use the compiler as a library to parse and analyze code:
+//!
+//! ```rust
+//! use glossa::parser::parse;
+//! use glossa::semantic::analyze_program;
+//! use glossa::codegen::generate_rust;
+//!
+//! let source = "«χαῖρε κόσμε» λέγε.";
+//!
+//! // 1. Parse the source code
+//! let ast = parse(source).expect("Failed to parse");
+//!
+//! // 2. Perform semantic analysis (type checking, etc.)
+//! let program = analyze_program(&ast).expect("Failed to analyze");
+//!
+//! // 3. Generate Rust code
+//! let rust_code = generate_rust(&program);
+//!
+//! assert!(rust_code.contains("println"));
+//! assert!(rust_code.contains("χαῖρε κόσμε"));
 //! ```
 //!
 //! # Module Guide
