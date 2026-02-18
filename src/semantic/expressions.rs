@@ -1153,9 +1153,11 @@ mod tests {
         ];
         let result = build_expressions_from_literals_and_ops(&literals, &operators);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Insufficient literals"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Insufficient literals")
+        );
     }
 }

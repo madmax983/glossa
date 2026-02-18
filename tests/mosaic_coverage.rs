@@ -100,7 +100,8 @@ fn test_mosaic_assembly_error() {
     let source = "λέγει λέγει.";
     let mut buffer = Vec::new();
 
-    run_mosaic_on_source(source, &mut buffer).expect("Mosaic run should succeed even with assembly error");
+    run_mosaic_on_source(source, &mut buffer)
+        .expect("Mosaic run should succeed even with assembly error");
 
     let output = String::from_utf8(buffer).unwrap();
     // The error is printed to the output, not returned as Err
@@ -150,7 +151,10 @@ fn test_mosaic_complex_sentence() {
     assert!(output.contains("χρήστου"), "Missing χρήστου");
 
     // Indirect Object
-    assert!(output.contains("Indirect Object"), "Missing Indirect Object");
+    assert!(
+        output.contains("Indirect Object"),
+        "Missing Indirect Object"
+    );
     assert!(output.contains("χάρτῃ"), "Missing χάρτῃ");
 
     // Object
@@ -177,7 +181,10 @@ fn test_mosaic_extra_nominatives() {
     let output = String::from_utf8(buffer).unwrap();
 
     assert!(output.contains("Subject"), "Missing Subject");
-    assert!(output.contains("Nominative (Extra)"), "Missing Extra Nominative");
+    assert!(
+        output.contains("Nominative (Extra)"),
+        "Missing Extra Nominative"
+    );
 }
 
 #[test]
