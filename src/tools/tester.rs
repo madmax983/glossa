@@ -28,7 +28,11 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
     let mut results = Vec::new();
     for line in output.lines() {
         // Standard rustc test output line format: "test test_name ... status"
-        if line.starts_with("test ") && (line.ends_with(" ... ok") || line.ends_with(" ... FAILED") || line.ends_with(" ... ignored")) {
+        if line.starts_with("test ")
+            && (line.ends_with(" ... ok")
+                || line.ends_with(" ... FAILED")
+                || line.ends_with(" ... ignored"))
+        {
             let parts: Vec<&str> = line.split_whitespace().collect();
             // Expected parts: ["test", "test_name", "...", "status"]
             // Sometimes there might be extra info, but name is usually at index 1
@@ -145,16 +149,19 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     if !results.is_empty() {
         let mut table = Table::new();
-        table.load_preset(presets::UTF8_FULL)
-            .set_header(vec![
-                Cell::new("Test Case").add_attribute(Attribute::Bold).fg(Color::Cyan),
-                Cell::new("Status").add_attribute(Attribute::Bold),
-            ]);
+        table.load_preset(presets::UTF8_FULL).set_header(vec![
+            Cell::new("Test Case")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("Status").add_attribute(Attribute::Bold),
+        ]);
 
         for result in &results {
             let status_cell = match result.status {
                 TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
-                TestStatus::Failed => Cell::new("FAILED").fg(Color::Red).add_attribute(Attribute::Bold),
+                TestStatus::Failed => Cell::new("FAILED")
+                    .fg(Color::Red)
+                    .add_attribute(Attribute::Bold),
                 TestStatus::Ignored => Cell::new("IGNORED").fg(Color::Yellow),
             };
 
@@ -162,14 +169,11 @@ pub fn run_tests(input: &Path) -> Result<()> {
             // e.g., "tests::test_name" -> "test_name"
             let display_name = result.name.split("::").last().unwrap_or(&result.name);
 
-            table.add_row(vec![
-                Cell::new(display_name),
-                status_cell,
-            ]);
+            table.add_row(vec![Cell::new(display_name), status_cell]);
         }
         println!("{table}");
     } else {
-         println!("{}", "   No tests found.".yellow());
+        println!("{}", "   No tests found.".yellow());
     }
 
     // If there were failures, print the raw output below for debugging details
@@ -179,7 +183,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
         // Filter stdout to show only failures if possible, but raw is safer for now
         println!("{}", stdout);
         if !test_output.stderr.is_empty() {
-             println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
         }
     } else if results.is_empty() {
         // Fallback for empty results but success (e.g. no tests run)
