@@ -48,6 +48,43 @@ fn test_mosaic_type_definition() {
 }
 
 #[test]
+fn test_mosaic_trait_definition() {
+    let source = "χαρακτήρ Εκτυπώσιμος ὁρίζειν { }.";
+    let mut buffer = Vec::new();
+
+    run_mosaic_on_source(source, &mut buffer).expect("Mosaic run failed");
+    let output = String::from_utf8(buffer).unwrap();
+
+    assert!(output.contains("Trait Definition"));
+    assert!(output.contains("Εκτυπώσιμος"));
+}
+
+#[test]
+fn test_mosaic_trait_impl() {
+    let source = "εἶδος Χρήστης τῷ Εκτυπώσιμος ἐμπίπτειν { }.";
+    let mut buffer = Vec::new();
+
+    run_mosaic_on_source(source, &mut buffer).expect("Mosaic run failed");
+    let output = String::from_utf8(buffer).unwrap();
+
+    assert!(output.contains("Trait Implementation"));
+    assert!(output.contains("Χρήστης"));
+    assert!(output.contains("Εκτυπώσιμος"));
+}
+
+#[test]
+fn test_mosaic_test_declaration() {
+    let source = "δοκιμή «test name». τέλος.";
+    let mut buffer = Vec::new();
+
+    run_mosaic_on_source(source, &mut buffer).expect("Mosaic run failed");
+    let output = String::from_utf8(buffer).unwrap();
+
+    assert!(output.contains("Test Declaration"));
+    assert!(output.contains("test name"));
+}
+
+#[test]
 fn test_mosaic_error_handling() {
     // Invalid syntax should bubble up the parser error
     let source = "["; // Unclosed array
@@ -68,4 +105,90 @@ fn test_mosaic_assembly_error() {
     let output = String::from_utf8(buffer).unwrap();
     // The error is printed to the output, not returned as Err
     assert!(output.contains("Error"));
+}
+
+#[test]
+fn test_mosaic_complex_sentence() {
+    // Construct a sentence with various components:
+    // Subject: ὁ ἄνθρωπος (nominative)
+    // Adjective: καλός (nominative, modifier) -> Need to ensure "καλός" is in lexicon or recognized
+    // Genitive: τοῦ θεοῦ (genitive, possessor) -> "θεός" needs to be in lexicon? Probably not.
+    // Indirect Object: τῷ χάρτῃ (dative) -> "χάρτης" is in lexicon.
+    // Object: τὸν λόγον (accusative) -> "λόγος" is in lexicon.
+    // Verb: δίδωσι (verb) -> "δίδωμι" is in lexicon.
+    // Literal: 1 (numeral)
+
+    // Let's use known words from lexicon.rs
+    // Subject: "χρήστης" (User - noun) -> 3rd Singular
+    // Adjective: "νέος" (New - adj)
+    // Genitive: "χρήστου" (Of User - genitive noun)
+    // Indirect: "τῷ χάρτῃ" (To the map - dative noun)
+    // Object: "τὸν λόγον" (The word - accusative noun)
+    // Verb: "δίδωσι" (Gives - verb) -> 3rd Singular? Wait, δίδωσι is 3rd Sing.
+    // Error says: Subject (3rd Sing) but Verb (3rd Plural).
+    // Let's check lexicon for "δίδωσι".
+    // It's not in lexicon. "δίδωμι" is 1st Sing.
+    // Let's use "δίδωμι" (1st Sing) and subject "ἐγώ" (1st Sing) to be safe.
+
+    let source = "ἐγὼ νέος χρήστου τῷ χάρτῃ τὸν λόγον δίδωμι 1.";
+    let mut buffer = Vec::new();
+
+    run_mosaic_on_source(source, &mut buffer).expect("Mosaic run failed");
+    let output = String::from_utf8(buffer).unwrap();
+
+    // Subject
+    println!("COMPLEX OUTPUT:\n{}", output);
+    assert!(output.contains("Subject"), "Missing Subject");
+    assert!(output.contains("ἐγὼ"), "Missing ἐγὼ (polytonic check)");
+
+    // Adjective
+    assert!(output.contains("Adjective"), "Missing Adjective");
+    assert!(output.contains("νέος"), "Missing νέος");
+
+    // Genitive
+    assert!(output.contains("Genitive"), "Missing Genitive");
+    assert!(output.contains("χρήστου"), "Missing χρήστου");
+
+    // Indirect Object
+    assert!(output.contains("Indirect Object"), "Missing Indirect Object");
+    assert!(output.contains("χάρτῃ"), "Missing χάρτῃ");
+
+    // Object
+    assert!(output.contains("Object"), "Missing Object");
+    assert!(output.contains("λόγον"), "Missing λόγον");
+
+    // Verb
+    assert!(output.contains("Verb"), "Missing Verb");
+    assert!(output.contains("δίδωμι"), "Missing δίδωμι");
+
+    // Literal
+    assert!(output.contains("Literal"), "Missing Literal");
+    assert!(output.contains("1"), "Missing 1");
+}
+
+#[test]
+fn test_mosaic_extra_nominatives() {
+    // "User" (nom) "User" (nom) -> The second one becomes an extra nominative
+    // This happens in function calls: Type function_name ...
+    let source = "χρήστης χρήστης λέγει.";
+    let mut buffer = Vec::new();
+
+    run_mosaic_on_source(source, &mut buffer).expect("Mosaic run failed");
+    let output = String::from_utf8(buffer).unwrap();
+
+    assert!(output.contains("Subject"), "Missing Subject");
+    assert!(output.contains("Nominative (Extra)"), "Missing Extra Nominative");
+}
+
+#[test]
+fn test_mosaic_operators() {
+    // "1 + 2"
+    let source = "1 2 αθροισμα.";
+    let mut buffer = Vec::new();
+
+    run_mosaic_on_source(source, &mut buffer).expect("Mosaic run failed");
+    let output = String::from_utf8(buffer).unwrap();
+
+    assert!(output.contains("Operator"), "Missing Operator");
+    assert!(output.contains("Add"), "Missing Add operator");
 }
