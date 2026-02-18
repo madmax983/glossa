@@ -1,17 +1,9 @@
-## 2026-01-28 - The Slot-Based Assembler
-**Confusion:** Users might assume GLOSSA parses strictly left-to-right like C or Rust.
-**Clarification:** The `src/semantic/assembler.rs` module implements a "Slot-Based Assembler" that mimics Ancient Greek grammar. Words are routed to grammatical slots (Subject, Object, Verb, etc.) based on their case endings, not their position. This allows for word-order independence (SOV, VSO, OVS support).
-# Bard's Journal 🎻
+# Bard's Journal
 
-## 2026-01-28 - The Assembler's Burden
+## 2024-05-24 - The Hex Encoding Reality
+**Confusion:** The documentation for `sanitize_name` in `src/codegen.rs` claimed that single Greek letters like `α` map directly to ASCII `a`. However, the implementation hex-encodes *all* Greek characters (e.g., `α` -> `_u3b1_`) to prevent collisions with existing ASCII identifiers.
+**Clarification:** Updated the documentation to reflect the true behavior: all non-ASCII characters are hex-encoded. This ensures that `x` (ASCII) and `ξ` (Greek Xi) never collide in the generated Rust code.
 
-**Confusion:** The `Assembler` struct in `src/semantic/assembler.rs` is a "God Object" that manages parsing state for every possible sentence type (simple statements, bindings, control flow, loops, etc.). It has a huge number of `pending_*` fields (16 at last count), making it difficult to reason about which fields are valid in which context.
-
-**Clarification:** I added extensive documentation to `src/semantic/assembler.rs` to explain the "Slot-Based Assembly" concept. The key insight is that the `Assembler` acts as a bucket for grammatical cases.
-- **Nominative** -> Subject slot
-- **Accusative** -> Object slot
-- **Dative** -> Indirect object slot
-
-However, this design means the `Assembler` must handle *all* possible combinations, leading to its complexity. Future refactoring should consider splitting the `Assembler` into smaller, specialized assemblers (e.g., `PredicateAssembler`, `LoopAssembler`) or using a more formal state machine transition system.
-
-For now, the documentation clarifies *how* it works, even if the implementation is heavy.
+## 2024-05-24 - The Koronis subtlety
+**Confusion:** The Greek Koronis (`᾽`, U+1FBD) looks like a breathing mark but behaves like a letter in some contexts. `normalize_greek` treats it as a modifier letter and preserves it, resulting in identifiers like `_u1fbd_` in generated code.
+**Clarification:** Documented this behavior in `src/text.rs` and added a doctest to explicitly demonstrate it. Users should be aware that `᾽` is significant in identifiers.
