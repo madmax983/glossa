@@ -58,4 +58,11 @@ pub enum Commands {
         /// The Greek word to analyze
         word: String,
     },
+
+    /// Run tests defined in a .γλ file (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Test {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

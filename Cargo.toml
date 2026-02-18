@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2024"
 description = "ΓΛΩΣΣΑ - A compiler where Ancient Greek morphology encodes programming semantics"
 
+[features]
+nova = []
+
 [dependencies]
 crossterm = "0.29"
 dirs-next = "2"
@@ -20,9 +23,9 @@ rustc-hash = "2"
 comfy-table = "7.2.2"
 sha2 = "0.10"
 hex = "0.4"
+tempfile = "3.24.0"
 
 [dev-dependencies]
 insta = "1"
 pretty_assertions = "1"
 proptest = "1.9.0"
-tempfile = "3.24.0"

@@ -43,6 +43,11 @@ fn main() -> Result<()> {
             lookup_word(&word)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Test { input }) => {
+            glossa::tools::tester::run_tests(&input)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
