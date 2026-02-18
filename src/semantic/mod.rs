@@ -32,7 +32,6 @@
 //! without changing the semantic meaning.
 
 pub mod assembler;
-pub(crate) mod assembly_model;
 pub(crate) mod conversion;
 pub mod expressions;
 pub(crate) mod model;
@@ -42,9 +41,9 @@ pub(crate) mod statements;
 mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
-pub use assembler::{Assembler, AssemblyError};
-pub use assembly_model::{
-    AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
+pub use assembler::{
+    AssembledStatement, Assembler, AssemblyError, Constituent, Literal, ParticipleConstituent,
+    VerbConstituent,
 };
 pub use model::*;
 pub use resolver::*;

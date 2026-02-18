@@ -72,3 +72,8 @@
 **Bloat:** `src/experimental/bard.rs` was a fully functional tool hidden in an "experimental" module.
 **Cut:** Promoted to `src/tools/narrator.rs` and deleted `src/experimental`.
 **Saved:** 1 folder, 2 files, clearer project structure.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly_model.rs` contained DTOs tightly coupled to `src/semantic/assembler.rs`.
+**Cut:** Merged `assembly_model.rs` into `assembler.rs` and deleted the file.
+**Saved:** 1 file, improved cohesion, flattened module structure.
