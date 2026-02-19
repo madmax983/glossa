@@ -1265,9 +1265,7 @@ fn extract_enum_from_object(
     _scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some(ref obj) = asm_stmt.object {
-        if let Some(result) = detect_enum_variant(obj, &asm_stmt.literals) {
-            return Ok(Some(result));
-        }
+        return Ok(detect_enum_variant(obj, &asm_stmt.literals));
     }
     Ok(None)
 }
