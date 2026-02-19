@@ -1,6 +1,8 @@
 #![cfg(feature = "nova")]
 
 use glossa::tools::mosaic::run_mosaic_on_source;
+use std::io::Write;
+use tempfile::NamedTempFile;
 
 #[test]
 fn test_mosaic_output_structure() {
@@ -219,4 +221,19 @@ fn test_mosaic_boolean_literal() {
 
     assert!(output.contains("Literal (Boolean)"));
     assert!(output.contains("true"));
+}
+
+#[test]
+fn test_mosaic_run_valid_file() {
+    // Test the run_mosaic wrapper function with a valid file
+    // This covers the success path of fs::read_to_string and run_mosaic_on_source
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    writeln!(file, "«test» λέγε.").expect("Failed to write to temp file");
+
+    let path = file.path().to_path_buf();
+    let result = glossa::tools::mosaic::run_mosaic(&path);
+
+    // Note: this prints to stdout, which we can't capture easily here without redirection,
+    // but the goal is to hit the lines of code.
+    assert!(result.is_ok());
 }
