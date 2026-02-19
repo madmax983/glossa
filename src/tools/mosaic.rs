@@ -14,26 +14,18 @@
 //! The output is a table where each row represents a statement, and columns represent
 //! the grammatical slots.
 
-#[cfg(feature = "nova")]
 use crate::parser::parse;
-#[cfg(feature = "nova")]
 use crate::semantic::{AssembledStatement, Constituent, assemble_statement};
-#[cfg(feature = "nova")]
 use comfy_table::presets::UTF8_FULL;
-#[cfg(feature = "nova")]
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
-#[cfg(feature = "nova")]
 use miette::{IntoDiagnostic, Result};
-#[cfg(feature = "nova")]
 use std::path::PathBuf;
 
-#[cfg(feature = "nova")]
 pub fn run_mosaic(input_path: &PathBuf) -> Result<()> {
     let source = std::fs::read_to_string(input_path).into_diagnostic()?;
     run_mosaic_inner(&source, &mut std::io::stdout())
 }
 
-#[cfg(feature = "nova")]
 pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Result<()> {
     let program = parse(source)?;
 
@@ -43,11 +35,21 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
             Cell::new("Line").add_attribute(Attribute::Bold),
-            Cell::new("Subject (Nom)").add_attribute(Attribute::Bold).fg(Color::Cyan),
-            Cell::new("Verb (Action)").add_attribute(Attribute::Bold).fg(Color::Yellow),
-            Cell::new("Object (Acc)").add_attribute(Attribute::Bold).fg(Color::Green),
-            Cell::new("Indirect (Dat)").add_attribute(Attribute::Bold).fg(Color::Magenta),
-            Cell::new("Other").add_attribute(Attribute::Bold).fg(Color::DarkGrey),
+            Cell::new("Subject (Nom)")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("Verb (Action)")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Yellow),
+            Cell::new("Object (Acc)")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Green),
+            Cell::new("Indirect (Dat)")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Magenta),
+            Cell::new("Other")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkGrey),
         ]);
 
     for (i, stmt) in program.statements.iter().enumerate() {
@@ -70,22 +72,24 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                 }
             }
         } else {
-             // For non-regular statements, just print the type
-             let type_name = match stmt {
-                 crate::ast::Statement::TypeDefinition(_) => "Type Definition",
-                 crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
-                 crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
-                 crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
-                 _ => "Unknown",
-             };
-             table.add_row(vec![
-                 Cell::new(format!("{}", i + 1)),
-                 Cell::new(type_name).fg(Color::Blue).add_attribute(Attribute::Italic),
-                 Cell::new(""),
-                 Cell::new(""),
-                 Cell::new(""),
-                 Cell::new(""),
-             ]);
+            // For non-regular statements, just print the type
+            let type_name = match stmt {
+                crate::ast::Statement::TypeDefinition(_) => "Type Definition",
+                crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
+                crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
+                crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
+                _ => "Unknown",
+            };
+            table.add_row(vec![
+                Cell::new(format!("{}", i + 1)),
+                Cell::new(type_name)
+                    .fg(Color::Blue)
+                    .add_attribute(Attribute::Italic),
+                Cell::new(""),
+                Cell::new(""),
+                Cell::new(""),
+                Cell::new(""),
+            ]);
         }
     }
 
@@ -93,12 +97,20 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
     Ok(())
 }
 
-#[cfg(feature = "nova")]
 fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
-    let subject = asm.subject.as_ref().map(fmt_constituent).unwrap_or_default();
+    let subject = asm
+        .subject
+        .as_ref()
+        .map(fmt_constituent)
+        .unwrap_or_default();
 
     // Combine nominatives if subject is present or if there are multiple
-    let extra_noms = asm.nominatives.iter().map(fmt_constituent).collect::<Vec<_>>().join(", ");
+    let extra_noms = asm
+        .nominatives
+        .iter()
+        .map(fmt_constituent)
+        .collect::<Vec<_>>()
+        .join(", ");
     let full_subject = if !extra_noms.is_empty() {
         if !subject.is_empty() {
             format!("{} (+ {})", subject, extra_noms)
@@ -109,9 +121,17 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
         subject
     };
 
-    let verb = asm.verb.as_ref().map(|v| v.original.to_string()).unwrap_or_default();
+    let verb = asm
+        .verb
+        .as_ref()
+        .map(|v| v.original.to_string())
+        .unwrap_or_default();
     let object = asm.object.as_ref().map(fmt_constituent).unwrap_or_default();
-    let indirect = asm.indirect.as_ref().map(fmt_constituent).unwrap_or_default();
+    let indirect = asm
+        .indirect
+        .as_ref()
+        .map(fmt_constituent)
+        .unwrap_or_default();
 
     // Collect other interesting things
     let mut other = Vec::new();
@@ -122,15 +142,30 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
         other.push(format!("Ops: {:?}", asm.operators));
     }
     if !asm.genitives.is_empty() {
-        let gens = asm.genitives.iter().map(fmt_constituent).collect::<Vec<_>>().join(", ");
+        let gens = asm
+            .genitives
+            .iter()
+            .map(fmt_constituent)
+            .collect::<Vec<_>>()
+            .join(", ");
         other.push(format!("Gen: [{}]", gens));
     }
     if !asm.adjectives.is_empty() {
-        let adjs = asm.adjectives.iter().map(fmt_constituent).collect::<Vec<_>>().join(", ");
+        let adjs = asm
+            .adjectives
+            .iter()
+            .map(fmt_constituent)
+            .collect::<Vec<_>>()
+            .join(", ");
         other.push(format!("Adj: [{}]", adjs));
     }
     if !asm.participles.is_empty() {
-        let parts = asm.participles.iter().map(|p| p.original.to_string()).collect::<Vec<_>>().join(", ");
+        let parts = asm
+            .participles
+            .iter()
+            .map(|p| p.original.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
         other.push(format!("Participles: [{}]", parts));
     }
     if asm.is_query {
@@ -147,13 +182,11 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
     ]);
 }
 
-#[cfg(feature = "nova")]
 fn fmt_constituent(c: &Constituent) -> String {
     c.original.to_string()
 }
 
 #[cfg(test)]
-#[cfg(feature = "nova")]
 mod tests {
     use super::*;
 
@@ -165,8 +198,8 @@ mod tests {
         let output = String::from_utf8(buffer).unwrap();
 
         assert!(output.contains("ἄνθρωπος")); // Subject
-        assert!(output.contains("λόγον"));    // Object
-        assert!(output.contains("λέγει"));    // Verb
+        assert!(output.contains("λόγον")); // Object
+        assert!(output.contains("λέγει")); // Verb
     }
 
     #[test]
