@@ -103,6 +103,17 @@ use crate::text::normalize_greek;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
+const MAX_RECURSION_DEPTH: usize = 200;
+
+fn check_recursion_depth(depth: usize) {
+    if depth > MAX_RECURSION_DEPTH {
+        // We panic here because code generation is a fallible process that shouldn't happen
+        // if semantic analysis did its job correctly. However, to be robust against
+        // API misuse (manual AnalyzedProgram construction), we enforce a hard limit.
+        panic!("Recursion limit exceeded in code generation");
+    }
+}
+
 // ==================================================================================
 // UTILS
 // ==================================================================================
@@ -281,14 +292,14 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
 
     for stmt in &program.statements {
         match stmt {
-            AnalyzedStatement::TraitDefinition { .. } => trait_defs.push(generate_statement(stmt)),
-            AnalyzedStatement::TypeDefinition { .. } => struct_defs.push(generate_statement(stmt)),
+            AnalyzedStatement::TraitDefinition { .. } => trait_defs.push(generate_statement(stmt, 0)),
+            AnalyzedStatement::TypeDefinition { .. } => struct_defs.push(generate_statement(stmt, 0)),
             AnalyzedStatement::TraitImplementation { .. } => {
-                trait_impls.push(generate_statement(stmt))
+                trait_impls.push(generate_statement(stmt, 0))
             }
-            AnalyzedStatement::FunctionDef { .. } => fn_defs.push(generate_statement(stmt)),
-            AnalyzedStatement::TestDeclaration { .. } => test_defs.push(generate_statement(stmt)),
-            _ => main_stmts.push(generate_statement(stmt)),
+            AnalyzedStatement::FunctionDef { .. } => fn_defs.push(generate_statement(stmt, 0)),
+            AnalyzedStatement::TestDeclaration { .. } => test_defs.push(generate_statement(stmt, 0)),
+            _ => main_stmts.push(generate_statement(stmt, 0)),
         }
     }
 
@@ -437,10 +448,12 @@ pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
 
 /// Generate Rust code for a single analyzed statement
 pub fn generate_statement_code(stmt: &AnalyzedStatement) -> String {
-    generate_statement(stmt).to_string()
+    generate_statement(stmt, 0).to_string()
 }
 
-fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
+fn generate_statement(stmt: &AnalyzedStatement, depth: usize) -> TokenStream {
+    check_recursion_depth(depth);
+
     match stmt {
         AnalyzedStatement::Binding {
             name,
@@ -449,22 +462,24 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
         } => {
             // Check if it's an array to force mutable
             let is_array = matches!(value.expr, AnalyzedExprKind::ArrayLiteral(_));
-            generate_let(name, value, *mutable || is_array)
+            generate_let(name, value, *mutable || is_array, depth + 1)
         }
 
         AnalyzedStatement::Assignment { name, value } => {
             let name_ident = format_ident!("{}", sanitize_name(name));
-            let value_tokens = generate_expr(value);
+            let value_tokens = generate_expr(value, depth + 1);
             quote! { #name_ident = #value_tokens; }
         }
 
-        AnalyzedStatement::Print(exprs) | AnalyzedStatement::Query(exprs) => generate_print(exprs),
+        AnalyzedStatement::Print(exprs) | AnalyzedStatement::Query(exprs) => {
+            generate_print(exprs, depth + 1)
+        }
 
         AnalyzedStatement::Expression(exprs) => {
             let expr_tokens: Vec<TokenStream> = exprs
                 .iter()
                 .map(|e| {
-                    let tokens = generate_expr(e);
+                    let tokens = generate_expr(e, depth + 1);
                     quote! { #tokens; }
                 })
                 .collect();
@@ -475,17 +490,17 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             condition,
             then_body,
             else_body,
-        } => generate_if(condition, then_body, else_body),
+        } => generate_if(condition, then_body, else_body, depth + 1),
 
-        AnalyzedStatement::While { condition, body } => generate_while(condition, body),
+        AnalyzedStatement::While { condition, body } => generate_while(condition, body, depth + 1),
 
         AnalyzedStatement::For {
             variable,
             iterator,
             body,
-        } => generate_for(variable, iterator, body),
+        } => generate_for(variable, iterator, body, depth + 1),
 
-        AnalyzedStatement::Match { scrutinee, arms } => generate_match(scrutinee, arms),
+        AnalyzedStatement::Match { scrutinee, arms } => generate_match(scrutinee, arms, depth + 1),
 
         AnalyzedStatement::Break => quote! { break; },
 
@@ -493,7 +508,7 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
 
         AnalyzedStatement::Return { value } => match value {
             Some(e) => {
-                let value_tokens = generate_expr(e);
+                let value_tokens = generate_expr(e, depth + 1);
                 quote! { return #value_tokens; }
             }
             None => quote! { return; },
@@ -504,25 +519,32 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             params,
             body,
             return_type,
-        } => generate_fn_def(name, params, body, return_type),
+        } => generate_fn_def(name, params, body, return_type, depth + 1),
 
         AnalyzedStatement::TypeDefinition { name, fields } => generate_struct_def(name, fields),
 
-        AnalyzedStatement::TraitDefinition { name, methods } => generate_trait_def(name, methods),
+        AnalyzedStatement::TraitDefinition { name, methods } => {
+            generate_trait_def(name, methods, depth + 1)
+        }
 
         AnalyzedStatement::TraitImplementation {
             trait_name,
             type_name,
             methods,
-        } => generate_trait_impl(trait_name, type_name, methods),
+        } => generate_trait_impl(trait_name, type_name, methods, depth + 1),
 
-        AnalyzedStatement::TestDeclaration { name, body } => generate_test(name, body),
+        AnalyzedStatement::TestDeclaration { name, body } => generate_test(name, body, depth + 1),
     }
 }
 
-fn generate_let(name: &str, value: &AnalyzedExpr, mutable: bool) -> TokenStream {
+fn generate_let(
+    name: &str,
+    value: &AnalyzedExpr,
+    mutable: bool,
+    depth: usize,
+) -> TokenStream {
     let name_ident = format_ident!("{}", sanitize_name(name));
-    let value_tokens = generate_expr(value);
+    let value_tokens = generate_expr(value, depth);
 
     if mutable {
         quote! { let mut #name_ident = #value_tokens; }
@@ -531,16 +553,16 @@ fn generate_let(name: &str, value: &AnalyzedExpr, mutable: bool) -> TokenStream 
     }
 }
 
-fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
+fn generate_print(args: &[AnalyzedExpr], depth: usize) -> TokenStream {
     if args.is_empty() {
         quote! { println!(); }
     } else if args.len() == 1 {
-        let arg = generate_expr(&args[0]);
+        let arg = generate_expr(&args[0], depth);
         // Use Display formatting
         quote! { println!("{}", #arg); }
     } else {
         // Multiple args - join with space
-        let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+        let arg_tokens: Vec<TokenStream> = args.iter().map(|e| generate_expr(e, depth)).collect();
         quote! { println!("{}", vec![#(format!("{}", #arg_tokens)),*].join(" ")); }
     }
 }
@@ -549,13 +571,20 @@ fn generate_if(
     condition: &AnalyzedExpr,
     then_body: &[AnalyzedStatement],
     else_body: &Option<Vec<AnalyzedStatement>>,
+    depth: usize,
 ) -> TokenStream {
-    let cond = generate_expr(condition);
-    let then_stmts: Vec<TokenStream> = then_body.iter().map(generate_statement).collect();
+    let cond = generate_expr(condition, depth);
+    let then_stmts: Vec<TokenStream> = then_body
+        .iter()
+        .map(|s| generate_statement(s, depth))
+        .collect();
 
     match else_body {
         Some(else_stmts) => {
-            let else_tokens: Vec<TokenStream> = else_stmts.iter().map(generate_statement).collect();
+            let else_tokens: Vec<TokenStream> = else_stmts
+                .iter()
+                .map(|s| generate_statement(s, depth))
+                .collect();
             quote! {
                 if #cond {
                     #(#then_stmts)*
@@ -574,9 +603,16 @@ fn generate_if(
     }
 }
 
-fn generate_while(condition: &AnalyzedExpr, body: &[AnalyzedStatement]) -> TokenStream {
-    let cond = generate_expr(condition);
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+fn generate_while(
+    condition: &AnalyzedExpr,
+    body: &[AnalyzedStatement],
+    depth: usize,
+) -> TokenStream {
+    let cond = generate_expr(condition, depth);
+    let body_stmts: Vec<TokenStream> = body
+        .iter()
+        .map(|s| generate_statement(s, depth))
+        .collect();
     quote! {
         while #cond {
             #(#body_stmts)*
@@ -588,10 +624,14 @@ fn generate_for(
     variable: &str,
     iterator: &AnalyzedExpr,
     body: &[AnalyzedStatement],
+    depth: usize,
 ) -> TokenStream {
     let var_ident = format_ident!("{}", sanitize_name(variable));
-    let iter = generate_expr(iterator);
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+    let iter = generate_expr(iterator, depth);
+    let body_stmts: Vec<TokenStream> = body
+        .iter()
+        .map(|s| generate_statement(s, depth))
+        .collect();
     quote! {
         for #var_ident in #iter {
             #(#body_stmts)*
@@ -602,8 +642,9 @@ fn generate_for(
 fn generate_match(
     scrutinee: &AnalyzedExpr,
     arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
+    depth: usize,
 ) -> TokenStream {
-    let scrut = generate_expr(scrutinee);
+    let scrut = generate_expr(scrutinee, depth);
     let arm_tokens: Vec<TokenStream> = arms
         .iter()
         .map(|(pattern, body)| {
@@ -612,9 +653,12 @@ fn generate_match(
                 // Generate wildcard pattern
                 quote! { _ }
             } else {
-                generate_expr(pattern)
+                generate_expr(pattern, depth)
             };
-            let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+            let body_stmts: Vec<TokenStream> = body
+                .iter()
+                .map(|s| generate_statement(s, depth))
+                .collect();
             quote! { #pat => { #(#body_stmts)* } }
         })
         .collect();
@@ -630,9 +674,13 @@ fn generate_fn_def(
     params: &[(smol_str::SmolStr, Option<GlossaType>)],
     body: &[AnalyzedStatement],
     return_type: &Option<GlossaType>,
+    depth: usize,
 ) -> TokenStream {
     let fn_name = format_ident!("{}", sanitize_name(name));
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+    let body_stmts: Vec<TokenStream> = body
+        .iter()
+        .map(|s| generate_statement(s, depth))
+        .collect();
 
     // Generate parameter list
     let param_tokens: Vec<TokenStream> = params
@@ -690,7 +738,11 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
     }
 }
 
-fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
+fn generate_trait_def(
+    name: &str,
+    methods: &[AnalyzedMethod],
+    depth: usize,
+) -> TokenStream {
     // Capitalize trait name for Rust conventions
     let trait_name = format_ident!("{}", capitalize(&sanitize_name(name)));
 
@@ -725,7 +777,7 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
 
                 if let Some(body) = &method.body {
                     let body_stmts: Vec<TokenStream> =
-                        body.iter().map(generate_statement).collect();
+                        body.iter().map(|s| generate_statement(s, depth)).collect();
                     quote! {
                         fn #method_name(#(#param_tokens),*) -> #ret_ty {
                             #(#body_stmts)*
@@ -737,7 +789,8 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
                     }
                 }
             } else if let Some(body) = &method.body {
-                let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+                let body_stmts: Vec<TokenStream> =
+                    body.iter().map(|s| generate_statement(s, depth)).collect();
                 quote! {
                     fn #method_name(#(#param_tokens),*) {
                         #(#body_stmts)*
@@ -762,6 +815,7 @@ fn generate_trait_impl(
     trait_name: &str,
     type_name: &str,
     methods: &[AnalyzedMethod],
+    depth: usize,
 ) -> TokenStream {
     // Capitalize trait and type names for Rust conventions
     let trait_ident = format_ident!("{}", capitalize(&sanitize_name(trait_name)));
@@ -792,7 +846,7 @@ fn generate_trait_impl(
 
             // Generate method body
             let body_stmts: Vec<TokenStream> = if let Some(body) = &method.body {
-                body.iter().map(generate_statement).collect()
+                body.iter().map(|s| generate_statement(s, depth)).collect()
             } else {
                 Vec::new()
             };
@@ -823,7 +877,11 @@ fn generate_trait_impl(
     }
 }
 
-fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
+fn generate_test(
+    name: &str,
+    body: &[AnalyzedStatement],
+    depth: usize,
+) -> TokenStream {
     // Sanitize test name for Rust function identifier
     // Replace spaces and special chars with underscores
     let test_fn_name = name
@@ -836,7 +894,7 @@ fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
     let test_ident = format_ident!("test_{}", test_fn_name);
 
     // Generate body statements
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+    let body_stmts: Vec<TokenStream> = body.iter().map(|s| generate_statement(s, depth)).collect();
 
     quote! {
         #[test]
@@ -846,7 +904,9 @@ fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
     }
 }
 
-fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
+fn generate_expr(expr: &AnalyzedExpr, depth: usize) -> TokenStream {
+    check_recursion_depth(depth);
+
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => {
             quote! { #s }
@@ -861,12 +921,13 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
         }
 
         AnalyzedExprKind::ArrayLiteral(elements) => {
-            let elem_tokens: Vec<TokenStream> = elements.iter().map(generate_expr).collect();
+            let elem_tokens: Vec<TokenStream> =
+                elements.iter().map(|e| generate_expr(e, depth + 1)).collect();
             quote! { vec![#(#elem_tokens),*] }
         }
 
         AnalyzedExprKind::Some(inner) => {
-            let inner_tokens = generate_expr(inner);
+            let inner_tokens = generate_expr(inner, depth + 1);
             quote! { Some(#inner_tokens) }
         }
 
@@ -875,28 +936,28 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
         }
 
         AnalyzedExprKind::Ok(inner) => {
-            let inner_tokens = generate_expr(inner);
+            let inner_tokens = generate_expr(inner, depth + 1);
             quote! { Ok(#inner_tokens) }
         }
 
         AnalyzedExprKind::Err(inner) => {
-            let inner_tokens = generate_expr(inner);
+            let inner_tokens = generate_expr(inner, depth + 1);
             quote! { Err(#inner_tokens) }
         }
 
         AnalyzedExprKind::Try(inner) => {
-            let inner_tokens = generate_expr(inner);
+            let inner_tokens = generate_expr(inner, depth + 1);
             quote! { #inner_tokens? }
         }
 
         AnalyzedExprKind::Unwrap(inner) => {
-            let inner_tokens = generate_expr(inner);
+            let inner_tokens = generate_expr(inner, depth + 1);
             quote! { #inner_tokens.unwrap() }
         }
 
         AnalyzedExprKind::IndexAccess { array, index } => {
-            let array_tokens = generate_expr(array);
-            let index_tokens = generate_expr(index);
+            let array_tokens = generate_expr(array, depth + 1);
+            let index_tokens = generate_expr(index, depth + 1);
             // Safety check for negative index
             quote! {
                 {
@@ -915,7 +976,7 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
         }
 
         AnalyzedExprKind::PropertyAccess { owner, property } => {
-            let obj = generate_expr(owner);
+            let obj = generate_expr(owner, depth + 1);
             let field_ident = format_ident!("{}", sanitize_name(property));
             quote! { #obj.#field_ident }
         }
@@ -925,7 +986,7 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             method,
             args,
         } => {
-            let recv = generate_expr(receiver);
+            let recv = generate_expr(receiver, depth + 1);
 
             // Check if this is a standard library method call on a standard type
             let method_ident = if is_std_method(method) && is_std_type(&receiver.glossa_type) {
@@ -936,7 +997,8 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
                 format_ident!("{}", sanitize_name(method))
             };
 
-            let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+            let arg_tokens: Vec<TokenStream> =
+                args.iter().map(|e| generate_expr(e, depth + 1)).collect();
             quote! { #recv.#method_ident(#(#arg_tokens),*) }
         }
 
@@ -947,34 +1009,38 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             ..
         } => {
             // Treat as regular method call
-            let recv = generate_expr(receiver);
+            let recv = generate_expr(receiver, depth + 1);
             let method_ident = format_ident!("{}", sanitize_name(method_name));
-            let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+            let arg_tokens: Vec<TokenStream> =
+                args.iter().map(|e| generate_expr(e, depth + 1)).collect();
             quote! { #recv.#method_ident(#(#arg_tokens),*) }
         }
 
         AnalyzedExprKind::VerbCall { verb, args }
         | AnalyzedExprKind::FunctionCall { func: verb, args } => {
             let func_ident = format_ident!("{}", sanitize_name(verb));
-            let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+            let arg_tokens: Vec<TokenStream> =
+                args.iter().map(|e| generate_expr(e, depth + 1)).collect();
             quote! { #func_ident(#(#arg_tokens),*) }
         }
 
-        AnalyzedExprKind::BinOp { op, left, right } => generate_bin_op(*op, left, right),
+        AnalyzedExprKind::BinOp { op, left, right } => {
+            generate_bin_op(*op, left, right, depth + 1)
+        }
 
         AnalyzedExprKind::UnaryOp { op, operand } => {
             match op {
                 UnaryOp::Not => {
-                    let operand_tokens = generate_expr(operand);
+                    let operand_tokens = generate_expr(operand, depth + 1);
                     // Standard Rust logical not or bitwise not
                     quote! { !#operand_tokens }
                 }
                 UnaryOp::Neg => {
-                    let operand_tokens = generate_expr(operand);
+                    let operand_tokens = generate_expr(operand, depth + 1);
                     quote! { -#operand_tokens }
                 }
                 UnaryOp::Ref => {
-                    let operand_tokens = generate_expr(operand);
+                    let operand_tokens = generate_expr(operand, depth + 1);
                     quote! { &#operand_tokens }
                 }
             }
@@ -985,8 +1051,8 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             end,
             inclusive,
         } => {
-            let start_tokens = generate_expr(start);
-            let end_tokens = generate_expr(end);
+            let start_tokens = generate_expr(start, depth + 1);
+            let end_tokens = generate_expr(end, depth + 1);
             if *inclusive {
                 quote! { (#start_tokens..=#end_tokens) }
             } else {
@@ -998,13 +1064,13 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             type_name,
             fields,
             args,
-        } => generate_struct_lit(type_name, fields, args),
+        } => generate_struct_lit(type_name, fields, args, depth + 1),
 
         AnalyzedExprKind::Lambda {
             params,
             body,
             capture_mode,
-        } => generate_closure(params, body, capture_mode),
+        } => generate_closure(params, body, capture_mode, depth + 1),
 
         AnalyzedExprKind::CollectionNew { collection_type } => {
             // Generate HashSet::new() or HashMap::new()
@@ -1013,21 +1079,26 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
         }
 
         AnalyzedExprKind::Assert { condition } => {
-            let cond = generate_expr(condition);
+            let cond = generate_expr(condition, depth + 1);
             quote! { assert!(#cond) }
         }
 
         AnalyzedExprKind::AssertEq { left, right } => {
-            let left_tokens = generate_expr(left);
-            let right_tokens = generate_expr(right);
+            let left_tokens = generate_expr(left, depth + 1);
+            let right_tokens = generate_expr(right, depth + 1);
             quote! { assert_eq!(#left_tokens, #right_tokens) }
         }
     }
 }
 
-fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> TokenStream {
-    let left_tokens = generate_expr(left);
-    let right_tokens = generate_expr(right);
+fn generate_bin_op(
+    op: BinaryOp,
+    left: &AnalyzedExpr,
+    right: &AnalyzedExpr,
+    depth: usize,
+) -> TokenStream {
+    let left_tokens = generate_expr(left, depth + 1);
+    let right_tokens = generate_expr(right, depth + 1);
 
     // Use checked arithmetic only for numeric types
     let use_checked = matches!(left.glossa_type, GlossaType::Number);
@@ -1070,6 +1141,7 @@ fn generate_struct_lit(
     type_name: &str,
     fields: &[smol_str::SmolStr],
     args: &[AnalyzedExpr],
+    depth: usize,
 ) -> TokenStream {
     // Capitalize struct name for Rust conventions
     let struct_name = format_ident!("{}", capitalize(&sanitize_name(type_name)));
@@ -1080,7 +1152,7 @@ fn generate_struct_lit(
         .zip(args.iter())
         .map(|(field_name, arg)| {
             let field_ident = format_ident!("{}", sanitize_name(field_name));
-            let arg_token = generate_expr(arg);
+            let arg_token = generate_expr(arg, depth);
             quote! { #field_ident: #arg_token }
         })
         .collect();
@@ -1092,8 +1164,9 @@ fn generate_closure(
     params: &[smol_str::SmolStr],
     body: &AnalyzedExpr,
     capture_mode: &CaptureMode,
+    depth: usize,
 ) -> TokenStream {
-    let body_tokens = generate_expr(body);
+    let body_tokens = generate_expr(body, depth);
     let params_idents: Vec<_> = params
         .iter()
         .map(|p| format_ident!("{}", sanitize_name(p)))
@@ -1401,13 +1474,13 @@ mod tests {
 
         // Test Ge (Greater or Equal)
         let op_ge = BinaryOp::Ge;
-        let tokens_ge = generate_bin_op(op_ge, &left, &right);
+        let tokens_ge = generate_bin_op(op_ge, &left, &right, 0);
         let code_ge = tokens_ge.to_string();
         assert!(code_ge.contains(">="));
 
         // Test Le (Less or Equal)
         let op_le = BinaryOp::Le;
-        let tokens_le = generate_bin_op(op_le, &left, &right);
+        let tokens_le = generate_bin_op(op_le, &left, &right, 0);
         let code_le = tokens_le.to_string();
         assert!(code_le.contains("<="));
     }
