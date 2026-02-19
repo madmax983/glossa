@@ -5,22 +5,29 @@ use std::time::Instant;
 /// Status indicator for long-running operations
 pub struct Status {
     message: String,
+    symbol: String,
     start: Instant,
     is_tty: bool,
     active: bool,
 }
 
 impl Status {
-    /// Create a new status indicator
+    /// Create a new status indicator with default symbol
     pub fn start(message: impl Into<String>) -> Self {
+        Self::start_with_symbol(message, "⚡")
+    }
+
+    /// Create a new status indicator with a custom symbol
+    pub fn start_with_symbol(message: impl Into<String>, symbol: impl Into<String>) -> Self {
         let is_tty = io::stderr().is_terminal();
-        Self::new(message, is_tty)
+        Self::new(message, symbol, is_tty)
     }
 
     /// Internal constructor for testing
-    fn new(message: impl Into<String>, is_tty: bool) -> Self {
+    fn new(message: impl Into<String>, symbol: impl Into<String>, is_tty: bool) -> Self {
         let status = Self {
             message: message.into(),
+            symbol: symbol.into(),
             start: Instant::now(),
             is_tty,
             active: true,
@@ -65,7 +72,8 @@ impl Status {
     }
 
     fn print_running(&self, clear: bool) {
-        let symbol = "⚡".yellow();
+        // Apply yellow to symbol for consistency, assuming standard terminal behavior
+        let symbol = self.symbol.as_str().yellow();
         let msg = format!("{}...", self.message.as_str().bold());
 
         if self.is_tty {
@@ -110,48 +118,54 @@ mod tests {
 
     #[test]
     fn test_status_tty_success() {
-        let status = Status::new("Testing TTY", true);
+        let status = Status::new("Testing TTY", "⚡", true);
         // Should execute TTY branches
         status.success();
     }
 
     #[test]
     fn test_status_tty_update() {
-        let mut status = Status::new("Testing TTY Update", true);
+        let mut status = Status::new("Testing TTY Update", "⚡", true);
         status.update("Updated");
         status.success();
     }
 
     #[test]
     fn test_status_tty_error() {
-        let status = Status::new("Testing TTY Error", true);
+        let status = Status::new("Testing TTY Error", "⚡", true);
         status.error("Something went wrong");
     }
 
     #[test]
     fn test_status_no_tty_success() {
-        let status = Status::new("Testing No-TTY", false);
+        let status = Status::new("Testing No-TTY", "⚡", false);
         // Should execute non-TTY branches
         status.success();
     }
 
     #[test]
     fn test_status_no_tty_update() {
-        let mut status = Status::new("Testing No-TTY Update", false);
+        let mut status = Status::new("Testing No-TTY Update", "⚡", false);
         status.update("Updated");
         status.success();
     }
 
     #[test]
     fn test_status_no_tty_error() {
-        let status = Status::new("Testing No-TTY Error", false);
+        let status = Status::new("Testing No-TTY Error", "⚡", false);
         status.error("Something went wrong");
+    }
+
+    #[test]
+    fn test_status_custom_symbol() {
+        let status = Status::new("Custom Symbol", "🚀", false);
+        status.success();
     }
 
     #[test]
     fn test_status_drop() {
         {
-            let _status = Status::new("Testing Drop", true);
+            let _status = Status::new("Testing Drop", "⚡", true);
             // Should execute Drop (show cursor)
         }
     }

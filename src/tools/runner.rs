@@ -77,7 +77,7 @@ fn load_source(input: &Path) -> Result<String> {
 }
 
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
-    let status = Status::start("Μεταγλώττισις (Compiling)");
+    let status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🏗️");
     let start = std::time::Instant::now();
     let source = load_source(input)?;
     let input_size = source.len() as u64;
@@ -150,7 +150,7 @@ pub fn run_file(input: &Path) -> Result<()> {
         return Ok(());
     }
 
-    let mut status = Status::start("Μεταγλώττισις (Compiling)");
+    let mut status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🚀");
 
     // Compile source
     let source = load_source(input)?;
@@ -198,6 +198,7 @@ pub fn run_file(input: &Path) -> Result<()> {
 }
 
 pub fn check_file(input: &Path) -> Result<()> {
+    let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
     let source = load_source(input)?;
 
     let analyzed = analyze_source(&source)?;
@@ -209,25 +210,30 @@ pub fn check_file(input: &Path) -> Result<()> {
         .to_string();
     let report = GlossaReport::new(&analyzed, filename);
 
+    status.success();
     println!("{}", report);
 
     Ok(())
 }
 
 pub fn highlight_file(input: &Path) -> Result<()> {
+    let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
     let source = load_source(input)?;
     let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
+    status.success();
     println!("{}", highlighted);
 
     Ok(())
 }
 
 pub fn bard_file(input: &Path) -> Result<()> {
+    let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
     let source = load_source(input)?;
     let analyzed = analyze_source(&source)?;
 
     let tale = tell_tale(&analyzed);
+    status.success();
     println!("{}", tale);
 
     Ok(())
