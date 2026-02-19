@@ -59,8 +59,7 @@ pub enum Commands {
         word: String,
     },
 
-    /// Run tests defined in a .γλ file (Requires "nova" feature)
-    #[cfg(feature = "nova")]
+    /// Run tests defined in a .γλ file
     Test {
         /// Input file (.γλ)
         input: PathBuf,
