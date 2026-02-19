@@ -26,9 +26,9 @@ pub mod grammar;
 pub mod numerals;
 pub mod recursion;
 
+use self::grammar::{Rule, parse as grammar_parse};
 use crate::ast::*;
 use crate::errors::GlossaError;
-use self::grammar::{Rule, parse as grammar_parse};
 use pest::iterators::Pair;
 
 impl From<ParseError> for GlossaError {
