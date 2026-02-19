@@ -662,6 +662,32 @@ mod tests {
     }
 
     #[test]
+    fn test_build_expressions_insufficient_literals() {
+        // Case: 1 + 2 +
+        // Literals: [1, 2]
+        // Operators: [Add, Add]
+        // Expected: Should return Error due to insufficient literals
+
+        let literals = vec![Literal::Number(1), Literal::Number(2)];
+        let operators = vec![crate::morphology::lexicon::BinaryOp::Add, crate::morphology::lexicon::BinaryOp::Add];
+
+        let result = build_expressions_from_literals_and_ops(&literals, &operators);
+
+        assert!(
+            result.is_err(),
+            "Expected error for dangling operator, got {:?}",
+            result
+        );
+
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("Insufficient literals"),
+            "Unexpected error message: {}",
+            err
+        );
+    }
+
+    #[test]
     fn test_analyze_argument_expr_handles_array() {
         let expr = Expr::ArrayLiteral(vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)]);
         let scope = Scope::new();
