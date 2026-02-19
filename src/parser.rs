@@ -22,13 +22,11 @@
 //! nesting (e.g., `((((...))))`) does not cause a stack overflow during the
 //! recursive descent parsing phase.
 
-pub mod numerals;
-pub mod recursion;
-
 use crate::ast::*;
 use crate::errors::GlossaError;
 use crate::grammar::{Rule, parse as grammar_parse};
 use pest::iterators::Pair;
+use unicode_normalization::UnicodeNormalization;
 
 impl From<ParseError> for GlossaError {
     fn from(err: ParseError) -> Self {
@@ -57,7 +55,7 @@ fn parse_number_literal(text: &str) -> Result<i64, ParseError> {
     if let Ok(val) = text.parse::<i64>() {
         Ok(val)
     } else {
-        numerals::parse_greek_numeral(text)
+        parse_greek_numeral(text)
             .map_err(|e| ParseError::InvalidNumber(format!("{} - {}", text, e)))
     }
 }
@@ -65,7 +63,7 @@ fn parse_number_literal(text: &str) -> Result<i64, ParseError> {
 /// Build an AST from source code
 fn parse_source(source: &str) -> Result<Program, ParseError> {
     // Check recursion depth before parsing to prevent stack overflow
-    recursion::check_recursion_depth(source)?;
+    check_recursion_depth(source)?;
 
     let pairs = grammar_parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
 
@@ -638,6 +636,306 @@ pub enum ParseError {
     RecursionLimitExceeded(usize),
 }
 
+// ==================================================================================
+// RECURSION CHECK
+// ==================================================================================
+
+/// Check recursion depth to prevent stack overflows
+///
+/// This function performs a fast linear scan of the source code to ensure that
+/// parentheses, braces, and brackets are not nested deeper than `MAX_DEPTH` (500).
+/// This prevents stack overflows during the recursive parsing phase.
+pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
+    const MAX_DEPTH: usize = 500;
+    let mut depth = 0;
+    let mut in_string = false;
+    let bytes = source.as_bytes();
+    let mut i = 0;
+
+    // Optimization: Iterate bytes directly to avoid expensive UTF-8 decoding of Greek characters.
+    // We only care about structural characters which are ASCII (except for « and »).
+    // « is [0xC2, 0xAB]
+    // » is [0xC2, 0xBB]
+    while i < bytes.len() {
+        let b = bytes[i];
+        if in_string {
+            // Check for » [0xC2, 0xBB]
+            if b == 0xC2 && i + 1 < bytes.len() && bytes[i + 1] == 0xBB {
+                in_string = false;
+                i += 2;
+            } else {
+                i += 1;
+            }
+        } else {
+            match b {
+                // Check for « [0xC2, 0xAB]
+                0xC2 => {
+                    if i + 1 < bytes.len() && bytes[i + 1] == 0xAB {
+                        in_string = true;
+                        i += 2;
+                    } else {
+                        i += 1;
+                    }
+                }
+                b'(' | b'{' | b'[' => {
+                    depth += 1;
+                    if depth > MAX_DEPTH {
+                        return Err(ParseError::RecursionLimitExceeded(MAX_DEPTH));
+                    }
+                    i += 1;
+                }
+                b')' | b'}' | b']' => {
+                    depth = depth.saturating_sub(1);
+                    i += 1;
+                }
+                b'/' => {
+                    if i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                        // Skip comment
+                        i += 2;
+                        while i < bytes.len() {
+                            let c = bytes[i];
+                            i += 1;
+                            if c == b'\n' || c == b'\r' {
+                                break;
+                            }
+                        }
+                    } else {
+                        i += 1;
+                    }
+                }
+                _ => {
+                    i += 1;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+// ==================================================================================
+// NUMERALS
+// ==================================================================================
+
+/// Parse a Greek numeral string into an integer
+///
+/// Handles:
+/// * Standard letters (α-ω)
+/// * Archaic letters (stigma ϛ, koppa ϟ, sampi ϡ)
+/// * Numeric markers (keraia ʹ, lower keraia ͵)
+pub fn parse_greek_numeral(text: &str) -> Result<i64, String> {
+    let mut total: i64 = 0;
+    let mut multiplier: i64 = 1;
+
+    // Iterate over normalized characters directly to avoid allocation
+    // and ensure correct Sigma handling (char::to_lowercase vs str::to_lowercase)
+    let chars = text
+        .chars()
+        .flat_map(char::to_lowercase)
+        .nfd()
+        .filter(|c| !crate::text::is_greek_diacritic(*c));
+
+    for c in chars {
+        match c {
+            // Keraia (numeral sign) - ignore, it just marks the end or acts as punctuation
+            // U+0374 (Dexia Keraia) or U+02B9 (Modifier Letter Prime) often used interchangeably
+            // The literal 'ʹ' in source is usually one of these. We handle both explicitly.
+            '\u{0374}' | '\u{02B9}' => continue,
+
+            // Lower Keraia - multiplies the *next* digit by 1000
+            '\u{0375}' => {
+                multiplier = 1000;
+                continue;
+            }
+
+            // Letters
+            _ => {
+                let value: i64 = match c {
+                    'α' => 1,
+                    'β' => 2,
+                    'γ' => 3,
+                    'δ' => 4,
+                    'ε' => 5,
+                    '\u{03DB}' | 'ς' => 6, // Stigma (03DB) or final sigma (03C2) fallback
+                    'ζ' => 7,
+                    'η' => 8,
+                    'θ' => 9,
+                    'ι' => 10,
+                    'κ' => 20,
+                    'λ' => 30,
+                    'μ' => 40,
+                    'ν' => 50,
+                    'ξ' => 60,
+                    'ο' => 70,
+                    'π' => 80,
+                    '\u{03D9}' | '\u{03DF}' => 90, // Koppa (archaic 03D9 / modern 03DF)
+                    'ρ' => 100,
+                    'σ' => 200,
+                    'τ' => 300,
+                    'υ' => 400,
+                    'φ' => 500,
+                    'χ' => 600,
+                    'ψ' => 700,
+                    'ω' => 800,
+                    '\u{03E0}' | '\u{03E1}' => 900, // Sampi (03E0 / 03E1)
+                    _ => {
+                        return Err(format!(
+                            "Invalid Greek numeral character: {} (U+{:04X})",
+                            c, c as u32
+                        ));
+                    }
+                };
+
+                let term = value
+                    .checked_mul(multiplier)
+                    .ok_or_else(|| "Numeric overflow".to_string())?;
+
+                total = total
+                    .checked_add(term)
+                    .ok_or_else(|| "Numeric overflow".to_string())?;
+
+                // Reset multiplier after applying it to one digit
+                multiplier = 1;
+            }
+        }
+    }
+
+    if total == 0 {
+        return Err("Empty or invalid numeral".to_string());
+    }
+
+    Ok(total)
+}
+
+#[cfg(test)]
+mod numerals_tests {
+    use super::*;
+
+    #[test]
+    fn test_units() {
+        assert_eq!(parse_greek_numeral("αʹ").unwrap(), 1);
+        assert_eq!(parse_greek_numeral("βʹ").unwrap(), 2);
+        assert_eq!(parse_greek_numeral("θʹ").unwrap(), 9);
+    }
+
+    #[test]
+    fn test_teens() {
+        assert_eq!(parse_greek_numeral("ιαʹ").unwrap(), 11);
+        assert_eq!(parse_greek_numeral("ιβʹ").unwrap(), 12);
+        assert_eq!(parse_greek_numeral("ιθʹ").unwrap(), 19);
+    }
+
+    #[test]
+    fn test_tens() {
+        assert_eq!(parse_greek_numeral("κʹ").unwrap(), 20);
+        assert_eq!(parse_greek_numeral("καʹ").unwrap(), 21);
+        assert_eq!(parse_greek_numeral("λβʹ").unwrap(), 32); // 30 + 2
+    }
+
+    #[test]
+    fn test_hundreds() {
+        assert_eq!(parse_greek_numeral("ρʹ").unwrap(), 100);
+        assert_eq!(parse_greek_numeral("σνγʹ").unwrap(), 253); // 200 + 50 + 3
+    }
+
+    #[test]
+    fn test_thousands() {
+        assert_eq!(parse_greek_numeral("͵α").unwrap(), 1000);
+        assert_eq!(parse_greek_numeral("͵ααʹ").unwrap(), 1001);
+        assert_eq!(parse_greek_numeral("͵β").unwrap(), 2000);
+        assert_eq!(parse_greek_numeral("͵βκβʹ").unwrap(), 2022); // 2000 + 20 + 2
+    }
+
+    #[test]
+    fn test_archaic() {
+        // Using strict chars
+        assert_eq!(parse_greek_numeral("\u{03DB}ʹ").unwrap(), 6); // Stigma
+        assert_eq!(parse_greek_numeral("ςʹ").unwrap(), 6); // Final Sigma fallback
+
+        // Koppa
+        assert_eq!(parse_greek_numeral("\u{03DF}ʹ").unwrap(), 90);
+        assert_eq!(parse_greek_numeral("\u{03D9}ʹ").unwrap(), 90);
+
+        // Sampi
+        assert_eq!(parse_greek_numeral("\u{03E1}ʹ").unwrap(), 900);
+        assert_eq!(parse_greek_numeral("\u{03E0}ʹ").unwrap(), 900); // Sampi alt
+
+        // Keraia alt (U+02B9)
+        assert_eq!(parse_greek_numeral("α\u{02B9}").unwrap(), 1);
+        // Dexia Keraia (U+0374)
+        assert_eq!(parse_greek_numeral("α\u{0374}").unwrap(), 1);
+    }
+
+    #[test]
+    fn test_invalid() {
+        assert!(parse_greek_numeral("abc").is_err());
+    }
+
+    #[test]
+    fn test_2024() {
+        // 2000 = ͵β
+        // 20 = κ
+        // 4 = δ
+        assert_eq!(parse_greek_numeral("͵βκδʹ").unwrap(), 2024);
+    }
+
+    #[test]
+    fn test_sigma_uppercase() {
+        // Regression test for Sigma handling
+        // Σ should always be 200, never 6 (stigma/final sigma)
+        assert_eq!(parse_greek_numeral("Σʹ").unwrap(), 200);
+        assert_eq!(parse_greek_numeral("ΣΣʹ").unwrap(), 400); // 200 + 200
+        assert_eq!(parse_greek_numeral("ΣΣΣʹ").unwrap(), 600); // 200 + 200 + 200
+    }
+
+    #[test]
+    fn test_full_coverage() {
+        // Test every single character mapping to ensure 100% coverage
+        let mappings = [
+            ("α", 1),
+            ("β", 2),
+            ("γ", 3),
+            ("δ", 4),
+            ("ε", 5),
+            ("\u{03DB}", 6),
+            ("ς", 6), // Stigma
+            ("ζ", 7),
+            ("η", 8),
+            ("θ", 9),
+            ("ι", 10),
+            ("κ", 20),
+            ("λ", 30),
+            ("μ", 40),
+            ("ν", 50),
+            ("ξ", 60),
+            ("ο", 70),
+            ("π", 80),
+            ("\u{03D9}", 90),
+            ("\u{03DF}", 90), // Koppa
+            ("ρ", 100),
+            ("σ", 200),
+            ("τ", 300),
+            ("υ", 400),
+            ("φ", 500),
+            ("χ", 600),
+            ("ψ", 700),
+            ("ω", 800),
+            ("\u{03E0}", 900),
+            ("\u{03E1}", 900), // Sampi
+        ];
+
+        for (char_str, expected) in mappings {
+            // Test with standard keraia
+            let input = format!("{}ʹ", char_str);
+            assert_eq!(
+                parse_greek_numeral(&input).unwrap(),
+                expected,
+                "Failed for {}",
+                char_str
+            );
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -761,7 +1059,7 @@ mod tests {
         // 500 nested parentheses (should pass check, though pest might fail to parse empty parens)
         let source = "(".repeat(500) + &")".repeat(500);
         // We only care about the recursion check here
-        let result = recursion::check_recursion_depth(&source);
+        let result = check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 
@@ -769,7 +1067,7 @@ mod tests {
     fn test_recursion_limit_ignored_in_string() {
         // Parentheses inside string literal shouldn't count
         let source = "«".to_string() + &"(".repeat(600) + "»";
-        let result = recursion::check_recursion_depth(&source);
+        let result = check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 
@@ -777,7 +1075,7 @@ mod tests {
     fn test_recursion_limit_ignored_in_comment() {
         // Parentheses inside comment shouldn't count
         let source = "// ".to_string() + &"(".repeat(600);
-        let result = recursion::check_recursion_depth(&source);
+        let result = check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 
@@ -791,7 +1089,7 @@ mod tests {
             + &"]".repeat(101)
             + &"}".repeat(200)
             + &")".repeat(200);
-        let result = recursion::check_recursion_depth(&source);
+        let result = check_recursion_depth(&source);
         assert!(matches!(
             result,
             Err(ParseError::RecursionLimitExceeded(500))
@@ -804,7 +1102,7 @@ mod tests {
         // (((...))) then (((...))) - sequential, not nested
         let part = "(".repeat(400) + &")".repeat(400);
         let source = part.clone() + &part;
-        let result = recursion::check_recursion_depth(&source);
+        let result = check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 }

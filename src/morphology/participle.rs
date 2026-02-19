@@ -25,7 +25,7 @@
 //! ```
 
 use super::{Case, Gender, Number, Tense, Voice};
-use crate::morphology::matcher::match_suffix;
+use crate::morphology::match_suffix;
 use std::sync::LazyLock;
 
 /// Result of participle morphological analysis
@@ -506,7 +506,7 @@ pub fn analyze_participle(word: &str) -> Option<ParticipleAnalysis> {
         word,
         &ALL_PATTERNS,
         |p| p.ending,
-        |stem, pattern| {
+        |stem: &str, pattern: &&ParticiplePattern| {
             if result.is_none() {
                 result = Some(ParticipleAnalysis {
                     stem: stem.to_string(),

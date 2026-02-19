@@ -8,7 +8,7 @@
 use std::borrow::Cow;
 
 use super::{Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
-use crate::morphology::matcher::match_suffix;
+use crate::morphology::match_suffix;
 use crate::text::normalize_greek;
 
 /// Present Active Indicative endings (ω-conjugation)
