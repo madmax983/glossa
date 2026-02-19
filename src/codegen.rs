@@ -150,7 +150,10 @@ pub fn sanitize_name(name: &str) -> String {
     // This prevents collisions between single letters and their full names
     // e.g. "σ" (sigma) vs "σίγμα" (sigma)
     // Prefix with "g_" to namespace all user-defined identifiers and avoid collisions with Rust keywords
-    format!("g_{}", transliterate(name))
+    let mut s = String::with_capacity(2 + name.len() * 4);
+    s.push_str("g_");
+    transliterate_into(name, &mut s);
+    s
 }
 
 /// Transliterate Greek to Latin characters via Hex Encoding
@@ -178,35 +181,43 @@ pub fn sanitize_name(name: &str) -> String {
 /// assert_eq!(transliterate("φιλοσοφια"), "_u3c6__u3b9__u3bb__u3bf__u3c3__u3bf__u3c6__u3b9__u3b1_");
 /// ```
 pub fn transliterate(greek: &str) -> String {
-    let mut result = String::new();
+    let mut s = String::with_capacity(greek.len() * 4);
+    transliterate_into(greek, &mut s);
+    s
+}
 
-    for c in greek.chars() {
-        // We now hex-encode ALL Greek characters to avoid collisions with ASCII.
-        // Previously, 'ξ' mapped to 'x', causing collision with ASCII 'x'.
-        // Now, 'ξ' maps to '_u3be_', which is distinct from 'x' (which stays 'x').
-        if c.is_ascii_alphanumeric() || c == '_' {
-            result.push(c);
-        } else {
-            // Replace invalid characters with unique hex code to prevent collisions
-            use std::fmt::Write;
-            write!(result, "_u{:x}_", c as u32).unwrap();
+fn transliterate_into(text: &str, buf: &mut String) {
+    let mut chars = text.chars();
+    let first_char = match chars.next() {
+        Some(c) => c,
+        None => {
+            buf.push_str("_var_empty");
+            return;
         }
+    };
+
+    // Check if we need to prepend '_' (if first char is digit)
+    // Only ASCII digits would result in a leading digit in the output
+    if first_char.is_ascii_digit() {
+        buf.push('_');
     }
 
-    // Ensure it starts with a letter or underscore (valid Rust identifier)
-    if result.is_empty() {
-        return "_var_empty".to_string();
-    }
-
-    if result
-        .chars()
-        .next()
-        .map(|c| c.is_numeric())
-        .unwrap_or(false)
-    {
-        format!("_{}", result)
+    // Process first char
+    if first_char.is_ascii_alphanumeric() || first_char == '_' {
+        buf.push(first_char);
     } else {
-        result
+        use std::fmt::Write;
+        write!(buf, "_u{:x}_", first_char as u32).unwrap();
+    }
+
+    // Process rest
+    for c in chars {
+        if c.is_ascii_alphanumeric() || c == '_' {
+            buf.push(c);
+        } else {
+            use std::fmt::Write;
+            write!(buf, "_u{:x}_", c as u32).unwrap();
+        }
     }
 }
 
