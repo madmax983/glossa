@@ -1256,18 +1256,16 @@ pub fn extract_value(
         }
 
         // Check if we can combine nominative + literal with operator
-        if !asm_stmt.literals.is_empty() {
-            if let Some(ref nom) = asm_stmt.nominatives.first() {
-                let left = AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
-                    glossa_type: GlossaType::Unknown,
-                };
-                let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
-                let op = asm_stmt.operators[0];
-                let bin_expr = build_binary_expr(left, op, right);
-                let ty = bin_expr.glossa_type.clone();
-                return Ok((bin_expr, ty));
-            }
+        if let (Some(nom), false) = (asm_stmt.nominatives.first(), asm_stmt.literals.is_empty()) {
+            let left = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            };
+            let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+            let op = asm_stmt.operators[0];
+            let bin_expr = build_binary_expr(left, op, right);
+            let ty = bin_expr.glossa_type.clone();
+            return Ok((bin_expr, ty));
         }
 
         return Err(GlossaError::semantic("Operator without operands"));
@@ -1393,8 +1391,8 @@ pub fn extract_value(
 mod tests {
     use super::*;
     use crate::morphology::lexicon::BinaryOp;
-    use crate::semantic::{Constituent, AssembledStatement};
     use crate::morphology::{Case, Number};
+    use crate::semantic::{AssembledStatement, Constituent};
 
     fn make_asm_stmt() -> AssembledStatement {
         AssembledStatement::default()
@@ -1425,7 +1423,11 @@ mod tests {
 
         // Currently it returns Ok(Expression(vec![Variable("x")]))
         // We want it to fail
-        assert!(result.is_err(), "Expected error for operator without operands, got {:?}", result);
+        assert!(
+            result.is_err(),
+            "Expected error for operator without operands, got {:?}",
+            result
+        );
     }
 
     #[test]
@@ -1442,6 +1444,10 @@ mod tests {
 
         // Currently it returns Ok((Variable("x"), Unknown))
         // We want it to fail
-        assert!(result.is_err(), "Expected error for operator without operands, got {:?}", result);
+        assert!(
+            result.is_err(),
+            "Expected error for operator without operands, got {:?}",
+            result
+        );
     }
 }
