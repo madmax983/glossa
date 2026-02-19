@@ -310,6 +310,11 @@ fn classify_variable_binding(
                 let first_participle = &asm_stmt.participles[0];
                 let mut fixed_asm = asm_stmt.clone();
                 fixed_asm.participles = asm_stmt.participles[1..].to_vec();
+                // If we have a Subject, it's part of the value.
+                // Move Subject to Object (if Object is None) to allow extract_value to find it.
+                if fixed_asm.subject.is_some() && fixed_asm.object.is_none() {
+                    fixed_asm.object = fixed_asm.subject.take();
+                }
                 (normalize_greek(&first_participle.original), fixed_asm)
             } else if let (Some(subject), Some(object)) = (&asm_stmt.subject, &asm_stmt.object) {
                 let subject_name = normalize_greek(&subject.original);
@@ -329,6 +334,11 @@ fn classify_variable_binding(
                 let first_participle = &asm_stmt.participles[0];
                 let mut fixed_asm = asm_stmt.clone();
                 fixed_asm.participles = asm_stmt.participles[1..].to_vec();
+                // If we have a Subject, it's part of the value.
+                // Move Subject to Object (if Object is None) to allow extract_value to find it.
+                if fixed_asm.subject.is_some() && fixed_asm.object.is_none() {
+                    fixed_asm.object = fixed_asm.subject.take();
+                }
                 (normalize_greek(&first_participle.original), fixed_asm)
             } else {
                 return Err(GlossaError::semantic("Binding without subject"));
@@ -923,6 +933,8 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
         if let (Some(l), Some(r)) = (left, right) {
             let bin_expr = build_binary_expr(l, op, r);
             exprs = vec![bin_expr];
+        } else {
+            return Err(GlossaError::semantic("Operator without operands"));
         }
     }
 
@@ -1226,6 +1238,39 @@ pub fn extract_value(
             let ty = bin_expr.glossa_type.clone();
             return Ok((bin_expr, ty));
         }
+
+        // Check if we can combine object + nominative with operator
+        if let (Some(obj), Some(nom)) = (&asm_stmt.object, asm_stmt.nominatives.first()) {
+            let left = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            };
+            let right = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            };
+            let op = asm_stmt.operators[0];
+            let bin_expr = build_binary_expr(left, op, right);
+            let ty = bin_expr.glossa_type.clone();
+            return Ok((bin_expr, ty));
+        }
+
+        // Check if we can combine nominative + literal with operator
+        if !asm_stmt.literals.is_empty() {
+            if let Some(ref nom) = asm_stmt.nominatives.first() {
+                let left = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                    glossa_type: GlossaType::Unknown,
+                };
+                let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+                let op = asm_stmt.operators[0];
+                let bin_expr = build_binary_expr(left, op, right);
+                let ty = bin_expr.glossa_type.clone();
+                return Ok((bin_expr, ty));
+            }
+        }
+
+        return Err(GlossaError::semantic("Operator without operands"));
     }
 
     // Prefer literals (single value, no operators)
@@ -1342,4 +1387,61 @@ pub fn extract_value(
         },
         GlossaType::Number,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::morphology::lexicon::BinaryOp;
+    use crate::semantic::{Constituent, AssembledStatement};
+    use crate::morphology::{Case, Number};
+
+    fn make_asm_stmt() -> AssembledStatement {
+        AssembledStatement::default()
+    }
+
+    fn make_constituent(lemma: &str) -> Constituent {
+        Constituent {
+            lemma: lemma.into(),
+            original: lemma.into(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: None,
+            person: None,
+        }
+    }
+
+    #[test]
+    fn test_dropped_operator_expression() {
+        let mut asm_stmt = make_asm_stmt();
+        // Set subject "x"
+        asm_stmt.subject = Some(make_constituent("x"));
+        // Set operator "+"
+        asm_stmt.operators.push(BinaryOp::Add);
+        // No literals
+
+        // classify_expression should FAIL because we have an operator but no second operand
+        let result = classify_expression(&asm_stmt);
+
+        // Currently it returns Ok(Expression(vec![Variable("x")]))
+        // We want it to fail
+        assert!(result.is_err(), "Expected error for operator without operands, got {:?}", result);
+    }
+
+    #[test]
+    fn test_dropped_operator_value() {
+        let mut asm_stmt = make_asm_stmt();
+        // Set object "x" (extract_value checks object)
+        asm_stmt.object = Some(make_constituent("x"));
+        // Set operator "+"
+        asm_stmt.operators.push(BinaryOp::Add);
+
+        let scope = Scope::new();
+        // extract_value should FAIL
+        let result = extract_value(&asm_stmt, &scope);
+
+        // Currently it returns Ok((Variable("x"), Unknown))
+        // We want it to fail
+        assert!(result.is_err(), "Expected error for operator without operands, got {:?}", result);
+    }
 }

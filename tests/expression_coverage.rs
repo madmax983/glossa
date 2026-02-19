@@ -48,22 +48,15 @@ fn test_standalone_subject_op_literal() {
 }
 
 #[test]
+#[should_panic(expected = "Operator without operands")]
 fn test_operator_only_ignored() {
     // Test case where ONLY an operator exists (no subject, no literal, no object).
-    // "Equal." (Using equal to avoid > collision with generics/match in boilerplate)
-    // Left operand = None (no subject).
-    // Right operand = None (no literals, no object, no nominatives).
-    // Should fall through binary expression builder.
+    // "Equal."
+    // Should now return an error instead of silently ignoring the operator.
 
     let source = "ἴσον.";
 
-    let output = compile_to_rust(source);
-
-    // Should NOT contain ==
-    assert!(
-        !output.contains("=="),
-        "Operator-only statement should not generate comparison"
-    );
+    compile_to_rust(source);
 }
 
 #[test]
@@ -84,23 +77,17 @@ fn test_expression_propagation() {
 }
 
 #[test]
+#[should_panic(expected = "Operator without operands")]
 fn test_dangling_propagation() {
     // Test propagation (;) on a dangling expression.
     // "a" equal;
-    // Build binary expr fails. Falls back to Subject "a".
-    // Should generate "a?"
+    // Should return error because operator is unused.
 
     let source = "
     α 1 ἔστω.
     α ἴσον;";
 
-    let output = compile_to_rust(source);
-
-    assert!(!output.contains("=="), "Should not contain comparison");
-    assert!(
-        output.contains("?"),
-        "Should contain try operator on the fallback variable"
-    );
+    compile_to_rust(source);
 }
 
 #[test]
@@ -159,42 +146,27 @@ fn test_checked_arithmetic_codegen() {
 }
 
 #[test]
+#[should_panic(expected = "Operator without operands")]
 fn test_dangling_operator_ignored() {
     // Test case where an operator exists but operands are missing.
     // "a" equal. (Subject + Operator, no Right Operand)
-    // Should fall through the binary expression builder and just emit the variable.
+    // Should return error.
 
     let source = "
     α 1 ἔστω.
     α ἴσον."; // "a equal."
 
-    let output = compile_to_rust(source);
-
-    // Should NOT contain == because the binary expression couldn't be built
-    assert!(
-        !output.contains("=="),
-        "Dangling operator should be ignored/not generate invalid code"
-    );
-    // Should just print/emit 'a' (or whatever the default behavior is)
-    // The default classify_expression falls back to build_expressions_from_literals_and_ops
-    // If that's empty, it checks subject/object.
-    // So it should just output 'a'.
+    compile_to_rust(source);
 }
 
 #[test]
+#[should_panic(expected = "Operator without operands")]
 fn test_operator_without_subject_ignored() {
     // Test case where operator exists, literal exists, but no subject.
     // "5" equal. (Literal + Operator, no Subject)
-    // Left operand logic tries to grab Subject. If missing -> None.
-    // So binary expression build fails. Fallback -> Literal.
+    // Should return error.
 
     let source = "5 ἴσον.";
 
-    let output = compile_to_rust(source);
-
-    assert!(
-        !output.contains("=="),
-        "Operator without subject should be ignored"
-    );
-    assert!(output.contains("5"), "Should output the literal");
+    compile_to_rust(source);
 }
