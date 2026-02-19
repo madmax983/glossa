@@ -1126,7 +1126,6 @@ mod tests {
 
         let exprs = build_expressions_from_literals_and_ops(&literals, &operators).unwrap();
 
-        // This test should fail currently because the code returns [BinOp] (len 1)
         assert_eq!(
             exprs.len(),
             2,
@@ -1139,6 +1138,35 @@ mod tests {
         } else {
             panic!("Second expression should be NumberLiteral(3)");
         }
+    }
+
+    #[test]
+    fn test_dropped_operator_insufficient_literals() {
+        // Case: 1 + 2 +
+        // Literals: [1, 2]
+        // Operators: [Add, Add]
+        // Expected: Should return Error due to insufficient literals
+
+        let literals = vec![Literal::Number(1), Literal::Number(2)];
+        let operators = vec![
+            crate::morphology::lexicon::BinaryOp::Add,
+            crate::morphology::lexicon::BinaryOp::Add,
+        ];
+
+        let result = build_expressions_from_literals_and_ops(&literals, &operators);
+
+        assert!(
+            result.is_err(),
+            "Expected error for dangling operator, got {:?}",
+            result
+        );
+
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("Insufficient literals"),
+            "Unexpected error message: {}",
+            err
+        );
     }
 
     #[test]

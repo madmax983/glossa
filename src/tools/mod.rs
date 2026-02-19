@@ -4,6 +4,7 @@ pub mod dictionary;
 pub mod highlight;
 pub mod narrator;
 pub mod repl;
+pub mod report;
 pub mod runner;
 pub mod tester;
 pub mod ui;
