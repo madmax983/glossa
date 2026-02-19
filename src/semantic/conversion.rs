@@ -1451,3 +1451,72 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+    use crate::morphology::lexicon::BinaryOp;
+    use crate::semantic::{AssembledStatement, Constituent};
+    use crate::morphology::{Case, Number};
+
+    fn make_asm_stmt() -> AssembledStatement {
+        AssembledStatement::default()
+    }
+
+    fn make_constituent(lemma: &str, case: Case) -> Constituent {
+        Constituent {
+            lemma: lemma.into(),
+            original: lemma.into(),
+            case,
+            number: Some(Number::Singular),
+            gender: None,
+            person: None,
+        }
+    }
+
+    #[test]
+    fn test_extract_value_object_nominative() {
+        let mut asm_stmt = make_asm_stmt();
+        // Object "y"
+        asm_stmt.object = Some(make_constituent("y", Case::Accusative));
+        // Nominative "z"
+        asm_stmt.nominatives.push(make_constituent("z", Case::Nominative));
+        // Operator "+"
+        asm_stmt.operators.push(BinaryOp::Add);
+
+        let scope = Scope::new();
+        let result = extract_value(&asm_stmt, &scope);
+
+        assert!(result.is_ok(), "Should handle Object + Nominative: {:?}", result.err());
+        let (expr, _) = result.unwrap();
+        if let AnalyzedExprKind::BinOp { left, right, .. } = expr.expr {
+            assert!(matches!(left.expr, AnalyzedExprKind::Variable(s) if s == "y"));
+            assert!(matches!(right.expr, AnalyzedExprKind::Variable(s) if s == "z"));
+        } else {
+            panic!("Expected BinOp");
+        }
+    }
+
+    #[test]
+    fn test_extract_value_nominative_literal() {
+        let mut asm_stmt = make_asm_stmt();
+        // Nominative "y" (Subject is presumed occupied or irrelevant for this extraction context)
+        asm_stmt.nominatives.push(make_constituent("y", Case::Nominative));
+        // Literal 1
+        asm_stmt.literals.push(Literal::Number(1));
+        // Operator "+"
+        asm_stmt.operators.push(BinaryOp::Add);
+
+        let scope = Scope::new();
+        let result = extract_value(&asm_stmt, &scope);
+
+        assert!(result.is_ok(), "Should handle Nominative + Literal: {:?}", result.err());
+        let (expr, _) = result.unwrap();
+        if let AnalyzedExprKind::BinOp { left, right, .. } = expr.expr {
+            assert!(matches!(left.expr, AnalyzedExprKind::Variable(s) if s == "y"));
+            assert!(matches!(right.expr, AnalyzedExprKind::NumberLiteral(1)));
+        } else {
+            panic!("Expected BinOp");
+        }
+    }
+}
