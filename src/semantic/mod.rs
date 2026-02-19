@@ -48,7 +48,7 @@ mod types;
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub(crate) use assembler::Assembler;
 pub use assembler::AssemblyError;
-pub(crate) use assembly_model::{AssembledStatement, Constituent, Literal};
+pub use assembly_model::{AssembledStatement, Constituent, Literal};
 pub use model::*;
 pub use resolver::*;
 pub use types::*;
@@ -325,7 +325,7 @@ fn extract_block_statements(stmt: &Statement) -> Option<&Vec<Statement>> {
 }
 
 /// Analyze a single statement using the slot-based assembler
-pub(crate) fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
+pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
     let mut asm = Assembler::new();
     asm.set_query(stmt.is_query());
     asm.set_propagate(stmt.is_propagate());
