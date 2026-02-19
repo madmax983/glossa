@@ -22,12 +22,13 @@
 //! nesting (e.g., `((((...))))`) does not cause a stack overflow during the
 //! recursive descent parsing phase.
 
+pub mod grammar;
 pub mod numerals;
 pub mod recursion;
 
 use crate::ast::*;
 use crate::errors::GlossaError;
-use crate::grammar::{Rule, parse as grammar_parse};
+use self::grammar::{Rule, parse as grammar_parse};
 use pest::iterators::Pair;
 
 impl From<ParseError> for GlossaError {

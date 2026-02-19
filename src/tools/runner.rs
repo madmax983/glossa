@@ -1,6 +1,6 @@
 use crate::codegen::generate_rust_file;
 use crate::parser::parse;
-use crate::report::{CompilationReport, GlossaReport, ProgramStats};
+use crate::tools::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::{AnalyzedProgram, analyze_program};
 use crate::tools::cache::Cache;
 use crate::tools::highlight::highlight;
