@@ -1,7 +1,8 @@
-
 use glossa::codegen::generate_rust;
-use glossa::semantic::{AnalyzedProgram, AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType, Scope};
 use glossa::morphology::lexicon::BinaryOp;
+use glossa::semantic::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
+};
 
 #[test]
 #[should_panic(expected = "Recursion limit exceeded")]
@@ -30,9 +31,7 @@ fn test_codegen_recursion_limit() {
     }
 
     let program = AnalyzedProgram {
-        statements: vec![
-            AnalyzedStatement::Expression(vec![current_expr])
-        ],
+        statements: vec![AnalyzedStatement::Expression(vec![current_expr])],
         scope: Scope::new(),
     };
 

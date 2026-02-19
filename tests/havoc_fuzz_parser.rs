@@ -1,7 +1,6 @@
-
+use glossa::parser::numerals::parse_greek_numeral;
 use glossa::parser::parse;
 use glossa::text::normalize_greek;
-use glossa::parser::numerals::parse_greek_numeral;
 use proptest::prelude::*;
 
 proptest! {

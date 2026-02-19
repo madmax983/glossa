@@ -292,13 +292,19 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
 
     for stmt in &program.statements {
         match stmt {
-            AnalyzedStatement::TraitDefinition { .. } => trait_defs.push(generate_statement(stmt, 0)),
-            AnalyzedStatement::TypeDefinition { .. } => struct_defs.push(generate_statement(stmt, 0)),
+            AnalyzedStatement::TraitDefinition { .. } => {
+                trait_defs.push(generate_statement(stmt, 0))
+            }
+            AnalyzedStatement::TypeDefinition { .. } => {
+                struct_defs.push(generate_statement(stmt, 0))
+            }
             AnalyzedStatement::TraitImplementation { .. } => {
                 trait_impls.push(generate_statement(stmt, 0))
             }
             AnalyzedStatement::FunctionDef { .. } => fn_defs.push(generate_statement(stmt, 0)),
-            AnalyzedStatement::TestDeclaration { .. } => test_defs.push(generate_statement(stmt, 0)),
+            AnalyzedStatement::TestDeclaration { .. } => {
+                test_defs.push(generate_statement(stmt, 0))
+            }
             _ => main_stmts.push(generate_statement(stmt, 0)),
         }
     }
@@ -537,12 +543,7 @@ fn generate_statement(stmt: &AnalyzedStatement, depth: usize) -> TokenStream {
     }
 }
 
-fn generate_let(
-    name: &str,
-    value: &AnalyzedExpr,
-    mutable: bool,
-    depth: usize,
-) -> TokenStream {
+fn generate_let(name: &str, value: &AnalyzedExpr, mutable: bool, depth: usize) -> TokenStream {
     let name_ident = format_ident!("{}", sanitize_name(name));
     let value_tokens = generate_expr(value, depth);
 
@@ -609,10 +610,7 @@ fn generate_while(
     depth: usize,
 ) -> TokenStream {
     let cond = generate_expr(condition, depth);
-    let body_stmts: Vec<TokenStream> = body
-        .iter()
-        .map(|s| generate_statement(s, depth))
-        .collect();
+    let body_stmts: Vec<TokenStream> = body.iter().map(|s| generate_statement(s, depth)).collect();
     quote! {
         while #cond {
             #(#body_stmts)*
@@ -628,10 +626,7 @@ fn generate_for(
 ) -> TokenStream {
     let var_ident = format_ident!("{}", sanitize_name(variable));
     let iter = generate_expr(iterator, depth);
-    let body_stmts: Vec<TokenStream> = body
-        .iter()
-        .map(|s| generate_statement(s, depth))
-        .collect();
+    let body_stmts: Vec<TokenStream> = body.iter().map(|s| generate_statement(s, depth)).collect();
     quote! {
         for #var_ident in #iter {
             #(#body_stmts)*
@@ -655,10 +650,8 @@ fn generate_match(
             } else {
                 generate_expr(pattern, depth)
             };
-            let body_stmts: Vec<TokenStream> = body
-                .iter()
-                .map(|s| generate_statement(s, depth))
-                .collect();
+            let body_stmts: Vec<TokenStream> =
+                body.iter().map(|s| generate_statement(s, depth)).collect();
             quote! { #pat => { #(#body_stmts)* } }
         })
         .collect();
@@ -677,10 +670,7 @@ fn generate_fn_def(
     depth: usize,
 ) -> TokenStream {
     let fn_name = format_ident!("{}", sanitize_name(name));
-    let body_stmts: Vec<TokenStream> = body
-        .iter()
-        .map(|s| generate_statement(s, depth))
-        .collect();
+    let body_stmts: Vec<TokenStream> = body.iter().map(|s| generate_statement(s, depth)).collect();
 
     // Generate parameter list
     let param_tokens: Vec<TokenStream> = params
@@ -738,11 +728,7 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
     }
 }
 
-fn generate_trait_def(
-    name: &str,
-    methods: &[AnalyzedMethod],
-    depth: usize,
-) -> TokenStream {
+fn generate_trait_def(name: &str, methods: &[AnalyzedMethod], depth: usize) -> TokenStream {
     // Capitalize trait name for Rust conventions
     let trait_name = format_ident!("{}", capitalize(&sanitize_name(name)));
 
@@ -877,11 +863,7 @@ fn generate_trait_impl(
     }
 }
 
-fn generate_test(
-    name: &str,
-    body: &[AnalyzedStatement],
-    depth: usize,
-) -> TokenStream {
+fn generate_test(name: &str, body: &[AnalyzedStatement], depth: usize) -> TokenStream {
     // Sanitize test name for Rust function identifier
     // Replace spaces and special chars with underscores
     let test_fn_name = name
@@ -921,8 +903,10 @@ fn generate_expr(expr: &AnalyzedExpr, depth: usize) -> TokenStream {
         }
 
         AnalyzedExprKind::ArrayLiteral(elements) => {
-            let elem_tokens: Vec<TokenStream> =
-                elements.iter().map(|e| generate_expr(e, depth + 1)).collect();
+            let elem_tokens: Vec<TokenStream> = elements
+                .iter()
+                .map(|e| generate_expr(e, depth + 1))
+                .collect();
             quote! { vec![#(#elem_tokens),*] }
         }
 
@@ -1024,9 +1008,7 @@ fn generate_expr(expr: &AnalyzedExpr, depth: usize) -> TokenStream {
             quote! { #func_ident(#(#arg_tokens),*) }
         }
 
-        AnalyzedExprKind::BinOp { op, left, right } => {
-            generate_bin_op(*op, left, right, depth + 1)
-        }
+        AnalyzedExprKind::BinOp { op, left, right } => generate_bin_op(*op, left, right, depth + 1),
 
         AnalyzedExprKind::UnaryOp { op, operand } => {
             match op {
