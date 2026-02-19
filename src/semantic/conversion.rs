@@ -1091,66 +1091,71 @@ fn detect_enum_variant(
     None
 }
 
-/// Extract value from assembled statement
-///
-/// This function looks at the fields of the [`AssembledStatement`] and tries
-/// to extract a single meaningful value from it. It prioritizes different kinds
-/// of expressions in the following order:
-///
-/// 1. **Unwraps**: `expr!`
-/// 2. **Enum Variants**: `Some(val)`, `Ok(val)`, `None` (on subject or nominatives)
-/// 3. **Property Access**: `user.name`
-/// 4. **Index Access**: `arr[0]`
-/// 5. **Array Literals**: `[1, 2]`
-/// 6. **Binary Operations**: `1 + 2`
-/// 7. **Literals**: `42`, `"hello"`
-/// 8. **Variables (Object)**: `x`
-///
-/// # Returns
-///
-/// Returns a tuple of `(AnalyzedExpr, GlossaType)`.
-pub fn extract_value(
+// -------------------------------------------------------------------------------------------------
+// Helper functions for extract_value
+// -------------------------------------------------------------------------------------------------
+
+fn extract_unwrap(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
-) -> Result<(AnalyzedExpr, GlossaType), GlossaError> {
-    // Check for unwrap expressions first
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if !asm_stmt.unwraps.is_empty() {
         let inner_analyzed = analyze_argument_expr(&asm_stmt.unwraps[0], scope)?;
-        return Ok((
+        return Ok(Some((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::Unwrap(Box::new(inner_analyzed)),
                 glossa_type: GlossaType::Unknown, // Type will be inferred
             },
             GlossaType::Unknown,
-        ));
+        )));
     }
+    Ok(None)
+}
 
-    // Check subject for Option/Result words
+fn extract_enum_from_subject(
+    asm_stmt: &AssembledStatement,
+    _scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some(ref subj) = asm_stmt.subject
         && let Some(result) = detect_enum_variant(subj, &asm_stmt.literals)
     {
-        return Ok(result);
+        return Ok(Some(result));
     }
+    Ok(None)
+}
 
-    // Check for genitive method call (Subject of Genitive)
+fn extract_genitive_method(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some(result) = try_parse_genitive_method_call(asm_stmt, scope) {
-        return Ok(result);
+        return Ok(Some(result));
     }
+    Ok(None)
+}
 
-    // Check nominatives for Option/Result words
+fn extract_enum_from_nominatives(
+    asm_stmt: &AssembledStatement,
+    _scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     for nom in &asm_stmt.nominatives {
         if let Some(result) = detect_enum_variant(nom, &asm_stmt.literals) {
-            return Ok(result);
+            return Ok(Some(result));
         }
     }
+    Ok(None)
+}
 
-    // If we have property accesses, use the first one
+fn extract_property_access(
+    asm_stmt: &AssembledStatement,
+    _scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some((owner, method)) = asm_stmt.property_accesses.first() {
         let receiver = AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(owner.clone().into()),
             glossa_type: GlossaType::Unknown,
         };
-        return Ok((
+        return Ok(Some((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
                     receiver: Box::new(receiver),
@@ -1160,14 +1165,19 @@ pub fn extract_value(
                 glossa_type: GlossaType::Number,
             },
             GlossaType::Number,
-        ));
+        )));
     }
+    Ok(None)
+}
 
-    // If we have index accesses, use the first one
+fn extract_index_access(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some((array_expr, index_expr)) = asm_stmt.index_accesses.first() {
         let array_analyzed = analyze_argument_expr(array_expr, scope)?;
         let index_analyzed = analyze_argument_expr(index_expr, scope)?;
-        return Ok((
+        return Ok(Some((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::IndexAccess {
                     array: Box::new(array_analyzed),
@@ -1176,10 +1186,15 @@ pub fn extract_value(
                 glossa_type: GlossaType::Unknown, // Element type is unknown without inference
             },
             GlossaType::Unknown,
-        ));
+        )));
     }
+    Ok(None)
+}
 
-    // If we have arrays, use the first array
+fn extract_array(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some(array_elements) = asm_stmt.arrays.first() {
         let mut analyzed_elements = Vec::with_capacity(array_elements.len());
         for e in array_elements {
@@ -1190,16 +1205,21 @@ pub fn extract_value(
             .first()
             .map(|e| e.glossa_type.clone())
             .unwrap_or(GlossaType::Unknown);
-        return Ok((
+        return Ok(Some((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
                 glossa_type: GlossaType::List(Box::new(element_type)),
             },
             GlossaType::List(Box::new(GlossaType::Unknown)),
-        ));
+        )));
     }
+    Ok(None)
+}
 
-    // If we have operators, build a binary expression
+fn extract_binary_op(
+    asm_stmt: &AssembledStatement,
+    _scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if !asm_stmt.operators.is_empty() {
         // Check if we can build from literals alone (2+ literals)
         if asm_stmt.literals.len() >= 2 {
@@ -1207,7 +1227,7 @@ pub fn extract_value(
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
             if let Some(expr) = exprs.into_iter().next() {
                 let ty = expr.glossa_type.clone();
-                return Ok((expr, ty));
+                return Ok(Some((expr, ty)));
             }
         }
 
@@ -1224,114 +1244,118 @@ pub fn extract_value(
             let op = asm_stmt.operators[0];
             let bin_expr = build_binary_expr(left, op, right);
             let ty = bin_expr.glossa_type.clone();
-            return Ok((bin_expr, ty));
+            return Ok(Some((bin_expr, ty)));
         }
     }
+    Ok(None)
+}
 
-    // Prefer literals (single value, no operators)
+fn extract_literal(
+    asm_stmt: &AssembledStatement,
+    _scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some(lit) = asm_stmt.literals.first() {
-        return Ok((literal_to_analyzed_expr(lit), literal_to_type(lit)));
+        return Ok(Some((literal_to_analyzed_expr(lit), literal_to_type(lit))));
     }
+    Ok(None)
+}
 
-    // Otherwise use object
+fn extract_enum_from_object(
+    asm_stmt: &AssembledStatement,
+    _scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some(ref obj) = asm_stmt.object {
-        // Check both lemma and original form
+        return Ok(detect_enum_variant(obj, &asm_stmt.literals));
+    }
+    Ok(None)
+}
+
+fn extract_object_fallback(
+    asm_stmt: &AssembledStatement,
+    _scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
+    if let Some(ref obj) = asm_stmt.object {
         let obj_lemma = normalize_greek(&obj.lemma);
-        let obj_original = normalize_greek(&obj.original);
-
-        // Check for None (οὐδέν)
-        if crate::morphology::lexicon::is_none_word(&obj_lemma)
-            || crate::morphology::lexicon::is_none_word(&obj_original)
-        {
-            return Ok((
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::None,
-                    glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
-                },
-                GlossaType::Option(Box::new(GlossaType::Unknown)),
-            ));
-        }
-
-        // Check for Some (τί) with a value
-        if crate::morphology::lexicon::is_some_word(&obj_lemma)
-            || crate::morphology::lexicon::is_some_word(&obj_original)
-        {
-            // Get the inner value from literals
-            if let Some(lit) = asm_stmt.literals.first() {
-                let inner_expr = literal_to_analyzed_expr(lit);
-                let inner_type = inner_expr.glossa_type.clone();
-                return Ok((
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Some(Box::new(inner_expr)),
-                        glossa_type: GlossaType::Option(Box::new(inner_type.clone())),
-                    },
-                    GlossaType::Option(Box::new(inner_type)),
-                ));
-            }
-        }
-
-        // Check for Ok (ἐπιτυχία) with a value
-        if crate::morphology::lexicon::is_ok_word(&obj_lemma)
-            || crate::morphology::lexicon::is_ok_word(&obj_original)
-        {
-            // Get the inner value from literals
-            if let Some(lit) = asm_stmt.literals.first() {
-                let inner_expr = literal_to_analyzed_expr(lit);
-                let inner_type = inner_expr.glossa_type.clone();
-                // LIMITATION: Error type defaults to String. See nominatives section for explanation.
-                return Ok((
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Ok(Box::new(inner_expr)),
-                        glossa_type: GlossaType::Result(
-                            Box::new(inner_type.clone()),
-                            Box::new(GlossaType::String),
-                        ),
-                    },
-                    GlossaType::Result(Box::new(inner_type), Box::new(GlossaType::String)),
-                ));
-            }
-        }
-
-        // Check for Err (σφάλμα) with a value
-        if crate::morphology::lexicon::is_err_word(&obj_lemma)
-            || crate::morphology::lexicon::is_err_word(&obj_original)
-        {
-            // Get the error value from literals
-            if let Some(lit) = asm_stmt.literals.first() {
-                let inner_expr = literal_to_analyzed_expr(lit);
-                let inner_type = inner_expr.glossa_type.clone();
-                // LIMITATION: Success type defaults to Unknown. See nominatives section for explanation.
-                return Ok((
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Err(Box::new(inner_expr)),
-                        glossa_type: GlossaType::Result(
-                            Box::new(GlossaType::Unknown),
-                            Box::new(inner_type.clone()),
-                        ),
-                    },
-                    GlossaType::Result(Box::new(GlossaType::Unknown), Box::new(inner_type)),
-                ));
-            }
-        }
 
         // Check if it's a numeral word
         if let Some(value) = crate::morphology::lexicon::numeral_value(&obj_lemma) {
-            return Ok((
+            return Ok(Some((
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::NumberLiteral(value),
                     glossa_type: GlossaType::Number,
                 },
                 GlossaType::Number,
-            ));
+            )));
         }
 
-        return Ok((
+        return Ok(Some((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             },
             GlossaType::Unknown,
-        ));
+        )));
+    }
+    Ok(None)
+}
+
+/// Extract value from assembled statement
+///
+/// This function looks at the fields of the [`AssembledStatement`] and tries
+/// to extract a single meaningful value from it. It prioritizes different kinds
+/// of expressions in the following order:
+///
+/// 1. **Unwraps**: `expr!`
+/// 2. **Enum Variants**: `Some(val)`, `Ok(val)`, `None` (on subject or nominatives)
+/// 3. **Genitive Methods**: `owner.method`
+/// 4. **Property Access**: `user.name`
+/// 5. **Index Access**: `arr[0]`
+/// 6. **Array Literals**: `[1, 2]`
+/// 7. **Binary Operations**: `1 + 2`
+/// 8. **Object Enum Variants**: `Some(val)`, `Ok(val)`, `None` (on object) - *Prioritized over literals*
+/// 9. **Literals**: `42`, `"hello"`
+/// 10. **Variables (Object)**: `x`
+///
+/// # Returns
+///
+/// Returns a tuple of `(AnalyzedExpr, GlossaType)`.
+pub fn extract_value(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<(AnalyzedExpr, GlossaType), GlossaError> {
+    if let Some(res) = extract_unwrap(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_enum_from_subject(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_genitive_method(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_enum_from_nominatives(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_property_access(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_index_access(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_array(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_binary_op(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    // Fix: Check object for enum variants BEFORE literals to avoid shadowing Some(literal) by literal
+    if let Some(res) = extract_enum_from_object(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_literal(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_object_fallback(asm_stmt, scope)? {
+        return Ok(res);
     }
 
     // Default

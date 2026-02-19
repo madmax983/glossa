@@ -1,6 +1,41 @@
 //! Error handling for ΓΛΩΣΣΑ
 //!
-//! Provides Greek error messages with miette integration.
+//! This module implements the "Errors as Dialogue" philosophy. In ΓΛΩΣΣΑ, errors are not
+//! just debug traces; they are the compiler speaking to you in Ancient Greek.
+//!
+//! # Philosophy: The Strict Grammaticus
+//!
+//! The compiler acts as a strict Ancient Greek teacher ("Grammaticus"). When you make a mistake,
+//! it doesn't just say "Type Error". It says:
+//!
+//! > *«Τὸ «ἄνθρωπος» (ὀνομαστική) οὐ συμφωνεῖ τῷ «λέγουσι» (πληθυντικός)»*
+//! > (The "man" (nominative) does not agree with "they say" (plural))
+//!
+//! This immersion helps users internalize the grammar of the language.
+//!
+//! # Error Categories
+//!
+//! Errors are categorized by the phase of compilation:
+//!
+//! 1. **Σύνταξις (Syntax)**: The words are not in a valid order (Parsing).
+//! 2. **Σημασία (Semantics)**: The words make sense individually but not together (Analysis).
+//! 3. **Συναρμογή (Assembly)**: The Subject, Verb, and Object do not agree (Agreement).
+//! 4. **Ὄνομα (Name)**: A variable or function name is unknown.
+//! 5. **Κῶδιξ (Codegen)**: An error occurred while generating Rust code.
+//!
+//! # Recovery Guide
+//!
+//! If you encounter an error, here is how to interpret it:
+//!
+//! * **Ἀσυμφωνία (Disagreement)**: Check your Case and Number.
+//!   - Did you use a Plural Verb with a Singular Subject?
+//!   - Did you use an Adjective that doesn't match the Gender of the Noun?
+//!
+//! * **Διπλοῦν ... (Double ...)**: You have too many words for one slot.
+//!   - `Διπλοῦν ὑποκείμενον`: You have two Subjects (Nominative nouns).
+//!   - `Διπλοῦν ῥῆμα`: You have two Verbs.
+//!
+//! * **Οὐκ οἶδα τὸ ὄνομα**: You are using a variable that hasn't been defined with `ἔστω`.
 
 #![allow(unused_assignments)]
 
@@ -14,8 +49,15 @@ use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 /// Main error type for ΓΛΩΣΣΑ
+///
+/// This enum aggregates all possible errors from the compiler pipeline.
+/// It implements [`miette::Diagnostic`] to provide pretty-printed error reports with
+/// source code snippets and labels.
 #[derive(Debug, Clone, Error, Diagnostic)]
 pub enum GlossaError {
+    /// **Syntax Error**: The parser failed to understand the code structure.
+    ///
+    /// This usually means a missing period `.`, unmatched braces `{}`, or invalid characters.
     #[error("Σφάλμα συντάξεως: {message}")]
     #[diagnostic(code(glossa::parse))]
     ParseError {
@@ -28,26 +70,46 @@ pub enum GlossaError {
         span: Option<SourceSpan>,
     },
 
+    /// **Semantic Error**: The code is syntactically valid but semantically meaningless.
+    ///
+    /// Examples include invalid type conversions, recursion limits, or logical paradoxes.
     #[error("Σφάλμα σημασίας: {message}")]
     #[diagnostic(code(glossa::semantic))]
     SemanticError { message: String },
 
+    /// **Undefined Name**: You tried to use a variable or function that doesn't exist.
+    ///
+    /// Remember to define variables with `ἔστω` (let be) before using them.
     #[error("Ἄγνωστον ὄνομα: {name}")]
     #[diagnostic(code(glossa::undefined))]
     UndefinedName { name: String },
 
+    /// **Agreement Error**: Grammatical agreement failed.
+    ///
+    /// In Greek, the Subject must agree with the Verb in Person and Number.
+    /// Adjectives must agree with Nouns in Gender, Number, and Case.
     #[error("Σφάλμα συμφωνίας: {message}")]
     #[diagnostic(code(glossa::agreement))]
     AgreementError { message: String },
 
+    /// **Codegen Error**: Failed to generate valid Rust code.
+    ///
+    /// This is an internal error indicating the transpiler produced invalid output.
     #[error("Σφάλμα κώδικος: {message}")]
     #[diagnostic(code(glossa::codegen))]
     CodegenError { message: String },
 
+    /// **Limit Exceeded**: Resource exhaustion protection.
+    ///
+    /// To prevent Denial of Service (DoS) attacks or infinite loops during compilation,
+    /// we limit the depth of recursion and number of elements.
     #[error("Ὑπέρβασις ὀρίου: {resource} ({max})")]
     #[diagnostic(code(glossa::limit_exceeded))]
     LimitExceeded { resource: String, max: usize },
 
+    /// **Assembly Error**: The semantic assembler failed to build a valid sentence.
+    ///
+    /// This includes "Double Subject", "Missing Verb", and other sentence-structure errors.
     #[error(transparent)]
     #[diagnostic(transparent)]
     AssemblyError(#[from] assembly::AssemblyError),
@@ -63,7 +125,7 @@ impl GlossaError {
         }
     }
 
-    /// Create a parse error with source
+    /// Create a parse error with source context
     pub fn parse_with_source(
         message: impl Into<String>,
         src: impl Into<String>,
@@ -102,7 +164,7 @@ impl GlossaError {
         }
     }
 
-    /// Get the Greek error category
+    /// Get the Greek category name for this error
     pub fn category_greek(&self) -> &'static str {
         match self {
             GlossaError::ParseError { .. } => "Σύνταξις",

@@ -7,3 +7,7 @@
 ## 2024-05-24 - The Koronis subtlety
 **Confusion:** The Greek Koronis (`᾽`, U+1FBD) looks like a breathing mark but behaves like a letter in some contexts. `normalize_greek` treats it as a modifier letter and preserves it, resulting in identifiers like `_u1fbd_` in generated code.
 **Clarification:** Documented this behavior in `src/text.rs` and added a doctest to explicitly demonstrate it. Users should be aware that `᾽` is significant in identifiers.
+
+## 2024-05-25 - The Integration Test Boundary
+**Confusion:** Developers often try to write tests for `pub(crate)` functions in the `tests/` directory, causing compilation errors like `function is private`.
+**Clarification:** `tests/` treats the crate as an external dependency, so it can only access `pub` items. Internal logic tests must live inside the `src/` directory (e.g., in a `mod tests` block). I moved `regression_operator_drop.rs` into `src/semantic/expressions.rs` to fix this.
