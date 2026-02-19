@@ -5,9 +5,6 @@ use glossa::tools::mosaic::run_mosaic_on_source;
 #[test]
 fn test_mosaic_output_structure() {
     // "ὁ ἄνθρωπος τὸν ἄνθρωπον λέγει."
-    // Note: Due to lexicon limitations and heuristic overlaps, "ἄνθρωπον" is currently
-    // analyzed as a Participle rather than an Accusative Noun in this context.
-    // The Mosaic tool correctly visualizes this internal state.
     let source = "ὁ ἄνθρωπος τὸν ἄνθρωπον λέγει.";
     let mut buffer = Vec::new();
 
@@ -198,4 +195,28 @@ fn test_mosaic_file_read_error() {
     let path = std::path::PathBuf::from("non_existent_file_for_coverage_test.gl");
     let result = glossa::tools::mosaic::run_mosaic(&path);
     assert!(result.is_err());
+}
+
+#[test]
+fn test_mosaic_string_literal() {
+    let source = "«χαῖρε» λέγε.";
+    let mut buffer = Vec::new();
+
+    run_mosaic_on_source(source, &mut buffer).expect("Mosaic run failed");
+    let output = String::from_utf8(buffer).unwrap();
+
+    assert!(output.contains("Literal (String)"));
+    assert!(output.contains("«χαῖρε»"));
+}
+
+#[test]
+fn test_mosaic_boolean_literal() {
+    let source = "ἀληθές λέγε.";
+    let mut buffer = Vec::new();
+
+    run_mosaic_on_source(source, &mut buffer).expect("Mosaic run failed");
+    let output = String::from_utf8(buffer).unwrap();
+
+    assert!(output.contains("Literal (Boolean)"));
+    assert!(output.contains("true"));
 }
