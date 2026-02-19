@@ -26,7 +26,7 @@ use crate::morphology::{self, DisambiguationContext, analyze_article, disambigua
 /// # Examples
 ///
 /// ```
-/// use glossa::semantic::{Scope, AnalyzedExprKind};
+/// use glossa::semantic::{Scope, AnalyzedExprKind, GlossaType};
 /// use glossa::semantic::expressions::analyze_argument_expr;
 /// use glossa::ast::{Expr, Word};
 ///
@@ -36,11 +36,25 @@ use crate::morphology::{self, DisambiguationContext, analyze_article, disambigua
 /// let expr = Expr::NumberLiteral(42);
 /// let analyzed = analyze_argument_expr(&expr, &scope).unwrap();
 /// assert!(matches!(analyzed.expr, AnalyzedExprKind::NumberLiteral(42)));
+/// assert_eq!(analyzed.glossa_type, GlossaType::Number);
+///
+/// // Analyze a variable (must be in scope)
+/// let mut scope_with_var = Scope::new();
+/// scope_with_var.define("x", GlossaType::Number);
+/// let var_expr = Expr::Word(Word::new("x"));
+/// let var_analyzed = analyze_argument_expr(&var_expr, &scope_with_var).unwrap();
+/// assert!(matches!(var_analyzed.expr, AnalyzedExprKind::Variable(name) if name == "x"));
 /// ```
 pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
     analyze_argument_expr_recursive(expr, scope, 0)
 }
 
+/// Maximum recursion depth for expression analysis
+///
+/// This limit exists to prevent stack overflow errors (or DoS attacks) when analyzing
+/// deeply nested expressions like `((((...))))`.
+///
+/// If recursion depth exceeds this value (50), the compiler returns a [`GlossaError::SemanticError`].
 pub const MAX_RECURSION_DEPTH: usize = 50;
 
 fn analyze_argument_expr_recursive(
@@ -1142,5 +1156,37 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.to_string().contains("Recursion limit exceeded"));
+    }
+}
+
+#[cfg(test)]
+mod regression_tests {
+    use super::*;
+    use crate::morphology::lexicon::BinaryOp;
+
+    #[test]
+    fn test_dropped_operator_regression() {
+        // Case: 1 + 2 +
+        // Literals: [1, 2]
+        // Operators: [Add, Add]
+        // Expected: Should return Error due to insufficient literals
+
+        let literals = vec![Literal::Number(1), Literal::Number(2)];
+        let operators = vec![BinaryOp::Add, BinaryOp::Add];
+
+        let result = build_expressions_from_literals_and_ops(&literals, &operators);
+
+        assert!(
+            result.is_err(),
+            "Expected error for dangling operator, got {:?}",
+            result
+        );
+
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("Insufficient literals"),
+            "Unexpected error message: {}",
+            err
+        );
     }
 }
