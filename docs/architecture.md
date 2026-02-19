@@ -34,7 +34,7 @@ C4Container
     Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
     Container(narrator, "Narrator", "src/tools/narrator.rs", "Generates English narrative from AST")
     Container(report, "Reporter", "src/report.rs", "Generates statistics and structured reports")
-    Container(codegen, "Code Generator", "src/codegen", "Generates Rust source code")
+    Container(codegen, "Code Generator", "src/codegen.rs", "Generates Rust source code")
 
     Rel(lexer, parser, "Stream<Token>")
     Rel(parser, morphology, "AST (Unresolved)")
@@ -54,7 +54,9 @@ C4Component
     title Component Diagram for Semantic Analysis
 
     Container_Boundary(semantic, "Semantic Analysis") {
-        Component(declarations, "Declarations", "src/semantic/declarations.rs", "Analyzes Types, Traits, Functions, Tests")
+        Component(statements, "Statements", "src/semantic/statements.rs", "Analyzes Control Flow and Declarations")
+        Component(expressions, "Expressions", "src/semantic/expressions.rs", "Recursively analyzes nested expressions")
+        Component(resolver, "Resolver", "src/semantic/resolver.rs", "Manages Scope and Bindings")
         Component(assembler, "Assembler", "src/semantic/assembler.rs", "Routes words to slots based on Case (Nom, Acc, Dat)")
         Component(converter, "Converter", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs (Iterators, Structs)")
@@ -63,10 +65,20 @@ C4Component
 
     Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
 
-    Rel(declarations, model, "Produces AnalyzedStatement")
+    Rel(statements, model, "Produces AnalyzedStatement")
+    Rel(statements, expressions, "Analyzes conditions")
+    Rel(statements, resolver, "Defines Symbols")
+
     Rel(morphology, assembler, "Feeds MorphAnalysis")
+
+    Rel(assembler, expressions, "Feeds sub-expressions")
     Rel(assembler, converter, "Produces AssembledStatement")
+
     Rel(converter, patterns, "Delegates complex patterns")
-    Rel(patterns, model, "Produces AnalyzedStatement")
+    Rel(converter, resolver, "Lookups Symbols")
     Rel(converter, model, "Produces AnalyzedStatement")
+
+    Rel(expressions, resolver, "Lookups Symbols")
+
+    Rel(patterns, model, "Produces AnalyzedStatement")
 ```
