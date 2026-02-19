@@ -9,19 +9,16 @@
 
 ## The Philosophy
 
-In modern languages, meaning is determined by word order: `func(a, b)` is different from `func(b, a)`.
-In Ancient Greek, meaning is determined by **case endings**.
+In modern languages, meaning is enslaved by position. `func(a, b)` means something entirely different from `func(b, a)`, purely because of where the words sit. This is a tyranny of order.
 
-ΓΛΩΣΣΑ embraces this paradigm:
+In Ancient Greek, meaning is liberated by **morphology**. A word's ending tells you its role.
+* **-ος** (Nominative) says "I am the subject."
+* **-ον** (Accusative) says "I am the object."
+* **-ει** (Verb) says "He/She/It does."
 
-* **Nominative Case** (-ος, -η, -α) marks the **Subject** (Agent).
-* **Accusative Case** (-ον, -ην, -αν) marks the **Object** (Patient).
-* **Verb Endings** (-ω, -ει, -ετε) encode Person, Number, and Aspect.
-
-This allows for **Free Word Order**:
+ΓΛΩΣΣΑ embraces this freedom. The following lines of code are identical to the compiler:
 
 ```glossa
-// All of these are identical:
 ὁ ἄνθρωπος τὸν λόγον λέγει.  // The man says the word.
 τὸν λόγον λέγει ὁ ἄνθρωπος.  // The word says the man.
 λέγει ὁ ἄνθρωπος τὸν λόγον.  // Says the man the word.
@@ -29,26 +26,81 @@ This allows for **Free Word Order**:
 
 ## Quick Start: The Hero's Journey
 
-Here is a simple program that defines a user struct and greets them.
+### Chapter 1: The Definition (Variables)
+
+In ΓΛΩΣΣΑ, we define reality with `ἔστω` ("let there be").
 
 ```glossa
-// Define a type (struct)
+// Let x be 10.
+ξ 10 ἔστω.
+
+// Let name be "Socrates".
+ὄνομα «Σωκράτης» ἔστω.
+```
+
+### Chapter 2: The Action (Functions)
+
+Verbs drive the action. We use the imperative mood for commands.
+
+```glossa
+// Say "Hello"
+«χαῖρε» λέγε.
+
+// Say the name (using the variable from Chapter 1)
+ὄνομα λέγε.
+```
+
+### Chapter 3: The Structure (Types)
+
+We define the shape of our world with `εἶδος` (form/type).
+
+```glossa
+// Define a User type
 εἶδος Χρήστης ὁρίζειν {
-    ὄνομα ὀνόματος.      // field: String
-    ἡλικία ἀριθμοῦ.   // field: i64
+    ὄνομα ὀνόματος.    // String
+    ἡλικία ἀριθμοῦ. // i64
 }.
 
-// Create a new user instance
-// "user" (nominative) "new" (adjective) "User" (type) ...
+// Create an instance
 χρήστης νέον Χρήστης
-    «Σωκράτης»
-    70
+    «Πλάτων»
+    80
 ἔστω.
-
-// Access property and print
-// "of the user" (genitive) "name" (nominative) "say" (verb)
-χρήστου ὄνομα λέγε.
 ```
+
+### Chapter 4: The Logic (Control Flow)
+
+We guide the flow of fate with `εἰ` (if) and `διὰ` (through/for).
+
+```glossa
+// If age is greater than 50...
+εἰ ἡλικία 50 μεῖζον ᾖ,
+    «σοφός» λέγε.
+```
+
+## Rosetta Stone
+
+A guide for travelers from other lands.
+
+| Concept | Rust / Python | ΓΛΩΣΣΑ | Literal Meaning |
+|---------|---------------|--------|-----------------|
+| **Variable** | `let x = 5;` | `ξ 5 ἔστω.` | "Let x be 5." |
+| **Print** | `println!("Hi");` | `«χαῖρε» λέγε.` | "Say 'Hi'." |
+| **If** | `if x > 0 { ... }` | `εἰ ξ 0 μεῖζον ᾖ, ...` | "If x [is] greater than 0..." |
+| **Loop** | `for x in list { ... }` | `διὰ λίστης, ξ λέγε.` | "Through list, say x." |
+| **Function** | `fn foo() { ... }` | `... ὁρίζειν ...` | "To define..." |
+| **Struct** | `struct User { ... }` | `εἶδος Χρήστης ...` | "Form User..." |
+
+## Troubleshooting
+
+The compiler speaks to you in Greek. Do not fear it; learn from it.
+
+| Error Message | Translation | What it means | How to fix |
+|---------------|-------------|---------------|------------|
+| **Ἀσυμφωνία** | Disagreement | Subject/Verb mismatch | Check if your Noun is Singular but Verb is Plural. |
+| **Διπλοῦν ὑποκείμενον** | Double Subject | Two Nominatives | You have two subjects (e.g., "The man the god says"). Remove one. |
+| **Οὐκ οἶδα τὸ ὄνομα** | I don't know the name | Undefined variable | Define the variable with `ἔστω` before using it. |
+| **Ῥῆμα οὐχ εὑρέθη** | Verb not found | Missing verb | Every sentence needs a verb (action). Add one. |
 
 ## Running Code
 
@@ -56,24 +108,6 @@ To run a ΓΛΩΣΣΑ file (e.g., `hero.γλ`), use `cargo run`:
 
 ```bash
 cargo run --release -- hero.γλ
-```
-
-## Control Flow
-
-### Conditionals
-
-```glossa
-ξ 10 ἔστω.
-εἰ ξ πέντε μεῖζον ᾖ,
-    «μείζον» λέγε.
-```
-
-### Loops
-
-```glossa
-// Iterate through a collection
-α [1, 2, 3] ἔστω.
-διὰ α, β λέγε.  // For each beta in alpha, say beta
 ```
 
 ## Features
@@ -87,44 +121,6 @@ cargo run --release -- hero.γλ
 - **Functions**: First-class functions with Greek verb syntax
 - **Testing Framework**: Native test declarations with assertion verbs (δοκιμή, δεῖ, ἰσοῦται)
 - **Morphological Analysis**: Full Greek morphology parsing
-
-## Testing
-
-GLOSSA provides native test declarations using idiomatic Greek verbs:
-
-```glossa
-δοκιμή «HashMap insert and contains».
-    χ νέον χάρτης ἔστω.
-    χ 2 0 τίθησι.
-
-    2 ἐν χ δεῖ.        // assert!(chi.contains_key(&2))
-τέλος.
-
-δοκιμή «equality check».
-    κ 5 ἔστω.
-    κ 5 ἰσοῦται.      // assert_eq!(kappa, 5)
-τέλος.
-```
-
-**Assertion Verbs:**
-- **δεῖ** - "it is necessary" → `assert!(condition)`
-- **ἰσοῦται** - "equals" → `assert_eq!(left, right)`
-
-Tests transpile to Rust `#[test]` functions and can be run with standard Rust tools.
-
-### Running Glossa Tests
-
-To run tests written in Glossa (e.g., `my_tests.γλ`):
-
-1. Build the file to generate Rust code:
-   ```bash
-   cargo run --release -- build my_tests.γλ
-   ```
-
-2. Compile and run the generated Rust test harness:
-   ```bash
-   rustc --test my_tests.rs && ./my_tests
-   ```
 
 ## Compiler Development
 
