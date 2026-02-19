@@ -14,5 +14,9 @@ fn test_dos_sigma_normalization() {
 
     // Performance assertion (sanity check for DoS regression)
     // 20k sigmas should take well under 100ms on any modern machine if linear
-    assert!(duration.as_millis() < 500, "Normalization took too long: {:?} (Should be linear)", duration);
+    assert!(
+        duration.as_millis() < 500,
+        "Normalization took too long: {:?} (Should be linear)",
+        duration
+    );
 }
