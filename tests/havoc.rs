@@ -1,5 +1,5 @@
-use glossa::parser::parse_greek_numeral;
 use glossa::parser::parse;
+use glossa::parser::parse_greek_numeral;
 use proptest::prelude::*;
 
 proptest! {

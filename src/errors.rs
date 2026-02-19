@@ -338,6 +338,27 @@ mod tests {
     fn test_category_greek() {
         let err = GlossaError::semantic("test");
         assert_eq!(err.category_greek(), "Σημασία");
+
+        let err = GlossaError::parse("test");
+        assert_eq!(err.category_greek(), "Σύνταξις");
+
+        let err = GlossaError::undefined("test");
+        assert_eq!(err.category_greek(), "Ὄνομα");
+
+        let err = GlossaError::agreement("test");
+        assert_eq!(err.category_greek(), "Συμφωνία");
+
+        let err = GlossaError::codegen("test");
+        assert_eq!(err.category_greek(), "Κῶδιξ");
+
+        let err = GlossaError::LimitExceeded {
+            resource: "test".into(),
+            max: 10,
+        };
+        assert_eq!(err.category_greek(), "Όριον");
+
+        let err = GlossaError::AssemblyError(AssemblyError::DoubleSubject);
+        assert_eq!(err.category_greek(), "Συναρμογή");
     }
 
     #[test]
