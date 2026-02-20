@@ -150,7 +150,21 @@ pub fn sanitize_name(name: &str) -> String {
     // This prevents collisions between single letters and their full names
     // e.g. "σ" (sigma) vs "σίγμα" (sigma)
     // Prefix with "g_" to namespace all user-defined identifiers and avoid collisions with Rust keywords
-    format!("g_{}", transliterate(name))
+    //
+    // Optimization: We pre-allocate and write directly to avoid intermediate String allocation.
+    // 2 chars for "g_", plus heuristic for name (assuming some expansion)
+    let mut result = String::with_capacity(2 + name.len() * 2);
+    result.push_str("g_");
+    transliterate_into(name, &mut result);
+
+    // If name is empty, we have "g_".
+    // Previously transliterate("") returned "_var_empty", so sanitize_name returned "g__var_empty".
+    // We maintain this behavior.
+    if name.is_empty() {
+        result.push_str("_var_empty");
+    }
+
+    result
 }
 
 /// Transliterate Greek to Latin characters via Hex Encoding
@@ -178,9 +192,33 @@ pub fn sanitize_name(name: &str) -> String {
 /// assert_eq!(transliterate("φιλοσοφια"), "_u3c6__u3b9__u3bb__u3bf__u3c3__u3bf__u3c6__u3b9__u3b1_");
 /// ```
 pub fn transliterate(greek: &str) -> String {
-    let mut result = String::new();
+    if greek.is_empty() {
+        return "_var_empty".to_string();
+    }
 
-    for c in greek.chars() {
+    // Optimization: Check if we need to prepend '_' if result would start with a digit.
+    // Since only ASCII alphanumeric pass through as-is, and hex-encoded chars start with '_',
+    // the only case where result starts with digit is if input starts with ASCII digit.
+    let starts_numeric = greek
+        .chars()
+        .next()
+        .map(|c| c.is_ascii_digit())
+        .unwrap_or(false);
+
+    let mut result = String::with_capacity(greek.len() * 2 + if starts_numeric { 1 } else { 0 });
+
+    if starts_numeric {
+        result.push('_');
+    }
+
+    transliterate_into(greek, &mut result);
+
+    result
+}
+
+/// Helper to transliterate directly into a buffer
+fn transliterate_into(text: &str, result: &mut String) {
+    for c in text.chars() {
         // We now hex-encode ALL Greek characters to avoid collisions with ASCII.
         // Previously, 'ξ' mapped to 'x', causing collision with ASCII 'x'.
         // Now, 'ξ' maps to '_u3be_', which is distinct from 'x' (which stays 'x').
@@ -191,22 +229,6 @@ pub fn transliterate(greek: &str) -> String {
             use std::fmt::Write;
             write!(result, "_u{:x}_", c as u32).unwrap();
         }
-    }
-
-    // Ensure it starts with a letter or underscore (valid Rust identifier)
-    if result.is_empty() {
-        return "_var_empty".to_string();
-    }
-
-    if result
-        .chars()
-        .next()
-        .map(|c| c.is_numeric())
-        .unwrap_or(false)
-    {
-        format!("_{}", result)
-    } else {
-        result
     }
 }
 
