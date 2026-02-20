@@ -770,6 +770,16 @@ pub fn analyze_type_definition(
     // Extract type name
     let type_name = type_def.name.normalized.clone();
 
+    // Define placeholder to allow recursive reference
+    scope.define_type(
+        type_name.clone(),
+        GlossaType::Struct {
+            name: type_name.clone(),
+            gender: crate::morphology::Gender::Neuter,
+            fields: vec![],
+        },
+    );
+
     // Analyze fields
     let mut fields = Vec::new();
     for field in &type_def.fields {
@@ -778,6 +788,15 @@ pub fn analyze_type_definition(
 
         // Map genitive type names to GlossaType
         let field_type = resolve_type_name(type_name_gen, scope);
+
+        // Check for infinite recursion
+        if check_recursive_type(&type_name, &field_type) {
+            return Err(GlossaError::semantic(format!(
+                "Recursive type detected: field '{}' uses type '{}' directly. Use a collection (List) or Box for indirection.",
+                field_name, type_name
+            )));
+        }
+
         fields.push((field_name, field_type));
     }
 
@@ -788,13 +807,26 @@ pub fn analyze_type_definition(
         fields: fields.clone(),
     };
 
-    // Store the type in scope
+    // Store the type in scope (update placeholder)
     scope.define_type(type_name.clone(), struct_type);
 
     Ok(AnalyzedStatement::TypeDefinition {
         name: type_name,
         fields,
     })
+}
+
+/// Check if a type contains the target type recursively without indirection
+fn check_recursive_type(target_name: &str, ty: &GlossaType) -> bool {
+    match ty {
+        GlossaType::Struct { name, .. } => name == target_name,
+        GlossaType::Option(inner) => check_recursive_type(target_name, inner),
+        GlossaType::Result(ok, err) => {
+            check_recursive_type(target_name, ok) || check_recursive_type(target_name, err)
+        }
+        // List, Set, Map break recursion
+        _ => false,
+    }
 }
 
 /// Analyze a trait definition statement
