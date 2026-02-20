@@ -63,7 +63,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
 
-    let mut status = Status::start("Δοκιμασία (Testing)");
+    let mut status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
 
     // 2. Compilation (Lex -> Parse -> Analyze -> Codegen)
     let source = fs::read_to_string(input).into_diagnostic()?;
