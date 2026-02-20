@@ -1,12 +1,9 @@
-
 use glossa::errors::{
     AssemblyError, GlossaError, case_mismatch, gender_mismatch, immutable_assignment,
     number_mismatch, undefined_variable,
 };
 use glossa::morphology::{Case, Gender, Number};
-use glossa::semantic::{
-    AssembledStatement, Constituent, GlossaType, detect_collection_type,
-};
+use glossa::semantic::{AssembledStatement, Constituent, GlossaType, detect_collection_type};
 use smol_str::SmolStr;
 
 #[test]
@@ -41,15 +38,9 @@ fn test_errors_coverage() {
     // Test helper messages
     assert!(undefined_variable("x").contains("Οὐκ οἶδα"));
     assert!(immutable_assignment("x").contains("ἀμετάβλητόν"));
-    assert!(
-        gender_mismatch("a", Gender::Masculine, "b", Gender::Feminine).contains("οὐ συμφωνεῖ")
-    );
-    assert!(
-        number_mismatch("a", Number::Singular, "b", Number::Plural).contains("οὐ συμφωνεῖ")
-    );
-    assert!(
-        case_mismatch("a", Case::Nominative, "b", Case::Accusative).contains("οὐ συμφωνεῖ")
-    );
+    assert!(gender_mismatch("a", Gender::Masculine, "b", Gender::Feminine).contains("οὐ συμφωνεῖ"));
+    assert!(number_mismatch("a", Number::Singular, "b", Number::Plural).contains("οὐ συμφωνεῖ"));
+    assert!(case_mismatch("a", Case::Nominative, "b", Case::Accusative).contains("οὐ συμφωνεῖ"));
 }
 
 #[test]
