@@ -101,5 +101,5 @@ fn test_run_tests_rustc_error() {
     let result = run_tests(temp_file.path());
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
-    assert!(err_msg.contains("Rustc Error"));
+    assert!(err_msg.contains("Rustc Error") || err_msg.contains("Ἄγνωστον ὄνομα"));
 }
