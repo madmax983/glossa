@@ -51,6 +51,10 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Start the interactive tutorial (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Mentor,
+
     /// Compile a .γλ file to Rust source
     Build {
         /// Input file (.γλ)
