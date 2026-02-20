@@ -329,31 +329,47 @@ pub enum Expr {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinOperator {
     // Arithmetic
-    Add, // ἄθροισμα
-    Sub, // διαφορά
-    Mul, // γινόμενον
-    Div, // μέρος
-    Mod, // ὑπόλοιπον
+    /// Addition (sum) - `ἄθροισμα`
+    Add,
+    /// Subtraction (difference) - `διαφορά`
+    Sub,
+    /// Multiplication (product) - `γινόμενον`
+    Mul,
+    /// Division (quotient/part) - `μέρος`
+    Div,
+    /// Modulo (remainder) - `ὑπόλοιπον`
+    Mod,
 
     // Comparison
-    Eq, // ἴσον
-    Ne, // ἄνισον
-    Lt, // ἔλαττον
-    Le, // ἔλαττον ἢ ἴσον
-    Gt, // μεῖζον
-    Ge, // μεῖζον ἢ ἴσον
+    /// Equality - `ἴσον`
+    Eq,
+    /// Inequality - `ἄνισον`
+    Ne,
+    /// Less than - `ἔλαττον`
+    Lt,
+    /// Less than or equal - `ἔλαττον ἢ ἴσον`
+    Le,
+    /// Greater than - `μεῖζον`
+    Gt,
+    /// Greater than or equal - `μεῖζον ἢ ἴσον`
+    Ge,
 
     // Boolean
-    And, // καί
-    Or,  // ἤ
+    /// Logical AND - `καί`
+    And,
+    /// Logical OR - `ἤ`
+    Or,
 }
 
 /// Unary operators in GLOSSA
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOperator {
-    Not,    // οὐ/οὐκ/οὐχ - logical negation
-    Neg,    // arithmetic negation
-    Unwrap, // ! - confident extraction from Option/Result
+    /// Logical Negation - `οὐ`, `οὐκ`, `οὐχ`
+    Not,
+    /// Arithmetic Negation
+    Neg,
+    /// Unwrap (Extract value) - `!` suffix
+    Unwrap,
 }
 
 /// A Greek word with original and normalized forms

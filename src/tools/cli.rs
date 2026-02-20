@@ -1,3 +1,32 @@
+//! Command Line Interface (CLI) definition
+//!
+//! This module defines the structure of the command-line arguments and subcommands
+//! using the [`clap`] crate. It serves as the entry point for user interaction
+//! with the compiler.
+//!
+//! # The Interface
+//!
+//! The CLI supports several distinct workflows:
+//!
+//! * **Execution**: `run` (default) compiles and executes a program.
+//! * **Compilation**: `build` only compiles to a binary.
+//! * **Development**: `check` verifies syntax/semantics, `highlight` shows colors.
+//! * **Learning**: `lookup` explains words, `bard` tells the story of the code.
+//! * **Interactive**: `repl` starts the Read-Eval-Print Loop.
+//!
+//! # Example Usage
+//!
+//! ```bash
+//! # Run a file
+//! glossa run main.gl
+//!
+//! # Just check for errors
+//! glossa check main.gl
+//!
+//! # Look up a word
+//! glossa lookup "λόγον"
+//! ```
+
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
