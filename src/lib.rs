@@ -25,7 +25,7 @@
 //!
 //! The compiler follows a standard multi-pass architecture, but with a unique "Assembler" phase:
 //!
-//! 1. **Parsing** ([`parser::grammar`]):
+//! 1. **Parsing** ([`parser`]):
 //!    * Uses a PEG grammar to tokenize the input.
 //!    * Normalizes polytonic Greek (with accents/breathings) to monotonic forms using [`text`].
 //!
@@ -95,10 +95,9 @@
 //! * [`ast`]: **The Skeleton** - Abstract Syntax Tree definitions that preserve the original Greek text.
 //! * [`codegen`]: **The Translator** - Logic that turns Greek semantics into Rust code.
 //! * [`errors`]: **The Oracle** - Greek-native error messages and diagnostics using `miette`.
-//! * [`parser::grammar`]: **The Gatekeeper** - PEG parser that defines the valid syntax.
+//! * [`parser`]: **The Gatekeeper** - PEG parser that defines the valid syntax.
 //! * [`highlight`]: **The Scribe** - Semantic syntax highlighting for the CLI.
 //! * [`morphology`]: **The Analyst** - Word analysis, lexicon lookup, and participle parsing.
-//! * [`parser`]: **The Builder** - Constructs the AST from the raw parse tree.
 //! * [`tools::report`]: **The Chronicler** - Report generation and statistics.
 //! * [`semantic`]: **The Assembler** - The slot-based engine that assembles sentences from words.
 //! * [`text`]: **The Sizer** - Text utilities and normalization (polytonic -> monotonic).

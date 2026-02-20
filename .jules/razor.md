@@ -72,3 +72,23 @@
 **Bloat:** `src/experimental/bard.rs` was a fully functional tool hidden in an "experimental" module.
 **Cut:** Promoted to `src/tools/narrator.rs` and deleted `src/experimental`.
 **Saved:** 1 folder, 2 files, clearer project structure.
+
+## [Reduction]
+**Bloat:** Directory wrappers (`src/ast/`, `src/codegen/`) containing only `mod.rs`.
+**Cut:** Flattened to `src/ast.rs` and `src/codegen.rs`.
+**Saved:** 2 folders, simplified imports.
+
+## [Reduction]
+**Bloat:** `src/errors/` split into `mod.rs`, `assembly.rs`, `messages.rs` unnecessarily.
+**Cut:** Merged into `src/errors.rs`.
+**Saved:** 1 folder, 2 files, removed redundant submodules.
+
+## [Reduction]
+**Bloat:** `src/parser/` spread across 4 files (`mod.rs`, `grammar.rs`, `numerals.rs`, `recursion.rs`).
+**Cut:** Consolidated into `src/parser.rs` and `src/parser.pest`.
+**Saved:** 1 folder, 3 files, unified parsing logic.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly_model.rs` separated data structures from their only consumer, `assembler.rs`.
+**Cut:** Merged `assembly_model.rs` into `src/semantic/assembler.rs`.
+**Saved:** 1 file, improved cohesion.
