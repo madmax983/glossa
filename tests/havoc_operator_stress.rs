@@ -18,7 +18,10 @@ fn test_stack_overflow_in_drop() {
     let ast = parse(&s).expect("Failed to parse");
 
     println!("Analyzing...");
-    println!("Size of AnalyzedExpr: {}", std::mem::size_of::<glossa::semantic::AnalyzedExpr>());
+    println!(
+        "Size of AnalyzedExpr: {}",
+        std::mem::size_of::<glossa::semantic::AnalyzedExpr>()
+    );
 
     // This should fail with LimitExceeded, but then panic during Drop
     let result = analyze_program(&ast);
@@ -29,7 +32,7 @@ fn test_stack_overflow_in_drop() {
             println!("Analysis FAILED (expected): {:?}", e);
             match e {
                 glossa::errors::GlossaError::AssemblyError(
-                    glossa::semantic::AssemblyError::LimitExceeded { resource, max }
+                    glossa::semantic::AssemblyError::LimitExceeded { resource, max },
                 ) => {
                     assert_eq!(resource, "Operators");
                     assert_eq!(*max, 256);

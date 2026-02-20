@@ -22,14 +22,16 @@ fn test_elif_chain_stack_overflow() {
         // Else if chained with middle dot
         s.push_str(" · εἰ 1, 1");
     }
-    s.push_str(".");
+    s.push('.');
 
     println!("Parsing {} elif clauses...", n);
     // Parsing should succeed (flat structure)
     let ast = parse(&s).expect("Failed to parse");
-    println!("Parsed {} statements. First statement has {} clauses.",
-             ast.statements.len(),
-             ast.statements[0].clauses().len());
+    println!(
+        "Parsed {} statements. First statement has {} clauses.",
+        ast.statements.len(),
+        ast.statements[0].clauses().len()
+    );
 
     println!("Analyzing...");
     // This should NOT Stack Overflow anymore. It should return LimitExceeded.
