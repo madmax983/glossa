@@ -54,19 +54,29 @@ C4Component
     title Component Diagram for Semantic Analysis
 
     Container_Boundary(semantic, "Semantic Analysis") {
-        Component(declarations, "Declarations", "src/semantic/declarations.rs", "Analyzes Types, Traits, Functions, Tests")
-        Component(assembler, "Assembler", "src/semantic/assembler.rs", "Routes words to slots based on Case (Nom, Acc, Dat)")
-        Component(converter, "Converter", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
-        Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs (Iterators, Structs)")
-        Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
+        Component(statements, "Statements", "src/semantic/statements.rs", "Analyzes Declarations & Control Flow")
+        Component(expressions, "Expressions", "src/semantic/expressions.rs", "Recursive Expression Analysis")
+        Component(resolver, "Resolver", "src/semantic/resolver.rs", "Scope & Name Resolution")
+        Component(assembler, "Assembler", "src/semantic/assembler.rs", "Routes words to slots (SVO)")
+        Component(converter, "Converter", "src/semantic/conversion.rs", "Converts Slots to Statements")
+        Component(patterns, "Patterns", "src/semantic/patterns.rs", "Identifies complex patterns")
+        Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR")
     }
 
-    Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
+    Container(morphology, "Morphology", "src/morphology", "Lexicon & Analysis")
 
-    Rel(declarations, model, "Produces AnalyzedStatement")
-    Rel(morphology, assembler, "Feeds MorphAnalysis")
+    Rel(statements, resolver, "Defines Names")
+    Rel(statements, expressions, "Uses (Conditions/Values)")
+    Rel(statements, assembler, "Uses (Simple Stmts)")
+    Rel(statements, converter, "Uses (After Assembly)")
+    Rel(statements, model, "Produces AnalyzedStatement")
+
+    Rel(expressions, resolver, "Lookups")
+    Rel(expressions, assembler, "Feeds (Recursion)")
+
+    Rel(assembler, morphology, "Uses Analysis")
     Rel(assembler, converter, "Produces AssembledStatement")
-    Rel(converter, patterns, "Delegates complex patterns")
-    Rel(patterns, model, "Produces AnalyzedStatement")
+
+    Rel(converter, patterns, "Delegates")
     Rel(converter, model, "Produces AnalyzedStatement")
 ```
