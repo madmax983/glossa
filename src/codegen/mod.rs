@@ -1299,6 +1299,23 @@ mod tests {
         assert_eq!(sanitize_name("foo"), "g_foo");
     }
 
+    #[test]
+    fn test_sanitize_edge_cases() {
+        // Test empty strings
+        assert_eq!(sanitize_name(""), "g__var_empty");
+        assert_eq!(transliterate(""), "_var_empty");
+
+        // Test numeric start
+        // sanitize_name adds "g_", so "123" becomes "g_123"
+        assert_eq!(sanitize_name("123"), "g_123");
+
+        // transliterate handles numeric start by prepending "_"
+        assert_eq!(transliterate("123"), "_123");
+
+        // Test numeric start mixed
+        assert_eq!(transliterate("1a"), "_1a");
+    }
+
     // --- Types Tests ---
 
     #[test]
