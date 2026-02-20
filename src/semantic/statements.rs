@@ -1246,3 +1246,61 @@ pub fn analyze_test_declaration(
         body: analyzed_body,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_check_recursive_type() {
+        let target = "Target";
+
+        // Direct recursion: Target == Target
+        let direct = GlossaType::Struct {
+            name: "Target".into(),
+            gender: crate::morphology::Gender::Neuter,
+            fields: vec![],
+        };
+        assert!(check_recursive_type(target, &direct));
+
+        // Non-recursive struct
+        let other = GlossaType::Struct {
+            name: "Other".into(),
+            gender: crate::morphology::Gender::Neuter,
+            fields: vec![],
+        };
+        assert!(!check_recursive_type(target, &other));
+
+        // Option recursion: Option<Target>
+        let opt_rec = GlossaType::Option(Box::new(direct.clone()));
+        assert!(check_recursive_type(target, &opt_rec));
+
+        // Option non-recursion: Option<Other>
+        let opt_non_rec = GlossaType::Option(Box::new(other.clone()));
+        assert!(!check_recursive_type(target, &opt_non_rec));
+
+        // Result recursion (Ok): Result<Target, Other>
+        let res_ok_rec = GlossaType::Result(Box::new(direct.clone()), Box::new(other.clone()));
+        assert!(check_recursive_type(target, &res_ok_rec));
+
+        // Result recursion (Err): Result<Other, Target>
+        let res_err_rec = GlossaType::Result(Box::new(other.clone()), Box::new(direct.clone()));
+        assert!(check_recursive_type(target, &res_err_rec));
+
+        // Result non-recursion: Result<Other, Other>
+        let res_non_rec = GlossaType::Result(Box::new(other.clone()), Box::new(other.clone()));
+        assert!(!check_recursive_type(target, &res_non_rec));
+
+        // List breaks recursion: List<Target> -> Safe (Vec is heap allocated)
+        let list_rec = GlossaType::List(Box::new(direct.clone()));
+        assert!(!check_recursive_type(target, &list_rec));
+
+        // Set breaks recursion
+        let set_rec = GlossaType::Set(Box::new(direct.clone()));
+        assert!(!check_recursive_type(target, &set_rec));
+
+        // Map breaks recursion
+        let map_rec = GlossaType::Map(Box::new(direct.clone()), Box::new(other.clone()));
+        assert!(!check_recursive_type(target, &map_rec));
+    }
+}
