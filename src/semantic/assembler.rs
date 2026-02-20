@@ -94,7 +94,7 @@
 //! ```
 
 use crate::ast::{Expr, Word};
-pub use crate::errors::assembly::AssemblyError;
+pub use crate::errors::AssemblyError;
 use crate::morphology::lexicon::BinaryOp;
 use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person};
 use crate::semantic::assembly_model::{

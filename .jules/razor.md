@@ -72,3 +72,23 @@
 **Bloat:** `src/experimental/bard.rs` was a fully functional tool hidden in an "experimental" module.
 **Cut:** Promoted to `src/tools/narrator.rs` and deleted `src/experimental`.
 **Saved:** 1 folder, 2 files, clearer project structure.
+
+## [Reduction]
+**Bloat:** `src/ast/mod.rs` as single file in directory.
+**Cut:** Moved to `src/ast.rs`.
+**Saved:** Removed unnecessary directory nesting.
+
+## [Reduction]
+**Bloat:** `src/codegen/mod.rs` as single file in directory.
+**Cut:** Moved to `src/codegen.rs`.
+**Saved:** Removed unnecessary directory nesting.
+
+## [Reduction]
+**Bloat:** `src/errors/` with `mod.rs`, `assembly.rs`, `messages.rs`.
+**Cut:** Flattened into `src/errors.rs`.
+**Saved:** Removed module indirection, simplified error handling structure.
+
+## [Reduction]
+**Bloat:** `src/semantic/types.rs` separate from `src/semantic/model.rs`.
+**Cut:** Merged `types.rs` into `model.rs`.
+**Saved:** Unified data model definition, reduced file count.

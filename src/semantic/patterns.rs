@@ -197,7 +197,7 @@ pub fn try_parse_struct_instantiation(
 
             // Check for built-in collection types first (HashSet, HashMap)
             if let Some((rust_type, glossa_type)) =
-                crate::semantic::types::detect_collection_type(type_name)
+                crate::semantic::detect_collection_type(type_name)
             {
                 let collection_new = AnalyzedExpr {
                     expr: AnalyzedExprKind::CollectionNew {
