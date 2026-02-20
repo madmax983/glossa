@@ -16,11 +16,20 @@ use std::process::{Command, Stdio};
 /// Maximum source file size (1MB) to prevent memory exhaustion
 const MAX_FILE_SIZE: u64 = 1024 * 1024;
 
+/// Parse and semantically analyze a source string
+///
+/// This helper runs the first two phases of the compiler pipeline:
+/// 1. **Parsing**: Converts source text to AST
+/// 2. **Semantic Analysis**: Resolves names, types, and statement structure
 fn analyze_source(source: &str) -> Result<AnalyzedProgram> {
     let ast = parse(source).map_err(|e| miette::miette!("{}", e))?;
     analyze_program(&ast).map_err(|e| miette::miette!("{}", e))
 }
 
+/// Compile a source string directly to Rust code
+///
+/// Runs the full pipeline: Parse -> Analyze -> Codegen.
+/// Returns the generated Rust source code as a string.
 fn compile(source: &str) -> Result<String> {
     let analyzed = analyze_source(source)?;
     Ok(generate_rust_file(&analyzed))
@@ -76,6 +85,18 @@ fn load_source(input: &Path) -> Result<String> {
     Ok(content)
 }
 
+/// Build a ΓΛΩΣΣΑ file to Rust source (without running it)
+///
+/// This function executes the compiler pipeline up to the code generation phase
+/// and writes the resulting Rust code to a file (defaulting to `input.rs`).
+///
+/// # Steps
+///
+/// 1. **Load**: Reads the source file (with size limits).
+/// 2. **Analyze**: Parses and performs semantic analysis.
+/// 3. **Codegen**: Generates valid Rust code.
+/// 4. **Write**: Saves the Rust code to the output path.
+/// 5. **Report**: Prints a compilation report with statistics.
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🏗️");
     let start = std::time::Instant::now();
@@ -114,19 +135,19 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
 /// Compile and run a ΓΛΩΣΣΑ file
 ///
-/// This is the main entry point for the `run` command. It handles the full pipeline:
-/// 1. **Validation**: Checks file existence and size limits.
-/// 2. **Caching**: Checks if a compiled binary already exists for this source file.
-///    The cache key is based on the file path and content hash.
-/// 3. **Compilation**: If not cached, runs the full compiler pipeline (Lex -> Parse -> Analyze -> Codegen).
-/// 4. **Build**: Invokes `rustc` to compile the generated Rust code into a native binary.
-/// 5. **Execution**: Runs the resulting binary.
+/// This is the "all-in-one" command that developers use most often.
+/// It orchestrates the entire lifecycle of a program from Greek source to execution.
 ///
-/// # Caching Strategy
+/// # The Pipeline
 ///
-/// To speed up repeated runs, we cache the compiled binary in the system's cache directory
-/// (e.g., `~/.cache/glossa`). If the source file hasn't changed, we skip compilation
-/// and run the cached binary directly.
+/// 1. **Validation**: Checks file existence and strict size limits to prevent DoS.
+/// 2. **Caching**: Calculates a hash of the input. If a binary exists for this hash,
+///    compilation is skipped entirely (The "Hot Path").
+/// 3. **Compilation**: Runs the ΓΛΩΣΣΑ compiler to produce Rust source code.
+/// 4. **Build**: Invokes `rustc` (the Rust compiler) to produce a native executable.
+///    This inherits Rust's optimizations (set to `-O` level).
+/// 5. **Execution**: Spawns the resulting binary as a child process, inheriting
+///    stdin/stdout/stderr so it feels like a native script.
 pub fn run_file(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
