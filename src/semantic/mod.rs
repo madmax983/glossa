@@ -34,7 +34,6 @@
 pub mod assembler;
 #[cfg(test)]
 mod assembler_tests;
-pub(crate) mod assembly_model;
 pub(crate) mod conversion;
 #[cfg(test)]
 mod conversion_tests;
@@ -43,15 +42,12 @@ pub(crate) mod model;
 pub(crate) mod patterns;
 mod resolver;
 pub(crate) mod statements;
-mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub(crate) use assembler::Assembler;
-pub use assembler::AssemblyError;
-pub use assembly_model::{AssembledStatement, Constituent, Literal};
+pub use assembler::{AssembledStatement, AssemblyError, Constituent, Literal};
 pub use model::*;
 pub use resolver::*;
-pub use types::*;
 
 use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
