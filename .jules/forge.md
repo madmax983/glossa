@@ -13,3 +13,7 @@
 **Refactoring `src/parser.rs`**
 **Learning:** Moving complex validation logic like recursion depth checking into its own module (`parser/recursion.rs`) keeps the main parser file focused on AST construction.
 **Action:** Identify large, standalone validation functions and extract them to dedicated modules, even if they are only used in one place, to reduce cognitive load in the main file.
+
+**Refactoring `generate_expr` in `src/codegen/mod.rs`**
+**Learning:** Grouping helper functions by category (Simple, Complex, Control Flow) makes the main dispatch function (`generate_expr`) trivial to read and significantly reduces cognitive load when navigating the file.
+**Action:** When extracting logic from large match statements, group the extracted helpers into logical sections within the file to maintain navigability.

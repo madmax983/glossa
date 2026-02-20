@@ -848,151 +848,59 @@ fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
 
 fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
     match &expr.expr {
-        AnalyzedExprKind::StringLiteral(s) => {
-            quote! { #s }
-        }
+        AnalyzedExprKind::StringLiteral(s) => generate_literal_string(s),
 
-        AnalyzedExprKind::NumberLiteral(n) => {
-            quote! { #n }
-        }
+        AnalyzedExprKind::NumberLiteral(n) => generate_literal_number(*n),
 
-        AnalyzedExprKind::BooleanLiteral(b) => {
-            quote! { #b }
-        }
+        AnalyzedExprKind::BooleanLiteral(b) => generate_literal_boolean(*b),
 
-        AnalyzedExprKind::ArrayLiteral(elements) => {
-            let elem_tokens: Vec<TokenStream> = elements.iter().map(generate_expr).collect();
-            quote! { vec![#(#elem_tokens),*] }
-        }
+        AnalyzedExprKind::ArrayLiteral(elements) => generate_collection_array(elements),
 
-        AnalyzedExprKind::Some(inner) => {
-            let inner_tokens = generate_expr(inner);
-            quote! { Some(#inner_tokens) }
-        }
+        AnalyzedExprKind::Some(inner) => generate_variant_some(inner),
 
-        AnalyzedExprKind::None => {
-            quote! { None }
-        }
+        AnalyzedExprKind::None => generate_variant_none(),
 
-        AnalyzedExprKind::Ok(inner) => {
-            let inner_tokens = generate_expr(inner);
-            quote! { Ok(#inner_tokens) }
-        }
+        AnalyzedExprKind::Ok(inner) => generate_variant_ok(inner),
 
-        AnalyzedExprKind::Err(inner) => {
-            let inner_tokens = generate_expr(inner);
-            quote! { Err(#inner_tokens) }
-        }
+        AnalyzedExprKind::Err(inner) => generate_variant_err(inner),
 
-        AnalyzedExprKind::Try(inner) => {
-            let inner_tokens = generate_expr(inner);
-            quote! { #inner_tokens? }
-        }
+        AnalyzedExprKind::Try(inner) => generate_control_try(inner),
 
-        AnalyzedExprKind::Unwrap(inner) => {
-            let inner_tokens = generate_expr(inner);
-            quote! { #inner_tokens.unwrap() }
-        }
+        AnalyzedExprKind::Unwrap(inner) => generate_control_unwrap(inner),
 
-        AnalyzedExprKind::IndexAccess { array, index } => {
-            let array_tokens = generate_expr(array);
-            let index_tokens = generate_expr(index);
-            // Safety check for negative index
-            quote! {
-                {
-                    let idx = #index_tokens;
-                    if idx < 0 {
-                        panic!("Negative index access: {}", idx);
-                    }
-                    #array_tokens[idx as usize]
-                }
-            }
-        }
+        AnalyzedExprKind::IndexAccess { array, index } => generate_collection_index(array, index),
 
-        AnalyzedExprKind::Variable(name) => {
-            let name_ident = format_ident!("{}", sanitize_name(name));
-            quote! { #name_ident }
-        }
+        AnalyzedExprKind::Variable(name) => generate_variable(name),
 
         AnalyzedExprKind::PropertyAccess { owner, property } => {
-            let obj = generate_expr(owner);
-            let field_ident = format_ident!("{}", sanitize_name(property));
-            quote! { #obj.#field_ident }
+            generate_property_access(owner, property)
         }
 
         AnalyzedExprKind::MethodCall {
             receiver,
             method,
             args,
-        } => {
-            let recv = generate_expr(receiver);
-
-            // Check if this is a standard library method call on a standard type
-            let method_ident = if is_std_method(method) && is_std_type(&receiver.glossa_type) {
-                // Use the raw method name (e.g., "len", "push")
-                format_ident!("{}", method.as_str())
-            } else {
-                // Sanitize (prefix with g_) for user-defined methods
-                format_ident!("{}", sanitize_name(method))
-            };
-
-            let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-            quote! { #recv.#method_ident(#(#arg_tokens),*) }
-        }
+        } => generate_method_call(receiver, method, args),
 
         AnalyzedExprKind::TraitMethodCall {
             receiver,
             method_name,
             args,
             ..
-        } => {
-            // Treat as regular method call
-            let recv = generate_expr(receiver);
-            let method_ident = format_ident!("{}", sanitize_name(method_name));
-            let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-            quote! { #recv.#method_ident(#(#arg_tokens),*) }
-        }
+        } => generate_trait_method_call(receiver, method_name, args),
 
         AnalyzedExprKind::VerbCall { verb, args }
-        | AnalyzedExprKind::FunctionCall { func: verb, args } => {
-            let func_ident = format_ident!("{}", sanitize_name(verb));
-            let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-            quote! { #func_ident(#(#arg_tokens),*) }
-        }
+        | AnalyzedExprKind::FunctionCall { func: verb, args } => generate_function_call(verb, args),
 
         AnalyzedExprKind::BinOp { op, left, right } => generate_bin_op(*op, left, right),
 
-        AnalyzedExprKind::UnaryOp { op, operand } => {
-            match op {
-                UnaryOp::Not => {
-                    let operand_tokens = generate_expr(operand);
-                    // Standard Rust logical not or bitwise not
-                    quote! { !#operand_tokens }
-                }
-                UnaryOp::Neg => {
-                    let operand_tokens = generate_expr(operand);
-                    quote! { -#operand_tokens }
-                }
-                UnaryOp::Ref => {
-                    let operand_tokens = generate_expr(operand);
-                    quote! { &#operand_tokens }
-                }
-            }
-        }
+        AnalyzedExprKind::UnaryOp { op, operand } => generate_unary_op(*op, operand),
 
         AnalyzedExprKind::Range {
             start,
             end,
             inclusive,
-        } => {
-            let start_tokens = generate_expr(start);
-            let end_tokens = generate_expr(end);
-            if *inclusive {
-                quote! { (#start_tokens..=#end_tokens) }
-            } else {
-                quote! { (#start_tokens..#end_tokens) }
-            }
-        }
+        } => generate_range(start, end, *inclusive),
 
         AnalyzedExprKind::StructInstantiation {
             type_name,
@@ -1007,21 +915,12 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
         } => generate_closure(params, body, capture_mode),
 
         AnalyzedExprKind::CollectionNew { collection_type } => {
-            // Generate HashSet::new() or HashMap::new()
-            let type_ident = format_ident!("{}", collection_type);
-            quote! { #type_ident::new() }
+            generate_collection_new(collection_type)
         }
 
-        AnalyzedExprKind::Assert { condition } => {
-            let cond = generate_expr(condition);
-            quote! { assert!(#cond) }
-        }
+        AnalyzedExprKind::Assert { condition } => generate_control_assert(condition),
 
-        AnalyzedExprKind::AssertEq { left, right } => {
-            let left_tokens = generate_expr(left);
-            let right_tokens = generate_expr(right);
-            quote! { assert_eq!(#left_tokens, #right_tokens) }
-        }
+        AnalyzedExprKind::AssertEq { left, right } => generate_control_assert_eq(left, right),
     }
 }
 
@@ -1192,6 +1091,172 @@ fn is_std_type(ty: &GlossaType) -> bool {
             | GlossaType::Unit
             | GlossaType::Unknown
     )
+}
+
+// ==================================================================================
+// EXPRESSION HELPERS (SIMPLE)
+// ==================================================================================
+
+fn generate_literal_string(s: &str) -> TokenStream {
+    quote! { #s }
+}
+
+fn generate_literal_number(n: i64) -> TokenStream {
+    quote! { #n }
+}
+
+fn generate_literal_boolean(b: bool) -> TokenStream {
+    quote! { #b }
+}
+
+fn generate_variable(name: &str) -> TokenStream {
+    let name_ident = format_ident!("{}", sanitize_name(name));
+    quote! { #name_ident }
+}
+
+fn generate_property_access(owner: &AnalyzedExpr, property: &str) -> TokenStream {
+    let obj = generate_expr(owner);
+    let field_ident = format_ident!("{}", sanitize_name(property));
+    quote! { #obj.#field_ident }
+}
+
+fn generate_unary_op(op: UnaryOp, operand: &AnalyzedExpr) -> TokenStream {
+    match op {
+        UnaryOp::Not => {
+            let operand_tokens = generate_expr(operand);
+            quote! { !#operand_tokens }
+        }
+        UnaryOp::Neg => {
+            let operand_tokens = generate_expr(operand);
+            quote! { -#operand_tokens }
+        }
+        UnaryOp::Ref => {
+            let operand_tokens = generate_expr(operand);
+            quote! { &#operand_tokens }
+        }
+    }
+}
+
+fn generate_range(start: &AnalyzedExpr, end: &AnalyzedExpr, inclusive: bool) -> TokenStream {
+    let start_tokens = generate_expr(start);
+    let end_tokens = generate_expr(end);
+    if inclusive {
+        quote! { (#start_tokens..=#end_tokens) }
+    } else {
+        quote! { (#start_tokens..#end_tokens) }
+    }
+}
+
+// ==================================================================================
+// EXPRESSION HELPERS (COMPLEX)
+// ==================================================================================
+
+fn generate_collection_array(elements: &[AnalyzedExpr]) -> TokenStream {
+    let elem_tokens: Vec<TokenStream> = elements.iter().map(generate_expr).collect();
+    quote! { vec![#(#elem_tokens),*] }
+}
+
+fn generate_collection_new(collection_type: &str) -> TokenStream {
+    // Generate HashSet::new() or HashMap::new()
+    let type_ident = format_ident!("{}", collection_type);
+    quote! { #type_ident::new() }
+}
+
+fn generate_collection_index(array: &AnalyzedExpr, index: &AnalyzedExpr) -> TokenStream {
+    let array_tokens = generate_expr(array);
+    let index_tokens = generate_expr(index);
+    // Safety check for negative index
+    quote! {
+        {
+            let idx = #index_tokens;
+            if idx < 0 {
+                panic!("Negative index access: {}", idx);
+            }
+            #array_tokens[idx as usize]
+        }
+    }
+}
+
+fn generate_method_call(
+    receiver: &AnalyzedExpr,
+    method: &str,
+    args: &[AnalyzedExpr],
+) -> TokenStream {
+    let recv = generate_expr(receiver);
+
+    // Check if this is a standard library method call on a standard type
+    let method_ident = if is_std_method(method) && is_std_type(&receiver.glossa_type) {
+        // Use the raw method name (e.g., "len", "push")
+        format_ident!("{}", method)
+    } else {
+        // Sanitize (prefix with g_) for user-defined methods
+        format_ident!("{}", sanitize_name(method))
+    };
+
+    let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+    quote! { #recv.#method_ident(#(#arg_tokens),*) }
+}
+
+fn generate_trait_method_call(
+    receiver: &AnalyzedExpr,
+    method_name: &str,
+    args: &[AnalyzedExpr],
+) -> TokenStream {
+    // Treat as regular method call
+    let recv = generate_expr(receiver);
+    let method_ident = format_ident!("{}", sanitize_name(method_name));
+    let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+    quote! { #recv.#method_ident(#(#arg_tokens),*) }
+}
+
+fn generate_function_call(verb: &str, args: &[AnalyzedExpr]) -> TokenStream {
+    let func_ident = format_ident!("{}", sanitize_name(verb));
+    let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+    quote! { #func_ident(#(#arg_tokens),*) }
+}
+
+// ==================================================================================
+// EXPRESSION HELPERS (CONTROL FLOW)
+// ==================================================================================
+
+fn generate_variant_some(inner: &AnalyzedExpr) -> TokenStream {
+    let inner_tokens = generate_expr(inner);
+    quote! { Some(#inner_tokens) }
+}
+
+fn generate_variant_none() -> TokenStream {
+    quote! { None }
+}
+
+fn generate_variant_ok(inner: &AnalyzedExpr) -> TokenStream {
+    let inner_tokens = generate_expr(inner);
+    quote! { Ok(#inner_tokens) }
+}
+
+fn generate_variant_err(inner: &AnalyzedExpr) -> TokenStream {
+    let inner_tokens = generate_expr(inner);
+    quote! { Err(#inner_tokens) }
+}
+
+fn generate_control_try(inner: &AnalyzedExpr) -> TokenStream {
+    let inner_tokens = generate_expr(inner);
+    quote! { #inner_tokens? }
+}
+
+fn generate_control_unwrap(inner: &AnalyzedExpr) -> TokenStream {
+    let inner_tokens = generate_expr(inner);
+    quote! { #inner_tokens.unwrap() }
+}
+
+fn generate_control_assert(condition: &AnalyzedExpr) -> TokenStream {
+    let cond = generate_expr(condition);
+    quote! { assert!(#cond) }
+}
+
+fn generate_control_assert_eq(left: &AnalyzedExpr, right: &AnalyzedExpr) -> TokenStream {
+    let left_tokens = generate_expr(left);
+    let right_tokens = generate_expr(right);
+    quote! { assert_eq!(#left_tokens, #right_tokens) }
 }
 
 #[cfg(test)]
