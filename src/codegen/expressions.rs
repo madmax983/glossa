@@ -1,7 +1,7 @@
+use super::types::is_std_type;
+use super::utils::{capitalize, sanitize_name};
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, CaptureMode, GlossaType};
-use super::utils::{sanitize_name, capitalize};
-use super::types::is_std_type;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 

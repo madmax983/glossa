@@ -1,5 +1,5 @@
+use super::utils::{capitalize, sanitize_name};
 use crate::semantic::GlossaType;
-use super::utils::{sanitize_name, capitalize};
 
 // ==================================================================================
 // TYPES

@@ -1,10 +1,12 @@
-use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, AnalyzedMethod, GlossaType};
+use super::expressions::{expr_uses_collections, generate_expr};
+use super::types::to_rust_type;
+use super::utils::{capitalize, sanitize_name};
+use crate::semantic::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, GlossaType,
+};
 use crate::text::normalize_greek;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use super::utils::{sanitize_name, capitalize};
-use super::types::to_rust_type;
-use super::expressions::{generate_expr, expr_uses_collections};
 
 /// Generate Rust code for a single analyzed statement
 pub fn generate_statement_code(stmt: &AnalyzedStatement) -> String {

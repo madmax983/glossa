@@ -99,9 +99,9 @@ pub mod statements;
 pub mod types;
 pub mod utils;
 
+use self::statements::{generate_statement, statement_uses_collections};
 use crate::semantic::{AnalyzedProgram, AnalyzedStatement};
 use quote::quote;
-use self::statements::{generate_statement, statement_uses_collections};
 
 // Re-exports for backward compatibility / public API
 pub use self::types::to_rust_type;
