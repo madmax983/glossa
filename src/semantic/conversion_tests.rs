@@ -100,6 +100,85 @@ fn test_extract_literal() {
 }
 
 #[test]
+fn test_extract_binary_op_nominative_and_nominative() {
+    let mut scope = Scope::new();
+    scope.define("a", GlossaType::Number);
+    scope.define("b", GlossaType::Number);
+
+    // Simulate "a + b" where both are nominatives (no Object/Subject used)
+    // Object: None
+    // Nominatives: ["a", "b"]
+    // Operator: "+"
+    let asm_stmt = AssembledStatement {
+        object: None,
+        nominatives: vec![make_constituent("a", "a"), make_constituent("b", "b")],
+        operators: vec![BinaryOp::Add],
+        ..Default::default()
+    };
+
+    let (analyzed, glossa_type) =
+        extract_value(&asm_stmt, &scope).expect("Should extract binary op for nom+nom");
+
+    match analyzed.expr {
+        AnalyzedExprKind::BinOp { left, op, right } => {
+            assert_eq!(op, BinaryOp::Add);
+            if let AnalyzedExprKind::Variable(name) = left.expr {
+                assert_eq!(name, "a");
+            } else {
+                panic!("Left operand should be variable a");
+            }
+            if let AnalyzedExprKind::Variable(name) = right.expr {
+                assert_eq!(name, "b");
+            } else {
+                panic!("Right operand should be variable b");
+            }
+        }
+        _ => panic!("Expected BinOp, got {:?}", analyzed.expr),
+    }
+
+    assert_eq!(glossa_type, GlossaType::Number);
+}
+
+#[test]
+fn test_extract_binary_op_object_and_literal() {
+    let mut scope = Scope::new();
+    scope.define("x", GlossaType::Number);
+
+    // Simulate "x + 5"
+    // Object: "x"
+    // Literal: 5
+    // Operator: "+"
+    let asm_stmt = AssembledStatement {
+        object: Some(make_constituent("x", "x")),
+        literals: vec![Literal::Number(5)],
+        operators: vec![BinaryOp::Add],
+        ..Default::default()
+    };
+
+    let (analyzed, glossa_type) =
+        extract_value(&asm_stmt, &scope).expect("Should extract binary op for obj+lit");
+
+    match analyzed.expr {
+        AnalyzedExprKind::BinOp { left, op, right } => {
+            assert_eq!(op, BinaryOp::Add);
+            if let AnalyzedExprKind::Variable(name) = left.expr {
+                assert_eq!(name, "x");
+            } else {
+                panic!("Left operand should be variable x");
+            }
+            if let AnalyzedExprKind::NumberLiteral(val) = right.expr {
+                assert_eq!(val, 5);
+            } else {
+                panic!("Right operand should be literal 5");
+            }
+        }
+        _ => panic!("Expected BinOp, got {:?}", analyzed.expr),
+    }
+
+    assert_eq!(glossa_type, GlossaType::Number);
+}
+
+#[test]
 fn test_extract_binary_op_object_and_nominative() {
     let mut scope = Scope::new();
     scope.define("x", GlossaType::Number);
