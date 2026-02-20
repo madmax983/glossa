@@ -1218,7 +1218,7 @@ fn extract_array(
 
 fn extract_binary_op(
     asm_stmt: &AssembledStatement,
-    _scope: &Scope,
+    scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if !asm_stmt.operators.is_empty() {
         // Check if we can build from literals alone (2+ literals)
@@ -1231,16 +1231,40 @@ fn extract_binary_op(
             }
         }
 
+        let make_var = |lemma: &smol_str::SmolStr| AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(lemma.clone()),
+            glossa_type: scope.lookup(lemma).cloned().unwrap_or(GlossaType::Unknown),
+        };
+
         // Or check if we can combine object + literal with operator
         if let Some(ref obj) = asm_stmt.object
             && !asm_stmt.literals.is_empty()
         {
             // Build: object op literal
-            let left = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown, // Will be inferred
-            };
+            let left = make_var(&obj.lemma);
             let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+            let op = asm_stmt.operators[0];
+            let bin_expr = build_binary_expr(left, op, right);
+            let ty = bin_expr.glossa_type.clone();
+            return Ok(Some((bin_expr, ty)));
+        }
+
+        // Object + Nominative (e.g. x + y)
+        if let Some(ref obj) = asm_stmt.object
+            && let Some(nom) = asm_stmt.nominatives.first()
+        {
+            let left = make_var(&obj.lemma);
+            let right = make_var(&nom.lemma);
+            let op = asm_stmt.operators[0];
+            let bin_expr = build_binary_expr(left, op, right);
+            let ty = bin_expr.glossa_type.clone();
+            return Ok(Some((bin_expr, ty)));
+        }
+
+        // Nominative + Nominative (e.g. a + b, where both are extra nominatives)
+        if asm_stmt.nominatives.len() >= 2 {
+            let left = make_var(&asm_stmt.nominatives[0].lemma);
+            let right = make_var(&asm_stmt.nominatives[1].lemma);
             let op = asm_stmt.operators[0];
             let bin_expr = build_binary_expr(left, op, right);
             let ty = bin_expr.glossa_type.clone();
