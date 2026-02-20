@@ -15,7 +15,7 @@ use smol_str::SmolStr;
 /// It contains all the semantic components (subject, verb, object, etc.)
 /// extracted from the input stream.
 #[derive(Debug, Clone, Default)]
-pub(crate) struct AssembledStatement {
+pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer
     pub subject: Option<Constituent>,
 
@@ -86,7 +86,7 @@ pub(crate) struct AssembledStatement {
 /// A noun/pronoun constituent with its grammatical info
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub(crate) struct Constituent {
+pub struct Constituent {
     /// The dictionary form
     pub lemma: SmolStr,
 
@@ -109,7 +109,7 @@ pub(crate) struct Constituent {
 /// A verb constituent with its grammatical info
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub(crate) struct VerbConstituent {
+pub struct VerbConstituent {
     /// The dictionary form
     pub lemma: SmolStr,
 
@@ -135,7 +135,7 @@ pub(crate) struct VerbConstituent {
 /// A participle constituent (used for lambdas/closures)
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub(crate) struct ParticipleConstituent {
+pub struct ParticipleConstituent {
     /// The verb stem extracted from the participle
     pub verb_lemma: SmolStr,
     /// Original text as it appeared
@@ -154,7 +154,7 @@ pub(crate) struct ParticipleConstituent {
 
 /// A literal value
 #[derive(Debug, Clone)]
-pub(crate) enum Literal {
+pub enum Literal {
     String(String),
     Number(i64),
     Boolean(bool),

@@ -47,6 +47,11 @@ fn main() -> Result<()> {
             glossa::tools::tester::run_tests(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Mosaic { input }) => {
+            glossa::tools::mosaic::run_mosaic(&input)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

@@ -64,4 +64,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Visualize the assembled sentence structure (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Mosaic {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

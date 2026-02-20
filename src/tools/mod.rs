@@ -2,6 +2,8 @@ pub mod cache;
 pub mod cli;
 pub mod dictionary;
 pub mod highlight;
+#[cfg(feature = "nova")]
+pub mod mosaic;
 pub mod narrator;
 pub mod repl;
 pub mod report;
