@@ -122,6 +122,38 @@ cargo run --release -- hero.γλ
 - **Testing Framework**: Native test declarations with assertion verbs (δοκιμή, δεῖ, ἰσοῦται)
 - **Morphological Analysis**: Full Greek morphology parsing
 
+## Testing
+
+GLOSSA provides native test declarations using idiomatic Greek verbs:
+
+```glossa
+δοκιμή «HashMap insert and contains».
+    χ νέον χάρτης ἔστω.
+    χ 2 0 τίθησι.
+
+    2 ἐν χ δεῖ.        // assert!(chi.contains_key(&2))
+τέλος.
+
+δοκιμή «equality check».
+    κ 5 ἔστω.
+    κ 5 ἰσοῦται.      // assert_eq!(kappa, 5)
+τέλος.
+```
+
+**Assertion Verbs:**
+- **δεῖ** - "it is necessary" → `assert!(condition)`
+- **ἰσοῦται** - "equals" → `assert_eq!(left, right)`
+
+Tests transpile to Rust `#[test]` functions and can be run with standard Rust tools.
+
+### Running Glossa Tests
+
+To run tests written in Glossa (e.g., `my_tests.γλ`):
+
+```bash
+cargo run --release -- test my_tests.γλ
+```
+
 ## Compiler Development
 
 ### Building the Compiler
