@@ -192,3 +192,21 @@ fn test_default_case() {
 
     assert_eq!(glossa_type, GlossaType::Number);
 }
+
+#[test]
+fn test_extract_undefined_variable() {
+    let scope = Scope::new();
+    let asm_stmt = AssembledStatement {
+        object: Some(make_constituent("ἀγνωστος", "αγνωστος")),
+        ..Default::default()
+    };
+
+    let result = extract_value(&asm_stmt, &scope);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    if let crate::errors::GlossaError::UndefinedName { name } = err {
+        assert_eq!(name, "ἀγνωστος");
+    } else {
+        panic!("Expected UndefinedName error");
+    }
+}

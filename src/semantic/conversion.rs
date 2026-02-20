@@ -108,7 +108,7 @@ pub fn classify_assembled_statement(
         return Ok(res);
     }
 
-    classify_expression(asm_stmt)
+    classify_expression(asm_stmt, scope)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -171,6 +171,32 @@ fn classify_property_access_print(
                         property: property.clone(),
                     },
                     glossa_type: GlossaType::Unknown, // TODO: Look up field type
+                };
+
+                return Ok(Some(AnalyzedStatement::Print(vec![prop_access])));
+            }
+        }
+
+        // Fallback: Check if object is the owner (for non-declinable names like "self")
+        if let Some(ref object) = asm_stmt.object
+            && let Some(ref subject) = asm_stmt.subject
+            && asm_stmt.genitives.is_empty()
+        {
+            let owner_lemma = &object.lemma;
+            let property = normalize_greek(&subject.original);
+
+            if let Some(owner_type) = scope.lookup(owner_lemma)
+                && matches!(owner_type, GlossaType::Struct { .. })
+            {
+                let prop_access = AnalyzedExpr {
+                    expr: AnalyzedExprKind::PropertyAccess {
+                        owner: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
+                            glossa_type: owner_type.clone(),
+                        }),
+                        property: property.clone(),
+                    },
+                    glossa_type: GlossaType::Unknown,
                 };
 
                 return Ok(Some(AnalyzedStatement::Print(vec![prop_access])));
@@ -641,13 +667,15 @@ fn classify_equality_assertion(
             let mut right_expr = None;
 
             // Get subject (variable)
-            if let Some(ref subj) = asm_stmt.subject
-                && let Some(var_type) = scope.lookup(&subj.lemma)
-            {
-                left_expr = Some(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                });
+            if let Some(ref subj) = asm_stmt.subject {
+                if let Some(var_type) = scope.lookup(&subj.lemma) {
+                    left_expr = Some(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    });
+                } else {
+                    return Err(GlossaError::undefined(subj.original.clone()));
+                }
             }
 
             // Get literal (expected value)
@@ -772,25 +800,29 @@ fn classify_print(
             let mut args =
                 build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-            if let Some(ref subj) = asm_stmt.subject
-                && let Some(var_type) = scope.lookup(&subj.lemma)
-            {
-                args.insert(
-                    0,
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: var_type.clone(),
-                    },
-                );
+            if let Some(ref subj) = asm_stmt.subject {
+                if let Some(var_type) = scope.lookup(&subj.lemma) {
+                    args.insert(
+                        0,
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                            glossa_type: var_type.clone(),
+                        },
+                    );
+                } else {
+                    return Err(GlossaError::undefined(subj.original.clone()));
+                }
             }
 
-            if let Some(ref obj) = asm_stmt.object
-                && let Some(var_type) = scope.lookup(&obj.lemma)
-            {
-                args.push(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                });
+            if let Some(ref obj) = asm_stmt.object {
+                if let Some(var_type) = scope.lookup(&obj.lemma) {
+                    args.push(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                        glossa_type: var_type.clone(),
+                    });
+                } else {
+                    return Err(GlossaError::undefined(obj.original.clone()));
+                }
             }
 
             return Ok(Some(AnalyzedStatement::Print(args)));
@@ -878,7 +910,10 @@ fn classify_query(
 }
 
 /// Helper: Default expression
-fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatement, GlossaError> {
+fn classify_expression(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<AnalyzedStatement, GlossaError> {
     // Determine if we should attempt to build expressions from literals+operators
     // or if we are in a fallback scenario (using Subject/Object with operators).
     // If literals < operators + 1, build_expressions_from_literals_and_ops will fail.
@@ -900,24 +935,42 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
     if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2 {
         let op = asm_stmt.operators[0];
 
-        let left = asm_stmt.subject.as_ref().map(|subj| AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-            glossa_type: GlossaType::Unknown,
-        });
+        let left = if let Some(ref subj) = asm_stmt.subject {
+            if let Some(var_type) = scope.lookup(&subj.lemma) {
+                Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                })
+            } else {
+                return Err(GlossaError::undefined(subj.original.clone()));
+            }
+        } else {
+            None
+        };
 
         // Try to get right operand from exprs (literal) or object or nominatives
         let right = if let Some(lit_expr) = exprs.first() {
             Some(lit_expr.clone())
         } else if let Some(ref obj) = asm_stmt.object {
-            Some(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            })
+            if let Some(var_type) = scope.lookup(&obj.lemma) {
+                Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                })
+            } else {
+                return Err(GlossaError::undefined(obj.original.clone()));
+            }
+        } else if let Some(nom) = asm_stmt.nominatives.first() {
+            if let Some(var_type) = scope.lookup(&nom.lemma) {
+                Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                })
+            } else {
+                return Err(GlossaError::undefined(nom.original.clone()));
+            }
         } else {
-            asm_stmt.nominatives.first().map(|nom| AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            })
+            None
         };
 
         if let (Some(l), Some(r)) = (left, right) {
@@ -929,15 +982,23 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
-            exprs.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            });
+            if let Some(var_type) = scope.lookup(&subj.lemma) {
+                exprs.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                });
+            } else {
+                return Err(GlossaError::undefined(subj.original.clone()));
+            }
         } else if let Some(ref obj) = asm_stmt.object {
-            exprs.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            });
+            if let Some(var_type) = scope.lookup(&obj.lemma) {
+                exprs.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                });
+            } else {
+                return Err(GlossaError::undefined(obj.original.clone()));
+            }
         }
     }
 
@@ -1272,7 +1333,7 @@ fn extract_enum_from_object(
 
 fn extract_object_fallback(
     asm_stmt: &AssembledStatement,
-    _scope: &Scope,
+    scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some(ref obj) = asm_stmt.object {
         let obj_lemma = normalize_greek(&obj.lemma);
@@ -1288,13 +1349,17 @@ fn extract_object_fallback(
             )));
         }
 
-        return Ok(Some((
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            },
-            GlossaType::Unknown,
-        )));
+        if let Some(var_type) = scope.lookup(&obj.lemma) {
+            return Ok(Some((
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                },
+                var_type.clone(),
+            )));
+        } else {
+            return Err(GlossaError::undefined(obj.original.clone()));
+        }
     }
     Ok(None)
 }

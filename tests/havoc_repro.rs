@@ -17,7 +17,7 @@ proptest! {
             λείτουργος ὁρίζειν · δός {} 0 ἄθροισμα.
 
             // Main
-            λείτουργος λέγε.
+            «done» λέγε.
         ", val);
 
         let ast = parse(&source).unwrap();

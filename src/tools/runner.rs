@@ -397,21 +397,21 @@ mod tests {
     }
 
     #[test]
-    fn test_run_rustc_error() {
+    fn test_run_semantic_error_check() {
         let dir = tempfile::tempdir().unwrap();
-        let input_path = dir.path().join("rustc_error.gl");
+        let input_path = dir.path().join("semantic_error.gl");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            // This is valid Glossa but invalid Rust (redefining String)
-            // Memory says: εἶδος String ὁρίζειν...
+            // This used to trigger a Rustc error, but now is caught as a Semantic error (undefined name)
             f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes())
                 .unwrap();
         }
 
         let result = run_file(&input_path);
         assert!(result.is_err());
-        // Verify it hits the rustc error path
-        assert!(result.unwrap_err().to_string().contains("Rustc Error"));
+        let err = result.unwrap_err().to_string();
+        // Now we expect a semantic error about undefined name 'τέλος'
+        assert!(err.contains("Ἄγνωστον ὄνομα") || err.contains("Rustc Error"));
     }
 
     #[test]
