@@ -38,7 +38,7 @@ pub fn analyze_control_flow(
 
     // Conditional: εἰ/ἐάν condition, body [, εἰ δὲ μή, else_body]
     if lexicon::is_conditional_particle(&normalized) {
-        return parse_conditional(stmt, scope);
+        return parse_conditional(stmt, scope, 0);
     }
 
     // While loop: ἕως condition, body
@@ -571,11 +571,21 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
     Err(GlossaError::semantic("Invalid match pattern"))
 }
 
+const MAX_CONTROL_FLOW_DEPTH: usize = 100;
+
 /// Parse a conditional statement (εἰ/ἐάν)
 fn parse_conditional(
     stmt: &Statement,
     scope: &mut Scope,
+    depth: usize,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if depth > MAX_CONTROL_FLOW_DEPTH {
+        return Err(GlossaError::LimitExceeded {
+            resource: "Control flow depth".into(),
+            max: MAX_CONTROL_FLOW_DEPTH,
+        });
+    }
+
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
             "Conditional needs at least 2 clauses: condition and body",
@@ -636,7 +646,7 @@ fn parse_conditional(
             };
 
             // Recursively parse as a new conditional (which becomes the else body)
-            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope)? {
+            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope, depth + 1)? {
                 Some(vec![elif_analyzed])
             } else {
                 None
