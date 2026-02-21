@@ -797,7 +797,7 @@ pub fn analyze_type_definition(
         let type_name_gen = &field.type_name.normalized;
 
         // Map genitive type names to GlossaType
-        let field_type = resolve_type_name(type_name_gen, scope);
+        let field_type = resolve_type_name(type_name_gen, scope)?;
 
         // Check for infinite recursion
         if check_recursive_type(&type_name, &field_type) {
@@ -1019,22 +1019,25 @@ pub fn analyze_trait_impl(
 }
 
 /// Map a genitive type name to a GlossaType
-pub fn resolve_type_name(name: &str, scope: &Scope) -> GlossaType {
+pub fn resolve_type_name(name: &str, scope: &Scope) -> Result<GlossaType, GlossaError> {
     match name {
         // ἀριθμοῦ (genitive of ἀριθμός) → Number
-        "αριθμου" => GlossaType::Number,
+        "αριθμου" => Ok(GlossaType::Number),
         // ὀνόματος (genitive of ὄνομα) → String
-        "ονοματος" => GlossaType::String,
+        "ονοματος" => Ok(GlossaType::String),
         // λιστης (genitive of λίστα) → List
-        "λιστης" => GlossaType::List(Box::new(GlossaType::Unknown)),
+        "λιστης" => Ok(GlossaType::List(Box::new(GlossaType::Unknown))),
         _ => {
             // Check for user-defined types
             // Strip genitive ending and look up the nominative form
             // For now, just try the name as-is
             if let Some(ty) = scope.lookup_type(name) {
-                ty.clone()
+                Ok(ty.clone())
             } else {
-                GlossaType::Unknown
+                Err(GlossaError::semantic(format!(
+                    "Undefined type: '{}'. Ensure the type is defined before use.",
+                    name
+                )))
             }
         }
     }
@@ -1187,7 +1190,8 @@ fn extract_parameters_from_expr(
                     if next_analysis.case == Some(morphology::Case::Genitive) {
                         // Map genitive type to GlossaType
                         let type_name = &next_word.normalized;
-                        param_type = Some(resolve_type_name(type_name, scope));
+                        // If it looks like a type annotation (genitive), it MUST be a valid type
+                        param_type = Some(resolve_type_name(type_name, scope)?);
                         i += 1; // Skip the type annotation
                     }
                 }

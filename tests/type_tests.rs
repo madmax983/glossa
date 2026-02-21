@@ -111,19 +111,6 @@ fn test_instantiation_with_literals() {
 #[test]
 fn test_instantiation_with_boolean() {
     let source = r#"
-        εἶδος Κατάστασις ὁρίζειν { ενεργός κενόν. }. // Using κενόν as placeholder for boolean if not available? No, let's use valid bool check.
-        // Actually there isn't a "boolean" type keyword in the lexicon explicitly mapped to GlossaType::Boolean yet?
-        // Wait, 'αληθες' maps to true.
-        // Let's assume there is no explicit boolean type name in lexicon yet, but we can verify BooleanLiteral handling.
-        // Or wait, is there a boolean type?
-        // In src/semantic/declarations.rs: map_greek_type_to_glossa only handles Number, String, List.
-        // So we can't define a struct with a boolean field yet properly?
-        // Let's check lexicon.
-        // "αριθμου", "ονοματος", "λιστης".
-        // But the parser supports Expr::BooleanLiteral.
-        // If I use "ἀριθμοῦ" it expects Number.
-        // If I pass a boolean literal to a field expecting Number, it might fail type check later, but here we test PARSING/AST construction.
-
         // Let's try to pass a boolean literal. Even if type doesn't match, we want to exercise the code path in patterns.rs.
         εἶδος Δοκιμή ὁρίζειν { τιμή ἀριθμοῦ. }.
         δ νέον Δοκιμή ἀληθές ἔστω.
