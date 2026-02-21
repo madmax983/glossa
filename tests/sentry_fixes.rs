@@ -1,5 +1,5 @@
 use glossa::parser::parse;
-use glossa::semantic::{analyze_program, AnalyzedExprKind, AnalyzedStatement};
+use glossa::semantic::{AnalyzedExprKind, AnalyzedStatement, analyze_program};
 use glossa::text::normalize_greek;
 
 #[test]
@@ -54,7 +54,7 @@ fn test_equality_object_variable() {
     if let AnalyzedStatement::Expression(exprs) = last_stmt
         && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
     {
-         match (&left.expr, &right.expr) {
+        match (&left.expr, &right.expr) {
             (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
                 // Expect normalized lemmas: "χ" and "τιμη"
                 assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
@@ -88,7 +88,7 @@ fn test_equality_nominative_variable() {
     if let AnalyzedStatement::Expression(exprs) = last_stmt
         && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
     {
-         match (&left.expr, &right.expr) {
+        match (&left.expr, &right.expr) {
             (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
                 assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
             }
@@ -115,13 +115,17 @@ fn test_equality_literal() {
     if let AnalyzedStatement::Expression(exprs) = last_stmt
         && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
     {
-         if let AnalyzedExprKind::Variable(l) = &left.expr {
-             assert_eq!(l, "χ");
-         } else { panic!("Left should be variable"); }
+        if let AnalyzedExprKind::Variable(l) = &left.expr {
+            assert_eq!(l, "χ");
+        } else {
+            panic!("Left should be variable");
+        }
 
-         if let AnalyzedExprKind::NumberLiteral(r) = &right.expr {
-             assert_eq!(*r, 5);
-         } else { panic!("Right should be number"); }
+        if let AnalyzedExprKind::NumberLiteral(r) = &right.expr {
+            assert_eq!(*r, 5);
+        } else {
+            panic!("Right should be number");
+        }
     } else {
         panic!("Expected AssertEq");
     }
@@ -357,7 +361,7 @@ fn test_assertion_contains_fallback_variable() {
         if let AnalyzedExprKind::Variable(name) = &receiver.expr {
             assert_eq!(name, "ψ");
         } else {
-             panic!(
+            panic!(
                 "Expected receiver to be 'ψ' in fallback, got {:?}",
                 receiver
             );
