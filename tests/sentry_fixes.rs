@@ -1,5 +1,5 @@
 use glossa::parser::parse;
-use glossa::semantic::{analyze_program, AnalyzedExprKind, AnalyzedStatement};
+use glossa::semantic::{AnalyzedExprKind, AnalyzedStatement, analyze_program};
 use glossa::text::normalize_greek;
 
 #[test]
@@ -27,7 +27,7 @@ fn test_assertion_equality_variables() {
         // Verify left and right are variables x and y
         match (&left.expr, &right.expr) {
             (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
-                assert!( (l == "χ" && r == "ψ") || (l == "ψ" && r == "χ") );
+                assert!((l == "χ" && r == "ψ") || (l == "ψ" && r == "χ"));
             }
             _ => panic!("Expected variables in AssertEq"),
         }
@@ -54,10 +54,10 @@ fn test_equality_object_variable() {
     if let AnalyzedStatement::Expression(exprs) = last_stmt
         && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
     {
-         match (&left.expr, &right.expr) {
+        match (&left.expr, &right.expr) {
             (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
                 // Expect normalized lemmas: "χ" and "τιμη"
-                assert!( (l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ") );
+                assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
             }
             _ => panic!("Expected variables in AssertEq"),
         }
@@ -88,9 +88,9 @@ fn test_equality_nominative_variable() {
     if let AnalyzedStatement::Expression(exprs) = last_stmt
         && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
     {
-         match (&left.expr, &right.expr) {
+        match (&left.expr, &right.expr) {
             (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
-                assert!( (l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ") );
+                assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
             }
             _ => panic!("Expected variables in AssertEq"),
         }
@@ -154,7 +154,11 @@ fn test_assertion_contains_variables() {
     if let AnalyzedStatement::Expression(exprs) = last_stmt
         && exprs.len() == 1
         && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
-        && let AnalyzedExprKind::MethodCall { receiver, method, args } = &condition.expr
+        && let AnalyzedExprKind::MethodCall {
+            receiver,
+            method,
+            args,
+        } = &condition.expr
     {
         assert!(method == "contains_key" || method == "contains");
         // Receiver should be 'μ' (Map)
