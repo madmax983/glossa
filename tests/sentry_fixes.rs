@@ -1,5 +1,5 @@
 use glossa::parser::parse;
-use glossa::semantic::{AnalyzedExprKind, AnalyzedStatement, analyze_program};
+use glossa::semantic::{analyze_program, AnalyzedExprKind, AnalyzedStatement};
 use glossa::text::normalize_greek;
 
 #[test]
@@ -54,7 +54,7 @@ fn test_equality_object_variable() {
     if let AnalyzedStatement::Expression(exprs) = last_stmt
         && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
     {
-        match (&left.expr, &right.expr) {
+         match (&left.expr, &right.expr) {
             (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
                 // Expect normalized lemmas: "χ" and "τιμη"
                 assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
@@ -88,7 +88,7 @@ fn test_equality_nominative_variable() {
     if let AnalyzedStatement::Expression(exprs) = last_stmt
         && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
     {
-        match (&left.expr, &right.expr) {
+         match (&left.expr, &right.expr) {
             (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
                 assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
             }
@@ -115,19 +115,44 @@ fn test_equality_literal() {
     if let AnalyzedStatement::Expression(exprs) = last_stmt
         && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
     {
-        if let AnalyzedExprKind::Variable(l) = &left.expr {
-            assert_eq!(l, "χ");
-        } else {
-            panic!("Left should be variable");
-        }
+         if let AnalyzedExprKind::Variable(l) = &left.expr {
+             assert_eq!(l, "χ");
+         } else { panic!("Left should be variable"); }
 
-        if let AnalyzedExprKind::NumberLiteral(r) = &right.expr {
-            assert_eq!(*r, 5);
-        } else {
-            panic!("Right should be number");
-        }
+         if let AnalyzedExprKind::NumberLiteral(r) = &right.expr {
+             assert_eq!(*r, 5);
+         } else { panic!("Right should be number"); }
     } else {
         panic!("Expected AssertEq");
+    }
+}
+
+#[test]
+fn test_assertion_equality_literal_no_variables() {
+    // Coverage: Target branch where literal exists but no variables are found (no subject/object/nominative).
+    // "5 ἰσοῦται" (5 equals...) -> Only literal 5. No Subject.
+    // This should fail to produce AssertEq and fallback to expression.
+    let code = "
+    5 ἰσοῦται.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    assert_eq!(result.statements.len(), 1);
+    if let AnalyzedStatement::Expression(exprs) = &result.statements[0] {
+        // Should contain just the literal 5
+        assert_eq!(exprs.len(), 1);
+        if let AnalyzedExprKind::NumberLiteral(n) = &exprs[0].expr {
+            assert_eq!(*n, 5);
+        } else {
+            panic!("Expected NumberLiteral(5)");
+        }
+
+        // Should NOT be AssertEq
+        if matches!(exprs[0].expr, AnalyzedExprKind::AssertEq { .. }) {
+            panic!("Should not generate AssertEq without second operand");
+        }
     }
 }
 
@@ -166,9 +191,6 @@ fn test_assertion_equality_no_variables() {
 fn test_assertion_contains_variables() {
     // Regression test for "Contains assertion defaults to 0"
     // Also tests smart dispatch: Subject=Collection (μ)
-    // "ψ ἐν μ δεῖ"
-    // Subject: μ (Map) -> is_subj_collection=true
-    // Nominatives: ψ (Element) -> element via Nominative branch
     let code = "
     ἔστω ψ 5.
     μ νέον χάρτης ἔστω.
@@ -335,7 +357,7 @@ fn test_assertion_contains_fallback_variable() {
         if let AnalyzedExprKind::Variable(name) = &receiver.expr {
             assert_eq!(name, "ψ");
         } else {
-            panic!(
+             panic!(
                 "Expected receiver to be 'ψ' in fallback, got {:?}",
                 receiver
             );
