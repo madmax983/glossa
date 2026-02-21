@@ -1,7 +1,6 @@
 use glossa::errors::{AssemblyError, GlossaError};
 use glossa::morphology::{Case, Gender, Number, Person};
 use glossa::semantic::{AssembledStatement, Constituent, GlossaType};
-use smol_str::SmolStr;
 
 #[test]
 fn test_glossa_error_display() {
