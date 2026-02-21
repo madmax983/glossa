@@ -1,7 +1,7 @@
 use crate::ast::*;
+use crate::parser::build_statement;
 use crate::parser::common::{ParseError, parse_number_literal};
 use crate::parser::grammar::Rule;
-use crate::parser::build_statement;
 use pest::iterators::Pair;
 
 pub(crate) fn build_expression(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
