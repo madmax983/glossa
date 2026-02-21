@@ -55,7 +55,8 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
 
                 // Extract dependencies (associations)
                 for dep in extract_dependencies(field_type) {
-                    if dep != *name { // Avoid self-reference arrows if desired (or keep them?)
+                    if dep != *name {
+                        // Avoid self-reference arrows if desired (or keep them?)
                         // We only want arrows to other defined structs
                         dependencies.insert((name.to_string(), dep));
                     }
@@ -74,9 +75,22 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
         map.push_str(&format!("    class {} {{\n", name));
         map.push_str("        <<interface>>\n");
         for method in &trait_def.methods {
-             let params_str: Vec<String> = method.params.iter().map(|(n, t)| format!("{}: {}", n, t)).collect();
-             let ret_str = method.return_type.as_ref().map(|t| format!(": {}", t)).unwrap_or_default();
-             map.push_str(&format!("        +{}({}){}\n", method.name, params_str.join(", "), ret_str));
+            let params_str: Vec<String> = method
+                .params
+                .iter()
+                .map(|(n, t)| format!("{}: {}", n, t))
+                .collect();
+            let ret_str = method
+                .return_type
+                .as_ref()
+                .map(|t| format!(": {}", t))
+                .unwrap_or_default();
+            map.push_str(&format!(
+                "        +{}({}){}\n",
+                method.name,
+                params_str.join(", "),
+                ret_str
+            ));
         }
         map.push_str("    }\n");
     }
@@ -84,13 +98,17 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     // 3. Add dependencies (struct field usage)
     // Only include dependencies if the target is actually a defined type/trait in the diagram
     // to avoid arrows to "Unknown" or external things if not modeled.
-    let defined_types: HashSet<String> = program.scope.types().filter_map(|(_, ty)| {
-        if let GlossaType::Struct { name, .. } = ty {
-            Some(name.to_string())
-        } else {
-            None
-        }
-    }).collect();
+    let defined_types: HashSet<String> = program
+        .scope
+        .types()
+        .filter_map(|(_, ty)| {
+            if let GlossaType::Struct { name, .. } = ty {
+                Some(name.to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
 
     let mut sorted_deps: Vec<_> = dependencies.into_iter().collect();
     sorted_deps.sort();
@@ -104,8 +122,16 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     // 4. Add trait implementations
     // Iterate statements to find implementations
     for stmt in &program.statements {
-        if let AnalyzedStatement::TraitImplementation { trait_name, type_name, .. } = stmt {
-             map.push_str(&format!("    {} <|.. {} : implements\n", trait_name, type_name));
+        if let AnalyzedStatement::TraitImplementation {
+            trait_name,
+            type_name,
+            ..
+        } = stmt
+        {
+            map.push_str(&format!(
+                "    {} <|.. {} : implements\n",
+                trait_name, type_name
+            ));
         }
     }
 
@@ -116,12 +142,14 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
 fn extract_dependencies(ty: &GlossaType) -> Vec<String> {
     match ty {
         GlossaType::Struct { name, .. } => vec![name.to_string()],
-        GlossaType::List(inner) | GlossaType::Set(inner) | GlossaType::Option(inner) => extract_dependencies(inner),
+        GlossaType::List(inner) | GlossaType::Set(inner) | GlossaType::Option(inner) => {
+            extract_dependencies(inner)
+        }
         GlossaType::Map(k, v) | GlossaType::Result(k, v) => {
             let mut deps = extract_dependencies(k);
             deps.extend(extract_dependencies(v));
             deps
-        },
+        }
         GlossaType::Function { params, returns } => {
             let mut deps = vec![];
             for p in params {
@@ -129,7 +157,7 @@ fn extract_dependencies(ty: &GlossaType) -> Vec<String> {
             }
             deps.extend(extract_dependencies(returns));
             deps
-        },
+        }
         _ => vec![],
     }
 }
@@ -198,6 +226,9 @@ mod tests {
 
         assert!(map.contains("class εκτυπωσιμος") || map.contains("class Εκτυπώσιμος"));
         assert!(map.contains("<<interface>>"));
-        assert!(map.contains("εκτυπωσιμος <|.. χ : implements") || map.contains("Εκτυπώσιμος <|.. Χ : implements"));
+        assert!(
+            map.contains("εκτυπωσιμος <|.. χ : implements")
+                || map.contains("Εκτυπώσιμος <|.. Χ : implements")
+        );
     }
 }
