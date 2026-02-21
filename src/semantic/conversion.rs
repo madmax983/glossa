@@ -659,6 +659,20 @@ fn classify_assertion(
                         };
                         let elem = if let Some(lit) = asm_stmt.literals.first() {
                             literal_to_analyzed_expr(lit)
+                        } else if let Some(ref obj) = asm_stmt.object
+                            && let Some(var_type) = scope.lookup(&obj.lemma)
+                        {
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                                glossa_type: var_type.clone(),
+                            }
+                        } else if let Some(nom) = asm_stmt.nominatives.first()
+                            && let Some(var_type) = scope.lookup(&nom.lemma)
+                        {
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                                glossa_type: var_type.clone(),
+                            }
                         } else {
                             AnalyzedExpr {
                                 expr: AnalyzedExprKind::NumberLiteral(0),
