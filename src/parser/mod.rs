@@ -26,8 +26,8 @@ pub mod numerals;
 
 use crate::ast::*;
 use crate::errors::GlossaError;
-use pest::iterators::Pair;
 use pest::Parser;
+use pest::iterators::Pair;
 use pest_derive::Parser;
 
 #[derive(Parser)]
@@ -38,7 +38,9 @@ pub struct GlossaParser;
 ///
 /// This function invokes the generated PEG parser on the input source.
 /// It expects a complete `program` rule as the root.
-fn grammar_parse(source: &str) -> Result<pest::iterators::Pairs<'_, Rule>, pest::error::Error<Rule>> {
+fn grammar_parse(
+    source: &str,
+) -> Result<pest::iterators::Pairs<'_, Rule>, pest::error::Error<Rule>> {
     GlossaParser::parse(Rule::program, source)
 }
 
