@@ -396,10 +396,11 @@ fn test_assertion_contains_nominative_collection() {
     // Coverage: Target "Nominative is Collection" branch in classify_assertion
     // Both Subject (στοιχεῖον) and Nominative (χάρτης) are in play.
     // Subject is Number (not collection). Nominative is Map (collection).
+    // We add `ἐν αγνωστος` (in unknown) to consume the Object slot and force Nominative check.
     let code = "
     στοιχεῖον 5 ἔστω.
     ἄλλος νέον χάρτης ἔστω.
-    στοιχεῖον ἐν ἄλλος δεῖ.
+    στοιχεῖον ἄλλος ἐν αγνωστος δεῖ.
     ";
 
     let parsed = parse(code).expect("Parse failed");
@@ -587,6 +588,109 @@ fn test_assertion_contains_fallback_default() {
         }
     }
     panic!("Expected Assert MethodCall");
+}
+
+#[test]
+fn test_assertion_contains_subject_collection_nominative_element() {
+    // Coverage: Subject is Collection, Element is Nominative (second variable, not object)
+    // We force this by providing an "unknown" object via `ἐν αγνωστος`.
+    // This makes `obj_var` None, forcing the code to look at Nominatives.
+    let code = "
+    μ νέον χάρτης ἔστω.
+    ἔστω ψ 5.
+    μ ψ ἐν αγνωστος δεῖ.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    let last_stmt = result.statements.last().unwrap();
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr {
+                // Receiver: μ (Subject Collection)
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "μ");
+                }
+                // Element: ψ (Nominative)
+                let arg_inner = match &args[0].expr {
+                    AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
+                    k => k,
+                };
+                if let AnalyzedExprKind::Variable(name) = arg_inner {
+                    assert_eq!(name, "ψ");
+                }
+                return;
+            }
+        }
+    }
+    panic!("Expected Assert MethodCall for Nominative Element");
+}
+
+#[test]
+fn test_assertion_contains_fallback_nominative_element() {
+    // Coverage: Fallback (Subject !Collection), Element is Nominative
+    // We force this by providing an "unknown" object via `ἐν αγνωστος`.
+    let code = "
+    ἔστω χ 5.
+    ἔστω ψ 5.
+    χ ψ ἐν αγνωστος δεῖ.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    let last_stmt = result.statements.last().unwrap();
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr {
+                // Receiver: χ (Subject - Fallback)
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "χ");
+                }
+                // Element: ψ (Nominative - Fallback)
+                let arg_inner = match &args[0].expr {
+                    AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
+                    k => k,
+                };
+                if let AnalyzedExprKind::Variable(name) = arg_inner {
+                    assert_eq!(name, "ψ");
+                }
+                return;
+            }
+        }
+    }
+    panic!("Expected Assert MethodCall for Fallback Nominative");
+}
+
+#[test]
+fn test_assertion_contains_nominative_collection_via_original_lookup() {
+    // Coverage: Nominative is Collection, found via `original` lookup
+    // Variable `σώματα` (Neuter Plural). Lemma `σῶμα`.
+    // Scope has `σωματα`. Lookup `σωμα` fails. Lookup `σωματα` succeeds.
+    // Use `σώματα` with `ἔστω` (Attic syntax allowed for Neuter Plural).
+    let code = "
+    σώματα νέον χάρτης ἔστω.
+    στοιχεῖον 5 ἔστω.
+    στοιχεῖον σώματα ἐν αγνωστος δεῖ.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    let last_stmt = result.statements.last().unwrap();
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, .. } = &condition.expr {
+                // Receiver: σώματα (via original lookup)
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "σωματα");
+                }
+                return;
+            }
+        }
+    }
+    panic!("Expected Assert MethodCall via Original Nominative Lookup");
 }
 
 #[test]
