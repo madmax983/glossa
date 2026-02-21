@@ -567,19 +567,105 @@ fn classify_assertion(
             if asm_stmt.has_containment_preposition
                 && let Some(ref subj) = asm_stmt.subject
             {
-                // Pattern: element ἐν collection δεῖ
                 let subj_name = normalize_greek(&subj.original);
-                let collection_type = scope
+                let subj_type = scope
                     .lookup(&subj_name)
                     .cloned()
                     .unwrap_or(GlossaType::Unknown);
 
-                let element = if let Some(lit) = asm_stmt.literals.first() {
-                    literal_to_analyzed_expr(lit)
+                let is_subj_collection = matches!(
+                    subj_type,
+                    GlossaType::Map(_, _) | GlossaType::List(_) | GlossaType::Set(_)
+                );
+
+                let (collection_expr, collection_type, element_expr) = if is_subj_collection {
+                    // Subject is collection
+                    let coll_expr = AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(subj_name.clone()),
+                        glossa_type: subj_type.clone(),
+                    };
+
+                    let elem = if let Some(lit) = asm_stmt.literals.first() {
+                        literal_to_analyzed_expr(lit)
+                    } else if let Some(ref obj) = asm_stmt.object
+                        && let Some(var_type) = scope.lookup(&obj.lemma)
+                    {
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                            glossa_type: var_type.clone(),
+                        }
+                    } else if let Some(nom) = asm_stmt.nominatives.first()
+                        && let Some(var_type) = scope.lookup(&nom.lemma)
+                    {
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                            glossa_type: var_type.clone(),
+                        }
+                    } else {
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(0),
+                            glossa_type: GlossaType::Number,
+                        }
+                    };
+                    (coll_expr, subj_type, elem)
                 } else {
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(0),
-                        glossa_type: GlossaType::Number,
+                    // Subject is NOT collection. Check other candidates.
+                    let mut found = None;
+
+                    // Check Object
+                    if let Some(ref obj) = asm_stmt.object
+                        && let Some(obj_type) = scope.lookup(&obj.lemma)
+                        && matches!(
+                            obj_type,
+                            GlossaType::Map(_, _) | GlossaType::List(_) | GlossaType::Set(_)
+                        )
+                    {
+                        let coll_expr = AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                            glossa_type: obj_type.clone(),
+                        };
+                        let elem = AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subj_name.clone()),
+                            glossa_type: subj_type.clone(),
+                        };
+                        found = Some((coll_expr, obj_type.clone(), elem));
+                    }
+                    // Check Nominative
+                    else if let Some(nom) = asm_stmt.nominatives.first()
+                        && let Some(nom_type) = scope.lookup(&nom.lemma)
+                        && matches!(
+                            nom_type,
+                            GlossaType::Map(_, _) | GlossaType::List(_) | GlossaType::Set(_)
+                        )
+                    {
+                        let coll_expr = AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                            glossa_type: nom_type.clone(),
+                        };
+                        let elem = AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subj_name.clone()),
+                            glossa_type: subj_type.clone(),
+                        };
+                        found = Some((coll_expr, nom_type.clone(), elem));
+                    }
+
+                    if let Some(res) = found {
+                        res
+                    } else {
+                        // Fallback: Treat Subject as Collection anyway
+                        let coll_expr = AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(subj_name.clone()),
+                            glossa_type: subj_type.clone(),
+                        };
+                        let elem = if let Some(lit) = asm_stmt.literals.first() {
+                            literal_to_analyzed_expr(lit)
+                        } else {
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::NumberLiteral(0),
+                                glossa_type: GlossaType::Number,
+                            }
+                        };
+                        (coll_expr, subj_type, elem)
                     }
                 };
 
@@ -587,13 +673,13 @@ fn classify_assertion(
                 let method = if is_map { "contains_key" } else { "contains" };
 
                 // Handle referencing argument if not a string literal
-                let arg_expr = if matches!(element.expr, AnalyzedExprKind::StringLiteral(_)) {
-                    element
+                let arg_expr = if matches!(element_expr.expr, AnalyzedExprKind::StringLiteral(_)) {
+                    element_expr
                 } else {
                     AnalyzedExpr {
                         expr: AnalyzedExprKind::UnaryOp {
                             op: crate::morphology::lexicon::UnaryOp::Ref,
-                            operand: Box::new(element),
+                            operand: Box::new(element_expr),
                         },
                         glossa_type: GlossaType::Unknown,
                     }
@@ -601,10 +687,7 @@ fn classify_assertion(
 
                 let contains_expr = AnalyzedExpr {
                     expr: AnalyzedExprKind::MethodCall {
-                        receiver: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(subj_name.clone()),
-                            glossa_type: collection_type.clone(),
-                        }),
+                        receiver: Box::new(collection_expr),
                         method: method.into(),
                         args: vec![arg_expr],
                     },
@@ -653,6 +736,20 @@ fn classify_equality_assertion(
             // Get literal (expected value)
             if let Some(literal) = asm_stmt.literals.first() {
                 right_expr = Some(literal_to_analyzed_expr(literal));
+            } else if let Some(ref obj) = asm_stmt.object
+                && let Some(var_type) = scope.lookup(&obj.lemma)
+            {
+                right_expr = Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                });
+            } else if let Some(nom) = asm_stmt.nominatives.first()
+                && let Some(var_type) = scope.lookup(&nom.lemma)
+            {
+                right_expr = Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                });
             }
 
             if let (Some(left), Some(right)) = (left_expr, right_expr) {
