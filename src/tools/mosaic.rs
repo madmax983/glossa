@@ -25,8 +25,10 @@
 //! | **Indirect** | Magenta | The Recipient (Dative case) |
 //! | **Other** | Grey | Modifiers, Genitives, Literals |
 
+use crate::morphology::lexicon::BinaryOp;
 use crate::parser::parse;
-use crate::semantic::{AssembledStatement, Constituent, assemble_statement};
+use crate::semantic::assembly_model::Literal;
+use crate::semantic::{assemble_statement, AssembledStatement, Constituent};
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use miette::{IntoDiagnostic, Result};
@@ -45,6 +47,13 @@ pub fn run_mosaic(input_path: &PathBuf) -> Result<()> {
 /// Separated for testing purposes (allows injecting a writer).
 pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Result<()> {
     let program = parse(source)?;
+
+    writeln!(writer, "\n🎨  Mosaic: Semantic Assembly Visualization").into_diagnostic()?;
+    writeln!(
+        writer,
+        "    Shows how Greek morphology maps to semantic slots.\n"
+    )
+    .into_diagnostic()?;
 
     let mut table = Table::new();
     table
@@ -152,12 +161,27 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
 
     // Collect other interesting things
     let mut other = Vec::new();
+
     if !asm.literals.is_empty() {
-        other.push(format!("Literals: {}", asm.literals.len()));
+        let lits = asm
+            .literals
+            .iter()
+            .map(fmt_literal)
+            .collect::<Vec<_>>()
+            .join(", ");
+        other.push(format!("Vals: [{}]", lits));
     }
+
     if !asm.operators.is_empty() {
-        other.push(format!("Ops: {:?}", asm.operators));
+        let ops = asm
+            .operators
+            .iter()
+            .map(fmt_operator)
+            .collect::<Vec<_>>()
+            .join(" ");
+        other.push(format!("Ops: [{}]", ops));
     }
+
     if !asm.genitives.is_empty() {
         let gens = asm
             .genitives
@@ -203,6 +227,32 @@ fn fmt_constituent(c: &Constituent) -> String {
     c.original.to_string()
 }
 
+fn fmt_literal(l: &Literal) -> String {
+    match l {
+        Literal::String(s) => format!("\"{}\"", s),
+        Literal::Number(n) => n.to_string(),
+        Literal::Boolean(b) => b.to_string(),
+    }
+}
+
+fn fmt_operator(op: &BinaryOp) -> String {
+    match op {
+        BinaryOp::Add => "+".to_string(),
+        BinaryOp::Sub => "-".to_string(),
+        BinaryOp::Mul => "*".to_string(),
+        BinaryOp::Div => "/".to_string(),
+        BinaryOp::Mod => "%".to_string(),
+        BinaryOp::Eq => "==".to_string(),
+        BinaryOp::Ne => "!=".to_string(),
+        BinaryOp::Lt => "<".to_string(),
+        BinaryOp::Le => "<=".to_string(),
+        BinaryOp::Gt => ">".to_string(),
+        BinaryOp::Ge => ">=".to_string(),
+        BinaryOp::And => "&&".to_string(),
+        BinaryOp::Or => "||".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -227,5 +277,20 @@ mod tests {
         let output = String::from_utf8(buffer).unwrap();
 
         assert!(output.contains("Type Definition"));
+    }
+
+    #[test]
+    fn test_mosaic_literals_and_ops() {
+        let source = "ξ 10 ἔστω. εἰ ξ 5 μεῖζον ᾖ, «ναι» λέγε.";
+        let mut buffer = Vec::new();
+        run_mosaic_inner(source, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        // Check for literals formatting
+        assert!(output.contains("Vals: [10]"));
+        assert!(output.contains("Vals: [5, \"ναι\"]")); // Depending on how they are grouped per line
+
+        // Check for operator formatting
+        assert!(output.contains("Ops: [>]"));
     }
 }
