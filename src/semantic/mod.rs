@@ -32,12 +32,7 @@
 //! without changing the semantic meaning.
 
 pub mod assembler;
-#[cfg(test)]
-mod assembler_tests;
-pub(crate) mod assembly_model;
 pub(crate) mod conversion;
-#[cfg(test)]
-mod conversion_tests;
 pub mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
@@ -47,8 +42,7 @@ mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub(crate) use assembler::Assembler;
-pub use assembler::AssemblyError;
-pub use assembly_model::{AssembledStatement, Constituent, Literal};
+pub use assembler::{AssembledStatement, AssemblyError, Constituent, Literal};
 pub use model::*;
 pub use resolver::*;
 pub use types::*;

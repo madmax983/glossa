@@ -72,3 +72,28 @@
 **Bloat:** `src/experimental/bard.rs` was a fully functional tool hidden in an "experimental" module.
 **Cut:** Promoted to `src/tools/narrator.rs` and deleted `src/experimental`.
 **Saved:** 1 folder, 2 files, clearer project structure.
+
+## [Reduction]
+**Bloat:** `src/ast/` directory containing only `mod.rs`.
+**Cut:** Flattened to `src/ast.rs`.
+**Saved:** 1 folder, reduced module depth.
+
+## [Reduction]
+**Bloat:** `src/codegen/` directory containing only `mod.rs`.
+**Cut:** Flattened to `src/codegen.rs`.
+**Saved:** 1 folder, reduced module depth.
+
+## [Reduction]
+**Bloat:** `src/errors/` directory splitting logic across `mod.rs`, `messages.rs`, and `assembly.rs`.
+**Cut:** Flattened to `src/errors.rs`.
+**Saved:** 1 folder, 2 files, simplified module structure.
+
+## [Reduction]
+**Bloat:** `src/morphology/matcher.rs` containing a single generic function.
+**Cut:** Moved `match_suffix` to `src/morphology/mod.rs` and deleted the file.
+**Saved:** 1 file, reduced module depth.
+
+## [Reduction]
+**Bloat:** `src/semantic/` separated data models (`assembly_model.rs`) and tests (`*_tests.rs`) from their logic files.
+**Cut:** Merged `assembly_model.rs` into `assembler.rs`, and moved tests into `assembler.rs` and `conversion.rs`.
+**Saved:** 3 files, improved cohesion.
