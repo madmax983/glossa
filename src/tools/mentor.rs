@@ -233,4 +233,83 @@ mod tests {
         assert!(s.contains("The Beginning"));
         assert!(s.contains("Correct!"));
     }
+
+    #[test]
+    fn test_lesson_3_verification() {
+        let lesson = &LESSONS[2]; // If
+        // Correct
+        let p1 = process_submission("εἰ ἀληθές, «ναί» λέγε.").unwrap();
+        assert!((lesson.verify)(&p1));
+
+        // Incorrect (no if)
+        let p2 = process_submission("«ναί» λέγε.").unwrap();
+        assert!(!((lesson.verify)(&p2)));
+    }
+
+    #[test]
+    fn test_mentor_skip_command() {
+        let input_data = ".skip\n.exit\n";
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        run_mentor_inner(&mut input, &mut output).unwrap();
+
+        let s = String::from_utf8(output).unwrap();
+        assert!(s.contains("Skipping lesson"));
+    }
+
+    #[test]
+    fn test_mentor_quit_command() {
+        let input_data = ".quit\n";
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        run_mentor_inner(&mut input, &mut output).unwrap();
+
+        // Should return without error
+    }
+
+    #[test]
+    fn test_mentor_eof() {
+        let input_data = ""; // Immediate EOF
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        run_mentor_inner(&mut input, &mut output).unwrap();
+        // Just finishes loop
+    }
+
+    #[test]
+    fn test_mentor_syntax_error() {
+        let input_data = "invalid syntax\n.exit\n";
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        run_mentor_inner(&mut input, &mut output).unwrap();
+
+        let s = String::from_utf8(output).unwrap();
+        assert!(s.contains("Error"));
+    }
+
+    #[test]
+    fn test_mentor_semantic_failure() {
+        let input_data = "ψ 10 ἔστω.\n.exit\n"; // Valid syntax, but wrong variable name (for lesson 1)
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        run_mentor_inner(&mut input, &mut output).unwrap();
+
+        let s = String::from_utf8(output).unwrap();
+        assert!(s.contains("Syntax is valid, but the goal was not met"));
+    }
+
+    #[test]
+    fn test_mentor_empty_input() {
+        let input_data = "\n.exit\n";
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        run_mentor_inner(&mut input, &mut output).unwrap();
+        // Should just continue loop and then exit
+    }
 }
