@@ -161,13 +161,14 @@ fn classify_property_access_print(
             if let Some(owner_type) = scope.lookup(owner_lemma)
                 && matches!(owner_type, GlossaType::Struct { .. })
             {
+                let owner_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
+                    glossa_type: owner_type.clone(),
+                };
                 // Build property access
                 let prop_access = AnalyzedExpr {
                     expr: AnalyzedExprKind::PropertyAccess {
-                        owner: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
-                            glossa_type: owner_type.clone(),
-                        }),
+                        owner: Box::new(owner_expr),
                         property: property.clone(),
                     },
                     glossa_type: GlossaType::Unknown, // TODO: Look up field type
@@ -227,7 +228,7 @@ fn classify_function_call(
 
                 for nested_terms in &asm_stmt.nested_phrases {
                     let phrase_expr = Expr::Phrase(nested_terms.clone());
-                    let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
+                    let analyzed: AnalyzedExpr = analyze_argument_expr(&phrase_expr, scope)?;
                     args.push(analyzed);
                 }
 
@@ -347,7 +348,8 @@ fn classify_variable_binding(
 
             let is_mutable = asm_stmt.has_mutable_marker;
             if is_mutable {
-                scope.define_mut(var_name.clone(), value_type.clone());
+                let ty: GlossaType = value_type.clone();
+                scope.define_mut(var_name.clone(), ty);
             } else {
                 scope.define(var_name.clone(), value_type.clone());
             }
@@ -710,17 +712,18 @@ fn classify_print(
                     };
                     let method_args = if let Some((ref meth, ref delim)) = asm_stmt.string_method {
                         if meth == method {
-                            vec![AnalyzedExpr {
+                            let delim_expr = AnalyzedExpr {
                                 expr: AnalyzedExprKind::StringLiteral(delim.clone()),
                                 glossa_type: GlossaType::String,
-                            }]
+                            };
+                            vec![delim_expr]
                         } else {
                             vec![]
                         }
                     } else {
                         vec![]
                     };
-                    let return_type = match method.as_str() {
+                    let return_type: GlossaType = match method.as_str() {
                         "len" => GlossaType::Number,
                         "split" => GlossaType::List(Box::new(GlossaType::String)),
                         "join" => GlossaType::String,
@@ -1150,17 +1153,15 @@ pub fn extract_value(
             expr: AnalyzedExprKind::Variable(owner.clone().into()),
             glossa_type: GlossaType::Unknown,
         };
-        return Ok((
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(receiver),
-                    method: method.clone().into(),
-                    args: vec![],
-                },
-                glossa_type: GlossaType::Number,
+        let call_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(receiver),
+                method: method.clone().into(),
+                args: vec![],
             },
-            GlossaType::Number,
-        ));
+            glossa_type: GlossaType::Number,
+        };
+        return Ok((call_expr, GlossaType::Number));
     }
 
     // If we have index accesses, use the first one
@@ -1181,7 +1182,7 @@ pub fn extract_value(
 
     // If we have arrays, use the first array
     if let Some(array_elements) = asm_stmt.arrays.first() {
-        let mut analyzed_elements = Vec::with_capacity(array_elements.len());
+        let mut analyzed_elements: Vec<AnalyzedExpr> = Vec::with_capacity(array_elements.len());
         for e in array_elements {
             analyzed_elements.push(analyze_argument_expr(e, scope)?);
         }

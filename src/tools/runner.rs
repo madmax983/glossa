@@ -2,7 +2,6 @@ use crate::codegen::generate_rust_file;
 use crate::parser::parse;
 use crate::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::semantic::{AnalyzedProgram, analyze_program};
-use crate::tools::cache::Cache;
 use crate::tools::highlight::highlight;
 use crate::tools::narrator::tell_tale;
 use crate::tools::ui::Status;
@@ -231,6 +230,74 @@ pub fn bard_file(input: &Path) -> Result<()> {
     println!("{}", tale);
 
     Ok(())
+}
+
+/// Manages the build cache for compiled programs.
+pub struct Cache {
+    base_dir: std::path::PathBuf,
+}
+
+impl Default for Cache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Cache {
+    /// Create a new Cache manager, resolving the cache directory.
+    pub fn new() -> Self {
+        let base_dir = dirs_next::cache_dir()
+            .or_else(dirs_next::home_dir)
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join(".glossa")
+            .join("cache");
+        Self { base_dir }
+    }
+
+    /// Ensure the cache directory exists.
+    pub fn init(&self) -> std::io::Result<()> {
+        fs::create_dir_all(&self.base_dir)
+    }
+
+    /// Generate a cache key from the source file path.
+    pub fn key(&self, input: &Path) -> String {
+        use sha2::{Digest, Sha256};
+
+        let canonical = input.canonicalize().unwrap_or_else(|_| input.to_path_buf());
+        let path_str = canonical.to_string_lossy();
+
+        let mut hasher = Sha256::new();
+        hasher.update(path_str.as_bytes());
+        let result = hasher.finalize();
+
+        hex::encode(result)
+    }
+
+    /// Get the paths for the cached Rust source and executable.
+    pub fn get_paths(&self, input: &Path) -> (std::path::PathBuf, std::path::PathBuf) {
+        let key = self.key(input);
+        let cached_rs = self.base_dir.join(format!("{}.rs", key));
+        let cached_exe = self.base_dir.join(format!(
+            "{}{}",
+            key,
+            if cfg!(windows) { ".exe" } else { "" }
+        ));
+        (cached_rs, cached_exe)
+    }
+
+    /// Check if the cached binary is still valid (source not modified since compile).
+    pub fn is_valid(&self, input: &Path, cached_exe: &Path) -> bool {
+        use std::time::SystemTime;
+        let source_modified = fs::metadata(input)
+            .and_then(|m| m.modified())
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+
+        let exe_modified = fs::metadata(cached_exe)
+            .and_then(|m| m.modified())
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+
+        exe_modified > source_modified
+    }
 }
 
 #[cfg(test)]

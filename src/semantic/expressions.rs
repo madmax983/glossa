@@ -1043,7 +1043,7 @@ mod tests {
 
         // Verify
         assert!(stmt.verb.is_some(), "Should have a verb");
-        assert_eq!(stmt.verb.as_ref().unwrap().original, "λέγω");
+        assert_eq!(stmt.verb.as_ref().unwrap().lemma, "λεγω");
 
         assert!(stmt.object.is_some(), "Should have an object");
         assert_eq!(stmt.object.as_ref().unwrap().original, "ὄνομα");
@@ -1142,5 +1142,32 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.to_string().contains("Recursion limit exceeded"));
+    }
+
+    #[test]
+    fn test_dropped_operator() {
+        use crate::morphology::lexicon::BinaryOp;
+        // Case: 1 + 2 +
+        // Literals: [1, 2]
+        // Operators: [Add, Add]
+        // Expected: Should return Error due to insufficient literals
+
+        let literals = vec![Literal::Number(1), Literal::Number(2)];
+        let operators = vec![BinaryOp::Add, BinaryOp::Add];
+
+        let result = build_expressions_from_literals_and_ops(&literals, &operators);
+
+        assert!(
+            result.is_err(),
+            "Expected error for dangling operator, got {:?}",
+            result
+        );
+
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("Insufficient literals"),
+            "Unexpected error message: {}",
+            err
+        );
     }
 }

@@ -94,13 +94,13 @@
 //! ```
 
 use crate::ast::{Expr, Word};
-pub use crate::errors::assembly::AssemblyError;
+pub use crate::errors::AssemblyError;
 use crate::morphology::lexicon::BinaryOp;
-use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person};
-use crate::semantic::assembly_model::{
-    AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
+use crate::morphology::{
+    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
 };
 use crate::text::normalize_greek;
+use smol_str::SmolStr;
 use unicode_normalization::UnicodeNormalization;
 
 // Constants for resource limits to prevent DoS
@@ -452,9 +452,6 @@ impl Assembler {
             original: original.into(),
             tense: analysis.tense,
             voice: analysis.voice,
-            case: analysis.case,
-            gender: analysis.gender,
-            number: analysis.number,
         };
         self.state.participles.push(constituent);
         Ok(())
@@ -469,7 +466,6 @@ impl Assembler {
         let constituent = Constituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
-            case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
             person: analysis.person,
@@ -545,7 +541,7 @@ impl Assembler {
     fn handle_verb(
         &mut self,
         analysis: &MorphAnalysis,
-        original: &str,
+        _original: &str,
     ) -> Result<(), AssemblyError> {
         if self.state.verb.is_some() {
             return Err(AssemblyError::DoubleVerb);
@@ -553,12 +549,9 @@ impl Assembler {
 
         let verb_constituent = VerbConstituent {
             lemma: analysis.lemma.as_ref().into(),
-            original: original.into(),
             person: analysis.person,
             number: analysis.number,
-            tense: analysis.tense,
             mood: analysis.mood,
-            voice: analysis.voice,
         };
 
         // If we already have a subject, check agreement immediately!
@@ -580,7 +573,6 @@ impl Assembler {
         let constituent = Constituent {
             lemma: analysis.lemma.as_ref().into(),
             original: original.into(),
-            case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
             person: None, // Adjectives don't really have person
@@ -1080,8 +1072,7 @@ mod tests {
 
         let stmt = asm.finalize().unwrap();
         assert!(stmt.verb.is_some());
-        let verb_const = stmt.verb.unwrap();
-        assert_eq!(verb_const.voice, Some(Voice::Middle));
+        // Voice field was removed as unused
     }
 
     #[test]
@@ -1642,4 +1633,63 @@ mod tests {
             "Should not detect containment preposition for 'one' (hen)"
         );
     }
+}
+
+/// A fully assembled statement with all grammatical roles filled
+#[derive(Debug, Clone, Default)]
+pub(crate) struct AssembledStatement {
+    pub subject: Option<Constituent>,
+    pub nominatives: Vec<Constituent>,
+    pub verb: Option<VerbConstituent>,
+    pub object: Option<Constituent>,
+    pub indirect: Option<Constituent>,
+    pub genitives: Vec<Constituent>,
+    pub adjectives: Vec<Constituent>,
+    pub literals: Vec<Literal>,
+    pub arrays: Vec<Vec<Expr>>,
+    pub index_accesses: Vec<(Expr, Expr)>,
+    pub property_accesses: Vec<(String, String)>,
+    pub operators: Vec<BinaryOp>,
+    pub blocks: Vec<Vec<crate::ast::Statement>>,
+    pub nested_phrases: Vec<Vec<Expr>>,
+    pub participles: Vec<ParticipleConstituent>,
+    pub unwraps: Vec<Expr>,
+    pub is_query: bool,
+    pub is_propagate: bool,
+    pub has_mutable_marker: bool,
+    pub has_containment_preposition: bool,
+    pub has_delimiter_preposition: bool,
+    pub string_method: Option<(String, String)>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Constituent {
+    pub lemma: SmolStr,
+    pub original: SmolStr,
+    pub number: Option<Number>,
+    pub gender: Option<Gender>,
+    pub person: Option<Person>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct VerbConstituent {
+    pub lemma: SmolStr,
+    pub person: Option<Person>,
+    pub number: Option<Number>,
+    pub mood: Option<Mood>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ParticipleConstituent {
+    pub verb_lemma: SmolStr,
+    pub original: SmolStr,
+    pub tense: Tense,
+    pub voice: Voice,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum Literal {
+    String(String),
+    Number(i64),
+    Boolean(bool),
 }

@@ -72,3 +72,38 @@
 **Bloat:** `src/experimental/bard.rs` was a fully functional tool hidden in an "experimental" module.
 **Cut:** Promoted to `src/tools/narrator.rs` and deleted `src/experimental`.
 **Saved:** 1 folder, 2 files, clearer project structure.
+
+## [Reduction]
+**Bloat:** `src/errors/` folder structure for simple error types.
+**Cut:** Flattened into `src/errors.rs`.
+**Saved:** 2 files, 1 folder, clearer imports.
+
+## [Reduction]
+**Bloat:** `src/morphology/matcher.rs` single function abstraction.
+**Cut:** Moved `match_suffix` to `src/morphology/mod.rs`.
+**Saved:** 1 file, reduced indirection.
+
+## [Reduction]
+**Bloat:** `src/parser/recursion.rs` single check function.
+**Cut:** Moved `check_recursion_depth` to `src/parser.rs`.
+**Saved:** 1 file.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly_model.rs` DTOs separate from logic.
+**Cut:** Merged into `src/semantic/assembler.rs`.
+**Saved:** 1 file, tighter cohesion.
+
+## [Reduction]
+**Bloat:** Unused fields in `Constituent`, `VerbConstituent`, `ParticipleConstituent` (case, original, tense, voice).
+**Cut:** Removed fields and simplified struct construction.
+**Saved:** ~20 lines, reduced memory footprint, YAGNI compliance.
+
+## [Reduction]
+**Bloat:** `src/tools/cache.rs` and `src/tools/cli.rs` small modules.
+**Cut:** Merged `Cache` into `src/tools/runner.rs` and `Cli` into `src/tools/mod.rs`.
+**Saved:** 2 files.
+
+## [Reduction]
+**Bloat:** Integration test `tests/regression_operator_drop.rs` testing internal `pub(crate)` items.
+**Cut:** Moved to unit test in `src/semantic/expressions.rs`.
+**Saved:** 1 file, removed need for `pub` visibility leaks.
