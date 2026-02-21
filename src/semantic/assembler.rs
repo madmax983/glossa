@@ -216,12 +216,14 @@ impl Assembler {
         }
 
         match analysis.part_of_speech {
-            PartOfSpeech::Noun | PartOfSpeech::Pronoun => self.handle_nominal(analysis, original),
-            PartOfSpeech::Adjective => self.handle_adjective(analysis, original),
-            PartOfSpeech::Verb => self.handle_verb(analysis, original),
+            PartOfSpeech::Noun | PartOfSpeech::Pronoun => {
+                self.handle_nominal(analysis, original, normalized)
+            }
+            PartOfSpeech::Adjective => self.handle_adjective(analysis, original, normalized),
+            PartOfSpeech::Verb => self.handle_verb(analysis, original, normalized),
             PartOfSpeech::Numeral => {
                 // Already handled above, but keep this for explicit numeral POS
-                self.handle_nominal(analysis, original)
+                self.handle_nominal(analysis, original, normalized)
             }
             PartOfSpeech::Conjunction => {
                 // Non-operator conjunctions are ignored for now
@@ -447,9 +449,11 @@ impl Assembler {
                 max: MAX_PARTICIPLES,
             });
         }
+        let normalized = normalize_greek(original);
         let constituent = ParticipleConstituent {
-            verb_lemma: analysis.verb_lemma().into(),
+            verb_lemma: normalize_greek(&analysis.verb_lemma()),
             original: original.into(),
+            normalized,
             tense: analysis.tense,
             voice: analysis.voice,
             case: analysis.case,
@@ -465,10 +469,12 @@ impl Assembler {
         &mut self,
         analysis: &MorphAnalysis,
         original: &str,
+        normalized: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
-            lemma: analysis.lemma.as_ref().into(),
+            lemma: normalize_greek(analysis.lemma.as_ref()),
             original: original.into(),
+            normalized: normalized.into(),
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
@@ -546,14 +552,16 @@ impl Assembler {
         &mut self,
         analysis: &MorphAnalysis,
         original: &str,
+        normalized: &str,
     ) -> Result<(), AssemblyError> {
         if self.state.verb.is_some() {
             return Err(AssemblyError::DoubleVerb);
         }
 
         let verb_constituent = VerbConstituent {
-            lemma: analysis.lemma.as_ref().into(),
+            lemma: normalize_greek(analysis.lemma.as_ref()),
             original: original.into(),
+            normalized: normalized.into(),
             person: analysis.person,
             number: analysis.number,
             tense: analysis.tense,
@@ -576,10 +584,12 @@ impl Assembler {
         &mut self,
         analysis: &MorphAnalysis,
         original: &str,
+        normalized: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
-            lemma: analysis.lemma.as_ref().into(),
+            lemma: normalize_greek(analysis.lemma.as_ref()),
             original: original.into(),
+            normalized: normalized.into(),
             case: analysis.case.unwrap_or(Case::Nominative),
             number: analysis.number,
             gender: analysis.gender,
