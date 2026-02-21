@@ -235,10 +235,12 @@ fn test_assertion_contains_fallback_variable() {
     // Coverage: Target the Fallback branch in classify_assertion (when no collection type is found)
     // AND test that variable resolution works in fallback (the bug fix).
     // Use types that are NOT collections (Numbers).
-    // "5 x in assert" -> "5 in x assert"
-    // Since 'x' is Number (not Map/List/Set), smart dispatch will fail.
-    // Fallback should pick 'x' as receiver anyway.
-    // Element '5' (literal) or 'y' (variable). Let's use variable 'y' to test the fix.
+    // "ψ in χ assert" -> "ψ ἐν χ δεῖ"
+    // Subject: ψ (Nominative)
+    // Nominatives: [χ] (Nominative)
+    // Since 'ψ' is Number (not Map/List/Set), smart dispatch will fail.
+    // Fallback should pick 'ψ' (Subject) as receiver.
+    // And 'χ' (Nominative) as element.
     let code = "
     ἔστω χ 5.
     ἔστω ψ 5.
@@ -253,16 +255,7 @@ fn test_assertion_contains_fallback_variable() {
         && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
         && let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr
     {
-        // Receiver should be 'x' (fallback to subject)
-        // With "ψ ἐν χ δεῖ", assembler likely parses:
-        // Subject: ψ (first nominative)
-        // Nominatives: [χ] (second nominative)
-        // Fallback Logic:
-        // 1. Subject ("ψ") is treated as Collection (receiver).
-        // 2. Looks for element in literals (None), Object (None), Nominatives ("χ").
-        // 3. Finds "χ" as element.
-
-        // So Receiver = "ψ"
+        // Receiver should be 'ψ' (fallback to subject)
         if let AnalyzedExprKind::Variable(name) = &receiver.expr {
             assert_eq!(name, "ψ");
         } else {
@@ -272,7 +265,7 @@ fn test_assertion_contains_fallback_variable() {
             );
         }
 
-        // Arg should be 'x' (element)
+        // Arg should be 'x' (element from nominatives)
         let arg_inner = match &args[0].expr {
             AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr, // Ref
             k => k,
