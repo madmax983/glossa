@@ -5,7 +5,7 @@
 //!
 //! # The Parsing Flow
 //!
-//! 1. **Grammar (`src/grammar`)**: Uses [`pest`] (PEG parser) to tokenize the input
+//! 1. **Grammar**: Uses [`pest`] (PEG parser) to tokenize the input
 //!    and verify it matches the language rules. This produces a "Concrete Syntax Tree" (CST)
 //!    of untyped pairs (e.g., `Rule::greek_word`, `Rule::number_literal`).
 //!
@@ -22,14 +22,25 @@
 //! nesting (e.g., `((((...))))`) does not cause a stack overflow during the
 //! recursive descent parsing phase.
 
-pub mod grammar;
 pub mod numerals;
-pub mod recursion;
 
-use self::grammar::{Rule, parse as grammar_parse};
 use crate::ast::*;
 use crate::errors::GlossaError;
 use pest::iterators::Pair;
+use pest::Parser;
+use pest_derive::Parser;
+
+#[derive(Parser)]
+#[grammar = "parser/grammar.pest"]
+pub struct GlossaParser;
+
+/// Parse a ΓΛΩΣΣΑ source string into a pest parse tree
+///
+/// This function invokes the generated PEG parser on the input source.
+/// It expects a complete `program` rule as the root.
+fn grammar_parse(source: &str) -> Result<pest::iterators::Pairs<'_, Rule>, pest::error::Error<Rule>> {
+    GlossaParser::parse(Rule::program, source)
+}
 
 impl From<ParseError> for GlossaError {
     fn from(err: ParseError) -> Self {
@@ -63,10 +74,82 @@ fn parse_number_literal(text: &str) -> Result<i64, ParseError> {
     }
 }
 
+/// Check recursion depth to prevent stack overflows
+///
+/// This function performs a fast linear scan of the source code to ensure that
+/// parentheses, braces, and brackets are not nested deeper than `MAX_DEPTH` (500).
+/// This prevents stack overflows during the recursive parsing phase.
+fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
+    const MAX_DEPTH: usize = 500;
+    let mut depth = 0;
+    let mut in_string = false;
+    let bytes = source.as_bytes();
+    let mut i = 0;
+
+    // Optimization: Iterate bytes directly to avoid expensive UTF-8 decoding of Greek characters.
+    // We only care about structural characters which are ASCII (except for « and »).
+    // « is [0xC2, 0xAB]
+    // » is [0xC2, 0xBB]
+    while i < bytes.len() {
+        let b = bytes[i];
+        if in_string {
+            // Check for » [0xC2, 0xBB]
+            if b == 0xC2 && i + 1 < bytes.len() && bytes[i + 1] == 0xBB {
+                in_string = false;
+                i += 2;
+            } else {
+                i += 1;
+            }
+        } else {
+            match b {
+                // Check for « [0xC2, 0xAB]
+                0xC2 => {
+                    if i + 1 < bytes.len() && bytes[i + 1] == 0xAB {
+                        in_string = true;
+                        i += 2;
+                    } else {
+                        i += 1;
+                    }
+                }
+                b'(' | b'{' | b'[' => {
+                    depth += 1;
+                    if depth > MAX_DEPTH {
+                        return Err(ParseError::RecursionLimitExceeded(MAX_DEPTH));
+                    }
+                    i += 1;
+                }
+                b')' | b'}' | b']' => {
+                    depth = depth.saturating_sub(1);
+                    i += 1;
+                }
+                b'/' => {
+                    if i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                        // Skip comment
+                        i += 2;
+                        while i < bytes.len() {
+                            let c = bytes[i];
+                            i += 1;
+                            if c == b'\n' || c == b'\r' {
+                                break;
+                            }
+                        }
+                    } else {
+                        i += 1;
+                    }
+                }
+                _ => {
+                    i += 1;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Build an AST from source code
 fn parse_source(source: &str) -> Result<Program, ParseError> {
     // Check recursion depth before parsing to prevent stack overflow
-    recursion::check_recursion_depth(source)?;
+    check_recursion_depth(source)?;
 
     let pairs = grammar_parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
 
@@ -762,7 +845,7 @@ mod tests {
         // 500 nested parentheses (should pass check, though pest might fail to parse empty parens)
         let source = "(".repeat(500) + &")".repeat(500);
         // We only care about the recursion check here
-        let result = recursion::check_recursion_depth(&source);
+        let result = check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 
@@ -770,7 +853,7 @@ mod tests {
     fn test_recursion_limit_ignored_in_string() {
         // Parentheses inside string literal shouldn't count
         let source = "«".to_string() + &"(".repeat(600) + "»";
-        let result = recursion::check_recursion_depth(&source);
+        let result = check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 
@@ -778,7 +861,7 @@ mod tests {
     fn test_recursion_limit_ignored_in_comment() {
         // Parentheses inside comment shouldn't count
         let source = "// ".to_string() + &"(".repeat(600);
-        let result = recursion::check_recursion_depth(&source);
+        let result = check_recursion_depth(&source);
         assert!(result.is_ok());
     }
 
@@ -792,7 +875,7 @@ mod tests {
             + &"]".repeat(101)
             + &"}".repeat(200)
             + &")".repeat(200);
-        let result = recursion::check_recursion_depth(&source);
+        let result = check_recursion_depth(&source);
         assert!(matches!(
             result,
             Err(ParseError::RecursionLimitExceeded(500))
@@ -805,7 +888,146 @@ mod tests {
         // (((...))) then (((...))) - sequential, not nested
         let part = "(".repeat(400) + &")".repeat(400);
         let source = part.clone() + &part;
-        let result = recursion::check_recursion_depth(&source);
+        let result = check_recursion_depth(&source);
         assert!(result.is_ok());
+    }
+
+    // Tests from grammar.rs
+    #[test]
+    fn test_parse_hello_cosmos() {
+        let source = "«χαῖρε κόσμε» λέγε.";
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse hello cosmos: {:?}",
+            result.err()
+        );
+
+        let pairs = result.unwrap();
+        // Verify we got a program with at least one statement
+        let program = pairs.into_iter().next().unwrap();
+        assert_eq!(program.as_rule(), Rule::program);
+    }
+
+    #[test]
+    fn test_parse_simple_string_print() {
+        let source = "«χαῖρε» λέγε.";
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse simple print: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_parse_variable_binding() {
+        let source = "ξ πέντε ἔστω.";
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse variable binding: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_parse_variable_use() {
+        let source = "ξ λέγε.";
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse variable use: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_parse_multiple_statements() {
+        let source = "ξ πέντε ἔστω. ξ λέγε.";
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse multiple statements: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_parse_number_literal() {
+        let source = "42 λέγε.";
+        let result = grammar_parse(source);
+        assert!(result.is_ok(), "Failed to parse number: {:?}", result.err());
+    }
+
+    #[test]
+    fn test_parse_genitive_property_access() {
+        // "the name of the user" - genitive shows possession
+        let source = "χρήστου ὄνομα λέγε.";
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse genitive: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_parse_chained_statements() {
+        // Using ano teleia (· U+00B7) to chain - the Greek semicolon
+        let source = "«χαῖρε» λέγε· «κόσμε» λέγε.";
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse chained statements: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_parse_greek_question_mark() {
+        // Using Greek question mark (U+037E) - looks like ; but is different
+        let source = "ξ\u{037E}"; // "what is ξ?"
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse Greek question mark: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_parse_ascii_question_mark() {
+        // ASCII ? also works for convenience
+        let source = "ξ?";
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse ASCII question mark: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_parse_line_comment() {
+        // Comments use // like Rust
+        let source = "// τοῦτο σχόλιόν ἐστι\n«χαῖρε» λέγε.";
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse comment: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_parse_inline_comment() {
+        let source = "ξ πέντε ἔστω. // binding ξ to 5\nξ λέγε.";
+        let result = grammar_parse(source);
+        assert!(
+            result.is_ok(),
+            "Failed to parse inline comment: {:?}",
+            result.err()
+        );
     }
 }

@@ -72,3 +72,23 @@
 **Bloat:** `src/experimental/bard.rs` was a fully functional tool hidden in an "experimental" module.
 **Cut:** Promoted to `src/tools/narrator.rs` and deleted `src/experimental`.
 **Saved:** 1 folder, 2 files, clearer project structure.
+
+## [Reduction]
+**Bloat:** `src/errors/` directory contained 3 files (`mod.rs`, `assembly.rs`, `messages.rs`) exporting error logic.
+**Cut:** Flattened to `src/errors.rs` by inlining modules.
+**Saved:** 1 directory, 2 files, removed unnecessary module indirection.
+
+## [Reduction]
+**Bloat:** `src/parser/` module split logic across `mod.rs`, `grammar.rs` (pest boilerplate), and `recursion.rs` (single function).
+**Cut:** Merged `grammar.rs` and `recursion.rs` into `src/parser/mod.rs` and deleted them.
+**Saved:** 2 files, consolidated parser logic.
+
+## [Reduction]
+**Bloat:** `src/semantic/types.rs` defined `GlossaType` separate from the semantic model `src/semantic/model.rs`.
+**Cut:** Merged `types.rs` into `model.rs` as they are tightly coupled.
+**Saved:** 1 file, improved cohesion.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly_model.rs` defined DTOs used exclusively by `src/semantic/assembler.rs`.
+**Cut:** Merged `assembly_model.rs` into `assembler.rs`.
+**Saved:** 1 file, reduced separation of data and logic for the assembler.
