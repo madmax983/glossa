@@ -1446,7 +1446,8 @@ mod tests {
             ..Default::default()
         };
 
-        let (analyzed, glossa_type) = extract_value(&asm_stmt, &scope).expect("Should extract None");
+        let (analyzed, glossa_type) =
+            extract_value(&asm_stmt, &scope).expect("Should extract None");
 
         assert!(matches!(analyzed.expr, AnalyzedExprKind::None));
         assert!(matches!(glossa_type, GlossaType::Option(_)));
@@ -1462,7 +1463,8 @@ mod tests {
             ..Default::default()
         };
 
-        let (analyzed, glossa_type) = extract_value(&asm_stmt, &scope).expect("Should extract Some");
+        let (analyzed, glossa_type) =
+            extract_value(&asm_stmt, &scope).expect("Should extract Some");
 
         if let AnalyzedExprKind::Some(inner) = analyzed.expr {
             if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
@@ -1485,7 +1487,8 @@ mod tests {
             ..Default::default()
         };
 
-        let (analyzed, glossa_type) = extract_value(&asm_stmt, &scope).expect("Should extract literal");
+        let (analyzed, glossa_type) =
+            extract_value(&asm_stmt, &scope).expect("Should extract literal");
 
         if let AnalyzedExprKind::NumberLiteral(n) = analyzed.expr {
             assert_eq!(n, 123);
@@ -1650,7 +1653,8 @@ mod tests {
             ..Default::default()
         };
 
-        let (analyzed, _) = extract_value(&asm_stmt, &scope).expect("Should extract None from object");
+        let (analyzed, _) =
+            extract_value(&asm_stmt, &scope).expect("Should extract None from object");
 
         assert!(matches!(analyzed.expr, AnalyzedExprKind::None));
     }
@@ -1665,7 +1669,8 @@ mod tests {
             ..Default::default()
         };
 
-        let (analyzed, _) = extract_value(&asm_stmt, &scope).expect("Should extract Some from object");
+        let (analyzed, _) =
+            extract_value(&asm_stmt, &scope).expect("Should extract Some from object");
 
         if let AnalyzedExprKind::Some(inner) = analyzed.expr {
             if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
