@@ -312,4 +312,32 @@ mod tests {
         run_mentor_inner(&mut input, &mut output).unwrap();
         // Should just continue loop and then exit
     }
+
+    #[test]
+    fn test_mentor_analysis_error() {
+        // Syntax is valid, but analysis fails (undefined variable)
+        // Use assignment to undefined variable ("unknown becomes 10")
+        let input_data = "άγνωστο 10 γίγνεται.\n.exit\n";
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        run_mentor_inner(&mut input, &mut output).unwrap();
+
+        let s = String::from_utf8(output).unwrap();
+        assert!(s.contains("Error"));
+    }
+
+    #[test]
+    fn test_mentor_graduation() {
+        // Complete all 3 lessons
+        let input_data = "ξ 10 ἔστω.\n\n«Hello» λέγε.\n\nεἰ ἀληθές, «ναί» λέγε.\n\n";
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        run_mentor_inner(&mut input, &mut output).unwrap();
+
+        let s = String::from_utf8(output).unwrap();
+        assert!(s.contains("Graduation"));
+        assert!(s.contains("completed the basic tutorial"));
+    }
 }
