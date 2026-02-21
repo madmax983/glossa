@@ -23,6 +23,11 @@ fn main() -> Result<()> {
             run_file(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Mentor) => {
+            glossa::tools::mentor::run_mentor()?;
+        }
+
         Some(Commands::Build { input, output }) => {
             build_file(&input, output.as_deref())?;
         }
