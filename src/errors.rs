@@ -79,21 +79,6 @@ pub enum GlossaError {
     #[diagnostic(code(glossa::undefined))]
     UndefinedName { name: String },
 
-    /// **Agreement Error**: Grammatical agreement failed.
-    ///
-    /// In Greek, the Subject must agree with the Verb in Person and Number.
-    /// Adjectives must agree with Nouns in Gender, Number, and Case.
-    #[error("Σφάλμα συμφωνίας: {message}")]
-    #[diagnostic(code(glossa::agreement))]
-    AgreementError { message: String },
-
-    /// **Codegen Error**: Failed to generate valid Rust code.
-    ///
-    /// This is an internal error indicating the transpiler produced invalid output.
-    #[error("Σφάλμα κώδικος: {message}")]
-    #[diagnostic(code(glossa::codegen))]
-    CodegenError { message: String },
-
     /// **Limit Exceeded**: Resource exhaustion protection.
     ///
     /// To prevent Denial of Service (DoS) attacks or infinite loops during compilation,
@@ -145,28 +130,12 @@ impl GlossaError {
         GlossaError::UndefinedName { name: name.into() }
     }
 
-    /// Create an agreement error
-    pub fn agreement(message: impl Into<String>) -> Self {
-        GlossaError::AgreementError {
-            message: message.into(),
-        }
-    }
-
-    /// Create a codegen error
-    pub fn codegen(message: impl Into<String>) -> Self {
-        GlossaError::CodegenError {
-            message: message.into(),
-        }
-    }
-
     /// Get the Greek category name for this error
     pub fn category_greek(&self) -> &'static str {
         match self {
             GlossaError::ParseError { .. } => "Σύνταξις",
             GlossaError::SemanticError { .. } => "Σημασία",
             GlossaError::UndefinedName { .. } => "Ὄνομα",
-            GlossaError::AgreementError { .. } => "Συμφωνία",
-            GlossaError::CodegenError { .. } => "Κῶδιξ",
             GlossaError::LimitExceeded { .. } => "Όριον",
             GlossaError::AssemblyError(_) => "Συναρμογή",
         }
@@ -176,14 +145,6 @@ impl GlossaError {
 /// Errors that can occur during assembly
 #[derive(Debug, Clone, Error, Diagnostic)]
 pub enum AssemblyError {
-    /// Two subjects found in the same statement (Nominative collision)
-    ///
-    /// # Example
-    /// `ὁ ἄνθρωπος ὁ θεὸς λέγει` (The man the god says)
-    #[error("Διπλοῦν ὑποκείμενον! Δύο βασιλεῖς οὐ δύνανται μιᾶς πόλεως ἄρχειν.")]
-    #[diagnostic(code(glossa::assembly::double_subject))]
-    DoubleSubject,
-
     /// Two objects found in the same statement (Accusative collision)
     ///
     /// # Example
@@ -208,16 +169,6 @@ pub enum AssemblyError {
     #[diagnostic(code(glossa::assembly::double_verb))]
     DoubleVerb,
 
-    /// No verb found in the statement
-    ///
-    /// Note: Pure expressions (like `5`) are allowed, but incomplete sentences trigger this.
-    ///
-    /// # Example
-    /// `ὁ ἄνθρωπος τὸν λόγον` (The man the word ... [missing action])
-    #[error("Ῥῆμα οὐχ εὑρέθη! Οὐδὲν ἐγένετο.")]
-    #[diagnostic(code(glossa::assembly::missing_verb))]
-    MissingVerb,
-
     /// Subject and Verb do not agree in number/person
     ///
     /// # Example
@@ -227,19 +178,6 @@ pub enum AssemblyError {
     SubjectVerbDisagreement {
         subject: (Option<Person>, Option<Number>),
         verb: (Option<Person>, Option<Number>),
-    },
-
-    /// Adjective and Noun do not agree in gender
-    ///
-    /// # Example
-    /// `ὁ καλὸς (Masc) γυνή (Fem)`
-    #[error("Ἀσυμφωνία γένους: {word1} ({gender1:?}) πρὸς {word2} ({gender2:?})")]
-    #[diagnostic(code(glossa::assembly::gender_mismatch))]
-    GenderMismatch {
-        word1: String,
-        gender1: Gender,
-        word2: String,
-        gender2: Gender,
     },
 
     /// Resource limit exceeded to prevent denial of service
