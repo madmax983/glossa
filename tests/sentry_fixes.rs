@@ -1,5 +1,5 @@
 use glossa::parser::parse;
-use glossa::semantic::{AnalyzedExprKind, AnalyzedStatement, analyze_program};
+use glossa::semantic::{analyze_program, AnalyzedExprKind, AnalyzedStatement};
 use glossa::text::normalize_greek;
 
 #[test]
@@ -20,21 +20,19 @@ fn test_assertion_equality_variables() {
     assert_eq!(result.statements.len(), 3);
 
     let last_stmt = &result.statements[2];
-    if let AnalyzedStatement::Expression(exprs) = last_stmt {
-        assert_eq!(exprs.len(), 1);
-        if let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr {
-            // Verify left and right are variables x and y
-            match (&left.expr, &right.expr) {
-                (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
-                    assert!((l == "χ" && r == "ψ") || (l == "ψ" && r == "χ"));
-                }
-                _ => panic!("Expected variables in AssertEq"),
+    if let AnalyzedStatement::Expression(exprs) = last_stmt
+        && exprs.len() == 1
+        && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
+    {
+        // Verify left and right are variables x and y
+        match (&left.expr, &right.expr) {
+            (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
+                assert!( (l == "χ" && r == "ψ") || (l == "ψ" && r == "χ") );
             }
-        } else {
-            panic!("Expected AssertEq expression, got {:?}", exprs[0]);
+            _ => panic!("Expected variables in AssertEq"),
         }
     } else {
-        panic!("Expected Expression statement");
+        panic!("Expected AssertEq expression, got {:?}", last_stmt);
     }
 }
 
@@ -53,18 +51,51 @@ fn test_equality_object_variable() {
 
     assert_eq!(result.statements.len(), 3);
     let last_stmt = &result.statements[2];
-    if let AnalyzedStatement::Expression(exprs) = last_stmt {
-        if let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr {
-            match (&left.expr, &right.expr) {
-                (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
-                    // Expect normalized lemmas: "χ" and "τιμη"
-                    assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
-                }
-                _ => panic!("Expected variables in AssertEq"),
+    if let AnalyzedStatement::Expression(exprs) = last_stmt
+        && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
+    {
+         match (&left.expr, &right.expr) {
+            (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
+                // Expect normalized lemmas: "χ" and "τιμη"
+                assert!( (l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ") );
             }
-        } else {
-            panic!("Expected AssertEq");
+            _ => panic!("Expected variables in AssertEq"),
         }
+    } else {
+        panic!("Expected AssertEq");
+    }
+}
+
+#[test]
+fn test_equality_nominative_variable() {
+    // Coverage: Target "Nominative is Variable" branch in classify_equality_assertion
+    // Use two nominatives. "χ ψ ἰσοῦται" usually puts one in Subject, one in Nominative if word order permits?
+    // Actually, assembler prefers Subject then Nominative.
+    // If we have "χ ψ ἰσοῦται", 'χ' is Subject, 'ψ' is Nominative (or Object if accusative).
+    // If both are nominative forms, 'ψ' goes to Nominatives list.
+    // Let's ensure both are nominative. 'τιμή' and 'χ'.
+    let code = "
+    ἔστω χ 5.
+    ἔστω τιμή 5.
+    χ τιμή ἰσοῦται.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    assert_eq!(result.statements.len(), 3);
+    let last_stmt = &result.statements[2];
+    if let AnalyzedStatement::Expression(exprs) = last_stmt
+        && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
+    {
+         match (&left.expr, &right.expr) {
+            (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
+                assert!( (l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ") );
+            }
+            _ => panic!("Expected variables in AssertEq"),
+        }
+    } else {
+        panic!("Expected AssertEq");
     }
 }
 
@@ -85,33 +116,27 @@ fn test_assertion_contains_variables() {
 
     // Stmt 3: Assert(contains)
     let last_stmt = &result.statements[2];
-    if let AnalyzedStatement::Expression(exprs) = last_stmt {
-        assert_eq!(exprs.len(), 1);
-        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
-            if let AnalyzedExprKind::MethodCall {
-                receiver,
-                method,
-                args,
-            } = &condition.expr
-            {
-                assert!(method == "contains_key" || method == "contains");
-                // Receiver should be 'μ' (Map)
-                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
-                    assert_eq!(name, "μ");
-                }
-
-                // Arg should be 'ψ' (Element)
-                let arg_inner = match &args[0].expr {
-                    AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr, // Ref
-                    k => k,
-                };
-                if let AnalyzedExprKind::Variable(name) = arg_inner {
-                    assert_eq!(name, "ψ");
-                }
-            } else {
-                panic!("Expected MethodCall");
-            }
+    if let AnalyzedStatement::Expression(exprs) = last_stmt
+        && exprs.len() == 1
+        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
+        && let AnalyzedExprKind::MethodCall { receiver, method, args } = &condition.expr
+    {
+        assert!(method == "contains_key" || method == "contains");
+        // Receiver should be 'μ' (Map)
+        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+            assert_eq!(name, "μ");
         }
+
+        // Arg should be 'ψ' (Element)
+        let arg_inner = match &args[0].expr {
+            AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr, // Ref
+            k => k,
+        };
+        if let AnalyzedExprKind::Variable(name) = arg_inner {
+            assert_eq!(name, "ψ");
+        }
+    } else {
+        panic!("Expected Assert MethodCall");
     }
 }
 
@@ -129,16 +154,15 @@ fn test_assertion_contains_object_collection() {
     let result = analyze_program(&parsed).expect("Analysis failed");
 
     let last_stmt = result.statements.last().unwrap();
-    if let AnalyzedStatement::Expression(exprs) = last_stmt {
-        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
-            if let AnalyzedExprKind::MethodCall { receiver, .. } = &condition.expr {
-                // Receiver must be the collection 'χάρτην' -> normalized "χαρτην"
-                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
-                    assert_eq!(name, "χαρτην");
-                } else {
-                    panic!("Smart dispatch failed to pick Object as collection");
-                }
-            }
+    if let AnalyzedStatement::Expression(exprs) = last_stmt
+        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
+        && let AnalyzedExprKind::MethodCall { receiver, .. } = &condition.expr
+    {
+        // Receiver must be the collection 'χάρτην' -> normalized "χαρτην"
+        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+            assert_eq!(name, "χαρτην");
+        } else {
+            panic!("Smart dispatch failed to pick Object as collection");
         }
     }
 }
@@ -158,16 +182,15 @@ fn test_assertion_contains_nominative_collection() {
     let result = analyze_program(&parsed).expect("Analysis failed");
 
     let last_stmt = result.statements.last().unwrap();
-    if let AnalyzedStatement::Expression(exprs) = last_stmt {
-        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
-            if let AnalyzedExprKind::MethodCall { receiver, .. } = &condition.expr {
-                // Receiver must be the collection 'ἄλλος' -> normalized "αλλος"
-                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
-                    assert_eq!(name, "αλλος");
-                } else {
-                    panic!("Smart dispatch failed to pick Nominative as collection");
-                }
-            }
+    if let AnalyzedStatement::Expression(exprs) = last_stmt
+        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
+        && let AnalyzedExprKind::MethodCall { receiver, .. } = &condition.expr
+    {
+        // Receiver must be the collection 'ἄλλος' -> normalized "αλλος"
+        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+            assert_eq!(name, "αλλος");
+        } else {
+            panic!("Smart dispatch failed to pick Nominative as collection");
         }
     }
 }
