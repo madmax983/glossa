@@ -1,8 +1,31 @@
+//! The Cache System - "The Vault"
+//!
+//! This module implements incremental compilation for ΓΛΩΣΣΑ.
+//!
+//! # The Vault Philosophy
+//!
+//! Compiling code takes time. To be fast, we must avoid doing work we've already done.
+//! "The Vault" stores the results of previous compilations and retrieves them
+//! if the source code hasn't changed.
+//!
+//! # How it works
+//!
+//! 1. **Key Generation**: A unique fingerprint (SHA-256 hash) is generated from the
+//!    canonical path of the source file. This ensures that `src/main.gl` and `./main.gl`
+//!    map to the same cache entry.
+//! 2. **Storage**: The compiler stores two artifacts in the cache directory (`~/.glossa/cache`):
+//!    - `{hash}.rs`: The generated Rust source code.
+//!    - `{hash}` (or `{hash}.exe`): The compiled binary.
+//! 3. **Validation**: Before running, we check if the cached binary is newer than the source file.
+//!    If it is, we skip compilation and run the cached binary directly (The "Hot Path").
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 /// Manages the build cache for compiled programs.
+///
+/// Handles path resolution, key generation, and validity checking for cached binaries.
 pub struct Cache {
     base_dir: PathBuf,
 }
@@ -14,7 +37,10 @@ impl Default for Cache {
 }
 
 impl Cache {
-    /// Create a new Cache manager, resolving the cache directory.
+    /// Create a new Cache manager
+    ///
+    /// Resolves the cache directory to the system standard (e.g. `~/.cache` or `%LOCALAPPDATA%`)
+    /// appended with `.glossa/cache`.
     pub fn new() -> Self {
         let base_dir = dirs_next::cache_dir()
             .or_else(dirs_next::home_dir)
@@ -24,12 +50,25 @@ impl Cache {
         Self { base_dir }
     }
 
-    /// Ensure the cache directory exists.
+    /// Ensure the cache directory exists
+    ///
+    /// Creates the directory structure if it doesn't already exist.
+    /// Should be called before writing any files.
     pub fn init(&self) -> std::io::Result<()> {
         fs::create_dir_all(&self.base_dir)
     }
 
-    /// Generate a cache key from the source file path.
+    /// Generate a unique cache key for a source file
+    ///
+    /// The key is a SHA-256 hash of the **canonical path** of the input file.
+    /// This ensures that the same file always maps to the same cache entry,
+    /// regardless of how it was referenced (relative vs absolute path).
+    ///
+    /// # Why hash the path?
+    ///
+    /// We hash the path instead of the content for speed. The content change
+    /// detection is handled by the filesystem timestamp check in [`is_valid`](Cache::is_valid).
+    /// This allows the key generation to be extremely fast (no file reading).
     pub fn key(&self, input: &Path) -> String {
         use sha2::{Digest, Sha256};
 
@@ -47,7 +86,11 @@ impl Cache {
         hex::encode(result)
     }
 
-    /// Get the paths for the cached Rust source and executable.
+    /// Get the paths for the cached artifacts
+    ///
+    /// Returns a tuple of:
+    /// 1. Path to the generated Rust source (`{hash}.rs`)
+    /// 2. Path to the compiled executable (`{hash}` or `{hash}.exe`)
     pub fn get_paths(&self, input: &Path) -> (PathBuf, PathBuf) {
         let key = self.key(input);
         let cached_rs = self.base_dir.join(format!("{}.rs", key));
@@ -59,7 +102,16 @@ impl Cache {
         (cached_rs, cached_exe)
     }
 
-    /// Check if the cached binary is still valid (source not modified since compile).
+    /// Check if the cached binary is still valid
+    ///
+    /// Returns `true` if the cached executable exists and is newer than the source file.
+    /// This implements the standard "timestamp-based" incremental build logic.
+    ///
+    /// # Logic
+    ///
+    /// ```text
+    /// Valid = Exists(Binary) AND Modified(Binary) > Modified(Source)
+    /// ```
     pub fn is_valid(&self, input: &Path, cached_exe: &Path) -> bool {
         let source_modified = fs::metadata(input)
             .and_then(|m| m.modified())

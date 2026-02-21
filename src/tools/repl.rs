@@ -1,3 +1,28 @@
+//! The REPL (Read-Eval-Print Loop) - "The Playground"
+//!
+//! This module implements the interactive shell for ΓΛΩΣΣΑ.
+//! It allows users to experiment with the language, test snippets, and explore
+//! the type system in real-time.
+//!
+//! # The Playground Philosophy
+//!
+//! The REPL is designed to be forgiving and helpful. It maintains a persistent
+//! session state, allowing users to define variables and functions incrementally.
+//!
+//! # Features
+//!
+//! * **Persistence**: Variables defined with `ἔστω` stay in scope.
+//! * **Incremental Compilation**: Each line is compiled with the previous context.
+//! * **Safety Limits**: Prevents memory exhaustion with strict binding and size limits.
+//! * **Commands**: Built-in commands for managing the environment.
+//!
+//! # Commands
+//!
+//! * `.βοήθεια` / `.help` - Show available commands.
+//! * `.ἔξοδος` / `.exit` - Exit the REPL.
+//! * `.καθαρός` / `.clear` - Clear the session history (reset scope).
+//! * `.περιβάλλον` / `.env` - Show all defined variables and their types.
+
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
@@ -14,6 +39,24 @@ const MAX_REPL_BINDINGS: usize = 50;
 const MAX_REPL_SOURCE_LEN: usize = 50_000;
 
 /// Entry point for the REPL using stdin/stdout
+///
+/// Starts the interactive loop, reading from standard input and writing to standard output.
+///
+/// # Example Usage
+///
+/// ```text
+/// $ glossa repl
+///
+///    Γ Λ Ω Σ Σ Α
+///    Code as the ancients intended.
+///    v0.1.0
+///
+/// γλ> ξ πέντε ἔστω.
+/// ✓ ξ: Ἀριθμός
+/// γλ> ξ λέγε.
+/// ✓ Ἐκτελέσθη
+///   println!("{}", ξ);
+/// ```
 pub fn run_repl() -> Result<()> {
     print_banner();
     let stdin = std::io::stdin();
