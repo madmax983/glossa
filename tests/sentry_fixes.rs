@@ -100,6 +100,38 @@ fn test_equality_nominative_variable() {
 }
 
 #[test]
+fn test_equality_literal() {
+    // Coverage: Target "Literal" branch in classify_equality_assertion
+    let code = "
+    ἔστω χ 5.
+    χ 5 ἰσοῦται.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    assert_eq!(result.statements.len(), 2);
+    let last_stmt = &result.statements[1];
+    if let AnalyzedStatement::Expression(exprs) = last_stmt
+        && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
+    {
+        if let AnalyzedExprKind::Variable(l) = &left.expr {
+            assert_eq!(l, "χ");
+        } else {
+            panic!("Left should be variable");
+        }
+
+        if let AnalyzedExprKind::NumberLiteral(r) = &right.expr {
+            assert_eq!(*r, 5);
+        } else {
+            panic!("Right should be number");
+        }
+    } else {
+        panic!("Expected AssertEq");
+    }
+}
+
+#[test]
 fn test_assertion_equality_no_variables() {
     // Coverage: Target the `else` branch in `classify_equality_assertion`
     // where no literal or object/nominative variable is found.
@@ -134,6 +166,9 @@ fn test_assertion_equality_no_variables() {
 fn test_assertion_contains_variables() {
     // Regression test for "Contains assertion defaults to 0"
     // Also tests smart dispatch: Subject=Collection (μ)
+    // "ψ ἐν μ δεῖ"
+    // Subject: μ (Map) -> is_subj_collection=true
+    // Nominatives: ψ (Element) -> element via Nominative branch
     let code = "
     ἔστω ψ 5.
     μ νέον χάρτης ἔστω.
@@ -165,6 +200,47 @@ fn test_assertion_contains_variables() {
         // Arg should be 'ψ' (Element)
         let arg_inner = match &args[0].expr {
             AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr, // Ref
+            k => k,
+        };
+        if let AnalyzedExprKind::Variable(name) = arg_inner {
+            assert_eq!(name, "ψ");
+        }
+    } else {
+        panic!("Expected Assert MethodCall");
+    }
+}
+
+#[test]
+fn test_assertion_contains_subject_collection_object_element() {
+    // Coverage: Target `is_subj_collection` -> `object` branch
+    // Subject: Collection
+    // Object: Element
+    // "μ(Map) τὸν ψ(Element, Acc) δεῖ" (Map needs/asserts the psi)
+    // Preposition 'ἐν' might be needed for proper classification as assertion?
+    // The code says `if asm_stmt.has_containment_preposition`.
+    // So we need 'ἐν'.
+    // "τὸν ψ ἐν μ δεῖ."
+    let code = "
+    ἔστω ψ 5.
+    μ νέον χάρτης ἔστω.
+    τὸν ψ ἐν μ δεῖ.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    let last_stmt = result.statements.last().unwrap();
+    if let AnalyzedStatement::Expression(exprs) = last_stmt
+        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
+        && let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr
+    {
+        // Receiver: μ
+        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+            assert_eq!(name, "μ");
+        }
+        // Arg: ψ
+        let arg_inner = match &args[0].expr {
+            AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
             k => k,
         };
         if let AnalyzedExprKind::Variable(name) = arg_inner {
@@ -277,6 +353,75 @@ fn test_assertion_contains_fallback_variable() {
                 "Fallback failed to resolve variable argument 'χ', got {:?}",
                 arg_inner
             );
+        }
+    }
+}
+
+#[test]
+fn test_assertion_contains_fallback_object_element() {
+    // Coverage: Target Fallback -> Object Element branch
+    // Subject: χ (Number) -> Not Collection, triggers fallback.
+    // Object: τὸν ψ (Number) -> Should be picked as element.
+    let code = "
+    ἔστω χ 5.
+    ἔστω ψ 5.
+    χ ἐν τὸν ψ δεῖ.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    let last_stmt = result.statements.last().unwrap();
+    if let AnalyzedStatement::Expression(exprs) = last_stmt
+        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
+        && let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr
+    {
+        // Receiver: χ (Subject)
+        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+            assert_eq!(name, "χ");
+        }
+        // Element: ψ (Object)
+        let arg_inner = match &args[0].expr {
+            AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
+            k => k,
+        };
+        if let AnalyzedExprKind::Variable(name) = arg_inner {
+            assert_eq!(name, "ψ");
+        }
+    }
+}
+
+#[test]
+fn test_assertion_contains_fallback_default() {
+    // Coverage: Target Fallback -> Default (0)
+    // No variable element provided.
+    // "In x assert" -> "ἐν χ δεῖ"
+    let code = "
+    ἔστω χ 5.
+    ἐν χ δεῖ.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    let last_stmt = result.statements.last().unwrap();
+    if let AnalyzedStatement::Expression(exprs) = last_stmt
+        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
+        && let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr
+    {
+        // Receiver: χ
+        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+            assert_eq!(name, "χ");
+        }
+        // Element: 0 (Default)
+        let arg_inner = match &args[0].expr {
+            AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
+            k => k,
+        };
+        if let AnalyzedExprKind::NumberLiteral(n) = arg_inner {
+            assert_eq!(*n, 0);
+        } else {
+            panic!("Expected default 0");
         }
     }
 }
