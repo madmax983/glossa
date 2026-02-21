@@ -1,3 +1,5 @@
+#![allow(clippy::collapsible_if)]
+
 use glossa::parser::parse;
 use glossa::semantic::{AnalyzedExprKind, AnalyzedStatement, analyze_program};
 use glossa::text::normalize_greek;
@@ -20,20 +22,21 @@ fn test_assertion_equality_variables() {
     assert_eq!(result.statements.len(), 3);
 
     let last_stmt = &result.statements[2];
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && exprs.len() == 1
-        && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
-    {
-        // Verify left and right are variables x and y
-        match (&left.expr, &right.expr) {
-            (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
-                assert!((l == "χ" && r == "ψ") || (l == "ψ" && r == "χ"));
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if exprs.len() == 1 {
+            if let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr {
+                // Verify left and right are variables x and y
+                match (&left.expr, &right.expr) {
+                    (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
+                        assert!((l == "χ" && r == "ψ") || (l == "ψ" && r == "χ"));
+                    }
+                    _ => panic!("Expected variables in AssertEq"),
+                }
+                return;
             }
-            _ => panic!("Expected variables in AssertEq"),
         }
-    } else {
-        panic!("Expected AssertEq expression, got {:?}", last_stmt);
     }
+    panic!("Expected AssertEq expression, got {:?}", last_stmt);
 }
 
 #[test]
@@ -51,19 +54,19 @@ fn test_equality_object_variable() {
 
     assert_eq!(result.statements.len(), 3);
     let last_stmt = &result.statements[2];
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
-    {
-        match (&left.expr, &right.expr) {
-            (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
-                // Expect normalized lemmas: "χ" and "τιμη"
-                assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr {
+            match (&left.expr, &right.expr) {
+                (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
+                    // Expect normalized lemmas: "χ" and "τιμη"
+                    assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
+                }
+                _ => panic!("Expected variables in AssertEq"),
             }
-            _ => panic!("Expected variables in AssertEq"),
+            return;
         }
-    } else {
-        panic!("Expected AssertEq");
     }
+    panic!("Expected AssertEq");
 }
 
 #[test]
@@ -85,18 +88,18 @@ fn test_equality_nominative_variable() {
 
     assert_eq!(result.statements.len(), 3);
     let last_stmt = &result.statements[2];
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
-    {
-        match (&left.expr, &right.expr) {
-            (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
-                assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr {
+            match (&left.expr, &right.expr) {
+                (AnalyzedExprKind::Variable(l), AnalyzedExprKind::Variable(r)) => {
+                    assert!((l == "χ" && r == "τιμη") || (l == "τιμη" && r == "χ"));
+                }
+                _ => panic!("Expected variables in AssertEq"),
             }
-            _ => panic!("Expected variables in AssertEq"),
+            return;
         }
-    } else {
-        panic!("Expected AssertEq");
     }
+    panic!("Expected AssertEq");
 }
 
 #[test]
@@ -112,23 +115,23 @@ fn test_equality_literal() {
 
     assert_eq!(result.statements.len(), 2);
     let last_stmt = &result.statements[1];
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr
-    {
-        if let AnalyzedExprKind::Variable(l) = &left.expr {
-            assert_eq!(l, "χ");
-        } else {
-            panic!("Left should be variable");
-        }
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::AssertEq { left, right } = &exprs[0].expr {
+            if let AnalyzedExprKind::Variable(l) = &left.expr {
+                assert_eq!(l, "χ");
+            } else {
+                panic!("Left should be variable");
+            }
 
-        if let AnalyzedExprKind::NumberLiteral(r) = &right.expr {
-            assert_eq!(*r, 5);
-        } else {
-            panic!("Right should be number");
+            if let AnalyzedExprKind::NumberLiteral(r) = &right.expr {
+                assert_eq!(*r, 5);
+            } else {
+                panic!("Right should be number");
+            }
+            return;
         }
-    } else {
-        panic!("Expected AssertEq");
     }
+    panic!("Expected AssertEq");
 }
 
 #[test]
@@ -208,32 +211,35 @@ fn test_assertion_contains_variables() {
 
     // Stmt 3: Assert(contains)
     let last_stmt = &result.statements[2];
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && exprs.len() == 1
-        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
-        && let AnalyzedExprKind::MethodCall {
-            receiver,
-            method,
-            args,
-        } = &condition.expr
-    {
-        assert!(method == "contains_key" || method == "contains");
-        // Receiver should be 'μ' (Map)
-        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
-            assert_eq!(name, "μ");
-        }
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if exprs.len() == 1 {
+            if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+                if let AnalyzedExprKind::MethodCall {
+                    receiver,
+                    method,
+                    args,
+                } = &condition.expr
+                {
+                    assert!(method == "contains_key" || method == "contains");
+                    // Receiver should be 'μ' (Map)
+                    if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                        assert_eq!(name, "μ");
+                    }
 
-        // Arg should be 'ψ' (Element)
-        let arg_inner = match &args[0].expr {
-            AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr, // Ref
-            k => k,
-        };
-        if let AnalyzedExprKind::Variable(name) = arg_inner {
-            assert_eq!(name, "ψ");
+                    // Arg should be 'ψ' (Element)
+                    let arg_inner = match &args[0].expr {
+                        AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr, // Ref
+                        k => k,
+                    };
+                    if let AnalyzedExprKind::Variable(name) = arg_inner {
+                        assert_eq!(name, "ψ");
+                    }
+                    return;
+                }
+            }
         }
-    } else {
-        panic!("Expected Assert MethodCall");
     }
+    panic!("Expected Assert MethodCall");
 }
 
 #[test]
@@ -256,25 +262,103 @@ fn test_assertion_contains_subject_collection_object_element() {
     let result = analyze_program(&parsed).expect("Analysis failed");
 
     let last_stmt = result.statements.last().unwrap();
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
-        && let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr
-    {
-        // Receiver: μ
-        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
-            assert_eq!(name, "μ");
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr {
+                // Receiver: μ
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "μ");
+                }
+                // Arg: ψ
+                let arg_inner = match &args[0].expr {
+                    AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
+                    k => k,
+                };
+                if let AnalyzedExprKind::Variable(name) = arg_inner {
+                    assert_eq!(name, "ψ");
+                }
+                return;
+            }
         }
-        // Arg: ψ
-        let arg_inner = match &args[0].expr {
-            AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
-            k => k,
-        };
-        if let AnalyzedExprKind::Variable(name) = arg_inner {
-            assert_eq!(name, "ψ");
-        }
-    } else {
-        panic!("Expected Assert MethodCall");
     }
+    panic!("Expected Assert MethodCall");
+}
+
+#[test]
+fn test_assertion_contains_subject_collection_literal() {
+    // Coverage: Target `is_subj_collection` -> `literal` branch
+    // Subject: Collection
+    // Literal: 5
+    let code = "
+    μ νέον χάρτης ἔστω.
+    5 ἐν μ δεῖ.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    let last_stmt = result.statements.last().unwrap();
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr {
+                // Receiver: μ
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "μ");
+                }
+                // Arg: 5 (Literal)
+                // May be wrapped in Ref if it's not string, but NumberLiteral is handled by generic wrapper.
+                let arg_inner = match &args[0].expr {
+                    AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
+                    k => k,
+                };
+                if let AnalyzedExprKind::NumberLiteral(n) = arg_inner {
+                    assert_eq!(*n, 5);
+                } else {
+                    panic!("Expected NumberLiteral(5)");
+                }
+                return;
+            }
+        }
+    }
+    panic!("Expected Assert MethodCall");
+}
+
+#[test]
+fn test_assertion_contains_subject_collection_default() {
+    // Coverage: Target `is_subj_collection` -> `else` (default 0) branch
+    // Subject: Collection
+    // No element specified
+    let code = "
+    μ νέον χάρτης ἔστω.
+    ἐν μ δεῖ.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    let last_stmt = result.statements.last().unwrap();
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr {
+                // Receiver: μ
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "μ");
+                }
+                // Arg: 0 (Default)
+                let arg_inner = match &args[0].expr {
+                    AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
+                    k => k,
+                };
+                if let AnalyzedExprKind::NumberLiteral(n) = arg_inner {
+                    assert_eq!(*n, 0);
+                } else {
+                    panic!("Expected default 0");
+                }
+                return;
+            }
+        }
+    }
+    panic!("Expected Assert MethodCall");
 }
 
 #[test]
@@ -291,17 +375,20 @@ fn test_assertion_contains_object_collection() {
     let result = analyze_program(&parsed).expect("Analysis failed");
 
     let last_stmt = result.statements.last().unwrap();
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
-        && let AnalyzedExprKind::MethodCall { receiver, .. } = &condition.expr
-    {
-        // Receiver must be the collection 'χάρτην' -> normalized "χαρτην"
-        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
-            assert_eq!(name, "χαρτην");
-        } else {
-            panic!("Smart dispatch failed to pick Object as collection");
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, .. } = &condition.expr {
+                // Receiver must be the collection 'χάρτην' -> normalized "χαρτην"
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "χαρτην");
+                } else {
+                    panic!("Smart dispatch failed to pick Object as collection");
+                }
+                return;
+            }
         }
     }
+    panic!("Expected Assert MethodCall");
 }
 
 #[test]
@@ -319,17 +406,20 @@ fn test_assertion_contains_nominative_collection() {
     let result = analyze_program(&parsed).expect("Analysis failed");
 
     let last_stmt = result.statements.last().unwrap();
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
-        && let AnalyzedExprKind::MethodCall { receiver, .. } = &condition.expr
-    {
-        // Receiver must be the collection 'ἄλλος' -> normalized "αλλος"
-        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
-            assert_eq!(name, "αλλος");
-        } else {
-            panic!("Smart dispatch failed to pick Nominative as collection");
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, .. } = &condition.expr {
+                // Receiver must be the collection 'ἄλλος' -> normalized "αλλος"
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "αλλος");
+                } else {
+                    panic!("Smart dispatch failed to pick Nominative as collection");
+                }
+                return;
+            }
         }
     }
+    panic!("Expected Assert MethodCall");
 }
 
 #[test]
@@ -353,34 +443,37 @@ fn test_assertion_contains_fallback_variable() {
     let result = analyze_program(&parsed).expect("Analysis failed");
 
     let last_stmt = result.statements.last().unwrap();
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
-        && let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr
-    {
-        // Receiver should be 'ψ' (fallback to subject)
-        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
-            assert_eq!(name, "ψ");
-        } else {
-            panic!(
-                "Expected receiver to be 'ψ' in fallback, got {:?}",
-                receiver
-            );
-        }
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr {
+                // Receiver should be 'ψ' (fallback to subject)
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "ψ");
+                } else {
+                    panic!(
+                        "Expected receiver to be 'ψ' in fallback, got {:?}",
+                        receiver
+                    );
+                }
 
-        // Arg should be 'x' (element from nominatives)
-        let arg_inner = match &args[0].expr {
-            AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr, // Ref
-            k => k,
-        };
-        if let AnalyzedExprKind::Variable(name) = arg_inner {
-            assert_eq!(name, "χ");
-        } else {
-            panic!(
-                "Fallback failed to resolve variable argument 'χ', got {:?}",
-                arg_inner
-            );
+                // Arg should be 'x' (element from nominatives)
+                let arg_inner = match &args[0].expr {
+                    AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr, // Ref
+                    k => k,
+                };
+                if let AnalyzedExprKind::Variable(name) = arg_inner {
+                    assert_eq!(name, "χ");
+                } else {
+                    panic!(
+                        "Fallback failed to resolve variable argument 'χ', got {:?}",
+                        arg_inner
+                    );
+                }
+                return;
+            }
         }
     }
+    panic!("Expected Assert MethodCall");
 }
 
 #[test]
@@ -398,23 +491,64 @@ fn test_assertion_contains_fallback_object_element() {
     let result = analyze_program(&parsed).expect("Analysis failed");
 
     let last_stmt = result.statements.last().unwrap();
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
-        && let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr
-    {
-        // Receiver: χ (Subject)
-        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
-            assert_eq!(name, "χ");
-        }
-        // Element: ψ (Object)
-        let arg_inner = match &args[0].expr {
-            AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
-            k => k,
-        };
-        if let AnalyzedExprKind::Variable(name) = arg_inner {
-            assert_eq!(name, "ψ");
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr {
+                // Receiver: χ (Subject)
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "χ");
+                }
+                // Element: ψ (Object)
+                let arg_inner = match &args[0].expr {
+                    AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
+                    k => k,
+                };
+                if let AnalyzedExprKind::Variable(name) = arg_inner {
+                    assert_eq!(name, "ψ");
+                }
+                return;
+            }
         }
     }
+    panic!("Expected Assert MethodCall");
+}
+
+#[test]
+fn test_assertion_contains_fallback_literal() {
+    // Coverage: Target Fallback -> Literal Element branch
+    // Subject: χ
+    // Literal: 5
+    let code = "
+    ἔστω χ 5.
+    5 ἐν χ δεῖ.
+    ";
+
+    let parsed = parse(code).expect("Parse failed");
+    let result = analyze_program(&parsed).expect("Analysis failed");
+
+    let last_stmt = result.statements.last().unwrap();
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr {
+                // Receiver: χ
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "χ");
+                }
+                // Element: 5 (Literal)
+                let arg_inner = match &args[0].expr {
+                    AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
+                    k => k,
+                };
+                if let AnalyzedExprKind::NumberLiteral(n) = arg_inner {
+                    assert_eq!(*n, 5);
+                } else {
+                    panic!("Expected NumberLiteral(5)");
+                }
+                return;
+            }
+        }
+    }
+    panic!("Expected Assert MethodCall");
 }
 
 #[test]
@@ -431,25 +565,28 @@ fn test_assertion_contains_fallback_default() {
     let result = analyze_program(&parsed).expect("Analysis failed");
 
     let last_stmt = result.statements.last().unwrap();
-    if let AnalyzedStatement::Expression(exprs) = last_stmt
-        && let AnalyzedExprKind::Assert { condition } = &exprs[0].expr
-        && let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr
-    {
-        // Receiver: χ
-        if let AnalyzedExprKind::Variable(name) = &receiver.expr {
-            assert_eq!(name, "χ");
-        }
-        // Element: 0 (Default)
-        let arg_inner = match &args[0].expr {
-            AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
-            k => k,
-        };
-        if let AnalyzedExprKind::NumberLiteral(n) = arg_inner {
-            assert_eq!(*n, 0);
-        } else {
-            panic!("Expected default 0");
+    if let AnalyzedStatement::Expression(exprs) = last_stmt {
+        if let AnalyzedExprKind::Assert { condition } = &exprs[0].expr {
+            if let AnalyzedExprKind::MethodCall { receiver, args, .. } = &condition.expr {
+                // Receiver: χ
+                if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                    assert_eq!(name, "χ");
+                }
+                // Element: 0 (Default)
+                let arg_inner = match &args[0].expr {
+                    AnalyzedExprKind::UnaryOp { op: _, operand } => &operand.expr,
+                    k => k,
+                };
+                if let AnalyzedExprKind::NumberLiteral(n) = arg_inner {
+                    assert_eq!(*n, 0);
+                } else {
+                    panic!("Expected default 0");
+                }
+                return;
+            }
         }
     }
+    panic!("Expected Assert MethodCall");
 }
 
 #[test]
