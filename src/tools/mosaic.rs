@@ -5,14 +5,25 @@
 //!
 //! # Purpose
 //!
-//! This tool helps developers and users understand how the "free word order" of Ancient Greek
-//! is interpreted by the compiler's `Assembler`. It shows which words land in which
-//! grammatical slot (Subject, Object, Verb, etc.).
+//! Ancient Greek is a language of "free word order". The meaning is determined by
+//! case endings, not position.
 //!
-//! # The Mosaic
+//! "Mosaic" reveals how the compiler's [`Assembler`](crate::semantic::Assembler)
+//! deconstructs this freedom. It shows exactly which words land in which grammatical
+//! slot (Subject, Object, Verb, etc.), proving that `SOV`, `VSO`, and `OVS` all map
+//! to the same semantic structure.
 //!
-//! The output is a table where each row represents a statement, and columns represent
-//! the grammatical slots.
+//! # The Output
+//!
+//! The output is a table where each row represents a single statement.
+//!
+//! | Slot | Color | Role |
+//! |------|-------|------|
+//! | **Subject** | Cyan | The Agent (Nominative case) |
+//! | **Verb** | Yellow | The Action |
+//! | **Object** | Green | The Patient (Accusative case) |
+//! | **Indirect** | Magenta | The Recipient (Dative case) |
+//! | **Other** | Grey | Modifiers, Genitives, Literals |
 
 use crate::parser::parse;
 use crate::semantic::{AssembledStatement, Constituent, assemble_statement};
@@ -21,11 +32,17 @@ use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use miette::{IntoDiagnostic, Result};
 use std::path::PathBuf;
 
+/// Run the Mosaic tool on a file
+///
+/// Reads the source file, parses it, and prints the semantic assembly table to stdout.
 pub fn run_mosaic(input_path: &PathBuf) -> Result<()> {
     let source = std::fs::read_to_string(input_path).into_diagnostic()?;
     run_mosaic_inner(&source, &mut std::io::stdout())
 }
 
+/// Internal implementation of Mosaic logic
+///
+/// Separated for testing purposes (allows injecting a writer).
 pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Result<()> {
     let program = parse(source)?;
 

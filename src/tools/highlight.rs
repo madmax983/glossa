@@ -6,7 +6,12 @@
 //! # Philosophy
 //!
 //! Unlike traditional syntax highlighters that use regexes, The Bard uses the
-//! compiler's own morphological analysis to understand the code.
+//! compiler's own morphological analysis to understand the code. It doesn't just
+//! know that a word is a noun; it knows if it's the **Subject** or the **Object**.
+//!
+//! # Color Scheme
+//!
+//! The colors are chosen to represent the function of the word:
 //!
 //! * **Nominative (Subject)**: Blue (The agent/foundation)
 //! * **Accusative (Object)**: Red (The target of action)
@@ -40,6 +45,13 @@ use crate::morphology::{
 use crate::parser::parse;
 
 /// Highlight the source code with semantic colors
+///
+/// This function parses the source code into an AST and then walks the AST to
+/// apply ANSI color codes based on the semantic role of each element.
+///
+/// # Errors
+///
+/// Returns a [`GlossaError`] if the source code cannot be parsed.
 pub fn highlight(source: &str) -> Result<String, GlossaError> {
     let program = parse(source)?;
     let mut highlighter = Highlighter::new();

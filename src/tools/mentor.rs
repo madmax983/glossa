@@ -2,6 +2,17 @@
 //!
 //! This module implements the "Mentor" tool, which guides users through learning
 //! the ΓΛΩΣΣΑ language with interactive lessons and challenges.
+//!
+//! # The Mentor Philosophy
+//!
+//! Learning a new language (especially one based on Ancient Greek) can be daunting.
+//! The Mentor provides a safe, guided environment where users can practice concepts
+//! one by one.
+//!
+//! Each lesson consists of:
+//! 1. **The Concept**: A brief explanation of a language feature.
+//! 2. **The Challenge**: A specific coding task to perform.
+//! 3. **The Verification**: Real-time analysis of the user's code to ensure they met the goal.
 
 use crate::parser::parse;
 use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, analyze_program};
@@ -68,6 +79,10 @@ const LESSONS: &[Lesson] = &[
     },
 ];
 
+/// Start the interactive Mentor session
+///
+/// This function enters a loop where it presents lessons to the user and waits
+/// for them to type code that satisfies the lesson's requirements.
 pub fn run_mentor() -> Result<()> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
