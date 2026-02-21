@@ -5,11 +5,13 @@ use crate::morphology::lexicon::BinaryOp;
 use crate::semantic::{
     AnalyzedExprKind, AssembledStatement, Constituent, GlossaType, Literal, Scope,
 };
+use crate::text::normalize_greek;
 
 fn make_constituent(original: &str, lemma: &str) -> Constituent {
     Constituent {
         lemma: lemma.into(),
         original: original.into(),
+        normalized: normalize_greek(original),
         case: Case::Nominative,
         number: None,
         gender: None,

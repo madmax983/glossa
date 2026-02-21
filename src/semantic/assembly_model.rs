@@ -93,6 +93,9 @@ pub struct Constituent {
     /// Original text as it appeared
     pub original: SmolStr,
 
+    /// Normalized text (lowercase, no diacritics)
+    pub normalized: SmolStr,
+
     /// Grammatical case
     pub case: Case,
 
@@ -115,6 +118,9 @@ pub struct VerbConstituent {
 
     /// Original text as it appeared
     pub original: SmolStr,
+
+    /// Normalized text (lowercase, no diacritics)
+    pub normalized: SmolStr,
 
     /// Person (1st, 2nd, 3rd)
     pub person: Option<Person>,
@@ -140,6 +146,8 @@ pub struct ParticipleConstituent {
     pub verb_lemma: SmolStr,
     /// Original text as it appeared
     pub original: SmolStr,
+    /// Normalized text (lowercase, no diacritics)
+    pub normalized: SmolStr,
     /// Tense (present, aorist, perfect)
     pub tense: Tense,
     /// Voice (active, middle, passive)

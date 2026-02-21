@@ -46,7 +46,6 @@ use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::morphology::{self};
 use crate::semantic::{Constituent, Literal};
-use crate::text::normalize_greek;
 
 /// Convert an AssembledStatement to an AnalyzedStatement
 ///
@@ -121,9 +120,9 @@ fn classify_iterator_pattern(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     let has_find_or_print_verb = if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
-        crate::morphology::lexicon::is_print_verb(&verb_lemma)
-            || crate::morphology::lexicon::is_find_verb(&verb_lemma)
+        let verb_lemma = &verb.lemma;
+        crate::morphology::lexicon::is_print_verb(verb_lemma)
+            || crate::morphology::lexicon::is_find_verb(verb_lemma)
     } else {
         false
     };
@@ -145,9 +144,9 @@ fn classify_property_access_print(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
+        let verb_lemma = &verb.lemma;
 
-        if crate::morphology::lexicon::is_print_verb(&verb_lemma)
+        if crate::morphology::lexicon::is_print_verb(verb_lemma)
             && !asm_stmt.genitives.is_empty()
             && let Some(subject) = &asm_stmt.subject
         {
@@ -155,7 +154,7 @@ fn classify_property_access_print(
             let owner_lemma = &asm_stmt.genitives[0].lemma;
 
             // Get property from subject (nominative)
-            let property = normalize_greek(&subject.original);
+            let property = &subject.normalized;
 
             // Check if owner is a struct type in scope
             if let Some(owner_type) = scope.lookup(owner_lemma)
@@ -186,10 +185,10 @@ fn classify_function_call(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
+        let verb_lemma = &verb.lemma;
 
         // Check if verb is a binding verb
-        if crate::morphology::lexicon::is_binding_verb(&verb_lemma) {
+        if crate::morphology::lexicon::is_binding_verb(verb_lemma) {
             // Check if object/nominative/genitive is a user-defined function
             let mut func_name = None;
             for nominative in &asm_stmt.nominatives {
@@ -244,7 +243,7 @@ fn classify_function_call(
                     glossa_type: return_type.clone(),
                 };
 
-                let var_name = normalize_greek(&subject.original);
+                let var_name = &subject.normalized;
                 scope.define(var_name.clone(), return_type.clone());
 
                 return Ok(Some(AnalyzedStatement::Binding {
@@ -264,9 +263,9 @@ fn classify_subjunctive_comparison(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
+        let verb_lemma = &verb.lemma;
 
-        if crate::morphology::lexicon::is_binding_verb(&verb_lemma)
+        if crate::morphology::lexicon::is_binding_verb(verb_lemma)
             && !asm_stmt.operators.is_empty()
             && !asm_stmt.literals.is_empty()
             && verb.mood == Some(crate::morphology::Mood::Subjunctive)
@@ -300,9 +299,9 @@ fn classify_variable_binding(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
+        let verb_lemma = &verb.lemma;
 
-        if crate::morphology::lexicon::is_binding_verb(&verb_lemma) {
+        if crate::morphology::lexicon::is_binding_verb(verb_lemma) {
             let has_false_participle = !asm_stmt.participles.is_empty()
                 && morphology::lexicon::lookup(&asm_stmt.participles[0].verb_lemma).is_none();
 
@@ -310,26 +309,26 @@ fn classify_variable_binding(
                 let first_participle = &asm_stmt.participles[0];
                 let mut fixed_asm = asm_stmt.clone();
                 fixed_asm.participles = asm_stmt.participles[1..].to_vec();
-                (normalize_greek(&first_participle.original), fixed_asm)
+                (first_participle.normalized.clone(), fixed_asm)
             } else if let (Some(subject), Some(object)) = (&asm_stmt.subject, &asm_stmt.object) {
-                let subject_name = normalize_greek(&subject.original);
-                let object_name = normalize_greek(&object.original);
+                let subject_name = &subject.normalized;
+                let object_name = &object.normalized;
 
                 if scope.is_defined(&subject.lemma) && !scope.is_defined(&object.lemma) {
                     let mut swapped = asm_stmt.clone();
                     swapped.subject = Some(object.clone());
                     swapped.object = Some(subject.clone());
-                    (object_name, swapped)
+                    (object_name.clone(), swapped)
                 } else {
-                    (subject_name, asm_stmt.clone())
+                    (subject_name.clone(), asm_stmt.clone())
                 }
             } else if let Some(subject) = &asm_stmt.subject {
-                (normalize_greek(&subject.original), asm_stmt.clone())
+                (subject.normalized.clone(), asm_stmt.clone())
             } else if !asm_stmt.participles.is_empty() {
                 let first_participle = &asm_stmt.participles[0];
                 let mut fixed_asm = asm_stmt.clone();
                 fixed_asm.participles = asm_stmt.participles[1..].to_vec();
-                (normalize_greek(&first_participle.original), fixed_asm)
+                (first_participle.normalized.clone(), fixed_asm)
             } else {
                 return Err(GlossaError::semantic("Binding without subject"));
             };
@@ -368,11 +367,11 @@ fn classify_assignment(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
+        let verb_lemma = &verb.lemma;
 
-        if crate::morphology::lexicon::is_assignment_verb(&verb_lemma) {
+        if crate::morphology::lexicon::is_assignment_verb(verb_lemma) {
             let var_name = if let Some(ref subject) = asm_stmt.subject {
-                normalize_greek(&subject.original)
+                subject.normalized.clone()
             } else {
                 return Err(GlossaError::semantic("Assignment without subject"));
             };
@@ -426,10 +425,10 @@ fn classify_collection_mutation(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
+        let verb_lemma = &verb.lemma;
 
         // Pop
-        if crate::morphology::lexicon::is_pop_verb(&verb_lemma)
+        if crate::morphology::lexicon::is_pop_verb(verb_lemma)
             && let Some(ref subject) = asm_stmt.subject
         {
             let receiver = AnalyzedExpr {
@@ -453,7 +452,7 @@ fn classify_collection_mutation(
         }
 
         // Push
-        if crate::morphology::lexicon::is_push_verb(&verb_lemma)
+        if crate::morphology::lexicon::is_push_verb(verb_lemma)
             && let Some(ref subject) = asm_stmt.subject
         {
             let receiver = AnalyzedExpr {
@@ -494,12 +493,12 @@ fn classify_collection_mutation(
         }
 
         // Insert
-        if crate::morphology::lexicon::is_insert_verb(&verb_lemma)
+        if crate::morphology::lexicon::is_insert_verb(verb_lemma)
             && let Some(ref subject) = asm_stmt.subject
         {
-            let subj_name = normalize_greek(&subject.original);
+            let subj_name = &subject.normalized;
             let subj_type = scope
-                .lookup(&subj_name)
+                .lookup(subj_name)
                 .cloned()
                 .unwrap_or(GlossaType::Unknown);
 
@@ -557,9 +556,9 @@ fn classify_assertion(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
+        let verb_lemma = &verb.lemma;
 
-        if crate::morphology::lexicon::is_assert_verb(&verb_lemma) {
+        if crate::morphology::lexicon::is_assert_verb(verb_lemma) {
             // The condition is everything except the verb
             // Common pattern: <element> ἐν <collection> δεῖ
 
@@ -568,9 +567,9 @@ fn classify_assertion(
                 && let Some(ref subj) = asm_stmt.subject
             {
                 // Pattern: element ἐν collection δεῖ
-                let subj_name = normalize_greek(&subj.original);
+                let subj_name = &subj.normalized;
                 let collection_type = scope
-                    .lookup(&subj_name)
+                    .lookup(subj_name)
                     .cloned()
                     .unwrap_or(GlossaType::Unknown);
 
@@ -633,9 +632,9 @@ fn classify_equality_assertion(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
+        let verb_lemma = &verb.lemma;
 
-        if crate::morphology::lexicon::is_equals_verb(&verb_lemma) {
+        if crate::morphology::lexicon::is_equals_verb(verb_lemma) {
             // We need two values to compare
             let mut left_expr = None;
             let mut right_expr = None;
@@ -677,9 +676,9 @@ fn classify_print(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
+        let verb_lemma = &verb.lemma;
 
-        if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
+        if crate::morphology::lexicon::is_print_verb(verb_lemma) {
             // Binary expr with operator
             if !asm_stmt.operators.is_empty() {
                 let left = if let Some(ref subj) = asm_stmt.subject {
@@ -809,9 +808,9 @@ fn classify_query(
         if asm_stmt.has_containment_preposition
             && let Some(ref subj) = asm_stmt.subject
         {
-            let subj_name = normalize_greek(&subj.original);
+            let subj_name = &subj.normalized;
             let subj_type = scope
-                .lookup(&subj_name)
+                .lookup(subj_name)
                 .cloned()
                 .unwrap_or(GlossaType::Unknown);
 
@@ -962,10 +961,10 @@ fn try_parse_genitive_method_call(
     if let Some(ref subject) = asm_stmt.subject {
         if !asm_stmt.genitives.is_empty() {
             let owner_lemma = &asm_stmt.genitives[0].lemma;
-            let method_name = normalize_greek(&subject.original);
+            let method_name = &subject.normalized;
 
             if let Some(owner_type) = scope.lookup(owner_lemma) {
-                if !scope.is_defined(&method_name) {
+                if !scope.is_defined(method_name) {
                     let receiver = AnalyzedExpr {
                         expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
                         glossa_type: owner_type.clone(),
@@ -980,7 +979,7 @@ fn try_parse_genitive_method_call(
                         AnalyzedExpr {
                             expr: AnalyzedExprKind::MethodCall {
                                 receiver: Box::new(receiver),
-                                method: method_name,
+                                method: method_name.clone(),
                                 args,
                             },
                             glossa_type: GlossaType::Unknown,
@@ -1000,8 +999,8 @@ fn classify_genitive_method_call(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = normalize_greek(&verb.lemma);
-        if crate::morphology::lexicon::is_print_verb(&verb_lemma) {
+        let verb_lemma = &verb.lemma;
+        if crate::morphology::lexicon::is_print_verb(verb_lemma) {
             return Ok(None);
         }
     }
@@ -1018,12 +1017,12 @@ fn detect_enum_variant(
     word: &Constituent,
     literals: &[Literal],
 ) -> Option<(AnalyzedExpr, GlossaType)> {
-    let lemma = normalize_greek(&word.lemma);
-    let original = normalize_greek(&word.original);
+    let lemma = &word.lemma;
+    let original = &word.normalized;
 
     // None
-    if crate::morphology::lexicon::is_none_word(&lemma)
-        || crate::morphology::lexicon::is_none_word(&original)
+    if crate::morphology::lexicon::is_none_word(lemma)
+        || crate::morphology::lexicon::is_none_word(original)
     {
         return Some((
             AnalyzedExpr {
@@ -1035,8 +1034,8 @@ fn detect_enum_variant(
     }
 
     // Some
-    if (crate::morphology::lexicon::is_some_word(&lemma)
-        || crate::morphology::lexicon::is_some_word(&original))
+    if (crate::morphology::lexicon::is_some_word(lemma)
+        || crate::morphology::lexicon::is_some_word(original))
         && let Some(lit) = literals.first()
     {
         let inner_expr = literal_to_analyzed_expr(lit);
@@ -1051,8 +1050,8 @@ fn detect_enum_variant(
     }
 
     // Ok
-    if (crate::morphology::lexicon::is_ok_word(&lemma)
-        || crate::morphology::lexicon::is_ok_word(&original))
+    if (crate::morphology::lexicon::is_ok_word(lemma)
+        || crate::morphology::lexicon::is_ok_word(original))
         && let Some(lit) = literals.first()
     {
         let inner_expr = literal_to_analyzed_expr(lit);
@@ -1070,8 +1069,8 @@ fn detect_enum_variant(
     }
 
     // Err
-    if (crate::morphology::lexicon::is_err_word(&lemma)
-        || crate::morphology::lexicon::is_err_word(&original))
+    if (crate::morphology::lexicon::is_err_word(lemma)
+        || crate::morphology::lexicon::is_err_word(original))
         && let Some(lit) = literals.first()
     {
         let inner_expr = literal_to_analyzed_expr(lit);
@@ -1299,10 +1298,10 @@ fn extract_object_fallback(
     _scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some(ref obj) = asm_stmt.object {
-        let obj_lemma = normalize_greek(&obj.lemma);
+        let obj_lemma = &obj.lemma;
 
         // Check if it's a numeral word
-        if let Some(value) = crate::morphology::lexicon::numeral_value(&obj_lemma) {
+        if let Some(value) = crate::morphology::lexicon::numeral_value(obj_lemma) {
             return Ok(Some((
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::NumberLiteral(value),
