@@ -35,11 +35,11 @@ pub mod assembler;
 #[cfg(test)]
 mod assembler_tests;
 pub(crate) mod assembly_model;
+#[cfg(test)]
+mod classification_tests;
 pub(crate) mod conversion;
 #[cfg(test)]
 mod conversion_tests;
-#[cfg(test)]
-mod classification_tests;
 pub mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;

@@ -1,11 +1,9 @@
 use super::conversion::classify_assembled_statement;
+use crate::morphology::{Case, Gender, Number, Tense, Voice};
 use crate::semantic::assembly_model::{
     AssembledStatement, Constituent, ParticipleConstituent, VerbConstituent,
 };
-use crate::semantic::{
-    AnalyzedExprKind, AnalyzedStatement, GlossaType, Literal, Scope,
-};
-use crate::morphology::{Case, Gender, Number, Tense, Voice};
+use crate::semantic::{AnalyzedExprKind, AnalyzedStatement, GlossaType, Literal, Scope};
 
 fn make_constituent(original: &str, lemma: &str) -> Constituent {
     Constituent {
@@ -53,7 +51,8 @@ fn test_classify_variable_binding_simple() {
         ..Default::default()
     };
 
-    let result = classify_assembled_statement(&asm_stmt, &mut scope).expect("Should classify binding");
+    let result =
+        classify_assembled_statement(&asm_stmt, &mut scope).expect("Should classify binding");
 
     if let AnalyzedStatement::Binding { name, value, .. } = result {
         assert_eq!(name, "x");
@@ -84,7 +83,8 @@ fn test_classify_variable_binding_swap_subject_object() {
         ..Default::default()
     };
 
-    let result = classify_assembled_statement(&asm_stmt, &mut scope).expect("Should classify binding with swap");
+    let result = classify_assembled_statement(&asm_stmt, &mut scope)
+        .expect("Should classify binding with swap");
 
     if let AnalyzedStatement::Binding { name, value, .. } = result {
         assert_eq!(name, "x"); // Bound variable
@@ -115,7 +115,8 @@ fn test_classify_variable_binding_false_participle() {
 
     // x_lemma is not in lexicon (hopefully), so it should be treated as the variable name
 
-    let result = classify_assembled_statement(&asm_stmt, &mut scope).expect("Should classify binding with false participle");
+    let result = classify_assembled_statement(&asm_stmt, &mut scope)
+        .expect("Should classify binding with false participle");
 
     if let AnalyzedStatement::Binding { name, .. } = result {
         assert_eq!(name, "x");
@@ -136,12 +137,13 @@ fn test_classify_print_binary() {
         ..Default::default()
     };
 
-    let result = classify_assembled_statement(&asm_stmt, &mut scope).expect("Should classify print binary");
+    let result =
+        classify_assembled_statement(&asm_stmt, &mut scope).expect("Should classify print binary");
 
     if let AnalyzedStatement::Print(exprs) = result {
         assert_eq!(exprs.len(), 1);
         if let AnalyzedExprKind::BinOp { op, .. } = exprs[0].expr {
-             assert_eq!(op, crate::morphology::lexicon::BinaryOp::Add);
+            assert_eq!(op, crate::morphology::lexicon::BinaryOp::Add);
         } else {
             panic!("Expected BinOp");
         }
@@ -163,12 +165,13 @@ fn test_classify_print_property() {
         ..Default::default()
     };
 
-    let result = classify_assembled_statement(&asm_stmt, &mut scope).expect("Should classify print property");
+    let result = classify_assembled_statement(&asm_stmt, &mut scope)
+        .expect("Should classify print property");
 
     if let AnalyzedStatement::Print(exprs) = result {
         assert_eq!(exprs.len(), 1);
         if let AnalyzedExprKind::MethodCall { method, .. } = &exprs[0].expr {
-             assert_eq!(method, "len");
+            assert_eq!(method, "len");
         } else {
             panic!("Expected MethodCall for property access");
         }
