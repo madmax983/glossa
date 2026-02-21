@@ -26,6 +26,8 @@ In Ancient Greek, meaning is liberated by **morphology**. A word's ending tells 
 
 ## Quick Start: The Hero's Journey
 
+> 💡 **Tip:** You can find the complete code for this journey in `examples/quickstart.γλ`.
+
 ### Chapter 1: The Definition (Variables)
 
 In ΓΛΩΣΣΑ, we define reality with `ἔστω` ("let there be").
@@ -108,6 +110,12 @@ To run a ΓΛΩΣΣΑ file (e.g., `hero.γλ`), use `cargo run`:
 
 ```bash
 cargo run --release -- hero.γλ
+```
+
+To run the Quick Start example:
+
+```bash
+cargo run --release -- examples/quickstart.γλ
 ```
 
 ## Features

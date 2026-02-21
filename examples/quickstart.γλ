@@ -1,0 +1,28 @@
+// ΓΛΩΣΣΑ Quick Start
+// Consolidated examples from the README
+
+// Chapter 1: Variables
+// Let x be 10.
+ξ 10 ἔστω.
+
+// Let name be "Socrates".
+ὄνομα «Σωκράτης» ἔστω.
+
+// Chapter 2: Printing
+// Say "Hello"
+«χαῖρε» λέγε.
+
+// Say the name
+ὄνομα λέγε.
+
+// Chapter 4: Logic
+// If x is greater than 5...
+εἰ ξ 5 μεῖζον ᾖ,
+    «μέγας» λέγε.
+
+// Loops
+// Create a list of numbers
+ἀριθμοί [1, 2, 3] ἔστωσαν.
+
+// Iterate through the list and print each number
+διὰ ἀριθμοί, ν λέγε.

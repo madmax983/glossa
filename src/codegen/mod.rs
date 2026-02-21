@@ -1071,6 +1071,7 @@ fn is_std_method(name: &str) -> bool {
         name,
         "len"
             | "push"
+            | "pop"
             | "unwrap"
             | "to_string"
             | "clone"
