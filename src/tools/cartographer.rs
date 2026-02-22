@@ -253,18 +253,12 @@ mod tests {
             name: "Container".into(),
             gender: crate::morphology::Gender::Neuter,
             fields: vec![
-                (
-                    "l".into(),
-                    GlossaType::List(Box::new(inner_type.clone())),
-                ),
+                ("l".into(), GlossaType::List(Box::new(inner_type.clone()))),
                 (
                     "m".into(),
                     GlossaType::Map(Box::new(inner_type.clone()), Box::new(inner_type.clone())),
                 ),
-                (
-                    "o".into(),
-                    GlossaType::Option(Box::new(inner_type.clone())),
-                ),
+                ("o".into(), GlossaType::Option(Box::new(inner_type.clone()))),
                 (
                     "r".into(),
                     GlossaType::Result(Box::new(inner_type.clone()), Box::new(inner_type.clone())),
@@ -322,11 +316,14 @@ mod tests {
             gender: crate::morphology::Gender::Neuter,
             fields: vec![
                 ("self_ref".into(), node_type.clone()),
-                ("other_ref".into(), GlossaType::Struct {
-                    name: "Other".into(), // "Other" is not added to scope!
-                    gender: crate::morphology::Gender::Neuter,
-                    fields: vec![]
-                }),
+                (
+                    "other_ref".into(),
+                    GlossaType::Struct {
+                        name: "Other".into(), // "Other" is not added to scope!
+                        gender: crate::morphology::Gender::Neuter,
+                        fields: vec![],
+                    },
+                ),
             ],
         };
 
