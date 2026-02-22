@@ -40,7 +40,7 @@ mod classification_tests;
 pub(crate) mod conversion;
 #[cfg(test)]
 mod conversion_tests;
-pub mod expressions;
+pub(crate) mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
 mod resolver;
