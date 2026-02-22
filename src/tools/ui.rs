@@ -12,11 +12,6 @@ pub struct Status {
 }
 
 impl Status {
-    /// Create a new status indicator with default symbol
-    pub fn start(message: impl Into<String>) -> Self {
-        Self::start_with_symbol(message, "⚡")
-    }
-
     /// Create a new status indicator with a custom symbol
     pub fn start_with_symbol(message: impl Into<String>, symbol: impl Into<String>) -> Self {
         let is_tty = io::stderr().is_terminal();
