@@ -1,11 +1,11 @@
-//! The Bard (ὁ Ῥαψῳδός) - Semantic Syntax Highlighter
+//! The Painter (ὁ Ζωγράφος) - Semantic Syntax Highlighter
 //!
 //! This module implements a semantic syntax highlighter that colors the source code
 //! based on the grammatical role of each word (Subject, Object, Verb, etc.).
 //!
 //! # Philosophy
 //!
-//! Unlike traditional syntax highlighters that use regexes, The Bard uses the
+//! Unlike traditional syntax highlighters that use regexes, The Painter uses the
 //! compiler's own morphological analysis to understand the code. It doesn't just
 //! know that a word is a noun; it knows if it's the **Subject** or the **Object**.
 //!

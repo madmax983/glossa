@@ -1,4 +1,4 @@
-//! Report generation for ΓΛΩΣΣΑ
+//! The Scribe (ὁ Γραμματεύς) - Report generation for ΓΛΩΣΣΑ
 //!
 //! This module provides tools to generate human-readable reports and statistics
 //! for analyzed programs.
