@@ -1652,4 +1652,138 @@ mod tests {
             "Should not detect containment preposition for 'one' (hen)"
         );
     }
+
+    #[test]
+    fn test_max_arrays_exceeded() {
+        let mut asm = Assembler::new();
+        for _ in 0..MAX_ARRAYS {
+            asm.feed_array(vec![]).unwrap();
+        }
+        let result = asm.feed_array(vec![]);
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Arrays" && max == MAX_ARRAYS)
+        );
+    }
+
+    #[test]
+    fn test_max_index_accesses_exceeded() {
+        let mut asm = Assembler::new();
+        let array = Expr::NumberLiteral(0); // Dummy expression
+        let index = Expr::NumberLiteral(0);
+
+        for _ in 0..MAX_INDEX_ACCESSES {
+            asm.feed_index_access(array.clone(), index.clone()).unwrap();
+        }
+        let result = asm.feed_index_access(array, index);
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Index Accesses" && max == MAX_INDEX_ACCESSES)
+        );
+    }
+
+    #[test]
+    fn test_max_nested_phrases_exceeded() {
+        let mut asm = Assembler::new();
+        for _ in 0..MAX_NESTED_PHRASES {
+            asm.feed_nested_phrase(vec![]).unwrap();
+        }
+        let result = asm.feed_nested_phrase(vec![]);
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Nested Phrases" && max == MAX_NESTED_PHRASES)
+        );
+    }
+
+    #[test]
+    fn test_max_participles_exceeded() {
+        let mut asm = Assembler::new();
+        let analysis = crate::morphology::ParticipleAnalysis {
+            stem: "stem".into(),
+            tense: crate::morphology::Tense::Present,
+            voice: crate::morphology::Voice::Active,
+            case: crate::morphology::Case::Nominative,
+            gender: crate::morphology::Gender::Masculine,
+            number: crate::morphology::Number::Singular,
+            confidence: 1.0,
+        };
+
+        for i in 0..MAX_PARTICIPLES {
+            asm.feed_participle(&analysis, &format!("part_{}", i)).unwrap();
+        }
+        let result = asm.feed_participle(&analysis, "overflow");
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Participles" && max == MAX_PARTICIPLES)
+        );
+    }
+
+    #[test]
+    fn test_max_unwraps_exceeded() {
+        let mut asm = Assembler::new();
+        let expr = Expr::NumberLiteral(0);
+        for _ in 0..MAX_UNWRAPS {
+            asm.feed_unwrap(expr.clone()).unwrap();
+        }
+        let result = asm.feed_unwrap(expr);
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Unwraps" && max == MAX_UNWRAPS)
+        );
+    }
+
+    #[test]
+    fn test_max_blocks_exceeded() {
+        let mut asm = Assembler::new();
+        for _ in 0..MAX_BLOCKS {
+            asm.feed_block(vec![]).unwrap();
+        }
+        let result = asm.feed_block(vec![]);
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Blocks" && max == MAX_BLOCKS)
+        );
+    }
+
+    #[test]
+    fn test_max_property_accesses_exceeded() {
+        let mut asm = Assembler::new();
+
+        // Fill up to the limit
+        for _ in 0..MAX_PROPERTY_ACCESSES {
+            // Replenish subject because check_special_properties consumes it
+            let subj = make_analysis("subject", PartOfSpeech::Noun, Some(Case::Nominative), Some(Number::Singular));
+            asm.feed(&subj, "subject").unwrap();
+
+            // Feed property "μῆκος" (length)
+            let prop = make_analysis("μηκος", PartOfSpeech::Noun, None, None);
+            asm.feed_with_normalized(&prop, "μῆκος", "μηκος").unwrap();
+        }
+
+        // Try one more time to break it
+        let subj = make_analysis("subject", PartOfSpeech::Noun, Some(Case::Nominative), Some(Number::Singular));
+        asm.feed(&subj, "subject").unwrap();
+
+        let prop = make_analysis("μηκος", PartOfSpeech::Noun, None, None);
+        let result = asm.feed_with_normalized(&prop, "μῆκος", "μηκος");
+
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Property Accesses" && max == MAX_PROPERTY_ACCESSES)
+        );
+    }
+
+    #[test]
+    fn test_unknown_case_becomes_object_when_slot_empty() {
+        let mut asm = Assembler::new();
+
+        // Feed unknown word
+        // PartOfSpeech::Noun but case: None
+        let unknown = make_analysis(
+            "unknown",
+            PartOfSpeech::Noun,
+            None,
+            Some(Number::Singular),
+        );
+        asm.feed(&unknown, "unknown").unwrap();
+
+        let stmt = asm.finalize().unwrap();
+
+        // Assert it was captured as object
+        assert!(stmt.object.is_some(), "Unknown word should have been captured as object");
+        assert_eq!(stmt.object.unwrap().original, "unknown");
+    }
 }
