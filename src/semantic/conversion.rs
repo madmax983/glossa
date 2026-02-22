@@ -40,12 +40,12 @@ use super::expressions::{
 };
 use super::patterns::detect_iterator_pattern;
 use crate::ast::Expr;
+use crate::errors::GlossaError;
+use crate::morphology::{self};
 use crate::semantic::assembly_model::AssembledStatement;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
 use crate::semantic::resolver::Scope;
 use crate::semantic::types::GlossaType;
-use crate::errors::GlossaError;
-use crate::morphology::{self};
 use crate::semantic::{Constituent, Literal};
 
 /// Convert an AssembledStatement to an AnalyzedStatement
