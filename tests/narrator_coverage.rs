@@ -93,6 +93,17 @@ fn test_bard_query() {
 }
 
 #[test]
+fn test_bard_if() {
+    let source = "ἐὰν 5 > 3, «ἀληθές» λέγε. εἰ δὲ μή, «ψευδές» λέγε.";
+    let tale = compile_and_tell(source);
+    assert!(tale.contains("IF 🔀"));
+    assert!(tale.contains("If"));
+    assert!(tale.contains("is true"));
+    assert!(tale.contains("ELSE ↔️"));
+    assert!(tale.contains("Otherwise"));
+}
+
+#[test]
 fn test_bard_while() {
     let source = "ξ πέντε ἔστω. ἕως ξ μηδενὸς μεῖζον ᾖ, ξ λέγε.";
     let tale = compile_and_tell(source);
@@ -295,6 +306,21 @@ fn test_bard_exprs() {
             args: vec![],
         },
         &["run"],
+    );
+
+    test_expr_tale(
+        AnalyzedExprKind::BinOp {
+            left: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            }),
+            op: glossa::morphology::lexicon::BinaryOp::Add,
+            right: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(2),
+                glossa_type: GlossaType::Number,
+            }),
+        },
+        &["(", "1", "Add", "2", ")"],
     );
 
     test_expr_tale(
