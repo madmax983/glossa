@@ -482,69 +482,85 @@ impl Assembler {
         };
 
         match analysis.case {
-            Some(Case::Nominative) => {
-                // If we already have a verb, check agreement immediately!
-                if let Some(verb) = &self.state.verb {
-                    // Don't check agreement if we already have a subject (this is an extra nominative)
-                    if self.state.subject.is_none() {
-                        self.check_agreement(&constituent, verb)?;
-                    }
-                }
+            Some(Case::Nominative) => self.handle_nominative(constituent),
+            Some(Case::Accusative) => self.handle_accusative(constituent),
+            Some(Case::Dative) => self.handle_dative(constituent),
+            Some(Case::Genitive) => self.handle_genitive(constituent),
+            Some(Case::Vocative) => self.handle_vocative(constituent),
+            None => self.handle_unknown_case(constituent),
+        }
+    }
 
-                if self.state.subject.is_some() {
-                    // Additional nominatives stored separately for function call patterns
-                    if self.state.nominatives.len() >= MAX_NOMINATIVES {
-                        return Err(AssemblyError::LimitExceeded {
-                            resource: "Nominatives".to_string(),
-                            max: MAX_NOMINATIVES,
-                        });
-                    }
-                    self.state.nominatives.push(constituent);
-                } else {
-                    self.state.subject = Some(constituent);
-                }
-            }
-            Some(Case::Accusative) => {
-                if self.state.object.is_some() {
-                    return Err(AssemblyError::DoubleObject);
-                }
-                self.state.object = Some(constituent);
-            }
-            Some(Case::Dative) => {
-                // Dative can stack (multiple recipients) but for simplicity, one for now
-                if self.state.indirect.is_some() {
-                    return Err(AssemblyError::DoubleIndirect);
-                }
-                self.state.indirect = Some(constituent);
-            }
-            Some(Case::Genitive) => {
-                // Genitives attach to other constituents (possession, etc.)
-                if self.state.genitives.len() >= MAX_GENITIVES {
-                    return Err(AssemblyError::LimitExceeded {
-                        resource: "Genitives".to_string(),
-                        max: MAX_GENITIVES,
-                    });
-                }
-                self.state.genitives.push(constituent);
-            }
-            Some(Case::Vocative) => {
-                // Vocative is direct address - treat as subject for now
-                if self.state.subject.is_none() {
-                    self.state.subject = Some(constituent);
-                }
-            }
-            None => {
-                // Unknown case - try to infer from context
-                // Default to accusative (object) if we have no object
-                if self.state.object.is_none() {
-                    self.state.object = Some(constituent);
-                } else {
-                    return Err(AssemblyError::DoubleObject);
-                }
+    fn handle_nominative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        // If we already have a verb, check agreement immediately!
+        if let Some(verb) = &self.state.verb {
+            // Don't check agreement if we already have a subject (this is an extra nominative)
+            if self.state.subject.is_none() {
+                self.check_agreement(&constituent, verb)?;
             }
         }
 
+        if self.state.subject.is_some() {
+            // Additional nominatives stored separately for function call patterns
+            if self.state.nominatives.len() >= MAX_NOMINATIVES {
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Nominatives".to_string(),
+                    max: MAX_NOMINATIVES,
+                });
+            }
+            self.state.nominatives.push(constituent);
+        } else {
+            self.state.subject = Some(constituent);
+        }
         Ok(())
+    }
+
+    fn handle_accusative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        if self.state.object.is_some() {
+            return Err(AssemblyError::DoubleObject);
+        }
+        self.state.object = Some(constituent);
+        Ok(())
+    }
+
+    fn handle_dative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        // Dative can stack (multiple recipients) but for simplicity, one for now
+        if self.state.indirect.is_some() {
+            return Err(AssemblyError::DoubleIndirect);
+        }
+        self.state.indirect = Some(constituent);
+        Ok(())
+    }
+
+    fn handle_genitive(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        // Genitives attach to other constituents (possession, etc.)
+        if self.state.genitives.len() >= MAX_GENITIVES {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Genitives".to_string(),
+                max: MAX_GENITIVES,
+            });
+        }
+        self.state.genitives.push(constituent);
+        Ok(())
+    }
+
+    fn handle_vocative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        // Vocative is direct address - treat as subject for now
+        if self.state.subject.is_none() {
+            self.state.subject = Some(constituent);
+        }
+        Ok(())
+    }
+
+    fn handle_unknown_case(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        // Unknown case - try to infer from context
+        // Default to accusative (object) if we have no object
+        if self.state.object.is_none() {
+            self.state.object = Some(constituent);
+            Ok(())
+        } else {
+            Err(AssemblyError::DoubleObject)
+        }
     }
 
     /// Handle a verb
