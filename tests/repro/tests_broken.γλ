@@ -1,0 +1,17 @@
+δοκιμή «HashMap insert and contains».
+    χ νέον χάρτης ἔστω.
+    χ 2 0 τίθησι.
+
+    2 ἐν χ δεῖ.        // assert!(chi.contains_key(&2))
+τέλος.
+
+δοκιμή «equality check».
+    κ 5 ἔστω.
+    κ 5 ἰσοῦται.      // assert_eq!(kappa, 5)
+τέλος.
+
+δοκιμή «fail with vars».
+    α 1 ἔστω.
+    β 2 ἔστω.
+    α β ἰσοῦται.
+τέλος.
