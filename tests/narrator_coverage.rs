@@ -94,7 +94,7 @@ fn test_bard_query() {
 
 #[test]
 fn test_bard_if() {
-    let source = "ἐὰν 5 > 3, «ἀληθές» λέγε. εἰ δὲ μή, «ψευδές» λέγε.";
+    let source = "ἐὰν 5 μεῖζον 3, «ἀληθές» λέγε. εἰ δὲ μή, «ψευδές» λέγε.";
     let tale = compile_and_tell(source);
     assert!(tale.contains("IF 🔀"));
     assert!(tale.contains("If"));
