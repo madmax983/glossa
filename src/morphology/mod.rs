@@ -100,9 +100,22 @@ pub enum PartOfSpeech {
 
 /// Analyze a Greek word and return the most likely morphological analysis
 pub fn analyze(word: &str) -> MorphAnalysis {
-    let analyses = analyze_all(word);
+    let normalized = normalize_greek(word);
+
+    // Optimization: Lexicon entries are definitive (confidence 1.0).
+    // If found, we don't need to do expensive morphological analysis.
+    // This avoids vector allocation and pattern matching for common words.
+    if let Some(entry) = lexicon::lookup(&normalized) {
+        let mut analysis = entry.to_analysis();
+        analysis.confidence = 1.0;
+        return analysis;
+    }
+
     // analyze_all is guaranteed to return at least one analysis (Unknown if nothing else)
-    analyses.into_iter().next().unwrap()
+    analyze_all_from_normalized(&normalized)
+        .into_iter()
+        .next()
+        .unwrap()
 }
 
 /// Analyze a Greek word and return ALL possible morphological analyses
@@ -122,22 +135,27 @@ pub fn analyze(word: &str) -> MorphAnalysis {
 /// ```
 pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     let normalized = normalize_greek(word);
+    analyze_all_from_normalized(&normalized)
+}
+
+/// Helper to analyze using an already-normalized string
+fn analyze_all_from_normalized(normalized: &str) -> Vec<MorphAnalysis> {
     // Pre-allocate capacity to avoid reallocations
     // Lexicon (1) + Noun variants (~2-3) + Verb variants (~2-3)
     let mut analyses = Vec::with_capacity(8);
 
     // First check the lexicon - these get highest confidence
-    if let Some(entry) = lexicon::lookup(&normalized) {
+    if let Some(entry) = lexicon::lookup(normalized) {
         let mut analysis = entry.to_analysis();
         analysis.confidence = 1.0; // Lexicon entries are definitive
         analyses.push(analysis);
     }
 
     // Get all possible noun analyses (zero allocation)
-    declension::analyze_noun_all_into(&normalized, &mut analyses);
+    declension::analyze_noun_all_into(normalized, &mut analyses);
 
     // Get all possible verb analyses (zero allocation)
-    conjugation::analyze_verb_all_into(&normalized, &mut analyses);
+    conjugation::analyze_verb_all_into(normalized, &mut analyses);
 
     // Sort by confidence (highest first)
     analyses.sort_by(|a, b| {
@@ -150,7 +168,7 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     if analyses.is_empty() || analyses.iter().all(|a| a.confidence < 0.5) {
         // Single Greek letters are treated as nominative nouns (variable names)
         // This follows mathematical convention where α, β, γ, ξ, etc. are variables
-        if is_single_greek_letter(&normalized) {
+        if is_single_greek_letter(normalized) {
             analyses.insert(
                 0,
                 MorphAnalysis {
