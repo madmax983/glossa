@@ -1706,7 +1706,8 @@ mod tests {
         };
 
         for i in 0..MAX_PARTICIPLES {
-            asm.feed_participle(&analysis, &format!("part_{}", i)).unwrap();
+            asm.feed_participle(&analysis, &format!("part_{}", i))
+                .unwrap();
         }
         let result = asm.feed_participle(&analysis, "overflow");
         assert!(
@@ -1746,7 +1747,12 @@ mod tests {
         // Fill up to the limit
         for _ in 0..MAX_PROPERTY_ACCESSES {
             // Replenish subject because check_special_properties consumes it
-            let subj = make_analysis("subject", PartOfSpeech::Noun, Some(Case::Nominative), Some(Number::Singular));
+            let subj = make_analysis(
+                "subject",
+                PartOfSpeech::Noun,
+                Some(Case::Nominative),
+                Some(Number::Singular),
+            );
             asm.feed(&subj, "subject").unwrap();
 
             // Feed property "μῆκος" (length)
@@ -1755,7 +1761,12 @@ mod tests {
         }
 
         // Try one more time to break it
-        let subj = make_analysis("subject", PartOfSpeech::Noun, Some(Case::Nominative), Some(Number::Singular));
+        let subj = make_analysis(
+            "subject",
+            PartOfSpeech::Noun,
+            Some(Case::Nominative),
+            Some(Number::Singular),
+        );
         asm.feed(&subj, "subject").unwrap();
 
         let prop = make_analysis("μηκος", PartOfSpeech::Noun, None, None);
@@ -1772,18 +1783,16 @@ mod tests {
 
         // Feed unknown word
         // PartOfSpeech::Noun but case: None
-        let unknown = make_analysis(
-            "unknown",
-            PartOfSpeech::Noun,
-            None,
-            Some(Number::Singular),
-        );
+        let unknown = make_analysis("unknown", PartOfSpeech::Noun, None, Some(Number::Singular));
         asm.feed(&unknown, "unknown").unwrap();
 
         let stmt = asm.finalize().unwrap();
 
         // Assert it was captured as object
-        assert!(stmt.object.is_some(), "Unknown word should have been captured as object");
+        assert!(
+            stmt.object.is_some(),
+            "Unknown word should have been captured as object"
+        );
         assert_eq!(stmt.object.unwrap().original, "unknown");
     }
 }
