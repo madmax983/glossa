@@ -17,6 +17,8 @@
 //! * [`ui`]: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
 pub mod cache;
+#[cfg(feature = "nova")]
+pub mod cartographer;
 pub mod cli;
 pub mod dictionary;
 pub mod highlight;
