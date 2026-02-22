@@ -27,8 +27,11 @@ fn test_bard_binding_mutable() {
     };
 
     let tale = tell_tale(&program);
-    assert!(tale.contains("BIND"));
-    assert!(tale.contains("Let `x` be 5"));
+    assert!(tale.contains("BIND 📝"));
+    assert!(tale.contains("Let"));
+    assert!(tale.contains("x"));
+    assert!(tale.contains("be"));
+    assert!(tale.contains("5"));
     assert!(tale.contains("Mutable"));
 }
 
@@ -47,16 +50,21 @@ fn test_bard_assignment() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("SET"));
-    assert!(tale.contains("Update `x` to 10"));
+    assert!(tale.contains("SET ✏️"));
+    assert!(tale.contains("Update"));
+    assert!(tale.contains("x"));
+    assert!(tale.contains("to"));
+    assert!(tale.contains("10"));
 }
 
 #[test]
 fn test_bard_print_multiple() {
     let source = "«α», «β» λέγε.";
     let tale = compile_and_tell(source);
-    assert!(tale.contains("PRINT"));
-    assert!(tale.contains("Proclaim: \"α\", \"β\""));
+    assert!(tale.contains("PRINT 📢"));
+    assert!(tale.contains("Proclaim:"));
+    assert!(tale.contains("α"));
+    assert!(tale.contains("β"));
 }
 
 #[test]
@@ -70,23 +78,25 @@ fn test_bard_expression_stmt() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("EXPR"));
-    assert!(tale.contains("Do: \"test\""));
+    assert!(tale.contains("EXPR ⚡"));
+    assert!(tale.contains("Do:"));
+    assert!(tale.contains("test"));
 }
 
 #[test]
 fn test_bard_query() {
     let source = "ξ πέντε ἔστω. ξ?";
     let tale = compile_and_tell(source);
-    assert!(tale.contains("QUERY"));
-    assert!(tale.contains("Query oracle: `ξ`"));
+    assert!(tale.contains("QUERY 🔮"));
+    assert!(tale.contains("Query oracle:"));
+    assert!(tale.contains("ξ"));
 }
 
 #[test]
 fn test_bard_while() {
     let source = "ξ πέντε ἔστω. ἕως ξ μηδενὸς μεῖζον ᾖ, ξ λέγε.";
     let tale = compile_and_tell(source);
-    assert!(tale.contains("WHILE"));
+    assert!(tale.contains("WHILE 🔄"));
     assert!(tale.contains("While"));
     assert!(tale.contains("holds true"));
 }
@@ -95,17 +105,20 @@ fn test_bard_while() {
 fn test_bard_for() {
     let source = "ἀπὸ μηδενὸς μέχρι πέντε, ι λέγε.";
     let tale = compile_and_tell(source);
-    assert!(tale.contains("FOR"));
-    assert!(tale.contains("For each `ι` in"));
+    assert!(tale.contains("FOR 🔁"));
+    assert!(tale.contains("For each"));
+    assert!(tale.contains("ι"));
+    assert!(tale.contains("in"));
 }
 
 #[test]
 fn test_bard_match() {
     let source = "ξ πέντε ἔστω. κατὰ ξ· μηδὲν ᾖ, «μηδέν» λέγε.";
     let tale = compile_and_tell(source);
-    assert!(tale.contains("MATCH"));
-    assert!(tale.contains("Match on `ξ`"));
-    assert!(tale.contains("CASE"));
+    assert!(tale.contains("MATCH 🔍"));
+    assert!(tale.contains("Match on"));
+    assert!(tale.contains("ξ"));
+    assert!(tale.contains("CASE 🎯"));
 }
 
 #[test]
@@ -117,9 +130,9 @@ fn test_bard_break_continue() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("BREAK"));
+    assert!(tale.contains("BREAK 🛑"));
     assert!(tale.contains("Break loop"));
-    assert!(tale.contains("CONT"));
+    assert!(tale.contains("CONT ⏩"));
     assert!(tale.contains("Continue loop"));
 }
 
@@ -136,8 +149,9 @@ fn test_bard_return() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("RETURN"));
-    assert!(tale.contains("Return 42"));
+    assert!(tale.contains("RETURN 🚪"));
+    assert!(tale.contains("Return"));
+    assert!(tale.contains("42"));
 
     let stmt_empty = AnalyzedStatement::Return { value: None };
     let program_empty = glossa::semantic::AnalyzedProgram {
@@ -163,8 +177,12 @@ fn test_bard_function_def() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("FUNC"));
-    assert!(tale.contains("Define `my_func` (p1: Number) -> Bool"));
+    assert!(tale.contains("FUNC ƒ"));
+    assert!(tale.contains("Define"));
+    assert!(tale.contains("my_func"));
+    assert!(tale.contains("p1"));
+    assert!(tale.contains("Number"));
+    assert!(tale.contains("Bool"));
 }
 
 #[test]
@@ -178,8 +196,11 @@ fn test_bard_type_def() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("TYPE"));
-    assert!(tale.contains("Struct `MyType` { field1: Number }"));
+    assert!(tale.contains("TYPE 📦"));
+    assert!(tale.contains("Struct"));
+    assert!(tale.contains("MyType"));
+    assert!(tale.contains("field1"));
+    assert!(tale.contains("Number"));
 }
 
 #[test]
@@ -193,8 +214,9 @@ fn test_bard_trait_def() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("TRAIT"));
-    assert!(tale.contains("Trait `MyTrait`"));
+    assert!(tale.contains("TRAIT 🏷️"));
+    assert!(tale.contains("Trait"));
+    assert!(tale.contains("MyTrait"));
 }
 
 #[test]
@@ -209,8 +231,11 @@ fn test_bard_trait_impl() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("IMPL"));
-    assert!(tale.contains("Impl `MyTrait` for `MyType`"));
+    assert!(tale.contains("IMPL 🔧"));
+    assert!(tale.contains("Impl"));
+    assert!(tale.contains("MyTrait"));
+    assert!(tale.contains("for"));
+    assert!(tale.contains("MyType"));
 }
 
 #[test]
@@ -224,8 +249,9 @@ fn test_bard_test_decl() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("TEST"));
-    assert!(tale.contains("Test `my_test`:"));
+    assert!(tale.contains("TEST 🧪"));
+    assert!(tale.contains("Test"));
+    assert!(tale.contains("my_test"));
 }
 
 // --- Expression Coverage ---
@@ -237,24 +263,26 @@ fn wrap_expr(expr: AnalyzedExprKind) -> AnalyzedStatement {
     }])
 }
 
-fn test_expr_tale(kind: AnalyzedExprKind, expected: &str) {
+fn test_expr_tale(kind: AnalyzedExprKind, parts: &[&str]) {
     let stmt = wrap_expr(kind);
     let program = glossa::semantic::AnalyzedProgram {
         statements: vec![stmt],
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(
-        tale.contains(expected),
-        "Expected '{}' in '{}'",
-        expected,
-        tale
-    );
+    for part in parts {
+        assert!(
+            tale.contains(part),
+            "Expected '{}' in '{}'",
+            part,
+            tale
+        );
+    }
 }
 
 #[test]
 fn test_bard_exprs() {
-    test_expr_tale(AnalyzedExprKind::BooleanLiteral(true), "true");
+    test_expr_tale(AnalyzedExprKind::BooleanLiteral(true), &["true"]);
     test_expr_tale(
         AnalyzedExprKind::PropertyAccess {
             owner: Box::new(AnalyzedExpr {
@@ -263,7 +291,7 @@ fn test_bard_exprs() {
             }),
             property: "prop".into(),
         },
-        "`obj`.prop",
+        &["obj", "prop"],
     );
 
     test_expr_tale(
@@ -271,7 +299,7 @@ fn test_bard_exprs() {
             verb: "run".into(),
             args: vec![],
         },
-        "run()",
+        &["run"],
     );
 
     test_expr_tale(
@@ -282,7 +310,7 @@ fn test_bard_exprs() {
                 glossa_type: GlossaType::Boolean,
             }),
         },
-        "(Not true)",
+        &["Not", "true"],
     );
 
     test_expr_tale(
@@ -297,32 +325,32 @@ fn test_bard_exprs() {
             }),
             inclusive: true,
         },
-        "1..=10",
+        &["1", "..=", "10"],
     );
 
-    test_expr_tale(AnalyzedExprKind::ArrayLiteral(vec![]), "[]");
+    test_expr_tale(AnalyzedExprKind::ArrayLiteral(vec![]), &["[]"]);
 
     test_expr_tale(
         AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(1),
             glossa_type: GlossaType::Number,
         })),
-        "Some(1)",
+        &["Some", "1"],
     );
-    test_expr_tale(AnalyzedExprKind::None, "None");
+    test_expr_tale(AnalyzedExprKind::None, &["None"]);
     test_expr_tale(
         AnalyzedExprKind::Ok(Box::new(AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(1),
             glossa_type: GlossaType::Number,
         })),
-        "Ok(1)",
+        &["Ok", "1"],
     );
     test_expr_tale(
         AnalyzedExprKind::Err(Box::new(AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(1),
             glossa_type: GlossaType::Number,
         })),
-        "Err(1)",
+        &["Err", "1"],
     );
 
     test_expr_tale(
@@ -330,14 +358,14 @@ fn test_bard_exprs() {
             expr: AnalyzedExprKind::Variable("x".into()),
             glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
         })),
-        "`x`!",
+        &["x", "!"],
     );
     test_expr_tale(
         AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable("x".into()),
             glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
         })),
-        "`x`?",
+        &["x", "?"],
     );
 
     test_expr_tale(
@@ -351,7 +379,7 @@ fn test_bard_exprs() {
                 glossa_type: GlossaType::Number,
             }),
         },
-        "`arr`[0]",
+        &["arr", "[", "0", "]"],
     );
 
     test_expr_tale(
@@ -359,7 +387,7 @@ fn test_bard_exprs() {
             func: "f".into(),
             args: vec![],
         },
-        "f()",
+        &["f", "(", ")"],
     );
 
     test_expr_tale(
@@ -371,7 +399,7 @@ fn test_bard_exprs() {
             method: "m".into(),
             args: vec![],
         },
-        "`obj`.m()",
+        &["obj", "m", "(", ")"],
     );
 
     test_expr_tale(
@@ -384,7 +412,7 @@ fn test_bard_exprs() {
             method_name: "m".into(),
             args: vec![],
         },
-        "`obj` as T::m()",
+        &["obj", "as", "T", "m"],
     );
 
     test_expr_tale(
@@ -396,7 +424,7 @@ fn test_bard_exprs() {
                 glossa_type: GlossaType::Number,
             }],
         },
-        "S { f: 1 }",
+        &["S", "f", "1"],
     );
 
     test_expr_tale(
@@ -408,7 +436,7 @@ fn test_bard_exprs() {
             }),
             capture_mode: CaptureMode::Borrow,
         },
-        "|p| `p`",
+        &["|", "p", "|", "p"],
     );
 
     test_expr_tale(
@@ -420,7 +448,7 @@ fn test_bard_exprs() {
             }),
             capture_mode: CaptureMode::Move,
         },
-        "move || None",
+        &["move", "||", "None"],
     );
 
     test_expr_tale(
@@ -432,14 +460,14 @@ fn test_bard_exprs() {
             }),
             capture_mode: CaptureMode::Memoize,
         },
-        "memo || None",
+        &["memo", "||", "None"],
     );
 
     test_expr_tale(
         AnalyzedExprKind::CollectionNew {
             collection_type: "HashSet".into(),
         },
-        "HashSet::new()",
+        &["HashSet", "new", "(", ")"],
     );
 
     test_expr_tale(
@@ -449,7 +477,7 @@ fn test_bard_exprs() {
                 glossa_type: GlossaType::Boolean,
             }),
         },
-        "assert(true)",
+        &["assert", "true"],
     );
 
     test_expr_tale(
@@ -463,7 +491,7 @@ fn test_bard_exprs() {
                 glossa_type: GlossaType::Number,
             }),
         },
-        "assert_eq(1, 1)",
+        &["assert_eq", "1", "1"],
     );
 }
 

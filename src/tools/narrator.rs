@@ -23,6 +23,32 @@ use crate::semantic::{
 };
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
+use crossterm::style::Stylize;
+
+#[derive(Copy, Clone)]
+struct NarratorTheme {
+    binding: Color,
+    assignment: Color,
+    print: Color,
+    expr: Color,
+    query: Color,
+    control: Color,
+    structure: Color,
+}
+
+impl Default for NarratorTheme {
+    fn default() -> Self {
+        Self {
+            binding: Color::Cyan,
+            assignment: Color::Yellow,
+            print: Color::Green,
+            expr: Color::DarkGrey,
+            query: Color::Magenta,
+            control: Color::Red,
+            structure: Color::Blue,
+        }
+    }
+}
 
 /// Tells the tale of the program in English.
 ///
@@ -30,32 +56,33 @@ use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 /// It acts as the entry point for the "Bard" tool.
 pub fn tell_tale(program: &AnalyzedProgram) -> String {
     let mut table = Table::new();
+    let theme = NarratorTheme::default();
     table
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
             Cell::new("Act")
                 .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
+                .fg(theme.binding),
             Cell::new("The Scroll of Logic")
                 .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
+                .fg(theme.assignment),
             Cell::new("Notes")
                 .add_attribute(Attribute::Bold)
-                .fg(Color::Magenta),
+                .fg(theme.query),
         ]);
 
     for stmt in &program.statements {
-        add_statement(&mut table, stmt, 0);
+        add_statement(&mut table, stmt, 0, theme);
     }
 
     // Add a footer
     table.add_row(vec![
-        Cell::new("FIN").fg(Color::DarkGrey),
+        Cell::new("FIN").fg(theme.expr),
         Cell::new("...and thus the ritual is complete.")
-            .fg(Color::DarkGrey)
+            .fg(theme.expr)
             .add_attribute(Attribute::Italic),
-        Cell::new("").fg(Color::DarkGrey),
+        Cell::new("").fg(theme.expr),
     ]);
 
     table.to_string()
@@ -65,7 +92,7 @@ fn indent(level: usize) -> String {
     "  ".repeat(level)
 }
 
-fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
+fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize, theme: NarratorTheme) {
     let prefix = indent(level);
 
     match stmt {
@@ -74,47 +101,55 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
             value,
             mutable,
         } => {
-            let script = format!("Let `{}` be {}.", name, tell_expr(value));
+            let script = format!(
+                "Let {} be {}.",
+                format!("`{}`", name).white().italic(),
+                tell_expr(value)
+            );
             let notes = if *mutable { "Mutable" } else { "Immutable" };
             table.add_row(vec![
-                Cell::new("BIND").fg(Color::Blue),
+                Cell::new("BIND 📝").fg(theme.binding),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new(notes).fg(if *mutable { Color::Red } else { Color::Green }),
+                Cell::new(notes).fg(if *mutable { theme.control } else { theme.print }),
             ]);
         }
         AnalyzedStatement::Assignment { name, value } => {
-            let script = format!("Update `{}` to {}.", name, tell_expr(value));
+            let script = format!(
+                "Update {} to {}.",
+                format!("`{}`", name).white().italic(),
+                tell_expr(value)
+            );
             table.add_row(vec![
-                Cell::new("SET").fg(Color::Yellow),
+                Cell::new("SET ✏️").fg(theme.assignment),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Mutation").fg(Color::Red),
+                Cell::new("Mutation").fg(theme.control),
             ]);
         }
         AnalyzedStatement::Print(exprs) => {
             let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
             let script = format!("Proclaim: {}", expr_strs.join(", "));
             table.add_row(vec![
-                Cell::new("PRINT").fg(Color::Green),
+                Cell::new("PRINT 📢").fg(theme.print),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("I/O").fg(Color::Cyan),
+                Cell::new("I/O").fg(theme.binding),
             ]);
         }
         AnalyzedStatement::Expression(exprs) => {
             let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
             let script = format!("Do: {}", expr_strs.join(", "));
             table.add_row(vec![
-                Cell::new("EXPR").fg(Color::DarkGrey),
+                Cell::new("EXPR ⚡").fg(theme.expr),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Side Effect").fg(Color::DarkGrey),
+                Cell::new("Side Effect").fg(theme.expr),
             ]);
         }
         AnalyzedStatement::Query(exprs) => {
             let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
             let script = format!("Query oracle: {}", expr_strs.join(", "));
             table.add_row(vec![
-                Cell::new("QUERY").fg(Color::Magenta),
+                Cell::new("QUERY 🔮").fg(theme.query),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Debug").fg(Color::Yellow),
+                Cell::new("Debug").fg(theme.assignment),
             ]);
         }
         AnalyzedStatement::If {
@@ -124,35 +159,35 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
         } => {
             let script = format!("If {} is true, then:", tell_expr(condition));
             table.add_row(vec![
-                Cell::new("IF").fg(Color::Magenta),
+                Cell::new("IF 🔀").fg(theme.query),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Branch").fg(Color::Magenta),
+                Cell::new("Branch").fg(theme.query),
             ]);
 
             for stmt in then_body {
-                add_statement(table, stmt, level + 1);
+                add_statement(table, stmt, level + 1, theme);
             }
 
             if let Some(else_stmts) = else_body {
                 table.add_row(vec![
-                    Cell::new("ELSE").fg(Color::Magenta),
+                    Cell::new("ELSE ↔️").fg(theme.query),
                     Cell::new(format!("{}Otherwise:", prefix)),
-                    Cell::new("Branch").fg(Color::Magenta),
+                    Cell::new("Branch").fg(theme.query),
                 ]);
                 for stmt in else_stmts {
-                    add_statement(table, stmt, level + 1);
+                    add_statement(table, stmt, level + 1, theme);
                 }
             }
         }
         AnalyzedStatement::While { condition, body } => {
             let script = format!("While {} holds true:", tell_expr(condition));
             table.add_row(vec![
-                Cell::new("WHILE").fg(Color::Magenta),
+                Cell::new("WHILE 🔄").fg(theme.query),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Loop").fg(Color::Magenta),
+                Cell::new("Loop").fg(theme.query),
             ]);
             for stmt in body {
-                add_statement(table, stmt, level + 1);
+                add_statement(table, stmt, level + 1, theme);
             }
         }
         AnalyzedStatement::For {
@@ -162,45 +197,45 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
         } => {
             let script = format!("For each `{}` in {}:", variable, tell_expr(iterator));
             table.add_row(vec![
-                Cell::new("FOR").fg(Color::Magenta),
+                Cell::new("FOR 🔁").fg(theme.query),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Iteration").fg(Color::Magenta),
+                Cell::new("Iteration").fg(theme.query),
             ]);
             for stmt in body {
-                add_statement(table, stmt, level + 1);
+                add_statement(table, stmt, level + 1, theme);
             }
         }
         AnalyzedStatement::Match { scrutinee, arms } => {
             let script = format!("Match on {}:", tell_expr(scrutinee));
             table.add_row(vec![
-                Cell::new("MATCH").fg(Color::Magenta),
+                Cell::new("MATCH 🔍").fg(theme.query),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Pattern").fg(Color::Magenta),
+                Cell::new("Pattern").fg(theme.query),
             ]);
             for (pat, body) in arms {
                 let case_script = format!("Case {}:", tell_expr(pat));
                 table.add_row(vec![
-                    Cell::new("CASE").fg(Color::DarkMagenta),
+                    Cell::new("CASE 🎯").fg(theme.structure),
                     Cell::new(format!("{}{}", indent(level + 1), case_script)),
-                    Cell::new("Arm").fg(Color::DarkMagenta),
+                    Cell::new("Arm").fg(theme.structure),
                 ]);
                 for stmt in body {
-                    add_statement(table, stmt, level + 2);
+                    add_statement(table, stmt, level + 2, theme);
                 }
             }
         }
         AnalyzedStatement::Break => {
             table.add_row(vec![
-                Cell::new("BREAK").fg(Color::Red),
+                Cell::new("BREAK 🛑").fg(theme.control),
                 Cell::new(format!("{}Break loop.", prefix)),
-                Cell::new("Control").fg(Color::Red),
+                Cell::new("Control").fg(theme.control),
             ]);
         }
         AnalyzedStatement::Continue => {
             table.add_row(vec![
-                Cell::new("CONT").fg(Color::Green),
+                Cell::new("CONT ⏩").fg(theme.print),
                 Cell::new(format!("{}Continue loop.", prefix)),
-                Cell::new("Control").fg(Color::Green),
+                Cell::new("Control").fg(theme.print),
             ]);
         }
         AnalyzedStatement::Return { value } => {
@@ -210,9 +245,9 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
                 "Return nothing.".to_string()
             };
             table.add_row(vec![
-                Cell::new("RETURN").fg(Color::Yellow),
+                Cell::new("RETURN 🚪").fg(theme.assignment),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Exit").fg(Color::Yellow),
+                Cell::new("Exit").fg(theme.assignment),
             ]);
         }
         AnalyzedStatement::FunctionDef {
@@ -240,12 +275,12 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
                 ret_str
             );
             table.add_row(vec![
-                Cell::new("FUNC").fg(Color::Cyan),
+                Cell::new("FUNC ƒ").fg(theme.binding),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Definition").fg(Color::Cyan),
+                Cell::new("Definition").fg(theme.binding),
             ]);
             for stmt in body {
-                add_statement(table, stmt, level + 1);
+                add_statement(table, stmt, level + 1, theme);
             }
         }
         AnalyzedStatement::TypeDefinition { name, fields } => {
@@ -255,17 +290,17 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
                 .collect();
             let script = format!("Struct `{}` {{ {} }}", name, fields_str.join(", "));
             table.add_row(vec![
-                Cell::new("TYPE").fg(Color::Blue),
+                Cell::new("TYPE 📦").fg(theme.structure),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Struct").fg(Color::Blue),
+                Cell::new("Struct").fg(theme.structure),
             ]);
         }
         AnalyzedStatement::TraitDefinition { name, methods: _ } => {
             let script = format!("Trait `{}`", name);
             table.add_row(vec![
-                Cell::new("TRAIT").fg(Color::Blue),
+                Cell::new("TRAIT 🏷️").fg(theme.structure),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Interface").fg(Color::Blue),
+                Cell::new("Interface").fg(theme.structure),
             ]);
         }
         AnalyzedStatement::TraitImplementation {
@@ -275,20 +310,20 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
         } => {
             let script = format!("Impl `{}` for `{}`", trait_name, type_name);
             table.add_row(vec![
-                Cell::new("IMPL").fg(Color::Blue),
+                Cell::new("IMPL 🔧").fg(theme.structure),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Implementation").fg(Color::Blue),
+                Cell::new("Implementation").fg(theme.structure),
             ]);
         }
         AnalyzedStatement::TestDeclaration { name, body } => {
             let script = format!("Test `{}`:", name);
             table.add_row(vec![
-                Cell::new("TEST").fg(Color::Green),
+                Cell::new("TEST 🧪").fg(theme.print),
                 Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Verification").fg(Color::Green),
+                Cell::new("Verification").fg(theme.print),
             ]);
             for stmt in body {
-                add_statement(table, stmt, level + 1);
+                add_statement(table, stmt, level + 1, theme);
             }
         }
     }
@@ -296,10 +331,10 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
 
 fn tell_expr(expr: &AnalyzedExpr) -> String {
     match &expr.expr {
-        AnalyzedExprKind::StringLiteral(s) => format!("\"{}\"", s),
-        AnalyzedExprKind::NumberLiteral(n) => format!("{}", n),
-        AnalyzedExprKind::BooleanLiteral(b) => format!("{}", b),
-        AnalyzedExprKind::Variable(name) => format!("`{}`", name),
+        AnalyzedExprKind::StringLiteral(s) => format!("\"{}\"", s).green().to_string(),
+        AnalyzedExprKind::NumberLiteral(n) => format!("{}", n).yellow().to_string(),
+        AnalyzedExprKind::BooleanLiteral(b) => format!("{}", b).cyan().to_string(),
+        AnalyzedExprKind::Variable(name) => format!("`{}`", name).white().italic().to_string(),
         AnalyzedExprKind::PropertyAccess { owner, property } => {
             format!("{}.{}", tell_expr(owner), property)
         }
@@ -438,8 +473,19 @@ mod tests {
         let tale = tell_tale(&analyzed);
 
         // Check for table content instead of full sentence
-        assert!(tale.contains("BIND"));
-        assert!(tale.contains("Let `ξ` be 5"));
+        assert!(tale.contains("BIND 📝"));
+        // Reconstruct expected string with colors
+        let var = "`ξ`".white().italic();
+        let val = "5".yellow();
+        let expected = format!("Let {} be {}", var, val);
+        if !tale.contains(&expected) {
+             println!("Tale:\n{}", tale);
+             println!("Expected substring:\n{}", expected);
+             // Also print debug representation to see escape codes
+             println!("Tale (debug):\n{:?}", tale);
+             println!("Expected (debug):\n{:?}", expected);
+        }
+        assert!(tale.contains(&expected));
     }
 
     #[test]
@@ -449,7 +495,8 @@ mod tests {
         let analyzed = analyze_program(&ast).unwrap();
         let tale = tell_tale(&analyzed);
 
-        assert!(tale.contains("PRINT"));
-        assert!(tale.contains("Proclaim: \"χαῖρε\""));
+        assert!(tale.contains("PRINT 📢"));
+        let val = "\"χαῖρε\"".green();
+        assert!(tale.contains(&format!("Proclaim: {}", val)));
     }
 }
