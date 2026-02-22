@@ -293,6 +293,53 @@ fn classify_subjunctive_comparison(
     Ok(None)
 }
 
+/// Helper: Resolve the target variable name and the effective assembled statement for binding
+fn resolve_binding_target(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<(String, AssembledStatement), GlossaError> {
+    // Check for "false participles" (nouns misclassified as participles)
+    let has_false_participle = !asm_stmt.participles.is_empty()
+        && morphology::lexicon::lookup(&asm_stmt.participles[0].verb_lemma).is_none();
+
+    if has_false_participle {
+        let first_participle = &asm_stmt.participles[0];
+        let mut fixed_asm = asm_stmt.clone();
+        fixed_asm.participles = asm_stmt.participles[1..].to_vec();
+        return Ok((first_participle.normalized.to_string(), fixed_asm));
+    }
+
+    // Check for Subject/Object swap (if Subject is defined and Object is not, bind to Object)
+    if let (Some(subject), Some(object)) = (&asm_stmt.subject, &asm_stmt.object) {
+        let subject_name = &subject.normalized;
+        let object_name = &object.normalized;
+
+        if scope.is_defined(&subject.lemma) && !scope.is_defined(&object.lemma) {
+            let mut swapped = asm_stmt.clone();
+            swapped.subject = Some(object.clone());
+            swapped.object = Some(subject.clone());
+            return Ok((object_name.to_string(), swapped));
+        } else {
+            return Ok((subject_name.to_string(), asm_stmt.clone()));
+        }
+    }
+
+    // Default case: Bind to Subject
+    if let Some(subject) = &asm_stmt.subject {
+        return Ok((subject.normalized.to_string(), asm_stmt.clone()));
+    }
+
+    // Fallback: Bind to first participle (if any remain)
+    if !asm_stmt.participles.is_empty() {
+        let first_participle = &asm_stmt.participles[0];
+        let mut fixed_asm = asm_stmt.clone();
+        fixed_asm.participles = asm_stmt.participles[1..].to_vec();
+        return Ok((first_participle.normalized.to_string(), fixed_asm));
+    }
+
+    Err(GlossaError::semantic("Binding without subject"))
+}
+
 /// Helper: Detect variable binding (let x = ...)
 fn classify_variable_binding(
     asm_stmt: &AssembledStatement,
@@ -302,36 +349,7 @@ fn classify_variable_binding(
         let verb_lemma = &verb.lemma;
 
         if crate::morphology::lexicon::is_binding_verb(verb_lemma) {
-            let has_false_participle = !asm_stmt.participles.is_empty()
-                && morphology::lexicon::lookup(&asm_stmt.participles[0].verb_lemma).is_none();
-
-            let (var_name, actual_asm) = if has_false_participle {
-                let first_participle = &asm_stmt.participles[0];
-                let mut fixed_asm = asm_stmt.clone();
-                fixed_asm.participles = asm_stmt.participles[1..].to_vec();
-                (first_participle.normalized.clone(), fixed_asm)
-            } else if let (Some(subject), Some(object)) = (&asm_stmt.subject, &asm_stmt.object) {
-                let subject_name = &subject.normalized;
-                let object_name = &object.normalized;
-
-                if scope.is_defined(&subject.lemma) && !scope.is_defined(&object.lemma) {
-                    let mut swapped = asm_stmt.clone();
-                    swapped.subject = Some(object.clone());
-                    swapped.object = Some(subject.clone());
-                    (object_name.clone(), swapped)
-                } else {
-                    (subject_name.clone(), asm_stmt.clone())
-                }
-            } else if let Some(subject) = &asm_stmt.subject {
-                (subject.normalized.clone(), asm_stmt.clone())
-            } else if !asm_stmt.participles.is_empty() {
-                let first_participle = &asm_stmt.participles[0];
-                let mut fixed_asm = asm_stmt.clone();
-                fixed_asm.participles = asm_stmt.participles[1..].to_vec();
-                (first_participle.normalized.clone(), fixed_asm)
-            } else {
-                return Err(GlossaError::semantic("Binding without subject"));
-            };
+            let (var_name, actual_asm) = resolve_binding_target(asm_stmt, scope)?;
 
             let (value_expr, value_type) = extract_value(&actual_asm, scope)?;
 
@@ -352,7 +370,7 @@ fn classify_variable_binding(
             }
 
             return Ok(Some(AnalyzedStatement::Binding {
-                name: var_name.clone(),
+                name: var_name.into(),
                 value: final_value_expr,
                 mutable: is_mutable,
             }));
@@ -670,6 +688,145 @@ fn classify_equality_assertion(
     Ok(None)
 }
 
+fn try_print_binary_op(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Option<Vec<AnalyzedExpr>> {
+    if !asm_stmt.operators.is_empty() {
+        let left = if let Some(ref subj) = asm_stmt.subject {
+            scope.lookup(&subj.lemma).map(|var_type| AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                glossa_type: var_type.clone(),
+            })
+        } else {
+            None
+        };
+
+        let right = asm_stmt.literals.first().map(literal_to_analyzed_expr);
+
+        if let (Some(left_expr), Some(right_expr)) = (left, right) {
+            let op = asm_stmt.operators[0];
+            let bin_expr = build_binary_expr(left_expr, op, right_expr);
+            return Some(vec![bin_expr]);
+        }
+    }
+    None
+}
+
+fn try_print_property_access(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Option<Vec<AnalyzedExpr>> {
+    if !asm_stmt.property_accesses.is_empty() {
+        let mut args = Vec::new();
+        for (owner, method) in &asm_stmt.property_accesses {
+            let receiver = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(owner.clone().into()),
+                glossa_type: scope.lookup(owner).cloned().unwrap_or(GlossaType::Unknown),
+            };
+            let method_args = if let Some((ref meth, ref delim)) = asm_stmt.string_method {
+                if meth == method {
+                    vec![AnalyzedExpr {
+                        expr: AnalyzedExprKind::StringLiteral(delim.clone()),
+                        glossa_type: GlossaType::String,
+                    }]
+                } else {
+                    vec![]
+                }
+            } else {
+                vec![]
+            };
+            let return_type = match method.as_str() {
+                "len" => GlossaType::Number,
+                "split" => GlossaType::List(Box::new(GlossaType::String)),
+                "join" => GlossaType::String,
+                _ => GlossaType::Unknown,
+            };
+            args.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(receiver),
+                    method: method.clone().into(),
+                    args: method_args,
+                },
+                glossa_type: return_type,
+            });
+        }
+        return Some(args);
+    }
+    None
+}
+
+fn try_print_index_access(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<Vec<AnalyzedExpr>>, GlossaError> {
+    if !asm_stmt.index_accesses.is_empty() {
+        let mut args = Vec::new();
+        for (array_expr, index_expr) in &asm_stmt.index_accesses {
+            let array_analyzed = analyze_argument_expr(array_expr, scope)?;
+            let index_analyzed = analyze_argument_expr(index_expr, scope)?;
+            args.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::IndexAccess {
+                    array: Box::new(array_analyzed),
+                    index: Box::new(index_analyzed),
+                },
+                glossa_type: GlossaType::Unknown,
+            });
+        }
+        return Ok(Some(args));
+    }
+    Ok(None)
+}
+
+fn try_print_unwrap(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<Vec<AnalyzedExpr>>, GlossaError> {
+    if !asm_stmt.unwraps.is_empty() {
+        let mut args = Vec::new();
+        for unwrap_expr in &asm_stmt.unwraps {
+            let inner_analyzed = analyze_argument_expr(unwrap_expr, scope)?;
+            args.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Unwrap(Box::new(inner_analyzed)),
+                glossa_type: GlossaType::Unknown,
+            });
+        }
+        return Ok(Some(args));
+    }
+    Ok(None)
+}
+
+fn try_print_default(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Vec<AnalyzedExpr>, GlossaError> {
+    let mut args =
+        build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
+
+    if let Some(ref subj) = asm_stmt.subject
+        && let Some(var_type) = scope.lookup(&subj.lemma)
+    {
+        args.insert(
+            0,
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                glossa_type: var_type.clone(),
+            },
+        );
+    }
+
+    if let Some(ref obj) = asm_stmt.object
+        && let Some(var_type) = scope.lookup(&obj.lemma)
+    {
+        args.push(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+            glossa_type: var_type.clone(),
+        });
+    }
+
+    Ok(args)
+}
+
 /// Helper: Detect print statement
 fn classify_print(
     asm_stmt: &AssembledStatement,
@@ -679,119 +836,23 @@ fn classify_print(
         let verb_lemma = &verb.lemma;
 
         if crate::morphology::lexicon::is_print_verb(verb_lemma) {
-            // Binary expr with operator
-            if !asm_stmt.operators.is_empty() {
-                let left = if let Some(ref subj) = asm_stmt.subject {
-                    scope.lookup(&subj.lemma).map(|var_type| AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: var_type.clone(),
-                    })
-                } else {
-                    None
-                };
-
-                let right = asm_stmt.literals.first().map(literal_to_analyzed_expr);
-
-                if let (Some(left_expr), Some(right_expr)) = (left, right) {
-                    let op = asm_stmt.operators[0];
-                    let bin_expr = build_binary_expr(left_expr, op, right_expr);
-                    return Ok(Some(AnalyzedStatement::Print(vec![bin_expr])));
-                }
-            }
-
-            // Property access
-            if !asm_stmt.property_accesses.is_empty() {
-                let mut args = Vec::new();
-                for (owner, method) in &asm_stmt.property_accesses {
-                    let receiver = AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(owner.clone().into()),
-                        glossa_type: scope.lookup(owner).cloned().unwrap_or(GlossaType::Unknown),
-                    };
-                    let method_args = if let Some((ref meth, ref delim)) = asm_stmt.string_method {
-                        if meth == method {
-                            vec![AnalyzedExpr {
-                                expr: AnalyzedExprKind::StringLiteral(delim.clone()),
-                                glossa_type: GlossaType::String,
-                            }]
-                        } else {
-                            vec![]
-                        }
-                    } else {
-                        vec![]
-                    };
-                    let return_type = match method.as_str() {
-                        "len" => GlossaType::Number,
-                        "split" => GlossaType::List(Box::new(GlossaType::String)),
-                        "join" => GlossaType::String,
-                        _ => GlossaType::Unknown,
-                    };
-                    args.push(AnalyzedExpr {
-                        expr: AnalyzedExprKind::MethodCall {
-                            receiver: Box::new(receiver),
-                            method: method.clone().into(),
-                            args: method_args,
-                        },
-                        glossa_type: return_type,
-                    });
-                }
+            if let Some(args) = try_print_binary_op(asm_stmt, scope) {
                 return Ok(Some(AnalyzedStatement::Print(args)));
             }
 
-            // Index access
-            if !asm_stmt.index_accesses.is_empty() {
-                let mut args = Vec::new();
-                for (array_expr, index_expr) in &asm_stmt.index_accesses {
-                    let array_analyzed = analyze_argument_expr(array_expr, scope)?;
-                    let index_analyzed = analyze_argument_expr(index_expr, scope)?;
-                    args.push(AnalyzedExpr {
-                        expr: AnalyzedExprKind::IndexAccess {
-                            array: Box::new(array_analyzed),
-                            index: Box::new(index_analyzed),
-                        },
-                        glossa_type: GlossaType::Unknown,
-                    });
-                }
+            if let Some(args) = try_print_property_access(asm_stmt, scope) {
                 return Ok(Some(AnalyzedStatement::Print(args)));
             }
 
-            // Unwrap
-            if !asm_stmt.unwraps.is_empty() {
-                let mut args = Vec::new();
-                for unwrap_expr in &asm_stmt.unwraps {
-                    let inner_analyzed = analyze_argument_expr(unwrap_expr, scope)?;
-                    args.push(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Unwrap(Box::new(inner_analyzed)),
-                        glossa_type: GlossaType::Unknown,
-                    });
-                }
+            if let Some(args) = try_print_index_access(asm_stmt, scope)? {
                 return Ok(Some(AnalyzedStatement::Print(args)));
             }
 
-            // Default
-            let mut args =
-                build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
-
-            if let Some(ref subj) = asm_stmt.subject
-                && let Some(var_type) = scope.lookup(&subj.lemma)
-            {
-                args.insert(
-                    0,
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: var_type.clone(),
-                    },
-                );
+            if let Some(args) = try_print_unwrap(asm_stmt, scope)? {
+                return Ok(Some(AnalyzedStatement::Print(args)));
             }
 
-            if let Some(ref obj) = asm_stmt.object
-                && let Some(var_type) = scope.lookup(&obj.lemma)
-            {
-                args.push(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                });
-            }
-
+            let args = try_print_default(asm_stmt, scope)?;
             return Ok(Some(AnalyzedStatement::Print(args)));
         }
     }

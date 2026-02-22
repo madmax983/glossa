@@ -38,6 +38,8 @@ pub(crate) mod assembly_model;
 pub(crate) mod conversion;
 #[cfg(test)]
 mod conversion_tests;
+#[cfg(test)]
+mod classification_tests;
 pub mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
