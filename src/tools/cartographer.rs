@@ -231,4 +231,158 @@ mod tests {
                 || map.contains("Εκτυπώσιμος <|.. Χ : implements")
         );
     }
+
+    #[test]
+    fn test_cartographer_complex_dependencies() {
+        // Manually construct types to test extract_dependencies logic for List, Map, etc.
+        // since current parser doesn't support generic syntax yet.
+        use crate::semantic::Scope;
+
+        let mut scope = Scope::new();
+
+        // Define "Inner" struct
+        let inner_type = GlossaType::Struct {
+            name: "Inner".into(),
+            gender: crate::morphology::Gender::Neuter,
+            fields: vec![],
+        };
+        scope.define_type("Inner", inner_type.clone());
+
+        // Define "Container" struct with complex fields
+        let container_type = GlossaType::Struct {
+            name: "Container".into(),
+            gender: crate::morphology::Gender::Neuter,
+            fields: vec![
+                (
+                    "l".into(),
+                    GlossaType::List(Box::new(inner_type.clone())),
+                ),
+                (
+                    "m".into(),
+                    GlossaType::Map(Box::new(inner_type.clone()), Box::new(inner_type.clone())),
+                ),
+                (
+                    "o".into(),
+                    GlossaType::Option(Box::new(inner_type.clone())),
+                ),
+                (
+                    "r".into(),
+                    GlossaType::Result(Box::new(inner_type.clone()), Box::new(inner_type.clone())),
+                ),
+                (
+                    "f".into(),
+                    GlossaType::Function {
+                        params: vec![inner_type.clone()],
+                        returns: Box::new(inner_type.clone()),
+                    },
+                ),
+            ],
+        };
+        scope.define_type("Container", container_type);
+
+        let program = AnalyzedProgram {
+            statements: vec![],
+            scope,
+        };
+
+        let map = generate_map(&program);
+
+        // Verify Container exists
+        assert!(map.contains("class Container"));
+        // Verify Inner exists
+        assert!(map.contains("class Inner"));
+
+        // Verify dependency arrows
+        // Container -> Inner should appear exactly once due to HashSet
+        assert!(map.contains("Container --> Inner"));
+        let arrow_count = map.matches("-->").count();
+        assert_eq!(arrow_count, 1);
+    }
+
+    #[test]
+    fn test_cartographer_filtering() {
+        use crate::semantic::Scope;
+
+        // Manually construct a case where a struct refers to a type NOT in the scope
+        // This simulates a filtered dependency (or filtering of self-reference)
+        let mut scope = Scope::new();
+
+        // Define "Node" struct with self-reference
+        // Note: In real analysis, the type object itself is recursive or placeholder.
+        // We use a manual construction here.
+        let node_type = GlossaType::Struct {
+            name: "Node".into(),
+            gender: crate::morphology::Gender::Neuter,
+            fields: vec![],
+        };
+
+        // Define fields referencing "Node" (self) and "Other" (undefined in scope)
+        let node_with_fields = GlossaType::Struct {
+            name: "Node".into(),
+            gender: crate::morphology::Gender::Neuter,
+            fields: vec![
+                ("self_ref".into(), node_type.clone()),
+                ("other_ref".into(), GlossaType::Struct {
+                    name: "Other".into(), // "Other" is not added to scope!
+                    gender: crate::morphology::Gender::Neuter,
+                    fields: vec![]
+                }),
+            ],
+        };
+
+        scope.define_type("Node", node_with_fields);
+
+        let program = AnalyzedProgram {
+            statements: vec![],
+            scope,
+        };
+
+        let map = generate_map(&program);
+
+        assert!(map.contains("class Node"));
+
+        // Should NOT contain arrow to self
+        assert!(!map.contains("Node --> Node"));
+
+        // Should NOT contain arrow to Other (because Other is not in scope)
+        assert!(!map.contains("Node --> Other"));
+    }
+
+    #[test]
+    fn test_cartographer_complex_methods() {
+        use crate::semantic::{AnalyzedMethod, Scope, TraitDef};
+
+        let mut scope = Scope::new();
+
+        // Manually define a trait with complex method signature
+        let method = AnalyzedMethod {
+            name: "complex_method".into(),
+            params: vec![
+                ("a".into(), GlossaType::Number),
+                ("b".into(), GlossaType::String),
+            ],
+            body: None,
+            return_type: Some(GlossaType::Boolean),
+        };
+
+        let trait_def = TraitDef {
+            name: "ComplexTrait".into(),
+            methods: vec![method],
+        };
+
+        scope.define_trait("ComplexTrait", trait_def);
+
+        let program = AnalyzedProgram {
+            statements: vec![],
+            scope,
+        };
+
+        let map = generate_map(&program);
+
+        assert!(map.contains("class ComplexTrait"));
+        assert!(map.contains("complex_method"));
+        assert!(map.contains("a: Ἀριθμός"));
+        assert!(map.contains("b: Ὄνομα"));
+        assert!(map.contains(": Ἀληθές/Ψεῦδος"));
+    }
 }
