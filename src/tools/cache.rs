@@ -66,9 +66,16 @@ impl Cache {
     ///
     /// # Why hash the path?
     ///
-    /// We hash the path instead of the content for speed. The content change
-    /// detection is handled by the filesystem timestamp check in [`is_valid`](Cache::is_valid).
-    /// This allows the key generation to be extremely fast (no file reading).
+    /// We hash the path instead of the content for speed. The cache key serves to identify
+    /// *which* file we are talking about, while [`is_valid`](Cache::is_valid) checks
+    /// *if* it has changed.
+    ///
+    /// This separation allows:
+    /// 1. Fast key generation (O(1) path operation vs O(N) file read).
+    /// 2. Simple dependency tracking (path is stable identifier).
+    ///
+    /// The content change detection relies on filesystem timestamps, which is standard practice
+    /// for build tools (like `make` or `cargo`).
     pub fn key(&self, input: &Path) -> String {
         use sha2::{Digest, Sha256};
 
@@ -109,9 +116,15 @@ impl Cache {
     ///
     /// # Logic
     ///
+    /// The cache is valid if and only if the cached executable exists AND
+    /// is newer than the source file.
+    ///
     /// ```text
-    /// Valid = Exists(Binary) AND Modified(Binary) > Modified(Source)
+    /// is_valid = exists(exe) && mtime(exe) > mtime(source)
     /// ```
+    ///
+    /// If the source file has been modified *after* the executable was built,
+    /// `mtime(source)` will be greater, making the condition false (invalid).
     pub fn is_valid(&self, input: &Path, cached_exe: &Path) -> bool {
         let source_modified = fs::metadata(input)
             .and_then(|m| m.modified())

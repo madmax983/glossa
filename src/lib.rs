@@ -96,10 +96,11 @@
 //! * [`codegen`]: **The Translator** - Logic that turns Greek semantics into Rust code.
 //! * [`errors`]: **The Oracle** - Greek-native error messages and diagnostics using `miette`.
 //! * [`parser::grammar`]: **The Gatekeeper** - PEG parser that defines the valid syntax.
-//! * [`highlight`]: **The Scribe** - Semantic syntax highlighting for the CLI.
+//! * [`highlight`]: **The Painter** - Semantic syntax highlighting for the CLI.
 //! * [`morphology`]: **The Analyst** - Word analysis, lexicon lookup, and participle parsing.
 //! * [`parser`]: **The Builder** - Constructs the AST from the raw parse tree.
-//! * [`tools::report`]: **The Chronicler** - Report generation and statistics.
+//! * [`tools::report`]: **The Scribe** - Report generation and statistics.
+//! * [`tools::narrator`]: **The Bard** - Code-to-story translator for debugging and learning.
 //! * [`semantic`]: **The Assembler** - The slot-based engine that assembles sentences from words.
 //! * [`text`]: **The Sizer** - Text utilities and normalization (polytonic -> monotonic).
 

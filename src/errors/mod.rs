@@ -58,6 +58,11 @@ pub enum GlossaError {
     /// **Syntax Error**: The parser failed to understand the code structure.
     ///
     /// This usually means a missing period `.`, unmatched braces `{}`, or invalid characters.
+    ///
+    /// # Example Output
+    /// ```text
+    /// Σφάλμα συντάξεως: expected statement
+    /// ```
     #[error("Σφάλμα συντάξεως: {message}")]
     #[diagnostic(code(glossa::parse))]
     ParseError {
@@ -73,6 +78,11 @@ pub enum GlossaError {
     /// **Semantic Error**: The code is syntactically valid but semantically meaningless.
     ///
     /// Examples include invalid type conversions, recursion limits, or logical paradoxes.
+    ///
+    /// # Example Output
+    /// ```text
+    /// Σφάλμα σημασίας: Τὸ «x» οὐχ ὡρίσθη
+    /// ```
     #[error("Σφάλμα σημασίας: {message}")]
     #[diagnostic(code(glossa::semantic))]
     SemanticError { message: String },
@@ -80,6 +90,11 @@ pub enum GlossaError {
     /// **Undefined Name**: You tried to use a variable or function that doesn't exist.
     ///
     /// Remember to define variables with `ἔστω` (let be) before using them.
+    ///
+    /// # Example Output
+    /// ```text
+    /// Ἄγνωστον ὄνομα: ξ
+    /// ```
     #[error("Ἄγνωστον ὄνομα: {name}")]
     #[diagnostic(code(glossa::undefined))]
     UndefinedName { name: String },
@@ -88,6 +103,11 @@ pub enum GlossaError {
     ///
     /// In Greek, the Subject must agree with the Verb in Person and Number.
     /// Adjectives must agree with Nouns in Gender, Number, and Case.
+    ///
+    /// # Example Output
+    /// ```text
+    /// Σφάλμα συμφωνίας: ὑποκείμενον (Singular) ἀλλὰ ῥῆμα (Plural)
+    /// ```
     #[error("Σφάλμα συμφωνίας: {message}")]
     #[diagnostic(code(glossa::agreement))]
     AgreementError { message: String },

@@ -291,42 +291,51 @@ impl ReplContext {
     }
 
     fn execute(&mut self, input: &str) -> std::result::Result<ReplOutput, GlossaError> {
-        // Check binding count limit
+        // Safety: Prevent memory exhaustion from infinite binding history
+        // The REPL re-compiles the entire history on every line, so we must limit it.
         if self.bindings.len() > MAX_REPL_BINDINGS {
             return Err(GlossaError::semantic(
                 "REPL binding limit exceeded (50). Please use .καθαρός (.clear)",
             ));
         }
 
-        // Build full program with previous bindings
+        // 1. Construct the Virtual Source File
+        // We simulate a single persistent file by concatenating previous valid bindings
+        // with the new input. This allows variable references to resolve correctly.
         let mut full_source = self.bindings.join("\n");
         if !full_source.is_empty() {
             full_source.push('\n');
         }
         full_source.push_str(input);
 
-        // Check total size limit
+        // Safety: Check total size limit
         if full_source.len() > MAX_REPL_SOURCE_LEN {
             return Err(GlossaError::semantic(
                 "REPL source size limit exceeded (50KB). Please use .καθαρός (.clear)",
             ));
         }
 
-        // Try to compile
+        // 2. Compile the Virtual File
+        // If this fails (parse error, type error), the history remains unchanged.
         let ast = parse(&full_source)?;
         let analyzed = analyze_program(&ast)?;
 
+        // 3. Detect New Activity
+        // If the new input didn't add any executable statements (e.g. it was just a comment),
+        // we don't need to do anything.
         let new_count = analyzed.statements.len();
         if new_count <= self.statement_count {
             return Ok(ReplOutput::None);
         }
 
-        // Update scope and count
+        // 4. Update State
+        // The compilation succeeded, so we update our snapshot of the scope and statement count.
         self.last_scope = Some(analyzed.scope.clone());
         self.statement_count = new_count;
 
-        // Analyze what happened in the last statement
-        // We know it exists because new_count > old_count >= 0
+        // 5. Analyze Result
+        // We only care about the *last* statement, because previous statements have already
+        // been executed/processed in previous turns.
         let last_stmt = analyzed.statements.last().unwrap();
         match last_stmt {
             AnalyzedStatement::Binding { name, mutable, .. } => {
@@ -337,7 +346,8 @@ impl ReplContext {
                     .cloned()
                     .unwrap_or(GlossaType::Unknown);
 
-                // Add to bindings list so it persists
+                // Persistence: Variable definitions MUST be saved to history
+                // so they can be referenced in future lines.
                 self.bindings.push(input.to_string());
 
                 Ok(ReplOutput::Binding {
@@ -347,9 +357,10 @@ impl ReplContext {
                 })
             }
             _ => {
-                // For non-binding statements, we don't save them to bindings list
-                // because we don't want to re-execute side effects (print) every time.
-                // BUT: If the user defines a function or type, we SHOULD save it.
+                // Persistence Logic:
+                // - Side effects (print, expressions) are NOT saved. We don't want to
+                //   print "Hello" 50 times just because we defined a variable later.
+                // - Structural definitions (Types, Functions, Traits) MUST be saved.
                 if matches!(
                     last_stmt,
                     AnalyzedStatement::FunctionDef { .. }
