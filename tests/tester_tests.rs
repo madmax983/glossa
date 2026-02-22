@@ -1,5 +1,3 @@
-#![cfg(feature = "nova")]
-
 use glossa::tools::tester::run_tests;
 use std::io::Write;
 use std::path::PathBuf;

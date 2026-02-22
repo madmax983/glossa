@@ -11,7 +11,7 @@
 //! * **Execution**: `run` (default) compiles and executes a program.
 //! * **Compilation**: `build` only compiles to a binary.
 //! * **Development**: `check` verifies syntax/semantics, `highlight` shows colors.
-//! * **Learning**: `lookup` explains words, `bard` tells the story of the code.
+//! * **Learning**: `lookup` explains words.
 //! * **Interactive**: `repl` starts the Read-Eval-Print Loop.
 //!
 //! # Example Usage
@@ -51,10 +51,6 @@ pub enum Commands {
         input: PathBuf,
     },
 
-    /// Start the interactive tutorial (Requires "nova" feature)
-    #[cfg(feature = "nova")]
-    Mentor,
-
     /// Compile a .γλ file to Rust source
     Build {
         /// Input file (.γλ)
@@ -80,12 +76,6 @@ pub enum Commands {
     /// Start the interactive REPL
     Repl,
 
-    /// Translate a .γλ file to English logic (Experimental)
-    Bard {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
-
     /// Lookup a word in the built-in lexicon
     Lookup {
         /// The Greek word to analyze
@@ -94,13 +84,6 @@ pub enum Commands {
 
     /// Run tests defined in a .γλ file
     Test {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
-
-    /// Visualize the assembled sentence structure (Requires "nova" feature)
-    #[cfg(feature = "nova")]
-    Mosaic {
         /// Input file (.γλ)
         input: PathBuf,
     },

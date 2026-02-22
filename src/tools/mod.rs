@@ -12,7 +12,6 @@
 //! * [`report`]: **The Scribe** - Detailed compilation reports and error diagnostics.
 //! * [`cache`]: **The Vault** - Incremental compilation cache to speed up builds.
 //! * [`dictionary`]: **The Lexicon** - Word lookup utility for the built-in dictionary.
-//! * [`narrator`]: **The Bard** - Experimental "code-to-story" translator.
 //! * [`tester`]: **The Judge** - Built-in test runner for unit tests defined in ΓΛΩΣΣΑ files.
 //! * [`ui`]: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
@@ -20,11 +19,6 @@ pub mod cache;
 pub mod cli;
 pub mod dictionary;
 pub mod highlight;
-#[cfg(feature = "nova")]
-pub mod mentor;
-#[cfg(feature = "nova")]
-pub mod mosaic;
-pub mod narrator;
 pub mod repl;
 pub mod report;
 pub mod runner;

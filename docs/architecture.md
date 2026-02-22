@@ -27,21 +27,29 @@ The compiler is organized as a pipeline of modules, transforming source text int
 C4Container
     title Container Diagram for ΓΛΩΣΣΑ Compiler
 
+    Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface")
+    Container(runner, "Runner", "src/tools/runner.rs", "Orchestrates compilation pipeline")
+    Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
+
     Container(lexer, "Lexer", "src/parser/grammar.rs", "Tokenizes source, handling Unicode normalization")
     Container(parser, "Parser", "src/parser", "Constructs AST, enforcing recursion limits (max depth 500)")
     Container(morphology, "Declension Resolver", "src/morphology", "Analyzes case, gender, number, and resolves agreement")
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
-    Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
-    Container(narrator, "Narrator", "src/tools/narrator.rs", "Generates English narrative from AST")
-    Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports")
     Container(codegen, "Code Generator", "src/codegen/mod.rs", "Generates Rust source code")
+
+    Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
+    Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports")
+
+    Rel(cli, runner, "Invokes")
+    Rel(cli, highlight, "Invokes")
+    Rel(runner, cache, "Checks/Updates")
+    Rel(runner, lexer, "Initiates Pipeline")
 
     Rel(lexer, parser, "Stream<Token>")
     Rel(parser, morphology, "AST (Unresolved)")
     Rel(parser, highlight, "AST (Unresolved)")
     Rel(morphology, semantic, "AST (Resolved Morphology)")
     Rel(semantic, report, "Analyzed Program")
-    Rel(semantic, narrator, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 ```
 

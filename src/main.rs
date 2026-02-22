@@ -8,7 +8,7 @@ use miette::Result;
 use glossa::tools::cli::{Cli, Commands};
 use glossa::tools::dictionary::lookup_word;
 use glossa::tools::repl::run_repl;
-use glossa::tools::runner::{bard_file, build_file, check_file, highlight_file, run_file};
+use glossa::tools::runner::{build_file, check_file, highlight_file, run_file};
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -23,11 +23,6 @@ fn main() -> Result<()> {
             run_file(&input)?;
         }
 
-        #[cfg(feature = "nova")]
-        Some(Commands::Mentor) => {
-            glossa::tools::mentor::run_mentor()?;
-        }
-
         Some(Commands::Build { input, output }) => {
             build_file(&input, output.as_deref())?;
         }
@@ -40,21 +35,12 @@ fn main() -> Result<()> {
             highlight_file(&input)?;
         }
 
-        Some(Commands::Bard { input }) => {
-            bard_file(&input)?;
-        }
-
         Some(Commands::Lookup { word }) => {
             lookup_word(&word)?;
         }
 
         Some(Commands::Test { input }) => {
             glossa::tools::tester::run_tests(&input)?;
-        }
-
-        #[cfg(feature = "nova")]
-        Some(Commands::Mosaic { input }) => {
-            glossa::tools::mosaic::run_mosaic(&input)?;
         }
 
         Some(Commands::Repl) | None => {
