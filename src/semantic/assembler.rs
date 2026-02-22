@@ -116,6 +116,8 @@ pub(crate) const MAX_PARTICIPLES: usize = 256;
 pub(crate) const MAX_UNWRAPS: usize = 256;
 pub(crate) const MAX_OPERATORS: usize = 256;
 pub(crate) const MAX_BLOCKS: usize = 256;
+pub(crate) const MAX_STRING_LITERAL_LENGTH: usize = 65536; // 64KB
+pub(crate) const MAX_IDENTIFIER_LENGTH: usize = 256;
 
 /// The slot-based assembler
 ///
@@ -199,6 +201,13 @@ impl Assembler {
         original: &str,
         normalized: &str,
     ) -> Result<(), AssemblyError> {
+        if original.len() > MAX_IDENTIFIER_LENGTH || normalized.len() > MAX_IDENTIFIER_LENGTH {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Identifier Length".to_string(),
+                max: MAX_IDENTIFIER_LENGTH,
+            });
+        }
+
         if self.check_special_markers(normalized, original) {
             return Ok(());
         }
@@ -250,6 +259,14 @@ impl Assembler {
                 max: MAX_LITERALS,
             });
         }
+
+        if value.len() > MAX_STRING_LITERAL_LENGTH {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "String Literal Length".to_string(),
+                max: MAX_STRING_LITERAL_LENGTH,
+            });
+        }
+
         self.state.literals.push(Literal::String(value));
         Ok(())
     }
@@ -1650,6 +1667,35 @@ mod tests {
         assert!(
             !stmt.has_containment_preposition,
             "Should not detect containment preposition for 'one' (hen)"
+        );
+    }
+
+    #[test]
+    fn test_max_string_literal_length_exceeded() {
+        let mut asm = Assembler::new();
+        let huge_string = "a".repeat(MAX_STRING_LITERAL_LENGTH + 1);
+        let result = asm.feed_string(huge_string);
+
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "String Literal Length" && max == MAX_STRING_LITERAL_LENGTH)
+        );
+    }
+
+    #[test]
+    fn test_max_identifier_length_exceeded() {
+        let mut asm = Assembler::new();
+        let huge_identifier = "a".repeat(MAX_IDENTIFIER_LENGTH + 1);
+        let analysis = make_analysis(
+            &huge_identifier,
+            PartOfSpeech::Noun,
+            Some(Case::Nominative),
+            Some(Number::Singular),
+        );
+
+        let result = asm.feed(&analysis, &huge_identifier);
+
+        assert!(
+            matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Identifier Length" && max == MAX_IDENTIFIER_LENGTH)
         );
     }
 }
