@@ -1,0 +1,31 @@
+// Chapter 1: The Definition (Variables)
+// Let x be 10.
+ξ 10 ἔστω.
+
+// Let name be "Socrates".
+ὄνομα «Σωκράτης» ἔστω.
+
+// Chapter 2: The Action (Functions)
+// Say "Hello"
+«χαῖρε» λέγε.
+
+// Say the name (using the variable from Chapter 1)
+ὄνομα λέγε.
+
+// Chapter 3: The Structure (Types)
+// Define a User type
+εἶδος Χρήστης ὁρίζειν {
+    ὄνομα ὀνόματος.    // String
+    ἡλικία ἀριθμοῦ. // i64
+}.
+
+// Create an instance
+χρήστης νέον Χρήστης
+    «Πλάτων»
+    80
+ἔστω.
+
+// Chapter 4: The Logic (Control Flow)
+// If age is greater than 50...
+εἰ ἡλικία 50 μεῖζον ᾖ,
+    «σοφός» λέγε.
