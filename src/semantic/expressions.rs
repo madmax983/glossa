@@ -519,10 +519,14 @@ fn feed_expr_recursive(
                 feed_expr_recursive(asm, operand, context, depth + 1)?;
             }
         }
-        Expr::Block(statements) => {
-            // Parenthesized expressions are stored as blocks for later analysis
-            // Don't feed their contents to the main assembler - they'll be analyzed separately
-            asm.feed_block(statements.clone())?;
+        Expr::Block(_statements) => {
+            // Blocks inside expressions are typically parenthesized expressions.
+            // Since `conversion.rs` ignores the `blocks` field (it uses recursive analysis),
+            // we don't need to feed them to the assembler slots.
+            // They will be handled if `expressions.rs` recursively analyzes them,
+            // but `feed_expr` is for top-level slot filling.
+            // If a block appears here, it's effectively "invisible" to the top-level sentence structure
+            // (Subject-Verb-Object), just like an article.
         }
         Expr::ArrayLiteral(elements) => {
             // Feed array literal to assembler

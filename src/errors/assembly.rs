@@ -23,14 +23,6 @@ pub enum AssemblyError {
     #[diagnostic(code(glossa::assembly::double_object))]
     DoubleObject,
 
-    /// Two indirect objects found in the same statement (Dative collision)
-    ///
-    /// # Example
-    /// `τῷ ἀνθρώπῳ τῷ θεῷ δίδωμι` (I give to the man to the god)
-    #[error("Διπλοῦν ἔμμεσον αντικείμενον! Ἓν μόνον παραλήπτην ἔχεις.")]
-    #[diagnostic(code(glossa::assembly::double_indirect))]
-    DoubleIndirect,
-
     /// Two verbs found in the same statement
     ///
     /// # Example

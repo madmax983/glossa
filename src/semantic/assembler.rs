@@ -115,7 +115,6 @@ pub(crate) const MAX_NESTED_PHRASES: usize = 256;
 pub(crate) const MAX_PARTICIPLES: usize = 256;
 pub(crate) const MAX_UNWRAPS: usize = 256;
 pub(crate) const MAX_OPERATORS: usize = 256;
-pub(crate) const MAX_BLOCKS: usize = 256;
 
 /// A fully assembled statement with all grammatical roles filled
 ///
@@ -135,9 +134,6 @@ pub struct AssembledStatement {
 
     /// The direct object (accusative) - receives the action
     pub object: Option<Constituent>,
-
-    /// The indirect object (dative) - recipient/beneficiary
-    pub indirect: Option<Constituent>,
 
     /// Possessors/sources (genitive) - attached to other constituents
     pub genitives: Vec<Constituent>,
@@ -159,9 +155,6 @@ pub struct AssembledStatement {
 
     /// Binary operators found between expressions
     pub operators: Vec<BinaryOp>,
-
-    /// Parenthesized blocks (nested expressions)
-    pub blocks: Vec<Vec<crate::ast::Statement>>,
 
     /// Nested phrases (parenthesized function calls)
     pub nested_phrases: Vec<Vec<Expr>>,
@@ -478,30 +471,6 @@ impl Assembler {
         Ok(())
     }
 
-    /// Feed a parenthesized block (nested expression)
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use glossa::semantic::Assembler;
-    ///
-    /// let mut asm = Assembler::new();
-    /// asm.feed_block(vec![]).unwrap(); // Empty block
-    /// ```
-    pub fn feed_block(
-        &mut self,
-        statements: Vec<crate::ast::Statement>,
-    ) -> Result<(), AssemblyError> {
-        if self.state.blocks.len() >= MAX_BLOCKS {
-            return Err(AssemblyError::LimitExceeded {
-                resource: "Blocks".to_string(),
-                max: MAX_BLOCKS,
-            });
-        }
-        self.state.blocks.push(statements);
-        Ok(())
-    }
-
     /// Feed a nested phrase (parenthesized function call)
     ///
     /// # Examples
@@ -670,11 +639,7 @@ impl Assembler {
                 self.state.object = Some(constituent);
             }
             Some(Case::Dative) => {
-                // Dative can stack (multiple recipients) but for simplicity, one for now
-                if self.state.indirect.is_some() {
-                    return Err(AssemblyError::DoubleIndirect);
-                }
-                self.state.indirect = Some(constituent);
+                // Dative is not currently used in semantic analysis
             }
             Some(Case::Genitive) => {
                 // Genitives attach to other constituents (possession, etc.)
@@ -1225,18 +1190,19 @@ mod tests {
     }
 
     #[test]
-    fn test_dative_indirect_object() {
+    fn test_dative_ignored() {
         let mut asm = Assembler::new();
 
         // τῷ ἀνθρώπῳ δίδωμι (I give to the man)
         let dat = analyze("ανθρωπω");
-        asm.feed(&dat, "ἀνθρώπῳ").unwrap();
+        asm.feed(&dat, "ἀνθρώπῳ").unwrap(); // Should be accepted but ignored
 
         let verb = analyze("διδωμι");
         asm.feed(&verb, "δίδωμι").unwrap();
 
         let stmt = asm.finalize().unwrap();
-        assert!(stmt.indirect.is_some());
+        // Indirect object field removed, so we just check it didn't fail
+        assert!(stmt.verb.is_some());
     }
 
     #[test]

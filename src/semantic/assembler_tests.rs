@@ -2,7 +2,7 @@ use crate::ast::{Expr, Word};
 use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person, analyze};
 use crate::semantic::AssemblyError;
 use crate::semantic::assembler::{
-    Assembler, MAX_ADJECTIVES, MAX_ARRAYS, MAX_BLOCKS, MAX_GENITIVES, MAX_INDEX_ACCESSES,
+    Assembler, MAX_ADJECTIVES, MAX_ARRAYS, MAX_GENITIVES, MAX_INDEX_ACCESSES,
     MAX_LITERALS, MAX_NESTED_PHRASES, MAX_NOMINATIVES, MAX_OPERATORS, MAX_PARTICIPLES,
     MAX_PROPERTY_ACCESSES, MAX_UNWRAPS,
 };
@@ -357,21 +357,6 @@ fn test_limit_participles() {
     }
 }
 
-#[test]
-fn test_limit_blocks() {
-    let mut asm = Assembler::new();
-    for _ in 0..MAX_BLOCKS {
-        asm.feed_block(vec![]).unwrap();
-    }
-
-    match asm.feed_block(vec![]) {
-        Err(AssemblyError::LimitExceeded { resource, max }) => {
-            assert_eq!(resource, "Blocks");
-            assert_eq!(max, MAX_BLOCKS);
-        }
-        res => panic!("Expected LimitExceeded, got {:?}", res),
-    }
-}
 
 #[test]
 fn test_limit_operators() {
@@ -676,7 +661,7 @@ fn test_limit_ordinal_index() {
 // From sentry_assembler_tests.rs
 
 #[test]
-fn test_double_indirect_object_error() {
+fn test_double_indirect_object_ignored() {
     let mut asm = Assembler::new();
 
     // First indirect object: τῷ ἀνθρώπῳ (to the man)
@@ -710,12 +695,8 @@ fn test_double_indirect_object_error() {
 
     let result = asm.feed(&dat2, "θεῷ");
 
-    // SENTRY: This assertion enforces that we DO NOT allow silent overwrites.
-    assert!(
-        matches!(result, Err(AssemblyError::DoubleIndirect)),
-        "Should return DoubleIndirect error, got {:?}",
-        result
-    );
+    // Dative is now ignored, so no error
+    assert!(result.is_ok());
 }
 
 #[test]
@@ -968,11 +949,6 @@ fn test_assembler_error_cases_coverage() {
     assert!(matches!(result, Err(AssemblyError::DoubleObject)));
     let _ = asm.finalize();
 
-    // Double Indirect
-    let ind = analyze("ανθρωπω");
-    asm.feed(&ind, "ἀνθρώπῳ").unwrap();
-    let result = asm.feed(&ind, "ἀνθρώπῳ");
-    assert!(matches!(result, Err(AssemblyError::DoubleIndirect)));
 }
 
 #[test]
