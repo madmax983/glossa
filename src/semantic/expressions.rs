@@ -12,8 +12,12 @@
 //! 2. **Recursive Analysis**: Nested expressions (args inside a function call) are analyzed
 //!    recursively to produce an [`AnalyzedExpr`]. See [`analyze_argument_expr`].
 
-use super::{AnalyzedExpr, AnalyzedExprKind, Assembler, GlossaType, Literal, Scope};
 use crate::ast::{Expr, Statement};
+use crate::semantic::assembler::Assembler;
+use crate::semantic::assembly_model::Literal;
+use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
+use crate::semantic::resolver::Scope;
+use crate::semantic::types::GlossaType;
 use crate::errors::GlossaError;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
 
@@ -25,7 +29,7 @@ use crate::morphology::{self, DisambiguationContext, analyze_article, disambigua
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// use glossa::semantic::{Scope, AnalyzedExprKind, GlossaType};
 /// use glossa::semantic::expressions::analyze_argument_expr;
 /// use glossa::ast::{Expr, Word};
@@ -45,7 +49,7 @@ use crate::morphology::{self, DisambiguationContext, analyze_article, disambigua
 /// let var_analyzed = analyze_argument_expr(&var_expr, &scope_with_var).unwrap();
 /// assert!(matches!(var_analyzed.expr, AnalyzedExprKind::Variable(name) if name == "x"));
 /// ```
-pub fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
+pub(crate) fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
     analyze_argument_expr_recursive(expr, scope, 0)
 }
 
