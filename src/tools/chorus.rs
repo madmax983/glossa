@@ -367,4 +367,177 @@ mod tests {
         // Also test empty feedback
         chorus.display(&[]);
     }
+
+    #[test]
+    fn test_control_flow_complexity() {
+        // Tests If/While complexity and flattening
+        let condition = Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
+        });
+
+        // Nested statement to test flattening
+        let nested_stmt = AnalyzedStatement::Print(vec![AnalyzedExpr {
+            expr: AnalyzedExprKind::StringLiteral("test".into()),
+            glossa_type: GlossaType::String,
+        }]);
+
+        let if_stmt = AnalyzedStatement::If {
+            condition: condition.clone(),
+            then_body: vec![nested_stmt.clone()],
+            else_body: Some(vec![nested_stmt.clone()]),
+        };
+
+        let while_stmt = AnalyzedStatement::While {
+            condition: condition.clone(),
+            body: vec![nested_stmt.clone()],
+        };
+
+        let program = AnalyzedProgram {
+            statements: vec![if_stmt, while_stmt],
+            scope: Scope::new(),
+        };
+
+        let chorus = Chorus::new(&program);
+        // Complexity should be low (condition is literal), but verbs should be extracted
+        let _ = chorus.check_euphony();
+    }
+
+    #[test]
+    fn test_binding_and_assignment_complexity() {
+        // Binding
+        let binding = AnalyzedStatement::Binding {
+            name: "x".into(),
+            value: AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            },
+            mutable: false,
+        };
+
+        // Assignment with complexity
+        let assignment = AnalyzedStatement::Assignment {
+            name: "x".into(),
+            value: AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    left: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    op: crate::morphology::lexicon::BinaryOp::Add,
+                    right: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(2),
+                        glossa_type: GlossaType::Number,
+                    }),
+                },
+                glossa_type: GlossaType::Number,
+            },
+        };
+
+        let program = AnalyzedProgram {
+            statements: vec![binding, assignment],
+            scope: Scope::new(),
+        };
+
+        let chorus = Chorus::new(&program);
+        let _ = chorus.check_euphony();
+    }
+
+    #[test]
+    fn test_verb_extraction_various_sources() {
+        // Test extracting verbs from different expression kinds
+        let verb_call = AnalyzedExpr {
+            expr: AnalyzedExprKind::VerbCall {
+                verb: "verb1".into(),
+                args: vec![],
+            },
+            glossa_type: GlossaType::Unit,
+        };
+
+        let func_call = AnalyzedExpr {
+            expr: AnalyzedExprKind::FunctionCall {
+                func: "func1".into(),
+                args: vec![verb_call.clone()], // Nested verb call
+            },
+            glossa_type: GlossaType::Unit,
+        };
+
+        let method_call = AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+                method: "method1".into(),
+                args: vec![func_call.clone()],
+            },
+            glossa_type: GlossaType::Unit,
+        };
+
+        let trait_method_call = AnalyzedExpr {
+            expr: AnalyzedExprKind::TraitMethodCall {
+                receiver: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+                trait_name: "Trait1".into(),
+                method_name: "method2".into(),
+                args: vec![method_call.clone()],
+            },
+            glossa_type: GlossaType::Unit,
+        };
+
+        let stmt = AnalyzedStatement::Expression(vec![trait_method_call]);
+
+        let program = AnalyzedProgram {
+            statements: vec![stmt],
+            scope: Scope::new(),
+        };
+
+        let chorus = Chorus::new(&program);
+        let _ = chorus.check_euphony();
+        // Just verify it runs without crashing and covers the extraction logic
+    }
+
+    #[test]
+    fn test_flatten_match_and_function_def() {
+        // Match statement
+        let match_stmt = AnalyzedStatement::Match {
+            scrutinee: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            }),
+            arms: vec![
+                (
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    },
+                    vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+                         expr: AnalyzedExprKind::StringLiteral("match".into()),
+                         glossa_type: GlossaType::String,
+                    }])]
+                )
+            ],
+        };
+
+        // Function def
+        let func_def = AnalyzedStatement::FunctionDef {
+            name: "func".into(),
+            params: vec![],
+            body: vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("func".into()),
+                glossa_type: GlossaType::String,
+            }])],
+            return_type: None,
+        };
+
+        let program = AnalyzedProgram {
+            statements: vec![match_stmt, func_def],
+            scope: Scope::new(),
+        };
+
+        let chorus = Chorus::new(&program);
+        let _ = chorus.check_euphony();
+    }
 }
