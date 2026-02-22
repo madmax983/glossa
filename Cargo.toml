@@ -5,7 +5,6 @@ edition = "2024"
 description = "ΓΛΩΣΣΑ - A compiler where Ancient Greek morphology encodes programming semantics"
 
 [features]
-nova = []
 
 [dependencies]
 crossterm = "0.29"

@@ -3,7 +3,6 @@ use crate::parser::parse;
 use crate::semantic::{AnalyzedProgram, analyze_program};
 use crate::tools::cache::Cache;
 use crate::tools::highlight::highlight;
-use crate::tools::narrator::tell_tale;
 use crate::tools::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
@@ -248,18 +247,6 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn bard_file(input: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
-    let source = load_source(input)?;
-    let analyzed = analyze_source(&source)?;
-
-    let tale = tell_tale(&analyzed);
-    status.success();
-    println!("{}", tale);
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -466,19 +453,6 @@ mod tests {
         // We can't easily capture stdout here without a lot of plumbing,
         // but we can ensure it doesn't error.
         let result = highlight_file(&input_path);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_bard_file_valid() {
-        let dir = tempfile::tempdir().unwrap();
-        let input_path = dir.path().join("bard.gl");
-        {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
-        }
-
-        let result = bard_file(&input_path);
         assert!(result.is_ok());
     }
 }

@@ -72,3 +72,13 @@
 **Bloat:** `src/experimental/bard.rs` was a fully functional tool hidden in an "experimental" module.
 **Cut:** Promoted to `src/tools/narrator.rs` and deleted `src/experimental`.
 **Saved:** 1 folder, 2 files, clearer project structure.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly_model.rs` separated DTOs from `assembler.rs` logic unnecessarily.
+**Cut:** Merged DTOs into `assembler.rs`.
+**Saved:** 1 file, reduced module hopping.
+
+## [Reduction]
+**Bloat:** Non-core tools `mentor` (tutorial), `mosaic` (visualizer), and `narrator` (storyteller) compiled into the main binary.
+**Cut:** Deleted these modules and the `nova` feature flag.
+**Saved:** 3 files (~800 LOC), reduced binary bloat, simplified CLI.
