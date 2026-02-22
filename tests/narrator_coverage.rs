@@ -271,12 +271,7 @@ fn test_expr_tale(kind: AnalyzedExprKind, parts: &[&str]) {
     };
     let tale = tell_tale(&program);
     for part in parts {
-        assert!(
-            tale.contains(part),
-            "Expected '{}' in '{}'",
-            part,
-            tale
-        );
+        assert!(tale.contains(part), "Expected '{}' in '{}'", part, tale);
     }
 }
 

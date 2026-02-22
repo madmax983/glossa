@@ -478,13 +478,6 @@ mod tests {
         let var = "`ξ`".white().italic();
         let val = "5".yellow();
         let expected = format!("Let {} be {}", var, val);
-        if !tale.contains(&expected) {
-             println!("Tale:\n{}", tale);
-             println!("Expected substring:\n{}", expected);
-             // Also print debug representation to see escape codes
-             println!("Tale (debug):\n{:?}", tale);
-             println!("Expected (debug):\n{:?}", expected);
-        }
         assert!(tale.contains(&expected));
     }
 
