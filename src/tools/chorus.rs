@@ -507,18 +507,16 @@ mod tests {
                 expr: AnalyzedExprKind::NumberLiteral(1),
                 glossa_type: GlossaType::Number,
             }),
-            arms: vec![
-                (
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(1),
-                        glossa_type: GlossaType::Number,
-                    },
-                    vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
-                         expr: AnalyzedExprKind::StringLiteral("match".into()),
-                         glossa_type: GlossaType::String,
-                    }])]
-                )
-            ],
+            arms: vec![(
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+                    expr: AnalyzedExprKind::StringLiteral("match".into()),
+                    glossa_type: GlossaType::String,
+                }])],
+            )],
         };
 
         // Function def
