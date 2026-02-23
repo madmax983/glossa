@@ -104,4 +104,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Visualize the program architecture as a map (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Map {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
