@@ -437,4 +437,29 @@ mod tests {
         assert!(map.contains("b: Ὄνομα"));
         assert!(map.contains(": Ἀληθές/Ψεῦδος"));
     }
+
+    #[test]
+    fn test_run_map_success() {
+        // Create a temporary file with a simple struct
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_map.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("εἶδος Τ ὁρίζειν { }.\n".as_bytes()).unwrap();
+        }
+
+        // Run the command
+        let result = run_map(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_map_file_not_found() {
+        use std::path::PathBuf;
+        let path = PathBuf::from("non_existent_file.γλ");
+        let result = run_map(&path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
 }
