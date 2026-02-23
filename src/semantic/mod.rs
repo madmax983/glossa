@@ -34,6 +34,8 @@
 pub mod assembler;
 #[cfg(test)]
 mod assembler_tests;
+#[cfg(test)]
+mod sentry_limits_tests;
 pub(crate) mod assembly_model;
 #[cfg(test)]
 mod classification_tests;

@@ -750,13 +750,14 @@ fn test_neuter_plural_agreement() {
         voice: None,
         confidence: 1.0,
     };
-    asm.feed(&verb, "τρέχουσιν").unwrap();
 
-    let stmt = asm.finalize();
+    // This should fail immediately because Subject is already present
+    let result = asm.feed(&verb, "τρέχουσιν");
+
     assert!(
-        stmt.is_ok(),
-        "Neuter plural subject should allow plural verb (current behavior), got {:?}",
-        stmt.err()
+        matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
+        "Neuter plural subject should REJECT plural verb (strict rule), got {:?}",
+        result
     );
 }
 
