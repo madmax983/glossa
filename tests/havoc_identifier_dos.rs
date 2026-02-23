@@ -1,6 +1,6 @@
 use glossa::ast::{Clause, Expr, Statement, Word};
 use glossa::errors::GlossaError;
-use glossa::semantic::{assemble_statement, AssemblyError};
+use glossa::semantic::{AssemblyError, assemble_statement};
 
 #[test]
 fn test_identifier_length_limit() {
