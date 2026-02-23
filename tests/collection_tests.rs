@@ -70,7 +70,7 @@ fn test_numeric_index() {
     let code = compile("ξ [1, 2, 3] ἔστω. ξ[0] λέγε.");
     // Should have index cast to usize
     assert!(
-        code.contains("as usize"),
+        code.contains("try_from"),
         "Expected index cast to usize in: {}",
         code
     );
@@ -166,7 +166,7 @@ fn test_ordinal_index_first() {
     let code = compile("ξ [10, 20, 30] ἔστω. ξ πρῶτον λέγε.");
     // First element = index 0, cast to usize
     assert!(
-        code.contains("as usize"),
+        code.contains("try_from"),
         "Expected usize cast in: {}",
         code
     );
@@ -191,7 +191,7 @@ fn test_ordinal_index_third() {
     let code = compile("ξ [10, 20, 30] ἔστω. ξ τρίτον λέγε.");
     // Third element = index 2 (0-indexed), cast to usize
     assert!(
-        code.contains("as usize"),
+        code.contains("try_from"),
         "Expected usize cast in: {}",
         code
     );
