@@ -1,6 +1,6 @@
-use glossa::ast::{Statement, Clause, Expr};
-use glossa::semantic::{assemble_statement, AssemblyError};
+use glossa::ast::{Clause, Expr, Statement};
 use glossa::errors::GlossaError;
+use glossa::semantic::{AssemblyError, assemble_statement};
 
 #[test]
 fn test_string_literal_length_limit() {
@@ -11,9 +11,7 @@ fn test_string_literal_length_limit() {
     // Note: assemble_statement processes expressions. A string literal is a valid expression.
     let stmt = Statement::Regular {
         clauses: vec![Clause {
-            expressions: vec![
-                Expr::StringLiteral(huge_string),
-            ]
+            expressions: vec![Expr::StringLiteral(huge_string)],
         }],
         is_query: false,
         is_propagate: false,
@@ -22,7 +20,10 @@ fn test_string_literal_length_limit() {
     // This should fail with LimitExceeded
     let result = assemble_statement(&stmt);
 
-    assert!(result.is_err(), "Assembler accepted string literal longer than limit");
+    assert!(
+        result.is_err(),
+        "Assembler accepted string literal longer than limit"
+    );
 
     match result {
         Err(GlossaError::AssemblyError(AssemblyError::LimitExceeded { resource, max })) => {
