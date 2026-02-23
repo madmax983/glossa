@@ -101,6 +101,7 @@ use crate::semantic::assembly_model::{
     AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
 use crate::text::normalize_greek;
+use smol_str::SmolStr;
 use unicode_normalization::UnicodeNormalization;
 
 // Constants for resource limits to prevent DoS
@@ -451,7 +452,8 @@ impl Assembler {
         }
         let normalized = normalize_greek(original);
         let constituent = ParticipleConstituent {
-            verb_lemma: normalize_greek(&analysis.verb_lemma()),
+            // OPTIMIZATION: verb_lemma() returns a normalized string
+            verb_lemma: SmolStr::new(analysis.verb_lemma()),
             original: original.into(),
             normalized,
             tense: analysis.tense,
@@ -472,7 +474,8 @@ impl Assembler {
         normalized: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
-            lemma: normalize_greek(analysis.lemma.as_ref()),
+            // OPTIMIZATION: Lemma is guaranteed to be normalized by morphology analysis
+            lemma: SmolStr::new(analysis.lemma.as_ref()),
             original: original.into(),
             normalized: normalized.into(),
             case: analysis.case.unwrap_or(Case::Nominative),
@@ -575,7 +578,8 @@ impl Assembler {
         }
 
         let verb_constituent = VerbConstituent {
-            lemma: normalize_greek(analysis.lemma.as_ref()),
+            // OPTIMIZATION: Lemma is guaranteed to be normalized by morphology analysis
+            lemma: SmolStr::new(analysis.lemma.as_ref()),
             original: original.into(),
             normalized: normalized.into(),
             person: analysis.person,
@@ -603,7 +607,8 @@ impl Assembler {
         normalized: &str,
     ) -> Result<(), AssemblyError> {
         let constituent = Constituent {
-            lemma: normalize_greek(analysis.lemma.as_ref()),
+            // OPTIMIZATION: Lemma is guaranteed to be normalized by morphology analysis
+            lemma: SmolStr::new(analysis.lemma.as_ref()),
             original: original.into(),
             normalized: normalized.into(),
             case: analysis.case.unwrap_or(Case::Nominative),
@@ -820,10 +825,10 @@ impl Assembler {
                         max: MAX_PROPERTY_ACCESSES,
                     });
                 }
-                let normalized_original = crate::text::normalize_greek(&subj.original);
+                // OPTIMIZATION: Use stored normalized form
                 self.state
                     .property_accesses
-                    .push((normalized_original.to_string(), "len".to_string()));
+                    .push((subj.normalized.to_string(), "len".to_string()));
                 self.state.subject = None; // Consume the subject
                 return Ok(true);
             }
@@ -842,10 +847,10 @@ impl Assembler {
                     });
                 }
                 // Create array and index expressions (use normalized original, not lemma)
-                let normalized_original = crate::text::normalize_greek(&subj.original);
+                // OPTIMIZATION: Use stored normalized form
                 let array = Expr::Word(Word {
                     original: subj.original.clone(),
-                    normalized: normalized_original.clone(),
+                    normalized: subj.normalized.clone(),
                 });
                 let index_expr = Expr::NumberLiteral(index);
 
