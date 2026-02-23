@@ -422,4 +422,42 @@ mod tests {
         let msg = gender_mismatch("μεγάλη", Gender::Feminine, "χρήστος", Gender::Masculine);
         assert!(msg.contains("οὐ συμφωνεῖ"));
     }
+
+    #[test]
+    fn test_immutable_assignment_message() {
+        let msg = immutable_assignment("π");
+        assert!(msg.contains("ἀμετάβλητόν"));
+        assert!(msg.contains("π"));
+    }
+
+    #[test]
+    fn test_number_mismatch_message() {
+        let msg = number_mismatch("ἄνθρωπος", Number::Singular, "λέγουσι", Number::Plural);
+        assert!(msg.contains("οὐ συμφωνεῖ"));
+        assert!(msg.contains("ἑνικός"));
+        assert!(msg.contains("πληθυντικός"));
+    }
+
+    #[test]
+    fn test_case_mismatch_message() {
+        let msg = case_mismatch("ἄνθρωπος", Case::Nominative, "λόγον", Case::Accusative);
+        assert!(msg.contains("οὐ συμφωνεῖ"));
+        assert!(msg.contains("ὀνομαστική"));
+        assert!(msg.contains("αἰτιατική"));
+    }
+
+    #[test]
+    fn test_error_constructors() {
+        let agree = GlossaError::agreement("disagreement");
+        assert!(matches!(agree, GlossaError::AgreementError { .. }));
+        assert_eq!(agree.category_greek(), "Συμφωνία");
+
+        let code = GlossaError::codegen("fail");
+        assert!(matches!(code, GlossaError::CodegenError { .. }));
+        assert_eq!(code.category_greek(), "Κῶδιξ");
+
+        let span = SourceSpan::from((0, 5));
+        let parse = GlossaError::parse_with_source("err", "source", span);
+        assert!(matches!(parse, GlossaError::ParseError { span: Some(_), .. }));
+    }
 }

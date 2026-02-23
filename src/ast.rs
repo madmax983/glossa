@@ -405,3 +405,83 @@ impl Word {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_word_normalization() {
+        let w = Word::new("Ἀθῆναι");
+        assert_eq!(w.original, "Ἀθῆναι");
+        assert_eq!(w.normalized, "αθηναι");
+    }
+
+    #[test]
+    fn test_statement_expressions_iterator() {
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::NumberLiteral(1)],
+                },
+                Clause {
+                    expressions: vec![Expr::NumberLiteral(2)],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let exprs: Vec<&Expr> = stmt.expressions().collect();
+        assert_eq!(exprs.len(), 2);
+        assert!(matches!(exprs[0], Expr::NumberLiteral(1)));
+        assert!(matches!(exprs[1], Expr::NumberLiteral(2)));
+    }
+
+    #[test]
+    fn test_statement_is_query() {
+        let stmt = Statement::Regular {
+            clauses: vec![],
+            is_query: true,
+            is_propagate: false,
+        };
+        assert!(stmt.is_query());
+        assert!(!stmt.is_propagate());
+    }
+
+    #[test]
+    fn test_statement_is_propagate() {
+        let stmt = Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: true,
+        };
+        assert!(stmt.is_propagate());
+        assert!(!stmt.is_query());
+    }
+
+    #[test]
+    fn test_statement_clauses() {
+        let clauses = vec![Clause {
+            expressions: vec![Expr::NumberLiteral(1)],
+        }];
+        let stmt = Statement::Regular {
+            clauses: clauses.clone(),
+            is_query: false,
+            is_propagate: false,
+        };
+        assert_eq!(stmt.clauses(), &clauses);
+    }
+
+    #[test]
+    fn test_non_regular_statement_properties() {
+        let type_def = Statement::TypeDefinition(TypeDef {
+            name: Word::new("T"),
+            fields: vec![],
+        });
+        assert_eq!(type_def.expressions().count(), 0);
+        assert!(!type_def.is_query());
+        assert!(!type_def.is_propagate());
+        assert!(type_def.clauses().is_empty());
+    }
+}

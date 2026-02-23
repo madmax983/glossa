@@ -1516,4 +1516,109 @@ mod tests {
         let code_le = tokens_le.to_string();
         assert!(code_le.contains("<="));
     }
+
+    #[test]
+    fn test_is_std_method() {
+        assert!(is_std_method("len"));
+        assert!(is_std_method("push"));
+        assert!(!is_std_method("my_func"));
+    }
+
+    #[test]
+    fn test_is_std_type() {
+        assert!(is_std_type(&GlossaType::Number));
+        assert!(is_std_type(&GlossaType::String));
+        // Function types are not standard (in the sense of direct mapping without handling)
+        assert!(!is_std_type(&GlossaType::Function {
+            params: vec![],
+            returns: Box::new(GlossaType::Unit)
+        }));
+    }
+
+    #[test]
+    fn test_generate_variant_helpers() {
+        let inner = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(42),
+            glossa_type: GlossaType::Number,
+        };
+
+        let some_code = generate_variant_some(&inner).to_string();
+        assert!(some_code.contains("Some"));
+        assert!(some_code.contains("42"));
+
+        let none_code = generate_variant_none().to_string();
+        assert!(none_code.contains("None"));
+
+        let ok_code = generate_variant_ok(&inner).to_string();
+        assert!(ok_code.contains("Ok"));
+        assert!(ok_code.contains("42"));
+
+        let err_code = generate_variant_err(&inner).to_string();
+        assert!(err_code.contains("Err"));
+        assert!(err_code.contains("42"));
+    }
+
+    #[test]
+    fn test_generate_control_helpers() {
+        let inner = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(42),
+            glossa_type: GlossaType::Number,
+        };
+
+        let try_code = generate_control_try(&inner).to_string();
+        assert!(try_code.contains("?"));
+
+        let unwrap_code = generate_control_unwrap(&inner).to_string();
+        assert!(unwrap_code.contains("unwrap"));
+        assert!(unwrap_code.contains("42"));
+
+        let cond = AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
+        };
+        let assert_code = generate_control_assert(&cond).to_string();
+        // quote! might put spaces like `assert ! (true)`
+        assert!(assert_code.contains("assert"));
+        assert!(assert_code.contains("!"));
+        assert!(assert_code.contains("true"));
+
+        let left = inner.clone();
+        let right = inner;
+        let assert_eq_code = generate_control_assert_eq(&left, &right).to_string();
+        assert!(assert_eq_code.contains("assert_eq"));
+        assert!(assert_eq_code.contains("!"));
+    }
+
+    #[test]
+    fn test_generate_closure_variants() {
+        let params = vec![smol_str::SmolStr::new("x")];
+        let body = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(42),
+            glossa_type: GlossaType::Number,
+        };
+
+        let move_code = generate_closure(&params, &body, &CaptureMode::Move).to_string();
+        assert!(move_code.contains("move"));
+        assert!(move_code.contains("| g_x |"));
+
+        let borrow_code = generate_closure(&params, &body, &CaptureMode::Borrow).to_string();
+        assert!(!borrow_code.contains("move"));
+        assert!(borrow_code.contains("| g_x |"));
+
+        let memo_code = generate_closure(&[], &body, &CaptureMode::Memoize).to_string();
+        assert!(memo_code.contains("RefCell"));
+        assert!(memo_code.contains("cache"));
+    }
+
+    #[test]
+    #[should_panic(expected = "Memoization is only supported for 0-argument closures")]
+    fn test_memoize_panic_with_args() {
+        let params = vec![smol_str::SmolStr::new("x")];
+        let body = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(42),
+            glossa_type: GlossaType::Number,
+        };
+        // Should panic
+        generate_closure(&params, &body, &CaptureMode::Memoize);
+    }
 }
