@@ -174,8 +174,13 @@ impl<'a> Chorus<'a> {
     fn extract_verbs(&self, stmt: &AnalyzedStatement) -> Vec<SmolStr> {
         let mut verbs = Vec::new();
         match stmt {
-            AnalyzedStatement::Print(_) => verbs.push("λέγει".into()),
-            AnalyzedStatement::Expression(exprs) => {
+            AnalyzedStatement::Print(exprs)
+            | AnalyzedStatement::Expression(exprs)
+            | AnalyzedStatement::Query(exprs) => {
+                // For Print, implicitly include "λέγει" as a verb action
+                if matches!(stmt, AnalyzedStatement::Print(_)) {
+                    verbs.push("λέγει".into());
+                }
                 for expr in exprs {
                     self.extract_verbs_from_expr(expr, &mut verbs);
                 }
@@ -188,6 +193,16 @@ impl<'a> Chorus<'a> {
             | AnalyzedStatement::While { condition, .. } => {
                 self.extract_verbs_from_expr(condition, &mut verbs);
             }
+            AnalyzedStatement::For { iterator, .. } => {
+                self.extract_verbs_from_expr(iterator, &mut verbs);
+            }
+            AnalyzedStatement::Match { scrutinee, .. } => {
+                self.extract_verbs_from_expr(scrutinee, &mut verbs);
+            }
+            AnalyzedStatement::Return { value: Some(v) } => {
+                self.extract_verbs_from_expr(v, &mut verbs);
+            }
+            // Other statements (Break, Continue, TypeDef, etc.) typically don't contain verbs
             _ => {}
         }
         verbs
@@ -215,8 +230,51 @@ impl<'a> Chorus<'a> {
             AnalyzedExprKind::UnaryOp { operand, .. } => {
                 self.extract_verbs_from_expr(operand, verbs);
             }
-            // Recurse into other structures as needed...
-            _ => {}
+            AnalyzedExprKind::Range { start, end, .. } => {
+                self.extract_verbs_from_expr(start, verbs);
+                self.extract_verbs_from_expr(end, verbs);
+            }
+            AnalyzedExprKind::ArrayLiteral(exprs) => {
+                for e in exprs {
+                    self.extract_verbs_from_expr(e, verbs);
+                }
+            }
+            AnalyzedExprKind::Some(e)
+            | AnalyzedExprKind::Ok(e)
+            | AnalyzedExprKind::Err(e)
+            | AnalyzedExprKind::Unwrap(e)
+            | AnalyzedExprKind::Try(e) => {
+                self.extract_verbs_from_expr(e, verbs);
+            }
+            AnalyzedExprKind::IndexAccess { array, index } => {
+                self.extract_verbs_from_expr(array, verbs);
+                self.extract_verbs_from_expr(index, verbs);
+            }
+            AnalyzedExprKind::StructInstantiation { args, .. } => {
+                for arg in args {
+                    self.extract_verbs_from_expr(arg, verbs);
+                }
+            }
+            AnalyzedExprKind::Lambda { body, .. } => {
+                self.extract_verbs_from_expr(body, verbs);
+            }
+            AnalyzedExprKind::Assert { condition } => {
+                self.extract_verbs_from_expr(condition, verbs);
+            }
+            AnalyzedExprKind::AssertEq { left, right } => {
+                self.extract_verbs_from_expr(left, verbs);
+                self.extract_verbs_from_expr(right, verbs);
+            }
+            AnalyzedExprKind::PropertyAccess { owner, .. } => {
+                self.extract_verbs_from_expr(owner, verbs);
+            }
+            // Terminals
+            AnalyzedExprKind::StringLiteral(_)
+            | AnalyzedExprKind::NumberLiteral(_)
+            | AnalyzedExprKind::BooleanLiteral(_)
+            | AnalyzedExprKind::Variable(_)
+            | AnalyzedExprKind::None
+            | AnalyzedExprKind::CollectionNew { .. } => {}
         }
     }
 
@@ -231,6 +289,14 @@ impl<'a> Chorus<'a> {
             | AnalyzedStatement::Assignment { value, .. } => self.expr_complexity(value),
             AnalyzedStatement::If { condition, .. }
             | AnalyzedStatement::While { condition, .. } => self.expr_complexity(condition),
+            AnalyzedStatement::For { iterator, .. } => self.expr_complexity(iterator),
+            AnalyzedStatement::Match { scrutinee, .. } => self.expr_complexity(scrutinee),
+            AnalyzedStatement::Return { value } => {
+                value.as_ref().map(|v| self.expr_complexity(v)).unwrap_or(0)
+            }
+            // FunctionDef, TestDeclaration bodies are handled by flattening,
+            // but the definition itself has low complexity unless we count params?
+            // Let's count them as 1 (base cost)
             _ => 1,
         }
     }
@@ -248,6 +314,29 @@ impl<'a> Chorus<'a> {
                 base + self.expr_complexity(left) + self.expr_complexity(right)
             }
             AnalyzedExprKind::UnaryOp { operand, .. } => base + self.expr_complexity(operand),
+            AnalyzedExprKind::Range { start, end, .. } => {
+                base + self.expr_complexity(start) + self.expr_complexity(end)
+            }
+            AnalyzedExprKind::ArrayLiteral(exprs) => {
+                base + exprs.iter().map(|e| self.expr_complexity(e)).sum::<usize>()
+            }
+            AnalyzedExprKind::Some(e)
+            | AnalyzedExprKind::Ok(e)
+            | AnalyzedExprKind::Err(e)
+            | AnalyzedExprKind::Unwrap(e)
+            | AnalyzedExprKind::Try(e) => base + self.expr_complexity(e),
+            AnalyzedExprKind::IndexAccess { array, index } => {
+                base + self.expr_complexity(array) + self.expr_complexity(index)
+            }
+            AnalyzedExprKind::StructInstantiation { args, .. } => {
+                base + args.iter().map(|a| self.expr_complexity(a)).sum::<usize>()
+            }
+            AnalyzedExprKind::Lambda { body, .. } => base + self.expr_complexity(body),
+            AnalyzedExprKind::Assert { condition } => base + self.expr_complexity(condition),
+            AnalyzedExprKind::AssertEq { left, right } => {
+                base + self.expr_complexity(left) + self.expr_complexity(right)
+            }
+            AnalyzedExprKind::PropertyAccess { owner, .. } => base + self.expr_complexity(owner),
             _ => base,
         }
     }
@@ -533,6 +622,146 @@ mod tests {
         let program = AnalyzedProgram {
             statements: vec![match_stmt, func_def],
             scope: Scope::new(),
+        };
+
+        let chorus = Chorus::new(&program);
+        let _ = chorus.check_euphony();
+    }
+
+    #[test]
+    fn test_kitchen_sink_full_coverage() {
+        // A test that constructs almost every AST node type to ensure full traversal coverage
+        let scope = Scope::new();
+
+        // Base expressions
+        let num = AnalyzedExpr {
+             expr: AnalyzedExprKind::NumberLiteral(1),
+             glossa_type: GlossaType::Number,
+        };
+        let string = AnalyzedExpr {
+             expr: AnalyzedExprKind::StringLiteral("s".into()),
+             glossa_type: GlossaType::String,
+        };
+        let boolean = AnalyzedExpr {
+             expr: AnalyzedExprKind::BooleanLiteral(true),
+             glossa_type: GlossaType::Boolean,
+        };
+
+        // Nested expressions
+        let range = AnalyzedExpr {
+             expr: AnalyzedExprKind::Range {
+                 start: Box::new(num.clone()),
+                 end: Box::new(num.clone()),
+                 inclusive: false,
+             },
+             glossa_type: GlossaType::Unknown,
+        };
+
+        let array = AnalyzedExpr {
+             expr: AnalyzedExprKind::ArrayLiteral(vec![num.clone()]),
+             glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
+        };
+
+        let index_access = AnalyzedExpr {
+             expr: AnalyzedExprKind::IndexAccess {
+                 array: Box::new(array.clone()),
+                 index: Box::new(num.clone()),
+             },
+             glossa_type: GlossaType::Number,
+        };
+
+        // Assertions
+        let assert_stmt = AnalyzedStatement::Expression(vec![
+             AnalyzedExpr {
+                 expr: AnalyzedExprKind::Assert { condition: Box::new(boolean.clone()) },
+                 glossa_type: GlossaType::Unit,
+             },
+             AnalyzedExpr {
+                 expr: AnalyzedExprKind::AssertEq {
+                     left: Box::new(num.clone()),
+                     right: Box::new(num.clone())
+                 },
+                 glossa_type: GlossaType::Unit,
+             }
+        ]);
+
+        // Wrappers (Some, Ok, Err, Unwrap, Try)
+        let wrappers = AnalyzedStatement::Expression(vec![
+             AnalyzedExpr {
+                 expr: AnalyzedExprKind::Some(Box::new(num.clone())),
+                 glossa_type: GlossaType::Unknown,
+             },
+             AnalyzedExpr {
+                 expr: AnalyzedExprKind::Ok(Box::new(num.clone())),
+                 glossa_type: GlossaType::Unknown,
+             },
+             AnalyzedExpr {
+                 expr: AnalyzedExprKind::Err(Box::new(string.clone())),
+                 glossa_type: GlossaType::Unknown,
+             },
+             AnalyzedExpr {
+                 expr: AnalyzedExprKind::Unwrap(Box::new(index_access.clone())),
+                 glossa_type: GlossaType::Unknown,
+             },
+             AnalyzedExpr {
+                 expr: AnalyzedExprKind::Try(Box::new(index_access.clone())),
+                 glossa_type: GlossaType::Unknown,
+             },
+        ]);
+
+        // Lambda
+        let lambda = AnalyzedExpr {
+             expr: AnalyzedExprKind::Lambda {
+                 params: vec!["x".into()],
+                 body: Box::new(num.clone()),
+                 capture_mode: crate::semantic::CaptureMode::Borrow,
+             },
+             glossa_type: GlossaType::Unknown,
+        };
+
+        // Struct Instantiation
+        let struct_inst = AnalyzedExpr {
+             expr: AnalyzedExprKind::StructInstantiation {
+                 type_name: "S".into(),
+                 fields: vec!["f".into()],
+                 args: vec![num.clone()],
+             },
+             glossa_type: GlossaType::Unknown,
+        };
+
+        // Statements
+        let query = AnalyzedStatement::Query(vec![lambda.clone()]);
+
+        let for_stmt = AnalyzedStatement::For {
+            variable: "i".into(),
+            iterator: Box::new(range.clone()),
+            body: vec![
+                AnalyzedStatement::Expression(vec![struct_inst.clone()])
+            ],
+        };
+
+        let return_stmt = AnalyzedStatement::Return {
+             value: Some(Box::new(num.clone())),
+        };
+
+        let test_decl = AnalyzedStatement::TestDeclaration {
+             name: "test".into(),
+             body: vec![wrappers.clone()],
+        };
+
+        // Property Access
+        let prop_access = AnalyzedExpr {
+            expr: AnalyzedExprKind::PropertyAccess {
+                owner: Box::new(struct_inst.clone()),
+                property: "f".into(),
+            },
+            glossa_type: GlossaType::Unknown,
+        };
+        let prop_stmt = AnalyzedStatement::Expression(vec![prop_access]);
+
+        let program = AnalyzedProgram {
+            statements: vec![assert_stmt, wrappers, query, for_stmt, return_stmt, test_decl, prop_stmt],
+            scope,
         };
 
         let chorus = Chorus::new(&program);
