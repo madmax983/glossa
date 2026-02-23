@@ -57,6 +57,11 @@ fn main() -> Result<()> {
             glossa::tools::mosaic::run_mosaic(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Map { input }) => {
+            glossa::tools::cartographer::run_map(&input)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

@@ -33,8 +33,60 @@
 //!     Printable <|.. User : implements
 //! ```
 
-use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType};
+use crate::parser::parse;
+use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, analyze_program};
+use crate::tools::ui::Status;
+use comfy_table::{Attribute, Cell, Color, Table, presets};
+use crossterm::style::Stylize;
+use miette::{IntoDiagnostic, Result};
 use std::collections::HashSet;
+use std::path::Path;
+
+/// Run the Cartographer tool on a file
+///
+/// Reads the source file, parses it, and prints the architectural map to stdout.
+pub fn run_map(input: &Path) -> Result<()> {
+    if !input.exists() {
+        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
+    }
+
+    let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
+
+    let source = std::fs::read_to_string(input).into_diagnostic()?;
+    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
+    let program = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+
+    let map = generate_map(&program);
+
+    status.success();
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   M A P".bold().cyan());
+    println!("   {}", "Architectural Blueprint".italic().dim());
+    println!();
+
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL);
+    table.set_header(vec![
+        Cell::new("Mermaid.js Diagram")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
+    ]);
+
+    // Wrap in markdown code block for easy copying
+    let formatted_map = format!("```mermaid\n{}\n```", map.trim());
+
+    table.add_row(vec![Cell::new(formatted_map)]);
+
+    println!("{table}");
+    println!();
+    println!("   {}", "📋 Usage Instructions:".bold().underlined());
+    println!("   1. Copy the code block above.");
+    println!("   2. Paste it into {}", "https://mermaid.live".cyan().underlined());
+    println!();
+
+    Ok(())
+}
 
 /// Generate a Mermaid class diagram from an analyzed program
 pub fn generate_map(program: &AnalyzedProgram) -> String {
