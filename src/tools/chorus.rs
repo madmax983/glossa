@@ -165,6 +165,14 @@ impl<'a> Chorus<'a> {
                         flat.extend(self.flatten_statements(body));
                     }
                 }
+                AnalyzedStatement::TraitDefinition { methods, .. }
+                | AnalyzedStatement::TraitImplementation { methods, .. } => {
+                    for method in methods {
+                        if let Some(body) = &method.body {
+                            flat.extend(self.flatten_statements(body));
+                        }
+                    }
+                }
                 _ => {}
             }
         }
@@ -766,5 +774,45 @@ mod tests {
 
         let chorus = Chorus::new(&program);
         let _ = chorus.check_euphony();
+    }
+
+    #[test]
+    fn test_trait_body_analysis() {
+        use crate::semantic::AnalyzedMethod;
+
+        // Create a trait implementation with a repetitive method body
+        let mut repetitive_body = Vec::new();
+        for _ in 0..5 {
+            repetitive_body.push(AnalyzedStatement::Print(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("hello".into()),
+                glossa_type: GlossaType::String,
+            }]));
+        }
+
+        let trait_impl = AnalyzedStatement::TraitImplementation {
+            trait_name: "Speaker".into(),
+            type_name: "Bot".into(),
+            methods: vec![AnalyzedMethod {
+                name: "speak".into(),
+                params: vec![],
+                return_type: None,
+                body: Some(repetitive_body),
+            }],
+        };
+
+        let program = AnalyzedProgram {
+            statements: vec![trait_impl],
+            scope: Scope::new(),
+        };
+
+        let chorus = Chorus::new(&program);
+        let feedback = chorus.check_euphony();
+
+        assert!(
+            feedback
+                .iter()
+                .any(|f| f.kind == FeedbackKind::RepetitiveVocabulary),
+            "Expected repetitive vocabulary warning inside trait implementation"
+        );
     }
 }
