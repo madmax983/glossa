@@ -1179,7 +1179,8 @@ fn generate_collection_index(array: &AnalyzedExpr, index: &AnalyzedExpr) -> Toke
             if idx < 0 {
                 panic!("Negative index access: {}", idx);
             }
-            #array_tokens[idx as usize]
+            let u_idx = usize::try_from(idx).expect("Index too large for platform memory");
+            #array_tokens[u_idx]
         }
     }
 }
