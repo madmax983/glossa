@@ -116,6 +116,8 @@ pub(crate) const MAX_PARTICIPLES: usize = 256;
 pub(crate) const MAX_UNWRAPS: usize = 256;
 pub(crate) const MAX_OPERATORS: usize = 256;
 pub(crate) const MAX_BLOCKS: usize = 256;
+pub(crate) const MAX_STRING_LITERAL_LENGTH: usize = 65536;
+pub(crate) const MAX_IDENTIFIER_LENGTH: usize = 256;
 
 /// The slot-based assembler
 ///
@@ -199,6 +201,13 @@ impl Assembler {
         original: &str,
         normalized: &str,
     ) -> Result<(), AssemblyError> {
+        if original.len() > MAX_IDENTIFIER_LENGTH {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Identifier Length".to_string(),
+                max: MAX_IDENTIFIER_LENGTH,
+            });
+        }
+
         if self.check_special_markers(normalized, original) {
             return Ok(());
         }
@@ -244,6 +253,12 @@ impl Assembler {
     /// asm.feed_string("χαῖρε".to_string()).unwrap();
     /// ```
     pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
+        if value.len() > MAX_STRING_LITERAL_LENGTH {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "String Literal Length".to_string(),
+                max: MAX_STRING_LITERAL_LENGTH,
+            });
+        }
         if self.state.literals.len() >= MAX_LITERALS {
             return Err(AssemblyError::LimitExceeded {
                 resource: "Literals".to_string(),
@@ -443,6 +458,12 @@ impl Assembler {
         analysis: &crate::morphology::ParticipleAnalysis,
         original: &str,
     ) -> Result<(), AssemblyError> {
+        if original.len() > MAX_IDENTIFIER_LENGTH {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Identifier Length".to_string(),
+                max: MAX_IDENTIFIER_LENGTH,
+            });
+        }
         if self.state.participles.len() >= MAX_PARTICIPLES {
             return Err(AssemblyError::LimitExceeded {
                 resource: "Participles".to_string(),
