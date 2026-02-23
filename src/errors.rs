@@ -39,12 +39,7 @@
 
 #![allow(unused_assignments)]
 
-pub mod assembly;
-mod messages;
-
-pub use assembly::*;
-pub use messages::*;
-
+use crate::morphology::{Case, Gender, Number, Person};
 use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
@@ -132,7 +127,7 @@ pub enum GlossaError {
     /// This includes "Double Subject", "Missing Verb", and other sentence-structure errors.
     #[error(transparent)]
     #[diagnostic(transparent)]
-    AssemblyError(#[from] assembly::AssemblyError),
+    AssemblyError(#[from] AssemblyError),
 }
 
 impl GlossaError {
@@ -201,6 +196,197 @@ impl GlossaError {
 /// Result type for ΓΛΩΣΣΑ operations
 pub type GlossaResult<T> = Result<T, GlossaError>;
 
+/// Errors that can occur during assembly
+#[derive(Debug, Clone, Error, Diagnostic)]
+pub enum AssemblyError {
+    /// Two subjects found in the same statement (Nominative collision)
+    ///
+    /// # Example
+    /// `ὁ ἄνθρωπος ὁ θεὸς λέγει` (The man the god says)
+    #[error("Διπλοῦν ὑποκείμενον! Δύο βασιλεῖς οὐ δύνανται μιᾶς πόλεως ἄρχειν.")]
+    #[diagnostic(code(glossa::assembly::double_subject))]
+    DoubleSubject,
+
+    /// Two objects found in the same statement (Accusative collision)
+    ///
+    /// # Example
+    /// `τὸν λόγον τὴν πόλιν βλέπω` (I see the word the city)
+    #[error("Διπλοῦν ἀντικείμενον! Ἓν μόνον κατηγορεῖς.")]
+    #[diagnostic(code(glossa::assembly::double_object))]
+    DoubleObject,
+
+    /// Two indirect objects found in the same statement (Dative collision)
+    ///
+    /// # Example
+    /// `τῷ ἀνθρώπῳ τῷ θεῷ δίδωμι` (I give to the man to the god)
+    #[error("Διπλοῦν ἔμμεσον αντικείμενον! Ἓν μόνον παραλήπτην ἔχεις.")]
+    #[diagnostic(code(glossa::assembly::double_indirect))]
+    DoubleIndirect,
+
+    /// Two verbs found in the same statement
+    ///
+    /// # Example
+    /// `λέγει γράφει ὁ ἄνθρωπος` (The man says writes)
+    #[error("Διπλοῦν ῥῆμα! Μία πρᾶξις ἑκάστοτε.")]
+    #[diagnostic(code(glossa::assembly::double_verb))]
+    DoubleVerb,
+
+    /// No verb found in the statement
+    ///
+    /// Note: Pure expressions (like `5`) are allowed, but incomplete sentences trigger this.
+    ///
+    /// # Example
+    /// `ὁ ἄνθρωπος τὸν λόγον` (The man the word ... [missing action])
+    #[error("Ῥῆμα οὐχ εὑρέθη! Οὐδὲν ἐγένετο.")]
+    #[diagnostic(code(glossa::assembly::missing_verb))]
+    MissingVerb,
+
+    /// Subject and Verb do not agree in number/person
+    ///
+    /// # Example
+    /// `ὁ ἄνθρωπος (Singular) λέγουσιν (Plural)`
+    #[error("Ἀσυμφωνία: ὑποκείμενον {subject:?} ἀλλὰ ῥῆμα {verb:?}")]
+    #[diagnostic(code(glossa::assembly::subject_verb_disagreement))]
+    SubjectVerbDisagreement {
+        subject: (Option<Person>, Option<Number>),
+        verb: (Option<Person>, Option<Number>),
+    },
+
+    /// Adjective and Noun do not agree in gender
+    ///
+    /// # Example
+    /// `ὁ καλὸς (Masc) γυνή (Fem)`
+    #[error("Ἀσυμφωνία γένους: {word1} ({gender1:?}) πρὸς {word2} ({gender2:?})")]
+    #[diagnostic(code(glossa::assembly::gender_mismatch))]
+    GenderMismatch {
+        word1: String,
+        gender1: Gender,
+        word2: String,
+        gender2: Gender,
+    },
+
+    /// Resource limit exceeded to prevent denial of service
+    ///
+    /// # Example
+    /// Too many adjectives in a single sentence
+    #[error("Ὑπέρβασις ὁρίου: {resource} > {max}. Μηδὲν ἄγαν!")]
+    #[diagnostic(code(glossa::assembly::limit_exceeded))]
+    LimitExceeded { resource: String, max: usize },
+}
+
+/// Get a Greek message for an undefined variable
+///
+/// Returns: "Οὐκ οἶδα τὸ ὄνομα «{name}»"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::undefined_variable;
+///
+/// let msg = undefined_variable("ξ");
+/// assert_eq!(msg, "Οὐκ οἶδα τὸ ὄνομα «ξ»");
+/// ```
+pub fn undefined_variable(name: &str) -> String {
+    format!("Οὐκ οἶδα τὸ ὄνομα «{}»", name)
+}
+
+/// Get a Greek message for assignment to immutable variable
+///
+/// Returns: "Τὸ «{name}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::immutable_assignment;
+///
+/// let msg = immutable_assignment("π");
+/// assert!(msg.contains("ἀμετάβλητόν ἐστιν"));
+/// ```
+pub fn immutable_assignment(name: &str) -> String {
+    format!(
+        "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
+        name
+    )
+}
+
+/// Get a Greek message for gender mismatch
+///
+/// Returns: "Τὸ «{word1}» ({gender1}) οὐ συμφωνεῖ τῷ «{word2}» ({gender2})"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::gender_mismatch;
+/// use glossa::morphology::Gender;
+///
+/// let msg = gender_mismatch("καλός", Gender::Masculine, "γυνή", Gender::Feminine);
+/// assert!(msg.contains("οὐ συμφωνεῖ"));
+/// ```
+pub fn gender_mismatch(word1: &str, gender1: Gender, word2: &str, gender2: Gender) -> String {
+    format!(
+        "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
+        word1, gender1, word2, gender2
+    )
+}
+
+/// Get a Greek message for number mismatch
+///
+/// Returns: "Τὸ «{word1}» ({num1}) οὐ συμφωνεῖ τῷ «{word2}» ({num2})"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::number_mismatch;
+/// use glossa::morphology::Number;
+///
+/// let msg = number_mismatch("ἄνθρωπος", Number::Singular, "λέγουσι", Number::Plural);
+/// assert!(msg.contains("οὐ συμφωνεῖ"));
+/// ```
+pub fn number_mismatch(word1: &str, num1: Number, word2: &str, num2: Number) -> String {
+    format!(
+        "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
+        word1, num1, word2, num2
+    )
+}
+
+/// Get a Greek message for case mismatch
+///
+/// Returns: "Τὸ «{word1}» ({case1}) οὐ συμφωνεῖ τῷ «{word2}» ({case2})"
+///
+/// # Examples
+///
+/// ```
+/// use glossa::errors::case_mismatch;
+/// use glossa::morphology::Case;
+///
+/// let msg = case_mismatch("ἄνθρωπος", Case::Nominative, "λόγον", Case::Accusative);
+/// assert!(msg.contains("οὐ συμφωνεῖ"));
+/// ```
+pub fn case_mismatch(word1: &str, case1: Case, word2: &str, case2: Case) -> String {
+    format!(
+        "Τὸ «{}» ({}) οὐ συμφωνεῖ τῷ «{}» ({})",
+        word1, case1, word2, case2
+    )
+}
+
+/// Help messages in Greek
+pub mod help {
+    /// Help for the binding construct
+    pub const BINDING: &str = "Χρῆσις: ὄνομα τιμή ἔστω.
+Παράδειγμα: ξ πέντε ἔστω.";
+
+    /// Help for the print construct
+    pub const PRINT: &str = "Χρῆσις: τιμή λέγε.
+Παράδειγμα: «χαῖρε κόσμε» λέγε.";
+
+    /// Help for cases
+    pub const CASES: &str = "Πτώσεις καὶ σημασίαι:
+• Ὀνομαστική - τὸ ὑποκείμενον
+• Γενική - κτῆσις, δάνεισμα (&)
+• Δοτική - δάνεισμα μεταβλητόν (&mut)
+• Αἰτιατική - τὸ ἀντικείμενον, κίνησις";
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -222,5 +408,18 @@ mod tests {
     fn test_category_greek() {
         let err = GlossaError::semantic("test");
         assert_eq!(err.category_greek(), "Σημασία");
+    }
+
+    #[test]
+    fn test_undefined_variable_message() {
+        let msg = undefined_variable("ξ");
+        assert!(msg.contains("Οὐκ οἶδα"));
+        assert!(msg.contains("ξ"));
+    }
+
+    #[test]
+    fn test_gender_mismatch_message() {
+        let msg = gender_mismatch("μεγάλη", Gender::Feminine, "χρήστος", Gender::Masculine);
+        assert!(msg.contains("οὐ συμφωνεῖ"));
     }
 }
