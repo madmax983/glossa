@@ -1,4 +1,3 @@
-
 //! Warden Exploit Test: Index Truncation
 //!
 //! This test demonstrates the vulnerability where large `i64` indices are truncated
@@ -20,7 +19,7 @@ fn test_index_truncation_simulation() {
     assert_eq!(truncated_index, 1);
 
     // If we had an array of size 2, this would access index 1 instead of panicking!
-    let arr = vec![10, 20];
+    let arr = [10, 20];
     assert_eq!(arr[truncated_index], 20); // Should have panicked!
 
     // The Fix: using try_from
