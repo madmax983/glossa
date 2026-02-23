@@ -2,10 +2,9 @@ use super::conversion::classify_assembled_statement;
 use crate::ast::Expr;
 use crate::morphology::Case;
 use crate::morphology::lexicon::BinaryOp;
-use crate::semantic::assembly_model::{ParticipleConstituent, VerbConstituent};
 use crate::semantic::{
     AnalyzedExprKind, AnalyzedStatement, AssembledStatement, Constituent, GlossaType, Literal,
-    Scope,
+    ParticipleConstituent, Scope, VerbConstituent,
 };
 use crate::text::normalize_greek;
 

@@ -25,7 +25,7 @@
 //! ```
 
 use super::{Case, Gender, Number, Tense, Voice};
-use crate::morphology::matcher::match_suffix;
+use crate::morphology::match_suffix;
 use std::sync::LazyLock;
 
 /// Result of participle morphological analysis
