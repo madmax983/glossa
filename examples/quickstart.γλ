@@ -15,10 +15,26 @@
 // Say the name
 ὄνομα λέγε.
 
-// Chapter 4: Logic
-// If x is greater than 5...
-εἰ ξ 5 μεῖζον ᾖ,
-    «μέγας» λέγε.
+// Chapter 3: The Structure (Types)
+// Define a User type
+εἶδος Χρήστης ὁρίζειν {
+    ὄνομα ὀνόματος.    // String
+    ἡλικία ἀριθμοῦ. // i64
+}.
+
+// Create an instance
+χρήστης νέον Χρήστης
+    «Πλάτων»
+    80
+ἔστω.
+
+// Chapter 4: The Logic (Control Flow)
+// If age is greater than 50...
+// (We define a variable for the comparison)
+ἡλικία 80 ἔστω.
+
+εἰ ἡλικία 50 μεῖζον ᾖ,
+    «σοφός» λέγε.
 
 // Loops
 // Create a list of numbers

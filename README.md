@@ -75,6 +75,9 @@ We define the shape of our world with `εἶδος` (form/type).
 We guide the flow of fate with `εἰ` (if) and `διὰ` (through/for).
 
 ```glossa
+// Let age be 80
+ἡλικία 80 ἔστω.
+
 // If age is greater than 50...
 εἰ ἡλικία 50 μεῖζον ᾖ,
     «σοφός» λέγε.
