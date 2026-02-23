@@ -82,7 +82,10 @@ pub fn run_map(input: &Path) -> Result<()> {
     println!();
     println!("   {}", "📋 Usage Instructions:".bold().underlined());
     println!("   1. Copy the code block above.");
-    println!("   2. Paste it into {}", "https://mermaid.live".cyan().underlined());
+    println!(
+        "   2. Paste it into {}",
+        "https://mermaid.live".cyan().underlined()
+    );
     println!();
 
     Ok(())
