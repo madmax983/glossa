@@ -30,6 +30,9 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+#[cfg(feature = "nova")]
+use crate::tools::weaver::WeaverCommands;
+
 #[derive(Parser)]
 #[command(name = "glossa")]
 #[command(about = "ΓΛΩΣΣΑ - Ancient Greek morphology as programming semantics")]
@@ -110,5 +113,12 @@ pub enum Commands {
     Map {
         /// Input file (.γλ)
         input: PathBuf,
+    },
+
+    /// Scaffold new code (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Weaver {
+        #[command(subcommand)]
+        command: WeaverCommands,
     },
 }
