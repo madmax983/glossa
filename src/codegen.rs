@@ -100,12 +100,17 @@ use crate::semantic::{
     CaptureMode, GlossaType,
 };
 use crate::text::normalize_greek;
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 
 // ==================================================================================
 // UTILS
 // ==================================================================================
+
+/// Helper to sanitize a name and format it as an Ident
+pub(crate) fn sanitize_ident(name: &str) -> Ident {
+    format_ident!("{}", sanitize_name(name))
+}
 
 /// Capitalize the first letter of a string (for Rust type/trait names)
 pub(crate) fn capitalize(s: &str) -> String {
@@ -372,12 +377,7 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
 
 /// Check if the program uses collection types (HashMap, HashSet)
 fn uses_collections(program: &AnalyzedProgram) -> bool {
-    for stmt in &program.statements {
-        if statement_uses_collections(stmt) {
-            return true;
-        }
-    }
-    false
+    program.statements.iter().any(statement_uses_collections)
 }
 
 /// Check if a statement uses collection types
@@ -462,6 +462,10 @@ pub fn generate_statement_code(stmt: &AnalyzedStatement) -> String {
     generate_statement(stmt).to_string()
 }
 
+fn generate_statements(stmts: &[AnalyzedStatement]) -> Vec<TokenStream> {
+    stmts.iter().map(generate_statement).collect()
+}
+
 fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
     match stmt {
         AnalyzedStatement::Binding {
@@ -475,7 +479,7 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
         }
 
         AnalyzedStatement::Assignment { name, value } => {
-            let name_ident = format_ident!("{}", sanitize_name(name));
+            let name_ident = sanitize_ident(name);
             let value_tokens = generate_expr(value);
             quote! { #name_ident = #value_tokens; }
         }
@@ -543,7 +547,7 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
 }
 
 fn generate_let(name: &str, value: &AnalyzedExpr, mutable: bool) -> TokenStream {
-    let name_ident = format_ident!("{}", sanitize_name(name));
+    let name_ident = sanitize_ident(name);
     let value_tokens = generate_expr(value);
 
     if mutable {
@@ -573,11 +577,11 @@ fn generate_if(
     else_body: &Option<Vec<AnalyzedStatement>>,
 ) -> TokenStream {
     let cond = generate_expr(condition);
-    let then_stmts: Vec<TokenStream> = then_body.iter().map(generate_statement).collect();
+    let then_stmts = generate_statements(then_body);
 
     match else_body {
         Some(else_stmts) => {
-            let else_tokens: Vec<TokenStream> = else_stmts.iter().map(generate_statement).collect();
+            let else_tokens = generate_statements(else_stmts);
             quote! {
                 if #cond {
                     #(#then_stmts)*
@@ -598,7 +602,7 @@ fn generate_if(
 
 fn generate_while(condition: &AnalyzedExpr, body: &[AnalyzedStatement]) -> TokenStream {
     let cond = generate_expr(condition);
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+    let body_stmts = generate_statements(body);
     quote! {
         while #cond {
             #(#body_stmts)*
@@ -611,9 +615,9 @@ fn generate_for(
     iterator: &AnalyzedExpr,
     body: &[AnalyzedStatement],
 ) -> TokenStream {
-    let var_ident = format_ident!("{}", sanitize_name(variable));
+    let var_ident = sanitize_ident(variable);
     let iter = generate_expr(iterator);
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+    let body_stmts = generate_statements(body);
     quote! {
         for #var_ident in #iter {
             #(#body_stmts)*
@@ -636,7 +640,7 @@ fn generate_match(
             } else {
                 generate_expr(pattern)
             };
-            let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+            let body_stmts = generate_statements(body);
             quote! { #pat => { #(#body_stmts)* } }
         })
         .collect();
@@ -653,14 +657,14 @@ fn generate_fn_def(
     body: &[AnalyzedStatement],
     return_type: &Option<GlossaType>,
 ) -> TokenStream {
-    let fn_name = format_ident!("{}", sanitize_name(name));
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+    let fn_name = sanitize_ident(name);
+    let body_stmts = generate_statements(body);
 
     // Generate parameter list
     let param_tokens: Vec<TokenStream> = params
         .iter()
         .map(|(param_name, param_type)| {
-            let param_ident = format_ident!("{}", sanitize_name(param_name));
+            let param_ident = sanitize_ident(param_name);
             if let Some(ty) = param_type {
                 let ty_str = to_rust_type(ty);
                 let ty_ident = format_ident!("{}", ty_str);
@@ -697,7 +701,7 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
     let field_tokens: Vec<TokenStream> = fields
         .iter()
         .map(|(field_name, field_type)| {
-            let field_ident = format_ident!("{}", sanitize_name(field_name));
+            let field_ident = sanitize_ident(field_name);
             let type_str = to_rust_type(field_type);
             let type_ident = format_ident!("{}", type_str);
             quote! { #field_ident: #type_ident }
@@ -712,6 +716,36 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
     }
 }
 
+fn generate_trait_method_parts(
+    method: &AnalyzedMethod,
+) -> (Ident, Vec<TokenStream>, Option<TokenStream>) {
+    let method_name = sanitize_ident(&method.name);
+
+    let param_tokens: Vec<TokenStream> = method
+        .params
+        .iter()
+        .enumerate()
+        .map(|(idx, (param_name, param_type))| {
+            if is_self_parameter(param_name, idx) {
+                quote! { &self }
+            } else {
+                let param_ident = sanitize_ident(param_name);
+                let type_str = to_rust_type(param_type);
+                let ty = format_ident!("{}", type_str);
+                quote! { #param_ident: #ty }
+            }
+        })
+        .collect();
+
+    let ret_tokens = method.return_type.as_ref().map(|ret_type| {
+        let ret_str = to_rust_type(ret_type);
+        let ret_ty = format_ident!("{}", ret_str);
+        quote! { #ret_ty }
+    });
+
+    (method_name, param_tokens, ret_tokens)
+}
+
 fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
     // Capitalize trait name for Rust conventions
     let trait_name = format_ident!("{}", capitalize(&sanitize_name(name)));
@@ -720,34 +754,11 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
     let method_tokens: Vec<TokenStream> = methods
         .iter()
         .map(|method| {
-            let method_name = format_ident!("{}", sanitize_name(&method.name));
+            let (method_name, param_tokens, ret_tokens) = generate_trait_method_parts(method);
 
-            // Generate parameter list
-            let param_tokens: Vec<TokenStream> = method
-                .params
-                .iter()
-                .enumerate()
-                .map(|(idx, (param_name, param_type))| {
-                    // Special case: first parameter named "self" becomes &self
-                    if is_self_parameter(param_name, idx) {
-                        quote! { &self }
-                    } else {
-                        let param_ident = format_ident!("{}", sanitize_name(param_name));
-                        let type_str = to_rust_type(param_type);
-                        let ty = format_ident!("{}", type_str);
-                        quote! { #param_ident: #ty }
-                    }
-                })
-                .collect();
-
-            // Generate return type
-            if let Some(ret_type) = &method.return_type {
-                let ret_str = to_rust_type(ret_type);
-                let ret_ty = format_ident!("{}", ret_str);
-
+            if let Some(ret_ty) = ret_tokens {
                 if let Some(body) = &method.body {
-                    let body_stmts: Vec<TokenStream> =
-                        body.iter().map(generate_statement).collect();
+                    let body_stmts = generate_statements(body);
                     quote! {
                         fn #method_name(#(#param_tokens),*) -> #ret_ty {
                             #(#body_stmts)*
@@ -759,7 +770,7 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
                     }
                 }
             } else if let Some(body) = &method.body {
-                let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+                let body_stmts = generate_statements(body);
                 quote! {
                     fn #method_name(#(#param_tokens),*) {
                         #(#body_stmts)*
@@ -793,36 +804,16 @@ fn generate_trait_impl(
     let method_tokens: Vec<TokenStream> = methods
         .iter()
         .map(|method| {
-            let method_name = format_ident!("{}", sanitize_name(&method.name));
-
-            // Generate parameter list
-            let param_tokens: Vec<TokenStream> = method
-                .params
-                .iter()
-                .enumerate()
-                .map(|(idx, (param_name, param_type))| {
-                    if is_self_parameter(param_name, idx) {
-                        quote! { &self }
-                    } else {
-                        let param_ident = format_ident!("{}", sanitize_name(param_name));
-                        let type_str = to_rust_type(param_type);
-                        let ty = format_ident!("{}", type_str);
-                        quote! { #param_ident: #ty }
-                    }
-                })
-                .collect();
+            let (method_name, param_tokens, ret_tokens) = generate_trait_method_parts(method);
 
             // Generate method body
             let body_stmts: Vec<TokenStream> = if let Some(body) = &method.body {
-                body.iter().map(generate_statement).collect()
+                generate_statements(body)
             } else {
                 Vec::new()
             };
 
-            // Generate return type
-            if let Some(ret_type) = &method.return_type {
-                let ret_str = to_rust_type(ret_type);
-                let ret_ty = format_ident!("{}", ret_str);
+            if let Some(ret_ty) = ret_tokens {
                 quote! {
                     fn #method_name(#(#param_tokens),*) -> #ret_ty {
                         #(#body_stmts)*
@@ -858,7 +849,7 @@ fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
     let test_ident = format_ident!("test_{}", test_fn_name);
 
     // Generate body statements
-    let body_stmts: Vec<TokenStream> = body.iter().map(generate_statement).collect();
+    let body_stmts = generate_statements(body);
 
     quote! {
         #[test]
@@ -953,22 +944,18 @@ fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> T
     // Use checked arithmetic only for numeric types
     let use_checked = matches!(left.glossa_type, GlossaType::Number);
 
+    // Helper for generating checked arithmetic
+    let checked = |method: &str, msg: &str| {
+        let method_ident = format_ident!("{}", method);
+        quote! { (#left_tokens).#method_ident(#right_tokens).expect(#msg) }
+    };
+
     match op {
-        BinaryOp::Add if use_checked => {
-            quote! { (#left_tokens).checked_add(#right_tokens).expect("arithmetic overflow") }
-        }
-        BinaryOp::Sub if use_checked => {
-            quote! { (#left_tokens).checked_sub(#right_tokens).expect("arithmetic overflow") }
-        }
-        BinaryOp::Mul if use_checked => {
-            quote! { (#left_tokens).checked_mul(#right_tokens).expect("arithmetic overflow") }
-        }
-        BinaryOp::Div if use_checked => {
-            quote! { (#left_tokens).checked_div(#right_tokens).expect("division by zero or overflow") }
-        }
-        BinaryOp::Mod if use_checked => {
-            quote! { (#left_tokens).checked_rem(#right_tokens).expect("division by zero or overflow") }
-        }
+        BinaryOp::Add if use_checked => checked("checked_add", "arithmetic overflow"),
+        BinaryOp::Sub if use_checked => checked("checked_sub", "arithmetic overflow"),
+        BinaryOp::Mul if use_checked => checked("checked_mul", "arithmetic overflow"),
+        BinaryOp::Div if use_checked => checked("checked_div", "division by zero or overflow"),
+        BinaryOp::Mod if use_checked => checked("checked_rem", "division by zero or overflow"),
 
         // Fallback or standard operators
         BinaryOp::Add => quote! { (#left_tokens + #right_tokens) },
@@ -1000,7 +987,7 @@ fn generate_struct_lit(
         .iter()
         .zip(args.iter())
         .map(|(field_name, arg)| {
-            let field_ident = format_ident!("{}", sanitize_name(field_name));
+            let field_ident = sanitize_ident(field_name);
             let arg_token = generate_expr(arg);
             quote! { #field_ident: #arg_token }
         })
@@ -1015,10 +1002,7 @@ fn generate_closure(
     capture_mode: &CaptureMode,
 ) -> TokenStream {
     let body_tokens = generate_expr(body);
-    let params_idents: Vec<_> = params
-        .iter()
-        .map(|p| format_ident!("{}", sanitize_name(p)))
-        .collect();
+    let params_idents: Vec<_> = params.iter().map(|p| sanitize_ident(p)).collect();
 
     match capture_mode {
         CaptureMode::Move => {
@@ -1133,13 +1117,13 @@ fn generate_literal_boolean(b: bool) -> TokenStream {
 }
 
 fn generate_variable(name: &str) -> TokenStream {
-    let name_ident = format_ident!("{}", sanitize_name(name));
+    let name_ident = sanitize_ident(name);
     quote! { #name_ident }
 }
 
 fn generate_property_access(owner: &AnalyzedExpr, property: &str) -> TokenStream {
     let obj = generate_expr(owner);
-    let field_ident = format_ident!("{}", sanitize_name(property));
+    let field_ident = sanitize_ident(property);
     quote! { #obj.#field_ident }
 }
 
@@ -1213,7 +1197,7 @@ fn generate_method_call(
         format_ident!("{}", method)
     } else {
         // Sanitize (prefix with g_) for user-defined methods
-        format_ident!("{}", sanitize_name(method))
+        sanitize_ident(method)
     };
 
     let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
@@ -1227,13 +1211,13 @@ fn generate_trait_method_call(
 ) -> TokenStream {
     // Treat as regular method call
     let recv = generate_expr(receiver);
-    let method_ident = format_ident!("{}", sanitize_name(method_name));
+    let method_ident = sanitize_ident(method_name);
     let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
     quote! { #recv.#method_ident(#(#arg_tokens),*) }
 }
 
 fn generate_function_call(verb: &str, args: &[AnalyzedExpr]) -> TokenStream {
-    let func_ident = format_ident!("{}", sanitize_name(verb));
+    let func_ident = sanitize_ident(verb);
     let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
     quote! { #func_ident(#(#arg_tokens),*) }
 }
