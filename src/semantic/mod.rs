@@ -49,7 +49,9 @@ mod types;
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub(crate) use assembler::Assembler;
 pub use assembler::AssemblyError;
-pub use assembler::{AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent};
+pub use assembler::{
+    AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
+};
 pub use model::*;
 pub use resolver::*;
 pub use types::*;

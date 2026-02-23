@@ -2,7 +2,7 @@ use crate::ast::{Expr, Word};
 use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person, analyze};
 use crate::semantic::AssemblyError;
 use crate::semantic::assembler::{
-    Assembler, AssembledStatement, Constituent, MAX_ADJECTIVES, MAX_ARRAYS, MAX_BLOCKS,
+    AssembledStatement, Assembler, Constituent, MAX_ADJECTIVES, MAX_ARRAYS, MAX_BLOCKS,
     MAX_GENITIVES, MAX_INDEX_ACCESSES, MAX_LITERALS, MAX_NESTED_PHRASES, MAX_NOMINATIVES,
     MAX_OPERATORS, MAX_PARTICIPLES, MAX_PROPERTY_ACCESSES, MAX_UNWRAPS,
 };
