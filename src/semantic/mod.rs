@@ -37,14 +37,15 @@ mod assembler_tests;
 pub(crate) mod assembly_model;
 #[cfg(test)]
 mod classification_tests;
+pub(crate) mod control_flow;
 pub(crate) mod conversion;
 #[cfg(test)]
 mod conversion_tests;
+pub(crate) mod declarations;
 pub(crate) mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
 mod resolver;
-pub(crate) mod statements;
 mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
@@ -58,13 +59,14 @@ pub use types::*;
 use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
 
+use self::control_flow::analyze_control_flow;
 use self::conversion::convert_assembled_to_analyzed;
-use self::expressions::feed_expr_to_assembler_with_context;
-use self::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
-use self::statements::{
-    analyze_control_flow, analyze_test_declaration, analyze_trait_definition, analyze_trait_impl,
-    analyze_type_definition,
+use self::declarations::{
+    analyze_test_declaration, analyze_trait_definition, analyze_trait_impl,
+    analyze_type_definition, parse_function_definition,
 };
+use self::expressions::{contains_function_definition_verb, feed_expr_to_assembler_with_context};
+use self::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
 
 /// Perform semantic analysis on a program using the slot-based assembler
 /// This is the primary entry point that provides word-order independence
@@ -266,15 +268,18 @@ pub fn analyze_statement(
     stmt: &Statement,
     scope: &mut Scope,
 ) -> Result<Vec<AnalyzedStatement>, GlossaError> {
-    // Check for control flow (if, while, etc.)
-    if let Some(control_flow) = analyze_control_flow(stmt, scope)? {
-        // If it's a function definition, register it in the scope
+    // 1. Check for function definitions (moved from control flow)
+    // This allows function definitions to appear in any statement block
+    if contains_function_definition_verb(stmt)
+        && let Some(func_def) = parse_function_definition(stmt, scope)?
+    {
+        // Register the function in the scope
         if let AnalyzedStatement::FunctionDef {
             name,
             params,
             return_type,
             ..
-        } = &control_flow
+        } = &func_def
         {
             let param_types: Vec<GlossaType> = params
                 .iter()
@@ -282,21 +287,25 @@ pub fn analyze_statement(
                 .collect();
             scope.define_function(name.clone(), param_types, return_type.clone());
         }
+        return Ok(vec![func_def]);
+    }
 
+    // 2. Check for control flow (if, while, etc.)
+    if let Some(control_flow) = analyze_control_flow(stmt, scope)? {
         return Ok(vec![control_flow]);
     }
 
-    // Check for struct instantiation pattern
+    // 3. Check for struct instantiation pattern
     if let Some(struct_inst) = try_parse_struct_instantiation(stmt, scope)? {
         return Ok(vec![struct_inst]);
     }
 
-    // Check for trait method call pattern
+    // 4. Check for trait method call pattern
     if let Some(method_call) = try_parse_trait_method_call(stmt, scope)? {
         return Ok(vec![method_call]);
     }
 
-    // Check if it's a block statement (regular statement containing a single block expression)
+    // 5. Check if it's a block statement (regular statement containing a single block expression)
     if let Some(block_stmts) = extract_block_statements(stmt) {
         let mut analyzed = Vec::new();
         // Create a child scope for the block
@@ -308,7 +317,7 @@ pub fn analyze_statement(
         return Ok(analyzed);
     }
 
-    // Use the assembler-based approach for regular statements
+    // 6. Use the assembler-based approach for regular statements
     let assembled = assemble_statement(stmt)?;
     let analyzed = convert_assembled_to_analyzed(&assembled, scope)?;
     Ok(vec![analyzed])

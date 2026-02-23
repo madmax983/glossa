@@ -76,3 +76,8 @@
 3. Created `src/tools/runner.rs` for the compilation, execution, and caching logic.
 4. Refactored `src/main.rs` to be a minimal entry point that delegates to these modules.
 **Stability:** Decouples the CLI interface from the core logic. `main.rs` is now a thin wrapper, and each tool component is testable in isolation.
+
+## [Splitting The Blob: Statements Module]
+**Tangle:** `src/semantic/statements.rs` was a "Blob" mixing control flow parsing (if, while) with declaration parsing (type, trait, function). This violated Single Responsibility Principle.
+**Blueprint:** Split `src/semantic/statements.rs` into `control_flow.rs` and `declarations.rs`. `src/semantic/mod.rs` now orchestrates dispatching to `declarations` for function definitions before handing off to `control_flow`.
+**Stability:** Improves cohesion by separating declarations from logic flow. `mod.rs` acts as a clear orchestrator.
