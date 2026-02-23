@@ -796,7 +796,7 @@ fn test_verbless_statement() {
 
 #[test]
 fn test_assembled_statement_derive_coverage() {
-    use crate::semantic::assembly_model::AssembledStatement;
+    use crate::semantic::AssembledStatement;
     // Cover #[derive(Clone, Debug, Default)] for AssembledStatement
     let stmt = AssembledStatement::default();
     let cloned = stmt.clone();
@@ -978,7 +978,7 @@ fn test_assembler_error_cases_coverage() {
 #[test]
 fn test_constituent_derive_coverage() {
     use crate::morphology::Case;
-    use crate::semantic::assembly_model::Constituent;
+    use crate::semantic::Constituent;
     use smol_str::SmolStr;
 
     let c = Constituent {

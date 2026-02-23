@@ -77,3 +77,18 @@
 **Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
 **Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
 **Saved:** 2 folders, reduced directory depth.
+
+## [Reduction]
+**Bloat:** `src/errors/` directory with 3 files for error handling logic.
+**Cut:** Flattened into `src/errors.rs`.
+**Saved:** 1 directory, 2 files, simpler import structure.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly_model.rs` separating data from logic in `assembler.rs`.
+**Cut:** Merged data structures into `src/semantic/assembler.rs`.
+**Saved:** 1 file, reduced indirection.
+
+## [Reduction]
+**Bloat:** `src/parser/recursion.rs` containing a single function for recursion checking.
+**Cut:** Moved function to `src/parser/mod.rs`.
+**Saved:** 1 file, kept related logic together.

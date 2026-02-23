@@ -16,9 +16,9 @@ use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
 use crate::semantic::assembler::Assembler;
-use crate::semantic::assembly_model::Literal;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
 use crate::semantic::resolver::Scope;
+use crate::semantic::Literal;
 use crate::semantic::types::GlossaType;
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
