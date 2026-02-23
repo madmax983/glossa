@@ -72,3 +72,8 @@
 **Bloat:** `src/experimental/bard.rs` was a fully functional tool hidden in an "experimental" module.
 **Cut:** Promoted to `src/tools/narrator.rs` and deleted `src/experimental`.
 **Saved:** 1 folder, 2 files, clearer project structure.
+
+## [Reduction]
+**Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
+**Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
+**Saved:** 2 folders, reduced directory depth.

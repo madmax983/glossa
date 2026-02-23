@@ -19,8 +19,6 @@
 pub mod cache;
 #[cfg(feature = "nova")]
 pub mod cartographer;
-#[cfg(feature = "nova")]
-pub mod chorus;
 pub mod cli;
 pub mod dictionary;
 pub mod highlight;
