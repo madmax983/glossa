@@ -1,6 +1,8 @@
-use super::assembler::Assembler;
 use super::AssemblyError;
-use crate::morphology::{Case, Gender, MorphAnalysis, Mood, Number, PartOfSpeech, Person, Tense, Voice};
+use super::assembler::Assembler;
+use crate::morphology::{
+    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
+};
 use std::borrow::Cow;
 
 #[test]
@@ -12,7 +14,9 @@ fn test_huge_string_literal_rejection() {
     let result = asm.feed_string(huge_string);
 
     // We expect this to FAIL until implemented
-    assert!(matches!(result, Err(AssemblyError::LimitExceeded { ref resource, .. }) if resource == "String Literal Length"));
+    assert!(
+        matches!(result, Err(AssemblyError::LimitExceeded { ref resource, .. }) if resource == "String Literal Length")
+    );
 }
 
 #[test]
@@ -36,7 +40,9 @@ fn test_huge_identifier_rejection() {
     let result = asm.feed(&analysis, &huge_ident);
 
     // We expect this to FAIL until implemented
-    assert!(matches!(result, Err(AssemblyError::LimitExceeded { ref resource, .. }) if resource == "Identifier Length"));
+    assert!(
+        matches!(result, Err(AssemblyError::LimitExceeded { ref resource, .. }) if resource == "Identifier Length")
+    );
 }
 
 #[test]
@@ -79,6 +85,9 @@ fn test_neuter_plural_subject_plural_verb_rejection() {
 
     // Currently this PASSES (returns Ok) because the check is loose.
     // We want it to FAIL (return Err).
-    assert!(matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
-        "Expected rejection of Plural Verb for Neuter Plural Subject, but got {:?}", result);
+    assert!(
+        matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
+        "Expected rejection of Plural Verb for Neuter Plural Subject, but got {:?}",
+        result
+    );
 }
