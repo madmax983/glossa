@@ -31,10 +31,18 @@ C4Container
     Container(parser, "Parser", "src/parser", "Constructs AST, enforcing recursion limits (max depth 500)")
     Container(morphology, "Declension Resolver", "src/morphology", "Analyzes case, gender, number, and resolves agreement")
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
-    Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
-    Container(narrator, "Narrator", "src/tools/narrator.rs", "Generates English narrative from AST")
-    Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports")
-    Container(codegen, "Code Generator", "src/codegen/mod.rs", "Generates Rust source code")
+
+    Container_Boundary(tools, "Developer Experience (Nova)") {
+        Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
+        Container(narrator, "Narrator", "src/tools/narrator.rs", "Generates English narrative from AST")
+        Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports")
+        Container(cartographer, "Cartographer", "src/tools/cartographer.rs", "Generates Mermaid Class Diagrams")
+        Container(mentor, "Mentor", "src/tools/mentor.rs", "Interactive Tutorial Mode")
+        Container(mosaic, "Mosaic", "src/tools/mosaic.rs", "Visualizes Semantic Assembly")
+        Container(tester, "Tester", "src/tools/tester.rs", "Runs built-in unit tests")
+    }
+
+    Container(codegen, "Code Generator", "src/codegen.rs", "Generates Rust source code")
 
     Rel(lexer, parser, "Stream<Token>")
     Rel(parser, morphology, "AST (Unresolved)")
@@ -42,6 +50,10 @@ C4Container
     Rel(morphology, semantic, "AST (Resolved Morphology)")
     Rel(semantic, report, "Analyzed Program")
     Rel(semantic, narrator, "Analyzed Program")
+    Rel(semantic, cartographer, "Analyzed Program")
+    Rel(semantic, mentor, "Analyzed Program")
+    Rel(semantic, mosaic, "Analyzed Program")
+    Rel(semantic, tester, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 ```
 
