@@ -203,7 +203,28 @@ pub fn run_file(input: &Path) -> Result<()> {
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
         status.error("Σφάλμα κώδικος (Codegen Error)");
-        return Err(miette::miette!("{}\n{}", "Rustc Error:".red(), stderr));
+
+        // Format the error nicely
+        let error_msg = format!(
+            "\n{}\n{}\n{}\n",
+            "╔══════════════════════════════════════════════════════════════╗".red(),
+            "║  INTERNAL COMPILER ERROR (Codegen Failed)                    ║".red().bold(),
+            "╚══════════════════════════════════════════════════════════════╝".red()
+        );
+
+        let help_msg = format!(
+            "{}\n{}",
+            "This indicates a bug in the Glossa compiler's code generation.",
+            "Please report this issue with the following details:"
+        )
+        .yellow();
+
+        return Err(miette::miette!(
+            "{}\n{}\n\n{}",
+            error_msg,
+            help_msg,
+            stderr.dim()
+        ));
     }
 
     status.success();
@@ -438,7 +459,7 @@ mod tests {
         let result = run_file(&input_path);
         assert!(result.is_err());
         // Verify it hits the rustc error path
-        assert!(result.unwrap_err().to_string().contains("Rustc Error"));
+        assert!(result.unwrap_err().to_string().contains("Codegen Failed"));
     }
 
     #[test]

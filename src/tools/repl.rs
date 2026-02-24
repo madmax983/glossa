@@ -117,7 +117,9 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
             }
             Err(e) => {
                 // Use default error formatting but ensure it's visible
-                writeln!(output, "{}", format!("× Σφάλμα: {}", e).red()).into_diagnostic()?;
+                // The '×' symbol provides visual indication of error, so we don't need
+                // to prefix with "Σφάλμα: " which often leads to redundancy.
+                writeln!(output, "{}", format!("× {}", e).red()).into_diagnostic()?;
             }
         }
     }
