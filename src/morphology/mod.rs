@@ -588,3 +588,25 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod matcher_tests {
+    use super::match_suffix;
+
+    #[test]
+    fn test_match_suffix_coverage() {
+        // Test basic suffix matching
+        let patterns = vec![("omega", "ω")];
+        let mut found = false;
+
+        match_suffix("verbω", &patterns, |p| p.1, |stem, _| {
+            if stem == "verb" {
+                found = true;
+                return false; // Stop
+            }
+            true
+        });
+
+        assert!(found, "Should find suffix match");
+    }
+}
