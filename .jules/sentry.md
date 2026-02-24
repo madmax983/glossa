@@ -25,3 +25,7 @@
 ## [Silent Token Swallowing in Assembler Fallback]
 **Learning:** In `src/semantic/assembler.rs`, the fallback logic for unknown case tokens was silently swallowing tokens if the object slot was already full. It would attempt to set `state.object`, find it occupied, and then do nothing (returning `Ok(())`), leading to data loss.
 **Action:** Changed fallback logic to return `Err(AssemblyError::DoubleObject)` when the object slot is full, ensuring no tokens are silently ignored.
+
+## [Constraint] Empty Stem in Suffix Matching
+**Learning:** `match_suffix` in `src/morphology/matcher.rs` explicitly skips matches if the resulting stem is empty. This prevents spurious matches (e.g., word "o" matching suffix "-o"), but means words that coincide with their suffix (e.g., article "o") must be handled by the lexicon or explicit checks, not morphological rules.
+**Action:** When implementing morphology rules, assume `match_suffix` requires `word.len() > suffix.len()`. Add explicit test cases for this constraint to document it as intended behavior.
