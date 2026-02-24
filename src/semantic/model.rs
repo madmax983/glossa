@@ -632,3 +632,107 @@ mod types_tests {
         assert_eq!(format!("{}", GlossaType::Unknown), "Ἄγνωστον");
     }
 }
+
+#[test]
+fn test_type_to_greek_coverage() {
+    // Cover all branches of to_greek
+    assert_eq!(GlossaType::Boolean.to_greek(), "ἀληθές");
+    assert_eq!(
+        GlossaType::List(Box::new(GlossaType::Number)).to_greek(),
+        "λίστη"
+    );
+    assert_eq!(
+        GlossaType::Set(Box::new(GlossaType::Number)).to_greek(),
+        "σύνολον"
+    );
+    assert_eq!(
+        GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number)).to_greek(),
+        "χάρτης"
+    );
+    assert_eq!(
+        GlossaType::Option(Box::new(GlossaType::Number)).to_greek(),
+        "εὑρεθείη"
+    );
+    assert_eq!(
+        GlossaType::Result(Box::new(GlossaType::Unit), Box::new(GlossaType::String)).to_greek(),
+        "ἀποτέλεσμα"
+    );
+    assert_eq!(GlossaType::Unit.to_greek(), "οὐδέν");
+    assert_eq!(
+        GlossaType::Struct {
+            name: "Test".into(),
+            gender: Gender::Neuter,
+            fields: vec![]
+        }
+        .to_greek(),
+        "εἶδος"
+    );
+    assert_eq!(
+        GlossaType::Function {
+            params: vec![],
+            returns: Box::new(GlossaType::Unit)
+        }
+        .to_greek(),
+        "ἔργον"
+    );
+    assert_eq!(GlossaType::Unknown.to_greek(), "ἄγνωστον");
+}
+
+#[test]
+fn test_type_compatibility_coverage() {
+    // Recursive types
+    assert!(
+        GlossaType::List(Box::new(GlossaType::Number))
+            .is_compatible(&GlossaType::List(Box::new(GlossaType::Number)))
+    );
+    assert!(
+        !GlossaType::List(Box::new(GlossaType::Number))
+            .is_compatible(&GlossaType::List(Box::new(GlossaType::String)))
+    );
+
+    assert!(
+        GlossaType::Set(Box::new(GlossaType::Number))
+            .is_compatible(&GlossaType::Set(Box::new(GlossaType::Number)))
+    );
+    assert!(
+        !GlossaType::Set(Box::new(GlossaType::Number))
+            .is_compatible(&GlossaType::Set(Box::new(GlossaType::String)))
+    );
+
+    assert!(
+        GlossaType::Option(Box::new(GlossaType::Number))
+            .is_compatible(&GlossaType::Option(Box::new(GlossaType::Number)))
+    );
+    assert!(
+        !GlossaType::Option(Box::new(GlossaType::Number))
+            .is_compatible(&GlossaType::Option(Box::new(GlossaType::String)))
+    );
+
+    assert!(
+        GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number)).is_compatible(
+            &GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number))
+        )
+    );
+    assert!(
+        !GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number)).is_compatible(
+            &GlossaType::Map(Box::new(GlossaType::Number), Box::new(GlossaType::Number))
+        )
+    );
+
+    assert!(
+        GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String))
+            .is_compatible(&GlossaType::Result(
+                Box::new(GlossaType::Number),
+                Box::new(GlossaType::String)
+            ))
+    );
+
+    // Mismatch types
+    assert!(!GlossaType::Number.is_compatible(&GlossaType::List(Box::new(GlossaType::Number))));
+
+    // Unknown matching
+    assert!(
+        GlossaType::List(Box::new(GlossaType::Unknown))
+            .is_compatible(&GlossaType::List(Box::new(GlossaType::Number)))
+    );
+}

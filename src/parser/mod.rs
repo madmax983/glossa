@@ -361,52 +361,52 @@ mod tests {
     }
 }
 
-    #[test]
-    fn test_recursion_edge_cases() {
-        // 1. Partial UTF-8 sequence at EOF
-        // 0xC2 is start of «, but if EOF follows, it shouldn't crash
-        let source_partial = vec![0xC2];
-        let _source_str = unsafe { std::str::from_utf8_unchecked(&source_partial) };
-        // This is invalid UTF-8 but check_recursion_depth operates on bytes mostly
-        // However, it takes &str. We can't pass invalid utf8 as &str safely.
-        // But check_recursion_depth takes &str, so the input IS valid utf8.
-        // If the input is valid utf8, 0xC2 must be followed by something valid.
-        // So we can't really test "invalid utf8" via &str interface.
-        // But we can test valid chars that share bytes.
+#[test]
+fn test_recursion_edge_cases() {
+    // 1. Partial UTF-8 sequence at EOF
+    // 0xC2 is start of «, but if EOF follows, it shouldn't crash
+    let source_partial = vec![0xC2];
+    let _source_str = unsafe { std::str::from_utf8_unchecked(&source_partial) };
+    // This is invalid UTF-8 but check_recursion_depth operates on bytes mostly
+    // However, it takes &str. We can't pass invalid utf8 as &str safely.
+    // But check_recursion_depth takes &str, so the input IS valid utf8.
+    // If the input is valid utf8, 0xC2 must be followed by something valid.
+    // So we can't really test "invalid utf8" via &str interface.
+    // But we can test valid chars that share bytes.
 
-        // 2. 0xC2 followed by something that isn't 0xAB («)
-        // 0xC2 0xA9 is © (Copyright)
-        // This should NOT enter string mode.
-        let source_copyright = "©(((";
-        // © is [0xC2, 0xA9]
-        // If it entered string mode, the parens would be ignored.
-        // If it didn't, depth would increase.
-        assert!(check_recursion_depth(source_copyright).is_ok()); // Depth 3 < 500
+    // 2. 0xC2 followed by something that isn't 0xAB («)
+    // 0xC2 0xA9 is © (Copyright)
+    // This should NOT enter string mode.
+    let source_copyright = "©(((";
+    // © is [0xC2, 0xA9]
+    // If it entered string mode, the parens would be ignored.
+    // If it didn't, depth would increase.
+    assert!(check_recursion_depth(source_copyright).is_ok()); // Depth 3 < 500
 
-        // Let's test if parens ARE counted (meaning NOT string mode)
-        let source_copyright_overflow = "©".to_string() + &"(".repeat(501);
-        assert!(matches!(
-            check_recursion_depth(&source_copyright_overflow),
-            Err(ParseError::RecursionLimitExceeded(500))
-        ));
+    // Let's test if parens ARE counted (meaning NOT string mode)
+    let source_copyright_overflow = "©".to_string() + &"(".repeat(501);
+    assert!(matches!(
+        check_recursion_depth(&source_copyright_overflow),
+        Err(ParseError::RecursionLimitExceeded(500))
+    ));
 
-        // 3. Comment edge cases
-        // Comment at EOF (no newline)
-        let source_comment_eof = "// (".to_string(); // Paren inside comment
-        assert!(check_recursion_depth(&source_comment_eof).is_ok());
+    // 3. Comment edge cases
+    // Comment at EOF (no newline)
+    let source_comment_eof = "// (".to_string(); // Paren inside comment
+    assert!(check_recursion_depth(&source_comment_eof).is_ok());
 
-        // / followed by not /
-        let _source_div = "/ (";
-        // Should be parsed as division slash (or just skipped) and then paren
-        // Depth should increase
-        // Wait, logic says: if b'/' -> check next. if next is '/', skip comment.
-        // else i+=1.
-        // So "/ (" -> sees /, next is ' ', so i+=1. Next is ' '. Next is '('.
-        // So depth increases.
-        // Let's verify by overflowing
-        let source_div_overflow = "/ ".to_string() + &"(".repeat(501);
-        assert!(matches!(
-            check_recursion_depth(&source_div_overflow),
-            Err(ParseError::RecursionLimitExceeded(500))
-        ));
-    }
+    // / followed by not /
+    let _source_div = "/ (";
+    // Should be parsed as division slash (or just skipped) and then paren
+    // Depth should increase
+    // Wait, logic says: if b'/' -> check next. if next is '/', skip comment.
+    // else i+=1.
+    // So "/ (" -> sees /, next is ' ', so i+=1. Next is ' '. Next is '('.
+    // So depth increases.
+    // Let's verify by overflowing
+    let source_div_overflow = "/ ".to_string() + &"(".repeat(501);
+    assert!(matches!(
+        check_recursion_depth(&source_div_overflow),
+        Err(ParseError::RecursionLimitExceeded(500))
+    ));
+}
