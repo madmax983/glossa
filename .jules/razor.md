@@ -77,3 +77,18 @@
 **Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
 **Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
 **Saved:** 2 folders, reduced directory depth.
+
+## [Reduction]
+**Bloat:** `src/semantic/types.rs` was a small file defining `GlossaType` which is fundamental to `src/semantic/model.rs`.
+**Cut:** Merged `types.rs` into `model.rs`.
+**Saved:** 1 file, reduced module fragmentation and improved type system cohesion.
+
+## [Reduction]
+**Bloat:** `src/morphology/matcher.rs` contained a single utility function `match_suffix`.
+**Cut:** Moved `match_suffix` to `src/morphology/mod.rs` and deleted `matcher.rs`.
+**Saved:** 1 file, simplified imports.
+
+## [Reduction]
+**Bloat:** `src/parser/recursion.rs` contained a single function `check_recursion_depth` used only by the parser.
+**Cut:** Moved `check_recursion_depth` to `src/parser/mod.rs` and deleted `recursion.rs`.
+**Saved:** 1 file, improved parser cohesion.
