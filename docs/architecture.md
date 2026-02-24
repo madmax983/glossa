@@ -33,13 +33,19 @@ C4Container
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
 
     Container_Boundary(tools, "Developer Experience (Nova)") {
-        Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
-        Container(narrator, "Narrator", "src/tools/narrator.rs", "Generates English narrative from AST")
-        Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports")
+        Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
         Container(cartographer, "Cartographer", "src/tools/cartographer.rs", "Generates Mermaid Class Diagrams")
+        Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
+        Container(dictionary, "Dictionary", "src/tools/dictionary.rs", "Lexicon lookup utility")
+        Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
         Container(mentor, "Mentor", "src/tools/mentor.rs", "Interactive Tutorial Mode")
         Container(mosaic, "Mosaic", "src/tools/mosaic.rs", "Visualizes Semantic Assembly")
+        Container(narrator, "Narrator", "src/tools/narrator.rs", "Generates English narrative from AST")
+        Container(repl, "REPL", "src/tools/repl.rs", "Interactive Read-Eval-Print Loop")
+        Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports")
+        Container(runner, "Runner", "src/tools/runner.rs", "Orchestrates the compilation pipeline")
         Container(tester, "Tester", "src/tools/tester.rs", "Runs built-in unit tests")
+        Container(ui, "UI", "src/tools/ui.rs", "Terminal UI helpers")
     }
 
     Container(codegen, "Code Generator", "src/codegen.rs", "Generates Rust source code")
@@ -66,31 +72,41 @@ C4Component
     title Component Diagram for Semantic Analysis
 
     Container_Boundary(semantic, "Semantic Analysis") {
-        Component(statements, "Statements", "src/semantic/statements.rs", "Analyzes Control Flow and Declarations")
+        Component(orchestrator, "Orchestrator", "src/semantic/mod.rs", "Coordinates analysis pipeline")
+        Component(declarations, "Declarations", "src/semantic/declarations.rs", "Analyzes Types, Traits, Functions")
+        Component(control_flow, "Control Flow", "src/semantic/control_flow.rs", "Analyzes If, While, Match")
         Component(expressions, "Expressions", "src/semantic/expressions.rs", "Recursively analyzes nested expressions")
         Component(resolver, "Resolver", "src/semantic/resolver.rs", "Manages Scope and Bindings")
-        Component(assembler, "Assembler", "src/semantic/assembler.rs", "Routes words to slots based on Case (Nom, Acc, Dat)")
-        Component(converter, "Converter", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
-        Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs (Iterators, Structs)")
+        Component(assembly, "Assembly", "src/semantic/assembly/mod.rs", "Routes words to grammatical slots")
+        Component(conversion, "Conversion", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
+        Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
+        Component(types, "Type System", "src/semantic/types.rs", "GlossaType definitions and utilities")
     }
 
     Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
 
-    Rel(statements, model, "Produces AnalyzedStatement")
-    Rel(statements, expressions, "Analyzes conditions")
-    Rel(statements, resolver, "Defines Symbols")
+    Rel(orchestrator, declarations, "Delegates to")
+    Rel(orchestrator, control_flow, "Delegates to")
+    Rel(orchestrator, conversion, "Delegates to")
 
-    Rel(morphology, assembler, "Feeds MorphAnalysis")
+    Rel(declarations, resolver, "Defines Symbols")
+    Rel(declarations, types, "Uses")
+    Rel(declarations, model, "Produces")
 
-    Rel(assembler, expressions, "Feeds sub-expressions")
-    Rel(assembler, converter, "Produces AssembledStatement")
+    Rel(control_flow, expressions, "Analyzes conditions")
+    Rel(control_flow, model, "Produces")
 
-    Rel(converter, patterns, "Delegates complex patterns")
-    Rel(converter, resolver, "Lookups Symbols")
-    Rel(converter, model, "Produces AnalyzedStatement")
+    Rel(conversion, assembly, "Uses Assembler")
+    Rel(assembly, morphology, "Uses")
+    Rel(assembly, expressions, "Feeds sub-expressions")
+
+    Rel(conversion, patterns, "Delegates complex patterns")
+    Rel(conversion, resolver, "Lookups Symbols")
+    Rel(conversion, model, "Produces")
 
     Rel(expressions, resolver, "Lookups Symbols")
+    Rel(expressions, types, "Uses")
 
-    Rel(patterns, model, "Produces AnalyzedStatement")
+    Rel(model, types, "Uses")
 ```
