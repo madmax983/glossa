@@ -232,6 +232,16 @@ impl Oracle {
             AnalyzedStatement::Return { value: Some(v) } => {
                 self.collect_expr(v, used);
             }
+            AnalyzedStatement::TraitDefinition { methods, .. }
+            | AnalyzedStatement::TraitImplementation { methods, .. } => {
+                for method in methods {
+                    if let Some(body) = &method.body {
+                        for s in body {
+                            self.collect_stmt(s, used, declared, line_idx);
+                        }
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -430,7 +440,7 @@ impl Oracle {
                 }
             }
 
-            AnalyzedStatement::TraitDefinition { name, .. } => {
+            AnalyzedStatement::TraitDefinition { name, methods } => {
                 if has_latin_chars(name) {
                     self.prophecies.push(Prophecy {
                         severity: Severity::Advice,
@@ -438,6 +448,23 @@ impl Oracle {
                         message: format!("Trait name '{}' contains Latin characters.", name),
                         location: Some(line_idx),
                     });
+                }
+                for method in methods {
+                    if let Some(body) = &method.body {
+                        for s in body {
+                            self.analyze_statement(s, depth + 1, line_idx);
+                        }
+                    }
+                }
+            }
+
+            AnalyzedStatement::TraitImplementation { methods, .. } => {
+                for method in methods {
+                    if let Some(body) = &method.body {
+                        for s in body {
+                            self.analyze_statement(s, depth + 1, line_idx);
+                        }
+                    }
                 }
             }
 
