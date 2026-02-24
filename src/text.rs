@@ -5,8 +5,7 @@
 
 use smol_str::SmolStr;
 use std::char::ToLowercase;
-use std::iter::Peekable;
-use std::str::CharIndices;
+use std::str::Chars;
 use unicode_normalization::UnicodeNormalization;
 
 /// Normalize polytonic Greek to monotonic form
@@ -85,8 +84,7 @@ pub fn normalize_greek(text: &str) -> SmolStr {
 /// - Final Sigma (ς) if preceded by a cased letter and NOT followed by a cased letter.
 /// - Medial Sigma (σ) otherwise.
 struct GreekLowercaseIterator<'a> {
-    text: &'a str,
-    iter: Peekable<CharIndices<'a>>,
+    iter: Chars<'a>,
     last_cased: bool,
     current_expansion: ToLowercase,
 }
@@ -94,8 +92,7 @@ struct GreekLowercaseIterator<'a> {
 impl<'a> GreekLowercaseIterator<'a> {
     fn new(text: &'a str) -> Self {
         let mut slf = Self {
-            text,
-            iter: text.char_indices().peekable(),
+            iter: text.chars(),
             last_cased: false,
             // Initialize with dummy that we drain immediately
             current_expansion: ' '.to_lowercase(),
@@ -115,16 +112,16 @@ impl<'a> Iterator for GreekLowercaseIterator<'a> {
         }
 
         // Fetch next char from input
-        let (idx, c) = self.iter.next()?;
+        let c = self.iter.next()?;
         let mut char_to_process = c;
 
         if c == 'Σ' {
             if self.last_cased {
                 let mut is_followed_by_cased = false;
                 // Peek ahead in text skipping diacritics
-                // We use idx + c.len_utf8() to get the rest of the string
-                let remaining = &self.text[idx + c.len_utf8()..];
-                for next_c in remaining.chars() {
+                // Clone the iterator to look ahead without consuming the main iterator
+                let lookahead = self.iter.clone();
+                for next_c in lookahead {
                     if is_greek_diacritic(next_c) {
                         continue;
                     }
