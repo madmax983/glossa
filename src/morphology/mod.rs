@@ -599,13 +599,18 @@ mod matcher_tests {
         let patterns = vec![("omega", "ω")];
         let mut found = false;
 
-        match_suffix("verbω", &patterns, |p| p.1, |stem, _| {
-            if stem == "verb" {
-                found = true;
-                return false; // Stop
-            }
-            true
-        });
+        match_suffix(
+            "verbω",
+            &patterns,
+            |p| p.1,
+            |stem, _| {
+                if stem == "verb" {
+                    found = true;
+                    return false; // Stop
+                }
+                true
+            },
+        );
 
         assert!(found, "Should find suffix match");
     }
