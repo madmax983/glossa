@@ -111,4 +111,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Consult the Oracle for code wisdom (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Oracle {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

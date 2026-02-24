@@ -62,6 +62,11 @@ fn main() -> Result<()> {
             glossa::tools::cartographer::run_map(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Oracle { input }) => {
+            glossa::tools::oracle::run_oracle(&input)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
