@@ -208,7 +208,9 @@ pub fn run_file(input: &Path) -> Result<()> {
         let error_msg = format!(
             "\n{}\n{}\n{}\n",
             "╔══════════════════════════════════════════════════════════════╗".red(),
-            "║  INTERNAL COMPILER ERROR (Codegen Failed)                    ║".red().bold(),
+            "║  INTERNAL COMPILER ERROR (Codegen Failed)                    ║"
+                .red()
+                .bold(),
             "╚══════════════════════════════════════════════════════════════╝".red()
         );
 
