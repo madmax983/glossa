@@ -93,3 +93,116 @@ fn test_oracle_no_narcissus_when_used() {
     let output = run_test(source);
     assert!(!output.contains("Narcissus"));
 }
+
+#[test]
+fn test_oracle_coverage_kitchen_sink() {
+    // A comprehensive test to exercise recursive AST traversal
+    let source = "
+    εἶδος Κόσμος ὁρίζειν {
+        δύναμις ἀριθμοῦ.
+    }.
+
+    χαρακτήρ Θεϊκός ὁρίζειν {
+        δεῖ θαῦμα τῷ self.
+    }.
+
+    εἶδος DeusEx ὁρίζειν {
+        δύναμις ἀριθμοῦ.
+    }.
+
+    εἶδος DeusEx τῷ Θεϊκός ἐμπίπτειν {
+        θαῦμα τῷ self· «Miracle» λέγε.
+    }.
+
+    λειτουργία f() -> ἀριθμοῦ:
+        1 1 ἄθροισμα.
+    .
+
+    δοκιμή «complex_coverage».
+        ξ πέντε ἔστω.
+        ψ δέκα ἔστω.
+
+        // AssertEq
+        ξ ψ ἀνισοῦται ἀληθές ἰσοῦται.
+
+        // Assert
+        ξ πέντε ἰσοῦται βεβαίωσον.
+
+        // BinOp recursion
+        ξ 1 ἄθροισμα 2 διαφορά ψ ἰσοῦται βεβαίωσον.
+
+        // UnaryOp
+        ἀληθές ὄχι.
+
+        // Function Call
+        f().
+
+        // Lambda
+        λ: |x| x.
+
+        // Range & For loop
+        ἀπὸ 1 μέχρι 10, ι λέγε.
+
+        // While loop
+        ἕως ψ 0 μεῖζον ᾖ, {
+             ψ ψ 1 διαφορά γίγνεται. // Assignment
+        }.
+
+        // Match
+        κατὰ ξ·
+           1 ᾖ, «One» λέγε·
+           ἄλλο ᾖ, «Other» λέγε.
+
+        // Array & Index
+        λίστα [1, 2, 3] ἔστω.
+        λίστα[0].
+
+        // Struct Instantiation
+        κόσμος νέον Κόσμος 42 ἔστω.
+
+        // Property Access
+        κόσμος.δύναμις.
+
+        // Method Call (needs a type with method, or generic verb call)
+        «hello».len().
+
+        // Trait Method Call (simulated via verb for now as syntax is tricky)
+        // Would be like: deus.θαῦμα() if traits were fully supported in parser this way
+
+        // If Else
+        εἰ ξ 5 ἰσοῦται ᾖ, {
+           «Five» λέγε.
+        } εἰ δὲ μή, {
+           «Not Five» λέγε.
+        }.
+
+        // Option/Result/Unwrap
+        κάτι Some(5) ἔστω.
+        κάτι!.
+
+        // Return (in function context usually, but valid statement)
+        ἐπίστρεφε 0.
+    τέλος.
+    ";
+
+    // We just want to ensure it runs without crashing and collects usages correctly.
+    // If usages aren't collected, 'ξ' and others might be flagged as Narcissus.
+    // However, some vars like 'λίστα' are used, so they shouldn't trigger it.
+
+    let output = run_test(source);
+
+    // Check that we didn't crash
+    assert!(output.contains("The Oracle"));
+
+    // 'ξ' is used in match and assertions, so it should NOT be unused.
+    assert!(!output.contains("Variable 'ξ' is declared but never used"));
+
+    // 'ψ' is used in while loop
+    assert!(!output.contains("Variable 'ψ' is declared but never used"));
+
+    // 'κόσμος' is used in property access
+    assert!(!output.contains("Variable 'κόσμος' is declared but never used"));
+
+    // 'λίστα' is used in index access
+    assert!(!output.contains("Variable 'λίστα' is declared but never used"));
+}
