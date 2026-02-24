@@ -588,3 +588,67 @@ mod tests {
         );
     }
 }
+    #[test]
+    fn test_match_suffix_coverage() {
+        let word = "testing";
+        let patterns = vec!["ing", "ng", "other"];
+        let mut matches = Vec::new();
+
+        match_suffix(
+            word,
+            &patterns,
+            |p| p,
+            |stem, pat| {
+                matches.push((stem.to_string(), pat.to_string()));
+                true // Continue searching
+            },
+        );
+
+        // "ing" -> "test"
+        // "ng" -> "testi"
+        // "other" -> no match
+        assert_eq!(matches.len(), 2);
+        assert_eq!(matches[0], ("test".to_string(), "ing".to_string()));
+        assert_eq!(matches[1], ("testi".to_string(), "ng".to_string()));
+    }
+
+    #[test]
+    fn test_match_suffix_stop_early() {
+        let word = "testing";
+        let patterns = vec!["ing", "ng"];
+        let mut matches = Vec::new();
+
+        match_suffix(
+            word,
+            &patterns,
+            |p| p,
+            |stem, pat| {
+                matches.push((stem.to_string(), pat.to_string()));
+                false // Stop searching
+            },
+        );
+
+        // Should stop after first match
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0], ("test".to_string(), "ing".to_string()));
+    }
+
+    #[test]
+    fn test_match_suffix_empty_stem() {
+        let word = "ing";
+        let patterns = vec!["ing"];
+        let mut matches = Vec::new();
+
+        match_suffix(
+            word,
+            &patterns,
+            |p| p,
+            |stem, pat| {
+                matches.push((stem.to_string(), pat.to_string()));
+                true
+            },
+        );
+
+        // Should NOT match because stem would be empty
+        assert_eq!(matches.len(), 0);
+    }
