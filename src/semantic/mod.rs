@@ -37,14 +37,14 @@ mod assembler_tests;
 #[cfg(test)]
 mod classification_tests;
 pub(crate) mod control_flow;
-pub(crate) mod statements;
-#[cfg(test)]
-mod statements_tests;
 pub(crate) mod declarations;
 pub(crate) mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
 mod resolver;
+pub(crate) mod statements;
+#[cfg(test)]
+mod statements_tests;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub(crate) use assembler::Assembler;
@@ -58,13 +58,13 @@ use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
 
 use self::control_flow::analyze_control_flow;
-use self::statements::convert_assembled_to_analyzed;
 use self::declarations::{
     analyze_test_declaration, analyze_trait_definition, analyze_trait_impl,
     analyze_type_definition, parse_function_definition,
 };
 use self::expressions::{contains_function_definition_verb, feed_expr_to_assembler_with_context};
 use self::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
+use self::statements::convert_assembled_to_analyzed;
 
 /// Perform semantic analysis on a program using the slot-based assembler
 /// This is the primary entry point that provides word-order independence
