@@ -64,7 +64,8 @@ fn main() -> Result<()> {
 
         #[cfg(feature = "nova")]
         Some(Commands::Weaver { command }) => {
-            glossa::tools::weaver::run_weaver(command)?;
+            let mut stdout = std::io::stdout();
+            glossa::tools::weaver::run_weaver(command, &mut stdout)?;
         }
 
         Some(Commands::Repl) | None => {

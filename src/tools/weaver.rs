@@ -10,7 +10,8 @@
 
 use clap::Subcommand;
 use crossterm::style::Stylize;
-use miette::Result;
+use miette::{IntoDiagnostic, Result};
+use std::io::Write;
 
 /// Commands for the Weaver tool
 #[derive(Subcommand, Debug, Clone)]
@@ -38,74 +39,79 @@ pub enum WeaverCommands {
 }
 
 /// Run the Weaver tool
-pub fn run_weaver(cmd: WeaverCommands) -> Result<()> {
+pub fn run_weaver<W: Write>(cmd: WeaverCommands, writer: &mut W) -> Result<()> {
     match cmd {
-        WeaverCommands::Struct { name, fields } => scaffold_struct(name, fields),
+        WeaverCommands::Struct { name, fields } => scaffold_struct(name, fields, writer),
         WeaverCommands::Function {
             name,
             params,
             returns,
-        } => scaffold_function(name, params, returns),
+        } => scaffold_function(name, params, returns, writer),
     }
 }
 
-fn scaffold_struct(name: String, fields: Vec<String>) -> Result<()> {
+fn scaffold_struct<W: Write>(name: String, fields: Vec<String>, writer: &mut W) -> Result<()> {
     let struct_name = normalize_input(&name);
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   W E A V E R".bold().cyan());
-    println!("   {}", "Scaffolding Struct...".italic().dim());
-    println!();
+    writeln!(writer).into_diagnostic()?;
+    writeln!(writer, "   {}", "Γ Λ Ω Σ Σ Α   W E A V E R".bold().cyan()).into_diagnostic()?;
+    writeln!(writer, "   {}", "Scaffolding Struct...".italic().dim()).into_diagnostic()?;
+    writeln!(writer).into_diagnostic()?;
 
-    println!("εἶδος {} ὁρίζειν {{", struct_name.bold());
+    writeln!(writer, "εἶδος {} ὁρίζειν {{", struct_name.bold()).into_diagnostic()?;
 
     for field in fields {
         let (field_name, field_type) = parse_field(&field);
         let type_genitive = to_genitive(&field_type);
-        println!("    {} {}.", field_name, type_genitive);
+        writeln!(writer, "    {} {}.", field_name, type_genitive).into_diagnostic()?;
     }
 
-    println!("}}.");
-    println!();
+    writeln!(writer, "}}.").into_diagnostic()?;
+    writeln!(writer).into_diagnostic()?;
 
     Ok(())
 }
 
-fn scaffold_function(name: String, params: Vec<String>, returns: Option<String>) -> Result<()> {
+fn scaffold_function<W: Write>(
+    name: String,
+    params: Vec<String>,
+    returns: Option<String>,
+    writer: &mut W,
+) -> Result<()> {
     let func_name = normalize_input(&name);
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   W E A V E R".bold().cyan());
-    println!("   {}", "Scaffolding Function...".italic().dim());
-    println!();
+    writeln!(writer).into_diagnostic()?;
+    writeln!(writer, "   {}", "Γ Λ Ω Σ Σ Α   W E A V E R".bold().cyan()).into_diagnostic()?;
+    writeln!(writer, "   {}", "Scaffolding Function...".italic().dim()).into_diagnostic()?;
+    writeln!(writer).into_diagnostic()?;
 
     // Header: name ὁρίζειν
-    print!("{} ὁρίζειν", func_name.bold());
+    write!(writer, "{} ὁρίζειν", func_name.bold()).into_diagnostic()?;
 
     // Params: τῷ name type
     for param in params {
         let (param_name, param_type) = parse_field(&param);
         let type_genitive = to_genitive(&param_type);
-        print!(" τῷ {} {}", param_name, type_genitive);
+        write!(writer, " τῷ {} {}", param_name, type_genitive).into_diagnostic()?;
     }
 
-    print!("·");
+    write!(writer, "·").into_diagnostic()?;
 
     // Body
-    println!();
-    println!("    // TODO: Implement function body");
+    writeln!(writer).into_diagnostic()?;
+    writeln!(writer, "    // TODO: Implement function body").into_diagnostic()?;
 
     if let Some(ret) = returns {
         let ret_genitive = to_genitive(&ret);
         // Returns are usually implicit in the last expression, or explicit via `return`.
         // But for scaffolding, we just print a placeholder return value.
-        println!("    // Returns: {}", ret_genitive);
-        println!("    οὐδέν.");
+        writeln!(writer, "    // Returns: {}", ret_genitive).into_diagnostic()?;
+        writeln!(writer, "    οὐδέν.").into_diagnostic()?;
     } else {
-        println!("    οὐδέν.");
+        writeln!(writer, "    οὐδέν.").into_diagnostic()?;
     }
 
-    println!();
+    writeln!(writer).into_diagnostic()?;
 
     Ok(())
 }
@@ -168,5 +174,62 @@ mod tests {
             parse_field("name"),
             ("name".to_string(), "Unknown".to_string())
         );
+    }
+
+    #[test]
+    fn test_scaffold_struct() {
+        let mut buffer = Vec::new();
+        let cmd = WeaverCommands::Struct {
+            name: "User".into(),
+            fields: vec!["name:String".into(), "age:Number".into()],
+        };
+
+        run_weaver(cmd, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        // Check for content without strict formatting dependency (or handle ANSI codes)
+        // We check for the presence of key components regardless of styling
+        assert!(output.contains("εἶδος"));
+        assert!(output.contains("User"));
+        assert!(output.contains("ὁρίζειν"));
+        assert!(output.contains("name ὀνόματος."));
+        assert!(output.contains("age ἀριθμοῦ."));
+    }
+
+    #[test]
+    fn test_scaffold_function() {
+        let mut buffer = Vec::new();
+        let cmd = WeaverCommands::Function {
+            name: "calculate".into(),
+            params: vec!["x:Number".into(), "y:Number".into()],
+            returns: Some("Number".into()),
+        };
+
+        run_weaver(cmd, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        assert!(output.contains("calculate"));
+        assert!(output.contains("ὁρίζειν"));
+        assert!(output.contains("τῷ x ἀριθμοῦ"));
+        assert!(output.contains("τῷ y ἀριθμοῦ"));
+        assert!(output.contains("Returns: ἀριθμοῦ"));
+    }
+
+    #[test]
+    fn test_scaffold_function_no_return() {
+        let mut buffer = Vec::new();
+        let cmd = WeaverCommands::Function {
+            name: "do_something".into(),
+            params: vec![],
+            returns: None,
+        };
+
+        run_weaver(cmd, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        assert!(output.contains("do_something"));
+        assert!(output.contains("ὁρίζειν"));
+        assert!(output.contains("οὐδέν"));
+        assert!(!output.contains("Returns:"));
     }
 }
