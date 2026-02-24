@@ -37,3 +37,149 @@ pub fn match_suffix<'w, 'p, T, S, F>(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_basic_match() {
+        let patterns = vec![("suffix", 1)];
+        let mut matched = false;
+
+        match_suffix(
+            "wordsuffix",
+            &patterns,
+            |p| p.0,
+            |stem, &(_, val)| {
+                assert_eq!(stem, "word");
+                assert_eq!(val, 1);
+                matched = true;
+                true
+            },
+        );
+
+        assert!(matched, "Should have matched suffix");
+    }
+
+    #[test]
+    fn test_multiple_matches() {
+        // Matches should be found in order if callback returns true
+        let patterns = vec![("ix", 1), ("fix", 2), ("suffix", 3)];
+        let mut matches = Vec::new();
+
+        match_suffix(
+            "suffix",
+            &patterns,
+            |p| p.0,
+            |stem, &(_, val)| {
+                matches.push((stem.to_string(), val));
+                true // Continue searching
+            },
+        );
+
+        // "suffix" ends with "ix" -> stem "suff", val 1
+        // "suffix" ends with "fix" -> stem "suf", val 2
+        // "suffix" ends with "suffix" -> stem "", val 3 -> SKIPPED (empty stem)
+
+        assert_eq!(matches.len(), 2);
+        assert_eq!(matches[0], ("suff".to_string(), 1));
+        assert_eq!(matches[1], ("suf".to_string(), 2));
+    }
+
+    #[test]
+    fn test_early_exit() {
+        let patterns = vec![("ix", 1), ("fix", 2)];
+        let mut matches = Vec::new();
+
+        match_suffix(
+            "suffix",
+            &patterns,
+            |p| p.0,
+            |stem, &(_, val)| {
+                matches.push((stem.to_string(), val));
+                false // Stop searching after first match
+            },
+        );
+
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0], ("suff".to_string(), 1));
+    }
+
+    #[test]
+    fn test_empty_stem_check() {
+        // This is a crucial constraint: match_suffix ignores matches where stem becomes empty
+        let patterns = vec![("word", 1)];
+        let mut matched = false;
+
+        match_suffix(
+            "word",
+            &patterns,
+            |p| p.0,
+            |_, _| {
+                matched = true;
+                true
+            },
+        );
+
+        assert!(!matched, "Should NOT match when stem is empty");
+    }
+
+    #[test]
+    fn test_unicode_suffix() {
+        // Test with Greek characters
+        let patterns = vec![("ος", "nominative")];
+        let mut matches = Vec::new();
+
+        match_suffix(
+            "λογος",
+            &patterns,
+            |p| p.0,
+            |stem, &(_, case)| {
+                matches.push((stem.to_string(), case));
+                true
+            },
+        );
+
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0], ("λογ".to_string(), "nominative"));
+    }
+
+    #[test]
+    fn test_no_match() {
+        let patterns = vec![("a", 1), ("b", 2)];
+        let mut matched = false;
+
+        match_suffix(
+            "c",
+            &patterns,
+            |p| p.0,
+            |_, _| {
+                matched = true;
+                true
+            },
+        );
+
+        assert!(!matched, "Should not match any pattern");
+    }
+
+    #[test]
+    fn test_callback_mutable_state() {
+        let patterns = vec![("a", 1), ("ba", 2)];
+        let mut count = 0;
+
+        match_suffix(
+            "aba",
+            &patterns,
+            |p| p.0,
+            |_, _| {
+                count += 1;
+                true
+            },
+        );
+
+        // "aba" ends with "a" -> stem "ab" -> match
+        // "aba" ends with "ba" -> stem "a" -> match
+        assert_eq!(count, 2);
+    }
+}
