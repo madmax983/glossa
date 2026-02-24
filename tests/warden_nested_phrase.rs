@@ -23,7 +23,10 @@ fn test_function_definition_scope() {
         eprintln!("Func def error: {}", e);
     }
     let program = result.unwrap();
-    assert!(program.scope.is_function("συναρτησις"), "Function should be in scope");
+    assert!(
+        program.scope.is_function("συναρτησις"),
+        "Function should be in scope"
+    );
 }
 
 #[test]
@@ -41,5 +44,8 @@ fn test_nested_phrase_valid_function() {
     if let Err(e) = &result {
         eprintln!("Analysis error: {}", e);
     }
-    assert!(result.is_ok(), "Should accept valid nested function call inside binding");
+    assert!(
+        result.is_ok(),
+        "Should accept valid nested function call inside binding"
+    );
 }
