@@ -676,10 +676,7 @@ fn generate_trait_method_parts(
         })
         .collect();
 
-    let ret_tokens = method
-        .return_type
-        .as_ref()
-        .map(generate_type_tokens);
+    let ret_tokens = method.return_type.as_ref().map(generate_type_tokens);
 
     (method_name, param_tokens, ret_tokens)
 }
