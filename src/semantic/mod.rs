@@ -37,15 +37,14 @@ mod assembler_tests;
 #[cfg(test)]
 mod classification_tests;
 pub(crate) mod control_flow;
-pub(crate) mod conversion;
+pub(crate) mod statements;
 #[cfg(test)]
-mod conversion_tests;
+mod statements_tests;
 pub(crate) mod declarations;
 pub(crate) mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
 mod resolver;
-mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub(crate) use assembler::Assembler;
@@ -54,13 +53,12 @@ pub use assembler::{
 };
 pub use model::*;
 pub use resolver::*;
-pub use types::*;
 
 use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
 
 use self::control_flow::analyze_control_flow;
-use self::conversion::convert_assembled_to_analyzed;
+use self::statements::convert_assembled_to_analyzed;
 use self::declarations::{
     analyze_test_declaration, analyze_trait_definition, analyze_trait_impl,
     analyze_type_definition, parse_function_definition,

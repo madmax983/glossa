@@ -1,4 +1,4 @@
-use super::conversion::classify_assembled_statement;
+use super::statements::classify_assembled_statement;
 use crate::ast::Expr;
 use crate::morphology::Case;
 use crate::morphology::lexicon::BinaryOp;

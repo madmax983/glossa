@@ -43,9 +43,8 @@ use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::morphology::{self};
 use crate::semantic::assembler::AssembledStatement;
-use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
+use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType};
 use crate::semantic::resolver::Scope;
-use crate::semantic::types::GlossaType;
 use crate::semantic::{Constituent, Literal};
 
 /// Convert an AssembledStatement to an AnalyzedStatement

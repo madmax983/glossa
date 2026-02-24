@@ -8,7 +8,7 @@
 use std::borrow::Cow;
 
 use super::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
-use crate::morphology::matcher::match_suffix;
+use crate::morphology::match_suffix;
 
 /// Declension pattern
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -77,3 +77,18 @@
 **Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
 **Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
 **Saved:** 2 folders, reduced directory depth.
+
+## [Reduction]
+**Bloat:** `src/morphology/matcher.rs` contained a single generic helper function used in 3 places.
+**Cut:** Moved `match_suffix` to `src/morphology/mod.rs` and deleted the file.
+**Saved:** 1 file, reduced module depth.
+
+## [Reduction]
+**Bloat:** `src/semantic/types.rs` defined `GlossaType` separately from the AST in `model.rs`, creating fragmentation and circular dependency risks.
+**Cut:** Merged `types.rs` into `src/semantic/model.rs`.
+**Saved:** 1 file, unified data model.
+
+## [Reduction]
+**Bloat:** `src/semantic/conversion.rs` had a vague name for a core semantic analysis module.
+**Cut:** Renamed to `src/semantic/statements.rs` to explicitly reflect its responsibility (statement analysis).
+**Saved:** Improved clarity and domain alignment.
