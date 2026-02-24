@@ -124,7 +124,8 @@ pub fn analyze_trait_definition(
                     }
                     // Properly analyze statements in the body using unified helper
                     for body_stmt in body_stmts {
-                        analyzed_body.extend(analyze_statement(body_stmt, &mut scope)?);
+                        // Start depth at 0 for new method scope context
+                        analyzed_body.extend(analyze_statement(body_stmt, &mut scope, 0)?);
                     }
                 }
                 Some(analyzed_body)
@@ -218,7 +219,8 @@ pub fn analyze_trait_impl(
 
             // Analyze the method body using unified helper
             for body_stmt in &method.body {
-                analyzed_body.extend(analyze_statement(body_stmt, &mut scope)?);
+                // Start depth at 0 for new method scope
+                analyzed_body.extend(analyze_statement(body_stmt, &mut scope, 0)?);
             }
         }
 
@@ -288,6 +290,7 @@ pub fn resolve_type_name(name: &str, scope: &Scope) -> Result<GlossaType, Glossa
 pub fn parse_function_definition(
     stmt: &Statement,
     scope: &mut Scope,
+    depth: usize,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // The middle dot (·) separates expressions within a clause
     // Structure: expr1 · expr2 where expr1 is "name ὁρίζειν [params]" and expr2 is the body
@@ -339,7 +342,7 @@ pub fn parse_function_definition(
             };
 
             // Analyze each body expression using unified helper
-            body_statements.extend(analyze_statement(&clause_stmt, &mut function_scope)?);
+            body_statements.extend(analyze_statement(&clause_stmt, &mut function_scope, depth + 1)?);
         }
     }
 
@@ -492,7 +495,7 @@ pub fn analyze_test_declaration(
         let mut test_scope = scope.enter_scope();
 
         for body_stmt in &test_decl.body {
-            analyzed_body.extend(analyze_statement(body_stmt, &mut test_scope)?);
+            analyzed_body.extend(analyze_statement(body_stmt, &mut test_scope, 0)?);
         }
     }
 

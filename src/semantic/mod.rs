@@ -100,7 +100,7 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
         }
 
         // Use the unified analyze_statement helper for all other statements
-        analyzed_statements.extend(analyze_statement(stmt, &mut scope)?);
+        analyzed_statements.extend(analyze_statement(stmt, &mut scope, 0)?);
     }
 
     let analyzed = AnalyzedProgram {
@@ -114,6 +114,7 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
 }
 
 const MAX_EXPRESSION_DEPTH: usize = 200;
+pub const MAX_SEMANTIC_RECURSION_DEPTH: usize = 100;
 
 fn check_program_depth(program: &AnalyzedProgram) -> Result<(), GlossaError> {
     for stmt in &program.statements {
@@ -267,11 +268,19 @@ fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> Result<(), GlossaError
 pub fn analyze_statement(
     stmt: &Statement,
     scope: &mut Scope,
+    depth: usize,
 ) -> Result<Vec<AnalyzedStatement>, GlossaError> {
+    if depth > MAX_SEMANTIC_RECURSION_DEPTH {
+        return Err(GlossaError::LimitExceeded {
+            resource: "semantic recursion depth".into(),
+            max: MAX_SEMANTIC_RECURSION_DEPTH,
+        });
+    }
+
     // 1. Check for function definitions (moved from control flow)
     // This allows function definitions to appear in any statement block
     if contains_function_definition_verb(stmt)
-        && let Some(func_def) = parse_function_definition(stmt, scope)?
+        && let Some(func_def) = parse_function_definition(stmt, scope, depth)?
     {
         // Register the function in the scope
         if let AnalyzedStatement::FunctionDef {
@@ -291,7 +300,7 @@ pub fn analyze_statement(
     }
 
     // 2. Check for control flow (if, while, etc.)
-    if let Some(control_flow) = analyze_control_flow(stmt, scope)? {
+    if let Some(control_flow) = analyze_control_flow(stmt, scope, depth)? {
         return Ok(vec![control_flow]);
     }
 
@@ -312,7 +321,7 @@ pub fn analyze_statement(
         // This ensures variables defined inside the block don't leak out
         let mut block_scope = scope.enter_scope();
         for s in block_stmts {
-            analyzed.extend(analyze_statement(s, &mut block_scope)?);
+            analyzed.extend(analyze_statement(s, &mut block_scope, depth + 1)?);
         }
         return Ok(analyzed);
     }
