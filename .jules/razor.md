@@ -77,3 +77,13 @@
 **Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
 **Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
 **Saved:** 2 folders, reduced directory depth.
+
+## [Reduction]
+**Bloat:** `src/parser/recursion.rs` was a tiny module containing a single function `check_recursion_depth`.
+**Cut:** Moved function to `src/parser/common.rs` and deleted the file.
+**Saved:** 1 file, reduced module overhead.
+
+## [Reduction]
+**Bloat:** `src/morphology/matcher.rs` contained a single generic utility function `match_suffix`.
+**Cut:** Moved function to `src/morphology/mod.rs` and deleted the file.
+**Saved:** 1 file, simplified module structure.

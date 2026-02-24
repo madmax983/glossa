@@ -27,7 +27,6 @@ pub(crate) mod declarations;
 pub(crate) mod expressions;
 pub mod grammar;
 pub mod numerals;
-pub mod recursion;
 pub(crate) mod statements;
 
 use self::grammar::{Rule, parse as grammar_parse};
@@ -63,7 +62,7 @@ pub fn parse(source: &str) -> Result<Program, GlossaError> {
 /// Build an AST from source code
 fn parse_source(source: &str) -> Result<Program, ParseError> {
     // Check recursion depth before parsing to prevent stack overflow
-    recursion::check_recursion_depth(source)?;
+    common::check_recursion_depth(source)?;
 
     let pairs = grammar_parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
 
@@ -235,57 +234,5 @@ mod tests {
             result,
             Err(ParseError::RecursionLimitExceeded(500))
         ));
-    }
-
-    #[test]
-    fn test_recursion_limit_not_exceeded() {
-        // 500 nested parentheses (should pass check, though pest might fail to parse empty parens)
-        let source = "(".repeat(500) + &")".repeat(500);
-        // We only care about the recursion check here
-        let result = recursion::check_recursion_depth(&source);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_recursion_limit_ignored_in_string() {
-        // Parentheses inside string literal shouldn't count
-        let source = "«".to_string() + &"(".repeat(600) + "»";
-        let result = recursion::check_recursion_depth(&source);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_recursion_limit_ignored_in_comment() {
-        // Parentheses inside comment shouldn't count
-        let source = "// ".to_string() + &"(".repeat(600);
-        let result = recursion::check_recursion_depth(&source);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_recursion_limit_mixed_brackets() {
-        // Mixed brackets should all count towards the same limit
-        // 200 (, 200 {, 101 [ = 501 total
-        let source = "(".repeat(200)
-            + &"{".repeat(200)
-            + &"[".repeat(101)
-            + &"]".repeat(101)
-            + &"}".repeat(200)
-            + &")".repeat(200);
-        let result = recursion::check_recursion_depth(&source);
-        assert!(matches!(
-            result,
-            Err(ParseError::RecursionLimitExceeded(500))
-        ));
-    }
-
-    #[test]
-    fn test_recursion_limit_unbalanced_but_safe() {
-        // Unbalanced brackets that don't exceed depth
-        // (((...))) then (((...))) - sequential, not nested
-        let part = "(".repeat(400) + &")".repeat(400);
-        let source = part.clone() + &part;
-        let result = recursion::check_recursion_depth(&source);
-        assert!(result.is_ok());
     }
 }
