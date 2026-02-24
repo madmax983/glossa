@@ -33,6 +33,12 @@ To identify vulnerabilities, harden interfaces, and eliminate memory safety risk
   - **Note:** Panics on overflow (Safe crash), preventing undefined behavior or silent wrapping.
 
 ## Recent Actions
+- **2024-03-XX - [Logic Bug - Ignored Nested Phrases]**
+  - **Threat:** Nested phrases in variable binding (e.g., `α (1 (2 3)) ἔστω`) were silently ignored, causing variables to be bound to a default value (0) instead of erroring or binding correctly. This could lead to semantic confusion or logic bugs in user code.
+  - **Investigation:** Discovered that `extract_value` in `src/semantic/conversion.rs` did not check `nested_phrases` from the assembler.
+  - **Defense:** Updated `extract_value` to process `nested_phrases`. It now detects invalid nested structures and reports an error ("Unexpected multiple terms") instead of silently ignoring them.
+  - **Verification:** Added `tests/warden_nested_phrase.rs` which confirms that invalid nested phrases now trigger a compilation error.
+
 - **2024-03-XX - [Text Normalization DoS Probe]**
   - **Threat:** Potential O(N^2) behavior in `GreekLowercaseIterator` when handling repeated Sigmas.
   - **Investigation:** Audit of `src/text.rs` revealed early exit in lookahead loop (`break` on non-diacritic).

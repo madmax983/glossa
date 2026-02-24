@@ -1408,6 +1408,18 @@ pub fn extract_value(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<(AnalyzedExpr, GlossaType), GlossaError> {
+    if !asm_stmt.nested_phrases.is_empty() {
+        // Handle nested phrases (parenthesized expressions) which act as values
+        // Usually there is only one for a value expression
+        if let Some(terms) = asm_stmt.nested_phrases.first() {
+            let phrase_expr = Expr::Phrase(terms.clone());
+            // Analyze with recursion depth check reset (as it's a new analysis root)
+            let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
+            let ty = analyzed.glossa_type.clone();
+            return Ok((analyzed, ty));
+        }
+    }
+
     if let Some(res) = extract_unwrap(asm_stmt, scope)? {
         return Ok(res);
     }
