@@ -102,6 +102,7 @@ use crate::semantic::{
 use crate::text::normalize_greek;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
+use std::str::FromStr;
 
 // ==================================================================================
 // UTILS
@@ -289,15 +290,21 @@ pub fn to_rust_type(ty: &GlossaType) -> String {
     }
 }
 
+/// Convert a Glossa type to a Rust TokenStream
+///
+/// This handles parsing complex generic types (like `HashMap<String, i64>`)
+/// which cannot be represented as a simple Ident.
+pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
+    let type_str = to_rust_type(ty);
+    TokenStream::from_str(&type_str).expect("Failed to parse Rust type string")
+}
+
 // ==================================================================================
 // RUST CODEGEN
 // ==================================================================================
 
 /// Generate Rust code from an Analyzed Program
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
-    // Check if we need collection imports
-    let needs_collections = uses_collections(program);
-
     // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
     let mut trait_defs = Vec::new();
     let mut struct_defs = Vec::new();
@@ -319,12 +326,13 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
         }
     }
 
-    // Generate imports if needed
-    let imports = if needs_collections {
-        quote! { use std::collections::{HashMap, HashSet}; }
-    } else {
-        quote! {}
-    };
+    // Generate imports
+    // We always import collections because they might be used in type definitions
+    // even if not explicitly constructed in the code.
+    // Unused imports are suppressed by #![allow(unused_imports)] in the file header.
+    let imports = quote! { use std::collections::{HashMap, HashSet}; };
+
+    let panic_hook = generate_panic_hook();
 
     let output = quote! {
         #imports
@@ -338,33 +346,7 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
         #(#fn_defs)*
 
         fn main() {
-            std::panic::set_hook(Box::new(|info| {
-                let msg = if let Some(s) = info.payload().downcast_ref::<&str>() {
-                    *s
-                } else if let Some(s) = info.payload().downcast_ref::<String>() {
-                    &s[..]
-                } else {
-                    "Unknown error"
-                };
-
-                let (greek_msg, english_msg) = match msg {
-                    "division by zero" | "division by zero or overflow" =>
-                        ("Διαίρεσις διὰ μηδενός", "Division by zero"),
-                    "arithmetic overflow" | "attempt to add with overflow" | "attempt to subtract with overflow" | "attempt to multiply with overflow" =>
-                        ("Ὑπερχείλισις ἀριθμοῦ", "Arithmetic overflow"),
-                    "index out of bounds" | "bounds check" =>
-                        ("Δείκτης ἐκτὸς ὁρίων", "Index out of bounds"),
-                    s if s.starts_with("index out of bounds") =>
-                        ("Δείκτης ἐκτὸς ὁρίων", "Index out of bounds"),
-                    _ => ("Σφάλμα ἐκτελέσεως", msg),
-                };
-
-                eprintln!("\x1b[31m✕ {}: {}\x1b[0m", greek_msg, english_msg);
-
-                if let Some(location) = info.location() {
-                    eprintln!("\x1b[90m  (at line {})\x1b[0m", location.line());
-                }
-            }));
+            #panic_hook
 
             #(#main_stmts)*
         }
@@ -375,74 +357,35 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
     output.to_string()
 }
 
-/// Check if the program uses collection types (HashMap, HashSet)
-fn uses_collections(program: &AnalyzedProgram) -> bool {
-    program.statements.iter().any(statement_uses_collections)
-}
+fn generate_panic_hook() -> TokenStream {
+    quote! {
+        std::panic::set_hook(Box::new(|info| {
+            let msg = if let Some(s) = info.payload().downcast_ref::<&str>() {
+                *s
+            } else if let Some(s) = info.payload().downcast_ref::<String>() {
+                &s[..]
+            } else {
+                "Unknown error"
+            };
 
-/// Check if a statement uses collection types
-fn statement_uses_collections(stmt: &AnalyzedStatement) -> bool {
-    match stmt {
-        AnalyzedStatement::Binding { value, .. } | AnalyzedStatement::Assignment { value, .. } => {
-            expr_uses_collections(value)
-        }
-        AnalyzedStatement::Print(exprs)
-        | AnalyzedStatement::Query(exprs)
-        | AnalyzedStatement::Expression(exprs) => exprs.iter().any(expr_uses_collections),
-        AnalyzedStatement::If {
-            condition,
-            then_body,
-            else_body,
-        } => {
-            expr_uses_collections(condition)
-                || then_body.iter().any(statement_uses_collections)
-                || else_body
-                    .as_ref()
-                    .map(|b| b.iter().any(statement_uses_collections))
-                    .unwrap_or(false)
-        }
-        AnalyzedStatement::While { condition, body } => {
-            expr_uses_collections(condition) || body.iter().any(statement_uses_collections)
-        }
-        AnalyzedStatement::For { iterator, body, .. } => {
-            expr_uses_collections(iterator) || body.iter().any(statement_uses_collections)
-        }
-        AnalyzedStatement::Match { scrutinee, arms } => {
-            expr_uses_collections(scrutinee)
-                || arms.iter().any(|(pat, body)| {
-                    expr_uses_collections(pat) || body.iter().any(statement_uses_collections)
-                })
-        }
-        AnalyzedStatement::FunctionDef { body, .. } => body.iter().any(statement_uses_collections),
-        AnalyzedStatement::TraitImplementation { methods, .. }
-        | AnalyzedStatement::TraitDefinition { methods, .. } => methods.iter().any(|m| {
-            m.body
-                .as_ref()
-                .map(|b| b.iter().any(statement_uses_collections))
-                .unwrap_or(false)
-        }),
-        AnalyzedStatement::TestDeclaration { body, .. } => {
-            body.iter().any(statement_uses_collections)
-        }
-        _ => false,
-    }
-}
+            let (greek_msg, english_msg) = match msg {
+                "division by zero" | "division by zero or overflow" =>
+                    ("Διαίρεσις διὰ μηδενός", "Division by zero"),
+                "arithmetic overflow" | "attempt to add with overflow" | "attempt to subtract with overflow" | "attempt to multiply with overflow" =>
+                    ("Ὑπερχείλισις ἀριθμοῦ", "Arithmetic overflow"),
+                "index out of bounds" | "bounds check" =>
+                    ("Δείκτης ἐκτὸς ὁρίων", "Index out of bounds"),
+                s if s.starts_with("index out of bounds") =>
+                    ("Δείκτης ἐκτὸς ὁρίων", "Index out of bounds"),
+                _ => ("Σφάλμα ἐκτελέσεως", msg),
+            };
 
-/// Check if an expression uses collection types
-fn expr_uses_collections(expr: &AnalyzedExpr) -> bool {
-    match &expr.expr {
-        AnalyzedExprKind::CollectionNew { .. } => true,
-        AnalyzedExprKind::MethodCall { receiver, args, .. } => {
-            expr_uses_collections(receiver) || args.iter().any(expr_uses_collections)
-        }
-        AnalyzedExprKind::BinOp { left, right, .. } => {
-            expr_uses_collections(left) || expr_uses_collections(right)
-        }
-        AnalyzedExprKind::IndexAccess { array, index } => {
-            expr_uses_collections(array) || expr_uses_collections(index)
-        }
-        // Check types inside Struct Instantiation if needed, but usually explicit new/contains is enough
-        _ => false,
+            eprintln!("\x1b[31m✕ {}: {}\x1b[0m", greek_msg, english_msg);
+
+            if let Some(location) = info.location() {
+                eprintln!("\x1b[90m  (at line {})\x1b[0m", location.line());
+            }
+        }));
     }
 }
 
@@ -666,9 +609,8 @@ fn generate_fn_def(
         .map(|(param_name, param_type)| {
             let param_ident = sanitize_ident(param_name);
             if let Some(ty) = param_type {
-                let ty_str = to_rust_type(ty);
-                let ty_ident = format_ident!("{}", ty_str);
-                quote! { #param_ident: #ty_ident }
+                let ty_tokens = generate_type_tokens(ty);
+                quote! { #param_ident: #ty_tokens }
             } else {
                 quote! { #param_ident }
             }
@@ -677,10 +619,9 @@ fn generate_fn_def(
 
     // Generate return type
     if let Some(ret_type) = return_type {
-        let ret_str = to_rust_type(ret_type);
-        let ret_ty = format_ident!("{}", ret_str);
+        let ret_tokens = generate_type_tokens(ret_type);
         quote! {
-            fn #fn_name(#(#param_tokens),*) -> #ret_ty {
+            fn #fn_name(#(#param_tokens),*) -> #ret_tokens {
                 #(#body_stmts)*
             }
         }
@@ -702,9 +643,8 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
         .iter()
         .map(|(field_name, field_type)| {
             let field_ident = sanitize_ident(field_name);
-            let type_str = to_rust_type(field_type);
-            let type_ident = format_ident!("{}", type_str);
-            quote! { #field_ident: #type_ident }
+            let type_tokens = generate_type_tokens(field_type);
+            quote! { #field_ident: #type_tokens }
         })
         .collect();
 
@@ -730,18 +670,16 @@ fn generate_trait_method_parts(
                 quote! { &self }
             } else {
                 let param_ident = sanitize_ident(param_name);
-                let type_str = to_rust_type(param_type);
-                let ty = format_ident!("{}", type_str);
-                quote! { #param_ident: #ty }
+                let type_tokens = generate_type_tokens(param_type);
+                quote! { #param_ident: #type_tokens }
             }
         })
         .collect();
 
-    let ret_tokens = method.return_type.as_ref().map(|ret_type| {
-        let ret_str = to_rust_type(ret_type);
-        let ret_ty = format_ident!("{}", ret_str);
-        quote! { #ret_ty }
-    });
+    let ret_tokens = method
+        .return_type
+        .as_ref()
+        .map(generate_type_tokens);
 
     (method_name, param_tokens, ret_tokens)
 }
@@ -944,18 +882,37 @@ fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> T
     // Use checked arithmetic only for numeric types
     let use_checked = matches!(left.glossa_type, GlossaType::Number);
 
-    // Helper for generating checked arithmetic
-    let checked = |method: &str, msg: &str| {
-        let method_ident = format_ident!("{}", method);
-        quote! { (#left_tokens).#method_ident(#right_tokens).expect(#msg) }
-    };
-
     match op {
-        BinaryOp::Add if use_checked => checked("checked_add", "arithmetic overflow"),
-        BinaryOp::Sub if use_checked => checked("checked_sub", "arithmetic overflow"),
-        BinaryOp::Mul if use_checked => checked("checked_mul", "arithmetic overflow"),
-        BinaryOp::Div if use_checked => checked("checked_div", "division by zero or overflow"),
-        BinaryOp::Mod if use_checked => checked("checked_rem", "division by zero or overflow"),
+        BinaryOp::Add if use_checked => generate_checked_op(
+            left_tokens,
+            right_tokens,
+            "checked_add",
+            "arithmetic overflow",
+        ),
+        BinaryOp::Sub if use_checked => generate_checked_op(
+            left_tokens,
+            right_tokens,
+            "checked_sub",
+            "arithmetic overflow",
+        ),
+        BinaryOp::Mul if use_checked => generate_checked_op(
+            left_tokens,
+            right_tokens,
+            "checked_mul",
+            "arithmetic overflow",
+        ),
+        BinaryOp::Div if use_checked => generate_checked_op(
+            left_tokens,
+            right_tokens,
+            "checked_div",
+            "division by zero or overflow",
+        ),
+        BinaryOp::Mod if use_checked => generate_checked_op(
+            left_tokens,
+            right_tokens,
+            "checked_rem",
+            "division by zero or overflow",
+        ),
 
         // Fallback or standard operators
         BinaryOp::Add => quote! { (#left_tokens + #right_tokens) },
@@ -972,6 +929,16 @@ fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> T
         BinaryOp::And => quote! { (#left_tokens && #right_tokens) },
         BinaryOp::Or => quote! { (#left_tokens || #right_tokens) },
     }
+}
+
+fn generate_checked_op(
+    left: TokenStream,
+    right: TokenStream,
+    method: &str,
+    msg: &str,
+) -> TokenStream {
+    let method_ident = format_ident!("{}", method);
+    quote! { (#left).#method_ident(#right).expect(#msg) }
 }
 
 fn generate_struct_lit(
