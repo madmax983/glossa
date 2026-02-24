@@ -160,8 +160,13 @@ mod tests {
     fn test_to_genitive() {
         assert_eq!(to_genitive("String"), "ὀνόματος");
         assert_eq!(to_genitive("Number"), "ἀριθμοῦ");
+        assert_eq!(to_genitive("List"), "λίστης");
+        assert_eq!(to_genitive("Bool"), "ἀληθοῦς");
+        // Test unknown type (default branch)
         assert_eq!(to_genitive("User"), "User");
         assert_eq!(to_genitive("Παίκτης"), "Παίκτης");
+        // Test mixed case
+        assert_eq!(to_genitive("nuMBer"), "ἀριθμοῦ");
     }
 
     #[test]
@@ -170,10 +175,22 @@ mod tests {
             parse_field("score:Number"),
             ("score".to_string(), "Number".to_string())
         );
+        // Test default (unknown type)
         assert_eq!(
             parse_field("name"),
             ("name".to_string(), "Unknown".to_string())
         );
+        // Test whitespace trimming
+        assert_eq!(
+            parse_field(" name : String "),
+            ("name".to_string(), "String".to_string())
+        );
+    }
+
+    #[test]
+    fn test_normalize_input() {
+        assert_eq!(normalize_input("User"), "User");
+        assert_eq!(normalize_input("functionName"), "functionName");
     }
 
     #[test]
