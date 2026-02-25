@@ -334,19 +334,28 @@ pub fn try_parse_struct_instantiation(
 /// This function analyzes the `AssembledStatement` to detect functional programming chains
 /// expressed through Greek participles.
 ///
-/// # Logic
-/// * **Collection**: The subject or an array literal.
-/// * **Map**: Present Participles (e.g., `διπλασιαζόμενα`) become `.map()`.
-/// * **Filter**: Comparative Adjectives (e.g., `μείζονα`) become `.filter()`.
-/// * **Fold**: The participle `συλλεγόμενα` (gathering) becomes `.fold()`.
-/// * **Find**: The verb `εὑρέ` (find) becomes `.find()`.
+/// # Linguistic Logic
 ///
-/// # Example
+/// In Ancient Greek, participles function as verbal adjectives. They modify the noun
+/// by describing an action it is performing.
 ///
-/// ```text
-/// // [1, 2, 3].iter().map(|x| x*2).filter(|x| x > 5).collect::<Vec<_>>()
-/// [1, 2, 3] διπλασιαζόμενα πέντε μείζονα λέγε.
-/// ```
+/// * **Transformation**: A participle like "doubling" (διπλασιαζόμενα) describes the numbers
+///   *as they are being doubled*. This maps naturally to `.map()`.
+/// * **Filtering**: A comparative adjective like "greater" (μείζονα) limits the scope
+///   of the noun. This maps to `.filter()`.
+/// * **Reduction**: The verb "gather" (συλλέγω) implies bringing things together.
+///   The participle "gathering" (συλλεγόμενα) maps to `.fold()`.
+///
+/// # Mapping Table
+///
+/// | Greek Construct | Morphological Feature | Rust Equivalent |
+/// |----------------|-----------------------|-----------------|
+/// | **Participle** | Middle/Passive Voice | `.map(closure)` |
+/// | **Participle** | "Gathering" lemma | `.fold(init, closure)` |
+/// | **Adjective** | Comparative (`>`) | `.filter(predicate)` |
+/// | **Quantifier** | "Any" (`τι`) + `>` | `.any(predicate)` |
+/// | **Quantifier** | "All" (`πάντα`) + `>` | `.all(predicate)` |
+/// | **Verb** | "Find" (`εὑρέ`) | `.find(predicate)` |
 pub fn detect_iterator_pattern(
     asm_stmt: &AssembledStatement,
     _scope: &mut Scope,

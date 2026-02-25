@@ -14,6 +14,24 @@ use crate::morphology::{self};
 use smol_str::SmolStr;
 
 /// Analyze a type definition statement
+///
+/// This processes `εἶδος` (struct) definitions. It registers the new type in the `Scope`
+/// and validates fields for recursive dependencies.
+///
+/// # Greek Syntax
+///
+/// ```glossa
+/// // "Form User to define..."
+/// εἶδος Χρήστης ὁρίζειν {
+///     ὄνομα ὀνόματος.
+///     ἡλικία ἀριθμοῦ.
+/// }.
+/// ```
+///
+/// # Side Effects
+///
+/// * Updates `scope` with the new type definition.
+/// * Allows recursive types via `Box`, `Vec`, etc., but prevents direct infinite recursion.
 pub fn analyze_type_definition(
     type_def: &crate::ast::TypeDef,
     scope: &mut Scope,
@@ -81,6 +99,18 @@ fn check_recursive_type(target_name: &str, ty: &GlossaType) -> bool {
 }
 
 /// Analyze a trait definition statement
+///
+/// This processes `χαρακτήρ` (trait) definitions. It registers the trait signature
+/// in the `Scope`.
+///
+/// # Greek Syntax
+///
+/// ```glossa
+/// // "Character Printable to define..."
+/// χαρακτήρ Εκτυπώσιμος ὁρίζειν {
+///     τύπωσις(εαυτός). // Method signature
+/// }.
+/// ```
 pub fn analyze_trait_definition(
     trait_def: &crate::ast::TraitDef,
     scope: &mut Scope,
@@ -170,6 +200,17 @@ pub fn analyze_trait_definition(
 }
 
 /// Analyze a trait implementation statement
+///
+/// This processes implementations of traits for specific types.
+///
+/// # Greek Syntax
+///
+/// ```glossa
+/// // "Type User to the Printable to fall into..." (impl Printable for User)
+/// εἶδος Χρήστης τῷ Εκτυπώσιμος ἐμπίπτειν {
+///     τύπωσις(εαυτός) { ... }
+/// }.
+/// ```
 pub fn analyze_trait_impl(
     trait_impl: &crate::ast::TraitImplDef,
     scope: &mut Scope,
@@ -285,6 +326,21 @@ pub fn resolve_type_name(name: &str, scope: &Scope) -> Result<GlossaType, Glossa
 }
 
 /// Parse a function definition: name ὁρίζειν [params]· body
+///
+/// This handles the `ὁρίζειν` verb when used to define standalone functions.
+///
+/// # Greek Syntax
+///
+/// ```glossa
+/// // "add to define (to the x of number, to the y of number) · ..."
+/// προσθέτειν ὁρίζειν τῷ ξ ἀριθμοῦ τῷ ψ ἀριθμοῦ ·
+///     ξ ψ ἄθροισμα δός.
+/// ```
+///
+/// # Structure
+///
+/// 1. **Header**: Name + `ὁρίζειν` + Parameters (Dative + Genitive type).
+/// 2. **Body**: Expressions separated by middle dot (·).
 pub fn parse_function_definition(
     stmt: &Statement,
     scope: &mut Scope,
