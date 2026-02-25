@@ -961,7 +961,7 @@ fn create_comparison_predicate(
 mod tests {
     use super::*;
     use crate::morphology::analyze;
-    use crate::semantic::{Constituent, AnalyzedExprKind};
+    use crate::semantic::{AnalyzedExprKind, Constituent};
 
     #[test]
     fn test_extract_comparison_value_lemma() {
@@ -1077,24 +1077,25 @@ mod tests {
 #[cfg(test)]
 mod coverage_tests {
     use super::*;
-    use crate::semantic::{Constituent, AnalyzedExprKind};
+    use crate::semantic::{AnalyzedExprKind, Constituent};
     #[test]
     fn test_detect_iterator_pattern_any() {
         // Covers process_explicit_quantifiers with scope lookup
         let mut scope = Scope::new();
         scope.define("x", GlossaType::Number);
 
-        let mut stmt = AssembledStatement::default();
-        // "list" (subject)
-        stmt.subject = Some(Constituent {
-            lemma: "list".into(),
-            original: "list".into(),
-            normalized: "list".into(),
-            case: crate::morphology::Case::Nominative,
-            number: None,
-            gender: None,
-            person: None,
-        });
+        let mut stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "list".into(),
+                original: "list".into(),
+                normalized: "list".into(),
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                gender: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
         // "any" quantifier logic is checked via flags, usually checked by lemma of subject
         // But here we manually trigger process_explicit_quantifiers by setting operators and genitives
 
@@ -1111,7 +1112,8 @@ mod coverage_tests {
         });
 
         // "greater" (operator)
-        stmt.operators.push(crate::morphology::lexicon::BinaryOp::Gt);
+        stmt.operators
+            .push(crate::morphology::lexicon::BinaryOp::Gt);
 
         // "than x" (genitive comparison value)
         stmt.genitives.push(Constituent {
@@ -1159,20 +1161,22 @@ mod coverage_tests {
         let mut scope = Scope::new();
         scope.define("target", GlossaType::Number);
 
-        let mut stmt = AssembledStatement::default();
-        // "list" (subject) - collection
-        stmt.subject = Some(Constituent {
-            lemma: "list".into(),
-            original: "list".into(),
-            normalized: "list".into(),
-            case: crate::morphology::Case::Nominative,
-            number: None,
-            gender: None,
-            person: None,
-        });
+        let mut stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "list".into(),
+                original: "list".into(),
+                normalized: "list".into(),
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                gender: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
 
         // "greater" (operator)
-        stmt.operators.push(crate::morphology::lexicon::BinaryOp::Gt);
+        stmt.operators
+            .push(crate::morphology::lexicon::BinaryOp::Gt);
 
         // "target" (genitive)
         stmt.genitives.push(Constituent {
@@ -1218,16 +1222,18 @@ mod coverage_tests {
         let mut scope = Scope::new();
         scope.define("threshold", GlossaType::Number);
 
-        let mut stmt = AssembledStatement::default();
-        stmt.subject = Some(Constituent {
-            lemma: "list".into(),
-            original: "list".into(),
-            normalized: "list".into(),
-            case: crate::morphology::Case::Nominative,
-            number: None,
-            gender: None,
-            person: None,
-        });
+        let mut stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "list".into(),
+                original: "list".into(),
+                normalized: "list".into(),
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                gender: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
 
         // "greater" (adjective -> filter)
         stmt.adjectives.push(Constituent {
@@ -1270,10 +1276,17 @@ mod coverage_tests {
 
         let expr = expr_opt.unwrap();
         // Should be MethodCall "collect" (finalized), inner is filter
-        if let AnalyzedExprKind::MethodCall { method, receiver, .. } = expr.expr {
+        if let AnalyzedExprKind::MethodCall {
+            method, receiver, ..
+        } = expr.expr
+        {
             assert_eq!(method, "collect");
             // Check inner receiver
-            if let AnalyzedExprKind::MethodCall { method: inner_method, .. } = receiver.expr {
+            if let AnalyzedExprKind::MethodCall {
+                method: inner_method,
+                ..
+            } = receiver.expr
+            {
                 assert_eq!(inner_method, "filter");
             } else {
                 panic!("Expected inner MethodCall 'filter'");
