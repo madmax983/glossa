@@ -205,11 +205,7 @@ pub fn transliterate(greek: &str) -> String {
     // Optimization: Check if we need to prepend '_' if result would start with a digit.
     // Since only ASCII alphanumeric pass through as-is, and hex-encoded chars start with '_',
     // the only case where result starts with digit is if input starts with ASCII digit.
-    let starts_numeric = greek
-        .chars()
-        .next()
-        .map(|c| c.is_ascii_digit())
-        .unwrap_or(false);
+    let starts_numeric = greek.starts_with(|c: char| c.is_ascii_digit());
 
     let mut result = String::with_capacity(greek.len() * 2 + if starts_numeric { 1 } else { 0 });
 
@@ -656,9 +652,13 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
     }
 }
 
-fn generate_trait_method_parts(
-    method: &AnalyzedMethod,
-) -> (Ident, Vec<TokenStream>, Option<TokenStream>) {
+struct TraitMethodParts {
+    name: Ident,
+    params: Vec<TokenStream>,
+    return_type: Option<TokenStream>,
+}
+
+fn generate_trait_method_parts(method: &AnalyzedMethod) -> TraitMethodParts {
     let method_name = sanitize_ident(&method.name);
 
     let param_tokens: Vec<TokenStream> = method
@@ -678,7 +678,11 @@ fn generate_trait_method_parts(
 
     let ret_tokens = method.return_type.as_ref().map(generate_type_tokens);
 
-    (method_name, param_tokens, ret_tokens)
+    TraitMethodParts {
+        name: method_name,
+        params: param_tokens,
+        return_type: ret_tokens,
+    }
 }
 
 fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
@@ -689,9 +693,11 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
     let method_tokens: Vec<TokenStream> = methods
         .iter()
         .map(|method| {
-            let (method_name, param_tokens, ret_tokens) = generate_trait_method_parts(method);
+            let parts = generate_trait_method_parts(method);
+            let method_name = parts.name;
+            let param_tokens = parts.params;
 
-            if let Some(ret_ty) = ret_tokens {
+            if let Some(ret_ty) = parts.return_type {
                 if let Some(body) = &method.body {
                     let body_stmts = generate_statements(body);
                     quote! {
@@ -739,7 +745,9 @@ fn generate_trait_impl(
     let method_tokens: Vec<TokenStream> = methods
         .iter()
         .map(|method| {
-            let (method_name, param_tokens, ret_tokens) = generate_trait_method_parts(method);
+            let parts = generate_trait_method_parts(method);
+            let method_name = parts.name;
+            let param_tokens = parts.params;
 
             // Generate method body
             let body_stmts: Vec<TokenStream> = if let Some(body) = &method.body {
@@ -748,7 +756,7 @@ fn generate_trait_impl(
                 Vec::new()
             };
 
-            if let Some(ret_ty) = ret_tokens {
+            if let Some(ret_ty) = parts.return_type {
                 quote! {
                     fn #method_name(#(#param_tokens),*) -> #ret_ty {
                         #(#body_stmts)*
@@ -879,39 +887,53 @@ fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> T
     // Use checked arithmetic only for numeric types
     let use_checked = matches!(left.glossa_type, GlossaType::Number);
 
-    match op {
-        BinaryOp::Add if use_checked => generate_checked_op(
-            left_tokens,
-            right_tokens,
-            "checked_add",
-            "arithmetic overflow",
-        ),
-        BinaryOp::Sub if use_checked => generate_checked_op(
-            left_tokens,
-            right_tokens,
-            "checked_sub",
-            "arithmetic overflow",
-        ),
-        BinaryOp::Mul if use_checked => generate_checked_op(
-            left_tokens,
-            right_tokens,
-            "checked_mul",
-            "arithmetic overflow",
-        ),
-        BinaryOp::Div if use_checked => generate_checked_op(
-            left_tokens,
-            right_tokens,
-            "checked_div",
-            "division by zero or overflow",
-        ),
-        BinaryOp::Mod if use_checked => generate_checked_op(
-            left_tokens,
-            right_tokens,
-            "checked_rem",
-            "division by zero or overflow",
-        ),
+    if use_checked {
+        match op {
+            BinaryOp::Add => {
+                return generate_checked_op(
+                    left_tokens,
+                    right_tokens,
+                    "checked_add",
+                    "arithmetic overflow",
+                );
+            }
+            BinaryOp::Sub => {
+                return generate_checked_op(
+                    left_tokens,
+                    right_tokens,
+                    "checked_sub",
+                    "arithmetic overflow",
+                );
+            }
+            BinaryOp::Mul => {
+                return generate_checked_op(
+                    left_tokens,
+                    right_tokens,
+                    "checked_mul",
+                    "arithmetic overflow",
+                );
+            }
+            BinaryOp::Div => {
+                return generate_checked_op(
+                    left_tokens,
+                    right_tokens,
+                    "checked_div",
+                    "division by zero or overflow",
+                );
+            }
+            BinaryOp::Mod => {
+                return generate_checked_op(
+                    left_tokens,
+                    right_tokens,
+                    "checked_rem",
+                    "division by zero or overflow",
+                );
+            }
+            _ => {} // Fallthrough to standard logic for comparisons
+        }
+    }
 
-        // Fallback or standard operators
+    match op {
         BinaryOp::Add => quote! { (#left_tokens + #right_tokens) },
         BinaryOp::Sub => quote! { (#left_tokens - #right_tokens) },
         BinaryOp::Mul => quote! { (#left_tokens * #right_tokens) },
@@ -960,6 +982,33 @@ fn generate_struct_lit(
     quote! { #struct_name { #(#field_assignments),* } }
 }
 
+fn generate_memoized_closure(
+    params: &[smol_str::SmolStr],
+    body_tokens: TokenStream,
+    params_idents: &[Ident],
+) -> TokenStream {
+    // Warden Security Check: Memoization ignores arguments, so it's only safe for 0-arity closures (thunks).
+    // If we allow arguments, we risk caching incorrect results (e.g. f(1) cached, f(2) returns cached f(1)).
+    if !params.is_empty() {
+        panic!("Memoization is only supported for 0-argument closures");
+    }
+
+    // Perfect participle: lazy evaluation with caching
+    quote! {
+        {
+            use std::cell::RefCell;
+            let cache = RefCell::new(None);
+            move |#(#params_idents),*| {
+                let mut cache_ref = cache.borrow_mut();
+                if cache_ref.is_none() {
+                    *cache_ref = Some(#body_tokens);
+                }
+                cache_ref.clone().unwrap()
+            }
+        }
+    }
+}
+
 fn generate_closure(
     params: &[smol_str::SmolStr],
     body: &AnalyzedExpr,
@@ -975,28 +1024,7 @@ fn generate_closure(
         CaptureMode::Borrow => {
             quote! { |#(#params_idents),*| #body_tokens }
         }
-        CaptureMode::Memoize => {
-            // Warden Security Check: Memoization ignores arguments, so it's only safe for 0-arity closures (thunks).
-            // If we allow arguments, we risk caching incorrect results (e.g. f(1) cached, f(2) returns cached f(1)).
-            if !params.is_empty() {
-                panic!("Memoization is only supported for 0-argument closures");
-            }
-
-            // Perfect participle: lazy evaluation with caching
-            quote! {
-                {
-                    use std::cell::RefCell;
-                    let cache = RefCell::new(None);
-                    move |#(#params_idents),*| {
-                        let mut cache_ref = cache.borrow_mut();
-                        if cache_ref.is_none() {
-                            *cache_ref = Some(#body_tokens);
-                        }
-                        cache_ref.clone().unwrap()
-                    }
-                }
-            }
-        }
+        CaptureMode::Memoize => generate_memoized_closure(params, body_tokens, &params_idents),
     }
 }
 
@@ -1464,5 +1492,79 @@ mod tests {
         let tokens_le = generate_bin_op(op_le, &left, &right);
         let code_le = tokens_le.to_string();
         assert!(code_le.contains("<="));
+    }
+
+    mod refactor_tests {
+        use super::*;
+        use crate::semantic::CaptureMode;
+        use smol_str::SmolStr;
+
+        #[test]
+        fn test_generate_memoized_closure() {
+            // Manual construction of a memoized closure expression
+            let body = AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(42),
+                glossa_type: GlossaType::Number,
+            };
+
+            let params: Vec<SmolStr> = vec![];
+            let tokens = generate_closure(&params, &body, &CaptureMode::Memoize);
+            let code = tokens.to_string();
+
+            // Verify structure
+            assert!(code.contains("RefCell"));
+            assert!(code.contains("new"));
+            assert!(code.contains("None"));
+            assert!(code.contains("borrow_mut"));
+            assert!(code.contains("unwrap"));
+        }
+
+        #[test]
+        fn test_generate_trait_parts_manual() {
+            // Manual construction of a trait method
+            let method = AnalyzedMethod {
+                name: SmolStr::new("test_method"),
+                params: vec![
+                    (SmolStr::new("self"), GlossaType::Unknown), // Self param
+                    (SmolStr::new("arg1"), GlossaType::Number),
+                ],
+                body: None,
+                return_type: Some(GlossaType::Boolean),
+            };
+
+            let parts = generate_trait_method_parts(&method);
+
+            assert_eq!(parts.name.to_string(), "g_test_method");
+
+            // Check params
+            let params_str: Vec<String> = parts.params.iter().map(|t| t.to_string()).collect();
+            assert_eq!(params_str.len(), 2);
+            assert_eq!(params_str[0], "& self");
+            assert!(params_str[1].contains("g_arg1"));
+            assert!(params_str[1].contains("i64"));
+
+            // Check return type
+            assert!(parts.return_type.is_some());
+            assert_eq!(parts.return_type.unwrap().to_string(), "bool");
+        }
+
+        #[test]
+        fn test_generate_checked_arithmetic() {
+            let left = AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(10),
+                glossa_type: GlossaType::Number,
+            };
+            let right = AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(20),
+                glossa_type: GlossaType::Number,
+            };
+
+            let op_add = BinaryOp::Add;
+            let tokens = generate_bin_op(op_add, &left, &right);
+            let code = tokens.to_string();
+
+            assert!(code.contains("checked_add"));
+            assert!(code.contains("expect"));
+        }
     }
 }
