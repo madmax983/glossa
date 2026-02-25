@@ -776,11 +776,7 @@ fn process_explicit_quantifiers(
 }
 
 /// Helper: Process find operations
-fn process_find(
-    asm_stmt: &AssembledStatement,
-    scope: &Scope,
-    current_expr: &mut AnalyzedExpr,
-) {
+fn process_find(asm_stmt: &AssembledStatement, scope: &Scope, current_expr: &mut AnalyzedExpr) {
     // Find operation: .iter().find(predicate)
     let mut found_predicate = false;
 
@@ -863,7 +859,7 @@ fn extract_comparison_value(asm_stmt: &AssembledStatement, scope: &Scope) -> Ana
         let lemma = normalize_greek(&genitive.lemma);
         if scope.is_defined(&lemma) {
             return AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(lemma.into()),
+                expr: AnalyzedExprKind::Variable(lemma),
                 glossa_type: GlossaType::Number,
             };
         }
@@ -895,7 +891,7 @@ fn extract_comparison_value(asm_stmt: &AssembledStatement, scope: &Scope) -> Ana
         // Strategy 3: Check if original name exists (maybe variable IS the genitive form?)
         if scope.is_defined(&normalized) {
             return AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(normalized.into()),
+                expr: AnalyzedExprKind::Variable(normalized),
                 glossa_type: GlossaType::Number,
             };
         }
@@ -990,6 +986,88 @@ mod tests {
         let expr = extract_comparison_value(&stmt, &scope);
         if let AnalyzedExprKind::Variable(name) = expr.expr {
             assert_eq!(name, "ονομα", "Expected lemma 'ονομα', got '{}'", name);
+        } else {
+            panic!("Expected variable");
+        }
+    }
+
+    #[test]
+    fn test_extract_comparison_value_stripped() {
+        let mut scope = Scope::new();
+        scope.define("θ", GlossaType::Number);
+
+        // 'thou' (θου) -> 'th' (θ)
+        let mut stmt = AssembledStatement::default();
+        stmt.genitives.push(Constituent {
+            lemma: "dummy".into(), // Lemma lookup fails (not 'θ')
+            original: "θου".into(),
+            normalized: "θου".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        let expr = extract_comparison_value(&stmt, &scope);
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(name, "θ", "Expected stripped name 'θ', got '{}'", name);
+        } else {
+            panic!("Expected variable");
+        }
+    }
+
+    #[test]
+    fn test_extract_comparison_value_original() {
+        let mut scope = Scope::new();
+        // Define 'myos' (μυός) as a variable directly (maybe it's a genitive variable?)
+        scope.define("μυος", GlossaType::Number);
+
+        let mut stmt = AssembledStatement::default();
+        stmt.genitives.push(Constituent {
+            lemma: "mys".into(), // Lemma lookup fails (not 'μυος')
+            original: "μυός".into(),
+            normalized: "μυος".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        let expr = extract_comparison_value(&stmt, &scope);
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(
+                name, "μυος",
+                "Expected original name 'μυος', got '{}'",
+                name
+            );
+        } else {
+            panic!("Expected variable");
+        }
+    }
+
+    #[test]
+    fn test_extract_comparison_value_fallback() {
+        let scope = Scope::new();
+        // Nothing defined in scope. Should default to stripped name.
+
+        let mut stmt = AssembledStatement::default();
+        stmt.genitives.push(Constituent {
+            lemma: "dummy".into(),
+            original: "θου".into(),
+            normalized: "θου".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        let expr = extract_comparison_value(&stmt, &scope);
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(
+                name, "θ",
+                "Expected fallback to stripped name 'θ', got '{}'",
+                name
+            );
         } else {
             panic!("Expected variable");
         }
