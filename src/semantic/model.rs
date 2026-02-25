@@ -563,13 +563,115 @@ mod tests {
     fn test_type_to_greek() {
         assert_eq!(GlossaType::Number.to_greek(), "ἀριθμός");
         assert_eq!(GlossaType::String.to_greek(), "ὄνομα");
+        assert_eq!(GlossaType::Boolean.to_greek(), "ἀληθές");
+        assert_eq!(
+            GlossaType::List(Box::new(GlossaType::Number)).to_greek(),
+            "λίστη"
+        );
+        assert_eq!(
+            GlossaType::Set(Box::new(GlossaType::Number)).to_greek(),
+            "σύνολον"
+        );
+        assert_eq!(
+            GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number)).to_greek(),
+            "χάρτης"
+        );
+        assert_eq!(
+            GlossaType::Option(Box::new(GlossaType::Number)).to_greek(),
+            "εὑρεθείη"
+        );
+        assert_eq!(
+            GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String))
+                .to_greek(),
+            "ἀποτέλεσμα"
+        );
+        assert_eq!(GlossaType::Unit.to_greek(), "οὐδέν");
+        assert_eq!(
+            GlossaType::Struct {
+                name: "User".into(),
+                gender: Gender::Masculine,
+                fields: vec![]
+            }
+            .to_greek(),
+            "εἶδος"
+        );
+        assert_eq!(
+            GlossaType::Function {
+                params: vec![],
+                returns: Box::new(GlossaType::Unit)
+            }
+            .to_greek(),
+            "ἔργον"
+        );
+        assert_eq!(GlossaType::Unknown.to_greek(), "ἄγνωστον");
     }
 
     #[test]
     fn test_type_compatibility() {
+        // Base types
         assert!(GlossaType::Number.is_compatible(&GlossaType::Number));
         assert!(!GlossaType::Number.is_compatible(&GlossaType::String));
+        assert!(GlossaType::Boolean.is_compatible(&GlossaType::Boolean));
+
+        // Unknown compatibility
         assert!(GlossaType::Unknown.is_compatible(&GlossaType::Number));
+        assert!(GlossaType::String.is_compatible(&GlossaType::Unknown));
+
+        // List compatibility
+        let list_num = GlossaType::List(Box::new(GlossaType::Number));
+        let list_str = GlossaType::List(Box::new(GlossaType::String));
+        let list_unknown = GlossaType::List(Box::new(GlossaType::Unknown));
+
+        assert!(list_num.is_compatible(&list_num));
+        assert!(!list_num.is_compatible(&list_str));
+        assert!(list_num.is_compatible(&list_unknown));
+        assert!(list_unknown.is_compatible(&list_num));
+
+        // Set compatibility
+        let set_num = GlossaType::Set(Box::new(GlossaType::Number));
+        let set_unknown = GlossaType::Set(Box::new(GlossaType::Unknown));
+        assert!(set_num.is_compatible(&set_unknown));
+
+        // Map compatibility
+        let map_s_n =
+            GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number));
+        let map_s_u =
+            GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Unknown));
+        let map_u_n =
+            GlossaType::Map(Box::new(GlossaType::Unknown), Box::new(GlossaType::Number));
+
+        assert!(map_s_n.is_compatible(&map_s_u));
+        assert!(map_s_n.is_compatible(&map_u_n));
+        assert!(!map_s_n.is_compatible(&GlossaType::Map(
+            Box::new(GlossaType::Number),
+            Box::new(GlossaType::Number)
+        )));
+
+        // Option compatibility
+        let opt_num = GlossaType::Option(Box::new(GlossaType::Number));
+        let opt_unknown = GlossaType::Option(Box::new(GlossaType::Unknown));
+        assert!(opt_num.is_compatible(&opt_unknown));
+
+        // Result compatibility
+        let res_n_s = GlossaType::Result(
+            Box::new(GlossaType::Number),
+            Box::new(GlossaType::String),
+        );
+        let res_u_s = GlossaType::Result(
+            Box::new(GlossaType::Unknown),
+            Box::new(GlossaType::String),
+        );
+        let res_n_u = GlossaType::Result(
+            Box::new(GlossaType::Number),
+            Box::new(GlossaType::Unknown),
+        );
+
+        assert!(res_n_s.is_compatible(&res_u_s));
+        assert!(res_n_s.is_compatible(&res_n_u));
+        assert!(!res_n_s.is_compatible(&GlossaType::Result(
+            Box::new(GlossaType::Boolean),
+            Box::new(GlossaType::String)
+        )));
     }
 
     #[test]
