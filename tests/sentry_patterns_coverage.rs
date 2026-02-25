@@ -25,12 +25,12 @@ fn test_any_operator_pattern() {
     let result = run_file(&file_path);
     // We expect this to fail at Rust Codegen phase due to type mismatch (referencing issue)
     // or println display issue, but that means it passed semantic analysis!
-    if result.is_err() {
-        let err = result.as_ref().unwrap_err().to_string();
+    if let Err(err) = result {
+        let err_msg = err.to_string();
         // If it fails with "Undefined variable", then coverage is NOT hit correctly/logic is broken.
         // If it fails with "Rustc Error", we are good.
-        if err.contains("Rustc Error") {
-            return;
+        if err_msg.contains("Rustc Error") {
+            // Success: semantic analysis passed, failed at codegen
         }
     }
     // If it unexpectedly succeeds, that's fine too.
@@ -56,10 +56,10 @@ fn test_find_operator_pattern() {
     f.write_all(code.as_bytes()).unwrap();
 
     let result = run_file(&file_path);
-    if result.is_err() {
-        let err = result.as_ref().unwrap_err().to_string();
-        if err.contains("Rustc Error") {
-            return;
+    if let Err(err) = result {
+        let err_msg = err.to_string();
+        if err_msg.contains("Rustc Error") {
+            // Success: semantic analysis passed, failed at codegen
         }
     }
 }
