@@ -1067,7 +1067,7 @@ impl Default for Assembler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::morphology::{analyze, Tense, Voice};
+    use crate::morphology::{Tense, Voice, analyze};
 
     #[test]
     fn test_operator_detection() {

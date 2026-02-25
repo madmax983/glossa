@@ -31,9 +31,9 @@
 //! This allows for authentic Greek syntax where emphasis is conveyed through word order
 //! without changing the semantic meaning.
 
+pub mod assembler;
 #[cfg(test)]
 mod assembler_tests;
-pub mod assembler;
 #[cfg(test)]
 mod classification_tests;
 pub(crate) mod control_flow;
