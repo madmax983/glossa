@@ -1,6 +1,6 @@
-use glossa::codegen::{sanitize_name, to_rust_type, generate_type_tokens};
-use glossa::semantic::GlossaType;
+use glossa::codegen::{generate_type_tokens, sanitize_name, to_rust_type};
 use glossa::morphology::Gender;
+use glossa::semantic::GlossaType;
 use smol_str::SmolStr;
 
 #[test]
@@ -62,7 +62,7 @@ fn test_generate_type_tokens_coverage() {
     // Function
     let t_fn = generate_type_tokens(&GlossaType::Function {
         params: vec![],
-        returns: Box::new(GlossaType::Unit)
+        returns: Box::new(GlossaType::Unit),
     });
     assert_eq!(t_fn.to_string(), "fn");
 
@@ -77,7 +77,7 @@ fn test_generate_type_tokens_coverage() {
     // Map
     let t_map = generate_type_tokens(&GlossaType::Map(
         Box::new(GlossaType::String),
-        Box::new(GlossaType::Number)
+        Box::new(GlossaType::Number),
     ));
     assert_eq!(t_map.to_string(), "HashMap < String , i64 >");
 
@@ -88,7 +88,7 @@ fn test_generate_type_tokens_coverage() {
     // Result
     let t_res = generate_type_tokens(&GlossaType::Result(
         Box::new(GlossaType::Number),
-        Box::new(GlossaType::String)
+        Box::new(GlossaType::String),
     ));
     assert_eq!(t_res.to_string(), "Result < i64 , String >");
 
