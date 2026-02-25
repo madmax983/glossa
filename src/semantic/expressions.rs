@@ -15,11 +15,11 @@
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
-use crate::semantic::assembly::Assembler;
-use crate::semantic::assembly::Literal;
+use crate::semantic::assembler::Assembler;
+use crate::semantic::assembler::Literal;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
 use crate::semantic::resolver::Scope;
-use crate::semantic::types::GlossaType;
+use crate::semantic::GlossaType;
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
 ///

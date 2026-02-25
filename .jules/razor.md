@@ -77,3 +77,18 @@
 **Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
 **Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
 **Saved:** 2 folders, reduced directory depth.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly/` directory contained `mod.rs` (logic) and `model.rs` (DTOs), introducing unnecessary nesting.
+**Cut:** Flattened into single `src/semantic/assembler.rs`.
+**Saved:** 1 folder, 1 file, simplified module structure.
+
+## [Reduction]
+**Bloat:** `src/parser/recursion.rs` contained a single function `check_recursion_depth`.
+**Cut:** Merged into `src/parser/common.rs`.
+**Saved:** 1 file, reduced module fragmentation.
+
+## [Reduction]
+**Bloat:** `src/semantic/types.rs` defined `GlossaType` separate from `AnalyzedStatement` in `model.rs`.
+**Cut:** Merged `types.rs` into `src/semantic/model.rs`.
+**Saved:** 1 file, unified semantic data models.

@@ -1,7 +1,7 @@
 use crate::ast::{Expr, Word};
 use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person, analyze};
 use crate::semantic::AssemblyError;
-use crate::semantic::assembly::{
+use crate::semantic::assembler::{
     Assembler, MAX_ADJECTIVES, MAX_ARRAYS, MAX_BLOCKS, MAX_GENITIVES, MAX_INDEX_ACCESSES,
     MAX_LITERALS, MAX_NESTED_PHRASES, MAX_NOMINATIVES, MAX_OPERATORS, MAX_PARTICIPLES,
     MAX_PROPERTY_ACCESSES, MAX_UNWRAPS,
@@ -796,7 +796,7 @@ fn test_verbless_statement() {
 
 #[test]
 fn test_assembled_statement_derive_coverage() {
-    use crate::semantic::assembly::AssembledStatement;
+    use crate::semantic::assembler::AssembledStatement;
     // Cover #[derive(Clone, Debug, Default)] for AssembledStatement
     let stmt = AssembledStatement::default();
     let cloned = stmt.clone();
@@ -978,7 +978,7 @@ fn test_assembler_error_cases_coverage() {
 #[test]
 fn test_constituent_derive_coverage() {
     use crate::morphology::Case;
-    use crate::semantic::assembly::Constituent;
+    use crate::semantic::assembler::Constituent;
     use smol_str::SmolStr;
 
     let c = Constituent {
