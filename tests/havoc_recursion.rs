@@ -6,16 +6,29 @@ fn test_deep_phrase_recursion() {
     // Manually build deeply nested Expr::Phrase
     // Phrase(vec![Phrase(vec![...])])
     // This bypasses the parser's recursion check which only checks source string brackets.
-    let depth = 20_000;
+    //
+    // NOTE: We use a depth of 500. This is enough to trigger the MAX_RECURSION_DEPTH (50)
+    // check in the semantic analyzer, but small enough to avoid a stack overflow during
+    // `Expr::clone()` or `Drop` (which are recursive) on standard stack sizes.
+    // A depth of 20,000 would crash the test runner with a stack overflow.
+    let depth = 500;
     let mut expr = Expr::NumberLiteral(1);
 
     for _ in 0..depth {
         expr = Expr::Phrase(vec![expr]);
     }
 
+    // We must wrap this in a valid statement pattern that USES the value.
+    // We use "ἄνθρωπος" (man) as the subject because it is a known Nominative noun.
+    // "x" might be analyzed as Unknown/Object, causing "Binding without subject" error.
+    // "ἄνθρωπος [deep_expr] ἔστω." (Let man be [deep_expr])
     let stmt = Statement::Regular {
         clauses: vec![Clause {
-            expressions: vec![expr],
+            expressions: vec![
+                Expr::Word(Word::new("ἄνθρωπος")),
+                expr,
+                Expr::Word(Word::new("ἔστω")),
+            ],
         }],
         is_query: false,
         is_propagate: false,
