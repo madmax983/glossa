@@ -80,7 +80,11 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                 .trim_start_matches("---- ")
                 .trim_end_matches(" stdout ----");
             // Remove module path if present for cleaner display
-            let name = name_part.split("::").last().unwrap_or(name_part).to_string();
+            let name = name_part
+                .split("::")
+                .last()
+                .unwrap_or(name_part)
+                .to_string();
 
             // Capture output until next "----" or empty line followed by "failures:"
             i += 1;
@@ -247,8 +251,10 @@ pub fn run_tests(input: &Path) -> Result<()> {
                     name.cyan().bold().underlined()
                 );
                 // Create a box for the error message
-                let border_top = "╭───────────────────────────────────────────────────────────────────╮".red();
-                let border_bottom = "╰───────────────────────────────────────────────────────────────────╯".red();
+                let border_top =
+                    "╭───────────────────────────────────────────────────────────────────╮".red();
+                let border_bottom =
+                    "╰───────────────────────────────────────────────────────────────────╯".red();
 
                 println!("{}", border_top);
                 for line in msg.lines() {

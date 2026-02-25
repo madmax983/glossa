@@ -222,12 +222,7 @@ pub fn run_file(input: &Path) -> Result<()> {
         )
         .yellow();
 
-        return Err(miette::miette!(
-            "{}\n{}\n\n{}",
-            error_msg,
-            help_msg,
-            stderr
-        ));
+        return Err(miette::miette!("{}\n{}\n\n{}", error_msg, help_msg, stderr));
     }
 
     status.success();
