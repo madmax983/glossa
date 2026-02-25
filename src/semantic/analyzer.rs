@@ -53,20 +53,20 @@ impl StatementAnalyzer for Analyzer {
         {
             // Register the function in the scope
             if let AnalyzedStatement::FunctionDef {
-                    name,
-                    params,
-                    return_type,
-                    ..
-                } = &func_def
-                {
-                    let param_types: Vec<GlossaType> = params
-                        .iter()
-                        .map(|(_, ty)| ty.clone().unwrap_or(GlossaType::Unknown))
-                        .collect();
-                    scope.define_function(name.clone(), param_types, return_type.clone());
-                }
-                return Ok(vec![func_def]);
+                name,
+                params,
+                return_type,
+                ..
+            } = &func_def
+            {
+                let param_types: Vec<GlossaType> = params
+                    .iter()
+                    .map(|(_, ty)| ty.clone().unwrap_or(GlossaType::Unknown))
+                    .collect();
+                scope.define_function(name.clone(), param_types, return_type.clone());
             }
+            return Ok(vec![func_def]);
+        }
 
         // 2. Check for control flow (if, while, etc.)
         // Pass self as the analyzer
