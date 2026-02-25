@@ -77,3 +77,13 @@
 **Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
 **Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
 **Saved:** 2 folders, reduced directory depth.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly/` directory wrapper for `mod.rs` and `model.rs`.
+**Cut:** Flattened to `src/semantic/assembly.rs` by merging files.
+**Saved:** 1 directory, 1 file, reduced module depth.
+
+## [Reduction]
+**Bloat:** `src/parser/recursion.rs` was a single function file.
+**Cut:** Merged `check_recursion_depth` into `src/parser/mod.rs`.
+**Saved:** 1 file, reduced module fragmentation.
