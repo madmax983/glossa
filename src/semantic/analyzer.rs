@@ -48,10 +48,11 @@ impl StatementAnalyzer for Analyzer {
         scope: &mut Scope,
     ) -> Result<Vec<AnalyzedStatement>, GlossaError> {
         // 1. Check for function definitions
-        if contains_function_definition_verb(stmt) {
-            if let Some(func_def) = parse_function_definition(stmt, scope, self)? {
-                // Register the function in the scope
-                if let AnalyzedStatement::FunctionDef {
+        if contains_function_definition_verb(stmt)
+            && let Some(func_def) = parse_function_definition(stmt, scope, self)?
+        {
+            // Register the function in the scope
+            if let AnalyzedStatement::FunctionDef {
                     name,
                     params,
                     return_type,
@@ -66,7 +67,6 @@ impl StatementAnalyzer for Analyzer {
                 }
                 return Ok(vec![func_def]);
             }
-        }
 
         // 2. Check for control flow (if, while, etc.)
         // Pass self as the analyzer
@@ -142,11 +142,7 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
 
         // Handle trait implementations
         if let Statement::TraitImpl(trait_impl) = stmt {
-            analyzed_statements.push(analyze_trait_impl(
-                trait_impl,
-                &mut scope,
-                &mut analyzer,
-            )?);
+            analyzed_statements.push(analyze_trait_impl(trait_impl, &mut scope, &mut analyzer)?);
             continue;
         }
 

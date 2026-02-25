@@ -31,9 +31,9 @@
 //! This allows for authentic Greek syntax where emphasis is conveyed through word order
 //! without changing the semantic meaning.
 
+pub mod analyzer;
 #[cfg(test)]
 mod assembler_tests;
-pub mod analyzer;
 pub mod assembly;
 #[cfg(test)]
 mod classification_tests;
@@ -49,8 +49,8 @@ mod resolver;
 pub mod traits;
 mod types;
 
-pub use analyzer::{AnalyzedProgram, analyze_program};
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
+pub use analyzer::{AnalyzedProgram, analyze_program};
 pub(crate) use assembly::Assembler;
 pub use assembly::{
     AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,
@@ -59,9 +59,9 @@ pub use model::*;
 pub use resolver::*;
 pub use types::*;
 
-use crate::ast::{Statement};
+use self::expressions::feed_expr_to_assembler_with_context;
+use crate::ast::Statement;
 use crate::errors::GlossaError;
-use self::expressions::{feed_expr_to_assembler_with_context};
 
 /// Analyze a single statement using the slot-based assembler
 pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
