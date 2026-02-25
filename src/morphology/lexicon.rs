@@ -2,6 +2,56 @@
 //!
 //! Contains known words, irregular forms, and built-in functions
 //! for ΓΛΩΣΣΑ.
+//!
+//! # Guide to the Lexicon
+//!
+//! The Lexicon is the dictionary of the language. It maps normalized Greek words
+//! to their morphological properties and optional Rust equivalents.
+//!
+//! ## Anatomy of an Entry
+//!
+//! Each entry is a [`LexiconEntry`] struct:
+//!
+//! * **`lemma`**: The "dictionary form" of the word (e.g., `τρέχω` for "run", not `τρέχεις`).
+//! * **`pos`**: Part of Speech (Noun, Verb, Adjective, etc.).
+//! * **`meaning`**: A human-readable description (used in tooltips/docs).
+//! * **`rust_equiv`**: The Rust code this maps to (e.g., `println!` for `λέγω`).
+//! * **Grammar Fields**: `case`, `number`, `person`, etc. specify the *exact* form this entry represents.
+//!
+//! ## How to Add a New Word
+//!
+//! To add a word (e.g., the verb "to calculate" - *λογίζομαι*):
+//!
+//! 1. **Choose the Lemma**: `λογιζομαι` (1st person singular present indicative).
+//! 2. **Add Forms**: Add entries for the forms you want to support.
+//!
+//! ```rust,ignore
+//! // λογίζομαι - to calculate
+//! m.insert(
+//!     "λογιζομαι",
+//!     LexiconEntry {
+//!         lemma: "λογιζομαι",
+//!         pos: PartOfSpeech::Verb,
+//!         gender: None,
+//!         meaning: "calculate, reckon",
+//!         rust_equiv: Some("calculate"), // or None if user-defined
+//!         case: None,
+//!         number: Some(Number::Singular),
+//!         person: Some(Person::First),
+//!         tense: Some(Tense::Present),
+//!         mood: Some(Mood::Indicative),
+//!         voice: Some(Voice::Middle),
+//!     },
+//! );
+//! ```
+//!
+//! ## Irregularities
+//!
+//! While the `conjugation` and `declension` modules handle regular rules,
+//! the Lexicon is the place for:
+//! * **Irregular Verbs**: `εἰμί` (to be) is highly irregular.
+//! * **Function Mappings**: Mapping `λέγε` directly to `println!`.
+//! * **Keywords**: `εἰ` (if), `ἕως` (while).
 
 use super::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
 use rustc_hash::FxHashMap;
@@ -14,21 +64,31 @@ use std::sync::LazyLock;
 #[derive(Debug, Clone, Copy)]
 pub struct LexiconEntry {
     /// The dictionary form (lemma)
+    ///
+    /// Example: "λεγω" for the verb "to say".
     pub lemma: &'static str,
-    /// Part of speech
+    /// Part of speech (Verb, Noun, etc.)
     pub pos: PartOfSpeech,
-    /// Gender (for nouns/adjectives)
+    /// Gender (only for Nouns, Adjectives, Pronouns, Articles)
     pub gender: Option<Gender>,
-    /// Semantic meaning in the language
+    /// Semantic meaning (English description)
     pub meaning: &'static str,
-    /// Rust equivalent (for code generation)
+    /// Rust equivalent string (for codegen)
+    ///
+    /// If `Some`, this string is used directly in the generated Rust code.
+    /// Example: `Some("println!")` for `λέγω`.
     pub rust_equiv: Option<&'static str>,
-    /// Grammatical features for this specific form
+    /// Case (for nominals)
     pub case: Option<Case>,
+    /// Number (Singular/Plural)
     pub number: Option<Number>,
+    /// Person (First/Second/Third)
     pub person: Option<Person>,
+    /// Tense (Present, Aorist, etc.)
     pub tense: Option<Tense>,
+    /// Mood (Indicative, Imperative, etc.)
     pub mood: Option<Mood>,
+    /// Voice (Active, Middle, Passive)
     pub voice: Option<Voice>,
 }
 
@@ -1942,7 +2002,7 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     );
 
     // NOTE: ἤ (or) handled by boolean_operator(), not lexicon
-    // Avoids conflict with ᾖ (subjunctive εἰμί)
+    // Avoids conflict with ᾖ (subjunctive of εἰμί) which also normalizes to η
 
     // οὐ/οὐκ/οὐχ - not (!)
     for neg in ["ου", "ουκ", "ουχ"] {

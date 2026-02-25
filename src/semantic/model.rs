@@ -15,7 +15,10 @@ pub enum AnalyzedStatement {
     /// Variable binding
     ///
     /// # Example
-    /// `ξ πέντε ἔστω.` -> `let g_x = 5;`
+    /// ```glossa
+    /// ξ πέντε ἔστω.
+    /// ```
+    /// -> `let g_x = 5;`
     Binding {
         name: SmolStr,
         value: AnalyzedExpr,
@@ -24,27 +27,41 @@ pub enum AnalyzedStatement {
     /// Assignment to existing variable
     ///
     /// # Example
-    /// `ξ δέκα γίγνεται.` -> `g_x = 10;`
+    /// ```glossa
+    /// ξ δέκα γίγνεται.
+    /// ```
+    /// -> `g_x = 10;`
     Assignment { name: SmolStr, value: AnalyzedExpr },
     /// Print statement
     ///
     /// # Example
-    /// `«χαῖρε» λέγε.` -> `println!("χαῖρε");`
+    /// ```glossa
+    /// «χαῖρε» λέγε.
+    /// ```
+    /// -> `println!("χαῖρε");`
     Print(Vec<AnalyzedExpr>),
     /// Expression statement (side effect)
     ///
     /// # Example
-    /// `array.push(1).`
+    /// ```glossa
+    /// array.push(1).
+    /// ```
     Expression(Vec<AnalyzedExpr>),
     /// Query statement (print with newline)
     ///
     /// # Example
-    /// `ξ?` -> `println!("{}", g_x);`
+    /// ```glossa
+    /// ξ?
+    /// ```
+    /// -> `println!("{}", g_x);`
     Query(Vec<AnalyzedExpr>),
     /// If conditional
     ///
     /// # Example
-    /// `εἰ ξ > 5, ... εἰ δὲ μή, ...`
+    /// ```glossa
+    /// εἰ ξ > 5, ... εἰ δὲ μή, ...
+    /// ```
+    /// -> `if g_x > 5 { ... } else { ... }`
     If {
         condition: Box<AnalyzedExpr>,
         then_body: Vec<AnalyzedStatement>,
@@ -53,7 +70,10 @@ pub enum AnalyzedStatement {
     /// While loop
     ///
     /// # Example
-    /// `ἕως ξ < 10, ...`
+    /// ```glossa
+    /// ἕως ξ < 10, ...
+    /// ```
+    /// -> `while g_x < 10 { ... }`
     While {
         condition: Box<AnalyzedExpr>,
         body: Vec<AnalyzedStatement>,
@@ -61,7 +81,10 @@ pub enum AnalyzedStatement {
     /// For loop
     ///
     /// # Example
-    /// `διὰ α, β λέγε.` -> `for b in a { println!("{}", b); }`
+    /// ```glossa
+    /// διὰ α, β λέγε.
+    /// ```
+    /// -> `for b in a { println!("{}", b); }`
     For {
         variable: SmolStr,
         iterator: Box<AnalyzedExpr>,
@@ -70,7 +93,10 @@ pub enum AnalyzedStatement {
     /// Match expression
     ///
     /// # Example
-    /// `κατά ξ { 1 => ... }`
+    /// ```glossa
+    /// κατά ξ { 1 => ... }
+    /// ```
+    /// -> `match g_x { 1 => ... }`
     Match {
         scrutinee: Box<AnalyzedExpr>,
         arms: Vec<(AnalyzedExpr, Vec<AnalyzedStatement>)>,
@@ -78,22 +104,34 @@ pub enum AnalyzedStatement {
     /// Break statement
     ///
     /// # Example
-    /// `παῦε.`
+    /// ```glossa
+    /// παῦε.
+    /// ```
+    /// -> `break;`
     Break,
     /// Continue statement
     ///
     /// # Example
-    /// `συνέχιζε.`
+    /// ```glossa
+    /// συνέχιζε.
+    /// ```
+    /// -> `continue;`
     Continue,
     /// Return statement
     ///
     /// # Example
-    /// `δός 5.`
+    /// ```glossa
+    /// δός 5.
+    /// ```
+    /// -> `return 5;`
     Return { value: Option<Box<AnalyzedExpr>> },
     /// Function definition
     ///
     /// # Example
-    /// `func ὁρίζειν (x)· ...`
+    /// ```glossa
+    /// add ὁρίζειν (a, b)· ...
+    /// ```
+    /// -> `fn g_add(a: i64, b: i64) { ... }`
     FunctionDef {
         name: SmolStr,
         params: Vec<(SmolStr, Option<GlossaType>)>,
@@ -103,7 +141,10 @@ pub enum AnalyzedStatement {
     /// Type definition (struct)
     ///
     /// # Example
-    /// `εἶδος User ...`
+    /// ```glossa
+    /// εἶδος User ...
+    /// ```
+    /// -> `struct User { ... }`
     TypeDefinition {
         name: SmolStr,
         fields: Vec<(SmolStr, GlossaType)>,
@@ -111,7 +152,10 @@ pub enum AnalyzedStatement {
     /// Trait definition
     ///
     /// # Example
-    /// `χαρακτήρ Show ...`
+    /// ```glossa
+    /// χαρακτήρ Show ...
+    /// ```
+    /// -> `trait Show { ... }`
     TraitDefinition {
         name: SmolStr,
         methods: Vec<AnalyzedMethod>,
@@ -119,7 +163,10 @@ pub enum AnalyzedStatement {
     /// Trait implementation
     ///
     /// # Example
-    /// `εἶδος User τῷ Show ἐμπίπτειν ...`
+    /// ```glossa
+    /// εἶδος User τῷ Show ἐμπίπτειν ...
+    /// ```
+    /// -> `impl Show for User { ... }`
     TraitImplementation {
         trait_name: SmolStr,
         type_name: SmolStr,
@@ -128,7 +175,10 @@ pub enum AnalyzedStatement {
     /// Test declaration
     ///
     /// # Example
-    /// `δοκιμή «test» ... τέλος.`
+    /// ```glossa
+    /// δοκιμή «test» ... τέλος.
+    /// ```
+    /// -> `#[test] fn test() { ... }`
     TestDeclaration {
         name: String,
         body: Vec<AnalyzedStatement>,
