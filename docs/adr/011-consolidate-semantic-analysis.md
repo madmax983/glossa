@@ -4,7 +4,7 @@ Date: 2024-10-27
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -18,15 +18,20 @@ However, as the language evolved, several issues emerged:
 
 ## Decision
 
-We have decided to consolidate the semantic analysis structure:
+We have decided to consolidate the semantic analysis structure, with some modifications to the initial proposal:
 
-1.  **Merge Declarations into Statements:** The `src/semantic/declarations.rs` module is removed. Its logic is merged into `src/semantic/statements.rs`, which now handles all high-level statement analysis, including Control Flow (If, While) and Declarations (Type, Trait, Function, Test).
-2.  **Extract Expression Analysis:** Recursive descent logic for nested expressions (function calls, arithmetic) is formalized in `src/semantic/expressions.rs`. This module is used by both `statements.rs` (for conditions, initializers) and `assembler.rs` (for feeding arguments).
-3.  **Formalize Resolver:** Scope management and name resolution logic is centralized in `src/semantic/resolver.rs`. This module manages the symbol table, scope stack, and type/trait lookups.
+1.  **Orchestrator Pattern:** Instead of a monolithic `statements.rs`, the `src/semantic/mod.rs` module acts as the orchestrator (via `analyze_statement`), delegating to specialized modules.
+2.  **Specialized Modules:**
+    -   `declarations.rs` is **retained** to handle Type, Trait, Function, and Test definitions.
+    -   `control_flow.rs` handles If, While, Match logic.
+    -   `conversion.rs` handles the conversion of assembled statements.
+3.  **Extract Expression Analysis:** Recursive descent logic for nested expressions (function calls, arithmetic) is formalized in `src/semantic/expressions.rs`. This module is used by `declarations`, `control_flow`, and `assembly`.
+4.  **Formalize Resolver:** Scope management and name resolution logic is centralized in `src/semantic/resolver.rs`. This module manages the symbol table, scope stack, and type/trait lookups.
 
 ## Consequences
 
-*   **Simplified Structure:** The semantic analysis module is more cohesive, with `statements.rs` acting as the primary orchestrator for non-assembler constructs.
+*   **Modular Orchestration:** The `mod.rs` orchestrator keeps the high-level logic clean while delegating complexity to specialized submodules.
 *   **Centralized Logic:** Expression parsing and scope management are centralized, reducing duplication and bugs.
-*   **Explicit Dependencies:** The relationships between modules are clearer: `Statements` depends on `Expressions` and `Resolver`; `Assembler` depends on `Expressions`.
-*   **Documentation Update:** Architecture diagrams must be updated to reflect the removal of `declarations` and the prominence of `statements`, `expressions`, and `resolver`.
+*   **Explicit Dependencies:** The relationships between modules are clearer: `mod.rs` depends on `declarations`, `control_flow`, and `conversion`; these depend on `expressions` and `resolver`.
+*   **Documentation Update:** Architecture diagrams have been updated to reflect the retention of `declarations`, the addition of `control_flow`, and the central role of `mod.rs`.
+*   **Note:** This implementation diverges from the original proposal (which suggested merging everything into `statements.rs`) to maintain better file-level separation of concerns.
