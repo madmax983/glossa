@@ -195,7 +195,7 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
         Cell::new(verb),
         Cell::new(object),
         Cell::new(indirect),
-        Cell::new(other.join(", ")),
+        Cell::new(other.join(", ")).fg(Color::DarkGrey),
     ]);
 }
 

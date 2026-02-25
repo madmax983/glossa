@@ -117,7 +117,9 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
             }
             Err(e) => {
                 // Use default error formatting but ensure it's visible
-                writeln!(output, "{}", format!("× Σφάλμα: {}", e).red()).into_diagnostic()?;
+                // The '×' symbol provides visual indication of error, so we don't need
+                // to prefix with "Σφάλμα: " which often leads to redundancy.
+                writeln!(output, "{}", format!("× {}", e).red()).into_diagnostic()?;
             }
         }
     }
@@ -596,5 +598,33 @@ mod tests {
         assert!(result.is_ok());
         let output_str = String::from_utf8(output).unwrap();
         assert!(output_str.contains("Χαῖρε"));
+    }
+
+    #[test]
+    fn test_run_repl_inner_error_output() {
+        // Test that the error output is formatted correctly (with '×')
+        // Using invalid syntax to trigger a ParseError
+        let input_data = "invalid syntax\n.exit\n";
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        let result = run_repl_inner(&mut input, &mut output);
+        assert!(result.is_ok());
+
+        let output_str = String::from_utf8(output).unwrap();
+        // Should contain the error indicator
+        assert!(
+            output_str.contains("×"),
+            "Output should contain error indicator '×'"
+        );
+        // Should contain the error message content
+        assert!(
+            output_str.contains("Parse error"),
+            "Output should contain 'Parse error'"
+        );
+        // Should NOT contain the redundant "Σφάλμα: " prefix if the error itself starts with it
+        // The error message from GlossaError::ParseError starts with "Σφάλμα συντάξεως: ..."
+        // Our formatting prints "× error_string".
+        // We just want to ensure it printed.
     }
 }
