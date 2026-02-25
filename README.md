@@ -121,6 +121,42 @@ To run the Quick Start example:
 cargo run --release -- examples/quickstart.γλ
 ```
 
+## The Nova Toolset (Experimental)
+
+Unlock advanced developer tools by enabling the `nova` feature.
+
+> ⚠️ **REQUIRES FEATURE NOVA**
+>
+> To use these tools, you must add `--features nova` to your command.
+
+### 1. The Mentor (Interactive Tutorial)
+Learn ΓΛΩΣΣΑ step-by-step.
+
+```bash
+cargo run --release --features nova -- mentor
+```
+
+### 2. The Cartographer (Architecture Map)
+Generate a Mermaid.js class diagram of your code.
+
+```bash
+cargo run --release --features nova -- map examples/quickstart.γλ
+```
+
+### 3. The Mosaic (Sentence Structure)
+Visualize how the compiler assembles your sentences.
+
+```bash
+cargo run --release --features nova -- mosaic examples/quickstart.γλ
+```
+
+### 4. The Bard (Scroll of Logic)
+Translate your code into an English narrative (available without `nova`).
+
+```bash
+cargo run --release -- bard examples/quickstart.γλ
+```
+
 ## Features
 
 - **Greek Syntax**: Write code using authentic Ancient Greek grammatical constructs
