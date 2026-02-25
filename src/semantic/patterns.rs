@@ -358,7 +358,7 @@ pub fn try_parse_struct_instantiation(
 /// | **Verb** | "Find" (`εὑρέ`) | `.find(predicate)` |
 pub fn detect_iterator_pattern(
     asm_stmt: &AssembledStatement,
-    _scope: &mut Scope,
+    scope: &mut Scope,
 ) -> Result<Option<AnalyzedExpr>, GlossaError> {
     // Need: (subject OR array) + (participles OR comparatives) + (print OR find verb)
     let verb = match &asm_stmt.verb {
@@ -399,7 +399,7 @@ pub fn detect_iterator_pattern(
     let mut has_ops = false;
 
     // Process adjectives (filter, any, all)
-    if process_adjectives(asm_stmt, &flags, &mut current_expr) {
+    if process_adjectives(asm_stmt, scope, &flags, &mut current_expr) {
         has_ops = true;
     }
 
@@ -410,14 +410,14 @@ pub fn detect_iterator_pattern(
     }
 
     // Handle any/all operations with explicit operators (comparatives stored as operators)
-    let is_any_all = process_explicit_quantifiers(asm_stmt, &flags, &mut current_expr);
+    let is_any_all = process_explicit_quantifiers(asm_stmt, scope, &flags, &mut current_expr);
     if is_any_all {
         return Ok(Some(current_expr));
     }
 
     // Handle find operations
     if is_find {
-        process_find(asm_stmt, &mut current_expr);
+        process_find(asm_stmt, scope, &mut current_expr);
         // Find returns Option/Result, not an iterator, so we are done
         // We assume .find() was called on current_expr
         // But wait, find returns Option<T>, so we might want to unwrap or treat as Number?
@@ -528,6 +528,7 @@ impl QuantifierFlags {
 /// Returns true if any operation was added
 fn process_adjectives(
     asm_stmt: &AssembledStatement,
+    scope: &Scope,
     flags: &QuantifierFlags,
     current_expr: &mut AnalyzedExpr,
 ) -> bool {
@@ -548,7 +549,7 @@ fn process_adjectives(
             && (rust_op == ">" || rust_op == "<")
         {
             // Found a comparative adjective!
-            let comparison_expr = extract_comparison_value(asm_stmt);
+            let comparison_expr = extract_comparison_value(asm_stmt, scope);
 
             // Determine the binary operation
             let bin_op = if rust_op == ">" {
@@ -749,6 +750,7 @@ fn process_participles(
 /// Returns true if an any/all operation was added
 fn process_explicit_quantifiers(
     asm_stmt: &AssembledStatement,
+    scope: &Scope,
     flags: &QuantifierFlags,
     current_expr: &mut AnalyzedExpr,
 ) -> bool {
@@ -762,7 +764,7 @@ fn process_explicit_quantifiers(
             bin_op,
             crate::morphology::lexicon::BinaryOp::Gt | crate::morphology::lexicon::BinaryOp::Lt
         ) {
-            let comparison_expr = extract_comparison_value(asm_stmt);
+            let comparison_expr = extract_comparison_value(asm_stmt, scope);
             let any_all_closure = create_comparison_predicate(bin_op, comparison_expr);
 
             let method = if flags.is_any { "any" } else { "all" };
@@ -783,7 +785,7 @@ fn process_explicit_quantifiers(
 }
 
 /// Helper: Process find operations
-fn process_find(asm_stmt: &AssembledStatement, current_expr: &mut AnalyzedExpr) {
+fn process_find(asm_stmt: &AssembledStatement, scope: &Scope, current_expr: &mut AnalyzedExpr) {
     // Find operation: .iter().find(predicate)
     let mut found_predicate = false;
 
@@ -794,7 +796,7 @@ fn process_find(asm_stmt: &AssembledStatement, current_expr: &mut AnalyzedExpr) 
                 bin_op,
                 crate::morphology::lexicon::BinaryOp::Gt | crate::morphology::lexicon::BinaryOp::Lt
             ) {
-                let comparison_expr = extract_comparison_value(asm_stmt);
+                let comparison_expr = extract_comparison_value(asm_stmt, scope);
                 let find_closure = create_comparison_predicate(bin_op, comparison_expr);
 
                 let new_expr = AnalyzedExpr {
@@ -860,12 +862,20 @@ fn finalize_iterator_chain(current_expr: &mut AnalyzedExpr) {
 }
 
 /// Helper: Extract comparison value for filter/find/any/all
-fn extract_comparison_value(asm_stmt: &AssembledStatement) -> AnalyzedExpr {
+fn extract_comparison_value(asm_stmt: &AssembledStatement, scope: &Scope) -> AnalyzedExpr {
     if let Some(genitive) = asm_stmt.genitives.first() {
-        // Genitive of comparison: θου μείζονα = "greater than theta"
-        // For single-letter variables, strip genitive ending
+        // Strategy 1: Use the lemma from morphological analysis (handles known irregulars like ὀνόματος -> ὄνομα)
+        let lemma = normalize_greek(&genitive.lemma);
+        if scope.is_defined(&lemma) {
+            return AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(lemma),
+                glossa_type: GlossaType::Number,
+            };
+        }
+
+        // Strategy 2: Fallback to manual stripping for unknown words (handles implicit variables)
         let normalized = normalize_greek(&genitive.original);
-        let var_name = if let Some(stem) = normalized.strip_suffix("ου") {
+        let stripped_name = if let Some(stem) = normalized.strip_suffix("ου") {
             // Strip -ου genitive ending (θου → θ)
             stem.to_string()
         } else if let Some(stem) = normalized.strip_suffix("ης") {
@@ -875,11 +885,36 @@ fn extract_comparison_value(asm_stmt: &AssembledStatement) -> AnalyzedExpr {
             // Strip -ων genitive plural ending
             stem.to_string()
         } else {
-            // Use as-is (shouldn't happen for valid genitives)
+            // Use as-is
             normalized.to_string()
         };
+
+        // If stripped name exists, use it
+        if scope.is_defined(&stripped_name) {
+            return AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(stripped_name.into()),
+                glossa_type: GlossaType::Number,
+            };
+        }
+
+        // Strategy 3: Check if original name exists (maybe variable IS the genitive form?)
+        if scope.is_defined(&normalized) {
+            return AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(normalized),
+                glossa_type: GlossaType::Number,
+            };
+        }
+
+        // Default: use stripped name if we found one, or lemma as fallback
+        // This maintains backward compatibility and provides reasonable error messages
+        let final_name = if stripped_name != normalized {
+            stripped_name
+        } else {
+            lemma.to_string()
+        };
+
         AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(var_name.into()),
+            expr: AnalyzedExprKind::Variable(final_name.into()),
             glossa_type: GlossaType::Number,
         }
     } else if let Some(literal) = asm_stmt.literals.first() {
@@ -928,5 +963,345 @@ fn create_comparison_predicate(
             params: vec![GlossaType::Number],
             returns: Box::new(GlossaType::Boolean),
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::morphology::analyze;
+    use crate::semantic::{AnalyzedExprKind, Constituent};
+
+    #[test]
+    fn test_extract_comparison_value_lemma() {
+        let mut scope = Scope::new();
+        scope.define("ονομα", GlossaType::String);
+
+        // Analyze 'onomatos'
+        let analysis = analyze("ὀνόματος");
+        println!("Analysis: {:?}", analysis);
+
+        let mut stmt = AssembledStatement::default();
+        stmt.genitives.push(Constituent {
+            lemma: smol_str::SmolStr::new(analysis.lemma.as_ref()),
+            original: "ὀνόματος".into(),
+            normalized: "ονοματος".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        let expr = extract_comparison_value(&stmt, &scope);
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(name, "ονομα", "Expected lemma 'ονομα', got '{}'", name);
+        } else {
+            panic!("Expected variable");
+        }
+    }
+
+    #[test]
+    fn test_extract_comparison_value_stripped() {
+        let mut scope = Scope::new();
+        scope.define("θ", GlossaType::Number);
+
+        // 'thou' (θου) -> 'th' (θ)
+        let mut stmt = AssembledStatement::default();
+        stmt.genitives.push(Constituent {
+            lemma: "dummy".into(), // Lemma lookup fails (not 'θ')
+            original: "θου".into(),
+            normalized: "θου".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        let expr = extract_comparison_value(&stmt, &scope);
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(name, "θ", "Expected stripped name 'θ', got '{}'", name);
+        } else {
+            panic!("Expected variable");
+        }
+    }
+
+    #[test]
+    fn test_extract_comparison_value_original() {
+        let mut scope = Scope::new();
+        // Define 'myos' (μυός) as a variable directly (maybe it's a genitive variable?)
+        scope.define("μυος", GlossaType::Number);
+
+        let mut stmt = AssembledStatement::default();
+        stmt.genitives.push(Constituent {
+            lemma: "mys".into(), // Lemma lookup fails (not 'μυος')
+            original: "μυός".into(),
+            normalized: "μυος".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        let expr = extract_comparison_value(&stmt, &scope);
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(
+                name, "μυος",
+                "Expected original name 'μυος', got '{}'",
+                name
+            );
+        } else {
+            panic!("Expected variable");
+        }
+    }
+
+    #[test]
+    fn test_extract_comparison_value_fallback() {
+        let scope = Scope::new();
+        // Nothing defined in scope. Should default to stripped name.
+
+        let mut stmt = AssembledStatement::default();
+        stmt.genitives.push(Constituent {
+            lemma: "dummy".into(),
+            original: "θου".into(),
+            normalized: "θου".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        let expr = extract_comparison_value(&stmt, &scope);
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(
+                name, "θ",
+                "Expected fallback to stripped name 'θ', got '{}'",
+                name
+            );
+        } else {
+            panic!("Expected variable");
+        }
+    }
+}
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+    use crate::semantic::{AnalyzedExprKind, Constituent};
+    #[test]
+    fn test_detect_iterator_pattern_any() {
+        // Covers process_explicit_quantifiers with scope lookup
+        let mut scope = Scope::new();
+        scope.define("x", GlossaType::Number);
+
+        let mut stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "list".into(),
+                original: "list".into(),
+                normalized: "list".into(),
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                gender: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
+        // "any" quantifier logic is checked via flags, usually checked by lemma of subject
+        // But here we manually trigger process_explicit_quantifiers by setting operators and genitives
+
+        // Mock the QuantifierFlags logic by using "τι" (any) as an extra nominative
+        // Subject must remain "list" for extract_collection to work (it rejects quantifiers)
+        stmt.nominatives.push(Constituent {
+            lemma: "τις".into(),
+            original: "τι".into(),
+            normalized: "τι".into(),
+            case: crate::morphology::Case::Nominative,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        // "greater" (operator)
+        stmt.operators
+            .push(crate::morphology::lexicon::BinaryOp::Gt);
+
+        // "than x" (genitive comparison value)
+        stmt.genitives.push(Constituent {
+            lemma: "x".into(),
+            original: "x".into(), // Normalized will match scope "x"
+            normalized: "x".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        // "print" verb to trigger detection
+        stmt.verb = Some(crate::semantic::VerbConstituent {
+            lemma: "λεγω".into(),
+            original: "λεγε".into(),
+            normalized: "λεγε".into(),
+            person: None,
+            number: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        });
+
+        let result = detect_iterator_pattern(&stmt, &mut scope);
+        assert!(result.is_ok());
+        let expr_opt = result.unwrap();
+        assert!(expr_opt.is_some());
+
+        let expr = expr_opt.unwrap();
+        // Should be MethodCall "any"
+        if let AnalyzedExprKind::MethodCall { method, args, .. } = expr.expr {
+            assert_eq!(method, "any");
+            assert_eq!(args.len(), 1);
+            // Verify argument is a closure x > x
+            // (The detailed closure structure is complex to verify, but method name is key)
+        } else {
+            panic!("Expected MethodCall 'any', got {:?}", expr.expr);
+        }
+    }
+
+    #[test]
+    fn test_detect_iterator_pattern_find() {
+        // Covers process_find with scope lookup
+        let mut scope = Scope::new();
+        scope.define("target", GlossaType::Number);
+
+        let mut stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "list".into(),
+                original: "list".into(),
+                normalized: "list".into(),
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                gender: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
+
+        // "greater" (operator)
+        stmt.operators
+            .push(crate::morphology::lexicon::BinaryOp::Gt);
+
+        // "target" (genitive)
+        stmt.genitives.push(Constituent {
+            lemma: "target".into(),
+            original: "target".into(),
+            normalized: "target".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        // "find" verb
+        stmt.verb = Some(crate::semantic::VerbConstituent {
+            lemma: "ευρισκω".into(), // is_find_verb check
+            original: "ευρε".into(),
+            normalized: "ευρε".into(),
+            person: None,
+            number: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        });
+
+        let result = detect_iterator_pattern(&stmt, &mut scope);
+        assert!(result.is_ok());
+        let expr_opt = result.unwrap();
+        assert!(expr_opt.is_some());
+
+        let expr = expr_opt.unwrap();
+        // Should be MethodCall "find"
+        if let AnalyzedExprKind::MethodCall { method, args, .. } = expr.expr {
+            assert_eq!(method, "find");
+            assert_eq!(args.len(), 1);
+        } else {
+            panic!("Expected MethodCall 'find', got {:?}", expr.expr);
+        }
+    }
+
+    #[test]
+    fn test_detect_iterator_pattern_filter() {
+        // Covers process_adjectives with scope lookup
+        let mut scope = Scope::new();
+        scope.define("threshold", GlossaType::Number);
+
+        let mut stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "list".into(),
+                original: "list".into(),
+                normalized: "list".into(),
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                gender: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
+
+        // "greater" (adjective -> filter)
+        stmt.adjectives.push(Constituent {
+            lemma: "μεγας".into(), // lemma for μείζον
+            original: "μείζονα".into(),
+            normalized: "μειζονα".into(),
+            case: crate::morphology::Case::Accusative,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        // "threshold" (genitive comparison value)
+        stmt.genitives.push(Constituent {
+            lemma: "threshold".into(),
+            original: "threshold".into(),
+            normalized: "threshold".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        // "print" verb
+        stmt.verb = Some(crate::semantic::VerbConstituent {
+            lemma: "λεγω".into(),
+            original: "λεγε".into(),
+            normalized: "λεγε".into(),
+            person: None,
+            number: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        });
+
+        let result = detect_iterator_pattern(&stmt, &mut scope);
+        assert!(result.is_ok());
+        let expr_opt = result.unwrap();
+        assert!(expr_opt.is_some());
+
+        let expr = expr_opt.unwrap();
+        // Should be MethodCall "collect" (finalized), inner is filter
+        if let AnalyzedExprKind::MethodCall {
+            method, receiver, ..
+        } = expr.expr
+        {
+            assert_eq!(method, "collect");
+            // Check inner receiver
+            if let AnalyzedExprKind::MethodCall {
+                method: inner_method,
+                ..
+            } = receiver.expr
+            {
+                assert_eq!(inner_method, "filter");
+            } else {
+                panic!("Expected inner MethodCall 'filter'");
+            }
+        } else {
+            panic!("Expected MethodCall 'collect'");
+        }
     }
 }
