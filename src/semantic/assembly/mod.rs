@@ -1,3 +1,808 @@
+//! Slot-based sentence assembler for ΓΛΩΣΣΑ
+//!
+//! This module implements a Greek-native approach to sentence parsing.
+//! Instead of relying on word order, it routes words to slots based on
+//! their grammatical case - just like Ancient Greek actually works.
+//!
+//! # The "Slot" Concept
+//!
+//! In languages like English or Rust, word order determines meaning:
+//! `func(a, b)` is different from `func(b, a)`.
+//!
+//! In Ancient Greek (and ΓΛΩΣΣΑ), word order is flexible. Meaning is determined
+//! by **case endings**. The `Assembler` acts as a state machine that collects
+//! these tokens and puts them into the correct semantic "slots".
+//!
+//! ```text
+//! ┌───────────────────────────────────────────────────────────────┐
+//! │                       The Assembler                           │
+//! │                                                               │
+//! │  Input Stream      ┌──────────────┐                           │
+//! │  "ὁ ἄνθρωπος" ────►│ Nominative   │─────► Subject (Agent)     │
+//! │  (The man)         └──────────────┘                           │
+//! │                                                               │
+//! │                    ┌──────────────┐                           │
+//! │  "τὸν λόγον"  ────►│ Accusative   │─────► Object (Patient)    │
+//! │  (the word)        └──────────────┘                           │
+//! │                                                               │
+//! │                    ┌──────────────┐                           │
+//! │  "λέγει"      ────►│ Verb         │─────► Action              │
+//! │  (says)            └──────────────┘                           │
+//! │                                                               │
+//! └───────────────────────────────────────────────────────────────┘
+//! ```
+//!
+//! ## How it works
+//!
+//! 1. **Feed**: You feed morphologically analyzed tokens one by one using [`Assembler::feed`].
+//! 2. **Route**: The assembler looks at the `Case` of the token (Nominative, Accusative, etc.)
+//!    and routes it to the corresponding pending slot.
+//! 3. **Accumulate**: Modifiers like adjectives or genitives are accumulated in lists.
+//! 4. **Finalize**: When the statement ends (e.g., at a period), you call [`Assembler::finalize`].
+//!    This checks for validity (e.g., Subject-Verb agreement) and returns the [`AssembledStatement`].
+//!
+//! ## Word Order Independence
+//!
+//! Because slots are filled by case, the following are all equivalent:
+//!
+//! * **SOV**: `ὁ ἄνθρωπος τὸν λόγον λέγει` (The man says the word)
+//! * **VSO**: `λέγει τὸν λόγον ὁ ἄνθρωπος` (Says the word the man)
+//! * **OVS**: `τὸν λόγον λέγει ὁ ἄνθρωπος` (The man says the word — with the object fronted)
+//!
+//! The assembler handles all of these correctly, producing the same assembled semantic representation.
+//!
+//! ## The Hero's Journey: A Sentence's Path
+//!
+//! Consider the sentence: `ὁ ἄνθρωπος τὸν λόγον λέγει` (The man says the word).
+//!
+//! 1. **Parsing**: The raw text is tokenized and parsed into an AST.
+//! 2. **Analysis**: Each word is morphologically analyzed:
+//!    - `ἄνθρωπος`: Noun, Nominative, Singular, Masculine
+//!    - `λόγον`: Noun, Accusative, Singular, Masculine
+//!    - `λέγει`: Verb, Present, Indicative, Active, 3rd Person, Singular
+//! 3. **Assembly**: The `Assembler` receives these analyses:
+//!    - `feed("ἄνθρωπος")` -> Sees Nominative -> Places in **Subject** slot.
+//!    - `feed("λόγον")` -> Sees Accusative -> Places in **Object** slot.
+//!    - `feed("λέγει")` -> Sees Verb -> Places in **Verb** slot.
+//! 4. **Finalization**: `finalize()` is called. It checks:
+//!    - Does the Subject (Singular) agree with the Verb (Singular)? **Yes.**
+//!    - Are there any conflicts? **No.**
+//! 5. **Result**: An `AssembledStatement` is born, ready for the next phase.
+//!
+//! This same process works regardless of the input order.
+//!
+//! ```ignore
+//! use glossa::semantic::{Assembler, AssembledStatement};
+//! use glossa::morphology::{analyze, Case, PartOfSpeech};
+//!
+//! let mut asm = Assembler::new();
+//!
+//! // "λέγει" (Verb)
+//! asm.feed(&analyze("λέγει"), "λέγει").unwrap();
+//!
+//! // "τὸν λόγον" (Object)
+//! asm.feed(&analyze("λόγον"), "λόγον").unwrap();
+//!
+//! // "ὁ ἄνθρωπος" (Subject)
+//! asm.feed(&analyze("ἄνθρωπος"), "ἄνθρωπος").unwrap();
+//!
+//! let stmt = asm.finalize().unwrap();
+//!
+//! assert!(stmt.subject.is_some());
+//! assert!(stmt.verb.is_some());
+//! assert!(stmt.object.is_some());
+//! ```
+
+pub mod model;
+pub use model::*;
+
+use crate::ast::{Expr, Word};
+pub use crate::errors::AssemblyError;
+use crate::morphology::lexicon::BinaryOp;
+use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person};
+use crate::text::normalize_greek;
+use smol_str::SmolStr;
+use unicode_normalization::UnicodeNormalization;
+
+/// The slot-based assembler
+///
+/// Feed it tokens one by one, and it routes them to the appropriate slot
+/// based on their grammatical case. When you hit end-of-statement, call
+/// `finalize()` to get the assembled statement.
+///
+/// # State Machine
+///
+/// The assembler maintains "pending" slots in its `state`. As tokens arrive:
+/// - **Nominative** -> `state.subject` (or `state.nominatives` if subject full)
+/// - **Accusative** -> `state.object`
+/// - **Dative** -> `state.indirect`
+/// - **Verb** -> `state.verb`
+///
+/// This allows tokens to arrive in any order (Subject-Verb-Object, Verb-Object-Subject, etc.)
+/// and still fill the correct semantic roles.
+pub(crate) struct Assembler {
+    state: AssembledStatement,
+}
+
+impl Assembler {
+    /// Create a new empty assembler
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    ///
+    /// let asm = Assembler::new();
+    /// ```
+    pub fn new() -> Self {
+        Assembler {
+            state: AssembledStatement::default(),
+        }
+    }
+
+    /// Mark this statement as a query
+    pub fn set_query(&mut self, is_query: bool) {
+        self.state.is_query = is_query;
+    }
+
+    /// Mark this statement as propagation (ends with `;` → converts to `?`)
+    pub fn set_propagate(&mut self, is_propagate: bool) {
+        self.state.is_propagate = is_propagate;
+    }
+
+    /// Feed a morphologically-analyzed token into the assembler
+    ///
+    /// This routes the token to the correct slot based on its case.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    /// use glossa::morphology::analyze;
+    ///
+    /// let mut asm = Assembler::new();
+    ///
+    /// // "ἄνθρωπος" (Nom) -> Subject
+    /// let subj = analyze("ἄνθρωπος");
+    /// asm.feed(&subj, "ἄνθρωπος").unwrap();
+    ///
+    /// // "λόγον" (Acc) -> Object
+    /// let obj = analyze("λόγον");
+    /// asm.feed(&obj, "λόγον").unwrap();
+    /// ```
+    #[allow(dead_code)]
+    pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
+        let normalized = normalize_greek(original);
+        self.feed_with_normalized(analysis, original, &normalized)
+    }
+
+    /// Feed a morphologically-analyzed token with pre-computed normalization
+    ///
+    /// This is a zero-allocation path when the normalized form is already known (e.g. from AST).
+    /// It bypasses the costly `normalize_greek` call which may allocate strings.
+    pub fn feed_with_normalized(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+        normalized: &str,
+    ) -> Result<(), AssemblyError> {
+        if self.check_special_markers(normalized, original) {
+            return Ok(());
+        }
+
+        if self.check_method_verbs(normalized)? {
+            return Ok(());
+        }
+
+        if self.check_operators(normalized, original)? {
+            return Ok(());
+        }
+
+        if self.check_special_properties(normalized)? {
+            return Ok(());
+        }
+
+        match analysis.part_of_speech {
+            PartOfSpeech::Noun | PartOfSpeech::Pronoun => {
+                self.handle_nominal(analysis, original, normalized)
+            }
+            PartOfSpeech::Adjective => self.handle_adjective(analysis, original, normalized),
+            PartOfSpeech::Verb => self.handle_verb(analysis, original, normalized),
+            PartOfSpeech::Numeral => {
+                // Already handled above, but keep this for explicit numeral POS
+                self.handle_nominal(analysis, original, normalized)
+            }
+            PartOfSpeech::Conjunction => {
+                // Non-operator conjunctions are ignored for now
+                Ok(())
+            }
+            _ => Ok(()), // Ignore particles, articles for now
+        }
+    }
+
+    /// Feed a string literal
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    ///
+    /// let mut asm = Assembler::new();
+    /// asm.feed_string("χαῖρε".to_string()).unwrap();
+    /// ```
+    pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Literals".to_string(),
+                max: MAX_LITERALS,
+            });
+        }
+        self.state.literals.push(Literal::String(value));
+        Ok(())
+    }
+
+    /// Feed a number literal
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    ///
+    /// let mut asm = Assembler::new();
+    /// asm.feed_number(42).unwrap();
+    /// ```
+    pub fn feed_number(&mut self, value: i64) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Literals".to_string(),
+                max: MAX_LITERALS,
+            });
+        }
+        self.state.literals.push(Literal::Number(value));
+        Ok(())
+    }
+
+    /// Feed a boolean literal
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    ///
+    /// let mut asm = Assembler::new();
+    /// asm.feed_boolean(true).unwrap();
+    /// ```
+    pub fn feed_boolean(&mut self, value: bool) -> Result<(), AssemblyError> {
+        if self.state.literals.len() >= MAX_LITERALS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Literals".to_string(),
+                max: MAX_LITERALS,
+            });
+        }
+        self.state.literals.push(Literal::Boolean(value));
+        Ok(())
+    }
+
+    /// Feed an array literal
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    /// use glossa::ast::{Expr, Word};
+    ///
+    /// let mut asm = Assembler::new();
+    /// let elements = vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)];
+    /// asm.feed_array(elements).unwrap();
+    /// ```
+    pub fn feed_array(&mut self, elements: Vec<Expr>) -> Result<(), AssemblyError> {
+        if self.state.arrays.len() >= MAX_ARRAYS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Arrays".to_string(),
+                max: MAX_ARRAYS,
+            });
+        }
+        self.state.arrays.push(elements);
+        Ok(())
+    }
+
+    /// Feed a parenthesized block (nested expression)
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    ///
+    /// let mut asm = Assembler::new();
+    /// asm.feed_block(vec![]).unwrap(); // Empty block
+    /// ```
+    pub fn feed_block(
+        &mut self,
+        statements: Vec<crate::ast::Statement>,
+    ) -> Result<(), AssemblyError> {
+        if self.state.blocks.len() >= MAX_BLOCKS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Blocks".to_string(),
+                max: MAX_BLOCKS,
+            });
+        }
+        self.state.blocks.push(statements);
+        Ok(())
+    }
+
+    /// Feed a nested phrase (parenthesized function call)
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    /// use glossa::ast::Expr;
+    ///
+    /// let mut asm = Assembler::new();
+    /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]).unwrap();
+    /// ```
+    pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) -> Result<(), AssemblyError> {
+        if self.state.nested_phrases.len() >= MAX_NESTED_PHRASES {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Nested Phrases".to_string(),
+                max: MAX_NESTED_PHRASES,
+            });
+        }
+        self.state.nested_phrases.push(terms);
+        Ok(())
+    }
+
+    /// Feed an index access (`array[index]`)
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    /// use glossa::ast::{Expr, Word};
+    ///
+    /// let mut asm = Assembler::new();
+    /// let array = Expr::Word(Word {
+    ///     original: "πίναξ".into(),
+    ///     normalized: "πιναξ".into(),
+    /// });
+    /// let index = Expr::NumberLiteral(0);
+    /// asm.feed_index_access(array, index).unwrap();
+    /// ```
+    pub fn feed_index_access(&mut self, array: Expr, index: Expr) -> Result<(), AssemblyError> {
+        if self.state.index_accesses.len() >= MAX_INDEX_ACCESSES {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Index Accesses".to_string(),
+                max: MAX_INDEX_ACCESSES,
+            });
+        }
+        self.state.index_accesses.push((array, index));
+        Ok(())
+    }
+
+    /// Feed an unwrap expression (expr!)
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    /// use glossa::ast::{Expr, Word};
+    ///
+    /// let mut asm = Assembler::new();
+    /// let expr = Expr::Word(Word {
+    ///     original: "τιμή".into(),
+    ///     normalized: "τιμη".into(),
+    /// });
+    /// asm.feed_unwrap(expr).unwrap();
+    /// ```
+    pub fn feed_unwrap(&mut self, expr: Expr) -> Result<(), AssemblyError> {
+        if self.state.unwraps.len() >= MAX_UNWRAPS {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Unwraps".to_string(),
+                max: MAX_UNWRAPS,
+            });
+        }
+        self.state.unwraps.push(expr);
+        Ok(())
+    }
+
+    /// Feed a participle (for lambda construction)
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    /// use glossa::morphology::{ParticipleAnalysis, Tense, Voice, Case, Gender, Number};
+    ///
+    /// let mut asm = Assembler::new();
+    /// let analysis = ParticipleAnalysis {
+    ///     stem: "διπλασιαζ".to_string(),
+    ///     tense: Tense::Present,
+    ///     voice: Voice::Middle,
+    ///     case: Case::Nominative,
+    ///     gender: Gender::Neuter,
+    ///     number: Number::Plural,
+    ///     confidence: 1.0,
+    /// };
+    /// asm.feed_participle(&analysis, "διπλασιαζόμενα").unwrap();
+    /// ```
+    pub fn feed_participle(
+        &mut self,
+        analysis: &crate::morphology::ParticipleAnalysis,
+        original: &str,
+    ) -> Result<(), AssemblyError> {
+        if self.state.participles.len() >= MAX_PARTICIPLES {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Participles".to_string(),
+                max: MAX_PARTICIPLES,
+            });
+        }
+        let normalized = normalize_greek(original);
+        let constituent = ParticipleConstituent {
+            // OPTIMIZATION: verb_lemma() returns a normalized string
+            verb_lemma: SmolStr::new(analysis.verb_lemma()),
+            original: original.into(),
+            normalized,
+            tense: analysis.tense,
+            voice: analysis.voice,
+            case: analysis.case,
+            gender: analysis.gender,
+            number: analysis.number,
+        };
+        self.state.participles.push(constituent);
+        Ok(())
+    }
+
+    /// Handle a noun/pronoun/adjective - route to slot by case
+    fn handle_nominal(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+        normalized: &str,
+    ) -> Result<(), AssemblyError> {
+        let constituent = Constituent {
+            // OPTIMIZATION: Lemma is guaranteed to be normalized by morphology analysis
+            lemma: SmolStr::new(analysis.lemma.as_ref()),
+            original: original.into(),
+            normalized: normalized.into(),
+            case: analysis.case.unwrap_or(Case::Nominative),
+            number: analysis.number,
+            gender: analysis.gender,
+            person: analysis.person,
+        };
+
+        match analysis.case {
+            Some(Case::Nominative) => self.handle_nominative(constituent),
+            Some(Case::Accusative) => self.handle_accusative(constituent),
+            Some(Case::Dative) => self.handle_dative(constituent),
+            Some(Case::Genitive) => self.handle_genitive(constituent),
+            Some(Case::Vocative) => self.handle_vocative(constituent),
+            None => self.handle_unknown_case(constituent),
+        }
+    }
+
+    fn handle_nominative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        // If we already have a verb, check agreement immediately!
+        if let Some(verb) = &self.state.verb {
+            // Don't check agreement if we already have a subject (this is an extra nominative)
+            if self.state.subject.is_none() {
+                self.check_agreement(&constituent, verb)?;
+            }
+        }
+
+        if self.state.subject.is_some() {
+            // Additional nominatives stored separately for function call patterns
+            if self.state.nominatives.len() >= MAX_NOMINATIVES {
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Nominatives".to_string(),
+                    max: MAX_NOMINATIVES,
+                });
+            }
+            self.state.nominatives.push(constituent);
+        } else {
+            self.state.subject = Some(constituent);
+        }
+        Ok(())
+    }
+
+    fn handle_accusative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        if self.state.object.is_some() {
+            return Err(AssemblyError::DoubleObject);
+        }
+        self.state.object = Some(constituent);
+        Ok(())
+    }
+
+    fn handle_dative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        // Dative can stack (multiple recipients) but for simplicity, one for now
+        if self.state.indirect.is_some() {
+            return Err(AssemblyError::DoubleIndirect);
+        }
+        self.state.indirect = Some(constituent);
+        Ok(())
+    }
+
+    fn handle_genitive(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        // Genitives attach to other constituents (possession, etc.)
+        if self.state.genitives.len() >= MAX_GENITIVES {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Genitives".to_string(),
+                max: MAX_GENITIVES,
+            });
+        }
+        self.state.genitives.push(constituent);
+        Ok(())
+    }
+
+    fn handle_vocative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        // Vocative is direct address - treat as subject for now
+        if self.state.subject.is_none() {
+            self.state.subject = Some(constituent);
+        }
+        Ok(())
+    }
+
+    fn handle_unknown_case(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
+        // Unknown case - try to infer from context
+        // Default to accusative (object) if we have no object
+        if self.state.object.is_none() {
+            self.state.object = Some(constituent);
+            Ok(())
+        } else {
+            Err(AssemblyError::DoubleObject)
+        }
+    }
+
+    /// Handle a verb
+    fn handle_verb(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+        normalized: &str,
+    ) -> Result<(), AssemblyError> {
+        if self.state.verb.is_some() {
+            return Err(AssemblyError::DoubleVerb);
+        }
+
+        let verb_constituent = VerbConstituent {
+            // OPTIMIZATION: Lemma is guaranteed to be normalized by morphology analysis
+            lemma: SmolStr::new(analysis.lemma.as_ref()),
+            original: original.into(),
+            normalized: normalized.into(),
+            person: analysis.person,
+            number: analysis.number,
+            tense: analysis.tense,
+            mood: analysis.mood,
+            voice: analysis.voice,
+        };
+
+        // If we already have a subject, check agreement immediately!
+        if let Some(subject) = &self.state.subject {
+            self.check_agreement(subject, &verb_constituent)?;
+        }
+
+        self.state.verb = Some(verb_constituent);
+
+        Ok(())
+    }
+
+    /// Handle an adjective - store it for later pattern matching
+    fn handle_adjective(
+        &mut self,
+        analysis: &MorphAnalysis,
+        original: &str,
+        normalized: &str,
+    ) -> Result<(), AssemblyError> {
+        let constituent = Constituent {
+            // OPTIMIZATION: Lemma is guaranteed to be normalized by morphology analysis
+            lemma: SmolStr::new(analysis.lemma.as_ref()),
+            original: original.into(),
+            normalized: normalized.into(),
+            case: analysis.case.unwrap_or(Case::Nominative),
+            number: analysis.number,
+            gender: analysis.gender,
+            person: None, // Adjectives don't really have person
+        };
+
+        if self.state.adjectives.len() >= MAX_ADJECTIVES {
+            return Err(AssemblyError::LimitExceeded {
+                resource: "Adjectives".to_string(),
+                max: MAX_ADJECTIVES,
+            });
+        }
+        self.state.adjectives.push(constituent);
+        Ok(())
+    }
+
+    /// Finalize the statement - check agreement and assemble
+    ///
+    /// This validates the sentence structure (e.g. subject-verb agreement) and
+    /// returns the complete `AssembledStatement`.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use glossa::semantic::Assembler;
+    /// use glossa::morphology::analyze;
+    ///
+    /// let mut asm = Assembler::new();
+    ///
+    /// // "The man says"
+    /// asm.feed(&analyze("ἄνθρωπος"), "ἄνθρωπος").unwrap();
+    /// asm.feed(&analyze("λέγει"), "λέγει").unwrap();
+    ///
+    /// let stmt = asm.finalize().unwrap();
+    /// assert!(stmt.subject.is_some());
+    /// assert!(stmt.verb.is_some());
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Two subjects or two verbs are found (`DoubleSubject`, `DoubleVerb`)
+    /// - Subject and verb disagree in number (`SubjectVerbDisagreement`)
+    /// - Grammatical gender mismatch occurs
+    pub fn finalize(&mut self) -> Result<AssembledStatement, AssemblyError> {
+        // Check for required verb (unless it's a query or has only literals)
+        let has_content = self.state.subject.is_some()
+            || self.state.object.is_some()
+            || !self.state.literals.is_empty();
+
+        if self.state.verb.is_none() && has_content && !self.state.is_query {
+            // Allow verbless statements for queries and pure literal expressions
+            // But for now, let's be lenient
+        }
+
+        // Check subject-verb agreement if both present
+        if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {
+            self.check_agreement(subject, verb)?;
+        }
+
+        // Return the assembled statement
+        let statement = std::mem::take(&mut self.state);
+        Ok(statement)
+    }
+
+    /// Check for special markers (mutable, containment, delimiter)
+    fn check_special_markers(&mut self, normalized: &str, original: &str) -> bool {
+        // Check for mutable marker (μετά)
+        if crate::morphology::lexicon::is_mutable_marker(normalized) {
+            self.state.has_mutable_marker = true;
+            return true;
+        }
+
+        // Check for containment preposition (ἐν)
+        if crate::morphology::lexicon::is_containment_preposition(normalized) {
+            // DISAMBIGUATION: ἐν (in) vs ἕν (one)
+            // If original has rough breathing (U+0314 combining reversed comma above), it's "one".
+            // We check the NFD form to separate base letters from diacritics.
+            if original.nfd().any(|c| c == '\u{0314}') {
+                return false;
+            }
+
+            self.state.has_containment_preposition = true;
+            return true;
+        }
+
+        // Check for delimiter preposition (κατά)
+        if crate::morphology::lexicon::is_delimiter_preposition(normalized) {
+            self.state.has_delimiter_preposition = true;
+            return true;
+        }
+
+        false
+    }
+
+    /// Helper to create a string method call if conditions are met
+    #[allow(clippy::collapsible_if)]
+    fn try_create_string_method(&mut self, method_name: &str) -> Result<bool, AssemblyError> {
+        if self.state.has_delimiter_preposition
+            && matches!(self.state.literals.last(), Some(Literal::String(_)))
+        {
+            if let Some(ref subj) = self.state.subject {
+                if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
+                    return Err(AssemblyError::LimitExceeded {
+                        resource: "Property Accesses".to_string(),
+                        max: MAX_PROPERTY_ACCESSES,
+                    });
+                }
+
+                let delim = match self.state.literals.pop() {
+                    Some(Literal::String(s)) => s,
+                    _ => unreachable!(),
+                };
+
+                let normalized_original = normalize_greek(&subj.original);
+                self.state.string_method = Some((method_name.to_string(), delim));
+                self.state
+                    .property_accesses
+                    .push((normalized_original.to_string(), method_name.to_string()));
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    /// Check for method verbs (split, join)
+    fn check_method_verbs(&mut self, normalized: &str) -> Result<bool, AssemblyError> {
+        // Check for split verb
+        if crate::morphology::lexicon::is_split_verb(normalized)
+            && self.try_create_string_method("split")?
+        {
+            return Ok(true);
+        }
+
+        // Check for join verb
+        if crate::morphology::lexicon::is_join_verb(normalized)
+            && self.try_create_string_method("join")?
+        {
+            return Ok(true);
+        }
+
+        Ok(false)
+    }
+
+    /// Check for operators (boolean, comparison, arithmetic)
+    fn check_operators(&mut self, normalized: &str, original: &str) -> Result<bool, AssemblyError> {
+        // Boolean operators
+        if matches!(original, "καί" | "και") {
+            if self.state.operators.len() >= MAX_OPERATORS {
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Operators".to_string(),
+                    max: MAX_OPERATORS,
+                });
+            }
+            self.state.operators.push(BinaryOp::And);
+            return Ok(true);
+        }
+        if matches!(original, "ἤ" | "ή") {
+            if self.state.operators.len() >= MAX_OPERATORS {
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Operators".to_string(),
+                    max: MAX_OPERATORS,
+                });
+            }
+            // ἤ with breathing+accent, but not ᾖ
+            self.state.operators.push(BinaryOp::Or);
+            return Ok(true);
+        }
+
+        // Comparison operators
+        if let Some(op) = crate::morphology::lexicon::comparison_operator(normalized) {
+            if self.state.operators.len() >= MAX_OPERATORS {
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Operators".to_string(),
+                    max: MAX_OPERATORS,
+                });
+            }
+            self.state.operators.push(op);
+            return Ok(true);
+        }
+
+        // Arithmetic operators
+        if let Some(op) = crate::morphology::lexicon::arithmetic_operator(normalized) {
+            if self.state.operators.len() >= MAX_OPERATORS {
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Operators".to_string(),
+                    max: MAX_OPERATORS,
+                });
+            }
+            self.state.operators.push(op);
+            return Ok(true);
+        }
+
+        Ok(false)
+    }
+
+    /// Check for special properties (numerals, length, ordinals)
+    fn check_special_properties(&mut self, normalized: &str) -> Result<bool, AssemblyError> {
+        // Numeral words
+        if let Some(value) = crate::morphology::lexicon::numeral_value(normalized) {
+            self.state.literals.push(Literal::Number(value));
+            return Ok(true);
+        }
+
+        // Property nouns (μῆκος)
+        if crate::morphology::lexicon::is_length_property(normalized) {
             // If we have a subject, create a property access (use normalized original, not lemma)
             if let Some(ref subj) = self.state.subject {
                 if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
