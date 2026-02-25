@@ -48,7 +48,11 @@ fn test_deep_phrase_recursion() {
         Ok(_) => panic!("Should have failed with recursion limit error"),
         Err(e) => {
             println!("Got expected error: {}", e);
-            assert!(e.to_string().contains("Recursion limit") || e.to_string().contains("statement depth") || e.to_string().contains("expression depth"));
+            assert!(
+                e.to_string().contains("Recursion limit")
+                    || e.to_string().contains("statement depth")
+                    || e.to_string().contains("expression depth")
+            );
         }
     }
     println!("Test completed, dropping program...");
