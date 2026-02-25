@@ -195,6 +195,7 @@ pub fn run_file(input: &Path) -> Result<()> {
         .arg("-o")
         .arg(&cached_exe)
         .arg("-O") // Optimize for speed
+        .arg("--color=always")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
@@ -225,7 +226,7 @@ pub fn run_file(input: &Path) -> Result<()> {
             "{}\n{}\n\n{}",
             error_msg,
             help_msg,
-            stderr.dim()
+            stderr
         ));
     }
 

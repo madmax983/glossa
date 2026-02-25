@@ -52,6 +52,62 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
     results
 }
 
+fn extract_failures(output: &str) -> Vec<(String, String)> {
+    let mut failures = Vec::new();
+    let lines: Vec<&str> = output.lines().collect();
+    let mut i = 0;
+
+    // Skip until "failures:"
+    while i < lines.len() {
+        if lines[i].trim() == "failures:" {
+            break;
+        }
+        i += 1;
+    }
+
+    if i >= lines.len() {
+        return failures;
+    }
+    i += 1;
+
+    // Scan for "---- <name> stdout ----"
+    while i < lines.len() {
+        let line = lines[i];
+        if line.trim().starts_with("----") && line.trim().ends_with("stdout ----") {
+            // Extract name: "---- test_name stdout ----"
+            let trimmed = line.trim();
+            let name_part = trimmed
+                .trim_start_matches("---- ")
+                .trim_end_matches(" stdout ----");
+            // Remove module path if present for cleaner display
+            let name = name_part.split("::").last().unwrap_or(name_part).to_string();
+
+            // Capture output until next "----" or empty line followed by "failures:"
+            i += 1;
+            let mut message = String::new();
+            while i < lines.len() {
+                let current = lines[i];
+                if current.trim().starts_with("----") && current.trim().ends_with("stdout ----") {
+                    // Start of next failure
+                    break;
+                }
+                if current.trim() == "failures:" {
+                    // End of details section
+                    break;
+                }
+                message.push_str(current);
+                message.push('\n');
+                i += 1;
+            }
+            failures.push((name, message.trim().to_string()));
+            continue; // Don't increment i, loop will check current line again
+        }
+        i += 1;
+    }
+
+    failures
+}
+
 /// Run tests defined in a Glossa file
 ///
 /// This tool compiles the Glossa source to Rust, but instead of building a regular binary,
@@ -176,14 +232,38 @@ pub fn run_tests(input: &Path) -> Result<()> {
         println!("{}", "   No tests found.".yellow());
     }
 
-    // If there were failures, print the raw output below for debugging details
+    // If there were failures, try to extract and print them nicely
     if !test_output.status.success() {
         println!();
         println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
-        // Filter stdout to show only failures if possible, but raw is safer for now
-        println!("{}", stdout);
-        if !test_output.stderr.is_empty() {
-            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+
+        let failures = extract_failures(&stdout);
+
+        if !failures.is_empty() {
+            for (name, msg) in failures {
+                println!(
+                    "{} {}",
+                    "FAILED:".red().bold(),
+                    name.cyan().bold().underlined()
+                );
+                // Create a box for the error message
+                let border_top = "╭───────────────────────────────────────────────────────────────────╮".red();
+                let border_bottom = "╰───────────────────────────────────────────────────────────────────╯".red();
+
+                println!("{}", border_top);
+                for line in msg.lines() {
+                    // Wrap extremely long lines if needed, but for now simple print
+                    println!("{} {}", "│".red(), line);
+                }
+                println!("{}", border_bottom);
+                println!();
+            }
+        } else {
+            // Fallback to raw output if extraction failed but tests failed
+            println!("{}", stdout);
+            if !test_output.stderr.is_empty() {
+                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+            }
         }
     } else if results.is_empty() {
         // Fallback for empty results but success (e.g. no tests run)
@@ -257,5 +337,52 @@ test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; fini
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "test_ignore");
         assert_eq!(results[0].status, TestStatus::Ignored);
+    }
+
+    #[test]
+    fn test_extract_failures_basic() {
+        let output = "
+running 1 test
+test my_test ... FAILED
+
+failures:
+
+---- my_test stdout ----
+Error message here
+Another line
+
+failures:
+    my_test
+
+test result: FAILED...
+";
+        let failures = extract_failures(output);
+        assert_eq!(failures.len(), 1);
+        assert_eq!(failures[0].0, "my_test");
+        assert!(failures[0].1.contains("Error message here"));
+        assert!(failures[0].1.contains("Another line"));
+    }
+
+    #[test]
+    fn test_extract_failures_multiple() {
+        let output = "
+failures:
+
+---- test1 stdout ----
+Error 1
+
+---- test2 stdout ----
+Error 2
+
+failures:
+    test1
+    test2
+";
+        let failures = extract_failures(output);
+        assert_eq!(failures.len(), 2);
+        assert_eq!(failures[0].0, "test1");
+        assert!(failures[0].1.contains("Error 1"));
+        assert_eq!(failures[1].0, "test2");
+        assert!(failures[1].1.contains("Error 2"));
     }
 }
