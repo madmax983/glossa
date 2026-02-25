@@ -112,5 +112,7 @@ pub mod parser;
 pub mod semantic;
 pub mod text;
 pub mod tools;
+#[cfg(feature = "nova")]
+pub mod experimental;
 
 pub use tools::highlight;

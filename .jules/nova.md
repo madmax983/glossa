@@ -14,3 +14,8 @@
 **Concept:** An interactive tutorial mode (`glossa mentor`) that guides users through learning the language via Socratic challenges. It verifies not just syntax but semantic correctness (e.g., "Create a variable named 'x'").
 **Fate:** Merged
 **Lesson:** By connecting the `Repl` loop with the `Analyzer`'s internal state, we can create a powerful educational tool that provides real-time feedback. This transforms the compiler from a tool into a teacher.
+
+## 🌟 The Simulator (ὁ Ὑποκριτής)
+**Concept:** A tree-walk interpreter for ΓΛΩΣΣΑ that executes the Analyzed AST directly, bypassing Rust codegen.
+**Fate:** Merged
+**Lesson:** The REPL was "fake" (compiling to Rust but not running). Building an interpreter revealed that semantic analysis for control flow blocks has limitations when embedded in regular statements (like `If` bodies), requiring careful syntax handling in tests (e.g., trailing periods for blocks). It unlocks true interactive execution.
