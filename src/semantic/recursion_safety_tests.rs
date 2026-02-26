@@ -1,4 +1,3 @@
-
 use crate::ast::{Expr, Word};
 use crate::semantic::expressions::{MAX_RECURSION_DEPTH, feed_expr_to_assembler_with_context};
 use crate::semantic::{Assembler, DisambiguationContext};
@@ -52,7 +51,10 @@ fn test_check_safety_index_access_recursion_array() {
     });
 
     let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
-    assert!(result.is_err(), "Should catch recursion in IndexAccess (array)");
+    assert!(
+        result.is_err(),
+        "Should catch recursion in IndexAccess (array)"
+    );
 }
 
 #[test]
@@ -67,7 +69,10 @@ fn test_check_safety_index_access_recursion_index() {
     });
 
     let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
-    assert!(result.is_err(), "Should catch recursion in IndexAccess (index)");
+    assert!(
+        result.is_err(),
+        "Should catch recursion in IndexAccess (index)"
+    );
 }
 
 #[test]
