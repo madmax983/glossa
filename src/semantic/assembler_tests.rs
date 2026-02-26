@@ -1005,7 +1005,10 @@ fn test_assembler_unary_operator_negation() {
 
     let stmt = asm.finalize().unwrap();
     assert!(!stmt.unary_operators.is_empty());
-    assert_eq!(stmt.unary_operators[0], crate::morphology::lexicon::UnaryOp::Not);
+    assert_eq!(
+        stmt.unary_operators[0],
+        crate::morphology::lexicon::UnaryOp::Not
+    );
 }
 
 #[test]
