@@ -552,7 +552,9 @@ fn feed_expr_recursive(
 /// Recursively check expression depth to prevent stack overflow during cloning
 fn check_cloning_depth_safety(expr: &Expr, limit: usize) -> Result<(), GlossaError> {
     if limit == 0 {
-        return Err(GlossaError::semantic("Recursion limit exceeded in nested phrase analysis"));
+        return Err(GlossaError::semantic(
+            "Recursion limit exceeded in nested phrase analysis",
+        ));
     }
 
     match expr {
