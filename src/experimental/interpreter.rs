@@ -551,8 +551,16 @@ mod tests {
 
         // The error message from eval_expr uses Debug trait for expr.expr
         // "Expression kind not supported yet: UnaryOp { op: Not, operand: ... }"
-        assert!(matches!(result, Err(EvalError::NotImplemented(msg))
-            if msg.contains("UnaryOp") || msg.contains("Expression kind not supported yet")));
+        match result {
+            Err(EvalError::NotImplemented(msg)) => {
+                assert!(
+                    msg.contains("UnaryOp") || msg.contains("Expression kind not supported yet"),
+                    "Unexpected NotImplemented message: {}",
+                    msg
+                );
+            }
+            res => panic!("Expected NotImplemented error, got {:?}", res),
+        }
     }
 }
 
@@ -565,4 +573,12 @@ fn debug_error() {
     let mut evaluator = Evaluator::new(&mut buffer);
     let result = evaluator.eval_program(&program);
     println!("DEBUG ERROR: {:?}", result);
+}
+
+#[test]
+fn debug_program_structure() {
+    let source = "οὐκ ἀληθές λέγε.";
+    let ast = crate::parser::parse(source).unwrap();
+    let program = crate::semantic::analyze_program(&ast).unwrap();
+    println!("DEBUG PROGRAM: {:#?}", program);
 }

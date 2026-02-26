@@ -1,12 +1,12 @@
 use super::conversion::extract_value;
 use crate::ast::Expr;
-use crate::morphology::{Case, Number};
 use crate::morphology::lexicon::BinaryOp;
+use crate::morphology::{Case, Number};
+use crate::semantic::conversion::extract_binary_op;
 use crate::semantic::{
     AnalyzedExprKind, AssembledStatement, Constituent, GlossaType, Literal, Scope,
 };
 use crate::text::normalize_greek;
-use crate::semantic::conversion::extract_binary_op;
 
 fn make_constituent(original: &str, lemma: &str) -> Constituent {
     Constituent {
@@ -371,16 +371,18 @@ fn test_extract_binary_op_subject_and_literal() {
     scope.define("subj", GlossaType::Number);
 
     // subject (subj) + literal (1) -> op (+)
-    let mut asm = AssembledStatement::default();
-    asm.subject = Some(Constituent {
-        lemma: "subj".into(),
-        original: "subj".into(),
-        normalized: "subj".into(),
-        case: Case::Nominative,
-        number: Some(Number::Singular),
-        gender: None,
-        person: None,
-    });
+    let mut asm = AssembledStatement {
+        subject: Some(Constituent {
+            lemma: "subj".into(),
+            original: "subj".into(),
+            normalized: "subj".into(),
+            case: Case::Nominative,
+            number: Some(Number::Singular),
+            gender: None,
+            person: None,
+        }),
+        ..Default::default()
+    };
     asm.literals.push(Literal::Number(1));
     asm.operators.push(BinaryOp::Add);
 
