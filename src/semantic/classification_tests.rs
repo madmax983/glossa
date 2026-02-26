@@ -4,8 +4,7 @@ use crate::morphology::Case;
 use crate::morphology::lexicon::BinaryOp;
 use crate::semantic::assembly::{ParticipleConstituent, VerbConstituent};
 use crate::semantic::{
-    AnalyzedExprKind, AnalyzedStatement, AssembledStatement, Constituent, GlossaType, Literal,
-    Scope,
+    AnalyzedExprKind, AnalyzedStatement, AssembledStatement, Constituent, GlossaType, Scope,
 };
 use crate::text::normalize_greek;
 
@@ -41,7 +40,7 @@ fn test_classify_simple_binding() {
     // "x 5 let"
     let asm_stmt = AssembledStatement {
         subject: Some(make_constituent("x", "x")),
-        literals: vec![Literal::Number(5)],
+        literals: vec![Expr::NumberLiteral(5)],
         verb: Some(make_verb("let", "εστω")), // "ἔστω" is a binding verb
         ..Default::default()
     };
@@ -100,7 +99,7 @@ fn test_classify_binding_false_participle() {
     // The logic checks if the participle lemma exists in lexicon. If not, it treats it as the variable name.
 
     let asm_stmt = AssembledStatement {
-        literals: vec![Literal::Number(5)],
+        literals: vec![Expr::NumberLiteral(5)],
         verb: Some(make_verb("let", "εστω")),
         // Add a "false" participle (lemma not in lexicon)
         participles: vec![ParticipleConstituent {
@@ -146,7 +145,7 @@ fn test_classify_binding_fallback_participle() {
     // "λεγω" (speak) is definitely in the lexicon.
 
     let asm_stmt = AssembledStatement {
-        literals: vec![Literal::Number(5)],
+        literals: vec![Expr::NumberLiteral(5)],
         verb: Some(make_verb("let", "εστω")),
         participles: vec![ParticipleConstituent {
             verb_lemma: "λεγω".into(), // Should be in lexicon
@@ -179,7 +178,7 @@ fn test_classify_print_binary_op() {
     // "x + 5 print"
     let asm_stmt = AssembledStatement {
         subject: Some(make_constituent("x", "x")),
-        literals: vec![Literal::Number(5)],
+        literals: vec![Expr::NumberLiteral(5)],
         operators: vec![BinaryOp::Add],
         verb: Some(make_verb("print", "λεγε")),
         ..Default::default()
@@ -326,7 +325,7 @@ fn test_classify_print_default() {
     let mut scope = Scope::new();
     // "hello" print
     let asm_stmt = AssembledStatement {
-        literals: vec![Literal::String("hello".into())],
+        literals: vec![Expr::StringLiteral("hello".into())],
         verb: Some(make_verb("print", "λεγε")),
         ..Default::default()
     };

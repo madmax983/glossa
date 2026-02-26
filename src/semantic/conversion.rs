@@ -42,11 +42,11 @@ use super::patterns::detect_iterator_pattern;
 use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::morphology::{self};
+use crate::semantic::Constituent;
 use crate::semantic::assembly::AssembledStatement;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
 use crate::semantic::resolver::Scope;
 use crate::semantic::types::GlossaType;
-use crate::semantic::{Constituent, Literal};
 
 /// Convert an AssembledStatement to an AnalyzedStatement
 ///
@@ -1077,7 +1077,7 @@ fn classify_genitive_method_call(
 /// Helper: Detect Enum variant (None, Some, Ok, Err)
 fn detect_enum_variant(
     word: &Constituent,
-    literals: &[Literal],
+    literals: &[Expr],
 ) -> Option<(AnalyzedExpr, GlossaType)> {
     let lemma = &word.lemma;
     let original = &word.normalized;

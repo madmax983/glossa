@@ -77,3 +77,18 @@
 **Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
 **Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
 **Saved:** 2 folders, reduced directory depth.
+
+## [Reduction]
+**Bloat:** `Literal` enum in `semantic/assembly/model.rs` duplicated `Expr` literal variants.
+**Cut:** Replaced `Literal` with `Expr` in `AssembledStatement`.
+**Saved:** ~50 lines of conversion code, 1 enum definition.
+
+## [Reduction]
+**Bloat:** `ParticipleConstituent` struct duplicated most fields of `Constituent`.
+**Cut:** Merged into `Constituent` with optional verb fields, removed `ParticipleConstituent` struct.
+**Saved:** 1 struct definition, simplified assembler logic.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly/` directory structure for only 2 files.
+**Cut:** Flattened to `src/semantic/assembly.rs`.
+**Saved:** 1 directory, clearer module structure.

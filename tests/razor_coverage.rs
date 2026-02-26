@@ -3,14 +3,13 @@
 //! This file aims to exercise the code paths that were moved during refactoring
 //! to ensure high code coverage.
 
+use glossa::ast::Expr;
 use glossa::errors::{
     AssemblyError, GlossaError, case_mismatch, gender_mismatch, immutable_assignment,
     number_mismatch, undefined_variable,
 };
 use glossa::morphology::{Case, Gender, Number, Person, Tense, Voice};
-use glossa::semantic::{
-    AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
-};
+use glossa::semantic::{AssembledStatement, Constituent, ParticipleConstituent, VerbConstituent};
 use miette::Diagnostic;
 use smol_str::SmolStr;
 
@@ -154,13 +153,7 @@ fn test_assembler_structs_derive_coverage() {
     assert_eq!(format!("{:?}", c), format!("{:?}", c_clone));
 
     // Literal
-    let l_str = Literal::String("s".into());
-    let l_num = Literal::Number(42);
-    let l_bool = Literal::Boolean(true);
-
-    assert_eq!(format!("{:?}", l_str.clone()), format!("{:?}", l_str));
-    assert_eq!(format!("{:?}", l_num.clone()), format!("{:?}", l_num));
-    assert_eq!(format!("{:?}", l_bool.clone()), format!("{:?}", l_bool));
+    let l_str = Expr::StringLiteral("s".into());
 
     // AssembledStatement
     let stmt = AssembledStatement {

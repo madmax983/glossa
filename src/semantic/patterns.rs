@@ -920,7 +920,7 @@ fn extract_comparison_value(asm_stmt: &AssembledStatement, scope: &Scope) -> Ana
     } else if let Some(literal) = asm_stmt.literals.first() {
         // Literal comparison: πέντε μείζονα = "greater than five"
         let value = match literal {
-            crate::semantic::Literal::Number(n) => *n,
+            crate::ast::Expr::NumberLiteral(n) => *n,
             _ => 0,
         };
         AnalyzedExpr {

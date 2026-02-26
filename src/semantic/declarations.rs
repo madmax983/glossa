@@ -464,10 +464,10 @@ fn extract_parameters_from_expr(
     }
 
     let start_pos = start_pos.unwrap_or(0);
-    let mut i = start_pos;
+    // Use an iterator to process words sequentially
+    let mut iter = words.into_iter().skip(start_pos).peekable();
 
-    while i < words.len() {
-        let word = &words[i];
+    while let Some(word) = iter.next() {
         let analysis = morphology::analyze(&word.original);
 
         // Check for dative article τῷ
@@ -475,30 +475,25 @@ fn extract_parameters_from_expr(
             && analysis.case == Some(morphology::Case::Dative)
         {
             // Next word should be the parameter name
-            if i + 1 < words.len() {
-                let param_word = &words[i + 1];
+            if let Some(param_word) = iter.next() {
                 let param_name = param_word.normalized.clone();
 
-                // Check if word after param is a genitive (type annotation)
+                // Check if next word is a genitive (type annotation)
                 let mut param_type = None;
-                if i + 2 < words.len() {
-                    let next_word = &words[i + 2];
+                if let Some(next_word) = iter.peek() {
                     let next_analysis = morphology::analyze(&next_word.original);
                     if next_analysis.case == Some(morphology::Case::Genitive) {
                         // Map genitive type to GlossaType
                         let type_name = &next_word.normalized;
                         // If it looks like a type annotation (genitive), it MUST be a valid type
                         param_type = Some(resolve_type_name(type_name, scope)?);
-                        i += 1; // Skip the type annotation
+                        iter.next(); // Consume the type annotation
                     }
                 }
 
                 params.push((param_name, param_type));
-                i += 1; // Skip the parameter name
             }
         }
-
-        i += 1;
     }
 
     Ok(params)

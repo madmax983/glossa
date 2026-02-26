@@ -2,9 +2,7 @@ use super::conversion::extract_value;
 use crate::ast::Expr;
 use crate::morphology::Case;
 use crate::morphology::lexicon::BinaryOp;
-use crate::semantic::{
-    AnalyzedExprKind, AssembledStatement, Constituent, GlossaType, Literal, Scope,
-};
+use crate::semantic::{AnalyzedExprKind, AssembledStatement, Constituent, GlossaType, Scope};
 use crate::text::normalize_greek;
 
 fn make_constituent(original: &str, lemma: &str) -> Constituent {
@@ -63,7 +61,7 @@ fn test_extract_subject_some() {
     // Subject "τί" (Some), Literal value for Some(val)
     let asm_stmt = AssembledStatement {
         subject: Some(make_constituent("τί", "τι")),
-        literals: vec![Literal::Number(42)],
+        literals: vec![Expr::NumberLiteral(42)],
         ..Default::default()
     };
 
@@ -86,7 +84,7 @@ fn test_extract_subject_some() {
 fn test_extract_literal() {
     let scope = Scope::new();
     let asm_stmt = AssembledStatement {
-        literals: vec![Literal::Number(123)],
+        literals: vec![Expr::NumberLiteral(123)],
         ..Default::default()
     };
 
@@ -152,7 +150,7 @@ fn test_extract_binary_op_object_and_literal() {
     // Operator: "+"
     let asm_stmt = AssembledStatement {
         object: Some(make_constituent("x", "x")),
-        literals: vec![Literal::Number(5)],
+        literals: vec![Expr::NumberLiteral(5)],
         operators: vec![BinaryOp::Add],
         ..Default::default()
     };
@@ -266,7 +264,7 @@ fn test_extract_object_some() {
     // Object "τί" (Some)
     let asm_stmt = AssembledStatement {
         object: Some(make_constituent("τί", "τι")),
-        literals: vec![Literal::Number(10)],
+        literals: vec![Expr::NumberLiteral(10)],
         ..Default::default()
     };
 

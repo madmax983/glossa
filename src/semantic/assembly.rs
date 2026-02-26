@@ -93,13 +93,12 @@
 //! assert!(stmt.object.is_some());
 //! ```
 
-pub mod model;
-pub use model::*;
-
 use crate::ast::{Expr, Word};
 pub use crate::errors::AssemblyError;
 use crate::morphology::lexicon::BinaryOp;
-use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person};
+use crate::morphology::{
+    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
+};
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
 use unicode_normalization::UnicodeNormalization;
@@ -237,7 +236,7 @@ impl Assembler {
                 max: MAX_LITERALS,
             });
         }
-        self.state.literals.push(Literal::String(value));
+        self.state.literals.push(Expr::StringLiteral(value));
         Ok(())
     }
 
@@ -258,7 +257,7 @@ impl Assembler {
                 max: MAX_LITERALS,
             });
         }
-        self.state.literals.push(Literal::Number(value));
+        self.state.literals.push(Expr::NumberLiteral(value));
         Ok(())
     }
 
@@ -279,7 +278,7 @@ impl Assembler {
                 max: MAX_LITERALS,
             });
         }
-        self.state.literals.push(Literal::Boolean(value));
+        self.state.literals.push(Expr::BooleanLiteral(value));
         Ok(())
     }
 
@@ -696,7 +695,7 @@ impl Assembler {
     #[allow(clippy::collapsible_if)]
     fn try_create_string_method(&mut self, method_name: &str) -> Result<bool, AssemblyError> {
         if self.state.has_delimiter_preposition
-            && matches!(self.state.literals.last(), Some(Literal::String(_)))
+            && matches!(self.state.literals.last(), Some(Expr::StringLiteral(_)))
         {
             if let Some(ref subj) = self.state.subject {
                 if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
@@ -707,7 +706,7 @@ impl Assembler {
                 }
 
                 let delim = match self.state.literals.pop() {
-                    Some(Literal::String(s)) => s,
+                    Some(Expr::StringLiteral(s)) => s,
                     _ => unreachable!(),
                 };
 
@@ -797,7 +796,7 @@ impl Assembler {
     fn check_special_properties(&mut self, normalized: &str) -> Result<bool, AssemblyError> {
         // Numeral words
         if let Some(value) = crate::morphology::lexicon::numeral_value(normalized) {
-            self.state.literals.push(Literal::Number(value));
+            self.state.literals.push(Expr::NumberLiteral(value));
             return Ok(true);
         }
 
@@ -1053,7 +1052,7 @@ mod tests {
 
         let stmt = asm.finalize().unwrap();
         assert_eq!(stmt.literals.len(), 1);
-        assert!(matches!(&stmt.literals[0], Literal::String(s) if s == "χαῖρε κόσμε"));
+        assert!(matches!(&stmt.literals[0], Expr::StringLiteral(s) if s == "χαῖρε κόσμε"));
     }
 
     #[test]
@@ -1802,4 +1801,168 @@ mod tests {
         );
         assert_eq!(stmt.object.unwrap().original, "unknown");
     }
+}
+// Constants for resource limits to prevent DoS
+pub(crate) const MAX_ADJECTIVES: usize = 1024;
+pub(crate) const MAX_LITERALS: usize = 1024;
+pub(crate) const MAX_NOMINATIVES: usize = 256;
+pub(crate) const MAX_GENITIVES: usize = 256;
+pub(crate) const MAX_ARRAYS: usize = 256;
+pub(crate) const MAX_INDEX_ACCESSES: usize = 256;
+pub(crate) const MAX_PROPERTY_ACCESSES: usize = 256;
+pub(crate) const MAX_NESTED_PHRASES: usize = 256;
+pub(crate) const MAX_PARTICIPLES: usize = 256;
+pub(crate) const MAX_UNWRAPS: usize = 256;
+pub(crate) const MAX_OPERATORS: usize = 256;
+pub(crate) const MAX_BLOCKS: usize = 256;
+
+/// A fully assembled statement with all grammatical roles filled
+///
+/// This struct represents the "final state" of a sentence after parsing.
+/// It contains all the semantic components (subject, verb, object, etc.)
+/// extracted from the input stream.
+#[derive(Debug, Clone, Default)]
+pub struct AssembledStatement {
+    /// The subject (nominative) - the agent/doer
+    pub subject: Option<Constituent>,
+
+    /// Additional nominatives (for function names, etc.)
+    pub nominatives: Vec<Constituent>,
+
+    /// The verb - the action
+    pub verb: Option<VerbConstituent>,
+
+    /// The direct object (accusative) - receives the action
+    pub object: Option<Constituent>,
+
+    /// The indirect object (dative) - recipient/beneficiary
+    pub indirect: Option<Constituent>,
+
+    /// Possessors/sources (genitive) - attached to other constituents
+    pub genitives: Vec<Constituent>,
+
+    /// Adjectives modifying nouns
+    pub adjectives: Vec<Constituent>,
+
+    /// Literal values (strings, numbers) that appeared
+    pub literals: Vec<Expr>,
+
+    /// Array literals that appeared
+    pub arrays: Vec<Vec<Expr>>,
+
+    /// Index accesses (array, index)
+    pub index_accesses: Vec<(Expr, Expr)>,
+
+    /// Property accesses (owner, property)
+    pub property_accesses: Vec<(String, String)>,
+
+    /// Binary operators found between expressions
+    pub operators: Vec<BinaryOp>,
+
+    /// Parenthesized blocks (nested expressions)
+    pub blocks: Vec<Vec<crate::ast::Statement>>,
+
+    /// Nested phrases (parenthesized function calls)
+    pub nested_phrases: Vec<Vec<Expr>>,
+
+    /// Participles (used for lambdas/closures)
+    pub participles: Vec<ParticipleConstituent>,
+
+    /// Unwrap expressions (expr!)
+    pub unwraps: Vec<Expr>,
+
+    /// Whether this is a query (ends with ?)
+    pub is_query: bool,
+
+    /// Whether this statement propagates (ends with ;)
+    pub is_propagate: bool,
+
+    /// Whether this binding has the mutable marker (μετά)
+    pub has_mutable_marker: bool,
+
+    /// Whether this statement has the containment preposition (ἐν)
+    pub has_containment_preposition: bool,
+
+    /// Whether this statement has the delimiter preposition (κατά)
+    pub has_delimiter_preposition: bool,
+
+    /// String method call: (method_name, delimiter)
+    pub string_method: Option<(String, String)>,
+}
+
+/// A noun/pronoun constituent with its grammatical info
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct Constituent {
+    /// The dictionary form
+    pub lemma: SmolStr,
+
+    /// Original text as it appeared
+    pub original: SmolStr,
+
+    /// Normalized text (lowercase, no diacritics)
+    pub normalized: SmolStr,
+
+    /// Grammatical case
+    pub case: Case,
+
+    /// Grammatical number
+    pub number: Option<Number>,
+
+    /// Grammatical gender
+    pub gender: Option<Gender>,
+
+    /// Grammatical person (1st, 2nd, 3rd)
+    pub person: Option<Person>,
+}
+
+/// A verb constituent with its grammatical info
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct VerbConstituent {
+    /// The dictionary form
+    pub lemma: SmolStr,
+
+    /// Original text as it appeared
+    pub original: SmolStr,
+
+    /// Normalized text (lowercase, no diacritics)
+    pub normalized: SmolStr,
+
+    /// Person (1st, 2nd, 3rd)
+    pub person: Option<Person>,
+
+    /// Number (singular, plural)
+    pub number: Option<Number>,
+
+    /// Tense (present, aorist, etc.)
+    pub tense: Option<Tense>,
+
+    /// Mood (indicative, imperative, etc.)
+    pub mood: Option<Mood>,
+
+    /// Voice (active, middle, passive)
+    pub voice: Option<Voice>,
+}
+
+/// A participle constituent (used for lambdas/closures)
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct ParticipleConstituent {
+    /// The verb stem extracted from the participle
+    pub verb_lemma: SmolStr,
+    /// Original text as it appeared
+    pub original: SmolStr,
+    /// Normalized text (lowercase, no diacritics)
+    pub normalized: SmolStr,
+    /// Tense (present, aorist, perfect)
+    pub tense: Tense,
+    /// Voice (active, middle, passive)
+    pub voice: Voice,
+    /// Case (adjectival property)
+    pub case: Case,
+    /// Gender (adjectival property)
+    pub gender: Gender,
+    /// Number (adjectival property)
+    pub number: Number,
 }

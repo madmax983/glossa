@@ -16,7 +16,6 @@ use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
 use crate::semantic::assembly::Assembler;
-use crate::semantic::assembly::Literal;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
 use crate::semantic::resolver::Scope;
 use crate::semantic::types::GlossaType;
@@ -543,30 +542,32 @@ fn feed_expr_recursive(
     Ok(())
 }
 
-/// Convert a Literal to an AnalyzedExpr
-pub(crate) fn literal_to_analyzed_expr(lit: &Literal) -> AnalyzedExpr {
+/// Convert an Expr literal to an AnalyzedExpr
+pub(crate) fn literal_to_analyzed_expr(lit: &Expr) -> AnalyzedExpr {
     match lit {
-        Literal::String(s) => AnalyzedExpr {
+        Expr::StringLiteral(s) => AnalyzedExpr {
             expr: AnalyzedExprKind::StringLiteral(s.clone()),
             glossa_type: GlossaType::String,
         },
-        Literal::Number(n) => AnalyzedExpr {
+        Expr::NumberLiteral(n) => AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(*n),
             glossa_type: GlossaType::Number,
         },
-        Literal::Boolean(b) => AnalyzedExpr {
+        Expr::BooleanLiteral(b) => AnalyzedExpr {
             expr: AnalyzedExprKind::BooleanLiteral(*b),
             glossa_type: GlossaType::Boolean,
         },
+        _ => panic!("Expected literal expression"),
     }
 }
 
-/// Get the type of a Literal
-pub(crate) fn literal_to_type(lit: &Literal) -> GlossaType {
+/// Get the type of a literal expression
+pub(crate) fn literal_to_type(lit: &Expr) -> GlossaType {
     match lit {
-        Literal::String(_) => GlossaType::String,
-        Literal::Number(_) => GlossaType::Number,
-        Literal::Boolean(_) => GlossaType::Boolean,
+        Expr::StringLiteral(_) => GlossaType::String,
+        Expr::NumberLiteral(_) => GlossaType::Number,
+        Expr::BooleanLiteral(_) => GlossaType::Boolean,
+        _ => GlossaType::Unknown,
     }
 }
 
@@ -591,7 +592,7 @@ pub(crate) fn build_binary_expr(
 /// If there are operators, builds a binary expression tree
 /// Otherwise, returns the literals as-is
 pub(crate) fn build_expressions_from_literals_and_ops(
-    literals: &[Literal],
+    literals: &[Expr],
     operators: &[crate::morphology::lexicon::BinaryOp],
 ) -> Result<Vec<AnalyzedExpr>, GlossaError> {
     // If no operators, just return literals as separate expressions
@@ -689,7 +690,7 @@ mod tests {
         // Operators: [Add, Add]
         // Expected: Should return Error due to insufficient literals
 
-        let literals = vec![Literal::Number(1), Literal::Number(2)];
+        let literals = vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)];
         let operators = vec![
             crate::morphology::lexicon::BinaryOp::Add,
             crate::morphology::lexicon::BinaryOp::Add,
@@ -1157,7 +1158,11 @@ mod tests {
 
     #[test]
     fn test_build_expressions_preserves_literals() {
-        let literals = vec![Literal::Number(1), Literal::Number(2), Literal::Number(3)];
+        let literals = vec![
+            Expr::NumberLiteral(1),
+            Expr::NumberLiteral(2),
+            Expr::NumberLiteral(3),
+        ];
         let operators = vec![crate::morphology::lexicon::BinaryOp::Add];
 
         let exprs = build_expressions_from_literals_and_ops(&literals, &operators).unwrap();
@@ -1183,7 +1188,7 @@ mod tests {
         // Operators: [Add, Add]
         // Expected: Should return Error due to insufficient literals
 
-        let literals = vec![Literal::Number(1), Literal::Number(2)];
+        let literals = vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)];
         let operators = vec![
             crate::morphology::lexicon::BinaryOp::Add,
             crate::morphology::lexicon::BinaryOp::Add,
@@ -1229,7 +1234,7 @@ mod tests {
         // Operators: [Add, Add]
         // Expected: Should return Error due to insufficient literals
 
-        let literals = vec![Literal::Number(1), Literal::Number(2)];
+        let literals = vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)];
         let operators = vec![
             crate::morphology::lexicon::BinaryOp::Add,
             crate::morphology::lexicon::BinaryOp::Add,
@@ -1264,7 +1269,7 @@ mod regression_tests {
         // Operators: [Add, Add]
         // Expected: Should return Error due to insufficient literals
 
-        let literals = vec![Literal::Number(1), Literal::Number(2)];
+        let literals = vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)];
         let operators = vec![BinaryOp::Add, BinaryOp::Add];
 
         let result = build_expressions_from_literals_and_ops(&literals, &operators);
