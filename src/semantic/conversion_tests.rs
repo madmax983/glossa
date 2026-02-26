@@ -1,9 +1,10 @@
-use super::conversion::extract_value;
+use super::conversion::{convert_assembled_to_analyzed, extract_value};
 use crate::ast::Expr;
-use crate::morphology::Case;
 use crate::morphology::lexicon::BinaryOp;
+use crate::morphology::{Case, Number, Person, Tense};
 use crate::semantic::{
-    AnalyzedExprKind, AssembledStatement, Constituent, GlossaType, Literal, Scope,
+    AnalyzedExprKind, AnalyzedStatement, AssembledStatement, Constituent, GlossaType, Literal,
+    Scope, VerbConstituent,
 };
 use crate::text::normalize_greek;
 
@@ -16,6 +17,135 @@ fn make_constituent(original: &str, lemma: &str) -> Constituent {
         number: None,
         gender: None,
         person: None,
+    }
+}
+
+fn make_verb(original: &str, lemma: &str) -> VerbConstituent {
+    VerbConstituent {
+        lemma: lemma.into(),
+        original: original.into(),
+        normalized: normalize_greek(original),
+        person: Some(Person::Third),
+        number: Some(Number::Singular),
+        tense: Some(Tense::Present),
+        mood: None,
+        voice: None,
+    }
+}
+
+#[test]
+fn test_classify_pop() {
+    let mut scope = Scope::new();
+    scope.define("stack", GlossaType::List(Box::new(GlossaType::Number)));
+
+    // "stack pulls itself" (stack.pop())
+    let asm_stmt = AssembledStatement {
+        verb: Some(make_verb("ἕλκεται", "ελκω")),
+        subject: Some(make_constituent("stack", "stack")),
+        ..Default::default()
+    };
+
+    let analyzed =
+        convert_assembled_to_analyzed(&asm_stmt, &mut scope).expect("Should classify pop");
+
+    if let AnalyzedStatement::Expression(exprs) = analyzed {
+        assert_eq!(exprs.len(), 1);
+        if let AnalyzedExprKind::MethodCall {
+            receiver,
+            method,
+            args,
+        } = &exprs[0].expr
+        {
+            assert_eq!(method, "pop");
+            assert!(args.is_empty());
+            if let AnalyzedExprKind::Variable(name) = &receiver.expr {
+                assert_eq!(name, "stack");
+            } else {
+                panic!("Receiver should be variable");
+            }
+        } else {
+            panic!("Expected MethodCall");
+        }
+    } else {
+        panic!("Expected Expression statement");
+    }
+}
+
+#[test]
+fn test_classify_push_literal() {
+    let mut scope = Scope::new();
+    scope.define("stack", GlossaType::List(Box::new(GlossaType::Number)));
+
+    // "stack pushes 42"
+    let asm_stmt = AssembledStatement {
+        verb: Some(make_verb("ὠθεῖ", "ωθεω")),
+        subject: Some(make_constituent("stack", "stack")),
+        literals: vec![Literal::Number(42)],
+        ..Default::default()
+    };
+
+    let analyzed =
+        convert_assembled_to_analyzed(&asm_stmt, &mut scope).expect("Should classify push");
+
+    if let AnalyzedStatement::Expression(exprs) = analyzed {
+        assert_eq!(exprs.len(), 1);
+        if let AnalyzedExprKind::MethodCall {
+            method,
+            args,
+            ..
+        } = &exprs[0].expr
+        {
+            assert_eq!(method, "push");
+            assert_eq!(args.len(), 1);
+            if let AnalyzedExprKind::NumberLiteral(n) = &args[0].expr {
+                assert_eq!(*n, 42);
+            } else {
+                panic!("Arg should be literal 42");
+            }
+        } else {
+            panic!("Expected MethodCall");
+        }
+    } else {
+        panic!("Expected Expression statement");
+    }
+}
+
+#[test]
+fn test_classify_insert_map() {
+    let mut scope = Scope::new();
+    // Map<String, Number>
+    scope.define(
+        "map",
+        GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number)),
+    );
+
+    // "map puts 'key' 100"
+    let asm_stmt = AssembledStatement {
+        verb: Some(make_verb("τίθησι", "τιθημι")),
+        subject: Some(make_constituent("map", "map")),
+        literals: vec![Literal::String("key".into()), Literal::Number(100)],
+        ..Default::default()
+    };
+
+    let analyzed =
+        convert_assembled_to_analyzed(&asm_stmt, &mut scope).expect("Should classify insert");
+
+    if let AnalyzedStatement::Expression(exprs) = analyzed {
+        assert_eq!(exprs.len(), 1);
+        if let AnalyzedExprKind::MethodCall {
+            method,
+            args,
+            ..
+        } = &exprs[0].expr
+        {
+            assert_eq!(method, "insert");
+            assert_eq!(args.len(), 2);
+            // Verify args...
+        } else {
+            panic!("Expected MethodCall");
+        }
+    } else {
+        panic!("Expected Expression statement");
     }
 }
 

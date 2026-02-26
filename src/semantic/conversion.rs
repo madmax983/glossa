@@ -446,123 +446,151 @@ fn classify_collection_mutation(
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
-        // Pop
-        if crate::morphology::lexicon::is_pop_verb(verb_lemma)
-            && let Some(ref subject) = asm_stmt.subject
-        {
-            let receiver = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
-                glossa_type: scope
-                    .lookup(&subject.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown),
-            };
-
-            let method_call = AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(receiver),
-                    method: "pop".into(),
-                    args: vec![],
-                },
-                glossa_type: GlossaType::Unknown,
-            };
-
-            return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
+        if let Some(res) = classify_pop(verb_lemma, asm_stmt, scope)? {
+            return Ok(Some(res));
         }
-
-        // Push
-        if crate::morphology::lexicon::is_push_verb(verb_lemma)
-            && let Some(ref subject) = asm_stmt.subject
-        {
-            let receiver = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
-                glossa_type: scope
-                    .lookup(&subject.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown),
-            };
-
-            let arg = if let Some(lit) = asm_stmt.literals.first() {
-                literal_to_analyzed_expr(lit)
-            } else if let Some(ref obj) = asm_stmt.object {
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: scope
-                        .lookup(&obj.lemma)
-                        .cloned()
-                        .unwrap_or(GlossaType::Unknown),
-                }
-            } else {
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(0),
-                    glossa_type: GlossaType::Number,
-                }
-            };
-
-            let method_call = AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(receiver),
-                    method: "push".into(),
-                    args: vec![arg],
-                },
-                glossa_type: GlossaType::Unit,
-            };
-
-            return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
+        if let Some(res) = classify_push(verb_lemma, asm_stmt, scope)? {
+            return Ok(Some(res));
         }
+        if let Some(res) = classify_insert(verb_lemma, asm_stmt, scope)? {
+            return Ok(Some(res));
+        }
+    }
+    Ok(None)
+}
 
-        // Insert
-        if crate::morphology::lexicon::is_insert_verb(verb_lemma)
-            && let Some(ref subject) = asm_stmt.subject
-        {
-            let subj_name = &subject.normalized;
-            let subj_type = scope
-                .lookup(subj_name)
+fn classify_pop(
+    verb_lemma: &str,
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if crate::morphology::lexicon::is_pop_verb(verb_lemma)
+        && let Some(ref subject) = asm_stmt.subject
+    {
+        let receiver = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+            glossa_type: scope
+                .lookup(&subject.lemma)
                 .cloned()
-                .unwrap_or(GlossaType::Unknown);
+                .unwrap_or(GlossaType::Unknown),
+        };
 
-            let receiver = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj_name.clone()),
-                glossa_type: subj_type.clone(),
-            };
+        let method_call = AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(receiver),
+                method: "pop".into(),
+                args: vec![],
+            },
+            glossa_type: GlossaType::Unknown,
+        };
 
-            let is_map = matches!(subj_type, GlossaType::Map(_, _));
+        return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
+    }
+    Ok(None)
+}
 
-            let args = if is_map && asm_stmt.literals.len() >= 2 {
-                vec![
-                    literal_to_analyzed_expr(&asm_stmt.literals[0]),
-                    literal_to_analyzed_expr(&asm_stmt.literals[1]),
-                ]
-            } else if let Some(lit) = asm_stmt.literals.first() {
-                vec![literal_to_analyzed_expr(lit)]
-            } else if let Some(ref obj) = asm_stmt.object {
-                vec![AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: scope
-                        .lookup(&obj.lemma)
-                        .cloned()
-                        .unwrap_or(GlossaType::Unknown),
-                }]
-            } else {
-                vec![]
-            };
+fn classify_push(
+    verb_lemma: &str,
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if crate::morphology::lexicon::is_push_verb(verb_lemma)
+        && let Some(ref subject) = asm_stmt.subject
+    {
+        let receiver = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+            glossa_type: scope
+                .lookup(&subject.lemma)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown),
+        };
 
-            let return_type = if is_map {
-                GlossaType::Option(Box::new(GlossaType::Unknown))
-            } else {
-                GlossaType::Boolean
-            };
-            let method_call = AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(receiver),
-                    method: "insert".into(),
-                    args,
-                },
-                glossa_type: return_type,
-            };
+        let arg = if let Some(lit) = asm_stmt.literals.first() {
+            literal_to_analyzed_expr(lit)
+        } else if let Some(ref obj) = asm_stmt.object {
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: scope
+                    .lookup(&obj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown),
+            }
+        } else {
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(0),
+                glossa_type: GlossaType::Number,
+            }
+        };
 
-            return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
-        }
+        let method_call = AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(receiver),
+                method: "push".into(),
+                args: vec![arg],
+            },
+            glossa_type: GlossaType::Unit,
+        };
+
+        return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
+    }
+    Ok(None)
+}
+
+fn classify_insert(
+    verb_lemma: &str,
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if crate::morphology::lexicon::is_insert_verb(verb_lemma)
+        && let Some(ref subject) = asm_stmt.subject
+    {
+        let subj_name = &subject.normalized;
+        let subj_type = scope
+            .lookup(subj_name)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
+
+        let receiver = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(subj_name.clone()),
+            glossa_type: subj_type.clone(),
+        };
+
+        let is_map = matches!(subj_type, GlossaType::Map(_, _));
+
+        let args = if is_map && asm_stmt.literals.len() >= 2 {
+            vec![
+                literal_to_analyzed_expr(&asm_stmt.literals[0]),
+                literal_to_analyzed_expr(&asm_stmt.literals[1]),
+            ]
+        } else if let Some(lit) = asm_stmt.literals.first() {
+            vec![literal_to_analyzed_expr(lit)]
+        } else if let Some(ref obj) = asm_stmt.object {
+            vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: scope
+                    .lookup(&obj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown),
+            }]
+        } else {
+            vec![]
+        };
+
+        let return_type = if is_map {
+            GlossaType::Option(Box::new(GlossaType::Unknown))
+        } else {
+            GlossaType::Boolean
+        };
+        let method_call = AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(receiver),
+                method: "insert".into(),
+                args,
+            },
+            glossa_type: return_type,
+        };
+
+        return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
     }
     Ok(None)
 }
@@ -1082,10 +1110,11 @@ fn detect_enum_variant(
     let lemma = &word.lemma;
     let original = &word.normalized;
 
+    // Helper to check if a word matches a predicate
+    let check = |pred: fn(&str) -> bool| pred(lemma) || pred(original);
+
     // None
-    if crate::morphology::lexicon::is_none_word(lemma)
-        || crate::morphology::lexicon::is_none_word(original)
-    {
+    if check(crate::morphology::lexicon::is_none_word) {
         return Some((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::None,
@@ -1095,58 +1124,48 @@ fn detect_enum_variant(
         ));
     }
 
-    // Some
-    if (crate::morphology::lexicon::is_some_word(lemma)
-        || crate::morphology::lexicon::is_some_word(original))
-        && let Some(lit) = literals.first()
-    {
+    if let Some(lit) = literals.first() {
         let inner_expr = literal_to_analyzed_expr(lit);
         let inner_type = inner_expr.glossa_type.clone();
-        return Some((
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Some(Box::new(inner_expr)),
-                glossa_type: GlossaType::Option(Box::new(inner_type.clone())),
-            },
-            GlossaType::Option(Box::new(inner_type)),
-        ));
-    }
 
-    // Ok
-    if (crate::morphology::lexicon::is_ok_word(lemma)
-        || crate::morphology::lexicon::is_ok_word(original))
-        && let Some(lit) = literals.first()
-    {
-        let inner_expr = literal_to_analyzed_expr(lit);
-        let inner_type = inner_expr.glossa_type.clone();
-        return Some((
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Ok(Box::new(inner_expr)),
-                glossa_type: GlossaType::Result(
-                    Box::new(inner_type.clone()),
-                    Box::new(GlossaType::String),
-                ),
-            },
-            GlossaType::Result(Box::new(inner_type), Box::new(GlossaType::String)),
-        ));
-    }
+        // Some
+        if check(crate::morphology::lexicon::is_some_word) {
+            return Some((
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Some(Box::new(inner_expr)),
+                    glossa_type: GlossaType::Option(Box::new(inner_type.clone())),
+                },
+                GlossaType::Option(Box::new(inner_type)),
+            ));
+        }
 
-    // Err
-    if (crate::morphology::lexicon::is_err_word(lemma)
-        || crate::morphology::lexicon::is_err_word(original))
-        && let Some(lit) = literals.first()
-    {
-        let inner_expr = literal_to_analyzed_expr(lit);
-        let inner_type = inner_expr.glossa_type.clone();
-        return Some((
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Err(Box::new(inner_expr)),
-                glossa_type: GlossaType::Result(
-                    Box::new(GlossaType::Unknown),
-                    Box::new(inner_type.clone()),
-                ),
-            },
-            GlossaType::Result(Box::new(GlossaType::Unknown), Box::new(inner_type)),
-        ));
+        // Ok
+        if check(crate::morphology::lexicon::is_ok_word) {
+            return Some((
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Ok(Box::new(inner_expr)),
+                    glossa_type: GlossaType::Result(
+                        Box::new(inner_type.clone()),
+                        Box::new(GlossaType::String),
+                    ),
+                },
+                GlossaType::Result(Box::new(inner_type), Box::new(GlossaType::String)),
+            ));
+        }
+
+        // Err
+        if check(crate::morphology::lexicon::is_err_word) {
+            return Some((
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Err(Box::new(inner_expr)),
+                    glossa_type: GlossaType::Result(
+                        Box::new(GlossaType::Unknown),
+                        Box::new(inner_type.clone()),
+                    ),
+                },
+                GlossaType::Result(Box::new(GlossaType::Unknown), Box::new(inner_type)),
+            ));
+        }
     }
 
     None
