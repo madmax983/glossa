@@ -559,8 +559,7 @@ fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
         quote! { println!(); }
     } else {
         // Generate format string with {} separated by spaces to avoid runtime Vec allocation
-        let format_str = std::iter::repeat("{}")
-            .take(args.len())
+        let format_str = std::iter::repeat_n("{}", args.len())
             .collect::<Vec<_>>()
             .join(" ");
 
