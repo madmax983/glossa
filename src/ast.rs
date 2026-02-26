@@ -231,7 +231,7 @@ impl Statement {
 ///
 /// Expressions represent values that can be evaluated.
 /// They include literals, variable references, operations, and function calls.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum Expr {
     /// A string literal: «text»
     ///
@@ -323,6 +323,170 @@ pub enum Expr {
 
     /// A block of statements in braces { ... }
     Block(Vec<Statement>),
+}
+
+impl Clone for Expr {
+    fn clone(&self) -> Self {
+        // Prevent stack overflow on deep cloning
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            Expr::StringLiteral(s) => Expr::StringLiteral(s.clone()),
+            Expr::NumberLiteral(n) => Expr::NumberLiteral(*n),
+            Expr::BooleanLiteral(b) => Expr::BooleanLiteral(*b),
+            Expr::ArrayLiteral(v) => Expr::ArrayLiteral(v.clone()),
+            Expr::IndexAccess { array, index } => Expr::IndexAccess {
+                array: array.clone(),
+                index: index.clone(),
+            },
+            Expr::Word(w) => Expr::Word(w.clone()),
+            Expr::Phrase(v) => Expr::Phrase(v.clone()),
+            Expr::PropertyAccess { owner, property } => Expr::PropertyAccess {
+                owner: owner.clone(),
+                property: property.clone(),
+            },
+            Expr::Call { verb, arguments } => Expr::Call {
+                verb: verb.clone(),
+                arguments: arguments.clone(),
+            },
+            Expr::Binding { name, value } => Expr::Binding {
+                name: name.clone(),
+                value: value.clone(),
+            },
+            Expr::BinOp { left, op, right } => Expr::BinOp {
+                left: left.clone(),
+                op: *op,
+                right: right.clone(),
+            },
+            Expr::UnaryOp { op, operand } => Expr::UnaryOp {
+                op: *op,
+                operand: operand.clone(),
+            },
+            Expr::Block(stmts) => Expr::Block(stmts.clone()),
+        })
+    }
+}
+
+impl PartialEq for Expr {
+    fn eq(&self, other: &Self) -> bool {
+        // Prevent stack overflow on deep equality checks
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match (self, other) {
+            (Expr::StringLiteral(a), Expr::StringLiteral(b)) => a == b,
+            (Expr::NumberLiteral(a), Expr::NumberLiteral(b)) => a == b,
+            (Expr::BooleanLiteral(a), Expr::BooleanLiteral(b)) => a == b,
+            (Expr::ArrayLiteral(a), Expr::ArrayLiteral(b)) => a == b,
+            (
+                Expr::IndexAccess {
+                    array: a1,
+                    index: i1,
+                },
+                Expr::IndexAccess {
+                    array: a2,
+                    index: i2,
+                },
+            ) => a1 == a2 && i1 == i2,
+            (Expr::Word(a), Expr::Word(b)) => a == b,
+            (Expr::Phrase(a), Expr::Phrase(b)) => a == b,
+            (
+                Expr::PropertyAccess {
+                    owner: o1,
+                    property: p1,
+                },
+                Expr::PropertyAccess {
+                    owner: o2,
+                    property: p2,
+                },
+            ) => o1 == o2 && p1 == p2,
+            (
+                Expr::Call {
+                    verb: v1,
+                    arguments: a1,
+                },
+                Expr::Call {
+                    verb: v2,
+                    arguments: a2,
+                },
+            ) => v1 == v2 && a1 == a2,
+            (
+                Expr::Binding { name: n1, value: v1 },
+                Expr::Binding { name: n2, value: v2 },
+            ) => n1 == n2 && v1 == v2,
+            (
+                Expr::BinOp {
+                    left: l1,
+                    op: o1,
+                    right: r1,
+                },
+                Expr::BinOp {
+                    left: l2,
+                    op: o2,
+                    right: r2,
+                },
+            ) => l1 == l2 && o1 == o2 && r1 == r2,
+            (
+                Expr::UnaryOp { op: o1, operand: op1 },
+                Expr::UnaryOp { op: o2, operand: op2 },
+            ) => o1 == o2 && op1 == op2,
+            (Expr::Block(a), Expr::Block(b)) => a == b,
+            _ => false,
+        })
+    }
+}
+
+impl Drop for Expr {
+    fn drop(&mut self) {
+        // Prevent stack overflow on deep dropping
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            // Check if we need to drop deep children
+            match self {
+                Expr::StringLiteral(_)
+                | Expr::NumberLiteral(_)
+                | Expr::BooleanLiteral(_)
+                | Expr::Word(_) => return,
+                _ => {}
+            }
+
+            // Replace self with a trivial variant to take ownership of the deep structure
+            // and drop it within the maybe_grow context.
+            // Using BooleanLiteral(false) as it doesn't allocate.
+            let old_self = std::mem::replace(self, Expr::BooleanLiteral(false));
+
+            // Wrap in ManuallyDrop to prevent Drop::drop from being called on old_self,
+            // which would cause infinite recursion.
+            let mut old_self = std::mem::ManuallyDrop::new(old_self);
+
+            unsafe {
+                match &mut *old_self {
+                    Expr::Phrase(v) => drop(std::ptr::read(v)),
+                    Expr::Block(v) => drop(std::ptr::read(v)),
+                    Expr::ArrayLiteral(v) => drop(std::ptr::read(v)),
+                    Expr::IndexAccess { array, index } => {
+                        drop(std::ptr::read(array));
+                        drop(std::ptr::read(index));
+                    }
+                    Expr::PropertyAccess { owner, property } => {
+                        drop(std::ptr::read(owner));
+                        drop(std::ptr::read(property));
+                    }
+                    Expr::Call { verb, arguments } => {
+                        drop(std::ptr::read(verb));
+                        drop(std::ptr::read(arguments));
+                    }
+                    Expr::Binding { name, value } => {
+                        drop(std::ptr::read(name));
+                        drop(std::ptr::read(value));
+                    }
+                    Expr::BinOp { left, op: _, right } => {
+                        drop(std::ptr::read(left));
+                        drop(std::ptr::read(right));
+                    }
+                    Expr::UnaryOp { op: _, operand } => {
+                        drop(std::ptr::read(operand));
+                    }
+                    // Trivial cases
+                    _ => {}
+                }
+            }
+        });
+    }
 }
 
 /// Binary operators in GLOSSA
