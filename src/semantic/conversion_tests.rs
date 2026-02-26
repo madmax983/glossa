@@ -1,11 +1,12 @@
 use super::conversion::extract_value;
 use crate::ast::Expr;
-use crate::morphology::Case;
+use crate::morphology::{Case, Number};
 use crate::morphology::lexicon::BinaryOp;
 use crate::semantic::{
     AnalyzedExprKind, AssembledStatement, Constituent, GlossaType, Literal, Scope,
 };
 use crate::text::normalize_greek;
+use crate::semantic::conversion::extract_binary_op;
 
 fn make_constituent(original: &str, lemma: &str) -> Constituent {
     Constituent {
@@ -319,4 +320,90 @@ fn test_default_case() {
     }
 
     assert_eq!(glossa_type, GlossaType::Number);
+}
+
+#[test]
+fn test_extract_binary_op_nominative_and_literal() {
+    let mut scope = Scope::new();
+    scope.define("nom", GlossaType::Number);
+
+    // nominative (nom) + literal (1) -> op (+)
+    let mut asm = AssembledStatement::default();
+    asm.nominatives.push(Constituent {
+        lemma: "nom".into(),
+        original: "nom".into(),
+        normalized: "nom".into(),
+        case: Case::Nominative,
+        number: Some(Number::Singular),
+        gender: None,
+        person: None,
+    });
+    asm.literals.push(Literal::Number(1));
+    asm.operators.push(BinaryOp::Add);
+
+    let result = extract_binary_op(&asm, &scope);
+    assert!(result.is_ok());
+    let extracted = result.unwrap();
+    assert!(extracted.is_some());
+    let (expr, ty) = extracted.unwrap();
+    assert_eq!(ty, GlossaType::Number);
+
+    if let AnalyzedExprKind::BinOp { left, op, right } = expr.expr {
+        assert_eq!(op, BinaryOp::Add);
+        if let AnalyzedExprKind::Variable(name) = left.expr {
+            assert_eq!(name, "nom");
+        } else {
+            panic!("Expected Variable on left");
+        }
+        if let AnalyzedExprKind::NumberLiteral(n) = right.expr {
+            assert_eq!(n, 1);
+        } else {
+            panic!("Expected NumberLiteral on right");
+        }
+    } else {
+        panic!("Expected BinOp");
+    }
+}
+
+#[test]
+fn test_extract_binary_op_subject_and_literal() {
+    let mut scope = Scope::new();
+    scope.define("subj", GlossaType::Number);
+
+    // subject (subj) + literal (1) -> op (+)
+    let mut asm = AssembledStatement::default();
+    asm.subject = Some(Constituent {
+        lemma: "subj".into(),
+        original: "subj".into(),
+        normalized: "subj".into(),
+        case: Case::Nominative,
+        number: Some(Number::Singular),
+        gender: None,
+        person: None,
+    });
+    asm.literals.push(Literal::Number(1));
+    asm.operators.push(BinaryOp::Add);
+
+    let result = extract_binary_op(&asm, &scope);
+    assert!(result.is_ok());
+    let extracted = result.unwrap();
+    assert!(extracted.is_some());
+    let (expr, ty) = extracted.unwrap();
+    assert_eq!(ty, GlossaType::Number);
+
+    if let AnalyzedExprKind::BinOp { left, op, right } = expr.expr {
+        assert_eq!(op, BinaryOp::Add);
+        if let AnalyzedExprKind::Variable(name) = left.expr {
+            assert_eq!(name, "subj");
+        } else {
+            panic!("Expected Variable on left");
+        }
+        if let AnalyzedExprKind::NumberLiteral(n) = right.expr {
+            assert_eq!(n, 1);
+        } else {
+            panic!("Expected NumberLiteral on right");
+        }
+    } else {
+        panic!("Expected BinOp");
+    }
 }

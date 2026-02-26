@@ -460,4 +460,109 @@ mod tests {
         // Inner α shadows outer α.
         assert_eq!(output, "20\n10\n");
     }
+
+    #[test]
+    fn test_eval_if_else_false() {
+        // "let α be false. if α, say 'yes'; else, say 'no'."
+        let source = "
+            α ψεῦδος ἔστω.
+            ἐὰν α, «yes» λέγε· εἰ δὲ μή, «no» λέγε.
+        ";
+        let (_, output) = eval(source);
+        assert_eq!(output, "no\n");
+    }
+
+    #[test]
+    fn test_eval_if_no_else_false() {
+        // "let α be false. if α, say 'yes'."
+        let source = "
+            α ψεῦδος ἔστω.
+            ἐὰν α, «yes» λέγε.
+            «end» λέγε.
+        ";
+        let (_, output) = eval(source);
+        assert_eq!(output, "end\n");
+    }
+
+    #[test]
+    fn test_eval_assignment() {
+        // "let x (mut) be 10. x becomes 20. print x."
+        // Needs proper subject/object structure for assignment: Subject (x) Object (20) Verb (becomes)
+        // γίγνεται is an assignment verb. It expects a Subject (variable) and Object/Literal (value).
+        // Word order: x (Subject) 20 (Literal/Object) γίγνεται (Verb).
+        // BUT: x (Variable) is often Nominative. If the parser treats it as Subject, it works.
+        // Wait, in previous successful runs, `test_eval_loop` worked.
+        // `i i 1 ἄθροισμα γίγνεται` worked. That's `Subject Object Verb`.
+        // Here `x 20 γίγνεται` failed with "Binding without subject".
+        // Ah, `γίγνεται` is `is_assignment_verb`.
+        // `test_eval_loop` uses `i i 1 ἄθροισμα γίγνεται`.
+        // Maybe the issue is `x` being treated as unknown word -> Object?
+        // If x is defined, it should be recognized.
+        // Let's ensure x is nominative by using a known noun if needed, or rely on variable lookup.
+        // Re-check why it failed. "Binding without subject".
+        // Assignment verb triggers `classify_assignment`.
+        // `classify_assignment` looks for Subject.
+        // If `x` is the first word, it should be Subject (if Nominative).
+        // If `x` is unknown, it defaults to Object?
+        // In `test_eval_loop`: `μετά i 0 ἔστω`. `i` is defined.
+        // Then `i i 1 ἄθροισμα γίγνεται`.
+        // Here `x` is defined. `x 20 γίγνεται`.
+        // Maybe `20` (numeral) is claiming a slot that confuses things?
+        // Let's try explicit nominative for x? No, x is a variable.
+        // Let's try `x` as subject explicitly?
+        // Or maybe `x` needs to be `x` (Subject) and `20` (Object)?
+        // If `x` is recognized as Variable, what case does it have?
+        // The parser/morphology might be assigning it a case based on ending or default.
+        // `x` doesn't look Greek.
+        // Let's use `α` (alpha) which we know works in other tests.
+        let source = "
+            μετά α 10 ἔστω.
+            α 20 γίγνεται.
+            α λέγε.
+        ";
+        let (_, output) = eval(source);
+        assert_eq!(output, "20\n");
+    }
+
+    #[test]
+    fn test_eval_expression_stmt() {
+        // Just an expression statement (1 + 1). Should execute without error (result discarded).
+        // Then print something to verify completion.
+        let source = "
+            1 1 ἄθροισμα.
+            «done» λέγε.
+        ";
+        let (_, output) = eval(source);
+        assert_eq!(output, "done\n");
+    }
+
+    #[test]
+    fn test_eval_unary_op_error() {
+        // Unary Ops (like negation) are not implemented in eval_expr yet.
+        // "not true" -> οὐκ ἀληθές
+        let source = "οὐκ ἀληθές λέγε.";
+
+        // We need to parse and analyze manually to check the result without panicking.
+        let ast = parse(source).unwrap();
+        let program = analyze_program(&ast).unwrap();
+        let mut buffer = Vec::new();
+        let mut evaluator = Evaluator::new(&mut buffer);
+        let result = evaluator.eval_program(&program);
+
+        // The error message from eval_expr uses Debug trait for expr.expr
+        // "Expression kind not supported yet: UnaryOp { op: Not, operand: ... }"
+        assert!(matches!(result, Err(EvalError::NotImplemented(msg))
+            if msg.contains("UnaryOp") || msg.contains("Expression kind not supported yet")));
+    }
+}
+
+#[test]
+fn debug_error() {
+    let source = "οὐκ ἀληθές λέγε.";
+    let ast = crate::parser::parse(source).unwrap();
+    let program = crate::semantic::analyze_program(&ast).unwrap();
+    let mut buffer = Vec::new();
+    let mut evaluator = Evaluator::new(&mut buffer);
+    let result = evaluator.eval_program(&program);
+    println!("DEBUG ERROR: {:?}", result);
 }

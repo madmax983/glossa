@@ -1277,7 +1277,7 @@ fn extract_array(
     Ok(None)
 }
 
-fn extract_binary_op(
+pub(crate) fn extract_binary_op(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
