@@ -557,14 +557,15 @@ fn generate_let(name: &str, value: &AnalyzedExpr, mutable: bool) -> TokenStream 
 fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
     if args.is_empty() {
         quote! { println!(); }
-    } else if args.len() == 1 {
-        let arg = generate_expr(&args[0]);
-        // Use Display formatting
-        quote! { println!("{}", #arg); }
     } else {
-        // Multiple args - join with space
+        // Generate format string with {} separated by spaces to avoid runtime Vec allocation
+        let format_str = std::iter::repeat("{}")
+            .take(args.len())
+            .collect::<Vec<_>>()
+            .join(" ");
+
         let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-        quote! { println!("{}", vec![#(format!("{}", #arg_tokens)),*].join(" ")); }
+        quote! { println!(#format_str, #(#arg_tokens),*); }
     }
 }
 
