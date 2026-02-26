@@ -152,12 +152,18 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
 
     // Collect other interesting things
     let mut other = Vec::new();
+
+    // Literals
     if !asm.literals.is_empty() {
         other.push(format!("Literals: {}", asm.literals.len()));
     }
+
+    // Operators
     if !asm.operators.is_empty() {
         other.push(format!("Ops: {:?}", asm.operators));
     }
+
+    // Genitives
     if !asm.genitives.is_empty() {
         let gens = asm
             .genitives
@@ -167,6 +173,8 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
             .join(", ");
         other.push(format!("Gen: [{}]", gens));
     }
+
+    // Adjectives
     if !asm.adjectives.is_empty() {
         let adjs = asm
             .adjectives
@@ -176,6 +184,8 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
             .join(", ");
         other.push(format!("Adj: [{}]", adjs));
     }
+
+    // Participles
     if !asm.participles.is_empty() {
         let parts = asm
             .participles
@@ -185,8 +195,58 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
             .join(", ");
         other.push(format!("Participles: [{}]", parts));
     }
+
+    // New Fields (Arrays, Index Accesses, Properties, Blocks, Phrases, Unwraps)
+    if !asm.arrays.is_empty() {
+        other.push(format!("Arrays: {}", asm.arrays.len()));
+    }
+    if !asm.index_accesses.is_empty() {
+        other.push(format!("Index Accesses: {}", asm.index_accesses.len()));
+    }
+    if !asm.property_accesses.is_empty() {
+        let props = asm
+            .property_accesses
+            .iter()
+            .map(|(o, p)| format!("{}.{}", o, p))
+            .collect::<Vec<_>>()
+            .join(", ");
+        other.push(format!("Properties: [{}]", props));
+    }
+    if !asm.blocks.is_empty() {
+        other.push(format!("Blocks: {}", asm.blocks.len()));
+    }
+    if !asm.nested_phrases.is_empty() {
+        other.push(format!("Phrases: {}", asm.nested_phrases.len()));
+    }
+    if !asm.unwraps.is_empty() {
+        other.push(format!("Unwraps: {}", asm.unwraps.len()));
+    }
+
+    // String Method
+    if let Some((method, delim)) = &asm.string_method {
+        other.push(format!("Method: {}({})", method, delim));
+    }
+
+    // Flags
+    let mut flags = Vec::new();
     if asm.is_query {
-        other.push("Query (?)".to_string());
+        flags.push("Query (?)");
+    }
+    if asm.is_propagate {
+        flags.push("Propagate (;)");
+    }
+    if asm.has_mutable_marker {
+        flags.push("Mut (μετά)");
+    }
+    if asm.has_containment_preposition {
+        flags.push("In (ἐν)");
+    }
+    if asm.has_delimiter_preposition {
+        flags.push("By (κατά)");
+    }
+
+    if !flags.is_empty() {
+        other.push(format!("Flags: [{}]", flags.join(", ")));
     }
 
     table.add_row(vec![
@@ -195,7 +255,7 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
         Cell::new(verb),
         Cell::new(object),
         Cell::new(indirect),
-        Cell::new(other.join(", ")).fg(Color::DarkGrey),
+        Cell::new(other.join("\n")).fg(Color::DarkGrey),
     ]);
 }
 
