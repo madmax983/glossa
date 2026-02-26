@@ -159,7 +159,7 @@ impl Interpreter {
                     return Err(EvalError::DivisionByZero);
                 }
                 Ok(Value::Number(l / r))
-            },
+            }
 
             // Comparison
             (BinaryOp::Eq, _, _) => Ok(Value::Boolean(left == right)),
@@ -183,7 +183,7 @@ impl Interpreter {
         match (op, operand) {
             (UnaryOp::Not, Value::Boolean(b)) => Ok(Value::Boolean(!b)),
             (UnaryOp::Neg, Value::Number(n)) => Ok(Value::Number(-n)),
-             _ => Err(EvalError::NotImplemented(format!("Unary op {:?}", op))),
+            _ => Err(EvalError::NotImplemented(format!("Unary op {:?}", op))),
         }
     }
 
@@ -231,32 +231,32 @@ mod tests {
 
     #[test]
     fn test_eval_literals() {
-        let mut interpreter = run_code("«hello» λέγε.");
+        let interpreter = run_code("«hello» λέγε.");
         assert_eq!(interpreter.get_output(), "hello");
     }
 
     #[test]
     fn test_eval_arithmetic() {
-        let mut interpreter = run_code("1 2 πρόσθεσις λέγε."); // 1 + 2
+        let interpreter = run_code("1 2 ἄθροισμα λέγε."); // 1 + 2 (using a known arithmetic noun)
         assert_eq!(interpreter.get_output(), "3");
     }
 
     #[test]
     fn test_variable_binding() {
-        let mut interpreter = run_code("ξ πέντε ἔστω. ξ λέγε.");
+        let interpreter = run_code("ξ πέντε ἔστω. ξ λέγε.");
         assert_eq!(interpreter.get_output(), "5");
     }
 
     #[test]
     fn test_variable_assignment() {
-        // ξ starts as 5, then becomes 10
-        let mut interpreter = run_code("ξ πέντε ἔστω. ξ δέκα γίγνεται. ξ λέγε.");
+        // ξ starts as 5, then becomes 10. Must use 'μετά' (mutable marker) for reassignment to be valid.
+        let interpreter = run_code("μετά ξ πέντε ἔστω. ξ δέκα γίγνεται. ξ λέγε.");
         assert_eq!(interpreter.get_output(), "10");
     }
 
     #[test]
     fn test_boolean_logic() {
-        let mut interpreter = run_code("ἀληθές λέγε.");
+        let interpreter = run_code("ἀληθές λέγε.");
         assert_eq!(interpreter.get_output(), "true");
     }
 
