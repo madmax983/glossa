@@ -539,8 +539,12 @@ mod tests {
     #[test]
     fn test_eval_unary_op_error() {
         // Unary Ops (like negation) are not implemented in eval_expr yet.
-        // "not true" -> οὐκ ἀληθές
-        let source = "οὐκ ἀληθές λέγε.";
+        // "let α be true. print not α."
+        // We use a variable to prevent constant folding by the analyzer.
+        let source = "
+            α ἀληθές ἔστω.
+            οὐκ α λέγε.
+        ";
 
         // We need to parse and analyze manually to check the result without panicking.
         let ast = parse(source).unwrap();
@@ -581,4 +585,21 @@ fn debug_program_structure() {
     let ast = crate::parser::parse(source).unwrap();
     let program = crate::semantic::analyze_program(&ast).unwrap();
     println!("DEBUG PROGRAM: {:#?}", program);
+}
+
+#[test]
+fn debug_unary_op_analysis() {
+    let source = "οὐκ ἀληθές λέγε.";
+    let ast = crate::parser::parse(source).unwrap();
+    let program = crate::semantic::analyze_program(&ast).unwrap();
+    println!("DEBUG AST: {:?}", ast);
+    println!("DEBUG PROGRAM: {:#?}", program);
+}
+
+#[test]
+fn debug_unary_op_analysis_variable() {
+    let source = "α ἀληθές ἔστω. οὐκ α λέγε.";
+    let ast = crate::parser::parse(source).unwrap();
+    let program = crate::semantic::analyze_program(&ast).unwrap();
+    println!("DEBUG VARIABLE PROGRAM: {:#?}", program);
 }
