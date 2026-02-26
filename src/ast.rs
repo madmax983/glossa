@@ -406,8 +406,14 @@ impl PartialEq for Expr {
                 },
             ) => v1 == v2 && a1 == a2,
             (
-                Expr::Binding { name: n1, value: v1 },
-                Expr::Binding { name: n2, value: v2 },
+                Expr::Binding {
+                    name: n1,
+                    value: v1,
+                },
+                Expr::Binding {
+                    name: n2,
+                    value: v2,
+                },
             ) => n1 == n2 && v1 == v2,
             (
                 Expr::BinOp {
@@ -422,8 +428,14 @@ impl PartialEq for Expr {
                 },
             ) => l1 == l2 && o1 == o2 && r1 == r2,
             (
-                Expr::UnaryOp { op: o1, operand: op1 },
-                Expr::UnaryOp { op: o2, operand: op2 },
+                Expr::UnaryOp {
+                    op: o1,
+                    operand: op1,
+                },
+                Expr::UnaryOp {
+                    op: o2,
+                    operand: op2,
+                },
             ) => o1 == o2 && op1 == op2,
             (Expr::Block(a), Expr::Block(b)) => a == b,
             _ => false,
