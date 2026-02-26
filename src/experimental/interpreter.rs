@@ -3,11 +3,11 @@
 //! This module implements a tree-walk interpreter for ΓΛΩΣΣΑ programs.
 //! It executes the Analyzed AST directly, bypassing the Rust code generation phase.
 
-use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use crate::morphology::lexicon::BinaryOp;
+use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
+use miette::Diagnostic;
 use std::collections::HashMap;
 use std::io::Write;
-use miette::Diagnostic;
 use thiserror::Error;
 
 /// A runtime value in ΓΛΩΣΣΑ
@@ -34,14 +34,9 @@ impl std::fmt::Display for Value {
 #[derive(Debug, Error, Diagnostic)]
 pub enum EvalError {
     #[error("Type mismatch: expected {expected}, found {found}")]
-    TypeMismatch {
-        expected: String,
-        found: String,
-    },
+    TypeMismatch { expected: String, found: String },
     #[error("Undefined variable: {name}")]
-    UndefinedVariable {
-        name: String,
-    },
+    UndefinedVariable { name: String },
     #[error("Division by zero")]
     DivisionByZero,
     #[error("Invalid operation: {op} on {left} and {right}")]
@@ -90,7 +85,9 @@ impl<'a, W: Write> Evaluator<'a, W> {
                 return Ok(());
             }
         }
-        Err(EvalError::UndefinedVariable { name: name.to_string() })
+        Err(EvalError::UndefinedVariable {
+            name: name.to_string(),
+        })
     }
 
     fn lookup(&self, name: &str) -> Option<Value> {
@@ -131,9 +128,14 @@ impl<'a, W: Write> Evaluator<'a, W> {
                         Value::Unit => output.push_str("()"),
                     }
                 }
-                writeln!(self.output, "{}", output).map_err(|e| EvalError::IoError(e.to_string()))?;
+                writeln!(self.output, "{}", output)
+                    .map_err(|e| EvalError::IoError(e.to_string()))?;
             }
-            AnalyzedStatement::If { condition, then_body, else_body } => {
+            AnalyzedStatement::If {
+                condition,
+                then_body,
+                else_body,
+            } => {
                 let cond = self.eval_expr(condition)?;
                 match cond {
                     Value::Boolean(true) => {
@@ -152,31 +154,43 @@ impl<'a, W: Write> Evaluator<'a, W> {
                             self.pop_scope();
                         }
                     }
-                    _ => return Err(EvalError::TypeMismatch { expected: "Boolean".into(), found: format!("{:?}", cond) }),
-                }
-            }
-            AnalyzedStatement::While { condition, body } => {
-                loop {
-                    let cond = self.eval_expr(condition)?;
-                    match cond {
-                        Value::Boolean(true) => {
-                            self.push_scope();
-                            for stmt in body {
-                                self.eval_stmt(stmt)?;
-                            }
-                            self.pop_scope();
-                        }
-                        Value::Boolean(false) => break,
-                        _ => return Err(EvalError::TypeMismatch { expected: "Boolean".into(), found: format!("{:?}", cond) }),
+                    _ => {
+                        return Err(EvalError::TypeMismatch {
+                            expected: "Boolean".into(),
+                            found: format!("{:?}", cond),
+                        });
                     }
                 }
             }
+            AnalyzedStatement::While { condition, body } => loop {
+                let cond = self.eval_expr(condition)?;
+                match cond {
+                    Value::Boolean(true) => {
+                        self.push_scope();
+                        for stmt in body {
+                            self.eval_stmt(stmt)?;
+                        }
+                        self.pop_scope();
+                    }
+                    Value::Boolean(false) => break,
+                    _ => {
+                        return Err(EvalError::TypeMismatch {
+                            expected: "Boolean".into(),
+                            found: format!("{:?}", cond),
+                        });
+                    }
+                }
+            },
             AnalyzedStatement::Expression(exprs) => {
                 for expr in exprs {
                     self.eval_expr(expr)?;
                 }
             }
-            _ => return Err(EvalError::NotImplemented(format!("Statement type not supported yet"))),
+            _ => {
+                return Err(EvalError::NotImplemented(
+                    "Statement type not supported yet".to_string(),
+                ));
+            }
         }
         Ok(())
     }
@@ -187,14 +201,20 @@ impl<'a, W: Write> Evaluator<'a, W> {
             AnalyzedExprKind::StringLiteral(s) => Ok(Value::String(s.clone())),
             AnalyzedExprKind::BooleanLiteral(b) => Ok(Value::Boolean(*b)),
             AnalyzedExprKind::Variable(name) => {
-                self.lookup(name).ok_or_else(|| EvalError::UndefinedVariable { name: name.to_string() })
+                self.lookup(name)
+                    .ok_or_else(|| EvalError::UndefinedVariable {
+                        name: name.to_string(),
+                    })
             }
             AnalyzedExprKind::BinOp { left, op, right } => {
                 let l = self.eval_expr(left)?;
                 let r = self.eval_expr(right)?;
                 self.eval_binop(op, l, r)
             }
-            _ => Err(EvalError::NotImplemented(format!("Expression kind not supported yet: {:?}", expr.expr))),
+            _ => Err(EvalError::NotImplemented(format!(
+                "Expression kind not supported yet: {:?}",
+                expr.expr
+            ))),
         }
     }
 
@@ -204,30 +224,57 @@ impl<'a, W: Write> Evaluator<'a, W> {
                 BinaryOp::Add => Ok(Value::Number(l + r)),
                 BinaryOp::Sub => Ok(Value::Number(l - r)),
                 BinaryOp::Mul => Ok(Value::Number(l * r)),
-                BinaryOp::Div => if r == 0 { Err(EvalError::DivisionByZero) } else { Ok(Value::Number(l / r)) },
-                BinaryOp::Mod => if r == 0 { Err(EvalError::DivisionByZero) } else { Ok(Value::Number(l % r)) },
+                BinaryOp::Div => {
+                    if r == 0 {
+                        Err(EvalError::DivisionByZero)
+                    } else {
+                        Ok(Value::Number(l / r))
+                    }
+                }
+                BinaryOp::Mod => {
+                    if r == 0 {
+                        Err(EvalError::DivisionByZero)
+                    } else {
+                        Ok(Value::Number(l % r))
+                    }
+                }
                 BinaryOp::Eq => Ok(Value::Boolean(l == r)),
                 BinaryOp::Ne => Ok(Value::Boolean(l != r)),
                 BinaryOp::Lt => Ok(Value::Boolean(l < r)),
                 BinaryOp::Le => Ok(Value::Boolean(l <= r)),
                 BinaryOp::Gt => Ok(Value::Boolean(l > r)),
                 BinaryOp::Ge => Ok(Value::Boolean(l >= r)),
-                _ => Err(EvalError::InvalidOperation { op: format!("{:?}", op), left: format!("{}", l), right: format!("{}", r) }),
+                _ => Err(EvalError::InvalidOperation {
+                    op: format!("{:?}", op),
+                    left: format!("{}", l),
+                    right: format!("{}", r),
+                }),
             },
             (Value::Boolean(l), Value::Boolean(r)) => match op {
                 BinaryOp::And => Ok(Value::Boolean(l && r)),
                 BinaryOp::Or => Ok(Value::Boolean(l || r)),
                 BinaryOp::Eq => Ok(Value::Boolean(l == r)),
                 BinaryOp::Ne => Ok(Value::Boolean(l != r)),
-                _ => Err(EvalError::InvalidOperation { op: format!("{:?}", op), left: format!("{}", l), right: format!("{}", r) }),
+                _ => Err(EvalError::InvalidOperation {
+                    op: format!("{:?}", op),
+                    left: format!("{}", l),
+                    right: format!("{}", r),
+                }),
             },
-             (Value::String(l), Value::String(r)) => match op {
+            (Value::String(l), Value::String(r)) => match op {
                 BinaryOp::Eq => Ok(Value::Boolean(l == r)),
                 BinaryOp::Ne => Ok(Value::Boolean(l != r)),
-                 BinaryOp::Add => Ok(Value::String(format!("{}{}", l, r))),
-                _ => Err(EvalError::InvalidOperation { op: format!("{:?}", op), left: l, right: r }),
+                BinaryOp::Add => Ok(Value::String(format!("{}{}", l, r))),
+                _ => Err(EvalError::InvalidOperation {
+                    op: format!("{:?}", op),
+                    left: l,
+                    right: r,
+                }),
             },
-            (l, r) => Err(EvalError::TypeMismatch { expected: "Same Type".into(), found: format!("{:?} vs {:?}", l, r) }),
+            (l, r) => Err(EvalError::TypeMismatch {
+                expected: "Same Type".into(),
+                found: format!("{:?} vs {:?}", l, r),
+            }),
         }
     }
 }
@@ -264,8 +311,8 @@ mod tests {
 
     #[test]
     fn test_eval_logic() {
-         // "let α be true. if α, say 'yes'; else, say 'no'."
-         // Syntax: ἐὰν cond, body · εἰ δὲ μή, else_body.
+        // "let α be true. if α, say 'yes'; else, say 'no'."
+        // Syntax: ἐὰν cond, body · εἰ δὲ μή, else_body.
         let source = "
             α ἀληθές ἔστω.
             ἐὰν α, «yes» λέγε· εἰ δὲ μή, «no» λέγε.
@@ -302,7 +349,7 @@ mod tests {
             }
             α λέγε.
         ";
-         let (_, output) = eval(source);
+        let (_, output) = eval(source);
         // Inner α shadows outer α.
         assert_eq!(output, "20\n10\n");
     }

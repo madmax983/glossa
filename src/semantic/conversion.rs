@@ -1331,6 +1331,30 @@ fn extract_binary_op(
             let ty = bin_expr.glossa_type.clone();
             return Ok(Some((bin_expr, ty)));
         }
+
+        // Nominative + Literal (e.g. a + 1)
+        if let Some(nom) = asm_stmt.nominatives.first()
+            && !asm_stmt.literals.is_empty()
+        {
+            let left = make_var(&nom.lemma);
+            let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+            let op = asm_stmt.operators[0];
+            let bin_expr = build_binary_expr(left, op, right);
+            let ty = bin_expr.glossa_type.clone();
+            return Ok(Some((bin_expr, ty)));
+        }
+
+        // Subject + Literal (e.g. a += 1 where a is subject/target)
+        if let Some(ref subj) = asm_stmt.subject
+            && !asm_stmt.literals.is_empty()
+        {
+            let left = make_var(&subj.lemma);
+            let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+            let op = asm_stmt.operators[0];
+            let bin_expr = build_binary_expr(left, op, right);
+            let ty = bin_expr.glossa_type.clone();
+            return Ok(Some((bin_expr, ty)));
+        }
     }
     Ok(None)
 }
