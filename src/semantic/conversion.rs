@@ -797,6 +797,27 @@ fn try_print_unwrap(
     Ok(None)
 }
 
+fn try_print_unary_op(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<Vec<AnalyzedExpr>>, GlossaError> {
+    if !asm_stmt.unary_operators.is_empty() {
+        let op = asm_stmt.unary_operators[0];
+        let mut inner_asm = asm_stmt.clone();
+        inner_asm.unary_operators.remove(0);
+
+        let (val, ty) = extract_value(&inner_asm, scope)?;
+        return Ok(Some(vec![AnalyzedExpr {
+            expr: AnalyzedExprKind::UnaryOp {
+                op,
+                operand: Box::new(val),
+            },
+            glossa_type: ty,
+        }]));
+    }
+    Ok(None)
+}
+
 fn try_print_default(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
@@ -850,6 +871,10 @@ fn classify_print(
             }
 
             if let Some(args) = try_print_unwrap(asm_stmt, scope)? {
+                return Ok(Some(AnalyzedStatement::Print(args)));
+            }
+
+            if let Some(args) = try_print_unary_op(asm_stmt, scope)? {
                 return Ok(Some(AnalyzedStatement::Print(args)));
             }
 
@@ -1335,6 +1360,7 @@ pub(crate) fn extract_binary_op(
         // Nominative + Literal (e.g. a + 1)
         if let Some(nom) = asm_stmt.nominatives.first()
             && !asm_stmt.literals.is_empty()
+            && !asm_stmt.operators.is_empty()
         {
             let left = make_var(&nom.lemma);
             let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
@@ -1347,6 +1373,7 @@ pub(crate) fn extract_binary_op(
         // Subject + Literal (e.g. a += 1 where a is subject/target)
         if let Some(ref subj) = asm_stmt.subject
             && !asm_stmt.literals.is_empty()
+            && !asm_stmt.operators.is_empty()
         {
             let left = make_var(&subj.lemma);
             let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
@@ -1432,6 +1459,26 @@ pub fn extract_value(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<(AnalyzedExpr, GlossaType), GlossaError> {
+    // Check for Unary Ops first
+    if !asm_stmt.unary_operators.is_empty() {
+        let op = asm_stmt.unary_operators[0];
+        let mut inner_asm = asm_stmt.clone();
+        inner_asm.unary_operators.remove(0);
+
+        let (operand, ty) = extract_value(&inner_asm, scope)?;
+
+        return Ok((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::UnaryOp {
+                    op,
+                    operand: Box::new(operand),
+                },
+                glossa_type: ty.clone(),
+            },
+            ty,
+        ));
+    }
+
     if !asm_stmt.nested_phrases.is_empty() {
         // Handle nested phrases (parenthesized expressions) which act as values
         // Usually there is only one for a value expression

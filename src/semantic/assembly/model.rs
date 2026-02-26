@@ -5,7 +5,7 @@
 //! It decouples the data from the assembly logic (`Assembler`).
 
 use crate::ast::Expr;
-use crate::morphology::lexicon::BinaryOp;
+use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::morphology::{Case, Gender, Mood, Number, Person, Tense, Voice};
 use smol_str::SmolStr;
 
@@ -65,6 +65,9 @@ pub struct AssembledStatement {
 
     /// Binary operators found between expressions
     pub operators: Vec<BinaryOp>,
+
+    /// Unary operators (e.g. Not) found
+    pub unary_operators: Vec<UnaryOp>,
 
     /// Parenthesized blocks (nested expressions)
     pub blocks: Vec<Vec<crate::ast::Statement>>,

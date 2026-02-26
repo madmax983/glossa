@@ -98,7 +98,7 @@ pub use model::*;
 
 use crate::ast::{Expr, Word};
 pub use crate::errors::AssemblyError;
-use crate::morphology::lexicon::BinaryOp;
+use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person};
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
@@ -743,6 +743,18 @@ impl Assembler {
 
     /// Check for operators (boolean, comparison, arithmetic)
     fn check_operators(&mut self, normalized: &str, original: &str) -> Result<bool, AssemblyError> {
+        // Unary operators (Negation)
+        if crate::morphology::lexicon::is_negation(normalized) {
+            if self.state.unary_operators.len() >= MAX_OPERATORS {
+                return Err(AssemblyError::LimitExceeded {
+                    resource: "Unary Operators".to_string(),
+                    max: MAX_OPERATORS,
+                });
+            }
+            self.state.unary_operators.push(UnaryOp::Not);
+            return Ok(true);
+        }
+
         // Boolean operators
         if matches!(original, "καί" | "και") {
             if self.state.operators.len() >= MAX_OPERATORS {

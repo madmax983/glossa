@@ -567,39 +567,3 @@ mod tests {
         }
     }
 }
-
-#[test]
-fn debug_error() {
-    let source = "οὐκ ἀληθές λέγε.";
-    let ast = crate::parser::parse(source).unwrap();
-    let program = crate::semantic::analyze_program(&ast).unwrap();
-    let mut buffer = Vec::new();
-    let mut evaluator = Evaluator::new(&mut buffer);
-    let result = evaluator.eval_program(&program);
-    println!("DEBUG ERROR: {:?}", result);
-}
-
-#[test]
-fn debug_program_structure() {
-    let source = "οὐκ ἀληθές λέγε.";
-    let ast = crate::parser::parse(source).unwrap();
-    let program = crate::semantic::analyze_program(&ast).unwrap();
-    println!("DEBUG PROGRAM: {:#?}", program);
-}
-
-#[test]
-fn debug_unary_op_analysis() {
-    let source = "οὐκ ἀληθές λέγε.";
-    let ast = crate::parser::parse(source).unwrap();
-    let program = crate::semantic::analyze_program(&ast).unwrap();
-    println!("DEBUG AST: {:?}", ast);
-    println!("DEBUG PROGRAM: {:#?}", program);
-}
-
-#[test]
-fn debug_unary_op_analysis_variable() {
-    let source = "α ἀληθές ἔστω. οὐκ α λέγε.";
-    let ast = crate::parser::parse(source).unwrap();
-    let program = crate::semantic::analyze_program(&ast).unwrap();
-    println!("DEBUG VARIABLE PROGRAM: {:#?}", program);
-}
