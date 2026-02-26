@@ -30,7 +30,7 @@
 //!
 //! This compiles to:
 //!
-//! ```rust
+//! ```rust,ignore
 //! #[test]
 //! fn test_addition_works() {
 //!     let g_x = 10;
