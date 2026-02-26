@@ -59,7 +59,7 @@ fn test_expr_variants_coverage() {
     // is exercised, boosting code coverage for the manual implementations.
 
     let w1 = Word::new("test");
-    let w2 = Word::new("test");
+    let _w2 = Word::new("test");
     let exprs = vec![
         Expr::StringLiteral("s".to_string()),
         Expr::NumberLiteral(42),
@@ -111,8 +111,8 @@ fn test_expr_variants_coverage() {
         // Test PartialEq (False) - simple check against a different variant
         let diff = Expr::NumberLiteral(999);
         if let Expr::NumberLiteral(_) = expr {
-             // Skip if it matches the diff type but has different value (already covered by != check usually)
-             // But here we just want to ensure the _ => false arm or mismatch arms are hit.
+            // Skip if it matches the diff type but has different value (already covered by != check usually)
+            // But here we just want to ensure the _ => false arm or mismatch arms are hit.
         } else {
             assert_ne!(expr, diff);
         }
