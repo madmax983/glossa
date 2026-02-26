@@ -89,18 +89,81 @@ fn test_classify_push_literal() {
 
     if let AnalyzedStatement::Expression(exprs) = analyzed {
         assert_eq!(exprs.len(), 1);
-        if let AnalyzedExprKind::MethodCall {
-            method,
-            args,
-            ..
-        } = &exprs[0].expr
-        {
+        if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
             assert_eq!(method, "push");
             assert_eq!(args.len(), 1);
             if let AnalyzedExprKind::NumberLiteral(n) = &args[0].expr {
                 assert_eq!(*n, 42);
             } else {
                 panic!("Arg should be literal 42");
+            }
+        } else {
+            panic!("Expected MethodCall");
+        }
+    } else {
+        panic!("Expected Expression statement");
+    }
+}
+
+#[test]
+fn test_classify_push_object() {
+    let mut scope = Scope::new();
+    scope.define("stack", GlossaType::List(Box::new(GlossaType::Number)));
+    scope.define("val", GlossaType::Number);
+
+    // "stack pushes val" (val is object)
+    let asm_stmt = AssembledStatement {
+        verb: Some(make_verb("ὠθεῖ", "ωθεω")),
+        subject: Some(make_constituent("stack", "stack")),
+        object: Some(make_constituent("val", "val")),
+        ..Default::default()
+    };
+
+    let analyzed =
+        convert_assembled_to_analyzed(&asm_stmt, &mut scope).expect("Should classify push object");
+
+    if let AnalyzedStatement::Expression(exprs) = analyzed {
+        assert_eq!(exprs.len(), 1);
+        if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
+            assert_eq!(method, "push");
+            assert_eq!(args.len(), 1);
+            if let AnalyzedExprKind::Variable(name) = &args[0].expr {
+                assert_eq!(name, "val");
+            } else {
+                panic!("Arg should be variable val");
+            }
+        } else {
+            panic!("Expected MethodCall");
+        }
+    } else {
+        panic!("Expected Expression statement");
+    }
+}
+
+#[test]
+fn test_classify_push_default() {
+    let mut scope = Scope::new();
+    scope.define("stack", GlossaType::List(Box::new(GlossaType::Number)));
+
+    // "stack pushes" (no object/literal -> default 0)
+    let asm_stmt = AssembledStatement {
+        verb: Some(make_verb("ὠθεῖ", "ωθεω")),
+        subject: Some(make_constituent("stack", "stack")),
+        ..Default::default()
+    };
+
+    let analyzed =
+        convert_assembled_to_analyzed(&asm_stmt, &mut scope).expect("Should classify push default");
+
+    if let AnalyzedStatement::Expression(exprs) = analyzed {
+        assert_eq!(exprs.len(), 1);
+        if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
+            assert_eq!(method, "push");
+            assert_eq!(args.len(), 1);
+            if let AnalyzedExprKind::NumberLiteral(n) = &args[0].expr {
+                assert_eq!(*n, 0);
+            } else {
+                panic!("Arg should be default 0");
             }
         } else {
             panic!("Expected MethodCall");
@@ -132,12 +195,7 @@ fn test_classify_insert_map() {
 
     if let AnalyzedStatement::Expression(exprs) = analyzed {
         assert_eq!(exprs.len(), 1);
-        if let AnalyzedExprKind::MethodCall {
-            method,
-            args,
-            ..
-        } = &exprs[0].expr
-        {
+        if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
             assert_eq!(method, "insert");
             assert_eq!(args.len(), 2);
             // Verify args...
@@ -147,6 +205,91 @@ fn test_classify_insert_map() {
     } else {
         panic!("Expected Expression statement");
     }
+}
+
+#[test]
+fn test_classify_insert_set() {
+    let mut scope = Scope::new();
+    // Set<String>
+    scope.define("set", GlossaType::Set(Box::new(GlossaType::String)));
+
+    // "set puts 'val'"
+    let asm_stmt = AssembledStatement {
+        verb: Some(make_verb("τίθησι", "τιθημι")),
+        subject: Some(make_constituent("set", "set")),
+        literals: vec![Literal::String("val".into())],
+        ..Default::default()
+    };
+
+    let analyzed =
+        convert_assembled_to_analyzed(&asm_stmt, &mut scope).expect("Should classify insert set");
+
+    if let AnalyzedStatement::Expression(exprs) = analyzed {
+        assert_eq!(exprs.len(), 1);
+        if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
+            assert_eq!(method, "insert");
+            assert_eq!(args.len(), 1);
+            if let AnalyzedExprKind::StringLiteral(s) = &args[0].expr {
+                assert_eq!(s, "val");
+            } else {
+                panic!("Arg should be string literal");
+            }
+        } else {
+            panic!("Expected MethodCall");
+        }
+    } else {
+        panic!("Expected Expression statement");
+    }
+}
+
+#[test]
+fn test_extract_ok() {
+    let scope = Scope::new();
+    // Subject "ἐπιτυχία" (Ok), Literal 42
+    let asm_stmt = AssembledStatement {
+        subject: Some(make_constituent("ἐπιτυχία", "επιτυχια")),
+        literals: vec![Literal::Number(42)],
+        ..Default::default()
+    };
+
+    let (analyzed, glossa_type) = extract_value(&asm_stmt, &scope).expect("Should extract Ok");
+
+    if let AnalyzedExprKind::Ok(inner) = analyzed.expr {
+        if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
+            assert_eq!(n, 42);
+        } else {
+            panic!("Expected number inside Ok");
+        }
+    } else {
+        panic!("Expected Ok expression");
+    }
+
+    assert!(matches!(glossa_type, GlossaType::Result(_, _)));
+}
+
+#[test]
+fn test_extract_err() {
+    let scope = Scope::new();
+    // Subject "σφάλμα" (Err), Literal 1 (error code)
+    let asm_stmt = AssembledStatement {
+        subject: Some(make_constituent("σφάλμα", "σφαλμα")),
+        literals: vec![Literal::Number(1)],
+        ..Default::default()
+    };
+
+    let (analyzed, glossa_type) = extract_value(&asm_stmt, &scope).expect("Should extract Err");
+
+    if let AnalyzedExprKind::Err(inner) = analyzed.expr {
+        if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
+            assert_eq!(n, 1);
+        } else {
+            panic!("Expected number inside Err");
+        }
+    } else {
+        panic!("Expected Err expression");
+    }
+
+    assert!(matches!(glossa_type, GlossaType::Result(_, _)));
 }
 
 #[test]
