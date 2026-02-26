@@ -27,7 +27,7 @@ fn test_mosaic_comprehensive_coverage() {
 
     let mut buffer = Vec::new();
     match run_mosaic_inner(source, &mut buffer) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => panic!("Mosaic failed: {:?}", e),
     }
     let output = String::from_utf8(buffer).unwrap();
@@ -38,7 +38,10 @@ fn test_mosaic_comprehensive_coverage() {
     assert!(output.contains("Arrays:"), "Missing Arrays output");
 
     // Verify Index Accesses
-    assert!(output.contains("Index Accesses:"), "Missing Index Accesses output");
+    assert!(
+        output.contains("Index Accesses:"),
+        "Missing Index Accesses output"
+    );
 
     // Verify Blocks (from `{ 1. }`)
     assert!(output.contains("Blocks:"), "Missing Blocks output");
@@ -59,7 +62,10 @@ fn test_mosaic_comprehensive_coverage() {
     assert!(output.contains("Properties:"), "Missing Properties output");
 
     // Verify String Method (split)
-    assert!(output.contains("Method: split(,)"), "Missing String Method output");
+    assert!(
+        output.contains("Method: split(,)"),
+        "Missing String Method output"
+    );
 
     // Verify Flags
     assert!(output.contains("Query (?)"), "Missing Query flag");
