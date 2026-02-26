@@ -995,3 +995,34 @@ fn test_constituent_derive_coverage() {
     let debug = format!("{:?}", cloned);
     assert!(debug.contains("test"));
 }
+
+#[test]
+fn test_assembler_unary_operator_negation() {
+    // "οὐκ" (not)
+    let mut asm = Assembler::new();
+    let neg = analyze("ουκ");
+    asm.feed(&neg, "οὐκ").unwrap();
+
+    let stmt = asm.finalize().unwrap();
+    assert!(!stmt.unary_operators.is_empty());
+    assert_eq!(stmt.unary_operators[0], crate::morphology::lexicon::UnaryOp::Not);
+}
+
+#[test]
+fn test_limit_unary_operators() {
+    let mut asm = Assembler::new();
+    let analysis = analyze("ουκ");
+
+    // MAX_OPERATORS is 256
+    for _ in 0..MAX_OPERATORS {
+        asm.feed(&analysis, "οὐκ").unwrap();
+    }
+
+    match asm.feed(&analysis, "οὐκ") {
+        Err(AssemblyError::LimitExceeded { resource, max }) => {
+            assert_eq!(resource, "Unary Operators");
+            assert_eq!(max, MAX_OPERATORS);
+        }
+        res => panic!("Expected LimitExceeded, got {:?}", res),
+    }
+}
