@@ -77,3 +77,13 @@
 **Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
 **Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
 **Saved:** 2 folders, reduced directory depth.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly/` containing DTOs tightly coupled to the assembler.
+**Cut:** Merged `mod.rs` and `model.rs` into `src/semantic/assembly.rs` and deleted the directory.
+**Saved:** 1 directory, reduced module indirection.
+
+## [Reduction]
+**Bloat:** `src/parser/` directory logic split across multiple files (`mod.rs`, `declarations.rs`, `expressions.rs`, `statements.rs`, `recursion.rs`, `numerals.rs`, `common.rs`).
+**Cut:** Collapsed all into `src/parser.rs`. Moved grammar definition to `src/grammar.pest` and `src/grammar.rs`.
+**Saved:** 1 directory, 6 files, significantly flatter structure.

@@ -107,6 +107,7 @@
 pub mod ast;
 pub mod codegen;
 pub mod errors;
+pub mod grammar;
 pub mod morphology;
 pub mod parser;
 pub mod semantic;
