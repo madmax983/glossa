@@ -90,3 +90,13 @@
 3. Moved logic to `src/semantic/assembly/mod.rs`.
 4. Updated dependent modules to import from `crate::semantic::assembly`.
 **Stability:** Improves separation of concerns (Data vs Logic) and reduces file size.
+
+## [Splitting The Blob: Semantic Assembly]
+**Tangle:** `src/semantic/assembly/mod.rs` was a "Blob" (1805 lines) mixing core assembly logic, POS handling, agreement checks, and tests. It violated Single Responsibility Principle.
+**Blueprint:**
+1. Created `src/semantic/assembly/core.rs` for `Assembler` struct and API.
+2. Created `src/semantic/assembly/handlers.rs` for POS handling logic.
+3. Created `src/semantic/assembly/checks.rs` for validation logic.
+4. Created `src/semantic/assembly/tests.rs` for unit tests.
+5. Updated `src/semantic/assembly/mod.rs` to be a facade.
+**Stability:** Improves cohesion, makes the assembler easier to understand and test.
