@@ -1,3 +1,44 @@
+//! The Judge (Test Runner) Tool
+//!
+//! This module implements the `glossa test` command, allowing developers to write and run
+//! unit tests directly in ΓΛΩΣΣΑ.
+//!
+//! # The Strategy: Harness Generation
+//!
+//! Unlike interpreted languages that run tests in a VM, or compiled languages that need
+//! complex test discovery, ΓΛΩΣΣΑ leverages the existing Rust test infrastructure.
+//!
+//! 1.  **Parse & Analyze**: The source file is parsed and analyzed as usual.
+//! 2.  **Generate Test Harness**: The `codegen` module produces a Rust file where
+//!     `δοκιμή` (test) declarations are converted to `#[test]` functions.
+//! 3.  **Compile with `--test`**: The generated Rust file is compiled using `rustc --test`.
+//!     This produces a standalone test executable.
+//! 4.  **Execute & Capture**: The executable is run, and its output (stdout/stderr) is captured.
+//! 5.  **Parse & Report**: The raw output is parsed to provide a stylized, emoji-rich report.
+//!
+//! # Writing Tests
+//!
+//! Tests are declared using the `δοκιμή` keyword:
+//!
+//! ```glossa
+//! δοκιμή "Addition works" {
+//!     ξ 10 ἔστω.
+//!     ψ 20 ἔστω.
+//!     assert_eq(ξ + ψ, 30).
+//! }
+//! ```
+//!
+//! This compiles to:
+//!
+//! ```rust
+//! #[test]
+//! fn test_addition_works() {
+//!     let g_x = 10;
+//!     let g_y = 20;
+//!     assert_eq!(g_x + g_y, 30);
+//! }
+//! ```
+
 use crate::codegen::generate_rust_file;
 use crate::parser::parse;
 use crate::semantic::analyze_program;

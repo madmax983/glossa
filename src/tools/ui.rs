@@ -1,3 +1,24 @@
+//! The Stage (UI) Tool
+//!
+//! This module provides terminal user interface components for the CLI.
+//! It handles status indicators, spinners, and stylized output.
+//!
+//! # The Philosophy: "The Show Must Go On"
+//!
+//! A compiler should not be a black box that hangs silently. It should provide
+//! feedback on what it's doing.
+//!
+//! # Key Components
+//!
+//! *   **[`Status`]**: A context manager for long-running operations. It displays a
+//!     spinner or status message and handles cleanup (success/failure) automatically.
+//!
+//! # CI Friendliness
+//!
+//! The module detects if it is running in a TTY (interactive terminal).
+//! *   **TTY**: Uses animated spinners and rewriting lines (`\r`).
+//! *   **No-TTY (CI)**: Uses simple log lines to avoid cluttering build logs with escape codes.
+
 use crossterm::{ExecutableCommand, cursor, style::Stylize, terminal};
 use std::io::{self, IsTerminal, Write};
 use std::time::Instant;
