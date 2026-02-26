@@ -77,3 +77,8 @@
 **Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
 **Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
 **Saved:** 2 folders, reduced directory depth.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly/` directory containing `mod.rs` and `model.rs`, with circular-like dependencies and unnecessary nesting.
+**Cut:** Merged `model.rs` into `mod.rs`, renamed to `src/semantic/assembly.rs`, and deleted the directory.
+**Saved:** 1 folder, 1 file, simplified module structure.
