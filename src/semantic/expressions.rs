@@ -262,15 +262,32 @@ fn analyze_block(
     scope: &Scope,
     depth: usize,
 ) -> Result<AnalyzedExpr, GlossaError> {
-    // Parenthesized expression - analyze as nested expression
-    // Extract the expression from the block
-    if let Some(stmt) = statements.first()
-        && let Some(clause) = stmt.clauses().first()
-        && let Some(expr) = clause.expressions.first()
-    {
-        return analyze_argument_expr_recursive(expr, scope, depth + 1);
+    // Blocks used as expressions must contain exactly one statement/clause/expression.
+    // This prevents silent ignoring of subsequent statements (e.g., `{ stmt1. stmt2. }` evaluating to `stmt1`).
+
+    if statements.len() != 1 {
+        return Err(GlossaError::semantic(
+            "Block expressions must contain exactly one statement",
+        ));
     }
-    Err(GlossaError::semantic("Empty or invalid block expression"))
+
+    let stmt = &statements[0];
+    let clauses = stmt.clauses();
+    if clauses.len() != 1 {
+        return Err(GlossaError::semantic(
+            "Statements in block expressions must have exactly one clause",
+        ));
+    }
+
+    let clause = &clauses[0];
+    if clause.expressions.len() != 1 {
+        return Err(GlossaError::semantic(
+            "Clauses in block expressions must have exactly one expression",
+        ));
+    }
+
+    let expr = &clause.expressions[0];
+    analyze_argument_expr_recursive(expr, scope, depth + 1)
 }
 
 fn analyze_binop(

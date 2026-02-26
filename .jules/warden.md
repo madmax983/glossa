@@ -45,6 +45,14 @@ To identify vulnerabilities, harden interfaces, and eliminate memory safety risk
   - **Verification:** Benchmarking with `tests/warden_text_dos.rs` confirmed linear performance (~9ms for 20k chars).
   - **Defense:** Existing implementation deemed safe; regression test added.
 
+- **2024-03-XX - [Logic Bug - Silent Block Truncation]**
+  - **Threat:** Block expressions in bindings (e.g., `α { 1. 2. } ἔστω`) were either completely ignored (evaluating to 0) or silently truncated to the first statement (evaluating to 1, ignoring 2). This could allow malicious code or security checks to be bypassed if they were placed in the ignored portion of the block.
+  - **Investigation:** Discovered `extract_value` in `src/semantic/conversion.rs` ignored `asm.blocks`, and `analyze_block` in `src/semantic/expressions.rs` only analyzed the first statement.
+  - **Defense:**
+    1.  Updated `extract_value` to process `asm.blocks`.
+    2.  Hardened `analyze_block` to strictly require exactly one statement/clause/expression. Multi-statement blocks in expressions now trigger a compile-time error.
+  - **Verification:** Added `tests/repro_ignored_block.rs`. Confirmed that `α { 1. } ἔστω` now correctly evaluates to 1, and `α { 1. 2. } ἔστω` raises a semantic error.
+
 ## Pending Actions
 - **Dependency Audit:** `cargo audit` command not available in environment. Manual check of `Cargo.lock` recommended for production.
 - **Recursive Structs:** Currently handled by failing compilation in `rustc`. Future improvement: Detect cycles during semantic analysis for better error messages.

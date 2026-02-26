@@ -1420,6 +1420,18 @@ pub fn extract_value(
         }
     }
 
+    if !asm_stmt.blocks.is_empty() {
+        // Handle blocks (braced expressions) which act as values
+        if let Some(stmts) = asm_stmt.blocks.first() {
+            let block_expr = Expr::Block(stmts.clone());
+            // Analyze with recursion depth check reset (as it's a new analysis root)
+            // Note: analyze_argument_expr will call analyze_block, which now enforces single-statement logic
+            let analyzed = analyze_argument_expr(&block_expr, scope)?;
+            let ty = analyzed.glossa_type.clone();
+            return Ok((analyzed, ty));
+        }
+    }
+
     if let Some(res) = extract_unwrap(asm_stmt, scope)? {
         return Ok(res);
     }
