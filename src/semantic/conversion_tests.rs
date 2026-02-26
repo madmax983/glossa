@@ -1,6 +1,6 @@
 use super::conversion::extract_value;
 use crate::ast::Expr;
-use crate::morphology::lexicon::BinaryOp;
+use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::morphology::{Case, Number};
 use crate::semantic::conversion::extract_binary_op;
 use crate::semantic::{
@@ -408,4 +408,76 @@ fn test_extract_binary_op_subject_and_literal() {
     } else {
         panic!("Expected BinOp");
     }
+}
+
+#[test]
+fn test_extract_unary_op_negation() {
+    let mut scope = Scope::new();
+    scope.define("x", GlossaType::Boolean);
+
+    // Unary op (Not) + Literal (true)
+    let asm_stmt = AssembledStatement {
+        literals: vec![Literal::Boolean(true)],
+        unary_operators: vec![UnaryOp::Not],
+        ..Default::default()
+    };
+
+    let (analyzed, ty) = extract_value(&asm_stmt, &scope).expect("Should extract unary op");
+
+    assert_eq!(ty, GlossaType::Boolean);
+    if let AnalyzedExprKind::UnaryOp { op, operand } = analyzed.expr {
+        assert_eq!(op, UnaryOp::Not);
+        if let AnalyzedExprKind::BooleanLiteral(b) = operand.expr {
+            assert!(b);
+        } else {
+            panic!("Expected boolean literal operand");
+        }
+    } else {
+        panic!("Expected UnaryOp expression");
+    }
+}
+
+#[test]
+fn test_extract_nested_unary_op() {
+    let mut scope = Scope::new();
+    scope.define("x", GlossaType::Boolean);
+
+    // not not true
+    let asm_stmt = AssembledStatement {
+        literals: vec![Literal::Boolean(true)],
+        unary_operators: vec![UnaryOp::Not, UnaryOp::Not],
+        ..Default::default()
+    };
+
+    let (analyzed, ty) = extract_value(&asm_stmt, &scope).expect("Should extract nested unary op");
+
+    assert_eq!(ty, GlossaType::Boolean);
+    // Outer UnaryOp
+    if let AnalyzedExprKind::UnaryOp { op, operand } = analyzed.expr {
+        assert_eq!(op, UnaryOp::Not);
+        // Inner UnaryOp
+        if let AnalyzedExprKind::UnaryOp {
+            op: inner_op,
+            operand: inner_operand,
+        } = operand.expr
+        {
+            assert_eq!(inner_op, UnaryOp::Not);
+            // Innermost Literal
+            if let AnalyzedExprKind::BooleanLiteral(b) = inner_operand.expr {
+                assert!(b);
+            } else {
+                panic!("Expected boolean literal operand");
+            }
+        } else {
+            panic!("Expected inner UnaryOp expression");
+        }
+    } else {
+        panic!("Expected outer UnaryOp expression");
+    }
+}
+
+#[test]
+fn test_unary_op_availability() {
+    use crate::morphology::lexicon::UnaryOp;
+    let _ = UnaryOp::Not;
 }
