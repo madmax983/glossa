@@ -479,10 +479,12 @@ fn feed_expr_recursive(
                 }
             }
         }
-        Expr::PropertyAccess { owner, property } => {
-            // Owner is genitive, property is what it attaches to
-            feed_expr_recursive(asm, owner, context, depth + 1)?;
-            feed_expr_recursive(asm, property, context, depth + 1)?;
+        Expr::PropertyAccess { .. } => {
+            // Property access expression (e.g. x.len)
+            // We feed this as a nested phrase so it's treated as a single unit (value)
+            // and analyzed later by analyze_argument_expr, rather than being split
+            // into constituent words which might be misassembled.
+            asm.feed_nested_phrase(vec![expr.clone()])?;
         }
         Expr::Call { verb, arguments } => {
             // Feed the verb - verbs can set context for subjects
