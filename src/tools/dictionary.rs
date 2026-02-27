@@ -228,4 +228,10 @@ mod tests {
     fn test_lookup_verb() {
         lookup_word("λέγε").unwrap();
     }
+
+    #[test]
+    fn test_lookup_word_without_rust_equiv() {
+        // "εγω" (I) has rust_equiv: None in the lexicon
+        lookup_word("εγω").unwrap();
+    }
 }
