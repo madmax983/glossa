@@ -227,7 +227,7 @@ fn analyze_phrase(
 
         if scope.is_function(func_name) {
             // It's a function call - recursively analyze arguments
-            let mut args = Vec::new();
+            let mut args = Vec::with_capacity(terms.len().saturating_sub(1));
             for arg_expr in &terms[1..] {
                 args.push(analyze_argument_expr_recursive(arg_expr, scope, depth + 1)?);
             }
