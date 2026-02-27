@@ -50,6 +50,8 @@ mod property_access_tests;
 #[cfg(test)]
 mod recursion_safety_tests;
 mod resolver;
+#[cfg(test)]
+mod sentry_conversion_tests;
 pub mod traits;
 mod types;
 
