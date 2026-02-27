@@ -1,4 +1,3 @@
-
 #[cfg(test)]
 mod tests {
     use glossa::parser::parse;
@@ -27,11 +26,18 @@ mod tests {
         // Now this should fail with RecursionLimitExceeded
         let result = parse(&source);
 
-        assert!(result.is_err(), "Expected parsing to fail due to recursion limit");
+        assert!(
+            result.is_err(),
+            "Expected parsing to fail due to recursion limit"
+        );
 
         let err = result.unwrap_err();
         let msg = err.to_string();
 
-        assert!(msg.contains("Recursion limit exceeded"), "Unexpected error message: {}", msg);
+        assert!(
+            msg.contains("Recursion limit exceeded"),
+            "Unexpected error message: {}",
+            msg
+        );
     }
 }
