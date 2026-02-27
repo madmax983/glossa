@@ -90,3 +90,12 @@
 3. Moved logic to `src/semantic/assembly/mod.rs`.
 4. Updated dependent modules to import from `crate::semantic::assembly`.
 **Stability:** Improves separation of concerns (Data vs Logic) and reduces file size.
+
+## [Breaking The Cycle: Semantic Mod vs Submodules]
+**Tangle:** The `src/semantic/mod.rs` module was orchestrating analysis but also depending on submodules like `control_flow.rs` and `declarations.rs`. These submodules in turn depended on `analyze_statement` from `mod.rs`, creating a circular dependency that made the module structure fragile and coupled.
+**Blueprint:**
+1.  Extracted the analysis logic into a new `src/semantic/analyzer.rs` module with a `SemanticAnalyzer` struct.
+2.  Defined a `StatementAnalyzer` trait in `src/semantic/traits.rs` to abstract the recursion.
+3.  Updated `control_flow.rs` and `declarations.rs` to accept `&mut impl StatementAnalyzer` instead of calling a concrete function.
+4.  Re-exported the public API from `mod.rs` to maintain backward compatibility.
+**Stability:** Broken the dependency cycle. The dependency graph is now a DAG: `mod` -> `analyzer` -> `control_flow` -> `traits`. Submodules are now leaf-like with respect to the analyzer.
