@@ -24,8 +24,8 @@
 //! assert_eq!(p.tense, Tense::Present);
 //! ```
 
-use super::{Case, Gender, Number, Tense, Voice};
 use crate::morphology::matcher::match_suffix;
+use crate::morphology::models::{Case, Gender, Number, Tense, Voice};
 use std::sync::LazyLock;
 
 /// Result of participle morphological analysis
