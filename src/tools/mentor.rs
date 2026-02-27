@@ -306,7 +306,11 @@ mod tests {
         run_mentor_inner(&mut input, &mut output).unwrap();
 
         let s = String::from_utf8(output).unwrap();
-        assert!(s.contains("Error"), "Expected error message in output, got:\n{}", s);
+        assert!(
+            s.contains("Parse error"),
+            "Expected 'Parse error' in output, got:\n{}",
+            s
+        );
     }
 
     #[test]

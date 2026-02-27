@@ -43,7 +43,7 @@ impl From<ParseError> for GlossaError {
             ParseError::PestError { message, span } => GlossaError::parse_with_source(
                 message,
                 String::new(),
-                miette::SourceSpan::new(span.0.into(), span.1.into()),
+                miette::SourceSpan::new(span.0.into(), span.1),
             ),
             _ => GlossaError::parse(err.to_string()),
         }
@@ -69,7 +69,7 @@ pub fn parse(source: &str) -> Result<Program, GlossaError> {
         Err(ParseError::PestError { message, span }) => Err(GlossaError::parse_with_source(
             message,
             source.to_string(),
-            miette::SourceSpan::new(span.0.into(), span.1.into()),
+            miette::SourceSpan::new(span.0.into(), span.1),
         )),
         Err(e) => Err(GlossaError::from(e)),
     }
