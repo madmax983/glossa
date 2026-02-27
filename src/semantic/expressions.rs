@@ -544,6 +544,9 @@ fn feed_expr_recursive(
 }
 
 /// Convert a Literal to an AnalyzedExpr
+///
+/// Maps AST-level literals (`Literal::String`, `Literal::Number`) into
+/// semantic `AnalyzedExpr` nodes with corresponding types (`GlossaType::String`, etc.).
 pub(crate) fn literal_to_analyzed_expr(lit: &Literal) -> AnalyzedExpr {
     match lit {
         Literal::String(s) => AnalyzedExpr {
@@ -571,6 +574,9 @@ pub(crate) fn literal_to_type(lit: &Literal) -> GlossaType {
 }
 
 /// Build a binary expression from two analyzed expressions and an operator
+///
+/// Constructs an `AnalyzedExpr` representing `left op right` and automatically
+/// infers the return type of the operation (e.g. `Add` on numbers -> `Number`).
 pub(crate) fn build_binary_expr(
     left: AnalyzedExpr,
     op: crate::morphology::lexicon::BinaryOp,
@@ -588,8 +594,16 @@ pub(crate) fn build_binary_expr(
 }
 
 /// Build expressions from literals and operators
-/// If there are operators, builds a binary expression tree
-/// Otherwise, returns the literals as-is
+///
+/// Constructs an expression tree from a flat list of literals and operators.
+/// This assumes a left-associative structure where operators consume operands.
+///
+/// # Logic
+///
+/// If there are operators (e.g., `+`, `*`), it builds a chain:
+/// `[1, 2, 3]` + `[+, *]` -> `(1 + 2) * 3`
+///
+/// If there are fewer literals than needed for the operators (e.g. `1 +`), it returns an error.
 pub(crate) fn build_expressions_from_literals_and_ops(
     literals: &[Literal],
     operators: &[crate::morphology::lexicon::BinaryOp],
@@ -642,6 +656,10 @@ pub(crate) fn build_expressions_from_literals_and_ops(
 }
 
 /// Infer the result type of a binary operation
+///
+/// - Arithmetic (+, -, *, /, %) -> `Number`
+/// - Comparison (==, !=, <, >, <=, >=) -> `Boolean`
+/// - Logic (&&, ||) -> `Boolean`
 pub(crate) fn infer_binop_type(op: &crate::morphology::lexicon::BinaryOp) -> GlossaType {
     use crate::morphology::lexicon::BinaryOp;
 
