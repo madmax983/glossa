@@ -1,3 +1,4 @@
+#[cfg(feature = "nova")]
 use glossa::tools::mosaic::run_mosaic_inner;
 
 #[cfg(feature = "nova")]

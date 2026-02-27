@@ -23,9 +23,16 @@ fn main() -> Result<()> {
             run_file(&input)?;
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Mentor) => {
+            #[cfg(feature = "nova")]
             glossa::tools::mentor::run_mentor()?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                eprintln!("⚠️  The 'Mentor' feature is not enabled.");
+                eprintln!("   Please run with: cargo run --release --features nova -- mentor");
+                std::process::exit(1);
+            }
         }
 
         Some(Commands::Build { input, output }) => {
@@ -52,14 +59,30 @@ fn main() -> Result<()> {
             glossa::tools::tester::run_tests(&input)?;
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Mosaic { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::mosaic::run_mosaic(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input; // Suppress unused variable warning
+                eprintln!("⚠️  The 'Mosaic' feature is not enabled.");
+                eprintln!("   Please run with: cargo run --release --features nova -- mosaic <FILE>");
+                std::process::exit(1);
+            }
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Map { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::cartographer::run_map(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input; // Suppress unused variable warning
+                eprintln!("⚠️  The 'Map' feature is not enabled.");
+                eprintln!("   Please run with: cargo run --release --features nova -- map <FILE>");
+                std::process::exit(1);
+            }
         }
 
         Some(Commands::Repl) | None => {

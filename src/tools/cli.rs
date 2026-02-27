@@ -52,7 +52,6 @@ pub enum Commands {
     },
 
     /// Start the interactive tutorial (Requires "nova" feature)
-    #[cfg(feature = "nova")]
     Mentor,
 
     /// Compile a .γλ file to Rust source
@@ -99,14 +98,12 @@ pub enum Commands {
     },
 
     /// Visualize the assembled sentence structure (Requires "nova" feature)
-    #[cfg(feature = "nova")]
     Mosaic {
         /// Input file (.γλ)
         input: PathBuf,
     },
 
     /// Visualize the program architecture as a map (Requires "nova" feature)
-    #[cfg(feature = "nova")]
     Map {
         /// Input file (.γλ)
         input: PathBuf,
