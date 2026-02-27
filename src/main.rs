@@ -67,7 +67,9 @@ fn main() -> Result<()> {
             {
                 let _ = input; // Suppress unused variable warning
                 eprintln!("⚠️  The 'Mosaic' feature is not enabled.");
-                eprintln!("   Please run with: cargo run --release --features nova -- mosaic <FILE>");
+                eprintln!(
+                    "   Please run with: cargo run --release --features nova -- mosaic <FILE>"
+                );
                 std::process::exit(1);
             }
         }
