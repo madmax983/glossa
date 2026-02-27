@@ -61,6 +61,10 @@ C4Container
     Rel(semantic, mosaic, "Analyzed Program")
     Rel(semantic, tester, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
+
+    Rel(morphology, dictionary, "Lexicon Data")
+    Rel(parser, tester, "AST")
+    Rel(codegen, tester, "Rust Source")
 ```
 
 ## Semantic Analysis (C4 Component Level)
