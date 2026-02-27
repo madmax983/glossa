@@ -279,6 +279,39 @@ pub fn bard_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "nova")]
+pub fn simulate_file(input: &Path) -> Result<()> {
+    if !input.exists() {
+        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
+    }
+
+    let status = Status::start_with_symbol("Ὑπόκρισις (Simulating)", "🎭");
+
+    let source = load_source(input)?;
+
+    let analyzed = match analyze_source(&source) {
+        Ok(ast) => ast,
+        Err(e) => {
+            status.error("Σφάλμα ἀναλύσεως (Analysis Error)");
+            return Err(e);
+        }
+    };
+
+    let mut interpreter = crate::experimental::interpreter::Interpreter::new();
+    match interpreter.run(&analyzed) {
+        Ok(_) => {
+            status.success();
+            // Interpreter output is already printed by the interpreter itself
+        }
+        Err(e) => {
+            status.error("Σφάλμα ἐκτελέσεως (Runtime Error)");
+            return Err(miette::miette!("{}\n{}", "Interpreter Error:".red(), e));
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -499,5 +532,54 @@ mod tests {
 
         let result = bard_file(&input_path);
         assert!(result.is_ok());
+    }
+
+    #[cfg(feature = "nova")]
+    #[test]
+    fn test_simulate_file_valid() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("simulate.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ πέντε ἔστω. ξ λέγε.".as_bytes()).unwrap();
+        }
+
+        let result = simulate_file(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[cfg(feature = "nova")]
+    #[test]
+    fn test_simulate_file_invalid_syntax() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("simulate_invalid.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("invalid syntax".as_bytes()).unwrap();
+        }
+
+        let result = simulate_file(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[cfg(feature = "nova")]
+    #[test]
+    fn test_simulate_file_runtime_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("simulate_runtime_error.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // Division by zero
+            f.write_all("1 0 μέρος λέγε.".as_bytes()).unwrap();
+        }
+
+        let result = simulate_file(&input_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Interpreter Error")
+        );
     }
 }

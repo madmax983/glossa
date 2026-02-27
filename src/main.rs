@@ -62,6 +62,11 @@ fn main() -> Result<()> {
             glossa::tools::cartographer::run_map(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Simulate { input }) => {
+            glossa::tools::runner::simulate_file(&input)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

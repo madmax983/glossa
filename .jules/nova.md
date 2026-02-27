@@ -14,3 +14,8 @@
 **Concept:** An interactive tutorial mode (`glossa mentor`) that guides users through learning the language via Socratic challenges. It verifies not just syntax but semantic correctness (e.g., "Create a variable named 'x'").
 **Fate:** Merged
 **Lesson:** By connecting the `Repl` loop with the `Analyzer`'s internal state, we can create a powerful educational tool that provides real-time feedback. This transforms the compiler from a tool into a teacher.
+
+## 🌟 The Simulator (ὁ Ὑποκριτής)
+**Concept:** A tree-walk AST interpreter (`glossa simulate`) that allows executing code directly from the analyzed Abstract Syntax Tree without needing to invoke `rustc`.
+**Fate:** Merged
+**Lesson:** Leveraging the existing interpreter inside `src/experimental/interpreter.rs` allowed for a fast implementation of a "Simulator" CLI tool, unlocking capabilities like REPL enhancements and instant playground execution.
