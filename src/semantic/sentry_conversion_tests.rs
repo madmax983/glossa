@@ -2,7 +2,8 @@ use super::conversion::{convert_assembled_to_analyzed, extract_value};
 use crate::morphology::lexicon::BinaryOp;
 use crate::morphology::{Case, Mood, Number, Person, Tense};
 use crate::semantic::{
-    AnalyzedExprKind, AnalyzedStatement, AssembledStatement, Constituent, GlossaType, Literal, Scope, VerbConstituent,
+    AnalyzedExprKind, AnalyzedStatement, AssembledStatement, Constituent, GlossaType, Literal,
+    Scope, VerbConstituent,
 };
 use crate::text::normalize_greek;
 
@@ -260,7 +261,10 @@ fn test_assignment_to_immutable_variable_returns_error() {
     assert!(result.is_err(), "Assignment to immutable should fail");
     let err = result.unwrap_err();
     // The error message uses "ἀμετάβλητόν" (immutable)
-    assert!(err.to_string().contains("ἀμετάβλητόν"), "Error should mention immutability (ἀμετάβλητόν)");
+    assert!(
+        err.to_string().contains("ἀμετάβλητόν"),
+        "Error should mention immutability (ἀμετάβλητόν)"
+    );
 }
 
 #[test]
@@ -279,7 +283,10 @@ fn test_assignment_without_value_returns_error() {
 
     assert!(result.is_err(), "Assignment without value should fail");
     let err = result.unwrap_err();
-    assert!(err.to_string().contains("requires a value"), "Error should mention missing value");
+    assert!(
+        err.to_string().contains("requires a value"),
+        "Error should mention missing value"
+    );
 }
 
 #[test]
@@ -299,7 +306,10 @@ fn test_binding_with_propagate() {
         .expect("Should analyze binding with propagate");
 
     if let AnalyzedStatement::Binding { value, .. } = analyzed {
-        assert!(matches!(value.expr, AnalyzedExprKind::Try(_)), "Value should be wrapped in Try");
+        assert!(
+            matches!(value.expr, AnalyzedExprKind::Try(_)),
+            "Value should be wrapped in Try"
+        );
 
         if let AnalyzedExprKind::Try(inner) = value.expr {
             if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
