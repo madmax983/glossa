@@ -274,7 +274,6 @@ pub enum AssemblyError {
     LimitExceeded { resource: String, max: usize },
 }
 
-
 /// Help messages in Greek
 pub mod help {
     /// Help for the binding construct
@@ -315,5 +314,4 @@ mod tests {
         let err = GlossaError::semantic("test");
         assert_eq!(err.category_greek(), "Σημασία");
     }
-
 }
