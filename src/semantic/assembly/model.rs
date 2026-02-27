@@ -10,17 +10,31 @@ use crate::morphology::{Case, Gender, Mood, Number, Person, Tense, Voice};
 use smol_str::SmolStr;
 
 // Constants for resource limits to prevent DoS
+// These limits are enforced to prevent malicious code from exhausting memory or stack space
+// by creating excessively long lists of adjectives, literals, or nested structures.
+/// Maximum number of adjectives allowed per statement
 pub(crate) const MAX_ADJECTIVES: usize = 1024;
+/// Maximum number of literals (strings/numbers) allowed per statement
 pub(crate) const MAX_LITERALS: usize = 1024;
+/// Maximum number of nominatives (subjects/function names) allowed per statement
 pub(crate) const MAX_NOMINATIVES: usize = 256;
+/// Maximum number of genitives (possessors) allowed per statement
 pub(crate) const MAX_GENITIVES: usize = 256;
+/// Maximum number of array literals allowed per statement
 pub(crate) const MAX_ARRAYS: usize = 256;
+/// Maximum number of index accesses allowed per statement
 pub(crate) const MAX_INDEX_ACCESSES: usize = 256;
+/// Maximum number of property accesses allowed per statement
 pub(crate) const MAX_PROPERTY_ACCESSES: usize = 256;
+/// Maximum number of nested phrases (parenthesized calls) allowed per statement
 pub(crate) const MAX_NESTED_PHRASES: usize = 256;
+/// Maximum number of participles (lambdas) allowed per statement
 pub(crate) const MAX_PARTICIPLES: usize = 256;
+/// Maximum number of unwrap operations allowed per statement
 pub(crate) const MAX_UNWRAPS: usize = 256;
+/// Maximum number of binary operators allowed per statement
 pub(crate) const MAX_OPERATORS: usize = 256;
+/// Maximum number of block expressions allowed per statement
 pub(crate) const MAX_BLOCKS: usize = 256;
 
 /// A fully assembled statement with all grammatical roles filled

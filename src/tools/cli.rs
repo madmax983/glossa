@@ -9,10 +9,20 @@
 //! The CLI supports several distinct workflows:
 //!
 //! * **Execution**: `run` (default) compiles and executes a program.
+//! * **Testing**: `test` runs unit tests defined in the source file.
 //! * **Compilation**: `build` only compiles to a binary.
 //! * **Development**: `check` verifies syntax/semantics, `highlight` shows colors.
 //! * **Learning**: `lookup` explains words, `bard` tells the story of the code.
 //! * **Interactive**: `repl` starts the Read-Eval-Print Loop.
+//!
+//! ## Experimental Tools (Nova Feature)
+//!
+//! Some advanced visualization tools require the `nova` feature flag to be enabled
+//! during compilation of the compiler itself.
+//!
+//! * **Mentor**: `mentor` starts an interactive tutorial.
+//! * **Mosaic**: `mosaic` visualizes the sentence structure assembly.
+//! * **Map**: `map` generates architecture diagrams.
 //!
 //! # Example Usage
 //!
@@ -20,11 +30,17 @@
 //! # Run a file
 //! glossa run main.gl
 //!
+//! # Run tests
+//! glossa test main.gl
+//!
 //! # Just check for errors
 //! glossa check main.gl
 //!
 //! # Look up a word
 //! glossa lookup "λόγον"
+//!
+//! # Visualize sentence structure (requires feature 'nova')
+//! glossa mosaic main.gl
 //! ```
 
 use clap::{Parser, Subcommand};

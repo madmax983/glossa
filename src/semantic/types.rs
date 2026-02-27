@@ -1,14 +1,16 @@
 //! Type system for ΓΛΩΣΣΑ
 //!
-//! Types in GLOSSA are derived from Greek nouns:
-//! - ἀριθμός (arithmos) → Number (i64)
-//! - ὄνομα (onoma) → String
-//! - ἀληθές/ψεῦδος → Boolean
-//! - λίστη (liste) → List/Vec
+//! This module defines the [`GlossaType`] enum, which represents the type system of the language.
 //!
-//! Special types from Greek morphology:
-//! - Optative mood → `Option<T>` (value that "might be")
-//! - ἀποτέλεσμα (apotelasma) → `Result<T,E>` (outcome/result)
+//! # Philosophy
+//!
+//! ΓΛΩΣΣΑ maps programming concepts to Ancient Greek philosophical and grammatical constructs:
+//!
+//! * **Nouns as Types**: Basic types are derived from Greek nouns (e.g., `ἀριθμός` for Number, `ὄνομα` for Name/String).
+//! * **Moods as Wrappers**:
+//!     * The **Optative Mood** (expressing wish/possibility) maps to `Option<T>` (a value that "might be").
+//!     * The **Noun `Ἀποτέλεσμα`** (outcome/result) maps to `Result<T, E>`.
+//! * **Free Word Order**: Type compatibility is determined by structure, not just name (though nominal typing is used for structs).
 
 use crate::morphology::Gender;
 use smol_str::SmolStr;
@@ -110,6 +112,20 @@ pub enum GlossaType {
 }
 
 impl std::fmt::Display for GlossaType {
+    /// Formats the type using its Greek name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use glossa::semantic::GlossaType;
+    ///
+    /// assert_eq!(format!("{}", GlossaType::Number), "Ἀριθμός");
+    /// assert_eq!(format!("{}", GlossaType::String), "Ὄνομα");
+    /// assert_eq!(
+    ///     format!("{}", GlossaType::List(Box::new(GlossaType::Number))),
+    ///     "Λίστη<Ἀριθμός>"
+    /// );
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             GlossaType::Number => write!(f, "Ἀριθμός"),

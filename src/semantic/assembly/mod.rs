@@ -51,6 +51,17 @@
 //!
 //! The assembler handles all of these correctly, producing the same assembled semantic representation.
 //!
+//! # Security & Limits
+//!
+//! To prevent Denial of Service (DoS) attacks via resource exhaustion (e.g., stack overflow or excessive memory usage),
+//! the assembler enforces strict limits on the number of components in a single statement.
+//!
+//! * **Adjectives**: Max 1024
+//! * **Literals**: Max 1024
+//! * **Nested Structures**: Max 256 (Arrays, Blocks, Phrases)
+//!
+//! See [`model`] for the full list of limits.
+//!
 //! ## The Hero's Journey: A Sentence's Path
 //!
 //! Consider the sentence: `ὁ ἄνθρωπος τὸν λόγον λέγει` (The man says the word).
