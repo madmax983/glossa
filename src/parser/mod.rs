@@ -171,6 +171,21 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_error_conversion() {
+        // This test ensures the From<ParseError> for GlossaError impl is covered
+        let err = ParseError::PestError {
+            message: "Test Error".to_string(),
+            span: (0, 5),
+        };
+        let glossa_err: GlossaError = err.into();
+        let msg = glossa_err.to_string();
+        assert!(msg.contains("Test Error"));
+        // The From impl provides empty source string, so context might be limited,
+        // but it should be a ParseError variant.
+        assert!(matches!(glossa_err, GlossaError::ParseError { .. }));
+    }
+
+    #[test]
     fn test_parse_source_hello() {
         let source = "«χαῖρε» λέγε.";
         let ast = parse(source).unwrap();
