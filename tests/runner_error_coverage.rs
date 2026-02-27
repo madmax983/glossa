@@ -23,15 +23,8 @@ mod tests {
         let err_msg = result.unwrap_err().to_string();
 
         // Expect Recursion Limit Error
-        assert!(
-            err_msg.contains("Recursion limit exceeded"),
-            "Expected recursion error, got: {}",
-            err_msg
-        );
-        assert!(
-            !err_msg.contains("Codegen Failed"),
-            "Should stop before codegen"
-        );
+        assert!(err_msg.contains("Recursion limit exceeded"), "Expected recursion error, got: {}", err_msg);
+        assert!(!err_msg.contains("Codegen Failed"), "Should stop before codegen");
     }
 
     #[test]
@@ -43,8 +36,7 @@ mod tests {
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
             // Valid Glossa, invalid Rust (redefining String)
-            f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes())
-                .unwrap();
+            f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes()).unwrap();
         }
 
         let result = run_file(&input_path);

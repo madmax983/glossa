@@ -186,6 +186,29 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_error_variants_conversion() {
+        // RecursionLimitExceeded
+        let err_recursion = ParseError::RecursionLimitExceeded(100);
+        let glossa_err_rec: GlossaError = err_recursion.into();
+        assert!(glossa_err_rec.to_string().contains("Recursion limit exceeded"));
+
+        // InvalidNumber
+        let err_number = ParseError::InvalidNumber("invalid".to_string());
+        let glossa_err_num: GlossaError = err_number.into();
+        assert!(glossa_err_num.to_string().contains("Invalid number"));
+
+        // EmptyTerm
+        let err_empty = ParseError::EmptyTerm;
+        let glossa_err_empty: GlossaError = err_empty.into();
+        assert!(glossa_err_empty.to_string().contains("Empty term"));
+
+        // UnexpectedRule
+        let err_rule = ParseError::UnexpectedRule("rule".to_string());
+        let glossa_err_rule: GlossaError = err_rule.into();
+        assert!(glossa_err_rule.to_string().contains("Unexpected rule"));
+    }
+
+    #[test]
     fn test_parse_source_hello() {
         let source = "«χαῖρε» λέγε.";
         let ast = parse(source).unwrap();
