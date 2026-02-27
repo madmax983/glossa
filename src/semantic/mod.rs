@@ -41,6 +41,8 @@ pub(crate) mod control_flow;
 pub(crate) mod conversion;
 #[cfg(test)]
 mod conversion_tests;
+#[cfg(test)]
+mod sentry_conversion_tests;
 pub(crate) mod declarations;
 pub(crate) mod expressions;
 pub(crate) mod model;
