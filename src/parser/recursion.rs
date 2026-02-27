@@ -3,7 +3,8 @@ use super::ParseError;
 /// Check recursion depth to prevent stack overflows
 ///
 /// This function performs a fast linear scan of the source code to ensure that
-/// parentheses, braces, and brackets are not nested deeper than `MAX_DEPTH` (500).
+/// parentheses, braces, brackets, AND keywords that induce nesting (like `δοκιμή`)
+/// are not nested deeper than `MAX_DEPTH` (500).
 /// This prevents stack overflows during the recursive parsing phase.
 pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
     const MAX_DEPTH: usize = 500;
@@ -13,7 +14,8 @@ pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
     let mut i = 0;
 
     // Optimization: Iterate bytes directly to avoid expensive UTF-8 decoding of Greek characters.
-    // We only care about structural characters which are ASCII (except for « and »).
+    // We only care about structural characters which are ASCII (except for « and »)
+    // and specific keywords (`δοκιμή`, `τέλος`) that affect nesting.
     // « is [0xC2, 0xAB]
     // » is [0xC2, 0xBB]
     while i < bytes.len() {
@@ -27,6 +29,27 @@ pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
                 i += 1;
             }
         } else {
+            // Check for keywords first if byte matches start of UTF-8 sequence
+            // δοκιμή (test): starts with \xCE\xB4 (δ)
+            // τέλος (end): starts with \xCF\x84 (τ)
+
+            // Check for "δοκιμή" (test declaration start)
+            if b == 0xCE && source[i..].starts_with("δοκιμή") {
+                depth += 1;
+                if depth > MAX_DEPTH {
+                    return Err(ParseError::RecursionLimitExceeded(MAX_DEPTH));
+                }
+                i += "δοκιμή".len();
+                continue;
+            }
+
+            // Check for "τέλος" (test declaration end)
+            if b == 0xCF && source[i..].starts_with("τέλος") {
+                depth = depth.saturating_sub(1);
+                i += "τέλος".len();
+                continue;
+            }
+
             match b {
                 // Check for « [0xC2, 0xAB]
                 0xC2 => {
