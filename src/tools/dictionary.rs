@@ -1,3 +1,50 @@
+//! The Lexicon (Dictionary) Tool
+//!
+//! This module implements the dictionary lookup and morphological analysis interface.
+//! It serves as "The Lexicon" in the compiler's toolset, allowing users to query
+//! word meanings, grammatical properties, and etymology.
+//!
+//! # The Dual Approach
+//!
+//! The Lexicon uses a two-tiered approach to analyze words:
+//!
+//! 1.  **Static Lexicon Lookup (Definitive)**:
+//!     First, it checks a built-in static dictionary of common words. If found, this provides
+//!     definitive information (lemma, part of speech, definition). This is fast and accurate
+//!     for core vocabulary.
+//!
+//! 2.  **Dynamic Morphological Analysis (Probabilistic)**:
+//!     If the word is not in the static lexicon (or even if it is), the tool performs
+//!     a dynamic morphological analysis. It decomposes the word into stem and ending,
+//!     applying grammatical rules to guess its properties (Case, Number, Gender, etc.).
+//!     This allows the compiler to understand words it has never seen before!
+//!
+//! # CLI Usage
+//!
+//! This tool powers the `glossa lookup` command:
+//!
+//! ```bash
+//! glossa lookup λόγον
+//! ```
+//!
+//! Output:
+//!
+//! ```text
+//!    Γ Λ Ω Σ Σ Α   L E X I C O N
+//!    Analyzing: λόγον
+//!
+//!    📚 Lexicon Entry (Definitive)
+//!    Property        Value
+//!    Lemma           λόγος
+//!    Part of Speech  Noun
+//!    Meaning         word, reason, logic
+//!    ...
+//!
+//!    🔬 Morphological Analysis (All Possibilities)
+//!    Lemma  PoS   Grammar                        Confidence
+//!    λόγος  Noun  Accusative, Singular, Masculine  1.00
+//! ```
+
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
