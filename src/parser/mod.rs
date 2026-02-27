@@ -75,12 +75,9 @@ pub fn parse(source: &str) -> Result<Program, GlossaError> {
     }
 }
 
-/// Build an AST from source code
-fn parse_source(source: &str) -> Result<Program, ParseError> {
-    // Check recursion depth before parsing to prevent stack overflow
-    recursion::check_recursion_depth(source)?;
-
-    let pairs = grammar_parse(source).map_err(|e| match e.line_col {
+/// Helper to map pest errors to ParseError
+fn map_pest_error(e: pest::error::Error<Rule>) -> ParseError {
+    match e.line_col {
         pest::error::LineColLocation::Pos((line, col)) => {
             let offset = match e.location {
                 pest::error::InputLocation::Pos(o) => o,
@@ -101,7 +98,15 @@ fn parse_source(source: &str) -> Result<Program, ParseError> {
                 span: (start, end - start),
             }
         }
-    })?;
+    }
+}
+
+/// Build an AST from source code
+fn parse_source(source: &str) -> Result<Program, ParseError> {
+    // Check recursion depth before parsing to prevent stack overflow
+    recursion::check_recursion_depth(source)?;
+
+    let pairs = grammar_parse(source).map_err(map_pest_error)?;
 
     let mut statements = Vec::new();
 
@@ -206,6 +211,49 @@ mod tests {
         let err_rule = ParseError::UnexpectedRule("rule".to_string());
         let glossa_err_rule: GlossaError = err_rule.into();
         assert!(glossa_err_rule.to_string().contains("Unexpected rule"));
+    }
+
+    #[test]
+    fn test_map_pest_error_coverage() {
+        let input = "source string";
+
+        // Test Pos variant
+        // Create a position at index 5 using empty span
+        let pos = pest::Span::new(input, 5, 5).unwrap().start_pos();
+        let pos_err = pest::error::Error::<Rule>::new_from_pos(
+            pest::error::ErrorVariant::CustomError {
+                message: "Pos error".into(),
+            },
+            pos,
+        );
+
+        let mapped_pos = map_pest_error(pos_err);
+        if let ParseError::PestError { message, span } = mapped_pos {
+            // pest calculates line:col from position 5 (line 1, col 6)
+            assert!(message.contains("1:6"));
+            assert_eq!(span, (5, 1));
+        } else {
+            panic!("Expected PestError");
+        }
+
+        // Test Span variant
+        // Create a span from index 5 to 10
+        let span = pest::Span::new(input, 5, 10).unwrap();
+        let span_err = pest::error::Error::<Rule>::new_from_span(
+            pest::error::ErrorVariant::CustomError {
+                message: "Span error".into(),
+            },
+            span,
+        );
+
+        let mapped_span = map_pest_error(span_err);
+        if let ParseError::PestError { message, span } = mapped_span {
+            // pest calculates line:col from start of span
+            assert!(message.contains("1:6"));
+            assert_eq!(span, (5, 5)); // 10 - 5 = 5 length
+        } else {
+            panic!("Expected PestError");
+        }
     }
 
     #[test]
