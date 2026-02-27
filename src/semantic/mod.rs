@@ -45,6 +45,10 @@ pub(crate) mod declarations;
 pub(crate) mod expressions;
 pub(crate) mod model;
 pub(crate) mod patterns;
+#[cfg(test)]
+mod property_access_tests;
+#[cfg(test)]
+mod recursion_safety_tests;
 mod resolver;
 pub mod traits;
 mod types;

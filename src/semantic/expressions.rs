@@ -479,10 +479,16 @@ fn feed_expr_recursive(
                 }
             }
         }
-        Expr::PropertyAccess { owner, property } => {
-            // Owner is genitive, property is what it attaches to
-            feed_expr_recursive(asm, owner, context, depth + 1)?;
-            feed_expr_recursive(asm, property, context, depth + 1)?;
+        Expr::PropertyAccess { .. } => {
+            // Property access expression (e.g. x.len)
+            // We feed this as a nested phrase so it's treated as a single unit (value)
+            // and analyzed later by analyze_argument_expr, rather than being split
+            // into constituent words which might be misassembled.
+
+            // SECURITY: Ensure we don't clone excessively deep structures, which would stack overflow.
+            check_cloning_depth_safety(expr, MAX_RECURSION_DEPTH)?;
+
+            asm.feed_nested_phrase(vec![expr.clone()])?;
         }
         Expr::Call { verb, arguments } => {
             // Feed the verb - verbs can set context for subjects
@@ -539,6 +545,51 @@ fn feed_expr_recursive(
             // Feed index access to assembler
             asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone())?;
         }
+    }
+    Ok(())
+}
+
+/// Recursively check expression depth to prevent stack overflow during cloning
+fn check_cloning_depth_safety(expr: &Expr, limit: usize) -> Result<(), GlossaError> {
+    if limit == 0 {
+        return Err(GlossaError::semantic(
+            "Recursion limit exceeded in nested phrase analysis",
+        ));
+    }
+
+    match expr {
+        Expr::PropertyAccess { owner, property } => {
+            check_cloning_depth_safety(owner, limit - 1)?;
+            check_cloning_depth_safety(property, limit - 1)?;
+        }
+        Expr::Phrase(terms) | Expr::ArrayLiteral(terms) => {
+            for term in terms {
+                check_cloning_depth_safety(term, limit - 1)?;
+            }
+        }
+        Expr::IndexAccess { array, index } => {
+            check_cloning_depth_safety(array, limit - 1)?;
+            check_cloning_depth_safety(index, limit - 1)?;
+        }
+        Expr::BinOp { left, right, .. } => {
+            check_cloning_depth_safety(left, limit - 1)?;
+            check_cloning_depth_safety(right, limit - 1)?;
+        }
+        Expr::UnaryOp { operand, .. } | Expr::Binding { value: operand, .. } => {
+            check_cloning_depth_safety(operand, limit - 1)?;
+        }
+        Expr::Call { arguments, .. } => {
+            for arg in arguments {
+                check_cloning_depth_safety(arg, limit - 1)?;
+            }
+        }
+        // Block is tricky because it contains Statements, which contain Clauses, which contain Exprs.
+        // For now, we don't deeply check Blocks here as they are typically top-level recursion boundaries
+        // or handled by analyze_block which has checks. But if we are CLONING, we should be careful.
+        // Assuming Blocks don't usually cause infinite recursion in PropertyAccess contexts.
+        Expr::Block(_) => {}
+
+        _ => {}
     }
     Ok(())
 }
