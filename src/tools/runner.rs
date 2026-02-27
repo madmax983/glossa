@@ -439,6 +439,7 @@ mod tests {
 
         let result = run_file(&input_path);
         assert!(result.is_err());
+        // Assert it contains "Σφάλμα" (Error in Greek)
         assert!(result.unwrap_err().to_string().contains("Σφάλμα"));
     }
 
@@ -457,7 +458,9 @@ mod tests {
         let result = run_file(&input_path);
         assert!(result.is_err());
         // Verify it hits the rustc error path
-        assert!(result.unwrap_err().to_string().contains("Codegen Failed"));
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Codegen Failed"));
+        assert!(err_msg.contains("INTERNAL COMPILER ERROR"));
     }
 
     #[test]
