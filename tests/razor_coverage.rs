@@ -3,10 +3,7 @@
 //! This file aims to exercise the code paths that were moved during refactoring
 //! to ensure high code coverage.
 
-use glossa::errors::{
-    AssemblyError, GlossaError, case_mismatch, gender_mismatch, immutable_assignment,
-    number_mismatch, undefined_variable,
-};
+use glossa::errors::{AssemblyError, GlossaError};
 use glossa::morphology::{Case, Gender, Number, Person, Tense, Voice};
 use glossa::semantic::{
     AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
@@ -90,16 +87,6 @@ fn test_assembly_errors_display_impls() {
     assert!(format!("{}", err).contains("Ὑπέρβασις ὁρίου"));
 }
 
-#[test]
-fn test_errors_helper_functions() {
-    assert!(undefined_variable("x").contains("Οὐκ οἶδα"));
-    assert!(immutable_assignment("x").contains("ἀμετάβλητόν"));
-    assert!(
-        gender_mismatch("w1", Gender::Masculine, "w2", Gender::Feminine).contains("οὐ συμφωνεῖ")
-    );
-    assert!(number_mismatch("w1", Number::Singular, "w2", Number::Plural).contains("οὐ συμφωνεῖ"));
-    assert!(case_mismatch("w1", Case::Nominative, "w2", Case::Accusative).contains("οὐ συμφωνεῖ"));
-}
 
 #[test]
 fn test_errors_help_module() {
