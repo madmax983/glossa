@@ -14,7 +14,7 @@
 //!
 //! If preceded by "ἡ" (feminine nominative article), we know it's nominative.
 
-use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person};
+use crate::morphology::models::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person};
 
 /// A disambiguation context built from surrounding words
 #[derive(Debug, Clone, Default)]

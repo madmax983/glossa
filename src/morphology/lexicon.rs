@@ -53,7 +53,9 @@
 //! * **Function Mappings**: Mapping `λέγε` directly to `println!`.
 //! * **Keywords**: `εἰ` (if), `ἕως` (while).
 
-use super::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
+use crate::morphology::models::{
+    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
+};
 use rustc_hash::FxHashMap;
 use std::borrow::Cow;
 use std::sync::LazyLock;
