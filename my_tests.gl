@@ -1,4 +1,0 @@
-δοκιμή «equality check».
-    κ 5 ἔστω.
-    κ 5 ἰσοῦται.      // assert_eq!(kappa, 5)
-τέλος.
