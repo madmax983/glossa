@@ -14,6 +14,7 @@
 //! 2. **The Challenge**: A specific coding task to perform.
 //! 3. **The Verification**: Real-time analysis of the user's code to ensure they met the goal.
 
+use crate::errors::GlossaError;
 use crate::parser::parse;
 use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, analyze_program};
 use comfy_table::{Attribute, Cell, Color, Table, presets};
@@ -142,7 +143,9 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
                     }
                 }
                 Err(e) => {
-                    writeln!(output, "{}", format!("× Error: {}", e).red()).into_diagnostic()?;
+                    let mut buf = String::new();
+                    let _ = miette::GraphicalReportHandler::new().render_report(&mut buf, &e);
+                    writeln!(output, "{}", buf).into_diagnostic()?;
                 }
             }
         }
@@ -160,9 +163,9 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
     Ok(())
 }
 
-fn process_submission(source: &str) -> Result<AnalyzedProgram, String> {
-    let ast = parse(source).map_err(|e| e.to_string())?;
-    analyze_program(&ast).map_err(|e| e.to_string())
+fn process_submission(source: &str) -> Result<AnalyzedProgram, GlossaError> {
+    let ast = parse(source)?;
+    analyze_program(&ast)
 }
 
 fn print_banner<W: Write>(w: &mut W) -> Result<()> {
@@ -303,7 +306,7 @@ mod tests {
         run_mentor_inner(&mut input, &mut output).unwrap();
 
         let s = String::from_utf8(output).unwrap();
-        assert!(s.contains("Error"));
+        assert!(s.contains("Error"), "Expected error message in output, got:\n{}", s);
     }
 
     #[test]

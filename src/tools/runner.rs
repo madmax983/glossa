@@ -22,7 +22,7 @@ const MAX_FILE_SIZE: u64 = 1024 * 1024;
 /// 1. **Parsing**: Converts source text to AST
 /// 2. **Semantic Analysis**: Resolves names, types, and statement structure
 fn analyze_source(source: &str) -> Result<AnalyzedProgram> {
-    let ast = parse(source).map_err(|e| miette::miette!("{}", e))?;
+    let ast = parse(source)?;
     analyze_program(&ast).map_err(|e| miette::miette!("{}", e))
 }
 

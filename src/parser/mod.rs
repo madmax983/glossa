@@ -39,7 +39,14 @@ pub use common::ParseError;
 
 impl From<ParseError> for GlossaError {
     fn from(err: ParseError) -> Self {
-        GlossaError::parse(err.to_string())
+        match err {
+            ParseError::PestError { message, span } => GlossaError::parse_with_source(
+                message,
+                String::new(),
+                miette::SourceSpan::new(span.0.into(), span.1.into()),
+            ),
+            _ => GlossaError::parse(err.to_string()),
+        }
     }
 }
 
@@ -57,7 +64,15 @@ impl From<ParseError> for GlossaError {
 /// assert_eq!(program.statements.len(), 1);
 /// ```
 pub fn parse(source: &str) -> Result<Program, GlossaError> {
-    parse_source(source).map_err(GlossaError::from)
+    match parse_source(source) {
+        Ok(program) => Ok(program),
+        Err(ParseError::PestError { message, span }) => Err(GlossaError::parse_with_source(
+            message,
+            source.to_string(),
+            miette::SourceSpan::new(span.0.into(), span.1.into()),
+        )),
+        Err(e) => Err(GlossaError::from(e)),
+    }
 }
 
 /// Build an AST from source code
@@ -65,7 +80,28 @@ fn parse_source(source: &str) -> Result<Program, ParseError> {
     // Check recursion depth before parsing to prevent stack overflow
     recursion::check_recursion_depth(source)?;
 
-    let pairs = grammar_parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
+    let pairs = grammar_parse(source).map_err(|e| match e.line_col {
+        pest::error::LineColLocation::Pos((line, col)) => {
+            let offset = match e.location {
+                pest::error::InputLocation::Pos(o) => o,
+                pest::error::InputLocation::Span((start, _)) => start,
+            };
+            ParseError::PestError {
+                message: format!("Parse error at {}:{}", line, col),
+                span: (offset, 1),
+            }
+        }
+        pest::error::LineColLocation::Span((start_line, start_col), _) => {
+            let (start, end) = match e.location {
+                pest::error::InputLocation::Pos(o) => (o, o + 1),
+                pest::error::InputLocation::Span((s, e)) => (s, e),
+            };
+            ParseError::PestError {
+                message: format!("Parse error at {}:{}", start_line, start_col),
+                span: (start, end - start),
+            }
+        }
+    })?;
 
     let mut statements = Vec::new();
 

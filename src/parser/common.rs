@@ -15,8 +15,11 @@ pub fn parse_number_literal(text: &str) -> Result<i64, ParseError> {
 /// Errors that can occur during AST construction
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum ParseError {
-    #[error("Parse error: {0}")]
-    PestError(String),
+    #[error("Parse error: {message}")]
+    PestError {
+        message: String,
+        span: (usize, usize),
+    },
 
     #[error("Empty term in expression")]
     EmptyTerm,

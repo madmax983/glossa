@@ -116,10 +116,10 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
                 write!(output, "{}", repl_output).into_diagnostic()?;
             }
             Err(e) => {
-                // Use default error formatting but ensure it's visible
-                // The '×' symbol provides visual indication of error, so we don't need
-                // to prefix with "Σφάλμα: " which often leads to redundancy.
-                writeln!(output, "{}", format!("× {}", e).red()).into_diagnostic()?;
+                // Use miette to render the structured error report
+                let mut buf = String::new();
+                let _ = miette::GraphicalReportHandler::new().render_report(&mut buf, &e);
+                writeln!(output, "{}", buf).into_diagnostic()?;
             }
         }
     }
@@ -613,18 +613,11 @@ mod tests {
 
         let output_str = String::from_utf8(output).unwrap();
         // Should contain the error indicator
-        assert!(
-            output_str.contains("×"),
-            "Output should contain error indicator '×'"
-        );
-        // Should contain the error message content
+        // Note: miette output is complex, but we can check for our error message
         assert!(
             output_str.contains("Parse error"),
-            "Output should contain 'Parse error'"
+            "Output should contain 'Parse error'. Got:\n{}",
+            output_str
         );
-        // Should NOT contain the redundant "Σφάλμα: " prefix if the error itself starts with it
-        // The error message from GlossaError::ParseError starts with "Σφάλμα συντάξεως: ..."
-        // Our formatting prints "× error_string".
-        // We just want to ensure it printed.
     }
 }
