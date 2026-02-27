@@ -94,14 +94,18 @@ pub fn lookup_word(word: &str) -> Result<()> {
             Cell::new(entry.meaning).fg(Color::Yellow),
         ]);
 
-        if let Some(rust) = entry.rust_equiv {
-            table.add_row(vec![
-                Cell::new("Rust Equivalent"),
-                Cell::new(rust)
-                    .fg(Color::Red)
-                    .add_attribute(Attribute::Bold),
-            ]);
-        }
+        // Clarify rust_equiv semantics: None means user-defined or no direct mapping
+        let rust_equiv_display = entry.rust_equiv.unwrap_or("(none/user-defined)");
+        table.add_row(vec![
+            Cell::new("Rust Equivalent"),
+            Cell::new(rust_equiv_display)
+                .fg(if entry.rust_equiv.is_some() {
+                    Color::Red
+                } else {
+                    Color::DarkGrey
+                })
+                .add_attribute(Attribute::Bold),
+        ]);
 
         // Add grammatical details if present
         if let Some(c) = entry.case {
@@ -223,5 +227,11 @@ mod tests {
     #[test]
     fn test_lookup_verb() {
         lookup_word("λέγε").unwrap();
+    }
+
+    #[test]
+    fn test_lookup_word_without_rust_equiv() {
+        // "εγω" (I) has rust_equiv: None in the lexicon
+        lookup_word("εγω").unwrap();
     }
 }
