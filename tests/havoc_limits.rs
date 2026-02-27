@@ -1,5 +1,4 @@
-
-use glossa::ast::{Statement, Clause, Expr, Word};
+use glossa::ast::{Clause, Expr, Statement, Word};
 use glossa::semantic::assemble_statement;
 
 // Helper to assert that assembly returns a LimitExceeded error
@@ -12,12 +11,18 @@ fn assert_limit_exceeded(stmt: &Statement, resource_name: &str) {
                 panic!("Expected LimitExceeded for {}, got: {:?}", resource_name, e);
             }
             if !err_str.contains(resource_name) {
-                panic!("Expected LimitExceeded for {}, got error for wrong resource: {:?}", resource_name, e);
+                panic!(
+                    "Expected LimitExceeded for {}, got error for wrong resource: {:?}",
+                    resource_name, e
+                );
             }
-        },
+        }
         Ok(s) => {
             // Panic with details
-            panic!("Expected LimitExceeded for {}, got Ok with statement: {:?}", resource_name, s);
+            panic!(
+                "Expected LimitExceeded for {}, got Ok with statement: {:?}",
+                resource_name, s
+            );
         }
     }
 }
@@ -32,7 +37,7 @@ fn assert_any_limit_exceeded(stmt: &Statement) {
             if !err_str.contains("LimitExceeded") {
                 panic!("Expected LimitExceeded, got: {:?}", e);
             }
-        },
+        }
         Ok(s) => {
             panic!("Expected LimitExceeded, got Ok with statement: {:?}", s);
         }
