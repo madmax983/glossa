@@ -44,32 +44,30 @@ use unicode_normalization::UnicodeNormalization;
 /// assert_eq!(normalized, "κ\u{1FBD}αγω");
 /// ```
 pub fn normalize_greek(text: &str) -> SmolStr {
-    let mut needs_decomposition = false;
+    let mut last_cased = false;
 
     // Optimization: Fast scan for characters that require normalization
     // This avoids all allocation for strings that are already normalized.
-    for c in text.chars() {
-        if c.is_uppercase() {
-            // Tier 2: Uppercase found.
-            // We use a zero-allocation iterator to handle lowercasing on the fly.
-            // This avoids creating an intermediate `String` just to lowercase it.
-            return GreekLowercaseIterator::new(text)
+    for (i, c) in text.char_indices() {
+        if c.is_uppercase() || !is_safe_char(c) {
+            // Found a character that requires processing.
+            // Split here: keep the safe prefix, process the rest.
+            let mut output = String::with_capacity(text.len());
+            output.push_str(&text[..i]);
+
+            let suffix = &text[i..];
+            let suffix_iter = GreekLowercaseIterator::new_with_state(suffix, last_cased)
                 .nfd()
-                .filter(|c| !is_greek_diacritic(*c))
-                .collect();
+                .filter(|c| !is_greek_diacritic(*c));
+
+            output.extend(suffix_iter);
+            return output.into();
         }
 
-        if !is_safe_char(c) {
-            // Found a character that is not "safe" (e.g., has diacritics, or is a symbol).
-            // Mark for decomposition but continue scanning for uppercase.
-            needs_decomposition = true;
+        // Track casing for Sigma logic, just like the iterator would
+        if !is_greek_diacritic(c) {
+            last_cased = c.is_lowercase() || c.is_uppercase();
         }
-    }
-
-    if needs_decomposition {
-        // Tier 3: No uppercase, but contains potential diacritics.
-        // We can skip the `to_lowercase` allocation since we know it's already lower.
-        return text.nfd().filter(|c| !is_greek_diacritic(*c)).collect();
     }
 
     // Tier 1: Text is already clean (lowercase, basic Greek/ASCII).
@@ -90,10 +88,15 @@ struct GreekLowercaseIterator<'a> {
 }
 
 impl<'a> GreekLowercaseIterator<'a> {
+    #[allow(dead_code)]
     fn new(text: &'a str) -> Self {
+        Self::new_with_state(text, false)
+    }
+
+    fn new_with_state(text: &'a str, last_cased: bool) -> Self {
         let mut slf = Self {
             iter: text.chars(),
-            last_cased: false,
+            last_cased,
             // Initialize with dummy that we drain immediately
             current_expansion: ' '.to_lowercase(),
         };
@@ -176,19 +179,11 @@ fn is_safe_char(c: char) -> bool {
 pub(crate) fn is_greek_diacritic(c: char) -> bool {
     matches!(
         c,
-        '\u{0300}'          // Combining grave accent
-        | '\u{0301}'        // Combining acute accent
-        | '\u{0302}'        // Combining circumflex (hat)
-        | '\u{0303}'        // Combining tilde
-        | '\u{0304}'        // Combining macron
-        | '\u{0306}'        // Combining breve
-        | '\u{0308}'        // Combining diaeresis
-        | '\u{0313}'        // Combining comma above (smooth breathing)
-        | '\u{0314}'        // Combining reversed comma above (rough breathing)
-        | '\u{0342}'        // Combining Greek perispomeni (circumflex)
-        | '\u{0343}'        // Combining Greek koronis
-        | '\u{0344}'        // Combining Greek dialytika tonos
-        | '\u{0345}' // Combining Greek ypogegrammeni (iota subscript)
+        '\u{0300}'..='\u{0304}'   // Combining grave, acute, circumflex, tilde, macron
+        | '\u{0306}'              // Combining breve
+        | '\u{0308}'              // Combining diaeresis
+        | '\u{0313}'..='\u{0314}' // Combining smooth and rough breathing
+        | '\u{0342}'..='\u{0345}' // Combining Greek perispomeni, koronis, dialytika tonos, ypogegrammeni
     )
 }
 
