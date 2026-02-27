@@ -195,7 +195,11 @@ mod tests {
         // RecursionLimitExceeded
         let err_recursion = ParseError::RecursionLimitExceeded(100);
         let glossa_err_rec: GlossaError = err_recursion.into();
-        assert!(glossa_err_rec.to_string().contains("Recursion limit exceeded"));
+        assert!(
+            glossa_err_rec
+                .to_string()
+                .contains("Recursion limit exceeded")
+        );
 
         // InvalidNumber
         let err_number = ParseError::InvalidNumber("invalid".to_string());
