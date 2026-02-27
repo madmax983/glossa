@@ -1,6 +1,7 @@
+#![cfg(feature = "nova")]
+
 use glossa::tools::mosaic::run_mosaic_inner;
 
-#[cfg(feature = "nova")]
 #[test]
 fn test_mosaic_comprehensive_coverage() {
     // Corrected test string with valid syntax
