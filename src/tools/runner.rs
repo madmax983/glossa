@@ -560,6 +560,7 @@ mod tests {
 
         let result = simulate_file(&input_path);
         assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα"));
     }
 
     #[cfg(feature = "nova")]
@@ -590,6 +591,7 @@ mod tests {
 
         let result = simulate_file(&input_path);
         assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα"));
     }
 
     #[cfg(feature = "nova")]
