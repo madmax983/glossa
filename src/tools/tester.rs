@@ -140,8 +140,13 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                     // End of details section
                     break;
                 }
-                message.push_str(current);
-                message.push('\n');
+
+                // Filter out internal Rust panic details and backtrace instructions
+                if !current.contains("panicked at") && !current.contains("run with `RUST_BACKTRACE=1`") {
+                    message.push_str(current);
+                    message.push('\n');
+                }
+
                 i += 1;
             }
             failures.push((name, message.trim().to_string()));
@@ -229,12 +234,21 @@ pub fn run_tests(input: &Path) -> Result<()> {
     if test_output.status.success() {
         status.success();
         println!();
-        println!(
-            "   {}",
-            "✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed)"
-                .green()
-                .bold()
-        );
+        if results.is_empty() {
+            println!(
+                "   {}",
+                "ℹ Οὐδεμία δοκιμασία εὑρέθη (No tests found)"
+                    .blue()
+                    .bold()
+            );
+        } else {
+            println!(
+                "   {}",
+                "✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed)"
+                    .green()
+                    .bold()
+            );
+        }
     } else {
         status.error("Ἀποτυχία (Failure)");
         println!();
@@ -273,8 +287,6 @@ pub fn run_tests(input: &Path) -> Result<()> {
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
         println!("{table}");
-    } else {
-        println!("{}", "   No tests found.".yellow());
     }
 
     // If there were failures, try to extract and print them nicely
@@ -312,9 +324,6 @@ pub fn run_tests(input: &Path) -> Result<()> {
                 println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
             }
         }
-    } else if results.is_empty() {
-        // Fallback for empty results but success (e.g. no tests run)
-        println!("{}", stdout.dim());
     }
 
     if !test_output.status.success() {
