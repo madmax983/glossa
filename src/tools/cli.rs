@@ -127,4 +127,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Execute a .γλ file directly in memory without compiling to Rust (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Simulate {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

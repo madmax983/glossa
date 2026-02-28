@@ -35,6 +35,32 @@ fn compile(source: &str) -> Result<String> {
     Ok(generate_rust_file(&analyzed))
 }
 
+#[cfg(feature = "nova")]
+pub fn simulate_file(input: &Path) -> Result<()> {
+    if !input.exists() {
+        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
+    }
+    check_file_size(input)?;
+
+    let status = Status::start_with_symbol("Ἀνάλυσις (Analyzing)", "🔍");
+    let source = load_source(input)?;
+    let program = match analyze_source(&source) {
+        Ok(prog) => prog,
+        Err(e) => {
+            status.error("Σφάλμα ἀναλύσεως (Analysis error)");
+            return Err(e);
+        }
+    };
+    status.success();
+
+    let mut interpreter = crate::experimental::interpreter::Interpreter::new();
+    if let Err(e) = interpreter.run(&program) {
+        return Err(miette::miette!("Σφάλμα ἐκτελέσεως (Runtime error): {}", e));
+    }
+
+    Ok(())
+}
+
 /// Check file size to prevent DoS
 fn check_file_size(input: &Path) -> Result<()> {
     let metadata = fs::metadata(input).into_diagnostic()?;
@@ -498,6 +524,25 @@ mod tests {
         }
 
         let result = bard_file(&input_path);
+        assert!(result.is_ok());
+    }
+}
+#[cfg(test)]
+mod simulate_tests {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[cfg(feature = "nova")]
+    #[test]
+    fn test_simulate_file() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_simulate.gl");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(file, "«hello» λέγε.").unwrap();
+
+        let result = simulate_file(&file_path);
         assert!(result.is_ok());
     }
 }

@@ -14,3 +14,8 @@
 **Concept:** An interactive tutorial mode (`glossa mentor`) that guides users through learning the language via Socratic challenges. It verifies not just syntax but semantic correctness (e.g., "Create a variable named 'x'").
 **Fate:** Merged
 **Lesson:** By connecting the `Repl` loop with the `Analyzer`'s internal state, we can create a powerful educational tool that provides real-time feedback. This transforms the compiler from a tool into a teacher.
+
+## 🌟 The Simulator (ὁ Ὑποκριτής)
+**Concept:** A CLI tool (`glossa simulate`) that directly executes a `.γλ` file using the in-memory tree-walk interpreter instead of compiling it to Rust.
+**Fate:** Merged
+**Lesson:** Providing a direct interpretation mode enables faster execution and testing without the overhead of compilation, and is crucial for environments where `rustc` is unavailable (e.g. WASM or web playgrounds).

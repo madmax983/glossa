@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+/// Load source code from a file with strict size limits
+=======
+#[cfg(feature = "nova")]
+pub fn simulate_file(input: &Path) -> Result<()> {
+    use crate::experimental::interpreter::Interpreter;
+
+    if !input.exists() {
+        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
+    }
+    check_file_size(input)?;
+
+    let mut status = Status::start_with_symbol("Ἀνάλυσις (Analyzing)", "🔍");
+    let source = load_source(input)?;
+    let program = match analyze_source(&source) {
+        Ok(prog) => prog,
+        Err(e) => {
+            status.fail("Σφάλμα ἀναλύσεως (Analysis error)");
+            return Err(e);
+        }
+    };
+    status.success("Ἀνελύθη (Analyzed)");
+
+    let mut interpreter = Interpreter::new();
+    if let Err(e) = interpreter.run(&program) {
+        return Err(miette::miette!("Σφάλμα ἐκτελέσεως (Runtime error): {}", e));
+    }
+
+    Ok(())
+}
+
+/// Load source code from a file with strict size limits
+>>>>>>> REPLACE
