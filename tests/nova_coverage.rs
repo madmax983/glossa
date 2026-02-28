@@ -137,6 +137,37 @@ fn test_simulate_file_nova_coverage() {
 }
 
 #[test]
+fn test_simulate_file_coverage_runtime_err() {
+    use glossa::tools::runner::simulate_file;
+
+    // Test specific error paths
+    let mut temp_file = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "1 0 μέρος λέγε.").expect("Failed to write");
+    let result = simulate_file(temp_file.path());
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Interpreter Error"));
+}
+
+#[test]
+fn test_simulate_file_coverage_analysis_err() {
+    use glossa::tools::runner::simulate_file;
+
+    // Test specific error paths
+    let mut temp_file = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "χαρακτήρ Χ ὁρίζειν ὡς Ψ.").expect("Failed to write");
+    let result = simulate_file(temp_file.path());
+    assert!(result.is_err());
+}
+
+#[test]
 fn test_run_tests_rustc_error() {
     let mut temp_file = Builder::new()
         .suffix(".gl")
