@@ -546,3 +546,46 @@ mod simulate_tests {
         assert!(result.is_ok());
     }
 }
+
+#[cfg(test)]
+#[cfg(feature = "nova")]
+mod more_simulate_tests {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_simulate_file_not_found() {
+        let path = std::path::PathBuf::from("does_not_exist_for_simulate.gl");
+        let result = simulate_file(&path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_simulate_file_analysis_error() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_simulate_analysis_error.gl");
+        let mut file = File::create(&file_path).unwrap();
+        // invalid syntax
+        writeln!(file, "this is not valid glossa").unwrap();
+
+        let result = simulate_file(&file_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_simulate_file_runtime_error() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_simulate_runtime_error.gl");
+        let mut file = File::create(&file_path).unwrap();
+        // Valid syntax but runtime division by zero
+        // 1 0 μέρος λέγε. => 1 / 0
+        writeln!(file, "1 0 μέρος λέγε.").unwrap();
+
+        let result = simulate_file(&file_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα ἐκτελέσεως"));
+    }
+}
