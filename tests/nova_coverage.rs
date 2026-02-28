@@ -134,6 +134,7 @@ fn test_simulate_file_nova_coverage() {
     write!(temp_file5, "+++++ invalid_syntax!!! +++").expect("Failed to write");
     let result5 = simulate_file(temp_file5.path());
     assert!(result5.is_err());
+    assert!(result5.unwrap_err().to_string().contains("Σφάλμα"));
 }
 
 #[test]
@@ -149,6 +150,7 @@ fn test_simulate_file_coverage_runtime_err() {
     write!(temp_file, "1 0 μέρος λέγε.").expect("Failed to write");
     let result = simulate_file(temp_file.path());
     assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Interpreter Error"));
 }
 
 #[test]
@@ -164,6 +166,7 @@ fn test_simulate_file_coverage_analysis_err() {
     write!(temp_file, "χαρακτήρ Χ ὁρίζειν ὡς Ψ.").expect("Failed to write");
     let result = simulate_file(temp_file.path());
     assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Σφάλμα"));
 }
 
 #[test]
