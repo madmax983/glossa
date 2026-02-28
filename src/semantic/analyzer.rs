@@ -12,7 +12,6 @@ use super::declarations::{
 };
 use super::expressions::contains_function_definition_verb;
 use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
-use super::traits::StatementAnalyzer;
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, assemble_statement,
 };
@@ -41,8 +40,8 @@ impl Default for Analyzer {
     }
 }
 
-impl StatementAnalyzer for Analyzer {
-    fn analyze(
+impl Analyzer {
+    pub fn analyze(
         &mut self,
         stmt: &Statement,
         scope: &mut Scope,

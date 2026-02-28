@@ -77,3 +77,8 @@
 **Bloat:** `src/ast/` and `src/codegen/` directories were merely wrapper folders around `mod.rs`.
 **Cut:** Moved `mod.rs` to `src/ast.rs` and `src/codegen.rs` and deleted the wrapper directories.
 **Saved:** 2 folders, reduced directory depth.
+
+## [Reduction]
+**Bloat:** `src/semantic/traits.rs` defined a `StatementAnalyzer` trait that was only ever implemented once by `Analyzer` in `src/semantic/analyzer.rs`.
+**Cut:** Deleted the trait and file entirely, calling `Analyzer::analyze` concretely.
+**Saved:** 1 file, reduced indirection, simplified function signatures in `control_flow.rs` and `declarations.rs`.
