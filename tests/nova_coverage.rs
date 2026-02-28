@@ -130,6 +130,18 @@ fn test_simulate_file_nova_coverage() {
     // Test file not found
     let result4 = simulate_file(PathBuf::from("non_existent_simulate_file.gl").as_path());
     assert!(result4.is_err());
+
+    // Test Parse Error
+    let mut temp_file5 = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    // Invalid syntax for parser (must not compile at all)
+    write!(temp_file5, "+++++ invalid_syntax!!! +++").expect("Failed to write");
+    let result5 = simulate_file(temp_file5.path());
+    assert!(result5.is_err());
+    assert!(result5.unwrap_err().to_string().contains("Σφάλμα"));
 }
 
 #[test]
