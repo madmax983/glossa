@@ -560,6 +560,7 @@ mod tests {
 
         let result = simulate_file(&input_path);
         assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα"));
     }
 
     #[cfg(feature = "nova")]
@@ -585,7 +586,8 @@ mod tests {
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
             // Create a guaranteed semantic error: Invalid trait implementation syntax where type doesn't exist
-            f.write_all("хаρακτήρ Χ {} ὁρίζειν ὡς Ψ {}.".as_bytes()).unwrap();
+            f.write_all("хаρακτήρ Χ {} ὁρίζειν ὡς Ψ {}.".as_bytes())
+                .unwrap();
         }
 
         let result = simulate_file(&input_path);
