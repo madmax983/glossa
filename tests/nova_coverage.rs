@@ -87,6 +87,19 @@ fn test_run_tests_syntax_error() {
 }
 
 #[test]
+fn test_simulate_file_nova_coverage() {
+    use glossa::tools::runner::simulate_file;
+    let mut temp_file = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "ξ πέντε ἔστω.").expect("Failed to write");
+    let result = simulate_file(temp_file.path());
+    assert!(result.is_ok());
+}
+
+#[test]
 fn test_run_tests_rustc_error() {
     let mut temp_file = Builder::new()
         .suffix(".gl")
