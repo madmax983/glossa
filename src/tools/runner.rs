@@ -533,5 +533,4 @@ mod tests {
         let result = bard_file(&input_path);
         assert!(result.is_ok());
     }
-
 }
