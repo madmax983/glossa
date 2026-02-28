@@ -585,13 +585,13 @@ mod tests {
         let input_path = dir.path().join("simulate_analysis_error.gl");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            // Create a guaranteed semantic error: Invalid trait implementation syntax where type doesn't exist
-            f.write_all("хаρακτήρ Χ {} ὁρίζειν ὡς Ψ {}.".as_bytes())
-                .unwrap();
+            // This is valid grammar but structurally invalid logic (trait definition missing methods) that causes an analysis error
+            f.write_all("хаρακτήρ Χ ὁρίζειν ὡς Ψ.".as_bytes()).unwrap();
         }
 
         let result = simulate_file(&input_path);
         assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα"));
     }
 
     #[cfg(feature = "nova")]
