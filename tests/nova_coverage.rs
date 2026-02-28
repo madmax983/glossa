@@ -149,7 +149,12 @@ fn test_simulate_file_coverage_runtime_err() {
     write!(temp_file, "1 0 μέρος λέγε.").expect("Failed to write");
     let result = simulate_file(temp_file.path());
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Interpreter Error"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Interpreter Error")
+    );
 }
 
 #[test]
