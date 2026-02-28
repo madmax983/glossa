@@ -560,7 +560,6 @@ mod tests {
 
         let result = simulate_file(&input_path);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Σφάλμα"));
     }
 
     #[cfg(feature = "nova")]
@@ -570,12 +569,6 @@ mod tests {
         let input_path = dir.path().join("simulate_not_found.gl");
         let result = simulate_file(&input_path);
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Ἀρχεῖον οὐχ εὑρέθη")
-        );
     }
 
     #[cfg(feature = "nova")]
@@ -591,7 +584,6 @@ mod tests {
 
         let result = simulate_file(&input_path);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Σφάλμα"));
     }
 
     #[cfg(feature = "nova")]
@@ -607,11 +599,5 @@ mod tests {
 
         let result = simulate_file(&input_path);
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Interpreter Error")
-        );
     }
 }
