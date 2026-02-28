@@ -89,6 +89,8 @@ fn test_run_tests_syntax_error() {
 #[test]
 fn test_simulate_file_nova_coverage() {
     use glossa::tools::runner::simulate_file;
+
+    // Test OK
     let mut temp_file = Builder::new()
         .suffix(".gl")
         .tempfile()
@@ -97,6 +99,32 @@ fn test_simulate_file_nova_coverage() {
     write!(temp_file, "ξ πέντε ἔστω.").expect("Failed to write");
     let result = simulate_file(temp_file.path());
     assert!(result.is_ok());
+
+    // Test Analysis Error
+    let mut temp_file2 = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file2, "χαρακτήρ Χ ὁρίζειν ὡς Ψ.").expect("Failed to write");
+    let result2 = simulate_file(temp_file2.path());
+    assert!(result2.is_err());
+    assert!(result2.unwrap_err().to_string().contains("Σφάλμα"));
+
+    // Test Runtime Error
+    let mut temp_file3 = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file3, "1 0 μέρος λέγε.").expect("Failed to write");
+    let result3 = simulate_file(temp_file3.path());
+    assert!(result3.is_err());
+    assert!(result3.unwrap_err().to_string().contains("Interpreter Error"));
+
+    // Test file not found
+    let result4 = simulate_file(PathBuf::from("non_existent_simulate_file.gl").as_path());
+    assert!(result4.is_err());
 }
 
 #[test]
