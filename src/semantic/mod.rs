@@ -52,7 +52,7 @@ mod recursion_safety_tests;
 mod resolver;
 #[cfg(test)]
 mod sentry_conversion_tests;
-pub mod traits;
+
 mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
