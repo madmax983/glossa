@@ -57,7 +57,7 @@ mod types;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub use analyzer::{AnalyzedProgram, analyze_program};
-pub(crate) use assembly::Assembler;
+pub use assembly::Assembler;
 pub use assembly::{
     AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
