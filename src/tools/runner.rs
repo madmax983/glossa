@@ -619,3 +619,27 @@ mod analyze_source_tests {
         assert!(result.is_err());
     }
 }
+
+#[cfg(test)]
+#[cfg(feature = "nova")]
+mod analyze_source_tests_extra {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_simulate_file_too_large() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_simulate_too_large.gl");
+        let mut file = File::create(&file_path).unwrap();
+
+        // Write enough data to exceed MAX_FILE_SIZE (1MB)
+        let chunk = " ".repeat(1024 * 1024 + 10);
+        file.write_all(chunk.as_bytes()).unwrap();
+
+        let result = simulate_file(&file_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("λίαν μέγα"));
+    }
+}
