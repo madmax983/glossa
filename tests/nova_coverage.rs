@@ -126,3 +126,18 @@ fn test_main_simulate_coverage() {
 
     assert!(output.status.success());
 }
+
+#[test]
+fn test_cli_struct_simulate_branch() {
+    // Tests that parsing the Simulate arg creates the correct Command enum
+    use clap::Parser;
+    use glossa::tools::cli::{Cli, Commands};
+
+    let cli = Cli::parse_from(&["glossa", "simulate", "test.gl"]);
+    match cli.command {
+        Some(Commands::Simulate { input }) => {
+            assert_eq!(input.to_str().unwrap(), "test.gl");
+        }
+        _ => panic!("Expected Simulate command"),
+    }
+}
