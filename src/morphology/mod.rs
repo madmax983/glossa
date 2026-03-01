@@ -152,18 +152,16 @@ fn analyze_all_from_normalized(normalized: &str) -> Vec<MorphAnalysis> {
 /// This function identifies them so the fallback logic can treat them as
 /// nominative nouns even if they aren't in the lexicon.
 fn is_single_greek_letter(word: &str) -> bool {
-    let chars: Vec<char> = word.chars().collect();
-    if chars.len() != 1 {
-        return false;
+    let mut chars = word.chars();
+    if let (Some(c), None) = (chars.next(), chars.next()) {
+        // Greek lowercase letters range: α (U+03B1) to ω (U+03C9)
+        // Greek uppercase letters range: Α (U+0391) to Ω (U+03A9)
+        // Also include ς (final sigma, U+03C2)
+        return ('\u{0391}'..='\u{03A9}').contains(&c) ||   // Uppercase
+               ('\u{03B1}'..='\u{03C9}').contains(&c) ||   // Lowercase
+               c == '\u{03C2}'; // Final sigma
     }
-
-    let c = chars[0];
-    // Greek lowercase letters range: α (U+03B1) to ω (U+03C9)
-    // Greek uppercase letters range: Α (U+0391) to Ω (U+03A9)
-    // Also include ς (final sigma, U+03C2)
-    ('\u{0391}'..='\u{03A9}').contains(&c) ||   // Uppercase
-    ('\u{03B1}'..='\u{03C9}').contains(&c) ||   // Lowercase
-    c == '\u{03C2}' // Final sigma
+    false
 }
 
 #[cfg(test)]
