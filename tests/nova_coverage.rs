@@ -141,3 +141,25 @@ fn test_cli_struct_simulate_branch() {
         _ => panic!("Expected Simulate command"),
     }
 }
+
+#[test]
+fn test_main_simulate_coverage_error_branch() {
+    use std::io::Write;
+    use std::process::Command;
+    use tempfile::Builder;
+
+    let mut temp_file = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "this is invalid").expect("Failed to write");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_glossa"))
+        .arg("simulate")
+        .arg(temp_file.path())
+        .output()
+        .expect("Failed to execute glossa binary");
+
+    assert!(!output.status.success());
+}
