@@ -1,8 +1,7 @@
 //! Core Semantic Analyzer
 //!
 //! This module contains the `Analyzer` struct which orchestrates the semantic analysis
-//! process. It implements the `StatementAnalyzer` trait to break circular dependencies
-//! between control flow/declarations and the main analysis logic.
+//! process, directly coordinating between control flow, declarations, and the main analysis logic.
 
 use super::control_flow::analyze_control_flow;
 use super::conversion::convert_assembled_to_analyzed;
