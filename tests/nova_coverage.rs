@@ -103,3 +103,26 @@ fn test_run_tests_rustc_error() {
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("Rustc Error"));
 }
+
+#[test]
+fn test_main_simulate_coverage() {
+    use std::io::Write;
+    use std::process::Command;
+    use tempfile::Builder;
+
+    let mut temp_file = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "«hello» λέγε.").expect("Failed to write");
+
+    // We can just run the binary with `simulate` to ensure that match arm in main.rs is covered.
+    let output = Command::new(env!("CARGO_BIN_EXE_glossa"))
+        .arg("simulate")
+        .arg(temp_file.path())
+        .output()
+        .expect("Failed to execute glossa binary");
+
+    assert!(output.status.success());
+}
