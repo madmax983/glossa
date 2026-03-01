@@ -4,3 +4,4 @@
 //! These features are hidden behind the `nova` feature flag.
 
 pub mod interpreter;
+pub mod weaver;

@@ -62,6 +62,17 @@ fn main() -> Result<()> {
             glossa::tools::cartographer::run_map(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Simulate { input }) => {
+            glossa::experimental::interpreter::run_simulate(&input)?;
+        }
+
+        #[cfg(feature = "nova")]
+        Some(Commands::Weave { schema }) => {
+            let output = glossa::experimental::weaver::weave_schema(&schema)?;
+            println!("{}", output);
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

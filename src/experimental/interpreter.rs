@@ -40,6 +40,41 @@ impl fmt::Display for Value {
     }
 }
 
+use crate::tools::runner::{analyze_source, load_source};
+use crate::tools::ui::Status;
+use std::path::Path;
+
+/// Run a file in the simulator directly
+pub fn run_simulate(input: &Path) -> miette::Result<()> {
+    let mut status = Status::start_with_symbol("Ὑποκριτής (Simulating)", "🎭");
+
+    // 1. Load and Analyze
+    let source = load_source(input)?;
+    let program = analyze_source(&source)?;
+    status.update("Ἐκτέλεσις (Running)");
+
+    // 2. Interpret
+    let mut interpreter = Interpreter::new();
+    let result = interpreter.run(&program);
+
+    // 3. Cleanup & Report
+    status.clear(); // We don't want the spinner mixing with print output
+
+    match result {
+        Ok(_) => {
+            // Success
+            Ok(())
+        }
+        Err(e) => {
+            // Map EvalError to a miette error
+            Err(miette::miette!(
+                "Σφάλμα ὑποκριτοῦ (Simulation error):\n{}",
+                e
+            ))
+        }
+    }
+}
+
 /// Evaluation Error
 #[derive(Debug, thiserror::Error)]
 pub enum EvalError {

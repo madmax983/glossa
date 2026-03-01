@@ -127,4 +127,18 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Execute a .γλ file directly in the tree-walk interpreter (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Simulate {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
+    /// Weave a simple English struct schema into ΓΛΩΣΣΑ `εἶδος` code (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Weave {
+        /// Schema string (e.g., "struct User { name: String }")
+        schema: String,
+    },
 }

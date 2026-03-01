@@ -57,6 +57,16 @@ impl Status {
         status
     }
 
+    /// Clear the status line
+    pub fn clear(&mut self) {
+        if self.is_tty {
+            let mut stderr = io::stderr();
+            eprint!("\r");
+            let _ = stderr.execute(terminal::Clear(terminal::ClearType::UntilNewLine));
+        }
+        self.active = false;
+    }
+
     /// Update the status message
     pub fn update(&mut self, message: impl Into<String>) {
         if !self.active {
