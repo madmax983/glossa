@@ -228,13 +228,15 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     if test_output.status.success() {
         status.success();
-        println!();
-        println!(
-            "   {}",
-            "✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed)"
-                .green()
-                .bold()
-        );
+        if !results.is_empty() {
+            println!();
+            println!(
+                "   {}",
+                "✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed)"
+                    .green()
+                    .bold()
+            );
+        }
     } else {
         status.error("Ἀποτυχία (Failure)");
         println!();
@@ -312,9 +314,6 @@ pub fn run_tests(input: &Path) -> Result<()> {
                 println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
             }
         }
-    } else if results.is_empty() {
-        // Fallback for empty results but success (e.g. no tests run)
-        println!("{}", stdout.dim());
     }
 
     if !test_output.status.success() {
