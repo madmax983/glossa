@@ -163,3 +163,15 @@ fn test_main_simulate_coverage_error_branch() {
 
     assert!(!output.status.success());
 }
+
+#[test]
+fn test_main_simulate_with_invalid_arg() {
+    use std::process::Command;
+    // Call glossa simulate with no argument
+    let output = Command::new(env!("CARGO_BIN_EXE_glossa"))
+        .arg("simulate")
+        .output()
+        .expect("Failed to execute glossa binary");
+
+    assert!(!output.status.success());
+}
