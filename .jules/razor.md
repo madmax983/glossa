@@ -82,3 +82,8 @@
 **Bloat:** `src/semantic/traits.rs` defined a `StatementAnalyzer` trait that was only ever implemented once by `Analyzer` in `src/semantic/analyzer.rs`.
 **Cut:** Deleted the trait and file entirely, calling `Analyzer::analyze` concretely.
 **Saved:** 1 file, reduced indirection, simplified function signatures in `control_flow.rs` and `declarations.rs`.
+
+## [Reduction]
+**Bloat:** `src/experimental/interpreter.rs` was an experimental tree-walk interpreter that duplicated execution logic in a secondary path.
+**Cut:** Deleted the `src/experimental` directory and removed its module export from `src/lib.rs`.
+**Saved:** Removed 1 folder, 2 files, and eliminated speculative alternative execution paths.
