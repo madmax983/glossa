@@ -560,7 +560,12 @@ mod more_simulate_tests {
         let path = std::path::PathBuf::from("does_not_exist_for_simulate.gl");
         let result = simulate_file(&path);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον οὐχ εὑρέθη"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον οὐχ εὑρέθη")
+        );
     }
 
     #[test]
@@ -586,6 +591,31 @@ mod more_simulate_tests {
 
         let result = simulate_file(&file_path);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Σφάλμα ἐκτελέσεως"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Σφάλμα ἐκτελέσεως")
+        );
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "nova")]
+mod analyze_source_tests {
+    use super::*;
+
+    #[test]
+    fn test_analyze_source_parse_error() {
+        let source = "invalid syntax";
+        let result = analyze_source(source);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_source_semantic_error() {
+        let source = "x = y"; // Valid-ish syntax, but semantic error for undefined variables and `=` not used this way in Glossa
+        let result = analyze_source(source);
+        assert!(result.is_err());
     }
 }
