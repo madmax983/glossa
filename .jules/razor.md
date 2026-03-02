@@ -87,3 +87,7 @@
 **Bloat:** Trivial string-formatting helper functions (`undefined_variable`, `immutable_assignment`, `gender_mismatch`, `number_mismatch`, `case_mismatch`) in `src/errors.rs` added unnecessary abstraction and boilerplate. Four of these functions were actually unused dead code.
 **Cut:** Inlined the single active usage (`immutable_assignment`) directly at its call site and deleted all 5 functions from `src/errors.rs` entirely.
 **Saved:** Removed 5 trivial functions, 4 of which were dead code, and their associated tests, reducing line count by ~70 lines and improving clarity.
+## [Reduction]
+**Bloat:** `src/experimental/interpreter.rs` is a speculative interpreter (the Simulator) that implements a tree-walk interpreter parallel to the Rust codegen pipeline. As per Razor memory, speculative generality and dead code are targeted.
+**Cut:** Deleted `src/experimental` folder and its imports in `src/lib.rs`.
+**Saved:** 1 folder, 2 files, removed speculative parallel interpreter logic.
