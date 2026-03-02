@@ -314,7 +314,8 @@ mod tests {
         let file_path = dir.path().join("test_run.gl");
         {
             let mut f = std::fs::File::create(&file_path).unwrap();
-            f.write_all("ὁ ἄνθρωπος τὸν λόγον λέγει.".as_bytes()).unwrap();
+            f.write_all("ὁ ἄνθρωπος τὸν λόγον λέγει.".as_bytes())
+                .unwrap();
         }
 
         let result = run_mosaic(&file_path);
