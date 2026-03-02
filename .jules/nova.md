@@ -14,3 +14,8 @@
 **Concept:** An interactive tutorial mode (`glossa mentor`) that guides users through learning the language via Socratic challenges. It verifies not just syntax but semantic correctness (e.g., "Create a variable named 'x'").
 **Fate:** Merged
 **Lesson:** By connecting the `Repl` loop with the `Analyzer`'s internal state, we can create a powerful educational tool that provides real-time feedback. This transforms the compiler from a tool into a teacher.
+
+## 🌟 The Weaver (ὁ Ὑφαντής)
+**Concept:** A CLI tool (`glossa weave`) that acts as an Exporter, mashing up Code Generation, Semantic Assembly, and raw source to generate a "Rosetta Stone" Markdown file for a given Glossa program.
+**Fate:** Pending
+**Lesson:** TBD
