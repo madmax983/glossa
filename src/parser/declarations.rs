@@ -34,10 +34,7 @@ pub(crate) fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, Par
         ));
     };
 
-    Ok(TypeDef {
-        name,
-        fields,
-    })
+    Ok(TypeDef { name, fields })
 }
 
 fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, ParseError> {
@@ -96,10 +93,7 @@ pub(crate) fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, P
         ));
     };
 
-    Ok(TraitDef {
-        name,
-        methods,
-    })
+    Ok(TraitDef { name, methods })
 }
 
 fn parse_method_parameters(words: &[Word]) -> Vec<FieldDecl> {
@@ -261,10 +255,7 @@ pub(crate) fn build_test_declaration(pair: Pair<'_, Rule>) -> Result<TestDecl, P
         ));
     };
 
-    Ok(TestDecl {
-        name,
-        body,
-    })
+    Ok(TestDecl { name, body })
 }
 
 fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> {
