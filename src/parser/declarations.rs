@@ -28,14 +28,14 @@ pub(crate) fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, Par
         }
     }
 
-    if type_name.is_none() {
+    let Some(name) = type_name else {
         return Err(ParseError::UnexpectedRule(
             "Type definition needs a name".to_string(),
         ));
-    }
+    };
 
     Ok(TypeDef {
-        name: type_name.unwrap(),
+        name,
         fields,
     })
 }
@@ -90,14 +90,14 @@ pub(crate) fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, P
         }
     }
 
-    if trait_name.is_none() {
+    let Some(name) = trait_name else {
         return Err(ParseError::UnexpectedRule(
             "Trait definition needs a name".to_string(),
         ));
-    }
+    };
 
     Ok(TraitDef {
-        name: trait_name.unwrap(),
+        name,
         methods,
     })
 }
@@ -207,15 +207,15 @@ pub(crate) fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, Par
         }
     }
 
-    if type_name.is_none() || trait_name.is_none() {
+    let (Some(type_n), Some(trait_n)) = (type_name, trait_name) else {
         return Err(ParseError::UnexpectedRule(
             "Trait impl needs type and trait names".to_string(),
         ));
-    }
+    };
 
     Ok(TraitImplDef {
-        type_name: type_name.unwrap(),
-        trait_name: trait_name.unwrap(),
+        type_name: type_n,
+        trait_name: trait_n,
         methods,
     })
 }
@@ -255,14 +255,14 @@ pub(crate) fn build_test_declaration(pair: Pair<'_, Rule>) -> Result<TestDecl, P
         }
     }
 
-    if test_name.is_none() {
+    let Some(name) = test_name else {
         return Err(ParseError::UnexpectedRule(
             "Test declaration needs a name".to_string(),
         ));
-    }
+    };
 
     Ok(TestDecl {
-        name: test_name.unwrap(),
+        name,
         body,
     })
 }
