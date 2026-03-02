@@ -256,8 +256,8 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
-    /// use glossa::semantic::Assembler;
+    /// ```rust
+    /// use glossa::semantic::assembly::Assembler;
     ///
     /// let mut asm = Assembler::new();
     /// asm.feed_number(42).unwrap();
@@ -277,8 +277,8 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
-    /// use glossa::semantic::Assembler;
+    /// ```rust
+    /// use glossa::semantic::assembly::Assembler;
     ///
     /// let mut asm = Assembler::new();
     /// asm.feed_boolean(true).unwrap();
