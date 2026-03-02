@@ -15,10 +15,10 @@ pub(crate) fn build_expression(pair: Pair<'_, Rule>) -> Result<Expr, ParseError>
 
     // If there's only one term, return it directly
     if terms.len() == 1 {
-        Ok(terms.into_iter().next().unwrap())
+        Ok(terms.into_iter().next().ok_or(ParseError::EmptyTerm)?)
     } else {
         // Multiple terms form a phrase (e.g., "χαῖρε κόσμε λέγε")
-        Ok(Expr::Phrase(terms))
+        Ok(Expr::Phrase(terms)) // Empty terms vector returns an empty Phrase
     }
 }
 
