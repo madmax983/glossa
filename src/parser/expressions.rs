@@ -4,10 +4,16 @@ use crate::parser::common::{ParseError, parse_number_literal};
 use crate::parser::grammar::Rule;
 use pest::iterators::Pair;
 
+/// Builds an expression from a grammar pair.
+///
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
+/// This prevents O(log N) heap reallocations when parsing complex expressions,
+/// directly improving the compiler's parsing phase throughput.
 pub(crate) fn build_expression(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
-    let mut terms = Vec::new();
+    let inner_pairs = pair.into_inner();
+    let mut terms = Vec::with_capacity(inner_pairs.len());
 
-    for inner in pair.into_inner() {
+    for inner in inner_pairs {
         if inner.as_rule() == Rule::term {
             terms.push(build_term(inner)?);
         }
@@ -43,9 +49,14 @@ pub(crate) fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     }
 }
 
+/// Builds a block expression from a grammar pair.
+///
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the number of statements.
+/// This minimizes heap allocations for typical block bodies (functions, loops).
 fn build_block_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
-    let mut statements = Vec::new();
-    for stmt_pair in inner.into_inner() {
+    let inner_pairs = inner.into_inner();
+    let mut statements = Vec::with_capacity(inner_pairs.len());
+    for stmt_pair in inner_pairs {
         if stmt_pair.as_rule() == Rule::statement {
             statements.push(build_statement(stmt_pair)?);
         }
@@ -53,11 +64,17 @@ fn build_block_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     Ok(Expr::Block(statements))
 }
 
+/// Builds an array literal expression.
+///
+/// ⚡ Bolt Optimization: Uses `elements.reserve()` when the number of elements is known.
+/// This prevents intermediate array reallocations for large array literals.
 fn build_array_literal_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     let mut elements = Vec::new();
     for child in inner.into_inner() {
         if child.as_rule() == Rule::array_elements {
-            for elem in child.into_inner() {
+            let elem_pairs = child.into_inner();
+            elements.reserve(elem_pairs.len());
+            for elem in elem_pairs {
                 if elem.as_rule() == Rule::array_element {
                     elements.push(build_array_element(elem)?);
                 }
