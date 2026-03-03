@@ -465,6 +465,19 @@ impl Drop for Expr {
             // which would cause infinite recursion.
             let mut old_self = std::mem::ManuallyDrop::new(old_self);
 
+            // SAFETY:
+            // 1. We are in `Expr::drop`, so we hold unique access to `self`.
+            // 2. We moved the inner value into `old_self` and replaced `self` with a trivial
+            //    variant (`BooleanLiteral`) that does not allocate.
+            // 3. We wrap `old_self` in `ManuallyDrop` so the compiler will NOT automatically
+            //    call `Drop::drop(&mut old_self)` at the end of this scope.
+            // 4. We use `ptr::read` on the pointers to the inner heap-allocated fields
+            //    to extract their values out of the `ManuallyDrop`.
+            // 5. We immediately pass these extracted values to `drop()`.
+            // 6. Because we drop *every* heap-allocated field for the given variant
+            //    and `ManuallyDrop` prevents a double-drop, this is exactly equivalent
+            //    to the compiler-generated drop code, but executes within `maybe_grow`
+            //    to prevent stack overflow.
             unsafe {
                 match &mut *old_self {
                     Expr::Phrase(v) => drop(std::ptr::read(v)),
