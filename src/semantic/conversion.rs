@@ -40,7 +40,7 @@ use super::expressions::{
 };
 use super::patterns::detect_iterator_pattern;
 use crate::ast::Expr;
-use crate::errors::GlossaError;
+use crate::errors::{GlossaError, GlossaResult};
 use crate::morphology::{self};
 use crate::semantic::assembly::AssembledStatement;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
@@ -60,7 +60,7 @@ use crate::semantic::{Constituent, Literal};
 pub fn convert_assembled_to_analyzed(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<AnalyzedStatement, GlossaError> {
+) -> GlossaResult<AnalyzedStatement> {
     classify_assembled_statement(asm_stmt, scope)
 }
 
@@ -70,7 +70,7 @@ pub fn convert_assembled_to_analyzed(
 pub fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<AnalyzedStatement, GlossaError> {
+) -> GlossaResult<AnalyzedStatement> {
     if let Some(res) = classify_iterator_pattern(asm_stmt, scope)? {
         return Ok(res);
     }
@@ -119,7 +119,7 @@ pub fn classify_assembled_statement(
 fn classify_iterator_pattern(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     let has_find_or_print_verb = if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
         crate::morphology::lexicon::is_print_verb(verb_lemma)
@@ -143,7 +143,7 @@ fn classify_iterator_pattern(
 fn classify_property_access_print(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
@@ -184,7 +184,7 @@ fn classify_property_access_print(
 fn classify_function_call(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
@@ -262,7 +262,7 @@ fn classify_function_call(
 fn classify_subjunctive_comparison(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
@@ -345,7 +345,7 @@ fn resolve_binding_target(
 fn classify_variable_binding(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
@@ -384,7 +384,7 @@ fn classify_variable_binding(
 fn classify_assignment(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
@@ -443,7 +443,7 @@ fn classify_assignment(
 fn classify_collection_mutation(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
@@ -464,7 +464,7 @@ fn classify_pop(
     verb_lemma: &str,
     asm_stmt: &AssembledStatement,
     scope: &Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if crate::morphology::lexicon::is_pop_verb(verb_lemma)
         && let Some(ref subject) = asm_stmt.subject
     {
@@ -494,7 +494,7 @@ fn classify_push(
     verb_lemma: &str,
     asm_stmt: &AssembledStatement,
     scope: &Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if crate::morphology::lexicon::is_push_verb(verb_lemma)
         && let Some(ref subject) = asm_stmt.subject
     {
@@ -541,7 +541,7 @@ fn classify_insert(
     verb_lemma: &str,
     asm_stmt: &AssembledStatement,
     scope: &Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if crate::morphology::lexicon::is_insert_verb(verb_lemma)
         && let Some(ref subject) = asm_stmt.subject
     {
@@ -602,7 +602,7 @@ fn classify_insert(
 fn classify_assertion(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
@@ -678,7 +678,7 @@ fn classify_assertion(
 fn classify_equality_assertion(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
@@ -789,7 +789,7 @@ fn try_print_property_access(
 fn try_print_index_access(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<Vec<AnalyzedExpr>>, GlossaError> {
+) -> GlossaResult<Option<Vec<AnalyzedExpr>>> {
     if !asm_stmt.index_accesses.is_empty() {
         let mut args = Vec::new();
         for (array_expr, index_expr) in &asm_stmt.index_accesses {
@@ -811,7 +811,7 @@ fn try_print_index_access(
 fn try_print_unwrap(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<Vec<AnalyzedExpr>>, GlossaError> {
+) -> GlossaResult<Option<Vec<AnalyzedExpr>>> {
     if !asm_stmt.unwraps.is_empty() {
         let mut args = Vec::new();
         for unwrap_expr in &asm_stmt.unwraps {
@@ -829,7 +829,7 @@ fn try_print_unwrap(
 fn try_print_default(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Vec<AnalyzedExpr>, GlossaError> {
+) -> GlossaResult<Vec<AnalyzedExpr>> {
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
@@ -861,7 +861,7 @@ fn try_print_default(
 fn classify_print(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
@@ -893,7 +893,7 @@ fn classify_print(
 fn classify_query(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if asm_stmt.is_query {
         // Containment pattern
         if asm_stmt.has_containment_preposition
@@ -968,7 +968,7 @@ fn classify_query(
 }
 
 /// Helper: Default expression
-fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatement, GlossaError> {
+fn classify_expression(asm_stmt: &AssembledStatement) -> GlossaResult<AnalyzedStatement> {
     // Determine if we should attempt to build expressions from literals+operators
     // or if we are in a fallback scenario (using Subject/Object with operators).
     // If literals < operators + 1, build_expressions_from_literals_and_ops will fail.
@@ -1088,7 +1088,7 @@ fn try_parse_genitive_method_call(
 fn classify_genitive_method_call(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
         if crate::morphology::lexicon::is_print_verb(verb_lemma) {

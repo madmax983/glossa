@@ -16,7 +16,7 @@ use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, assemble_statement,
 };
 use crate::ast::{Expr, Program, Statement};
-use crate::errors::GlossaError;
+use crate::errors::{GlossaError, GlossaResult};
 
 /// Analyzed program with resolved names and types
 #[derive(Debug, Clone)]
@@ -45,7 +45,7 @@ impl Analyzer {
         &mut self,
         stmt: &Statement,
         scope: &mut Scope,
-    ) -> Result<Vec<AnalyzedStatement>, GlossaError> {
+    ) -> GlossaResult<Vec<AnalyzedStatement>> {
         // 1. Check for function definitions
         if contains_function_definition_verb(stmt)
             && let Some(func_def) = parse_function_definition(stmt, scope, self)?
@@ -117,7 +117,7 @@ fn extract_block_statements(stmt: &Statement) -> Option<&Vec<Statement>> {
 /// Perform semantic analysis on a program
 ///
 /// This is the entry point that instantiates the Analyzer.
-pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError> {
+pub fn analyze_program(program: &Program) -> GlossaResult<AnalyzedProgram> {
     let mut scope = Scope::new();
     let mut analyzed_statements = Vec::new();
     let mut analyzer = Analyzer::new();
@@ -171,14 +171,14 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
 
 const MAX_EXPRESSION_DEPTH: usize = 200;
 
-fn check_program_depth(program: &AnalyzedProgram) -> Result<(), GlossaError> {
+fn check_program_depth(program: &AnalyzedProgram) -> GlossaResult<()> {
     for stmt in &program.statements {
         check_statement_depth(stmt, 0)?;
     }
     Ok(())
 }
 
-fn check_statement_depth(stmt: &AnalyzedStatement, depth: usize) -> Result<(), GlossaError> {
+fn check_statement_depth(stmt: &AnalyzedStatement, depth: usize) -> GlossaResult<()> {
     if depth > MAX_EXPRESSION_DEPTH {
         return Err(GlossaError::LimitExceeded {
             resource: "statement depth".into(),
@@ -253,7 +253,7 @@ fn check_statement_depth(stmt: &AnalyzedStatement, depth: usize) -> Result<(), G
     Ok(())
 }
 
-fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> Result<(), GlossaError> {
+fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> GlossaResult<()> {
     if depth > MAX_EXPRESSION_DEPTH {
         return Err(GlossaError::LimitExceeded {
             resource: "expression depth".into(),

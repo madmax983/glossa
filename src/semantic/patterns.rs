@@ -42,7 +42,7 @@ use super::{
     Scope,
 };
 use crate::ast::{Expr, Statement};
-use crate::errors::GlossaError;
+use crate::errors::{GlossaError, GlossaResult};
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
 
@@ -64,7 +64,7 @@ use smol_str::SmolStr;
 pub fn try_parse_trait_method_call(
     stmt: &Statement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     // Only process Regular statements
     if let Statement::Regular { clauses, .. } = stmt {
         // Should have exactly one clause with one expression
@@ -134,7 +134,7 @@ pub fn try_parse_trait_method_call(
 pub fn try_parse_struct_instantiation(
     stmt: &Statement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     // Only process Regular statements
     if let Statement::Regular { clauses, .. } = stmt {
         // Should have exactly one clause
@@ -359,7 +359,7 @@ pub fn try_parse_struct_instantiation(
 pub fn detect_iterator_pattern(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedExpr>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedExpr>> {
     // Need: (subject OR array) + (participles OR comparatives) + (print OR find verb)
     let verb = match &asm_stmt.verb {
         Some(v) => v,

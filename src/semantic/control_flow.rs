@@ -13,7 +13,7 @@ use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, assemble_statement,
 };
 use crate::ast::{Clause, Expr, Statement};
-use crate::errors::GlossaError;
+use crate::errors::{GlossaError, GlossaResult};
 use crate::morphology::lexicon;
 use crate::semantic::analyzer::Analyzer;
 
@@ -23,7 +23,7 @@ pub fn analyze_control_flow(
     stmt: &Statement,
     scope: &mut Scope,
     analyzer: &mut Analyzer,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     // Note: Function definitions are handled in `mod.rs` before calling this.
 
     // Get the first word to check for control flow particles
@@ -87,7 +87,7 @@ fn parse_while_loop(
     stmt: &Statement,
     scope: &mut Scope,
     analyzer: &mut Analyzer,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
             "While loop needs at least 2 clauses: condition and body",
@@ -122,7 +122,7 @@ fn parse_for_range_loop(
     stmt: &Statement,
     scope: &mut Scope,
     analyzer: &mut Analyzer,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
             "For loop needs at least 2 clauses: range and body",
@@ -263,7 +263,7 @@ fn parse_for_iteration_loop(
     stmt: &Statement,
     scope: &mut Scope,
     analyzer: &mut Analyzer,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
             "For loop needs at least 2 clauses: collection and body",
@@ -350,7 +350,7 @@ fn parse_match_expression(
     stmt: &Statement,
     scope: &mut Scope,
     analyzer: &mut Analyzer,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if stmt.clauses().is_empty() {
         return Err(GlossaError::semantic(
             "Match expression needs at least one clause",
@@ -419,7 +419,7 @@ fn parse_match_expression(
 fn parse_return_statement(
     stmt: &Statement,
     scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     // Get the first clause
     if stmt.clauses().is_empty() {
         return Ok(Some(AnalyzedStatement::Return { value: None }));
@@ -436,7 +436,7 @@ fn parse_return_statement(
 }
 
 /// Parse return expression in a simple way
-fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
+fn parse_return_expression(clause: &Clause, scope: &Scope) -> GlossaResult<AnalyzedExpr> {
     // For Cycle 3, we'll do simple expression parsing
     // The expression after δός could be:
     // - A simple variable: ξ
@@ -512,7 +512,7 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
 }
 
 /// Parse a match pattern expression
-fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, GlossaError> {
+fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> GlossaResult<AnalyzedExpr> {
     // Pattern is typically: value ᾖ
     if let Expr::Phrase(terms) = expr {
         if terms.is_empty() {
@@ -580,7 +580,7 @@ fn parse_conditional(
     scope: &mut Scope,
     analyzer: &mut Analyzer,
     depth: usize,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     if depth > MAX_CONTROL_FLOW_DEPTH {
         return Err(GlossaError::LimitExceeded {
             resource: "Control flow depth".into(),
@@ -669,10 +669,7 @@ fn parse_conditional(
 }
 
 /// Skip the first word of a clause and parse the rest as an expression
-fn skip_first_word_and_parse(
-    clause: &Clause,
-    scope: &mut Scope,
-) -> Result<AnalyzedExpr, GlossaError> {
+fn skip_first_word_and_parse(clause: &Clause, scope: &mut Scope) -> GlossaResult<AnalyzedExpr> {
     // Create a modified clause without the first word
     let mut modified_clause = clause.clone();
 

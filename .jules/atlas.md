@@ -99,3 +99,10 @@
 3.  Updated `control_flow.rs` and `declarations.rs` to accept `&mut impl StatementAnalyzer` instead of calling a concrete function.
 4.  Re-exported the public API from `mod.rs` to maintain backward compatibility.
 **Stability:** Broken the dependency cycle. The dependency graph is now a DAG: `mod` -> `analyzer` -> `control_flow` -> `traits`. Submodules are now leaf-like with respect to the analyzer.
+
+## [Breaking The Shotgun: API Design & Unifying Error Types]
+**Tangle:** `src/errors.rs` defined a `GlossaResult<T> = Result<T, GlossaError>` which was entirely unused. Instead, many modules (especially `semantic` and `parser`) explicitly returned `Result<T, GlossaError>` everywhere. This caused inconsistent API design and made it harder to maintain a unified error boundary.
+**Blueprint:**
+1. Replaced all instances of `Result<T, GlossaError>` with `GlossaResult<T>` across the codebase.
+2. Updated imports in `src/semantic/*`, `src/parser/*`, and `src/tools/*` to use the unified `GlossaResult`.
+**Stability:** Enforces a consistent error boundary and simplifies function signatures, acting as a single source of truth for standard operations that can fail with a `GlossaError`.

@@ -32,7 +32,7 @@ pub(crate) mod statements;
 
 use self::grammar::{Rule, parse as grammar_parse};
 use crate::ast::*;
-use crate::errors::GlossaError;
+use crate::errors::{GlossaError, GlossaResult};
 use pest::iterators::Pair;
 
 pub use common::ParseError;
@@ -56,7 +56,7 @@ impl From<ParseError> for GlossaError {
 /// let program = parse(source).unwrap();
 /// assert_eq!(program.statements.len(), 1);
 /// ```
-pub fn parse(source: &str) -> Result<Program, GlossaError> {
+pub fn parse(source: &str) -> GlossaResult<Program> {
     parse_source(source).map_err(GlossaError::from)
 }
 

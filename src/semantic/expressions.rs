@@ -13,7 +13,7 @@
 //!    recursively to produce an [`AnalyzedExpr`]. See [`analyze_argument_expr`].
 
 use crate::ast::{Expr, Statement};
-use crate::errors::GlossaError;
+use crate::errors::{GlossaError, GlossaResult};
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
 use crate::semantic::assembly::Assembler;
 use crate::semantic::assembly::Literal;
@@ -49,10 +49,7 @@ use crate::semantic::types::GlossaType;
 /// let var_analyzed = analyze_argument_expr(&var_expr, &scope_with_var).unwrap();
 /// assert!(matches!(var_analyzed.expr, AnalyzedExprKind::Variable(name) if name == "x"));
 /// ```
-pub(crate) fn analyze_argument_expr(
-    expr: &Expr,
-    scope: &Scope,
-) -> Result<AnalyzedExpr, GlossaError> {
+pub(crate) fn analyze_argument_expr(expr: &Expr, scope: &Scope) -> GlossaResult<AnalyzedExpr> {
     analyze_argument_expr_recursive(expr, scope, 0)
 }
 
@@ -68,7 +65,7 @@ fn analyze_argument_expr_recursive(
     expr: &Expr,
     scope: &Scope,
     depth: usize,
-) -> Result<AnalyzedExpr, GlossaError> {
+) -> GlossaResult<AnalyzedExpr> {
     if depth > MAX_RECURSION_DEPTH {
         return Err(GlossaError::semantic(
             "Recursion limit exceeded in expression analysis",
@@ -104,7 +101,7 @@ fn analyze_argument_expr_recursive(
     }
 }
 
-fn analyze_word(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
+fn analyze_word(w: &crate::ast::Word, scope: &Scope) -> GlossaResult<AnalyzedExpr> {
     let normalized = &w.normalized;
 
     // Check if it's a numeral
@@ -130,7 +127,7 @@ fn analyze_word(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, Glo
     )))
 }
 
-fn analyze_literal(expr: &Expr) -> Result<AnalyzedExpr, GlossaError> {
+fn analyze_literal(expr: &Expr) -> GlossaResult<AnalyzedExpr> {
     match expr {
         Expr::NumberLiteral(n) => Ok(AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(*n),
@@ -148,11 +145,7 @@ fn analyze_literal(expr: &Expr) -> Result<AnalyzedExpr, GlossaError> {
     }
 }
 
-fn analyze_array(
-    elements: &[Expr],
-    scope: &Scope,
-    depth: usize,
-) -> Result<AnalyzedExpr, GlossaError> {
+fn analyze_array(elements: &[Expr], scope: &Scope, depth: usize) -> GlossaResult<AnalyzedExpr> {
     let mut analyzed_elements = Vec::with_capacity(elements.len());
     for el in elements {
         analyzed_elements.push(analyze_argument_expr_recursive(el, scope, depth + 1)?);
@@ -174,7 +167,7 @@ fn analyze_index_access(
     index: &Expr,
     scope: &Scope,
     depth: usize,
-) -> Result<AnalyzedExpr, GlossaError> {
+) -> GlossaResult<AnalyzedExpr> {
     let array_analyzed = analyze_argument_expr_recursive(array, scope, depth + 1)?;
     let index_analyzed = analyze_argument_expr_recursive(index, scope, depth + 1)?;
 
@@ -192,7 +185,7 @@ fn analyze_property_access(
     property: &Expr,
     scope: &Scope,
     depth: usize,
-) -> Result<AnalyzedExpr, GlossaError> {
+) -> GlossaResult<AnalyzedExpr> {
     // Treat property access as variable lookup or method call preparation
     // This is simplified; usually property access is handled by the assembler context
     // But if we encounter it directly as an expression, we try to resolve it.
@@ -211,11 +204,7 @@ fn analyze_property_access(
     }
 }
 
-fn analyze_phrase(
-    terms: &[Expr],
-    scope: &Scope,
-    depth: usize,
-) -> Result<AnalyzedExpr, GlossaError> {
+fn analyze_phrase(terms: &[Expr], scope: &Scope, depth: usize) -> GlossaResult<AnalyzedExpr> {
     // A phrase could be a function call: function_name arg1 arg2 ...
     if terms.is_empty() {
         return Err(GlossaError::semantic("Empty phrase in argument"));
@@ -261,7 +250,7 @@ fn analyze_block(
     statements: &[Statement],
     scope: &Scope,
     depth: usize,
-) -> Result<AnalyzedExpr, GlossaError> {
+) -> GlossaResult<AnalyzedExpr> {
     // Blocks used as expressions must contain exactly one statement/clause/expression.
     // This prevents silent ignoring of subsequent statements (e.g., `{ stmt1. stmt2. }` evaluating to `stmt1`).
 
@@ -296,7 +285,7 @@ fn analyze_binop(
     right: &Expr,
     scope: &Scope,
     depth: usize,
-) -> Result<AnalyzedExpr, GlossaError> {
+) -> GlossaResult<AnalyzedExpr> {
     let left_analyzed = analyze_argument_expr_recursive(left, scope, depth + 1)?;
     let right_analyzed = analyze_argument_expr_recursive(right, scope, depth + 1)?;
     // Map AST op to semantic op
@@ -324,7 +313,7 @@ fn analyze_unaryop(
     operand: &Expr,
     scope: &Scope,
     depth: usize,
-) -> Result<AnalyzedExpr, GlossaError> {
+) -> GlossaResult<AnalyzedExpr> {
     match op {
         crate::ast::UnaryOperator::Unwrap => {
             let inner = analyze_argument_expr_recursive(operand, scope, depth + 1)?;
@@ -341,7 +330,7 @@ fn analyze_unaryop(
 }
 
 /// Get the first word from a statement for pattern detection
-pub fn get_first_word(stmt: &Statement) -> Result<smol_str::SmolStr, GlossaError> {
+pub fn get_first_word(stmt: &Statement) -> GlossaResult<smol_str::SmolStr> {
     if let Some(first_clause) = stmt.clauses().first()
         && let Some(first_expr) = first_clause.expressions.first()
     {
@@ -394,7 +383,7 @@ pub(crate) fn feed_expr_to_assembler_with_context(
     asm: &mut Assembler,
     expr: &Expr,
     context: &mut DisambiguationContext,
-) -> Result<(), GlossaError> {
+) -> GlossaResult<()> {
     feed_expr_recursive(asm, expr, context, 0)
 }
 
@@ -403,7 +392,7 @@ fn feed_expr_recursive(
     expr: &Expr,
     context: &mut DisambiguationContext,
     depth: usize,
-) -> Result<(), GlossaError> {
+) -> GlossaResult<()> {
     if depth > MAX_RECURSION_DEPTH {
         return Err(GlossaError::semantic(
             "Recursion limit exceeded in expression analysis",
@@ -567,7 +556,7 @@ fn feed_expr_recursive(
 }
 
 /// Recursively check expression depth to prevent stack overflow during cloning
-fn check_cloning_depth_safety(expr: &Expr, limit: usize) -> Result<(), GlossaError> {
+fn check_cloning_depth_safety(expr: &Expr, limit: usize) -> GlossaResult<()> {
     if limit == 0 {
         return Err(GlossaError::semantic(
             "Recursion limit exceeded in nested phrase analysis",
@@ -675,7 +664,7 @@ pub(crate) fn build_binary_expr(
 pub(crate) fn build_expressions_from_literals_and_ops(
     literals: &[Literal],
     operators: &[crate::morphology::lexicon::BinaryOp],
-) -> Result<Vec<AnalyzedExpr>, GlossaError> {
+) -> GlossaResult<Vec<AnalyzedExpr>> {
     // If no operators, just return literals as separate expressions
     if operators.is_empty() {
         return Ok(literals.iter().map(literal_to_analyzed_expr).collect());

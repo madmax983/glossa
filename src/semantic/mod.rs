@@ -67,10 +67,10 @@ pub use types::*;
 
 use self::expressions::feed_expr_to_assembler_with_context;
 use crate::ast::Statement;
-use crate::errors::GlossaError;
+use crate::errors::GlossaResult;
 
 /// Analyze a single statement using the slot-based assembler
-pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
+pub fn assemble_statement(stmt: &Statement) -> GlossaResult<AssembledStatement> {
     let mut asm = Assembler::new();
     asm.set_query(stmt.is_query());
     asm.set_propagate(stmt.is_propagate());

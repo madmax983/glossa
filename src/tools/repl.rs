@@ -29,7 +29,7 @@ use miette::{IntoDiagnostic, Result};
 use std::io::{BufRead, Write};
 
 use crate::codegen::generate_statement_code;
-use crate::errors::GlossaError;
+use crate::errors::{GlossaError, GlossaResult};
 use crate::parser::parse;
 use crate::semantic::{AnalyzedStatement, GlossaType, Scope, analyze_program};
 
@@ -292,7 +292,7 @@ impl ReplContext {
         }
     }
 
-    fn execute(&mut self, input: &str) -> std::result::Result<ReplOutput, GlossaError> {
+    fn execute(&mut self, input: &str) -> GlossaResult<ReplOutput> {
         // Safety: Prevent memory exhaustion from infinite binding history
         // The REPL re-compiles the entire history on every line, so we must limit it.
         if self.bindings.len() > MAX_REPL_BINDINGS {

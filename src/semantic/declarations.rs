@@ -9,7 +9,7 @@
 
 use super::{AnalyzedMethod, AnalyzedStatement, GlossaType, Scope};
 use crate::ast::{Expr, Statement};
-use crate::errors::GlossaError;
+use crate::errors::{GlossaError, GlossaResult};
 use crate::morphology::{self};
 use crate::semantic::analyzer::Analyzer;
 use smol_str::SmolStr;
@@ -36,7 +36,7 @@ use smol_str::SmolStr;
 pub fn analyze_type_definition(
     type_def: &crate::ast::TypeDef,
     scope: &mut Scope,
-) -> Result<AnalyzedStatement, GlossaError> {
+) -> GlossaResult<AnalyzedStatement> {
     // Extract type name
     let type_name = type_def.name.normalized.clone();
 
@@ -116,7 +116,7 @@ pub fn analyze_trait_definition(
     trait_def: &crate::ast::TraitDef,
     scope: &mut Scope,
     analyzer: &mut Analyzer,
-) -> Result<AnalyzedStatement, GlossaError> {
+) -> GlossaResult<AnalyzedStatement> {
     // Extract trait name
     let trait_name = trait_def.name.normalized.clone();
 
@@ -217,7 +217,7 @@ pub fn analyze_trait_impl(
     trait_impl: &crate::ast::TraitImplDef,
     scope: &mut Scope,
     analyzer: &mut Analyzer,
-) -> Result<AnalyzedStatement, GlossaError> {
+) -> GlossaResult<AnalyzedStatement> {
     // Extract type and trait names
     let type_name = trait_impl.type_name.normalized.clone();
     let trait_name = trait_impl.trait_name.normalized.clone();
@@ -304,7 +304,7 @@ pub fn analyze_trait_impl(
 }
 
 /// Map a genitive type name to a GlossaType
-pub fn resolve_type_name(name: &str, scope: &Scope) -> Result<GlossaType, GlossaError> {
+pub fn resolve_type_name(name: &str, scope: &Scope) -> GlossaResult<GlossaType> {
     match name {
         // ἀριθμοῦ (genitive of ἀριθμός) → Number
         "αριθμου" => Ok(GlossaType::Number),
@@ -348,7 +348,7 @@ pub fn parse_function_definition(
     stmt: &Statement,
     scope: &mut Scope,
     analyzer: &mut Analyzer,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> GlossaResult<Option<AnalyzedStatement>> {
     // The middle dot (·) separates expressions within a clause
     // Structure: expr1 · expr2 where expr1 is "name ὁρίζειν [params]" and expr2 is the body
 
@@ -415,7 +415,7 @@ pub fn parse_function_definition(
 }
 
 /// Extract the function name from a function definition header expression
-fn extract_function_name_from_expr(expr: &Expr) -> Result<SmolStr, GlossaError> {
+fn extract_function_name_from_expr(expr: &Expr) -> GlossaResult<SmolStr> {
     // Collect all words and find the nominative word before ὁρίζειν
     let words = collect_words_from_expr(expr);
 
@@ -542,7 +542,7 @@ pub fn analyze_test_declaration(
     test_decl: &crate::ast::TestDecl,
     scope: &mut Scope,
     analyzer: &mut Analyzer,
-) -> Result<AnalyzedStatement, GlossaError> {
+) -> GlossaResult<AnalyzedStatement> {
     let test_name = test_decl.name.clone();
 
     // Analyze the test body statements

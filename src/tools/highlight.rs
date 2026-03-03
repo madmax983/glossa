@@ -38,7 +38,7 @@ use crate::ast::{
     BinOperator, Clause, Expr, Program, Statement, TestDecl, TraitDef, TraitImplDef, TypeDef,
     UnaryOperator, Word,
 };
-use crate::errors::GlossaError;
+use crate::errors::{GlossaError, GlossaResult};
 use crate::morphology::{
     Case, DisambiguationContext, PartOfSpeech, analyze_article, analyze_participle, resolve_best,
 };
@@ -52,7 +52,7 @@ use crate::parser::parse;
 /// # Errors
 ///
 /// Returns a [`GlossaError`] if the source code cannot be parsed.
-pub fn highlight(source: &str) -> Result<String, GlossaError> {
+pub fn highlight(source: &str) -> GlossaResult<String> {
     let program = parse(source)?;
     let mut highlighter = Highlighter::new();
     highlighter.highlight_program(&program)?;
@@ -72,7 +72,7 @@ impl Highlighter {
         }
     }
 
-    fn highlight_program(&mut self, program: &Program) -> Result<(), GlossaError> {
+    fn highlight_program(&mut self, program: &Program) -> GlossaResult<()> {
         for (i, stmt) in program.statements.iter().enumerate() {
             if i > 0 {
                 self.output.push('\n');
@@ -82,7 +82,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_statement(&mut self, stmt: &Statement) -> Result<(), GlossaError> {
+    fn highlight_statement(&mut self, stmt: &Statement) -> GlossaResult<()> {
         match stmt {
             Statement::Regular {
                 clauses,
@@ -112,7 +112,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_clause(&mut self, clause: &Clause) -> Result<(), GlossaError> {
+    fn highlight_clause(&mut self, clause: &Clause) -> GlossaResult<()> {
         for (i, expr) in clause.expressions.iter().enumerate() {
             if i > 0 {
                 self.output.push(' ');
@@ -122,7 +122,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_expr(&mut self, expr: &Expr) -> Result<(), GlossaError> {
+    fn highlight_expr(&mut self, expr: &Expr) -> GlossaResult<()> {
         match expr {
             Expr::StringLiteral(s) => {
                 // Sanitize string to prevent terminal injection
@@ -220,7 +220,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_word(&mut self, w: &Word) -> Result<(), GlossaError> {
+    fn highlight_word(&mut self, w: &Word) -> GlossaResult<()> {
         // 1. Check for article (sets context)
         if let Some(ctx) = analyze_article(&w.original) {
             self.context = ctx;
@@ -292,7 +292,7 @@ impl Highlighter {
 
     // --- Definitions (Simplified highlighting for now) ---
 
-    fn highlight_type_def(&mut self, def: &TypeDef) -> Result<(), GlossaError> {
+    fn highlight_type_def(&mut self, def: &TypeDef) -> GlossaResult<()> {
         write!(
             self.output,
             "{} {} {} {{ ... }}",
@@ -304,7 +304,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_trait_def(&mut self, def: &TraitDef) -> Result<(), GlossaError> {
+    fn highlight_trait_def(&mut self, def: &TraitDef) -> GlossaResult<()> {
         write!(
             self.output,
             "{} {} {} {{ ... }}",
@@ -316,7 +316,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_trait_impl(&mut self, def: &TraitImplDef) -> Result<(), GlossaError> {
+    fn highlight_trait_impl(&mut self, def: &TraitImplDef) -> GlossaResult<()> {
         write!(
             self.output,
             "{} {} {} {} {{ ... }}",
@@ -330,7 +330,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_test_decl(&mut self, decl: &TestDecl) -> Result<(), GlossaError> {
+    fn highlight_test_decl(&mut self, decl: &TestDecl) -> GlossaResult<()> {
         writeln!(
             self.output,
             "{} «{}»",
