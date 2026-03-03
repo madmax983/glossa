@@ -7,7 +7,7 @@ use super::ParseError;
 /// are not nested deeper than `MAX_DEPTH` (500).
 /// This prevents stack overflows during the recursive parsing phase.
 pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
-    const MAX_DEPTH: usize = 500;
+    use crate::limits::MAX_PARSE_DEPTH;
     let mut depth = 0;
     let mut in_string = false;
     let bytes = source.as_bytes();
@@ -36,8 +36,8 @@ pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
             // Check for "δοκιμή" (test declaration start)
             if b == 0xCE && source[i..].starts_with("δοκιμή") {
                 depth += 1;
-                if depth > MAX_DEPTH {
-                    return Err(ParseError::RecursionLimitExceeded(MAX_DEPTH));
+                if depth > MAX_PARSE_DEPTH {
+                    return Err(ParseError::RecursionLimitExceeded(MAX_PARSE_DEPTH));
                 }
                 i += "δοκιμή".len();
                 continue;
@@ -62,8 +62,8 @@ pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
                 }
                 b'(' | b'{' | b'[' => {
                     depth += 1;
-                    if depth > MAX_DEPTH {
-                        return Err(ParseError::RecursionLimitExceeded(MAX_DEPTH));
+                    if depth > MAX_PARSE_DEPTH {
+                        return Err(ParseError::RecursionLimitExceeded(MAX_PARSE_DEPTH));
                     }
                     i += 1;
                 }
