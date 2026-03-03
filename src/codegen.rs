@@ -465,77 +465,72 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             name,
             value,
             mutable,
-        } => {
-            // Check if it's an array to force mutable
-            let is_array = matches!(value.expr, AnalyzedExprKind::ArrayLiteral(_));
-            generate_let(name, value, *mutable || is_array)
-        }
-
-        AnalyzedStatement::Assignment { name, value } => {
-            let name_ident = sanitize_ident(name);
-            let value_tokens = generate_expr(value);
-            quote! { #name_ident = #value_tokens; }
-        }
-
+        } => generate_statement_binding(name, value, *mutable),
+        AnalyzedStatement::Assignment { name, value } => generate_statement_assignment(name, value),
         AnalyzedStatement::Print(exprs) | AnalyzedStatement::Query(exprs) => generate_print(exprs),
-
-        AnalyzedStatement::Expression(exprs) => {
-            let expr_tokens: Vec<TokenStream> = exprs
-                .iter()
-                .map(|e| {
-                    let tokens = generate_expr(e);
-                    quote! { #tokens; }
-                })
-                .collect();
-            quote! { #(#expr_tokens)* }
-        }
-
+        AnalyzedStatement::Expression(exprs) => generate_statement_expression(exprs),
         AnalyzedStatement::If {
             condition,
             then_body,
             else_body,
         } => generate_if(condition, then_body, else_body),
-
         AnalyzedStatement::While { condition, body } => generate_while(condition, body),
-
         AnalyzedStatement::For {
             variable,
             iterator,
             body,
         } => generate_for(variable, iterator, body),
-
         AnalyzedStatement::Match { scrutinee, arms } => generate_match(scrutinee, arms),
-
         AnalyzedStatement::Break => quote! { break; },
-
         AnalyzedStatement::Continue => quote! { continue; },
-
-        AnalyzedStatement::Return { value } => match value {
-            Some(e) => {
-                let value_tokens = generate_expr(e);
-                quote! { return #value_tokens; }
-            }
-            None => quote! { return; },
-        },
-
+        AnalyzedStatement::Return { value } => generate_statement_return(value),
         AnalyzedStatement::FunctionDef {
             name,
             params,
             body,
             return_type,
         } => generate_fn_def(name, params, body, return_type),
-
         AnalyzedStatement::TypeDefinition { name, fields } => generate_struct_def(name, fields),
-
         AnalyzedStatement::TraitDefinition { name, methods } => generate_trait_def(name, methods),
-
         AnalyzedStatement::TraitImplementation {
             trait_name,
             type_name,
             methods,
         } => generate_trait_impl(trait_name, type_name, methods),
-
         AnalyzedStatement::TestDeclaration { name, body } => generate_test(name, body),
+    }
+}
+
+fn generate_statement_binding(name: &str, value: &AnalyzedExpr, mutable: bool) -> TokenStream {
+    // Check if it's an array to force mutable
+    let is_array = matches!(value.expr, AnalyzedExprKind::ArrayLiteral(_));
+    generate_let(name, value, mutable || is_array)
+}
+
+fn generate_statement_assignment(name: &str, value: &AnalyzedExpr) -> TokenStream {
+    let name_ident = sanitize_ident(name);
+    let value_tokens = generate_expr(value);
+    quote! { #name_ident = #value_tokens; }
+}
+
+fn generate_statement_expression(exprs: &[AnalyzedExpr]) -> TokenStream {
+    let expr_tokens: Vec<TokenStream> = exprs
+        .iter()
+        .map(|e| {
+            let tokens = generate_expr(e);
+            quote! { #tokens; }
+        })
+        .collect();
+    quote! { #(#expr_tokens)* }
+}
+
+fn generate_statement_return(value: &Option<Box<AnalyzedExpr>>) -> TokenStream {
+    match value {
+        Some(e) => {
+            let value_tokens = generate_expr(e);
+            quote! { return #value_tokens; }
+        }
+        None => quote! { return; },
     }
 }
 

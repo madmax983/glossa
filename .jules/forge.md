@@ -17,3 +17,7 @@
 **Refactoring `generate_expr` in `src/codegen/mod.rs`**
 **Learning:** Grouping helper functions by category (Simple, Complex, Control Flow) makes the main dispatch function (`generate_expr`) trivial to read and significantly reduces cognitive load when navigating the file.
 **Action:** When extracting logic from large match statements, group the extracted helpers into logical sections within the file to maintain navigability.
+
+**Refactoring generate_statement in src/codegen.rs**
+**Learning:** Extracting large match blocks that do not strictly require mutable state or complex logic into small, focused helper functions (like `generate_statement_binding`, `generate_statement_assignment`, etc.) significantly flattens the code structure and improves readability, adhering to the 'Grandma Test' and avoiding the 'Pyramid of Doom'.
+**Action:** Regularly review large `match` blocks, especially those used for dispatch, and extract inline logic into well-named private functions.
