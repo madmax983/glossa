@@ -54,6 +54,7 @@ mod resolver;
 mod sentry_conversion_tests;
 
 mod types;
+pub(crate) mod validation;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub use analyzer::{AnalyzedProgram, analyze_program};
