@@ -617,6 +617,24 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
 }
 
 /// Conjugate a verb stem to a specific form
+///
+/// Reconstructs the specified form of a verb based on its stem and morphological features.
+/// This is particularly useful for generating Greek output or error messages that require
+/// correctly inflected verbs.
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::morphology::{conjugation::conjugate, Tense, Mood, Voice, Person, Number};
+///
+/// // Conjugate "λεγ" (to say) in Present Active Indicative, 1st Person Singular
+/// let result = conjugate("λεγ", Tense::Present, Mood::Indicative, Voice::Active, Person::First, Number::Singular);
+/// assert_eq!(result, "λεγω");
+///
+/// // Conjugate "λυ" (to loose) in Aorist Active Indicative, 1st Person Plural
+/// let result = conjugate("ελυ", Tense::Aorist, Mood::Indicative, Voice::Active, Person::First, Number::Plural);
+/// assert_eq!(result, "ελυσαμεν");
+/// ```
 pub fn conjugate(
     stem: &str,
     tense: Tense,
@@ -643,6 +661,23 @@ pub fn conjugate(
 }
 
 /// Get the infinitive form of a verb
+///
+/// Returns the infinitive form of a verb stem given its tense and voice.
+/// Infinitives are used as noun-equivalents or in specific syntactic constructions.
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::morphology::{conjugation::infinitive, Tense, Voice};
+///
+/// // Present Active Infinitive of "λεγ" (to say)
+/// let result = infinitive("λεγ", Tense::Present, Voice::Active);
+/// assert_eq!(result, "λεγειν");
+///
+/// // Aorist Active Infinitive of "λυ" (to loose)
+/// let result = infinitive("λυ", Tense::Aorist, Voice::Active);
+/// assert_eq!(result, "λυσαι");
+/// ```
 pub fn infinitive(stem: &str, tense: Tense, voice: Voice) -> String {
     match (tense, voice) {
         (Tense::Present, Voice::Active) => format!("{}{}", stem, PRESENT_INFINITIVE),

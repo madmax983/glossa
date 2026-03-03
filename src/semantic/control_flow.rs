@@ -15,14 +15,14 @@ use super::{
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::lexicon;
-use crate::semantic::traits::StatementAnalyzer;
+use crate::semantic::analyzer::Analyzer;
 
 /// Check if a statement is a control flow construct and analyze it
 /// Returns Some(AnalyzedStatement) if it's control flow, None otherwise
 pub fn analyze_control_flow(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut Analyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // Note: Function definitions are handled in `mod.rs` before calling this.
 
@@ -86,7 +86,7 @@ pub fn analyze_control_flow(
 fn parse_while_loop(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut Analyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
@@ -121,7 +121,7 @@ fn parse_while_loop(
 fn parse_for_range_loop(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut Analyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
@@ -262,7 +262,7 @@ fn parse_for_range_loop(
 fn parse_for_iteration_loop(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut Analyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
@@ -349,7 +349,7 @@ fn parse_for_iteration_loop(
 fn parse_match_expression(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut Analyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().is_empty() {
         return Err(GlossaError::semantic(
@@ -578,7 +578,7 @@ const MAX_CONTROL_FLOW_DEPTH: usize = 100;
 fn parse_conditional(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut Analyzer,
     depth: usize,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if depth > MAX_CONTROL_FLOW_DEPTH {

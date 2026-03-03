@@ -152,6 +152,19 @@ const DECLENSION_PATTERNS: &[DeclensionPattern] = &[
 ];
 
 /// Try to analyze a word as a noun by matching declension endings
+///
+/// This function attempts to identify the morphological properties of a noun
+/// (case, number, gender, and lemma) based on its declension endings.
+///
+/// # Examples
+/// ```
+/// use glossa::morphology::declension::analyze_noun;
+/// use glossa::morphology::{Case, Number, Gender};
+///
+/// let analysis = analyze_noun("λογον").unwrap();
+/// assert_eq!(analysis.lemma, "λογος"); // Fallback matches masculine -ος type mostly
+/// assert_eq!(analysis.case, Some(Case::Accusative)); // Because "ον" can be accusative
+/// ```
 pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
     let mut analyses = analyze_noun_all(word);
 
@@ -159,11 +172,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
     // analyze_noun_all sorts by (case, number, gender, lemma) but NOT confidence.
     // So we sort by confidence here. Since sort_by is stable, it preserves the
     // order for equal confidence (which prefers singular/simpler forms).
-    analyses.sort_by(|a, b| {
-        b.confidence
-            .partial_cmp(&a.confidence)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    analyses.sort_by(|a, b| crate::morphology::compare_confidence(b.confidence, a.confidence));
 
     analyses.into_iter().next()
 }
@@ -273,6 +282,18 @@ pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
 }
 
 /// Extract stem from a word given its nominative form and declension
+///
+/// Removes the standard nominative ending for the specified declension class
+/// to isolate the noun's stem. This stem can then be used to generate other forms.
+///
+/// # Examples
+/// ```
+/// use glossa::morphology::declension::{get_stem, Declension};
+///
+/// assert_eq!(get_stem("λογος", Declension::Second), "λογ");
+/// assert_eq!(get_stem("τιμη", Declension::First), "τιμ");
+/// assert_eq!(get_stem("ονομα", Declension::Third), "ονο");
+/// ```
 pub fn get_stem(nominative: &str, declension: Declension) -> String {
     match declension {
         Declension::Second => {
@@ -304,6 +325,23 @@ pub fn get_stem(nominative: &str, declension: Declension) -> String {
 }
 
 /// Decline a noun to a specific case and number
+///
+/// Reconstructs the specified form of a noun by appending the correct ending
+/// to its stem based on its declension class, gender, case, and number.
+///
+/// # Examples
+/// ```
+/// use glossa::morphology::declension::{decline, Declension};
+/// use glossa::morphology::{Case, Gender, Number};
+///
+/// // Decline "λογ" (word) to Accusative Plural
+/// let result = decline("λογ", Declension::Second, Gender::Masculine, Case::Accusative, Number::Plural);
+/// assert_eq!(result, "λογους");
+///
+/// // Decline "τιμ" (honor) to Genitive Singular
+/// let result = decline("τιμ", Declension::First, Gender::Feminine, Case::Genitive, Number::Singular);
+/// assert_eq!(result, "τιμης");
+/// ```
 pub fn decline(
     stem: &str,
     declension: Declension,

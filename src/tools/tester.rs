@@ -228,13 +228,15 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     if test_output.status.success() {
         status.success();
-        println!();
-        println!(
-            "   {}",
-            "✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed)"
-                .green()
-                .bold()
-        );
+        if !results.is_empty() {
+            println!();
+            println!(
+                "   {}",
+                "✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed)"
+                    .green()
+                    .bold()
+            );
+        }
     } else {
         status.error("Ἀποτυχία (Failure)");
         println!();
@@ -312,9 +314,6 @@ pub fn run_tests(input: &Path) -> Result<()> {
                 println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
             }
         }
-    } else if results.is_empty() {
-        // Fallback for empty results but success (e.g. no tests run)
-        println!("{}", stdout.dim());
     }
 
     if !test_output.status.success() {
@@ -431,5 +430,90 @@ failures:
         assert!(failures[0].1.contains("Error 1"));
         assert_eq!(failures[1].0, "test2");
         assert!(failures[1].1.contains("Error 2"));
+    }
+
+    #[test]
+    fn test_extract_failures_edge_cases() {
+        struct TestCase {
+            name: &'static str,
+            input: &'static str,
+            expected_count: usize,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                name: "No failures block",
+                input: "
+running 1 test
+test my_test ... FAILED
+
+test result: FAILED...
+",
+                expected_count: 0,
+            },
+            TestCase {
+                name: "Malformed stdout block",
+                input: "
+failures:
+
+---- my_test_without_end_block
+Error message here
+
+failures:
+    my_test_without_end_block
+",
+                expected_count: 0,
+            },
+        ];
+
+        for case in test_cases {
+            let failures = extract_failures(case.input);
+            assert_eq!(
+                failures.len(),
+                case.expected_count,
+                "Failed case: {}",
+                case.name
+            );
+        }
+    }
+
+    #[test]
+    fn test_parse_test_output_edge_cases() {
+        struct TestCase {
+            name: &'static str,
+            input: &'static str,
+            expected_count: usize,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                name: "Empty parts (less than 4)",
+                input: "
+running 1 test
+test ... ok
+",
+                expected_count: 0,
+            },
+            TestCase {
+                name: "Missing test prefix",
+                input: "my_test ... ok",
+                expected_count: 0,
+            },
+            TestCase {
+                name: "Unknown status",
+                input: "test my_test ... WEIRD_STATUS",
+                expected_count: 0,
+            },
+        ];
+
+        for case in test_cases {
+            let results = parse_test_output(case.input);
+            assert_eq!(
+                results.len(),
+                case.expected_count,
+                "Failed case: {}",
+                case.name
+            );
+        }
     }
 }

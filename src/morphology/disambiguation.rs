@@ -30,11 +30,30 @@ pub struct DisambiguationContext {
 }
 
 impl DisambiguationContext {
+    /// Creates a new, empty context.
+    ///
+    /// # Examples
+    /// ```
+    /// use glossa::morphology::DisambiguationContext;
+    /// let ctx = DisambiguationContext::new();
+    /// assert!(ctx.expected_case.is_none());
+    /// ```
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Create context from a preceding article
+    ///
+    /// # Examples
+    /// ```
+    /// use glossa::morphology::{DisambiguationContext, MorphAnalysis, Case, Gender, Number, PartOfSpeech};
+    /// let mut article = MorphAnalysis::new("ο".to_string(), PartOfSpeech::Article);
+    /// article.case = Some(Case::Nominative);
+    /// article.gender = Some(Gender::Masculine);
+    /// article.number = Some(Number::Singular);
+    /// let ctx = DisambiguationContext::from_article(&article);
+    /// assert_eq!(ctx.expected_case, Some(Case::Nominative));
+    /// ```
     pub fn from_article(article: &MorphAnalysis) -> Self {
         DisambiguationContext {
             expected_case: article.case,
@@ -45,6 +64,17 @@ impl DisambiguationContext {
     }
 
     /// Create context from a verb (for subject agreement)
+    ///
+    /// # Examples
+    /// ```
+    /// use glossa::morphology::{DisambiguationContext, MorphAnalysis, Number, Person, PartOfSpeech, Case};
+    /// let mut verb = MorphAnalysis::new("λεγω".to_string(), PartOfSpeech::Verb);
+    /// verb.number = Some(Number::Singular);
+    /// verb.person = Some(Person::First);
+    /// let ctx = DisambiguationContext::from_verb(&verb);
+    /// assert_eq!(ctx.expected_case, Some(Case::Nominative));
+    /// assert_eq!(ctx.expected_person, Some(Person::First));
+    /// ```
     pub fn from_verb(verb: &MorphAnalysis) -> Self {
         DisambiguationContext {
             expected_case: Some(Case::Nominative), // Subject is nominative
@@ -55,6 +85,13 @@ impl DisambiguationContext {
     }
 
     /// Create context expecting a specific case (e.g., after preposition)
+    ///
+    /// # Examples
+    /// ```
+    /// use glossa::morphology::{DisambiguationContext, Case};
+    /// let ctx = DisambiguationContext::expecting_case(Case::Dative);
+    /// assert_eq!(ctx.expected_case, Some(Case::Dative));
+    /// ```
     pub fn expecting_case(case: Case) -> Self {
         DisambiguationContext {
             expected_case: Some(case),
@@ -71,6 +108,16 @@ impl DisambiguationContext {
 /// The first element is the best match.
 ///
 /// Optimization: Sorts in-place to avoid intermediate vector allocations.
+///
+/// # Examples
+/// ```
+/// use glossa::morphology::{disambiguate, analyze_all, DisambiguationContext, Case, Gender, Number};
+/// let analyses = analyze_all("λογου");
+/// let mut ctx = DisambiguationContext::new();
+/// ctx.expected_case = Some(Case::Genitive);
+/// let mut resolved = disambiguate(analyses, &ctx);
+/// assert_eq!(resolved[0].case, Some(Case::Genitive));
+/// ```
 pub fn disambiguate(
     mut analyses: Vec<MorphAnalysis>,
     context: &DisambiguationContext,
@@ -95,14 +142,10 @@ pub fn disambiguate(
         let score_a = score_analysis(a, context);
         let score_b = score_analysis(b, context);
 
-        let score_cmp = score_b
-            .partial_cmp(&score_a)
-            .unwrap_or(std::cmp::Ordering::Equal);
+        let score_cmp = crate::morphology::compare_confidence(score_b, score_a);
 
         if score_cmp == std::cmp::Ordering::Equal {
-            b.confidence
-                .partial_cmp(&a.confidence)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            crate::morphology::compare_confidence(b.confidence, a.confidence)
         } else {
             score_cmp
         }
@@ -168,6 +211,15 @@ fn score_analysis(analysis: &MorphAnalysis, context: &DisambiguationContext) -> 
 /// context matches.
 ///
 /// Optimization: Takes ownership of analyses vector to avoid cloning.
+///
+/// # Examples
+/// ```
+/// use glossa::morphology::{resolve_best, analyze_all, DisambiguationContext, Case};
+/// let analyses = analyze_all("λογον");
+/// let ctx = DisambiguationContext::expecting_case(Case::Accusative);
+/// let best = resolve_best(analyses, &ctx);
+/// assert_eq!(best.case, Some(Case::Accusative));
+/// ```
 pub fn resolve_best(
     analyses: Vec<MorphAnalysis>,
     context: &DisambiguationContext,
@@ -184,6 +236,15 @@ pub fn resolve_best(
 /// Known Greek articles for context building
 /// Uses ORIGINAL forms with diacritics to distinguish from homographs
 /// e.g., ἡ (article) vs ἤ (or) - differ only in breathing/accent
+///
+/// # Examples
+/// ```
+/// use glossa::morphology::{analyze_article, Case, Gender, Number};
+/// let ctx = analyze_article("τῆς").unwrap();
+/// assert_eq!(ctx.expected_case, Some(Case::Genitive));
+/// assert_eq!(ctx.expected_gender, Some(Gender::Feminine));
+/// assert_eq!(ctx.expected_number, Some(Number::Singular));
+/// ```
 pub fn analyze_article(word: &str) -> Option<DisambiguationContext> {
     // Match on original polytonic forms - diacritics matter!
     match word {

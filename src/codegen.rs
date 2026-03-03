@@ -85,7 +85,7 @@
 //!
 //! # Architecture
 //!
-//! The codegen process uses the [`quote`] crate to construct a Rust AST (TokenStream)
+//! The codegen process uses the [`mod@quote`] crate to construct a Rust AST (TokenStream)
 //! directly from the Semantic Analysis model. This ensures that the generated code
 //! is syntactically valid Rust and avoids "stringly typed" code generation errors.
 //!
@@ -864,12 +864,16 @@ fn generate_trait_impl(
 fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
     // Sanitize test name for Rust function identifier
     // Replace spaces and special chars with underscores
-    let test_fn_name = name
-        .to_lowercase()
-        .replace([' ', '-'], "_")
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '_')
-        .collect::<String>();
+    let mut test_fn_name = String::with_capacity(name.len());
+    for c in name.chars() {
+        if c.is_alphanumeric() {
+            for lc in c.to_lowercase() {
+                test_fn_name.push(lc);
+            }
+        } else if c == ' ' || c == '-' || c == '_' {
+            test_fn_name.push('_');
+        }
+    }
 
     let test_ident = format_ident!("test_{}", test_fn_name);
 

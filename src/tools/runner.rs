@@ -97,6 +97,24 @@ fn load_source(input: &Path) -> Result<String> {
 /// 3. **Codegen**: Generates valid Rust code.
 /// 4. **Write**: Saves the Rust code to the output path.
 /// 5. **Report**: Prints a compilation report with statistics.
+///
+/// ## Errors
+///
+/// Returns an error if the input file does not exist, exceeds the size limit,
+/// or contains syntax/semantic errors. Also returns an error if writing to
+/// the output path fails.
+///
+/// ## Examples
+///
+/// ```no_run
+/// use glossa::tools::runner::build_file;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// let output = Path::new("main.rs");
+/// // Compiles main.γλ to main.rs
+/// build_file(input, Some(output)).unwrap();
+/// ```
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🏗️");
     let start = std::time::Instant::now();
@@ -148,6 +166,23 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 ///    This inherits Rust's optimizations (set to `-O` level).
 /// 5. **Execution**: Spawns the resulting binary as a child process, inheriting
 ///    stdin/stdout/stderr so it feels like a native script.
+///
+/// ## Errors
+///
+/// Returns an error if the input file does not exist, exceeds the size limit,
+/// or contains syntax/semantic errors. Also returns an error if `rustc` fails to
+/// compile the generated code.
+///
+/// ## Examples
+///
+/// ```no_run
+/// use glossa::tools::runner::run_file;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// // Compiles and immediately executes the file
+/// run_file(input).unwrap();
+/// ```
 pub fn run_file(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
@@ -162,8 +197,13 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     // Check if we can use cached binary
     if cache.is_valid(input, &cached_exe) && cached_exe.exists() {
+        println!();
+        println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
+
         // Run cached binary directly
         let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+
+        println!("{}", "--- Τέλος (End) ---".dim());
 
         if !exit_status.success() {
             std::process::exit(exit_status.code().unwrap_or(1));
@@ -227,8 +267,13 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     status.success();
 
+    println!();
+    println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
+
     // Run the compiled program
     let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+
+    println!("{}", "--- Τέλος (End) ---".dim());
 
     if !exit_status.success() {
         std::process::exit(exit_status.code().unwrap_or(1));
@@ -237,6 +282,27 @@ pub fn run_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Verifies the syntax and semantics of a ΓΛΩΣΣΑ file.
+///
+/// This function loads the source code, parses it, and performs semantic analysis
+/// without generating any output code or binaries. It prints a [`GlossaReport`]
+/// summarizing the program's statistics if successful.
+///
+/// ## Errors
+///
+/// Returns an error if the input file does not exist, exceeds the size limit,
+/// or contains any syntax or semantic errors.
+///
+/// ## Examples
+///
+/// ```no_run
+/// use glossa::tools::runner::check_file;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// // Checks the file for errors without compiling it
+/// check_file(input).unwrap();
+/// ```
 pub fn check_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
     let source = load_source(input)?;
@@ -256,6 +322,27 @@ pub fn check_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Semantically highlights a ΓΛΩΣΣΑ file and prints it to the terminal.
+///
+/// Uses the [`highlight`] function to parse
+/// and colorize the source code based on grammatical roles (e.g., Subjects are blue,
+/// Objects are red, Verbs are green).
+///
+/// ## Errors
+///
+/// Returns an error if the input file does not exist, exceeds the size limit,
+/// or contains syntax errors that prevent highlighting.
+///
+/// ## Examples
+///
+/// ```no_run
+/// use glossa::tools::runner::highlight_file;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// // Prints the highlighted source code to stdout
+/// highlight_file(input).unwrap();
+/// ```
 pub fn highlight_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
     let source = load_source(input)?;
@@ -267,6 +354,26 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Narrates the logic of a ΓΛΩΣΣΑ file in plain English.
+///
+/// Uses the "Bard" tool to parse, analyze, and translate the semantic
+/// meaning of the program into a readable English narrative ("The Scroll of Logic").
+///
+/// ## Errors
+///
+/// Returns an error if the input file does not exist, exceeds the size limit,
+/// or contains syntax/semantic errors.
+///
+/// ## Examples
+///
+/// ```no_run
+/// use glossa::tools::runner::bard_file;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// // Prints the English narrative of the program's logic
+/// bard_file(input).unwrap();
+/// ```
 pub fn bard_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
     let source = load_source(input)?;

@@ -82,9 +82,9 @@
 //!
 //! This same process works regardless of the input order.
 //!
-//! ```ignore
+//! ```rust
 //! use glossa::semantic::{Assembler, AssembledStatement};
-//! use glossa::morphology::{analyze, Case, PartOfSpeech};
+//! use glossa::morphology::analyze;
 //!
 //! let mut asm = Assembler::new();
 //!
@@ -131,7 +131,7 @@ use unicode_normalization::UnicodeNormalization;
 ///
 /// This allows tokens to arrive in any order (Subject-Verb-Object, Verb-Object-Subject, etc.)
 /// and still fill the correct semantic roles.
-pub(crate) struct Assembler {
+pub struct Assembler {
     state: AssembledStatement,
 }
 
@@ -140,7 +140,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```rust
     /// use glossa::semantic::Assembler;
     ///
     /// let asm = Assembler::new();
@@ -167,7 +167,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```rust
     /// use glossa::semantic::Assembler;
     /// use glossa::morphology::analyze;
     ///
@@ -235,7 +235,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```rust
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
@@ -256,8 +256,8 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
-    /// use glossa::semantic::Assembler;
+    /// ```rust
+    /// use glossa::semantic::assembly::Assembler;
     ///
     /// let mut asm = Assembler::new();
     /// asm.feed_number(42).unwrap();
@@ -277,8 +277,8 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
-    /// use glossa::semantic::Assembler;
+    /// ```rust
+    /// use glossa::semantic::assembly::Assembler;
     ///
     /// let mut asm = Assembler::new();
     /// asm.feed_boolean(true).unwrap();
@@ -298,7 +298,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```rust
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::{Expr, Word};
     ///
@@ -321,7 +321,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```rust
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
@@ -345,7 +345,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```rust
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::Expr;
     ///
@@ -367,14 +367,15 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```rust
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::{Expr, Word};
+    /// use smol_str::SmolStr;
     ///
     /// let mut asm = Assembler::new();
     /// let array = Expr::Word(Word {
-    ///     original: "πίναξ".into(),
-    ///     normalized: "πιναξ".into(),
+    ///     original: SmolStr::new("πίναξ"),
+    ///     normalized: SmolStr::new("πιναξ"),
     /// });
     /// let index = Expr::NumberLiteral(0);
     /// asm.feed_index_access(array, index).unwrap();
@@ -394,14 +395,15 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```rust
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::{Expr, Word};
+    /// use smol_str::SmolStr;
     ///
     /// let mut asm = Assembler::new();
     /// let expr = Expr::Word(Word {
-    ///     original: "τιμή".into(),
-    ///     normalized: "τιμη".into(),
+    ///     original: SmolStr::new("τιμή"),
+    ///     normalized: SmolStr::new("τιμη"),
     /// });
     /// asm.feed_unwrap(expr).unwrap();
     /// ```
@@ -420,7 +422,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```rust
     /// use glossa::semantic::Assembler;
     /// use glossa::morphology::{ParticipleAnalysis, Tense, Voice, Case, Gender, Number};
     ///
@@ -631,7 +633,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```rust
     /// use glossa::semantic::Assembler;
     /// use glossa::morphology::analyze;
     ///

@@ -99,3 +99,11 @@
 3.  Updated `control_flow.rs` and `declarations.rs` to accept `&mut impl StatementAnalyzer` instead of calling a concrete function.
 4.  Re-exported the public API from `mod.rs` to maintain backward compatibility.
 **Stability:** Broken the dependency cycle. The dependency graph is now a DAG: `mod` -> `analyzer` -> `control_flow` -> `traits`. Submodules are now leaf-like with respect to the analyzer.
+
+## [Centralizing The Limits: Magic Numbers]
+**Tangle:** Hardcoded constants for recursion limits (`MAX_RECURSION_DEPTH`) were scattered across `src/parser/recursion.rs` and `src/semantic/expressions.rs`, leading to disconnected logic and test fragility.
+**Blueprint:**
+1. Created `src/limits.rs` to centralize all compiler-wide limits.
+2. Defined `MAX_PARSE_DEPTH` and `MAX_AST_DEPTH` explicitly.
+3. Updated parser, semantic analysis, and tests to import from `crate::limits`.
+**Stability:** Enforces a single source of truth for architectural limits, making them easier to audit and tune.

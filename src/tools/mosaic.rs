@@ -27,8 +27,10 @@
 
 use crate::parser::parse;
 use crate::semantic::{AssembledStatement, Constituent, assemble_statement};
+use crate::tools::ui::Status;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
+use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::path::PathBuf;
 
@@ -36,8 +38,24 @@ use std::path::PathBuf;
 ///
 /// Reads the source file, parses it, and prints the semantic assembly table to stdout.
 pub fn run_mosaic(input_path: &PathBuf) -> Result<()> {
+    let status = Status::start_with_symbol("Ψηφιδωτόν (Mosaic)", "🧩");
+
     let source = std::fs::read_to_string(input_path).into_diagnostic()?;
-    run_mosaic_inner(&source, &mut std::io::stdout())
+
+    // Create a buffer for the table
+    let mut buffer = Vec::new();
+    run_mosaic_inner(&source, &mut buffer)?;
+    let output = String::from_utf8(buffer).into_diagnostic()?;
+
+    status.success();
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   M O S A I C".bold().cyan());
+    println!("   {}", "Semantic Sentence Structure".italic().dim());
+    println!();
+    println!("{}", output);
+
+    Ok(())
 }
 
 /// Internal implementation of Mosaic logic
@@ -287,5 +305,20 @@ mod tests {
         let output = String::from_utf8(buffer).unwrap();
 
         assert!(output.contains("Type Definition"));
+    }
+
+    #[test]
+    fn test_run_mosaic() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_run.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            f.write_all("ὁ ἄνθρωπος τὸν λόγον λέγει.".as_bytes())
+                .unwrap();
+        }
+
+        let result = run_mosaic(&file_path);
+        assert!(result.is_ok());
     }
 }
