@@ -82,3 +82,8 @@
 **Bloat:** `src/semantic/traits.rs` defined a `StatementAnalyzer` trait that was only ever implemented once by `Analyzer` in `src/semantic/analyzer.rs`.
 **Cut:** Deleted the trait and file entirely, calling `Analyzer::analyze` concretely.
 **Saved:** 1 file, reduced indirection, simplified function signatures in `control_flow.rs` and `declarations.rs`.
+
+## [Reduction]
+**Bloat:** `TraitDef` and `TraitImpl` structs in `src/semantic/model.rs` and their usage as explicit intermediate steps when building trait definitions and implementations.
+**Cut:** Deleted the `TraitDef` and `TraitImpl` structs, inlining their data into `Symbol::Trait` enum variants in `src/semantic/resolver.rs` and directly constructing `AnalyzedStatement` types in `declarations.rs`.
+**Saved:** Unnecessary data structures / Boilerplate DTOs.

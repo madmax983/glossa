@@ -186,14 +186,8 @@ pub fn analyze_trait_definition(
         }
     }
 
-    // Create the trait definition
-    let trait_def_semantic = crate::semantic::model::TraitDef {
-        name: trait_name.clone(),
-        methods: analyzed_methods.clone(),
-    };
-
     // Store the trait in scope
-    scope.define_trait(trait_name.clone(), trait_def_semantic);
+    scope.define_trait(trait_name.clone(), analyzed_methods.clone());
 
     Ok(AnalyzedStatement::TraitDefinition {
         name: trait_name,
@@ -223,9 +217,9 @@ pub fn analyze_trait_impl(
     let trait_name = trait_impl.trait_name.normalized.clone();
 
     // Validate: trait must exist
-    let trait_def = scope
+    let trait_methods = scope
         .lookup_trait(&trait_name)
-        .cloned()
+        .map(|m| m.to_vec())
         .ok_or_else(|| GlossaError::semantic(format!("Trait {} is not defined", trait_name)))?;
 
     // Validate: type must exist
@@ -278,7 +272,7 @@ pub fn analyze_trait_impl(
     }
 
     // Validate: all required methods must be implemented
-    for method in &trait_def.methods {
+    for method in &trait_methods {
         if method.body.is_none() && !implemented_method_names.contains(&method.name) {
             return Err(GlossaError::semantic(format!(
                 "Type {} does not implement required method {} from trait {}",
@@ -287,14 +281,8 @@ pub fn analyze_trait_impl(
         }
     }
 
-    // Create the trait implementation
-    let trait_impl_semantic = crate::semantic::model::TraitImpl {
-        trait_name: trait_name.clone(),
-        type_name: type_name.clone(),
-    };
-
     // Register the trait impl in scope
-    scope.register_trait_impl(trait_impl_semantic);
+    scope.register_trait_impl(trait_name.clone(), type_name.clone());
 
     Ok(AnalyzedStatement::TraitImplementation {
         trait_name,

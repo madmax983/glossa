@@ -12,7 +12,10 @@ pub enum Symbol {
     Variable(Binding),
     Function(FunctionSignature),
     Type(GlossaType),
-    Trait(crate::semantic::model::TraitDef),
+    Trait {
+        name: SmolStr,
+        methods: Vec<crate::semantic::model::AnalyzedMethod>,
+    },
 }
 
 /// A scope level containing symbol bindings
@@ -20,8 +23,8 @@ pub enum Symbol {
 struct ScopeLevel {
     /// Symbols defined in this scope
     symbols: HashMap<SmolStr, Symbol>,
-    /// Trait implementations in this scope
-    trait_impls: Vec<crate::semantic::model::TraitImpl>,
+    /// Trait implementations in this scope: (trait_name, type_name)
+    trait_impls: Vec<(SmolStr, SmolStr)>,
 }
 
 impl ScopeLevel {
@@ -168,52 +171,55 @@ impl Scope {
     pub fn define_trait(
         &mut self,
         name: impl Into<SmolStr>,
-        trait_def: crate::semantic::model::TraitDef,
+        methods: Vec<crate::semantic::model::AnalyzedMethod>,
     ) {
-        self.current_level()
-            .symbols
-            .insert(name.into(), Symbol::Trait(trait_def));
+        let name_str = name.into();
+        self.current_level().symbols.insert(
+            name_str.clone(),
+            Symbol::Trait {
+                name: name_str,
+                methods,
+            },
+        );
     }
 
     /// Look up a trait by name
-    pub fn lookup_trait(&self, name: &str) -> Option<&crate::semantic::model::TraitDef> {
+    pub fn lookup_trait(&self, name: &str) -> Option<&[crate::semantic::model::AnalyzedMethod]> {
         match self.lookup_symbol(name) {
-            Some(Symbol::Trait(def)) => Some(def),
+            Some(Symbol::Trait { methods, .. }) => Some(methods),
             _ => None,
         }
     }
 
     /// Register a trait implementation
-    pub fn register_trait_impl(&mut self, impl_def: crate::semantic::model::TraitImpl) {
-        self.current_level().trait_impls.push(impl_def);
+    pub fn register_trait_impl(&mut self, trait_name: SmolStr, type_name: SmolStr) {
+        self.current_level()
+            .trait_impls
+            .push((trait_name, type_name));
     }
 
     /// Look up a trait implementation for a given type and trait
-    pub fn lookup_trait_impl(
-        &self,
-        type_name: &str,
-        trait_name: &str,
-    ) -> Option<&crate::semantic::model::TraitImpl> {
+    pub fn has_trait_impl(&self, type_name: &str, trait_name: &str) -> bool {
         for level in self.levels.iter().rev() {
-            for impl_def in &level.trait_impls {
-                if impl_def.type_name == type_name && impl_def.trait_name == trait_name {
-                    return Some(impl_def);
+            for (t_name, typ_name) in &level.trait_impls {
+                if typ_name == type_name && t_name == trait_name {
+                    return true;
                 }
             }
         }
-        None
+        false
     }
 
     /// Check if a type has a trait method with the given name
     pub fn has_trait_method(&self, type_name: &str, method_name: &str) -> bool {
         for level in self.levels.iter().rev() {
-            for trait_impl in &level.trait_impls {
-                if trait_impl.type_name != type_name {
+            for (t_name, typ_name) in &level.trait_impls {
+                if typ_name != type_name {
                     continue;
                 }
                 // Check if the trait has this method
-                if let Some(trait_def) = self.lookup_trait(&trait_impl.trait_name) {
-                    let has_method = trait_def.methods.iter().any(|m| m.name == method_name);
+                if let Some(methods) = self.lookup_trait(t_name) {
+                    let has_method = methods.iter().any(|m| m.name == method_name);
                     if has_method {
                         return true;
                     }
@@ -346,10 +352,12 @@ impl Scope {
     }
 
     /// Get all traits defined in this scope
-    pub fn traits(&self) -> impl Iterator<Item = (&SmolStr, &crate::semantic::model::TraitDef)> {
+    pub fn traits(
+        &self,
+    ) -> impl Iterator<Item = (&SmolStr, &[crate::semantic::model::AnalyzedMethod])> {
         self.levels.iter().flat_map(|l| {
             l.symbols.iter().filter_map(|(k, v)| match v {
-                Symbol::Trait(t) => Some((k, t)),
+                Symbol::Trait { methods, .. } => Some((k, methods.as_slice())),
                 _ => None,
             })
         })
@@ -521,15 +529,10 @@ mod tests {
 
     #[test]
     fn test_scope_trait_coverage() {
-        use crate::semantic::model::TraitDef;
         let mut scope = Scope::new();
         let trait_name = "Δεικτόν";
-        let trait_def = TraitDef {
-            name: trait_name.into(),
-            methods: vec![],
-        };
 
-        scope.define_trait(trait_name.to_string(), trait_def);
+        scope.define_trait(trait_name.to_string(), vec![]);
 
         assert!(scope.lookup_trait(trait_name).is_some());
         assert!(scope.traits().any(|(k, _)| k == trait_name));

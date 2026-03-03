@@ -125,11 +125,10 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut traits: Vec<_> = program.scope.traits().collect();
     traits.sort_by(|a, b| a.0.cmp(b.0));
 
-    for (_key, trait_def) in traits {
-        let name = &trait_def.name;
+    for (name, trait_methods) in traits {
         map.push_str(&format!("    class {} {{\n", name));
         map.push_str("        <<interface>>\n");
-        for method in &trait_def.methods {
+        for method in trait_methods {
             let params_str: Vec<String> = method
                 .params
                 .iter()
@@ -402,7 +401,7 @@ mod tests {
 
     #[test]
     fn test_cartographer_complex_methods() {
-        use crate::semantic::{AnalyzedMethod, Scope, TraitDef};
+        use crate::semantic::{AnalyzedMethod, Scope};
 
         let mut scope = Scope::new();
 
@@ -417,12 +416,7 @@ mod tests {
             return_type: Some(GlossaType::Boolean),
         };
 
-        let trait_def = TraitDef {
-            name: "ComplexTrait".into(),
-            methods: vec![method],
-        };
-
-        scope.define_trait("ComplexTrait", trait_def);
+        scope.define_trait("ComplexTrait", vec![method]);
 
         let program = AnalyzedProgram {
             statements: vec![],
