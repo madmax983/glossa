@@ -127,14 +127,20 @@ impl Highlighter {
             Expr::StringLiteral(s) => {
                 // Sanitize string to prevent terminal injection
                 let sanitized: String = s.chars().flat_map(|c| c.escape_debug()).collect();
-                write!(self.output, "«{}»", sanitized.as_str().italic()).unwrap();
+                write!(self.output, "«{}»", sanitized.as_str().italic()).map_err(|e| {
+                    crate::errors::GlossaError::semantic(format!("Format error: {}", e))
+                })?;
             }
             Expr::NumberLiteral(n) => {
-                write!(self.output, "{}", n.to_string().italic()).unwrap();
+                write!(self.output, "{}", n.to_string().italic()).map_err(|e| {
+                    crate::errors::GlossaError::semantic(format!("Format error: {}", e))
+                })?;
             }
             Expr::BooleanLiteral(b) => {
                 let s = if *b { "ἀληθές" } else { "ψεῦδος" };
-                write!(self.output, "{}", s.italic()).unwrap();
+                write!(self.output, "{}", s.italic()).map_err(|e| {
+                    crate::errors::GlossaError::semantic(format!("Format error: {}", e))
+                })?;
             }
             Expr::Word(w) => self.highlight_word(w)?,
             Expr::Phrase(terms) => {
@@ -164,12 +170,14 @@ impl Highlighter {
                 self.output.push(' ');
                 self.highlight_expr(value)?;
                 self.output.push(' ');
-                write!(self.output, "{}", "ἔστω".bold()).unwrap();
+                write!(self.output, "{}", "ἔστω".bold()).map_err(|e| {
+                    crate::errors::GlossaError::semantic(format!("Format error: {}", e))
+                })?;
             }
             Expr::BinOp { left, op, right } => {
                 self.highlight_expr(left)?;
                 self.output.push(' ');
-                self.highlight_binop(op);
+                self.highlight_binop(op)?;
                 self.output.push(' ');
                 self.highlight_expr(right)?;
             }
@@ -177,15 +185,21 @@ impl Highlighter {
                 match op {
                     UnaryOperator::Unwrap => {
                         self.highlight_expr(operand)?;
-                        write!(self.output, "{}", "!".bold().red()).unwrap();
+                        write!(self.output, "{}", "!".bold().red()).map_err(|e| {
+                            crate::errors::GlossaError::semantic(format!("Format error: {}", e))
+                        })?;
                     }
                     UnaryOperator::Not => {
-                        write!(self.output, "{}", "οὐ".bold()).unwrap(); // Simplified
+                        write!(self.output, "{}", "οὐ".bold()).map_err(|e| {
+                            crate::errors::GlossaError::semantic(format!("Format error: {}", e))
+                        })?; // Simplified
                         self.output.push(' ');
                         self.highlight_expr(operand)?;
                     }
                     UnaryOperator::Neg => {
-                        write!(self.output, "-").unwrap();
+                        write!(self.output, "-").map_err(|e| {
+                            crate::errors::GlossaError::semantic(format!("Format error: {}", e))
+                        })?;
                         self.highlight_expr(operand)?;
                     }
                 }
@@ -224,7 +238,9 @@ impl Highlighter {
         // 1. Check for article (sets context)
         if let Some(ctx) = analyze_article(&w.original) {
             self.context = ctx;
-            write!(self.output, "{}", w.original).unwrap(); // Articles plain or dim? Let's leave plain
+            write!(self.output, "{}", w.original).map_err(|e| {
+                crate::errors::GlossaError::semantic(format!("Format error: {}", e))
+            })?; // Articles plain or dim? Let's leave plain
             return Ok(());
         }
 
@@ -233,7 +249,9 @@ impl Highlighter {
         let is_numeral = crate::morphology::lexicon::numeral_value(&w.normalized).is_some();
 
         if !in_lexicon && !is_numeral && analyze_participle(&w.normalized).is_some() {
-            write!(self.output, "{}", w.original.cyan()).unwrap(); // Participles as cyan (adjectival)
+            write!(self.output, "{}", w.original.cyan()).map_err(|e| {
+                crate::errors::GlossaError::semantic(format!("Format error: {}", e))
+            })?; // Participles as cyan (adjectival)
             return Ok(());
         }
 
@@ -267,11 +285,12 @@ impl Highlighter {
             _ => w.original.white(), // Default
         };
 
-        write!(self.output, "{}", styled).unwrap();
+        write!(self.output, "{}", styled)
+            .map_err(|e| crate::errors::GlossaError::semantic(format!("Format error: {}", e)))?;
         Ok(())
     }
 
-    fn highlight_binop(&mut self, op: &BinOperator) {
+    fn highlight_binop(&mut self, op: &BinOperator) -> Result<(), GlossaError> {
         let s = match op {
             BinOperator::Add => "+",
             BinOperator::Sub => "-",
@@ -287,7 +306,9 @@ impl Highlighter {
             BinOperator::And => "&&",
             BinOperator::Or => "||",
         };
-        write!(self.output, "{}", s.bold()).unwrap();
+        write!(self.output, "{}", s.bold())
+            .map_err(|e| crate::errors::GlossaError::semantic(format!("Format error: {}", e)))?;
+        Ok(())
     }
 
     // --- Definitions (Simplified highlighting for now) ---
@@ -345,7 +366,8 @@ impl Highlighter {
             self.output.push('\n');
         }
 
-        write!(self.output, "{}", "τέλος".bold()).unwrap();
+        write!(self.output, "{}", "τέλος".bold())
+            .map_err(|e| crate::errors::GlossaError::semantic(format!("Format error: {}", e)))?;
         Ok(())
     }
 }
