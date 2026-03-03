@@ -1,5 +1,6 @@
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
+use glossa::codegen::generate_rust;
 use proptest::prelude::*;
 
 proptest! {
@@ -30,7 +31,9 @@ proptest! {
         let source = format!("{} {} {}.", noun, literal, verb);
         if let Ok(ast) = parse(&source) {
             // If parsed, it should analyze without panic
-            let _ = analyze_program(&ast);
+            if let Ok(program) = analyze_program(&ast) {
+                let _ = generate_rust(&program);
+            }
         }
     }
 }
