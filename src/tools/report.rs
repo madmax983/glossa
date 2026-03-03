@@ -49,6 +49,22 @@ pub struct ProgramStats {
 
 impl ProgramStats {
     /// Analyze a program and collect statistics
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// use glossa::parser::parse;
+    /// use glossa::semantic::analyze_program;
+    /// use glossa::tools::report::ProgramStats;
+    ///
+    /// let source = "ξ πέντε ἔστω.";
+    /// let ast = parse(source).unwrap();
+    /// let program = analyze_program(&ast).unwrap();
+    /// let stats = ProgramStats::new(&program);
+    ///
+    /// assert_eq!(stats.statement_count, 1);
+    /// assert_eq!(stats.binding_count, 1);
+    /// ```
     pub fn new(program: &AnalyzedProgram) -> Self {
         let mut stats = ProgramStats {
             function_count: program.scope.functions().count(),
@@ -219,6 +235,24 @@ pub struct GlossaReport<'a> {
 }
 
 impl<'a> GlossaReport<'a> {
+    /// Creates a new GlossaReport.
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// use glossa::parser::parse;
+    /// use glossa::semantic::analyze_program;
+    /// use glossa::tools::report::GlossaReport;
+    ///
+    /// let source = "ξ πέντε ἔστω.";
+    /// let ast = parse(source).unwrap();
+    /// let program = analyze_program(&ast).unwrap();
+    /// let report = GlossaReport::new(&program, "main.γλ".to_string());
+    ///
+    /// let output = format!("{}", report);
+    /// assert!(output.contains("main.γλ"));
+    /// assert!(output.contains("1")); // Statement count
+    /// ```
     pub fn new(program: &'a AnalyzedProgram, filename: String) -> Self {
         let stats = ProgramStats::new(program);
         Self {
@@ -332,6 +366,34 @@ impl Display for GlossaReport<'_> {
 }
 
 /// A comprehensive report for the compilation process
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::tools::report::{CompilationReport, ProgramStats};
+/// use std::path::PathBuf;
+/// use std::time::Duration;
+///
+/// let source = "ξ πέντε ἔστω.";
+/// let ast = parse(source).unwrap();
+/// let program = analyze_program(&ast).unwrap();
+/// let stats = ProgramStats::new(&program);
+///
+/// let report = CompilationReport {
+///     input_path: PathBuf::from("main.γλ"),
+///     output_path: PathBuf::from("main.rs"),
+///     input_size: 15,
+///     output_size: 150,
+///     duration: Duration::from_millis(10),
+///     stats,
+/// };
+///
+/// let output = format!("{}", report);
+/// assert!(output.contains("main.γλ"));
+/// assert!(output.contains("15 bytes"));
+/// ```
 pub struct CompilationReport {
     pub input_path: PathBuf,
     pub output_path: PathBuf,
