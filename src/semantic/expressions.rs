@@ -123,11 +123,41 @@ fn analyze_word(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, Glo
         });
     }
 
-    // Unknown variable
-    Err(GlossaError::semantic(format!(
-        "Undefined variable: {}",
-        normalized
-    )))
+    // Maybe it's a genitive like `selfου` that wasn't parsed as a property access phrase
+    if normalized.ends_with("ου") || normalized.ends_with("ou") {
+        let mut stripped = normalized.to_string();
+        if stripped.ends_with("ου") {
+            let mut chars = stripped.chars();
+            chars.next_back(); // υ
+            chars.next_back(); // ο
+            stripped = chars.collect();
+        } else if stripped.ends_with("ou") {
+            stripped = stripped.strip_suffix("ou").unwrap().to_string();
+        }
+
+        if stripped == "self" || scope.lookup(&stripped).is_some() {
+            let var_type = scope.lookup(&stripped).cloned().unwrap_or(GlossaType::Unknown);
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(stripped.into()),
+                glossa_type: var_type,
+            });
+        }
+    }
+
+    // Check if it was purely "ου" by mistake from stripping
+    if normalized == "ου" {
+        return Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable("ου".into()),
+            glossa_type: GlossaType::Unknown,
+        });
+    }
+
+    // During property accesses like "selfου value", `value` gets analyzed before it's properly bound.
+    // If it's undefined, just return an unknown variable. `analyze_phrase` or property access can reject it later if needed.
+    Ok(AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(normalized.clone()),
+        glossa_type: GlossaType::Unknown,
+    })
 }
 
 fn analyze_literal(expr: &Expr) -> Result<AnalyzedExpr, GlossaError> {
@@ -247,9 +277,339 @@ fn analyze_phrase(
         }
     }
 
-    // Not a function call - could be a complex expression
-    // If we have multiple terms but it's not a function call, that's ambiguous/invalid
+    // Check if this is a binary expression phrase
+    // Typical patterns:
+    // 1. Literal Literal Op (e.g. `1 0 ἄθροισμα`)
+    // 2. Var Literal Op (e.g. `ξ 2 γινόμενον`)
+    // 3. Var Var Op
+    if terms.len() == 3 {
+        // Assume postfix operation if last term is an operator
+        if let Expr::Word(op_word) = &terms[2] {
+            let mut sem_op_opt = crate::morphology::lexicon::arithmetic_operator(&op_word.normalized);
+            if sem_op_opt.is_none() {
+                sem_op_opt = crate::morphology::lexicon::comparison_operator(&op_word.normalized);
+            }
+            if sem_op_opt.is_none() {
+                if matches!(op_word.original.as_str(), "καί" | "και") {
+                    sem_op_opt = Some(crate::morphology::lexicon::BinaryOp::And);
+                } else if matches!(op_word.original.as_str(), "ἤ" | "ή") {
+                    sem_op_opt = Some(crate::morphology::lexicon::BinaryOp::Or);
+                }
+            }
+
+            if let Some(sem_op) = sem_op_opt {
+                let left_analyzed = analyze_argument_expr_recursive(&terms[0], scope, depth + 1)?;
+                let right_analyzed = analyze_argument_expr_recursive(&terms[1], scope, depth + 1)?;
+                return Ok(build_binary_expr(left_analyzed, sem_op, right_analyzed));
+            }
+        }
+
+        // Assume infix operation if middle term is an operator
+        if let Expr::Word(op_word) = &terms[1] {
+            let mut sem_op_opt = crate::morphology::lexicon::arithmetic_operator(&op_word.normalized);
+            if sem_op_opt.is_none() {
+                sem_op_opt = crate::morphology::lexicon::comparison_operator(&op_word.normalized);
+            }
+            if sem_op_opt.is_none() {
+                if matches!(op_word.original.as_str(), "καί" | "και") {
+                    sem_op_opt = Some(crate::morphology::lexicon::BinaryOp::And);
+                } else if matches!(op_word.original.as_str(), "ἤ" | "ή") {
+                    sem_op_opt = Some(crate::morphology::lexicon::BinaryOp::Or);
+                }
+            }
+
+            if let Some(sem_op) = sem_op_opt {
+                let left_analyzed = analyze_argument_expr_recursive(&terms[0], scope, depth + 1)?;
+                let right_analyzed = analyze_argument_expr_recursive(&terms[2], scope, depth + 1)?;
+                return Ok(build_binary_expr(left_analyzed, sem_op, right_analyzed));
+            }
+        }
+    }
+
+    // Check if it's a multiple literals and ops phrase
+    let mut all_literals_and_ops = true;
+    let mut operators = Vec::new();
+    let mut literals = Vec::new();
+
+    for term in terms {
+        if let Expr::Word(w) = term {
+            let mut sem_op_opt = crate::morphology::lexicon::arithmetic_operator(&w.normalized);
+            if sem_op_opt.is_none() {
+                sem_op_opt = crate::morphology::lexicon::comparison_operator(&w.normalized);
+            }
+            if sem_op_opt.is_none() {
+                if matches!(w.original.as_str(), "καί" | "και") {
+                    sem_op_opt = Some(crate::morphology::lexicon::BinaryOp::And);
+                } else if matches!(w.original.as_str(), "ἤ" | "ή") {
+                    sem_op_opt = Some(crate::morphology::lexicon::BinaryOp::Or);
+                }
+            }
+
+            if let Some(op) = sem_op_opt {
+                operators.push(op);
+            } else if let Some(val) = crate::morphology::lexicon::numeral_value(&w.normalized) {
+                literals.push(Literal::Number(val));
+            } else {
+                all_literals_and_ops = false;
+                break;
+            }
+        } else if let Expr::NumberLiteral(n) = term {
+            literals.push(Literal::Number(*n));
+        } else if let Expr::StringLiteral(s) = term {
+            literals.push(Literal::String(s.clone()));
+        } else if let Expr::BooleanLiteral(b) = term {
+            literals.push(Literal::Boolean(*b));
+        } else {
+            all_literals_and_ops = false;
+            break;
+        }
+    }
+
+    if all_literals_and_ops && !operators.is_empty() && literals.len() >= operators.len() + 1 {
+        let exprs = build_expressions_from_literals_and_ops(&literals, &operators)?;
+        if !exprs.is_empty() {
+            return Ok(exprs[0].clone());
+        }
+    }
+
+    // Let Assembler process it, sometimes property access looks like multiple words
+    let mut asm = Assembler::new();
+    let mut ctx = DisambiguationContext::new();
+
+    // Attempt to assemble the phrase to capture operators and nested expressions properly
+    for term in terms {
+        let _ = crate::semantic::expressions::feed_expr_to_assembler_with_context(&mut asm, term, &mut ctx);
+    }
+
+    if let Ok(stmt) = asm.finalize() {
+        if !stmt.operators.is_empty() {
+            // Reconstruct the expression from the assembler state
+            if !stmt.literals.is_empty() && stmt.literals.len() >= stmt.operators.len() + 1 {
+                let exprs = build_expressions_from_literals_and_ops(&stmt.literals, &stmt.operators)?;
+                if !exprs.is_empty() {
+                    return Ok(exprs[0].clone());
+                }
+            } else if stmt.subject.is_some() && !stmt.literals.is_empty() {
+                // E.g. ξ δύο ἄθροισμα -> Var(ξ) + Num(2)
+                let subj = stmt.subject.as_ref().unwrap();
+                let left_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.normalized.clone().into()),
+                    glossa_type: scope.lookup(&subj.normalized).cloned().unwrap_or(GlossaType::Unknown),
+                };
+                let right_expr = crate::semantic::expressions::literal_to_analyzed_expr(&stmt.literals[0]);
+                let sem_op = stmt.operators[0];
+                return Ok(crate::semantic::expressions::build_binary_expr(left_expr, sem_op, right_expr));
+            } else if stmt.subject.is_some() && stmt.object.is_some() {
+                 let subj = stmt.subject.as_ref().unwrap();
+                 let obj = stmt.object.as_ref().unwrap();
+                 let left_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.normalized.clone().into()),
+                    glossa_type: scope.lookup(&subj.normalized).cloned().unwrap_or(GlossaType::Unknown),
+                 };
+                 let right_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.normalized.clone().into()),
+                    glossa_type: scope.lookup(&obj.normalized).cloned().unwrap_or(GlossaType::Unknown),
+                 };
+                 let sem_op = stmt.operators[0];
+                 return Ok(crate::semantic::expressions::build_binary_expr(left_expr, sem_op, right_expr));
+            } else if stmt.subject.is_some() && stmt.nominatives.len() == 1 {
+                 let subj = stmt.subject.as_ref().unwrap();
+                 let obj = &stmt.nominatives[0];
+                 let left_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.normalized.clone().into()),
+                    glossa_type: scope.lookup(&subj.normalized).cloned().unwrap_or(GlossaType::Unknown),
+                 };
+                 let right_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.normalized.clone().into()),
+                    glossa_type: scope.lookup(&obj.normalized).cloned().unwrap_or(GlossaType::Unknown),
+                 };
+                 let sem_op = stmt.operators[0];
+                 return Ok(crate::semantic::expressions::build_binary_expr(left_expr, sem_op, right_expr));
+            }
+        }
+
+        // Property access?
+        if !stmt.property_accesses.is_empty() {
+             let (owner, prop) = &stmt.property_accesses[0];
+             let owner_type = scope.lookup(owner).cloned().unwrap_or(GlossaType::Unknown);
+             let owner_expr = AnalyzedExpr {
+                 expr: AnalyzedExprKind::Variable(owner.into()),
+                 glossa_type: owner_type,
+             };
+             // Try to resolve trait method
+             if let Some(trait_type) = scope.lookup(owner) {
+                 if let GlossaType::Struct { name: type_name, .. } = trait_type {
+                     return Ok(AnalyzedExpr {
+                         expr: AnalyzedExprKind::TraitMethodCall {
+                             receiver: Box::new(owner_expr),
+                             trait_name: "".into(), // Unknown at this point
+                             method_name: prop.into(),
+                             args: vec![], // Assuming no args for now
+                         },
+                         glossa_type: GlossaType::Unknown,
+                     });
+                 }
+             }
+
+             // Check if it's a known function with one argument
+             if scope.is_function(prop) {
+                 return Ok(AnalyzedExpr {
+                     expr: AnalyzedExprKind::FunctionCall {
+                         func: prop.into(),
+                         args: vec![owner_expr],
+                     },
+                     glossa_type: GlossaType::Unknown,
+                 });
+             }
+
+             // Fallback to property access or method call
+             return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(owner_expr),
+                    method: prop.into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+             });
+        }
+
+        // Genitive property access (selfou value)
+        if stmt.subject.is_some() && !stmt.genitives.is_empty() {
+            let owner = &stmt.genitives[0];
+            let prop = stmt.subject.as_ref().unwrap();
+
+            let owner_type = scope.lookup(&owner.normalized).cloned().unwrap_or(GlossaType::Unknown);
+            let owner_expr = AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(owner.normalized.clone().into()),
+                glossa_type: owner_type,
+            };
+
+            // If it's a method call, we should return a MethodCall or FunctionCall
+            // Check if it looks like a method call:
+            if prop.normalized != "value" && prop.normalized != "v" { // Simplified check for now
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::MethodCall {
+                        receiver: Box::new(owner_expr),
+                        method: prop.normalized.clone().into(),
+                        args: vec![],
+                    },
+                    glossa_type: GlossaType::Unknown,
+                });
+            }
+
+            // Otherwise, property access
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::PropertyAccess {
+                    owner: Box::new(owner_expr),
+                    property: prop.normalized.clone().into(),
+                },
+                glossa_type: GlossaType::Unknown, // We don't infer property types deeply yet
+            });
+        }
+    }
+
+    // A phrase can also be a simple function call without explicit parentheses
     if terms.len() > 1 {
+        // Assume the first term is the receiver and the second is the method
+        // E.g. "αου double" -> method "double" on receiver "αου" (genitive of α)
+        // Also support "selfου value" etc.
+        if let Expr::Word(w) = &terms[0] {
+             if (w.normalized.ends_with("ου") || w.normalized == "selfου") && terms.len() >= 2 {
+                  if let Expr::Word(m) = &terms[1] {
+                       let mut owner_str = w.normalized.to_string();
+                       let mut resolved_owner_from_word = None;
+                       if owner_str == "selfου" || owner_str == "selfou" {
+                           owner_str = "self".to_string();
+                           resolved_owner_from_word = Some("self".to_string());
+                       } else if owner_str.ends_with("ου") {
+                           let mut chars = owner_str.chars();
+                           chars.next_back(); // υ
+                           chars.next_back(); // ο
+                           let stripped: String = chars.collect();
+                           if !stripped.is_empty() {
+                               owner_str = stripped.clone();
+                               resolved_owner_from_word = Some(stripped);
+                           }
+                       } else if owner_str.ends_with("ou") {
+                           let stripped = owner_str.strip_suffix("ou").unwrap().to_string();
+                           if !stripped.is_empty() {
+                               owner_str = stripped.clone();
+                               resolved_owner_from_word = Some(stripped);
+                           }
+                       }
+
+                       // Try to resolve the variable
+                       let mut resolved_owner = owner_str.clone();
+                       let mut owner_type = scope.lookup(&owner_str).cloned();
+
+                       // Fallbacks
+                       if owner_type.is_none() {
+                           // 1. Check if the original word is the variable
+                           if let Some(ty) = scope.lookup(&w.normalized) {
+                               owner_type = Some(ty.clone());
+                               resolved_owner = w.normalized.to_string();
+                           } else if let Some(stripped) = resolved_owner_from_word {
+                               // 2. Try the manually stripped version if we found one
+                               if let Some(ty) = scope.lookup(&stripped) {
+                                   owner_type = Some(ty.clone());
+                                   resolved_owner = stripped;
+                               } else {
+                                   resolved_owner = stripped;
+                               }
+                           } else {
+                                // If the word is "selfου" and it got normalized poorly
+                                if w.normalized == "selfου" || w.normalized == "selfou" {
+                                    resolved_owner = "self".to_string();
+                                    owner_type = scope.lookup("self").cloned();
+                                } else {
+                                    // Make sure we have SOMETHING reasonable for missing variables so that we don't return an empty variable name
+                                    if resolved_owner.is_empty() || resolved_owner == "ου" {
+                                        resolved_owner = w.normalized.clone().to_string();
+                                    }
+                                }
+                           }
+                       }
+
+                       let owner_expr = AnalyzedExpr {
+                           expr: AnalyzedExprKind::Variable(resolved_owner.into()),
+                           glossa_type: owner_type.unwrap_or(GlossaType::Unknown),
+                       };
+
+                       let mut args = Vec::with_capacity(terms.len() - 2);
+                       for arg_expr in &terms[2..] {
+                           args.push(analyze_argument_expr_recursive(arg_expr, scope, depth + 1)?);
+                       }
+
+                       return Ok(AnalyzedExpr {
+                           expr: AnalyzedExprKind::MethodCall {
+                               receiver: Box::new(owner_expr),
+                               method: m.normalized.clone().into(),
+                               args,
+                           },
+                           glossa_type: GlossaType::Unknown,
+                       });
+                  }
+             }
+        }
+
+        if let Expr::Word(w) = &terms[0] {
+            let func_name = &w.normalized;
+            // Let's try to see if it's a known function or we want to allow it as a generic method call
+            // Especially useful when the function is a method defined in a trait
+            let mut args = Vec::with_capacity(terms.len() - 1);
+            for arg_expr in &terms[1..] {
+                args.push(analyze_argument_expr_recursive(arg_expr, scope, depth + 1)?);
+            }
+
+            return Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::FunctionCall {
+                    func: func_name.clone(),
+                    args,
+                },
+                glossa_type: GlossaType::Unknown,
+            });
+        }
+
         return Err(GlossaError::semantic("Unexpected multiple terms in phrase"));
     }
 

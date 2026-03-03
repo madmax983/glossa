@@ -9,7 +9,6 @@ proptest! {
     // are silently ignored and `0` is returned instead.
     // We expect this test to fail (panic) because the bug is present.
     #[test]
-    #[should_panic(expected = "Bug detected!")]
     fn havoc_return_complex_expression(val in 1i64..1000) {
         // "δός <val> 0 ἄθροισμα." should return <val>.
         // But due to the bug, it returns 0.
@@ -28,5 +27,7 @@ proptest! {
         if rust_code.contains("return 0i64") || rust_code.contains("return 0 i64") {
              panic!("Bug detected! Expected return {}, got 0", val);
         }
+        assert!(rust_code.contains(&val.to_string()));
+        assert!(rust_code.contains("+") || rust_code.contains("checked_add"));
     }
 }

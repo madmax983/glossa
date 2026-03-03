@@ -503,12 +503,61 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
         }
     }
 
-    // For now, just return a number literal placeholder for complex expressions
-    // TODO: Implement full expression parsing that respects function scope
-    Ok(AnalyzedExpr {
-        expr: AnalyzedExprKind::NumberLiteral(0),
-        glossa_type: GlossaType::Number,
-    })
+    // Package words back into an Expr and analyze it properly
+    let expr = if words.len() == 1 {
+        words[0].clone()
+    } else {
+        Expr::Phrase(words.into_iter().cloned().collect())
+    };
+
+    // Attempt to assemble the phrase to capture operators and nested expressions properly
+    // Fallback to recursive parsing if assembly doesn't yield a valid complex expression
+    let mut asm = crate::semantic::assembly::Assembler::new();
+    let mut ctx = crate::morphology::DisambiguationContext::new();
+
+    // We expect `analyze_argument_expr` to handle simple and recursive constructs.
+    // However, since it doesn't currently handle operator phrases well, we try Assembler directly here if we have multiple words
+    if let Expr::Phrase(terms) = &expr {
+        for term in terms {
+            let _ = crate::semantic::expressions::feed_expr_to_assembler_with_context(&mut asm, term, &mut ctx);
+        }
+
+        if let Ok(stmt) = asm.finalize() {
+            if !stmt.operators.is_empty() && !stmt.literals.is_empty() {
+                // E.g. ξ δύο ἄθροισμα -> Var(ξ) + Num(2)
+                if stmt.subject.is_some() {
+                    let subj = stmt.subject.as_ref().unwrap();
+                    let left_expr = AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(subj.normalized.clone().into()),
+                        glossa_type: scope.lookup(&subj.normalized).cloned().unwrap_or(GlossaType::Unknown),
+                    };
+                    let right_expr = crate::semantic::expressions::literal_to_analyzed_expr(&stmt.literals[0]);
+                    let sem_op = stmt.operators[0];
+                    return Ok(crate::semantic::expressions::build_binary_expr(left_expr, sem_op, right_expr));
+                } else if stmt.literals.len() >= stmt.operators.len() + 1 {
+                    let exprs = crate::semantic::expressions::build_expressions_from_literals_and_ops(&stmt.literals, &stmt.operators)?;
+                    if !exprs.is_empty() {
+                        return Ok(exprs[0].clone());
+                    }
+                }
+            } else if stmt.subject.is_some() && stmt.object.is_some() && !stmt.operators.is_empty() {
+                let subj = stmt.subject.as_ref().unwrap();
+                let obj = stmt.object.as_ref().unwrap();
+                let left_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.normalized.clone().into()),
+                    glossa_type: scope.lookup(&subj.normalized).cloned().unwrap_or(GlossaType::Unknown),
+                };
+                let right_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.normalized.clone().into()),
+                    glossa_type: scope.lookup(&obj.normalized).cloned().unwrap_or(GlossaType::Unknown),
+                };
+                let sem_op = stmt.operators[0];
+                return Ok(crate::semantic::expressions::build_binary_expr(left_expr, sem_op, right_expr));
+            }
+        }
+    }
+
+    crate::semantic::expressions::analyze_argument_expr(&expr, scope)
 }
 
 /// Parse a match pattern expression

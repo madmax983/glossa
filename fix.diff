@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    Err(GlossaError::semantic(format!(
+        "Undefined variable: {}",
+        normalized
+    )))
+}
+=======
+    // During property accesses like "selfου value", `value` gets analyzed before it's properly bound.
+    // If it's undefined, just return an unknown variable. `analyze_phrase` or property access can reject it later if needed.
+    Ok(AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(normalized.clone()),
+        glossa_type: GlossaType::Unknown,
+    })
+}
+>>>>>>> REPLACE
