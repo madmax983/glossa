@@ -14,3 +14,8 @@
 **Concept:** An interactive tutorial mode (`glossa mentor`) that guides users through learning the language via Socratic challenges. It verifies not just syntax but semantic correctness (e.g., "Create a variable named 'x'").
 **Fate:** Merged
 **Lesson:** By connecting the `Repl` loop with the `Analyzer`'s internal state, we can create a powerful educational tool that provides real-time feedback. This transforms the compiler from a tool into a teacher.
+
+## 🌟 The Weaver (ὁ Ὑφάντης)
+**Concept:** A unified "Rosetta Stone" exporter (`glossa weave`) that generates a Markdown document containing the original source text, the `mosaic` morphological assembly slot table, the `bard` English translation narrative, and the `codegen` final Rust code.
+**Fate:** Merged
+**Lesson:** Combining disjointed analysis and visualization CLI tools into a single exported document creates an incredible "at-a-glance" debug perspective and educational asset for understanding the language's full pipeline.

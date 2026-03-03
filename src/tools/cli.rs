@@ -127,4 +127,15 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Weave the source code, assembly, narrative, and generated code into a Markdown document (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Weave {
+        /// Input file (.γλ)
+        input: PathBuf,
+
+        /// Output file (.md)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
 }
