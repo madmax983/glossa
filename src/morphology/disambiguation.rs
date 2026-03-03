@@ -142,14 +142,10 @@ pub fn disambiguate(
         let score_a = score_analysis(a, context);
         let score_b = score_analysis(b, context);
 
-        let score_cmp = score_b
-            .partial_cmp(&score_a)
-            .unwrap_or(std::cmp::Ordering::Equal);
+        let score_cmp = crate::morphology::compare_confidence(score_b, score_a);
 
         if score_cmp == std::cmp::Ordering::Equal {
-            b.confidence
-                .partial_cmp(&a.confidence)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            crate::morphology::compare_confidence(b.confidence, a.confidence)
         } else {
             score_cmp
         }

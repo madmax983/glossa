@@ -38,6 +38,15 @@ use std::borrow::Cow;
 
 use crate::text::normalize_greek;
 
+/// Safely compare two f32 confidence scores, treating NaN as Equal.
+/// This prevents panics during sorting if a confidence calculation goes wrong.
+#[inline]
+pub(crate) fn compare_confidence(a: f32, b: f32) -> std::cmp::Ordering {
+    // We usually sort descending, so caller should do `compare_confidence(b, a)`
+    // or we can just provide the basic ascending comparison and let caller invert.
+    a.partial_cmp(&b).unwrap_or(std::cmp::Ordering::Equal)
+}
+
 /// Analyze a Greek word and return the most likely morphological analysis
 pub fn analyze(word: &str) -> MorphAnalysis {
     let normalized = normalize_greek(word);
@@ -98,11 +107,7 @@ fn analyze_all_from_normalized(normalized: &str) -> Vec<MorphAnalysis> {
     conjugation::analyze_verb_all_into(normalized, &mut analyses);
 
     // Sort by confidence (highest first)
-    analyses.sort_by(|a, b| {
-        b.confidence
-            .partial_cmp(&a.confidence)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    analyses.sort_by(|a, b| compare_confidence(b.confidence, a.confidence));
 
     // If we found nothing, check if it's a single Greek letter (mathematical variable)
     if analyses.is_empty() || analyses.iter().all(|a| a.confidence < 0.5) {
@@ -242,11 +247,7 @@ mod tests {
         ];
 
         // This uses the safe logic and should NOT panic
-        analyses.sort_by(|a, b| {
-            b.confidence
-                .partial_cmp(&a.confidence)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        analyses.sort_by(|a, b| compare_confidence(b.confidence, a.confidence));
 
         // Verify ordering is preserved for valid items (or at least no panic)
         // NaN comparisons are undefined, but we just ensure it doesn't crash

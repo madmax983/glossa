@@ -172,11 +172,7 @@ pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
     // analyze_noun_all sorts by (case, number, gender, lemma) but NOT confidence.
     // So we sort by confidence here. Since sort_by is stable, it preserves the
     // order for equal confidence (which prefers singular/simpler forms).
-    analyses.sort_by(|a, b| {
-        b.confidence
-            .partial_cmp(&a.confidence)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    analyses.sort_by(|a, b| crate::morphology::compare_confidence(b.confidence, a.confidence));
 
     analyses.into_iter().next()
 }
