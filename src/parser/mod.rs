@@ -27,7 +27,7 @@ pub(crate) mod declarations;
 pub(crate) mod expressions;
 pub mod grammar;
 pub mod numerals;
-pub mod recursion;
+pub(crate) mod recursion;
 pub(crate) mod statements;
 
 use self::grammar::{Rule, parse as grammar_parse};

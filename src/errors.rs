@@ -194,7 +194,7 @@ impl GlossaError {
 }
 
 /// Result type for ΓΛΩΣΣΑ operations
-pub type GlossaResult<T> = Result<T, GlossaError>;
+pub type Result<T, E = GlossaError> = std::result::Result<T, E>;
 
 /// Errors that can occur during assembly
 #[derive(Debug, Clone, Error, Diagnostic)]

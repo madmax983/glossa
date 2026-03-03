@@ -34,6 +34,7 @@ pub struct Status {
 
 impl Status {
     /// Create a new status indicator with default symbol
+    #[allow(dead_code)]
     pub fn start(message: impl Into<String>) -> Self {
         Self::start_with_symbol(message, "⚡")
     }
