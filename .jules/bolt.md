@@ -9,3 +9,7 @@
 **Performance Optimization: Iterator pattern matching vs `.collect()`**
 **Learning:** `word.chars().collect::<Vec<char>>()` is extremely inefficient for simple length checks or first-element extraction because it forces a heap allocation for `Vec`. Relying on unstable features like `let_chains` (`if let Some(x) = iter.next() && iter.next().is_none()`) breaks stable builds. Cloning a `Chars` iterator is already O(1) and does not need refactoring.
 **Action:** Use standard tuple pattern matching on iterators `if let (Some(first), None) = (iter.next(), iter.next())` to perform exact-length checks and extraction in O(1) time and space without heap allocation.
+
+**[String Sanitization Allocations]**
+**Learning:** Chaining `.to_lowercase().replace(…).chars().filter(…).collect::<String>()` performs multiple allocations and intermediate copies.
+**Action:** Replace with a pre-allocated `String::with_capacity()` and a single `for c in string.chars()` loop that pushes characters, mapping them inline.
