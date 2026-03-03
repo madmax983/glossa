@@ -398,6 +398,25 @@ mod tests {
     }
 
     #[test]
+    fn test_scope_exit_underflow_protection() {
+        let mut scope = Scope::new();
+        // A new scope starts with 1 level
+        assert_eq!(scope.levels.len(), 1);
+
+        // Attempting to exit when already at the root level should be a no-op
+        scope.exit();
+        scope.exit();
+        scope.exit();
+
+        // Must still have 1 level (preventing .expect() panic in current_level())
+        assert_eq!(scope.levels.len(), 1);
+
+        // Verify it still works normally
+        scope.define("ξ".to_string(), GlossaType::Number);
+        assert!(scope.is_defined("ξ"));
+    }
+
+    #[test]
     fn test_enter_exit_scope() {
         let mut scope = Scope::new();
         scope.define("ξ".to_string(), GlossaType::Number);
