@@ -20,9 +20,14 @@ pub(crate) fn build_regular_statement(
     })
 }
 
+/// Extracts clauses from a grammar statement pair.
+///
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity(inner.len())`
+/// This reduces heap reallocations when parsing statements containing multiple clauses.
 fn build_clauses(pair: Pair<'_, Rule>) -> Result<Vec<Clause>, ParseError> {
-    let mut clauses = Vec::new();
-    for clause_pair in pair.into_inner() {
+    let inner = pair.into_inner();
+    let mut clauses = Vec::with_capacity(inner.len());
+    for clause_pair in inner {
         if clause_pair.as_rule() == Rule::clause {
             clauses.push(build_clause(clause_pair)?);
         }
@@ -30,12 +35,17 @@ fn build_clauses(pair: Pair<'_, Rule>) -> Result<Vec<Clause>, ParseError> {
     Ok(clauses)
 }
 
+/// Extracts expressions from a single clause pair.
+///
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity(inner.len())`
+/// Limits dynamic memory allocations on the most critical AST generation paths.
 fn build_clause(pair: Pair<'_, Rule>) -> Result<Clause, ParseError> {
-    let mut expressions = Vec::new();
+    let inner = pair.into_inner();
+    let mut expressions = Vec::with_capacity(inner.len());
 
-    for inner in pair.into_inner() {
-        if inner.as_rule() == Rule::expression {
-            expressions.push(build_expression(inner)?);
+    for inner_pair in inner {
+        if inner_pair.as_rule() == Rule::expression {
+            expressions.push(build_expression(inner_pair)?);
         }
     }
     Ok(Clause { expressions })
