@@ -82,3 +82,8 @@
 **Bloat:** `src/semantic/traits.rs` defined a `StatementAnalyzer` trait that was only ever implemented once by `Analyzer` in `src/semantic/analyzer.rs`.
 **Cut:** Deleted the trait and file entirely, calling `Analyzer::analyze` concretely.
 **Saved:** 1 file, reduced indirection, simplified function signatures in `control_flow.rs` and `declarations.rs`.
+
+## [Reduction]
+**Bloat:** `src/semantic/analyzer.rs` defined a unit struct `Analyzer` that held no state but forced methods to take `&mut self` and caller modules (`control_flow.rs`, `declarations.rs`) to thread an `&mut Analyzer` instance around.
+**Cut:** Deleted the `Analyzer` struct completely and turned its `analyze` method into a module-level standalone function `pub fn analyze(stmt: &Statement, scope: &mut Scope)`.
+**Saved:** Removed unnecessary struct boilerplate, removed `&mut Analyzer` argument from multiple parsing functions, eliminated a stateful abstraction layer for stateless logic.
