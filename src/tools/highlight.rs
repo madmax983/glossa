@@ -55,7 +55,9 @@ use crate::parser::parse;
 pub fn highlight(source: &str) -> Result<String, GlossaError> {
     let program = parse(source)?;
     let mut highlighter = Highlighter::new();
-    highlighter.highlight_program(&program)?;
+    highlighter
+        .highlight_program(&program)
+        .map_err(|e| crate::errors::GlossaError::semantic(format!("Format error: {}", e)))?;
     Ok(highlighter.output)
 }
 
@@ -72,7 +74,7 @@ impl Highlighter {
         }
     }
 
-    fn highlight_program(&mut self, program: &Program) -> Result<(), GlossaError> {
+    fn highlight_program(&mut self, program: &Program) -> std::fmt::Result {
         for (i, stmt) in program.statements.iter().enumerate() {
             if i > 0 {
                 self.output.push('\n');
@@ -82,7 +84,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_statement(&mut self, stmt: &Statement) -> Result<(), GlossaError> {
+    fn highlight_statement(&mut self, stmt: &Statement) -> std::fmt::Result {
         match stmt {
             Statement::Regular {
                 clauses,
@@ -112,7 +114,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_clause(&mut self, clause: &Clause) -> Result<(), GlossaError> {
+    fn highlight_clause(&mut self, clause: &Clause) -> std::fmt::Result {
         for (i, expr) in clause.expressions.iter().enumerate() {
             if i > 0 {
                 self.output.push(' ');
@@ -122,25 +124,19 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_expr(&mut self, expr: &Expr) -> Result<(), GlossaError> {
+    fn highlight_expr(&mut self, expr: &Expr) -> std::fmt::Result {
         match expr {
             Expr::StringLiteral(s) => {
                 // Sanitize string to prevent terminal injection
                 let sanitized: String = s.chars().flat_map(|c| c.escape_debug()).collect();
-                write!(self.output, "«{}»", sanitized.as_str().italic()).map_err(|e| {
-                    crate::errors::GlossaError::semantic(format!("Format error: {}", e))
-                })?;
+                write!(self.output, "«{}»", sanitized.as_str().italic())?;
             }
             Expr::NumberLiteral(n) => {
-                write!(self.output, "{}", n.to_string().italic()).map_err(|e| {
-                    crate::errors::GlossaError::semantic(format!("Format error: {}", e))
-                })?;
+                write!(self.output, "{}", n.to_string().italic())?;
             }
             Expr::BooleanLiteral(b) => {
                 let s = if *b { "ἀληθές" } else { "ψεῦδος" };
-                write!(self.output, "{}", s.italic()).map_err(|e| {
-                    crate::errors::GlossaError::semantic(format!("Format error: {}", e))
-                })?;
+                write!(self.output, "{}", s.italic())?;
             }
             Expr::Word(w) => self.highlight_word(w)?,
             Expr::Phrase(terms) => {
@@ -170,9 +166,7 @@ impl Highlighter {
                 self.output.push(' ');
                 self.highlight_expr(value)?;
                 self.output.push(' ');
-                write!(self.output, "{}", "ἔστω".bold()).map_err(|e| {
-                    crate::errors::GlossaError::semantic(format!("Format error: {}", e))
-                })?;
+                write!(self.output, "{}", "ἔστω".bold())?;
             }
             Expr::BinOp { left, op, right } => {
                 self.highlight_expr(left)?;
@@ -185,21 +179,15 @@ impl Highlighter {
                 match op {
                     UnaryOperator::Unwrap => {
                         self.highlight_expr(operand)?;
-                        write!(self.output, "{}", "!".bold().red()).map_err(|e| {
-                            crate::errors::GlossaError::semantic(format!("Format error: {}", e))
-                        })?;
+                        write!(self.output, "{}", "!".bold().red())?;
                     }
                     UnaryOperator::Not => {
-                        write!(self.output, "{}", "οὐ".bold()).map_err(|e| {
-                            crate::errors::GlossaError::semantic(format!("Format error: {}", e))
-                        })?; // Simplified
+                        write!(self.output, "{}", "οὐ".bold())?; // Simplified
                         self.output.push(' ');
                         self.highlight_expr(operand)?;
                     }
                     UnaryOperator::Neg => {
-                        write!(self.output, "-").map_err(|e| {
-                            crate::errors::GlossaError::semantic(format!("Format error: {}", e))
-                        })?;
+                        write!(self.output, "-")?;
                         self.highlight_expr(operand)?;
                     }
                 }
@@ -234,13 +222,11 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_word(&mut self, w: &Word) -> Result<(), GlossaError> {
+    fn highlight_word(&mut self, w: &Word) -> std::fmt::Result {
         // 1. Check for article (sets context)
         if let Some(ctx) = analyze_article(&w.original) {
             self.context = ctx;
-            write!(self.output, "{}", w.original).map_err(|e| {
-                crate::errors::GlossaError::semantic(format!("Format error: {}", e))
-            })?; // Articles plain or dim? Let's leave plain
+            write!(self.output, "{}", w.original)?; // Articles plain or dim? Let's leave plain
             return Ok(());
         }
 
@@ -249,9 +235,7 @@ impl Highlighter {
         let is_numeral = crate::morphology::lexicon::numeral_value(&w.normalized).is_some();
 
         if !in_lexicon && !is_numeral && analyze_participle(&w.normalized).is_some() {
-            write!(self.output, "{}", w.original.cyan()).map_err(|e| {
-                crate::errors::GlossaError::semantic(format!("Format error: {}", e))
-            })?; // Participles as cyan (adjectival)
+            write!(self.output, "{}", w.original.cyan())?; // Participles as cyan (adjectival)
             return Ok(());
         }
 
@@ -285,12 +269,11 @@ impl Highlighter {
             _ => w.original.white(), // Default
         };
 
-        write!(self.output, "{}", styled)
-            .map_err(|e| crate::errors::GlossaError::semantic(format!("Format error: {}", e)))?;
+        write!(self.output, "{}", styled)?;
         Ok(())
     }
 
-    fn highlight_binop(&mut self, op: &BinOperator) -> Result<(), GlossaError> {
+    fn highlight_binop(&mut self, op: &BinOperator) -> std::fmt::Result {
         let s = match op {
             BinOperator::Add => "+",
             BinOperator::Sub => "-",
@@ -306,14 +289,13 @@ impl Highlighter {
             BinOperator::And => "&&",
             BinOperator::Or => "||",
         };
-        write!(self.output, "{}", s.bold())
-            .map_err(|e| crate::errors::GlossaError::semantic(format!("Format error: {}", e)))?;
+        write!(self.output, "{}", s.bold())?;
         Ok(())
     }
 
     // --- Definitions (Simplified highlighting for now) ---
 
-    fn highlight_type_def(&mut self, def: &TypeDef) -> Result<(), GlossaError> {
+    fn highlight_type_def(&mut self, def: &TypeDef) -> std::fmt::Result {
         write!(
             self.output,
             "{} {} {} {{ ... }}",
@@ -325,7 +307,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_trait_def(&mut self, def: &TraitDef) -> Result<(), GlossaError> {
+    fn highlight_trait_def(&mut self, def: &TraitDef) -> std::fmt::Result {
         write!(
             self.output,
             "{} {} {} {{ ... }}",
@@ -337,7 +319,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_trait_impl(&mut self, def: &TraitImplDef) -> Result<(), GlossaError> {
+    fn highlight_trait_impl(&mut self, def: &TraitImplDef) -> std::fmt::Result {
         write!(
             self.output,
             "{} {} {} {} {{ ... }}",
@@ -351,7 +333,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_test_decl(&mut self, decl: &TestDecl) -> Result<(), GlossaError> {
+    fn highlight_test_decl(&mut self, decl: &TestDecl) -> std::fmt::Result {
         writeln!(
             self.output,
             "{} «{}»",
@@ -366,8 +348,7 @@ impl Highlighter {
             self.output.push('\n');
         }
 
-        write!(self.output, "{}", "τέλος".bold())
-            .map_err(|e| crate::errors::GlossaError::semantic(format!("Format error: {}", e)))?;
+        write!(self.output, "{}", "τέλος".bold())?;
         Ok(())
     }
 }
