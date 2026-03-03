@@ -172,7 +172,7 @@ pub fn try_parse_struct_instantiation(
                 return Ok(None);
             };
 
-            let last_word = if let Expr::Word(w) = terms.last().unwrap() {
+            let last_word = if let Some(Expr::Word(w)) = terms.last() {
                 w
             } else {
                 return Ok(None);

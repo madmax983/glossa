@@ -1030,14 +1030,16 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
             });
         }
     }
+    #[allow(clippy::collapsible_if)]
 
-    if asm_stmt.is_propagate && !exprs.is_empty() {
-        let last_expr = exprs.pop().unwrap();
-        let try_expr = AnalyzedExpr {
-            glossa_type: last_expr.glossa_type.clone(),
-            expr: AnalyzedExprKind::Try(Box::new(last_expr)),
-        };
-        exprs.push(try_expr);
+    if asm_stmt.is_propagate {
+        if let Some(last_expr) = exprs.pop() {
+            let try_expr = AnalyzedExpr {
+                glossa_type: last_expr.glossa_type.clone(),
+                expr: AnalyzedExprKind::Try(Box::new(last_expr)),
+            };
+            exprs.push(try_expr);
+        }
     }
 
     Ok(AnalyzedStatement::Expression(exprs))

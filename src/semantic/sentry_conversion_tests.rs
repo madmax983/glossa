@@ -403,3 +403,25 @@ fn test_binding_subject_object_swap() {
         panic!("Expected Binding statement");
     }
 }
+
+#[test]
+fn test_try_parse_expression_statement_empty_exprs_no_panic() -> Result<(), crate::errors::GlossaError> {
+    let mut scope = Scope::new();
+
+    // An empty statement with is_propagate = true
+    // We want to ensure this is handled cleanly without panicking.
+    let asm_stmt = AssembledStatement {
+        is_propagate: true,
+        ..Default::default()
+    };
+
+    // We expect it to gracefully return an Expression statement with 0 expressions
+    let result = crate::semantic::conversion::convert_assembled_to_analyzed(&asm_stmt, &mut scope)?;
+
+    if let AnalyzedStatement::Expression(exprs) = result {
+        assert!(exprs.is_empty(), "Should return empty expressions vector");
+    } else {
+        panic!("Expected Expression statement");
+    }
+    Ok(())
+}
