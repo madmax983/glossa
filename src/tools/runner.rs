@@ -197,8 +197,13 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     // Check if we can use cached binary
     if cache.is_valid(input, &cached_exe) && cached_exe.exists() {
+        println!();
+        println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
+
         // Run cached binary directly
         let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+
+        println!("{}", "--- Τέλος (End) ---".dim());
 
         if !exit_status.success() {
             std::process::exit(exit_status.code().unwrap_or(1));
@@ -262,8 +267,13 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     status.success();
 
+    println!();
+    println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
+
     // Run the compiled program
     let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+
+    println!("{}", "--- Τέλος (End) ---".dim());
 
     if !exit_status.success() {
         std::process::exit(exit_status.code().unwrap_or(1));
