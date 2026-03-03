@@ -19,6 +19,7 @@ use crate::semantic::assembly::Assembler;
 use crate::semantic::assembly::Literal;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
 use crate::semantic::resolver::Scope;
+use crate::limits::MAX_AST_DEPTH;
 use crate::semantic::types::GlossaType;
 
 /// Analyze an argument expression (could be literal, variable, or nested call)
@@ -56,20 +57,12 @@ pub(crate) fn analyze_argument_expr(
     analyze_argument_expr_recursive(expr, scope, 0)
 }
 
-/// Maximum recursion depth for expression analysis
-///
-/// This limit exists to prevent stack overflow errors (or DoS attacks) when analyzing
-/// deeply nested expressions like `((((...))))`.
-///
-/// If recursion depth exceeds this value (50), the compiler returns a [`GlossaError::SemanticError`].
-pub const MAX_RECURSION_DEPTH: usize = 50;
-
 fn analyze_argument_expr_recursive(
     expr: &Expr,
     scope: &Scope,
     depth: usize,
 ) -> Result<AnalyzedExpr, GlossaError> {
-    if depth > MAX_RECURSION_DEPTH {
+    if depth > MAX_AST_DEPTH {
         return Err(GlossaError::semantic(
             "Recursion limit exceeded in expression analysis",
         ));
@@ -404,7 +397,7 @@ fn feed_expr_recursive(
     context: &mut DisambiguationContext,
     depth: usize,
 ) -> Result<(), GlossaError> {
-    if depth > MAX_RECURSION_DEPTH {
+    if depth > MAX_AST_DEPTH {
         return Err(GlossaError::semantic(
             "Recursion limit exceeded in expression analysis",
         ));
@@ -503,7 +496,7 @@ fn feed_expr_recursive(
             // into constituent words which might be misassembled.
 
             // SECURITY: Ensure we don't clone excessively deep structures, which would stack overflow.
-            check_cloning_depth_safety(expr, MAX_RECURSION_DEPTH)?;
+            check_cloning_depth_safety(expr, MAX_AST_DEPTH)?;
 
             asm.feed_nested_phrase(vec![expr.clone()])?;
         }

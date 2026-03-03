@@ -1,5 +1,6 @@
 use crate::ast::{Expr, Word};
-use crate::semantic::expressions::{MAX_RECURSION_DEPTH, feed_expr_to_assembler_with_context};
+use crate::limits::MAX_AST_DEPTH;
+use crate::semantic::expressions::feed_expr_to_assembler_with_context;
 use crate::semantic::{Assembler, DisambiguationContext};
 
 // Helper to create a nested structure of a specific type
@@ -19,7 +20,7 @@ fn make_nested_expr(depth: usize, constructor: impl Fn(Expr) -> Expr) -> Expr {
 fn test_check_safety_phrase_recursion() {
     let mut asm = Assembler::new();
     let mut ctx = DisambiguationContext::new();
-    let depth = MAX_RECURSION_DEPTH + 10;
+    let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::Phrase(vec![e]));
 
@@ -31,7 +32,7 @@ fn test_check_safety_phrase_recursion() {
 fn test_check_safety_array_recursion() {
     let mut asm = Assembler::new();
     let mut ctx = DisambiguationContext::new();
-    let depth = MAX_RECURSION_DEPTH + 10;
+    let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::ArrayLiteral(vec![e]));
 
@@ -43,7 +44,7 @@ fn test_check_safety_array_recursion() {
 fn test_check_safety_index_access_recursion_array() {
     let mut asm = Assembler::new();
     let mut ctx = DisambiguationContext::new();
-    let depth = MAX_RECURSION_DEPTH + 10;
+    let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::IndexAccess {
         array: Box::new(e),
@@ -61,7 +62,7 @@ fn test_check_safety_index_access_recursion_array() {
 fn test_check_safety_index_access_recursion_index() {
     let mut asm = Assembler::new();
     let mut ctx = DisambiguationContext::new();
-    let depth = MAX_RECURSION_DEPTH + 10;
+    let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::IndexAccess {
         array: Box::new(Expr::ArrayLiteral(vec![])),
@@ -79,7 +80,7 @@ fn test_check_safety_index_access_recursion_index() {
 fn test_check_safety_binop_recursion_left() {
     let mut asm = Assembler::new();
     let mut ctx = DisambiguationContext::new();
-    let depth = MAX_RECURSION_DEPTH + 10;
+    let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::BinOp {
         left: Box::new(e),
@@ -95,7 +96,7 @@ fn test_check_safety_binop_recursion_left() {
 fn test_check_safety_binop_recursion_right() {
     let mut asm = Assembler::new();
     let mut ctx = DisambiguationContext::new();
-    let depth = MAX_RECURSION_DEPTH + 10;
+    let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::BinOp {
         left: Box::new(Expr::NumberLiteral(1)),
@@ -111,7 +112,7 @@ fn test_check_safety_binop_recursion_right() {
 fn test_check_safety_unary_op_recursion() {
     let mut asm = Assembler::new();
     let mut ctx = DisambiguationContext::new();
-    let depth = MAX_RECURSION_DEPTH + 10;
+    let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::UnaryOp {
         op: crate::ast::UnaryOperator::Not,
@@ -126,7 +127,7 @@ fn test_check_safety_unary_op_recursion() {
 fn test_check_safety_binding_recursion() {
     let mut asm = Assembler::new();
     let mut ctx = DisambiguationContext::new();
-    let depth = MAX_RECURSION_DEPTH + 10;
+    let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::Binding {
         name: Word::new("x"),
@@ -141,7 +142,7 @@ fn test_check_safety_binding_recursion() {
 fn test_check_safety_call_recursion() {
     let mut asm = Assembler::new();
     let mut ctx = DisambiguationContext::new();
-    let depth = MAX_RECURSION_DEPTH + 10;
+    let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::Call {
         verb: Word::new("f"),

@@ -27,7 +27,7 @@ pub(crate) mod declarations;
 pub(crate) mod expressions;
 pub mod grammar;
 pub mod numerals;
-pub mod recursion;
+pub(crate) mod recursion;
 pub(crate) mod statements;
 
 use self::grammar::{Rule, parse as grammar_parse};
@@ -228,19 +228,21 @@ mod tests {
 
     #[test]
     fn test_recursion_limit_exceeded() {
-        // 501 nested parentheses
-        let source = "(".repeat(501) + &")".repeat(501);
+        use crate::limits::MAX_PARSE_DEPTH;
+        // Exceed max parentheses
+        let source = "(".repeat(MAX_PARSE_DEPTH + 1) + &")".repeat(MAX_PARSE_DEPTH + 1);
         let result = parse_source(&source);
         assert!(matches!(
             result,
-            Err(ParseError::RecursionLimitExceeded(500))
+            Err(ParseError::RecursionLimitExceeded(MAX_PARSE_DEPTH))
         ));
     }
 
     #[test]
     fn test_recursion_limit_not_exceeded() {
-        // 500 nested parentheses (should pass check, though pest might fail to parse empty parens)
-        let source = "(".repeat(500) + &")".repeat(500);
+        use crate::limits::MAX_PARSE_DEPTH;
+        // Exactly max nested parentheses
+        let source = "(".repeat(MAX_PARSE_DEPTH) + &")".repeat(MAX_PARSE_DEPTH);
         // We only care about the recursion check here
         let result = recursion::check_recursion_depth(&source);
         assert!(result.is_ok());
@@ -264,18 +266,19 @@ mod tests {
 
     #[test]
     fn test_recursion_limit_mixed_brackets() {
+        use crate::limits::MAX_PARSE_DEPTH;
         // Mixed brackets should all count towards the same limit
-        // 200 (, 200 {, 101 [ = 501 total
+        // E.g. MAX_PARSE_DEPTH = 500 => 200 (, 200 {, 101 [ = 501 total
         let source = "(".repeat(200)
             + &"{".repeat(200)
-            + &"[".repeat(101)
-            + &"]".repeat(101)
+            + &"[".repeat(MAX_PARSE_DEPTH - 400 + 1)
+            + &"]".repeat(MAX_PARSE_DEPTH - 400 + 1)
             + &"}".repeat(200)
             + &")".repeat(200);
         let result = recursion::check_recursion_depth(&source);
         assert!(matches!(
             result,
-            Err(ParseError::RecursionLimitExceeded(500))
+            Err(ParseError::RecursionLimitExceeded(MAX_PARSE_DEPTH))
         ));
     }
 
