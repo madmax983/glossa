@@ -12,7 +12,6 @@ pub enum Symbol {
     Variable(Binding),
     Function(FunctionSignature),
     Type(GlossaType),
-    Trait(crate::semantic::model::TraitDef),
 }
 
 /// A scope level containing symbol bindings
@@ -20,8 +19,6 @@ pub enum Symbol {
 struct ScopeLevel {
     /// Symbols defined in this scope
     symbols: HashMap<SmolStr, Symbol>,
-    /// Trait implementations in this scope
-    trait_impls: Vec<crate::semantic::model::TraitImpl>,
 }
 
 impl ScopeLevel {
@@ -164,65 +161,6 @@ impl Scope {
         }
     }
 
-    /// Define a trait in this scope
-    pub fn define_trait(
-        &mut self,
-        name: impl Into<SmolStr>,
-        trait_def: crate::semantic::model::TraitDef,
-    ) {
-        self.current_level()
-            .symbols
-            .insert(name.into(), Symbol::Trait(trait_def));
-    }
-
-    /// Look up a trait by name
-    pub fn lookup_trait(&self, name: &str) -> Option<&crate::semantic::model::TraitDef> {
-        match self.lookup_symbol(name) {
-            Some(Symbol::Trait(def)) => Some(def),
-            _ => None,
-        }
-    }
-
-    /// Register a trait implementation
-    pub fn register_trait_impl(&mut self, impl_def: crate::semantic::model::TraitImpl) {
-        self.current_level().trait_impls.push(impl_def);
-    }
-
-    /// Look up a trait implementation for a given type and trait
-    pub fn lookup_trait_impl(
-        &self,
-        type_name: &str,
-        trait_name: &str,
-    ) -> Option<&crate::semantic::model::TraitImpl> {
-        for level in self.levels.iter().rev() {
-            for impl_def in &level.trait_impls {
-                if impl_def.type_name == type_name && impl_def.trait_name == trait_name {
-                    return Some(impl_def);
-                }
-            }
-        }
-        None
-    }
-
-    /// Check if a type has a trait method with the given name
-    pub fn has_trait_method(&self, type_name: &str, method_name: &str) -> bool {
-        for level in self.levels.iter().rev() {
-            for trait_impl in &level.trait_impls {
-                if trait_impl.type_name != type_name {
-                    continue;
-                }
-                // Check if the trait has this method
-                if let Some(trait_def) = self.lookup_trait(&trait_impl.trait_name) {
-                    let has_method = trait_def.methods.iter().any(|m| m.name == method_name);
-                    if has_method {
-                        return true;
-                    }
-                }
-            }
-        }
-        false
-    }
-
     /// Define a new binding in this scope
     pub fn define(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
         let name = name.into();
@@ -340,16 +278,6 @@ impl Scope {
         self.levels.iter().flat_map(|l| {
             l.symbols.iter().filter_map(|(k, v)| match v {
                 Symbol::Type(t) => Some((k, t)),
-                _ => None,
-            })
-        })
-    }
-
-    /// Get all traits defined in this scope
-    pub fn traits(&self) -> impl Iterator<Item = (&SmolStr, &crate::semantic::model::TraitDef)> {
-        self.levels.iter().flat_map(|l| {
-            l.symbols.iter().filter_map(|(k, v)| match v {
-                Symbol::Trait(t) => Some((k, t)),
                 _ => None,
             })
         })
@@ -517,25 +445,6 @@ mod tests {
 
         // Should NOT find as type anymore (shadowed by variable)
         assert!(scope.lookup_type("Τ").is_none());
-    }
-
-    #[test]
-    fn test_scope_trait_coverage() {
-        use crate::semantic::model::TraitDef;
-        let mut scope = Scope::new();
-        let trait_name = "Δεικτόν";
-        let trait_def = TraitDef {
-            name: trait_name.into(),
-            methods: vec![],
-        };
-
-        scope.define_trait(trait_name.to_string(), trait_def);
-
-        assert!(scope.lookup_trait(trait_name).is_some());
-        assert!(scope.traits().any(|(k, _)| k == trait_name));
-
-        // Ensure lookup_symbol covers Trait branch
-        assert!(scope.is_defined(trait_name));
     }
 
     #[test]

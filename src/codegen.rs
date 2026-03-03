@@ -1601,35 +1601,6 @@ mod tests {
         }
 
         #[test]
-        fn test_generate_trait_parts_manual() {
-            // Manual construction of a trait method
-            let method = AnalyzedMethod {
-                name: SmolStr::new("test_method"),
-                params: vec![
-                    (SmolStr::new("self"), GlossaType::Unknown), // Self param
-                    (SmolStr::new("arg1"), GlossaType::Number),
-                ],
-                body: None,
-                return_type: Some(GlossaType::Boolean),
-            };
-
-            let parts = generate_trait_method_parts(&method);
-
-            assert_eq!(parts.name.to_string(), "g_test_method");
-
-            // Check params
-            let params_str: Vec<String> = parts.params.iter().map(|t| t.to_string()).collect();
-            assert_eq!(params_str.len(), 2);
-            assert_eq!(params_str[0], "& self");
-            assert!(params_str[1].contains("g_arg1"));
-            assert!(params_str[1].contains("i64"));
-
-            // Check return type
-            assert!(parts.return_type.is_some());
-            assert_eq!(parts.return_type.unwrap().to_string(), "bool");
-        }
-
-        #[test]
         fn test_generate_checked_arithmetic() {
             let left = AnalyzedExpr {
                 expr: AnalyzedExprKind::NumberLiteral(10),

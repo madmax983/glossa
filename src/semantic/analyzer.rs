@@ -7,11 +7,10 @@
 use super::control_flow::analyze_control_flow;
 use super::conversion::convert_assembled_to_analyzed;
 use super::declarations::{
-    analyze_test_declaration, analyze_trait_definition, analyze_trait_impl,
-    analyze_type_definition, parse_function_definition,
+    analyze_test_declaration, analyze_type_definition, parse_function_definition,
 };
 use super::expressions::contains_function_definition_verb;
-use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
+use super::patterns::try_parse_struct_instantiation;
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, assemble_statement,
 };
@@ -78,11 +77,6 @@ impl Analyzer {
             return Ok(vec![struct_inst]);
         }
 
-        // 4. Check for trait method call pattern
-        if let Some(method_call) = try_parse_trait_method_call(stmt, scope)? {
-            return Ok(vec![method_call]);
-        }
-
         // 5. Check if it's a block statement (regular statement containing a single block expression)
         if let Some(block_stmts) = extract_block_statements(stmt) {
             let mut analyzed = Vec::new();
@@ -126,22 +120,6 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
         // Handle type definitions
         if let Statement::TypeDefinition(type_def) = stmt {
             analyzed_statements.push(analyze_type_definition(type_def, &mut scope)?);
-            continue;
-        }
-
-        // Handle trait definitions
-        if let Statement::TraitDefinition(trait_def) = stmt {
-            analyzed_statements.push(analyze_trait_definition(
-                trait_def,
-                &mut scope,
-                &mut analyzer,
-            )?);
-            continue;
-        }
-
-        // Handle trait implementations
-        if let Statement::TraitImpl(trait_impl) = stmt {
-            analyzed_statements.push(analyze_trait_impl(trait_impl, &mut scope, &mut analyzer)?);
             continue;
         }
 
