@@ -7,6 +7,7 @@
 
 use std::borrow::Cow;
 
+use crate::morphology::deduplicate_tail;
 use crate::morphology::matcher::match_suffix;
 use crate::morphology::models::{Case, Gender, MorphAnalysis, Number, PartOfSpeech};
 
@@ -248,28 +249,9 @@ pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
     });
 
     // Deduplicate identical analyses in the tail
-    let len = analyses.len();
-    if len > start_len + 1 {
-        let mut w = start_len + 1;
-        for r in start_len + 1..len {
-            let matches = {
-                let a = &analyses[w - 1];
-                let b = &analyses[r];
-                a.case == b.case
-                    && a.number == b.number
-                    && a.gender == b.gender
-                    && a.lemma == b.lemma
-            };
-
-            if !matches {
-                if r != w {
-                    analyses.swap(r, w);
-                }
-                w += 1;
-            }
-        }
-        analyses.truncate(w);
-    }
+    deduplicate_tail(analyses, start_len, |a, b| {
+        a.case == b.case && a.number == b.number && a.gender == b.gender && a.lemma == b.lemma
+    });
 }
 
 /// Extract stem from a word given its nominative form and declension

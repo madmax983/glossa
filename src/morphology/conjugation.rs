@@ -7,6 +7,7 @@
 
 use std::borrow::Cow;
 
+use crate::morphology::deduplicate_tail;
 use crate::morphology::matcher::match_suffix;
 use crate::morphology::models::{Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice};
 use crate::text::normalize_greek;
@@ -591,29 +592,13 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
     });
 
     // Deduplicate identical analyses in the tail
-    let len = analyses.len();
-    if len > start_len + 1 {
-        let mut w = start_len + 1;
-        for r in start_len + 1..len {
-            let matches = {
-                let a = &analyses[w - 1];
-                let b = &analyses[r];
-                a.tense == b.tense
-                    && a.mood == b.mood
-                    && a.person == b.person
-                    && a.number == b.number
-                    && a.lemma == b.lemma
-            };
-
-            if !matches {
-                if r != w {
-                    analyses.swap(r, w);
-                }
-                w += 1;
-            }
-        }
-        analyses.truncate(w);
-    }
+    deduplicate_tail(analyses, start_len, |a, b| {
+        a.tense == b.tense
+            && a.mood == b.mood
+            && a.person == b.person
+            && a.number == b.number
+            && a.lemma == b.lemma
+    });
 }
 
 /// Conjugate a verb stem to a specific form

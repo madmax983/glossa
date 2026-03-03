@@ -78,6 +78,26 @@ pub fn analyze_all(word: &str) -> Vec<MorphAnalysis> {
     analyze_all_from_normalized(&normalized)
 }
 
+/// Helper to deduplicate the tail of a vector from a given start index.
+pub(crate) fn deduplicate_tail<T, F>(vec: &mut Vec<T>, start_len: usize, mut is_same: F)
+where
+    F: FnMut(&T, &T) -> bool,
+{
+    let len = vec.len();
+    if len > start_len + 1 {
+        let mut w = start_len + 1;
+        for r in start_len + 1..len {
+            if !is_same(&vec[w - 1], &vec[r]) {
+                if r != w {
+                    vec.swap(r, w);
+                }
+                w += 1;
+            }
+        }
+        vec.truncate(w);
+    }
+}
+
 /// Helper to analyze using an already-normalized string
 fn analyze_all_from_normalized(normalized: &str) -> Vec<MorphAnalysis> {
     // Pre-allocate capacity to avoid reallocations
