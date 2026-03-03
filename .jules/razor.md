@@ -82,3 +82,13 @@
 **Bloat:** `src/semantic/traits.rs` defined a `StatementAnalyzer` trait that was only ever implemented once by `Analyzer` in `src/semantic/analyzer.rs`.
 **Cut:** Deleted the trait and file entirely, calling `Analyzer::analyze` concretely.
 **Saved:** 1 file, reduced indirection, simplified function signatures in `control_flow.rs` and `declarations.rs`.
+
+## [Reduction]
+**Bloat:** `src/semantic/assembly/` was a directory with only two files (`mod.rs` and `model.rs`).
+**Cut:** Merged `model.rs` into `mod.rs` and moved it to `src/semantic/assembly.rs`, deleting the directory.
+**Saved:** 1 directory, 1 file, and simplified module hierarchy.
+
+## [Reduction]
+**Bloat:** `src/experimental/` was a directory with only two files (`mod.rs` and `interpreter.rs`).
+**Cut:** Moved `interpreter.rs` to `src/experimental.rs` and deleted the directory.
+**Saved:** 1 directory, 1 file, and simplified module hierarchy.
