@@ -1,0 +1,15 @@
+// Define a type (struct)
+εἶδος Χρήστης ὁρίζειν {
+    ὄνομα ὀνόματος.      // field: String
+    ἡλικία ἀριθμοῦ.   // field: i64
+}.
+
+// Create a new user instance
+χρήστης νέον Χρήστης
+    «Σωκράτης»
+    70
+ἔστω.
+
+// Error: Nominative instead of Genitive for property access?
+// "user" (nominative) "name" (nominative) "say" (verb)
+χρήστης ὄνομα λέγε.
