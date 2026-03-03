@@ -7,7 +7,7 @@
 //!
 //! 1. **Morphological Analysis**: Raw words are analyzed for case, gender, number, etc.
 //!    (handled by the `morphology` module).
-//! 2. **Slot-Based Assembly**: The [`Assembler`] routes these words into grammatical slots
+//! 2. **Slot-Based Assembly**: The `Assembler` routes these words into grammatical slots
 //!    (Subject, Object, Verb) based on their case endings. This provides the
 //!    language's signature free word order.
 //! 3. **Pattern Recognition**: The assembled sentence is classified into a statement kind

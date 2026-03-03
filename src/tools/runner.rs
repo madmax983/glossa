@@ -237,6 +237,8 @@ pub fn run_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Checks the semantic validity of a ΓΛΩΣΣΑ file without executing it.
+/// Evaluates syntax, types, and variable bindings.
 pub fn check_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
     let source = load_source(input)?;
@@ -256,6 +258,7 @@ pub fn check_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Displays the contents of a ΓΛΩΣΣΑ file with semantic syntax highlighting.
 pub fn highlight_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
     let source = load_source(input)?;
@@ -267,6 +270,7 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Generates and prints a narrative explanation (Bard) of the logic within a ΓΛΩΣΣΑ file.
 pub fn bard_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
     let source = load_source(input)?;

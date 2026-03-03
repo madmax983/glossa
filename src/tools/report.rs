@@ -219,6 +219,7 @@ pub struct GlossaReport<'a> {
 }
 
 impl<'a> GlossaReport<'a> {
+    /// Creates a new `GlossaReport` for the given analyzed program.
     pub fn new(program: &'a AnalyzedProgram, filename: String) -> Self {
         let stats = ProgramStats::new(program);
         Self {
@@ -333,11 +334,17 @@ impl Display for GlossaReport<'_> {
 
 /// A comprehensive report for the compilation process
 pub struct CompilationReport {
+    /// The path to the original source file
     pub input_path: PathBuf,
+    /// The path to the compiled output file
     pub output_path: PathBuf,
+    /// The size of the input file in bytes
     pub input_size: u64,
+    /// The size of the output file in bytes
     pub output_size: u64,
+    /// The duration taken to compile the file
     pub duration: Duration,
+    /// The statistics collected from the program
     pub stats: ProgramStats,
 }
 

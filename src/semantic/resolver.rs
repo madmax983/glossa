@@ -9,9 +9,13 @@ use std::collections::HashMap;
 /// A unified symbol entry in the scope
 #[derive(Debug, Clone)]
 pub enum Symbol {
+    /// A variable binding
     Variable(Binding),
+    /// A function signature
     Function(FunctionSignature),
+    /// A defined type
     Type(GlossaType),
+    /// A defined trait
     Trait(crate::semantic::model::TraitDef),
 }
 

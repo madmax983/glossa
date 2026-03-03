@@ -34,11 +34,11 @@
 //!
 //! ## How it works
 //!
-//! 1. **Feed**: You feed morphologically analyzed tokens one by one using [`Assembler::feed`].
+//! 1. **Feed**: You feed morphologically analyzed tokens one by one using `Assembler::feed`.
 //! 2. **Route**: The assembler looks at the `Case` of the token (Nominative, Accusative, etc.)
 //!    and routes it to the corresponding pending slot.
 //! 3. **Accumulate**: Modifiers like adjectives or genitives are accumulated in lists.
-//! 4. **Finalize**: When the statement ends (e.g., at a period), you call [`Assembler::finalize`].
+//! 4. **Finalize**: When the statement ends (e.g., at a period), you call `Assembler::finalize`.
 //!    This checks for validity (e.g., Subject-Verb agreement) and returns the [`AssembledStatement`].
 //!
 //! ## Word Order Independence

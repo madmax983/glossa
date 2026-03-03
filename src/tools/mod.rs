@@ -29,6 +29,7 @@ pub mod mosaic;
 pub mod narrator;
 pub mod repl;
 pub mod report;
+/// File runner and execution utilities
 pub mod runner;
 pub mod tester;
 pub mod ui;

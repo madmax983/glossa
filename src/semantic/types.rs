@@ -87,8 +87,11 @@ pub enum GlossaType {
     ///
     /// Named types defined by the user (e.g., `εἶδος Χρήστης`).
     Struct {
+        /// The name of the struct
         name: SmolStr,
+        /// The grammatical gender of the struct
         gender: Gender,
+        /// The fields defined in the struct and their types
         fields: Vec<(SmolStr, GlossaType)>,
     },
 
@@ -96,7 +99,9 @@ pub enum GlossaType {
     ///
     /// Represents the type of a function, including parameter and return types.
     Function {
+        /// The parameter types of the function
         params: Vec<GlossaType>,
+        /// The return type of the function
         returns: Box<GlossaType>,
     },
 

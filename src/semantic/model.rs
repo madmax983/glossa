@@ -20,8 +20,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `let g_x = 5;`
     Binding {
+        /// The identifier assigned to the memory slot.
         name: SmolStr,
+        /// The fully evaluated expression filling the memory slot.
         value: AnalyzedExpr,
+        /// Whether this value is allowed to mutate or is locked.
         mutable: bool,
     },
     /// Assignment to existing variable
@@ -31,7 +34,12 @@ pub enum AnalyzedStatement {
     /// ξ δέκα γίγνεται.
     /// ```
     /// -> `g_x = 10;`
-    Assignment { name: SmolStr, value: AnalyzedExpr },
+    Assignment {
+        /// The identifier representing the memory destination.
+        name: SmolStr,
+        /// The new value resolving into the target.
+        value: AnalyzedExpr,
+    },
     /// Print statement
     ///
     /// # Example
@@ -63,8 +71,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `if g_x > 5 { ... } else { ... }`
     If {
+        /// The boolean expression acting as the gatekeeper.
         condition: Box<AnalyzedExpr>,
+        /// The sequence of operations executed if the gate is opened.
         then_body: Vec<AnalyzedStatement>,
+        /// The optional sequence of operations executed if the gate is closed.
         else_body: Option<Vec<AnalyzedStatement>>,
     },
     /// While loop
@@ -75,7 +86,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `while g_x < 10 { ... }`
     While {
+        /// The condition that must remain true
         condition: Box<AnalyzedExpr>,
+        /// The list of statements comprising the loop body
         body: Vec<AnalyzedStatement>,
     },
     /// For loop
@@ -86,8 +99,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `for b in a { println!("{}", b); }`
     For {
+        /// The identifier bound to the current element in the traversal.
         variable: SmolStr,
+        /// The collection being sequentially traversed.
         iterator: Box<AnalyzedExpr>,
+        /// The block executed for each element.
         body: Vec<AnalyzedStatement>,
     },
     /// Match expression
@@ -98,7 +114,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `match g_x { 1 => ... }`
     Match {
+        /// The value being interrogated against the arms.
         scrutinee: Box<AnalyzedExpr>,
+        /// The potential structural destructuring arms.
         arms: Vec<(AnalyzedExpr, Vec<AnalyzedStatement>)>,
     },
     /// Break statement
@@ -124,7 +142,10 @@ pub enum AnalyzedStatement {
     /// δός 5.
     /// ```
     /// -> `return 5;`
-    Return { value: Option<Box<AnalyzedExpr>> },
+    Return {
+        /// The computed outcome carried back to the caller.
+        value: Option<Box<AnalyzedExpr>>,
+    },
     /// Function definition
     ///
     /// # Example
@@ -197,7 +218,9 @@ pub struct AnalyzedMethod {
 /// Analyzed expression with type information
 #[derive(Debug, Clone)]
 pub struct AnalyzedExpr {
+    /// The specific kind of expression (e.g., literal, operation)
     pub expr: AnalyzedExprKind,
+    /// The resolved type of the expression
     pub glossa_type: GlossaType,
 }
 
@@ -233,7 +256,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `user.name` -> `PropertyAccess { owner: user, property: "name" }`
     PropertyAccess {
+        /// The expression whose property is being accessed
         owner: Box<AnalyzedExpr>,
+        /// The name of the property being accessed
         property: SmolStr,
     },
 
@@ -242,7 +267,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `λέγει` (says) -> `VerbCall { verb: "say", args: [] }`
     VerbCall {
+        /// The name of the verb being called
         verb: SmolStr,
+        /// The arguments passed to the verb
         args: Vec<AnalyzedExpr>,
     },
 
@@ -270,8 +297,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `1..10`
     Range {
+        /// The starting value of the range
         start: Box<AnalyzedExpr>,
+        /// The ending value of the range
         end: Box<AnalyzedExpr>,
+        /// Whether the range includes its end value
         inclusive: bool,
     },
 
@@ -322,7 +352,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `arr[0]`
     IndexAccess {
+        /// The array expression being indexed
         array: Box<AnalyzedExpr>,
+        /// The index expression
         index: Box<AnalyzedExpr>,
     },
 
@@ -331,7 +363,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `my_func(arg)`
     FunctionCall {
+        /// The name of the function to call
         func: SmolStr,
+        /// The arguments passed to the function
         args: Vec<AnalyzedExpr>,
     },
 
@@ -340,8 +374,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `vec.push(1)`
     MethodCall {
+        /// The expression whose method is being called
         receiver: Box<AnalyzedExpr>,
+        /// The name of the method
         method: SmolStr,
+        /// The arguments passed to the method
         args: Vec<AnalyzedExpr>,
     },
 
@@ -350,9 +387,13 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `user.Show::print()`
     TraitMethodCall {
+        /// The expression implementing the trait
         receiver: Box<AnalyzedExpr>,
+        /// The name of the trait
         trait_name: SmolStr,
+        /// The name of the trait method
         method_name: SmolStr,
+        /// The arguments passed to the method
         args: Vec<AnalyzedExpr>,
     },
 
@@ -361,8 +402,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `x new User "name" 42`
     StructInstantiation {
+        /// The name of the struct type
         type_name: SmolStr,
+        /// The names of the fields in the struct definition
         fields: Vec<SmolStr>, // Field names from struct definition
+        /// The arguments corresponding to each field
         args: Vec<AnalyzedExpr>,
     },
 
@@ -371,20 +415,31 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `|x| x + 1`
     Lambda {
+        /// The parameter names for the closure
         params: Vec<SmolStr>,
+        /// The expression body of the closure
         body: Box<AnalyzedExpr>,
+        /// The capture mode defining how environment variables are handled
         capture_mode: CaptureMode,
     },
 
     /// Collection constructor (HashSet::new(), HashMap::new())
-    CollectionNew { collection_type: String },
+    CollectionNew {
+        /// The underlying collection type (e.g., "HashSet")
+        collection_type: String,
+    },
 
     /// Boolean assertion: δεῖ (condition must be true)
-    Assert { condition: Box<AnalyzedExpr> },
+    Assert {
+        /// The condition that must evaluate to true
+        condition: Box<AnalyzedExpr>,
+    },
 
     /// Equality assertion: ἰσοῦται (values must be equal)
     AssertEq {
+        /// The left-hand side value
         left: Box<AnalyzedExpr>,
+        /// The right-hand side value
         right: Box<AnalyzedExpr>,
     },
 }
@@ -414,13 +469,17 @@ pub enum CaptureMode {
 /// Trait definition for semantic analysis
 #[derive(Debug, Clone)]
 pub struct TraitDef {
+    /// The name of the trait
     pub name: SmolStr,
+    /// The list of methods defined in the trait
     pub methods: Vec<AnalyzedMethod>,
 }
 
 /// Trait implementation for a type
 #[derive(Debug, Clone)]
 pub struct TraitImpl {
+    /// The name of the trait being implemented
     pub trait_name: SmolStr,
+    /// The name of the type implementing the trait
     pub type_name: SmolStr,
 }

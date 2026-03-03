@@ -46,11 +46,13 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+/// The main command line interface structure definition
 #[derive(Parser)]
 #[command(name = "glossa")]
 #[command(about = "ΓΛΩΣΣΑ - Ancient Greek morphology as programming semantics")]
 #[command(version)]
 pub struct Cli {
+    /// The subcommand to execute
     #[command(subcommand)]
     pub command: Option<Commands>,
 
@@ -59,6 +61,7 @@ pub struct Cli {
     pub file: Option<PathBuf>,
 }
 
+/// Supported subcommands for the ΓΛΩΣΣΑ CLI
 #[derive(Subcommand)]
 pub enum Commands {
     /// Run a .γλ file (default)

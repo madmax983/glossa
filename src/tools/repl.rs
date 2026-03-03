@@ -233,12 +233,18 @@ fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
 pub enum ReplOutput {
     /// A new variable binding
     Binding {
+        /// The name of the bound variable
         name: String,
+        /// The resolved type of the variable
         type_: GlossaType,
+        /// Whether the variable is mutable
         mutable: bool,
     },
     /// Code execution (compilation)
-    Statement { code: String },
+    Statement {
+        /// The formatted code string of the executed statement
+        code: String,
+    },
     /// No output (e.g. empty line)
     None,
 }
