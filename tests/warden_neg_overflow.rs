@@ -42,3 +42,37 @@ fn test_warden_neg_overflow_defense() {
     // It should look something like: `(-9223372036854775808).checked_neg().expect("arithmetic overflow")`
     assert!(!code.replace(" ", "").contains("-(x)"));
 }
+
+#[test]
+fn test_warden_neg_overflow_non_number_fallback() {
+    // This test verifies that negating a non-Number type generates the old
+    // `-x` fallback (which causes a compile error in rustc or handles custom ops).
+    // This covers the else branch of the fix.
+    let boolean_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::BooleanLiteral(true),
+        glossa_type: GlossaType::Boolean,
+    };
+
+    let neg_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::UnaryOp {
+            op: UnaryOp::Neg,
+            operand: Box::new(boolean_expr),
+        },
+        glossa_type: GlossaType::Boolean,
+    };
+
+    let stmt = AnalyzedStatement::Expression(vec![neg_expr]);
+
+    let program = AnalyzedProgram {
+        statements: vec![stmt],
+        scope: Scope::new(),
+    };
+
+    let code = generate_rust(&program);
+
+    println!("Generated code:\n{}", code);
+
+    // Verify it generated the fallback `-` operator without checked_neg
+    assert!(code.contains("- true"));
+    assert!(!code.contains("checked_neg"));
+}
