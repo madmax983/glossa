@@ -107,3 +107,8 @@
 2. Defined `MAX_PARSE_DEPTH` and `MAX_AST_DEPTH` explicitly.
 3. Updated parser, semantic analysis, and tests to import from `crate::limits`.
 **Stability:** Enforces a single source of truth for architectural limits, making them easier to audit and tune.
+
+## [Breaking The Leak: Encapsulation via pub(crate)]
+**Tangle:** Internal modules were needlessly exposed via `pub mod` across `src/lib.rs`, `src/tools/mod.rs`, `src/parser/mod.rs`, `src/semantic/mod.rs`, etc. This broke clear module boundaries and leaked implementation details.
+**Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all internal modules while keeping `pub mod` only where necessary for public APIs (`parser`, `semantic`, `codegen`, `morphology`) and re-exported features (`highlight`).
+**Stability:** Enforced high cohesion and low coupling by ensuring strict encapsulation and clean public interfaces.
