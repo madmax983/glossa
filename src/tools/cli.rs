@@ -127,4 +127,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate a Markdown Rosetta Stone (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Weave {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

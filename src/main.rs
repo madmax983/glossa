@@ -62,6 +62,11 @@ fn main() -> Result<()> {
             glossa::tools::cartographer::run_map(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Weave { input }) => {
+            glossa::tools::weave::run_weave(&input)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
