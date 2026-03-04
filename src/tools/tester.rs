@@ -86,7 +86,10 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
                         "ignored" => TestStatus::Ignored,
                         _ => continue,
                     };
-                    results.push(TestResult { name: name.to_string(), status });
+                    results.push(TestResult {
+                        name: name.to_string(),
+                        status,
+                    });
                 }
             }
         }
@@ -193,7 +196,9 @@ pub fn run_tests(input: &Path) -> Result<()> {
         .into_owned();
     let exe_path = temp_path
         .parent()
-        .ok_or_else(|| miette::miette!("Σφάλμα: Could not extract parent directory from temp path"))?
+        .ok_or_else(|| {
+            miette::miette!("Σφάλμα: Could not extract parent directory from temp path")
+        })?
         .join(if cfg!(windows) {
             format!("{}.exe", exe_name)
         } else {
