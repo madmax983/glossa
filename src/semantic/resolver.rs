@@ -3,8 +3,8 @@
 //! Manages variable bindings and scope for ΓΛΩΣΣΑ programs.
 
 use crate::semantic::GlossaType;
+use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
-use std::collections::HashMap;
 
 /// A unified symbol entry in the scope
 #[derive(Debug, Clone)]
@@ -18,8 +18,10 @@ pub enum Symbol {
 /// A scope level containing symbol bindings
 #[derive(Debug, Clone, Default)]
 struct ScopeLevel {
-    /// Symbols defined in this scope
-    symbols: HashMap<SmolStr, Symbol>,
+    /// Symbols defined in this scope.
+    /// ⚡ Bolt Optimization: Uses `FxHashMap` instead of the standard `HashMap`
+    /// to avoid cryptographic hashing overhead for fast, deterministic lookups of interned strings.
+    symbols: FxHashMap<SmolStr, Symbol>,
     /// Trait implementations in this scope
     trait_impls: Vec<crate::semantic::model::TraitImpl>,
 }

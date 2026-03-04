@@ -1,5 +1,3 @@
-# Bolt's Journal
-
-## [Pre-allocate AST node vectors during parsing]
-**Learning:** `pest::iterators::Pairs` correctly implements `ExactSizeIterator` (because it is backed by a pre-computed token queue). Therefore, `inner.len()` is O(1) and safe to use.
-**Action:** Always use `Vec::with_capacity(inner.len())` when collecting AST nodes from `Pairs` iterators (e.g., in `build_expression`, `build_clauses`) to completely eliminate O(log N) dynamic heap reallocations during the parsing phase.
+**[Optimized Internal Symbol Table Lookups]**
+**Learning:** The `std::collections::HashMap` in Rust defaults to SipHash, a cryptographically secure hash function. This is often overkill for internal compiler symbol tables where keys are small, interned strings (e.g., `SmolStr`), and where HashDoS attacks are not a risk.
+**Action:** Always prefer `rustc_hash::FxHashMap` for compiler-internal maps (such as scope resolution) mapping strings to AST nodes or types. It is much faster and deterministic.
