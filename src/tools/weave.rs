@@ -100,4 +100,50 @@ mod tests {
         assert!(output.contains("BIND"));
         assert!(output.contains("let")); // Using 'let' instead of 'let mut' since bindings aren't mutable by default.
     }
+
+    #[test]
+    fn test_run_weave_success() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_weave.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«χαῖρε κόσμε» λέγε.".as_bytes()).unwrap();
+        }
+
+        // Test with default output path
+        let result = run_weave(&input_path, None);
+        assert!(result.is_ok());
+
+        // Verify output file exists
+        let output_path = input_path.with_extension("md");
+        assert!(output_path.exists());
+
+        // Output size is > 0
+        let metadata = std::fs::metadata(&output_path).unwrap();
+        assert!(metadata.len() > 0);
+    }
+
+    #[test]
+    fn test_run_weave_explicit_output() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_weave_explicit.γλ");
+        let output_path = dir.path().join("custom_out.md");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«χαῖρε» λέγε.".as_bytes()).unwrap();
+        }
+
+        // Test with explicit output path
+        let result = run_weave(&input_path, Some(&output_path));
+        assert!(result.is_ok());
+
+        assert!(output_path.exists());
+    }
+
+    #[test]
+    fn test_run_weave_file_not_found() {
+        let path = std::path::PathBuf::from("non_existent_file.γλ");
+        let result = run_weave(&path, None);
+        assert!(result.is_err());
+    }
 }
