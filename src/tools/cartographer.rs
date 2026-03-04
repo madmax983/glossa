@@ -67,26 +67,42 @@ pub fn run_map(input: &Path) -> Result<()> {
 
     let mut table = Table::new();
     table.load_preset(presets::UTF8_FULL);
-    table.set_header(vec![
-        Cell::new("Mermaid.js Diagram")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-    ]);
 
-    // Wrap in markdown code block for easy copying
-    let formatted_map = format!("```mermaid\n{}\n```", map.trim());
+    if map.trim() == "classDiagram" {
+        table.set_header(vec![
+            Cell::new("Status")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Yellow),
+        ]);
+        table.add_row(vec![
+            Cell::new("No architectural structures (Structs) found.")
+                .fg(Color::DarkGrey)
+                .add_attribute(Attribute::Italic),
+        ]);
+        println!("{table}");
+        println!();
+    } else {
+        table.set_header(vec![
+            Cell::new("Mermaid.js Diagram")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+        ]);
 
-    table.add_row(vec![Cell::new(formatted_map)]);
+        // Wrap in markdown code block for easy copying
+        let formatted_map = format!("```mermaid\n{}\n```", map.trim());
 
-    println!("{table}");
-    println!();
-    println!("   {}", "📋 Usage Instructions:".bold().underlined());
-    println!("   1. Copy the code block above.");
-    println!(
-        "   2. Paste it into {}",
-        "https://mermaid.live".cyan().underlined()
-    );
-    println!();
+        table.add_row(vec![Cell::new(formatted_map)]);
+
+        println!("{table}");
+        println!();
+        println!("   {}", "📋 Usage Instructions:".bold().underlined());
+        println!("   1. Copy the code block above.");
+        println!(
+            "   2. Paste it into {}",
+            "https://mermaid.live".cyan().underlined()
+        );
+        println!();
+    }
 
     Ok(())
 }
@@ -461,5 +477,20 @@ mod tests {
         let result = run_map(&path);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_run_map_empty_diagram() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_map_empty.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ 1 ἔστω.\n".as_bytes()).unwrap();
+        }
+
+        // Run the command to ensure the empty logic is hit without panicking
+        let result = run_map(&input_path);
+        assert!(result.is_ok());
     }
 }

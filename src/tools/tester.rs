@@ -259,15 +259,15 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     println!();
 
-    if !results.is_empty() {
-        let mut table = Table::new();
-        table.load_preset(presets::UTF8_FULL).set_header(vec![
-            Cell::new("Test Case")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("Status").add_attribute(Attribute::Bold),
-        ]);
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL).set_header(vec![
+        Cell::new("Test Case")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
+        Cell::new("Status").add_attribute(Attribute::Bold),
+    ]);
 
+    if !results.is_empty() {
         for result in &results {
             let status_cell = match result.status {
                 TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
@@ -283,10 +283,16 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
-        println!("{table}");
     } else {
-        println!("{}", "   No tests found.".yellow());
+        table.add_row(vec![
+            Cell::new("No tests found.")
+                .fg(Color::DarkGrey)
+                .add_attribute(Attribute::Italic),
+            Cell::new("-").fg(Color::DarkGrey),
+        ]);
     }
+
+    println!("{table}");
 
     // If there were failures, try to extract and print them nicely
     if !test_output.status.success() {
