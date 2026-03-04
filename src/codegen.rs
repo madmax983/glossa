@@ -1215,7 +1215,11 @@ fn generate_unary_op(op: UnaryOp, operand: &AnalyzedExpr) -> TokenStream {
         }
         UnaryOp::Neg => {
             let operand_tokens = generate_expr(operand);
-            quote! { -#operand_tokens }
+            if matches!(operand.glossa_type, GlossaType::Number) {
+                quote! { (#operand_tokens).checked_neg().expect("arithmetic overflow") }
+            } else {
+                quote! { -#operand_tokens }
+            }
         }
         UnaryOp::Ref => {
             let operand_tokens = generate_expr(operand);

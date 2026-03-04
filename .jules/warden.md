@@ -59,6 +59,12 @@ To identify vulnerabilities, harden interfaces, and eliminate memory safety risk
   - **Defense:** Added formal `SAFETY:` documentation detailing the 6 steps that prevent recursion overflows while safely dropping the memory in `src/ast.rs`.
   - **Verification:** Tests (`cargo test`) pass, confirming that AST components do not introduce memory issues during execution.
 
+- **2025-01-XX - [Integer Overflow in Unary Negation]**
+  - **Threat:** Unary negation (`UnaryOp::Neg`) of `i64::MIN` would silently overflow in release builds, causing unexpected wrapping due to the raw `-x` generation.
+  - **Investigation:** Code audit of `src/codegen.rs` revealed `generate_unary_op` translated unary negation to `-#operand_tokens`.
+  - **Defense:** Modified `generate_unary_op` to check `GlossaType::Number` and emit `.checked_neg().expect("arithmetic overflow")`, safely panicking instead of wrapping in release mode.
+  - **Verification:** Unit test added in `tests/warden_neg_overflow.rs`.
+
 ## Pending Actions
 - **Dependency Audit:** `cargo audit` command checked and verified clean.
 - **Recursive Structs:** Currently handled by failing compilation in `rustc`. Future improvement: Detect cycles during semantic analysis for better error messages.
