@@ -302,8 +302,7 @@ impl Highlighter {
             "εἶδος".bold(),
             def.name.original.blue().bold(),
             "ὁρίζειν".bold()
-        )
-        .unwrap();
+        )?;
         Ok(())
     }
 
@@ -314,8 +313,7 @@ impl Highlighter {
             "χαρακτήρ".bold(),
             def.name.original.blue().bold(),
             "ὁρίζειν".bold()
-        )
-        .unwrap();
+        )?;
         Ok(())
     }
 
@@ -328,8 +326,7 @@ impl Highlighter {
             "τῷ".white(),
             def.trait_name.original.cyan(),
             // Missing implementation keyword? Syntax is `εἶδος Type τῷ Trait ἐμπίπτειν`
-        )
-        .unwrap();
+        )?;
         Ok(())
     }
 
@@ -339,8 +336,7 @@ impl Highlighter {
             "{} «{}»",
             "δοκιμή".bold().green(),
             decl.name.as_str().italic()
-        )
-        .unwrap();
+        )?;
 
         for stmt in &decl.body {
             self.output.push_str("  ");
@@ -361,8 +357,7 @@ mod tests {
     fn test_highlight_simple_sentence() {
         let source = "ὁ ἄνθρωπος τὸν λόγον λέγει.";
         let result = highlight(source);
-        assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.expect("Failed to highlight basic sentence");
 
         // Check for ANSI codes
         // Verify that words are present and some color codes are applied
@@ -374,8 +369,7 @@ mod tests {
     fn test_highlight_string_literal() {
         let source = "«χαῖρε» λέγε.";
         let result = highlight(source);
-        assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.expect("Failed to highlight string literal");
         // Italic (3) for string
         assert!(output.contains("\x1b[3mχαῖρε\x1b[0m"));
     }
@@ -384,8 +378,7 @@ mod tests {
     fn test_highlight_number_literal() {
         let source = "42 λέγε.";
         let result = highlight(source);
-        assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.expect("Failed to highlight number literal");
         // Italic (3) for number
         assert!(output.contains("\x1b[3m42\x1b[0m"));
     }
@@ -394,8 +387,7 @@ mod tests {
     fn test_highlight_boolean_literal() {
         let source = "ἀληθές λέγε.";
         let result = highlight(source);
-        assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.expect("Failed to highlight boolean literal");
         // Italic (3) for boolean
         assert!(output.contains("\x1b[3mἀληθές\x1b[0m"));
     }

@@ -29,3 +29,11 @@
 ## [Constraint] Empty Stem in Suffix Matching
 **Learning:** `match_suffix` in `src/morphology/matcher.rs` explicitly skips matches if the resulting stem is empty. This prevents spurious matches (e.g., word "o" matching suffix "-o"), but means words that coincide with their suffix (e.g., article "o") must be handled by the lexicon or explicit checks, not morphological rules.
 **Action:** When implementing morphology rules, assume `match_suffix` requires `word.len() > suffix.len()`. Add explicit test cases for this constraint to document it as intended behavior.
+
+## [Safe Slice Pattern Matching]
+**Learning:** Checking the length of a vector and then safely using `.last().unwrap()` is considered statically safe but violates the zero-panic-risk paradigm. Simply replacing it with `if let Some` can lead to clippy `collapsible_if` warnings and redundant nesting.
+**Action:** When parsing structured string components (like space-separated test outputs), prefer safe slice pattern matching (e.g., `if let [_, name, .., status_str] = parts.as_slice()`) instead of redundant length checks and `.last().unwrap()` indexing to maintain strict panic-free safety and concise code.
+
+## [Error Message Consistency]
+**Learning:** `AGENTS.md` explicitly calls for Greek error messages in the compiler, but random unprompted strings might confuse other agents/reviewers.
+**Action:** Ensure error context provided via `ok_or_else()` uses standard English unless explicitly writing a user-facing compiler diagnostic intended to be translated.
