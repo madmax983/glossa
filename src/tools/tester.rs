@@ -78,15 +78,16 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
             // Expected parts: ["test", "test_name", "...", "status"]
             // Sometimes there might be extra info, but name is usually at index 1
             if parts.len() >= 4 {
-                let name = parts[1].to_string();
-                let status_str = parts.last().unwrap();
-                let status = match *status_str {
-                    "ok" => TestStatus::Ok,
-                    "FAILED" => TestStatus::Failed,
-                    "ignored" => TestStatus::Ignored,
-                    _ => continue,
-                };
-                results.push(TestResult { name, status });
+                #[allow(clippy::collapsible_if)]
+                if let [_, name, .., status_str] = parts.as_slice() {
+                    let status = match *status_str {
+                        "ok" => TestStatus::Ok,
+                        "FAILED" => TestStatus::Failed,
+                        "ignored" => TestStatus::Ignored,
+                        _ => continue,
+                    };
+                    results.push(TestResult { name: name.to_string(), status });
+                }
             }
         }
     }
@@ -187,14 +188,17 @@ pub fn run_tests(input: &Path) -> Result<()> {
     // Use the temp file name to ensure uniqueness
     let exe_name = temp_path
         .file_stem()
-        .unwrap()
+        .ok_or_else(|| miette::miette!("Σφάλμα: Could not extract file stem from temp path"))?
         .to_string_lossy()
         .into_owned();
-    let exe_path = temp_path.parent().unwrap().join(if cfg!(windows) {
-        format!("{}.exe", exe_name)
-    } else {
-        exe_name
-    });
+    let exe_path = temp_path
+        .parent()
+        .ok_or_else(|| miette::miette!("Σφάλμα: Could not extract parent directory from temp path"))?
+        .join(if cfg!(windows) {
+            format!("{}.exe", exe_name)
+        } else {
+            exe_name
+        });
 
     // 5. Compile with rustc --test
     let rustc_output = Command::new("rustc")
@@ -504,6 +508,16 @@ test ... ok
                 input: "test my_test ... WEIRD_STATUS",
                 expected_count: 0,
             },
+            TestCase {
+                name: "Just test prefix",
+                input: "test ",
+                expected_count: 0,
+            },
+            TestCase {
+                name: "Extraneous info but valid format",
+                input: "test my_test has extra words before ... ok",
+                expected_count: 1,
+            },
         ];
 
         for case in test_cases {
@@ -515,5 +529,18 @@ test ... ok
                 case.name
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod additional_sentry_tests {
+    use super::*;
+
+    // Since we're in tools/tester.rs, let's verify edge case parsing
+    #[test]
+    fn test_parse_test_output_empty_parts() {
+        let output = "test \n test"; // Not enough parts
+        let results = parse_test_output(output);
+        assert_eq!(results.len(), 0);
     }
 }
