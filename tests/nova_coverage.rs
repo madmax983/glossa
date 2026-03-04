@@ -6,6 +6,20 @@ use std::path::PathBuf;
 use tempfile::Builder;
 
 #[test]
+fn test_run_tests_no_tests_found() {
+    let mut temp_file = Builder::new()
+        .suffix(".gl")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "ξ 1 ἔστω.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = run_tests(temp_file.path());
+    assert!(result.is_ok(), "Test runner failed: {:?}", result.err());
+}
+
+#[test]
 fn test_run_tests_success() {
     // Create a temporary Glossa file
     let mut temp_file = Builder::new()

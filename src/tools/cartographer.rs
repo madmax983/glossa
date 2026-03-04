@@ -478,4 +478,19 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
     }
+
+    #[test]
+    fn test_run_map_empty_diagram() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_map_empty.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ 1 ἔστω.\n".as_bytes()).unwrap();
+        }
+
+        // Run the command to ensure the empty logic is hit without panicking
+        let result = run_map(&input_path);
+        assert!(result.is_ok());
+    }
 }
