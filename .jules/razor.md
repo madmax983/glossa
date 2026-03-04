@@ -87,3 +87,8 @@
 **Bloat:** Trivial string-formatting helper functions (`undefined_variable`, `immutable_assignment`, `gender_mismatch`, `number_mismatch`, `case_mismatch`) in `src/errors.rs` added unnecessary abstraction and boilerplate. Four of these functions were actually unused dead code.
 **Cut:** Inlined the single active usage (`immutable_assignment`) directly at its call site and deleted all 5 functions from `src/errors.rs` entirely.
 **Saved:** Removed 5 trivial functions, 4 of which were dead code, and their associated tests, reducing line count by ~70 lines and improving clarity.
+
+## [Reduction]
+**Bloat:** `src/experimental/` directory containing only an `interpreter.rs` tool.
+**Cut:** Moved `interpreter.rs` to `src/tools/` and deleted the `experimental` module entirely.
+**Saved:** 1 directory, reduced module depth, strictly enforced production quality for all files in `src/`.
