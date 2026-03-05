@@ -144,40 +144,50 @@ fn classify_property_access_print(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = &verb.lemma;
+    let Some(verb) = &asm_stmt.verb else {
+        return Ok(None);
+    };
 
-        if crate::morphology::lexicon::is_print_verb(verb_lemma)
-            && !asm_stmt.genitives.is_empty()
-            && let Some(subject) = &asm_stmt.subject
-        {
-            // Get owner from genitive (use lemma to get base variable name)
-            let owner_lemma = &asm_stmt.genitives[0].lemma;
-
-            // Get property from subject (nominative)
-            let property = &subject.normalized;
-
-            // Check if owner is a struct type in scope
-            if let Some(owner_type) = scope.lookup(owner_lemma)
-                && matches!(owner_type, GlossaType::Struct { .. })
-            {
-                // Build property access
-                let prop_access = AnalyzedExpr {
-                    expr: AnalyzedExprKind::PropertyAccess {
-                        owner: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
-                            glossa_type: owner_type.clone(),
-                        }),
-                        property: property.clone(),
-                    },
-                    glossa_type: GlossaType::Unknown, // TODO: Look up field type
-                };
-
-                return Ok(Some(AnalyzedStatement::Print(vec![prop_access])));
-            }
-        }
+    if !crate::morphology::lexicon::is_print_verb(&verb.lemma) {
+        return Ok(None);
     }
-    Ok(None)
+
+    if asm_stmt.genitives.is_empty() {
+        return Ok(None);
+    }
+
+    let Some(subject) = &asm_stmt.subject else {
+        return Ok(None);
+    };
+
+    // Get owner from genitive (use lemma to get base variable name)
+    let owner_lemma = &asm_stmt.genitives[0].lemma;
+
+    // Get property from subject (nominative)
+    let property = &subject.normalized;
+
+    // Check if owner is a struct type in scope
+    let Some(owner_type) = scope.lookup(owner_lemma) else {
+        return Ok(None);
+    };
+
+    if !matches!(owner_type, GlossaType::Struct { .. }) {
+        return Ok(None);
+    }
+
+    // Build property access
+    let prop_access = AnalyzedExpr {
+        expr: AnalyzedExprKind::PropertyAccess {
+            owner: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
+                glossa_type: owner_type.clone(),
+            }),
+            property: property.clone(),
+        },
+        glossa_type: GlossaType::Unknown, // TODO: Look up field type
+    };
+
+    Ok(Some(AnalyzedStatement::Print(vec![prop_access])))
 }
 
 /// Helper: Detect user-defined function call
@@ -185,77 +195,82 @@ fn classify_function_call(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = &verb.lemma;
+    let Some(verb) = &asm_stmt.verb else {
+        return Ok(None);
+    };
 
-        // Check if verb is a binding verb
-        if crate::morphology::lexicon::is_binding_verb(verb_lemma) {
-            // Check if object/nominative/genitive is a user-defined function
-            let mut func_name = None;
-            for nominative in &asm_stmt.nominatives {
-                if scope.is_function(&nominative.lemma) {
-                    func_name = Some(nominative.lemma.clone());
-                    break;
-                }
-            }
+    // Check if verb is a binding verb
+    if !crate::morphology::lexicon::is_binding_verb(&verb.lemma) {
+        return Ok(None);
+    }
 
-            if func_name.is_none()
-                && let Some(ref object) = asm_stmt.object
-                && scope.is_function(&object.lemma)
-            {
-                func_name = Some(object.lemma.clone());
-            }
+    // Check if object/nominative/genitive is a user-defined function
+    let mut func_name = None;
+    for nominative in &asm_stmt.nominatives {
+        if scope.is_function(&nominative.lemma) {
+            func_name = Some(nominative.lemma.clone());
+            break;
+        }
+    }
 
-            if func_name.is_none() {
-                for genitive in &asm_stmt.genitives {
-                    if scope.is_function(&genitive.lemma) {
-                        func_name = Some(genitive.lemma.clone());
-                        break;
-                    }
-                }
-            }
+    if func_name.is_none()
+        && let Some(ref object) = asm_stmt.object
+        && scope.is_function(&object.lemma)
+    {
+        func_name = Some(object.lemma.clone());
+    }
 
-            // If we found a function name, build the call
-            if let Some(func) = func_name
-                && let Some(ref subject) = asm_stmt.subject
-            {
-                let mut args: Vec<AnalyzedExpr> = asm_stmt
-                    .literals
-                    .iter()
-                    .map(literal_to_analyzed_expr)
-                    .collect();
-
-                for nested_terms in &asm_stmt.nested_phrases {
-                    let phrase_expr = Expr::Phrase(nested_terms.clone());
-                    let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
-                    args.push(analyzed);
-                }
-
-                let return_type = scope
-                    .lookup_function(&func)
-                    .and_then(|sig| sig.return_type.clone())
-                    .unwrap_or(GlossaType::Unknown);
-
-                let func_call = AnalyzedExpr {
-                    expr: AnalyzedExprKind::FunctionCall {
-                        func: func.clone(),
-                        args,
-                    },
-                    glossa_type: return_type.clone(),
-                };
-
-                let var_name = &subject.normalized;
-                scope.define(var_name.clone(), return_type.clone());
-
-                return Ok(Some(AnalyzedStatement::Binding {
-                    name: var_name.clone(),
-                    value: func_call,
-                    mutable: false,
-                }));
+    if func_name.is_none() {
+        for genitive in &asm_stmt.genitives {
+            if scope.is_function(&genitive.lemma) {
+                func_name = Some(genitive.lemma.clone());
+                break;
             }
         }
     }
-    Ok(None)
+
+    // If we found a function name, build the call
+    let Some(func) = func_name else {
+        return Ok(None);
+    };
+
+    let Some(subject) = &asm_stmt.subject else {
+        return Ok(None);
+    };
+
+    let mut args: Vec<AnalyzedExpr> = asm_stmt
+        .literals
+        .iter()
+        .map(literal_to_analyzed_expr)
+        .collect();
+
+    for nested_terms in &asm_stmt.nested_phrases {
+        let phrase_expr = Expr::Phrase(nested_terms.clone());
+        let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
+        args.push(analyzed);
+    }
+
+    let return_type = scope
+        .lookup_function(&func)
+        .and_then(|sig| sig.return_type.clone())
+        .unwrap_or(GlossaType::Unknown);
+
+    let func_call = AnalyzedExpr {
+        expr: AnalyzedExprKind::FunctionCall {
+            func: func.clone(),
+            args,
+        },
+        glossa_type: return_type.clone(),
+    };
+
+    let var_name = &subject.normalized;
+    scope.define(var_name.clone(), return_type.clone());
+
+    Ok(Some(AnalyzedStatement::Binding {
+        name: var_name.clone(),
+        value: func_call,
+        mutable: false,
+    }))
 }
 
 /// Helper: Detect subjunctive comparison (which looks like binding verb but isn't)
@@ -263,35 +278,39 @@ fn classify_subjunctive_comparison(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = &verb.lemma;
+    let Some(verb) = &asm_stmt.verb else {
+        return Ok(None);
+    };
 
-        if crate::morphology::lexicon::is_binding_verb(verb_lemma)
-            && !asm_stmt.operators.is_empty()
-            && !asm_stmt.literals.is_empty()
-            && verb.mood == Some(crate::morphology::Mood::Subjunctive)
-            && let Some(ref subject) = asm_stmt.subject
-        {
-            let left = if let Some(var_type) = scope.lookup(&subject.lemma) {
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                }
-            } else {
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::BooleanLiteral(false),
-                    glossa_type: GlossaType::Boolean,
-                }
-            };
-
-            let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
-            let op = asm_stmt.operators[0];
-            let comparison = build_binary_expr(left, op, right);
-
-            return Ok(Some(AnalyzedStatement::Expression(vec![comparison])));
-        }
+    if !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
+        || asm_stmt.operators.is_empty()
+        || asm_stmt.literals.is_empty()
+        || verb.mood != Some(crate::morphology::Mood::Subjunctive)
+    {
+        return Ok(None);
     }
-    Ok(None)
+
+    let Some(subject) = &asm_stmt.subject else {
+        return Ok(None);
+    };
+
+    let left = if let Some(var_type) = scope.lookup(&subject.lemma) {
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+            glossa_type: var_type.clone(),
+        }
+    } else {
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(false),
+            glossa_type: GlossaType::Boolean,
+        }
+    };
+
+    let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
+    let op = asm_stmt.operators[0];
+    let comparison = build_binary_expr(left, op, right);
+
+    Ok(Some(AnalyzedStatement::Expression(vec![comparison])))
 }
 
 /// Helper: Resolve the target variable name and the effective assembled statement for binding
@@ -346,38 +365,38 @@ fn classify_variable_binding(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = &verb.lemma;
+    let Some(verb) = &asm_stmt.verb else {
+        return Ok(None);
+    };
 
-        if crate::morphology::lexicon::is_binding_verb(verb_lemma) {
-            let (var_name, actual_asm) = resolve_binding_target(asm_stmt, scope)?;
-
-            let (value_expr, value_type) = extract_value(&actual_asm, scope)?;
-
-            let final_value_expr = if asm_stmt.is_propagate {
-                AnalyzedExpr {
-                    glossa_type: value_type.clone(),
-                    expr: AnalyzedExprKind::Try(Box::new(value_expr)),
-                }
-            } else {
-                value_expr
-            };
-
-            let is_mutable = asm_stmt.has_mutable_marker;
-            if is_mutable {
-                scope.define_mut(var_name.clone(), value_type.clone());
-            } else {
-                scope.define(var_name.clone(), value_type.clone());
-            }
-
-            return Ok(Some(AnalyzedStatement::Binding {
-                name: var_name.into(),
-                value: final_value_expr,
-                mutable: is_mutable,
-            }));
-        }
+    if !crate::morphology::lexicon::is_binding_verb(&verb.lemma) {
+        return Ok(None);
     }
-    Ok(None)
+
+    let (var_name, actual_asm) = resolve_binding_target(asm_stmt, scope)?;
+    let (value_expr, value_type) = extract_value(&actual_asm, scope)?;
+
+    let final_value_expr = if asm_stmt.is_propagate {
+        AnalyzedExpr {
+            glossa_type: value_type.clone(),
+            expr: AnalyzedExprKind::Try(Box::new(value_expr)),
+        }
+    } else {
+        value_expr
+    };
+
+    let is_mutable = asm_stmt.has_mutable_marker;
+    if is_mutable {
+        scope.define_mut(var_name.clone(), value_type.clone());
+    } else {
+        scope.define(var_name.clone(), value_type.clone());
+    }
+
+    Ok(Some(AnalyzedStatement::Binding {
+        name: var_name.into(),
+        value: final_value_expr,
+        mutable: is_mutable,
+    }))
 }
 
 /// Helper: Detect variable assignment (x = ...)
@@ -385,58 +404,53 @@ fn classify_assignment(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = &verb.lemma;
+    let Some(verb) = &asm_stmt.verb else {
+        return Ok(None);
+    };
 
-        if crate::morphology::lexicon::is_assignment_verb(verb_lemma) {
-            let var_name = if let Some(ref subject) = asm_stmt.subject {
-                subject.normalized.clone()
-            } else {
-                return Err(GlossaError::semantic("Assignment without subject"));
-            };
+    if !crate::morphology::lexicon::is_assignment_verb(&verb.lemma) {
+        return Ok(None);
+    }
 
-            let binding = scope.lookup_binding(&var_name);
-            match binding {
-                None => {
-                    return Err(GlossaError::semantic(format!(
-                        "Τὸ «{}» οὐχ ὡρίσθη — πρῶτον ὅρισον αὐτό",
-                        var_name
-                    )));
-                }
-                Some(b) if !b.mutable => {
-                    let _b = b; // Silence unused variable warning while keeping guard
-                    return Err(GlossaError::semantic(format!(
-                        "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
-                        &var_name
-                    )));
-                }
-                Some(_b) => {
-                    let has_value = !asm_stmt.literals.is_empty()
-                        || asm_stmt.object.is_some()
-                        || !asm_stmt.arrays.is_empty()
-                        || !asm_stmt.unwraps.is_empty()
-                        || !asm_stmt.index_accesses.is_empty()
-                        || !asm_stmt.property_accesses.is_empty()
-                        || !asm_stmt.nested_phrases.is_empty();
+    let Some(subject) = &asm_stmt.subject else {
+        return Err(GlossaError::semantic("Assignment without subject"));
+    };
 
-                    if !has_value {
-                        return Err(GlossaError::semantic(format!(
-                            "Τῇ πράξει «{} γίγνεται» δεῖ τιμῆς (Assignment requires a value)",
-                            var_name
-                        )));
-                    }
+    let var_name = subject.normalized.clone();
 
-                    let (value_expr, _) = extract_value(asm_stmt, scope)?;
-                    scope.mark_used(&var_name);
-                    return Ok(Some(AnalyzedStatement::Assignment {
-                        name: var_name.clone(),
-                        value: value_expr,
-                    }));
-                }
+    match scope.lookup_binding(&var_name) {
+        None => Err(GlossaError::semantic(format!(
+            "Τὸ «{}» οὐχ ὡρίσθη — πρῶτον ὅρισον αὐτό",
+            var_name
+        ))),
+        Some(b) if !b.mutable => Err(GlossaError::semantic(format!(
+            "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
+            &var_name
+        ))),
+        Some(_) => {
+            let has_value = !asm_stmt.literals.is_empty()
+                || asm_stmt.object.is_some()
+                || !asm_stmt.arrays.is_empty()
+                || !asm_stmt.unwraps.is_empty()
+                || !asm_stmt.index_accesses.is_empty()
+                || !asm_stmt.property_accesses.is_empty()
+                || !asm_stmt.nested_phrases.is_empty();
+
+            if !has_value {
+                return Err(GlossaError::semantic(format!(
+                    "Τῇ πράξει «{} γίγνεται» δεῖ τιμῆς (Assignment requires a value)",
+                    var_name
+                )));
             }
+
+            let (value_expr, _) = extract_value(asm_stmt, scope)?;
+            scope.mark_used(&var_name);
+            Ok(Some(AnalyzedStatement::Assignment {
+                name: var_name.clone(),
+                value: value_expr,
+            }))
         }
     }
-    Ok(None)
 }
 
 /// Helper: Detect collection mutation (pop, push, insert)
