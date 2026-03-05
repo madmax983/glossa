@@ -21,3 +21,7 @@
 **Refactoring generate_statement in src/codegen.rs**
 **Learning:** Extracting large match blocks that do not strictly require mutable state or complex logic into small, focused helper functions (like `generate_statement_binding`, `generate_statement_assignment`, etc.) significantly flattens the code structure and improves readability, adhering to the 'Grandma Test' and avoiding the 'Pyramid of Doom'.
 **Action:** Regularly review large `match` blocks, especially those used for dispatch, and extract inline logic into well-named private functions.
+
+**Refactoring `classify_*` in `src/semantic/conversion.rs`**
+**Learning:** Functions that parse or classify elements using heuristic priorities often become a "Pyramid of Doom" through nested `if let Some(...) = ...` blocks. This increases cognitive load and hides the critical failure path.
+**Action:** Use "Guard Clauses" (early returns) extensively in classification functions. `let Some(x) = y else { return ... };` keeps the execution path flat and adheres strictly to the 'Grandma Test'.
