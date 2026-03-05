@@ -1,3 +1,14 @@
+//! AST Builders for Declarations
+//!
+//! This module handles the construction of High-level Abstract Syntax Tree (AST) nodes
+//! from the raw Concrete Syntax Tree (CST) provided by the `pest` parser.
+//!
+//! Specifically, it focuses on top-level program structures:
+//! * Type Definitions (`εἶδος ... ὁρίζειν`)
+//! * Trait Definitions (`χαρακτήρ ... ὁρίζειν`)
+//! * Trait Implementations (`... ... ὁρίζειν` mapping Type to Trait)
+//! * Test Declarations (`δοκιμή ... τέλος`)
+
 use crate::ast::*;
 use crate::parser::build_statement;
 use crate::parser::common::ParseError;

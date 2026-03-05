@@ -15,3 +15,7 @@
 ## 2024-05-26 - The Two Parsers
 **Confusion:** Users and contributors often confuse `crate::parser::grammar::parse` (which returns a raw `pest` Parse Tree of generic pairs) with `crate::parser::parse` (which consumes that tree and returns the strongly-typed AST). Calling the wrong one leads to confusing type errors about `Pairs` vs `Program`.
 **Clarification:** I added clear documentation and executable examples to `src/parser/grammar.rs` to explicitly state that it returns a Concrete Syntax Tree (CST) and should rarely be used directly by end-users. The module-level docs now explicitly link to `crate::parser::parse` as the preferred entry point for AST generation.
+
+## 2025-03-05 - The `cargo test --doc` Dependency Trap
+**Confusion:** Running `rustdoc --test src/codegen.rs` manually failed with unresolved import errors for internal modules like `morphology`, `semantic`, and external crates like `proc_macro2` and `smol_str`. It seemed as if the doc tests were missing imports.
+**Clarification:** Doc tests inside a crate are compiled as external black-box tests. When using `cargo test --doc`, Cargo correctly sets up the environment with `extern crate glossa` and all external dependencies available, meaning you just use `glossa::...` and external crates resolve automatically. Manual `rustdoc` runs lack this crate resolution context. Doc tests should only be verified with `cargo test --doc`.
