@@ -92,3 +92,8 @@
 **Bloat:** `src/experimental/` directory containing only an `interpreter.rs` tool.
 **Cut:** Moved `interpreter.rs` to `src/tools/` and deleted the `experimental` module entirely.
 **Saved:** 1 directory, reduced module depth, strictly enforced production quality for all files in `src/`.
+
+## [Reduction]
+**Bloat:** `Analyzer` struct in `src/semantic/analyzer.rs` was completely empty with no fields, used purely as a namespace for the `analyze` method that was passed around to other modules.
+**Cut:** Deleted the `Analyzer` struct and converted `Analyzer::analyze` into a standalone `analyze_statement` function. Updated calling signatures across `control_flow.rs` and `declarations.rs` to remove the unnecessary `analyzer: &mut Analyzer` parameter.
+**Saved:** Removed empty struct instantiation, cleaned up ~20 function signatures, improved modular cohesion and flattened architectural layers.
