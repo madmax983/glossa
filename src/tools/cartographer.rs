@@ -38,7 +38,7 @@ use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, analyze_pr
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
-use miette::{IntoDiagnostic, Result};
+use miette::Result;
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -46,13 +46,9 @@ use std::path::Path;
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
 pub fn run_map(input: &Path) -> Result<()> {
-    if !input.exists() {
-        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
-    }
-
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
 
-    let source = std::fs::read_to_string(input).into_diagnostic()?;
+    let source = crate::tools::runner::load_source(input)?;
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
     let program = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
 
