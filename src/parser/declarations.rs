@@ -4,11 +4,14 @@ use crate::parser::common::ParseError;
 use crate::parser::grammar::Rule;
 use pest::iterators::Pair;
 
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
+/// This prevents intermediate heap reallocations when building type definition fields.
 pub(crate) fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, ParseError> {
     let mut type_name = None;
-    let mut fields = Vec::new();
+    let inner_pairs = pair.into_inner();
+    let mut fields = Vec::with_capacity(inner_pairs.len());
 
-    for inner in pair.into_inner() {
+    for inner in inner_pairs {
         match inner.as_rule() {
             Rule::greek_word => {
                 // This is the type name (between εἶδος and ὁρίζειν)
@@ -37,10 +40,13 @@ pub(crate) fn build_type_definition(pair: Pair<'_, Rule>) -> Result<TypeDef, Par
     Ok(TypeDef { name, fields })
 }
 
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
+/// This prevents intermediate heap reallocations when collecting field declaration words.
 fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, ParseError> {
-    let mut words = Vec::new();
+    let inner_pairs = pair.into_inner();
+    let mut words = Vec::with_capacity(inner_pairs.len());
 
-    for inner in pair.into_inner() {
+    for inner in inner_pairs {
         if inner.as_rule() == Rule::greek_word {
             words.push(Word {
                 original: inner.as_str().into(),
@@ -214,11 +220,14 @@ pub(crate) fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, Par
     })
 }
 
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
+/// This minimizes heap allocations for test declaration bodies.
 pub(crate) fn build_test_declaration(pair: Pair<'_, Rule>) -> Result<TestDecl, ParseError> {
     let mut test_name = None;
-    let mut body = Vec::new();
+    let inner_pairs = pair.into_inner();
+    let mut body = Vec::with_capacity(inner_pairs.len());
 
-    for inner in pair.into_inner() {
+    for inner in inner_pairs {
         match inner.as_rule() {
             Rule::string_literal => {
                 // Extract the content from «name»

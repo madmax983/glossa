@@ -71,7 +71,11 @@ fn parse_source(source: &str) -> Result<Program, ParseError> {
 
     for pair in pairs {
         if pair.as_rule() == Rule::program {
-            for inner in pair.into_inner() {
+            let inner_pairs = pair.into_inner();
+            // ⚡ Bolt Optimization: Uses `statements.reserve` based on the program pairs length.
+            // This prevents intermediate heap reallocations when assembling the AST.
+            statements.reserve(inner_pairs.len());
+            for inner in inner_pairs {
                 if inner.as_rule() == Rule::statement {
                     statements.push(build_statement(inner)?);
                 }
