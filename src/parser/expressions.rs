@@ -66,22 +66,22 @@ fn build_block_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
 
 /// Builds an array literal expression.
 ///
-/// ⚡ Bolt Optimization: Uses `elements.reserve()` when the number of elements is known.
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` when the number of elements is known.
 /// This prevents intermediate array reallocations for large array literals.
 fn build_array_literal_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
-    let mut elements = Vec::new();
     for child in inner.into_inner() {
         if child.as_rule() == Rule::array_elements {
             let elem_pairs = child.into_inner();
-            elements.reserve(elem_pairs.len());
+            let mut elements = Vec::with_capacity(elem_pairs.len());
             for elem in elem_pairs {
                 if elem.as_rule() == Rule::array_element {
                     elements.push(build_array_element(elem)?);
                 }
             }
+            return Ok(Expr::ArrayLiteral(elements));
         }
     }
-    Ok(Expr::ArrayLiteral(elements))
+    Ok(Expr::ArrayLiteral(Vec::new())) // Empty array literal
 }
 
 fn build_indexed_word_expr(inner: Pair<'_, Rule>) -> Result<Expr, ParseError> {
