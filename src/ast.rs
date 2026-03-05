@@ -456,59 +456,48 @@ impl Drop for Expr {
                 _ => {}
             }
 
-            // Replace self with a trivial variant to take ownership of the deep structure
-            // and drop it within the maybe_grow context.
-            // Using BooleanLiteral(false) as it doesn't allocate.
-            let old_self = std::mem::replace(self, Expr::BooleanLiteral(false));
-
-            // Wrap in ManuallyDrop to prevent Drop::drop from being called on old_self,
-            // which would cause infinite recursion.
-            let mut old_self = std::mem::ManuallyDrop::new(old_self);
-
-            // SAFETY:
-            // 1. We are in `Expr::drop`, so we hold unique access to `self`.
-            // 2. We moved the inner value into `old_self` and replaced `self` with a trivial
-            //    variant (`BooleanLiteral`) that does not allocate.
-            // 3. We wrap `old_self` in `ManuallyDrop` so the compiler will NOT automatically
-            //    call `Drop::drop(&mut old_self)` at the end of this scope.
-            // 4. We use `ptr::read` on the pointers to the inner heap-allocated fields
-            //    to extract their values out of the `ManuallyDrop`.
-            // 5. We immediately pass these extracted values to `drop()`.
-            // 6. Because we drop *every* heap-allocated field for the given variant
-            //    and `ManuallyDrop` prevents a double-drop, this is exactly equivalent
-            //    to the compiler-generated drop code, but executes within `maybe_grow`
-            //    to prevent stack overflow.
-            unsafe {
-                match &mut *old_self {
-                    Expr::Phrase(v) => drop(std::ptr::read(v)),
-                    Expr::Block(v) => drop(std::ptr::read(v)),
-                    Expr::ArrayLiteral(v) => drop(std::ptr::read(v)),
-                    Expr::IndexAccess { array, index } => {
-                        drop(std::ptr::read(array));
-                        drop(std::ptr::read(index));
-                    }
-                    Expr::PropertyAccess { owner, property } => {
-                        drop(std::ptr::read(owner));
-                        drop(std::ptr::read(property));
-                    }
-                    Expr::Call { verb, arguments } => {
-                        drop(std::ptr::read(verb));
-                        drop(std::ptr::read(arguments));
-                    }
-                    Expr::Binding { name, value } => {
-                        drop(std::ptr::read(name));
-                        drop(std::ptr::read(value));
-                    }
-                    Expr::BinOp { left, op: _, right } => {
-                        drop(std::ptr::read(left));
-                        drop(std::ptr::read(right));
-                    }
-                    Expr::UnaryOp { op: _, operand } => {
-                        drop(std::ptr::read(operand));
-                    }
-                    // Trivial cases
-                    _ => {}
+            // Instead of using unsafe and ManuallyDrop, we take the inner fields
+            // of the enum variants and replace them with trivial dummy values.
+            // These extracted values are dropped here inside the `maybe_grow` closure,
+            // preventing a stack overflow. When `Drop::drop` returns, the compiler
+            // will drop the `self` which now only contains trivial values that don't
+            // trigger further recursion.
+            match self {
+                Expr::Phrase(v) => {
+                    let _ = std::mem::take(v);
                 }
+                Expr::Block(v) => {
+                    let _ = std::mem::take(v);
+                }
+                Expr::ArrayLiteral(v) => {
+                    let _ = std::mem::take(v);
+                }
+                Expr::IndexAccess { array, index } => {
+                    let _ = std::mem::replace(&mut **array, Expr::BooleanLiteral(false));
+                    let _ = std::mem::replace(&mut **index, Expr::BooleanLiteral(false));
+                }
+                Expr::PropertyAccess { owner, property } => {
+                    let _ = std::mem::replace(&mut **owner, Expr::BooleanLiteral(false));
+                    let _ = std::mem::replace(&mut **property, Expr::BooleanLiteral(false));
+                }
+                Expr::Call { verb: _, arguments } => {
+                    // verb is a Word, which contains SmolStr. It's safe to let it drop normally,
+                    // but since Word doesn't contain Expr, it doesn't recurse.
+                    let _ = std::mem::take(arguments);
+                }
+                Expr::Binding { name: _, value } => {
+                    // name is a Word. No recursion.
+                    let _ = std::mem::replace(&mut **value, Expr::BooleanLiteral(false));
+                }
+                Expr::BinOp { left, op: _, right } => {
+                    let _ = std::mem::replace(&mut **left, Expr::BooleanLiteral(false));
+                    let _ = std::mem::replace(&mut **right, Expr::BooleanLiteral(false));
+                }
+                Expr::UnaryOp { op: _, operand } => {
+                    let _ = std::mem::replace(&mut **operand, Expr::BooleanLiteral(false));
+                }
+                // Trivial cases
+                _ => {}
             }
         });
     }

@@ -71,3 +71,6 @@ To identify vulnerabilities, harden interfaces, and eliminate memory safety risk
 
 Signed,
 🔒 Warden
+**2023-10-27 - Remove Unsafe Drop in AST**
+**Threat:** Use of `unsafe` code with `std::ptr::read` in `src/ast.rs`'s `Drop` implementation to prevent recursion, which could have led to bugs or memory leaks on panics and was highly dependent on exact memory layouts and variant checks.
+**Defense:** Rewrote the `Drop` implementation using 100% safe Rust via `std::mem::replace` and `std::mem::take` to explicitly dismantle nested enum variants by replacing their children with trivial non-allocating dummy values, allowing safe teardown without risking stack overflows.
