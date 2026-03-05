@@ -38,6 +38,7 @@ C4Container
         Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
         Container(dictionary, "The Lexicon", "src/tools/dictionary.rs", "The Source of Truth for Words (Dictionary)")
         Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
+        Container(interpreter, "Interpreter", "src/tools/interpreter.rs", "In-memory tree-walk simulator")
         Container(mentor, "Mentor", "src/tools/mentor.rs", "Interactive Tutorial Mode")
         Container(mosaic, "Mosaic", "src/tools/mosaic.rs", "Visualizes Semantic Assembly")
         Container(narrator, "The Bard", "src/tools/narrator.rs", "Generates English narrative ('Scroll of Logic') from AST")
@@ -60,6 +61,7 @@ C4Container
     Rel(semantic, mentor, "Analyzed Program")
     Rel(semantic, mosaic, "Analyzed Program")
     Rel(semantic, tester, "Analyzed Program")
+    Rel(semantic, interpreter, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 
     Rel(morphology, dictionary, "Lexicon Data")
