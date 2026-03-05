@@ -32,15 +32,15 @@ use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
-use std::path::PathBuf;
+use std::path::Path;
 
 /// Run the Mosaic tool on a file
 ///
 /// Reads the source file, parses it, and prints the semantic assembly table to stdout.
-pub fn run_mosaic(input_path: &PathBuf) -> Result<()> {
+pub fn run_mosaic(input_path: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ψηφιδωτόν (Mosaic)", "🧩");
 
-    let source = std::fs::read_to_string(input_path).into_diagnostic()?;
+    let source = crate::tools::runner::load_source(input_path)?;
 
     // Create a buffer for the table
     let mut buffer = Vec::new();

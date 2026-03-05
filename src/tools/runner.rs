@@ -61,7 +61,7 @@ fn check_file_size(input: &Path) -> Result<()> {
 /// - The file does not exist.
 /// - The file metadata indicates it is too large.
 /// - The file content exceeds the 1MB limit.
-fn load_source(input: &Path) -> Result<String> {
+pub(crate) fn load_source(input: &Path) -> Result<String> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
