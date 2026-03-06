@@ -6,8 +6,7 @@
 
 use super::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use crate::errors::GlossaError;
-
-const MAX_EXPRESSION_DEPTH: usize = 200;
+use crate::limits::MAX_EXPRESSION_DEPTH;
 
 /// Validates the analyzed program to ensure it meets all semantic rules and limits.
 pub(crate) fn validate_program(program: &AnalyzedProgram) -> Result<(), GlossaError> {
