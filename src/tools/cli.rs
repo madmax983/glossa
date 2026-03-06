@@ -46,6 +46,22 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+/// The main entry point configuration for the Glossa compiler CLI.
+///
+/// This struct defines the root of the command line interface, parsing the user's
+/// inputs into understandable commands that the compiler can act upon. We use `clap`
+/// to automatically generate help text and handle argument parsing.
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::tools::cli::Cli;
+/// use clap::Parser;
+///
+/// // You can parse arguments from an iterator, which is useful for testing!
+/// let args = Cli::parse_from(&["glossa", "run", "hero.γλ"]);
+/// assert!(args.command.is_some());
+/// ```
 #[derive(Parser)]
 #[command(name = "glossa")]
 #[command(about = "ΓΛΩΣΣΑ - Ancient Greek morphology as programming semantics")]
@@ -59,6 +75,24 @@ pub struct Cli {
     pub file: Option<PathBuf>,
 }
 
+/// The available subcommands for the Glossa CLI.
+///
+/// Each variant represents a distinct workflow or tool within the compiler suite.
+/// By explicitly defining these as an enum, we ensure that the user's intent
+/// is strictly typed and easily matchable in the main execution loop.
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::tools::cli::Commands;
+/// use std::path::PathBuf;
+///
+/// let run_cmd = Commands::Run { input: PathBuf::from("main.γλ") };
+/// match run_cmd {
+///     Commands::Run { input } => assert_eq!(input.to_str().unwrap(), "main.γλ"),
+///     _ => panic!("Expected Run command"),
+/// }
+/// ```
 #[derive(Subcommand)]
 pub enum Commands {
     /// Run a .γλ file (default)
