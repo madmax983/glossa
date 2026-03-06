@@ -80,11 +80,14 @@ fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, ParseError
     })
 }
 
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
+/// This prevents intermediate heap reallocations when building trait definitions.
 pub(crate) fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> {
     let mut trait_name = None;
-    let mut methods = Vec::new();
+    let inner_pairs = pair.into_inner();
+    let mut methods = Vec::with_capacity(inner_pairs.len());
 
-    for inner in pair.into_inner() {
+    for inner in inner_pairs {
         match inner.as_rule() {
             Rule::greek_word => {
                 // This is the trait name (between χαρακτήρ and ὁρίζειν)
@@ -113,8 +116,10 @@ pub(crate) fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, P
     Ok(TraitDef { name, methods })
 }
 
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the slice length.
+/// This minimizes heap allocations when parsing method parameters.
 fn parse_method_parameters(words: &[Word]) -> Vec<FieldDecl> {
-    let mut params = Vec::new();
+    let mut params = Vec::with_capacity(words.len());
     let mut iter = words.iter();
     while let Some(word) = iter.next() {
         // Look for τῷ (dative marker) followed by parameter name
@@ -133,13 +138,16 @@ fn parse_method_parameters(words: &[Word]) -> Vec<FieldDecl> {
     params
 }
 
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
+/// This prevents intermediate heap reallocations when building trait methods.
 fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseError> {
-    let mut words = Vec::new();
-    let mut body_statements = Vec::new();
+    let inner_pairs = pair.into_inner();
+    let mut words = Vec::with_capacity(inner_pairs.len());
+    let mut body_statements = Vec::with_capacity(inner_pairs.len());
     let mut has_body = false;
     let mut is_default = false;
 
-    for inner in pair.into_inner() {
+    for inner in inner_pairs {
         match inner.as_rule() {
             Rule::dei_keyword => {
                 is_default = false;
@@ -186,12 +194,15 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseErro
     })
 }
 
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
+/// This prevents intermediate heap reallocations when building trait implementations.
 pub(crate) fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, ParseError> {
     let mut type_name = None;
     let mut trait_name = None;
-    let mut methods = Vec::new();
+    let inner_pairs = pair.into_inner();
+    let mut methods = Vec::with_capacity(inner_pairs.len());
 
-    for inner in pair.into_inner() {
+    for inner in inner_pairs {
         match inner.as_rule() {
             Rule::greek_word => {
                 // First greek_word is the type name, second is the trait name
@@ -278,11 +289,14 @@ pub(crate) fn build_test_declaration(pair: Pair<'_, Rule>) -> Result<TestDecl, P
     Ok(TestDecl { name, body })
 }
 
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
+/// This prevents intermediate heap reallocations when building implementation methods.
 fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> {
-    let mut words = Vec::new();
+    let inner_pairs = pair.into_inner();
+    let mut words = Vec::with_capacity(inner_pairs.len());
     let mut body = None;
 
-    for inner in pair.into_inner() {
+    for inner in inner_pairs {
         match inner.as_rule() {
             Rule::greek_word => {
                 words.push(Word {
