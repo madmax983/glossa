@@ -14,3 +14,8 @@
 **Concept:** An interactive tutorial mode (`glossa mentor`) that guides users through learning the language via Socratic challenges. It verifies not just syntax but semantic correctness (e.g., "Create a variable named 'x'").
 **Fate:** Merged
 **Lesson:** By connecting the `Repl` loop with the `Analyzer`'s internal state, we can create a powerful educational tool that provides real-time feedback. This transforms the compiler from a tool into a teacher.
+
+## 🌟 The Arborist (ὁ Δενδροκόμος)
+**Concept:** A CLI tool (`glossa tree`) that visualizes the Abstract Syntax Tree (AST) of a program as an ASCII/Unicode hierarchy, making it easier to understand expression/statement nesting.
+**Fate:** Merged
+**Lesson:** Representing nested data structures (like ASTs) using a standard textual tree output is helpful for debugging AST transformations and quickly checking structural changes without needing heavy UI wrappers.

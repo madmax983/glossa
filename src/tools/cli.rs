@@ -168,4 +168,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Visualize the Abstract Syntax Tree (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Tree {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
