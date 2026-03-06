@@ -68,7 +68,7 @@ pub enum Commands {
     },
 
     /// Start the interactive tutorial (Requires "nova" feature)
-    #[cfg(feature = "nova")]
+    #[cfg_attr(not(feature = "nova"), command(hide = true))]
     Mentor,
 
     /// Compile a .γλ file to Rust source
@@ -115,21 +115,21 @@ pub enum Commands {
     },
 
     /// Visualize the assembled sentence structure (Requires "nova" feature)
-    #[cfg(feature = "nova")]
+    #[cfg_attr(not(feature = "nova"), command(hide = true))]
     Mosaic {
         /// Input file (.γλ)
         input: PathBuf,
     },
 
     /// Visualize the program architecture as a map (Requires "nova" feature)
-    #[cfg(feature = "nova")]
+    #[cfg_attr(not(feature = "nova"), command(hide = true))]
     Map {
         /// Input file (.γλ)
         input: PathBuf,
     },
 
     /// Generate a Markdown Rosetta Stone (Requires "nova" feature)
-    #[cfg(feature = "nova")]
+    #[cfg_attr(not(feature = "nova"), command(hide = true))]
     Weave {
         /// Input file (.γλ)
         input: PathBuf,

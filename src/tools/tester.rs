@@ -279,12 +279,17 @@ pub fn run_tests(input: &Path) -> Result<()> {
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
     } else {
-        table.add_row(vec![
+        let mut empty_table = Table::new();
+        empty_table.load_preset(comfy_table::presets::UTF8_FULL);
+        empty_table.add_row(vec![
             Cell::new("No tests found.")
                 .fg(Color::DarkGrey)
-                .add_attribute(Attribute::Italic),
-            Cell::new("-").fg(Color::DarkGrey),
+                .add_attribute(Attribute::Italic)
+                .set_alignment(comfy_table::CellAlignment::Center),
         ]);
+        println!();
+        println!("{empty_table}");
+        return Ok(());
     }
 
     println!("{table}");

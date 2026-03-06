@@ -14,3 +14,9 @@
 1. Change the test run command in the README to point to a file that actually exists, like `cargo run --release -- test examples/working_tests.γλ`.
 2. Fix the variable scoping check in the compiler so it actually throws `Οὐκ οἶδα τὸ ὄνομα`.
 3. Catch missing verbs during parsing/semantic analysis so they return `Ῥῆμα οὐχ εὑρέθη` instead of triggering an internal Rust compiler panic.
+
+# 🗣️ Echo: Getting Started example is broken
+
+* 🤦 **The Confusion:** "Tried to run `mentor` tool from the README. Compiler said `File not found: mentor`."
+* 🕵️ **The Reality:** "Turns out I needed to enable feature `nova`. Because the feature was off, the `mentor` command wasn't compiled in the CLI, so `clap` thought I was trying to run a `.γλ` file named `mentor`."
+* 💡 **The Fix:** "Change the CLI commands to always exist, but hide them when `nova` is not enabled, and return a helpful error message instructing the user to run with `--features nova` instead of falling back to running a file."

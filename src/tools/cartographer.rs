@@ -65,15 +65,11 @@ pub fn run_map(input: &Path) -> Result<()> {
     table.load_preset(presets::UTF8_FULL);
 
     if map.trim() == "classDiagram" {
-        table.set_header(vec![
-            Cell::new("Status")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
-        ]);
         table.add_row(vec![
             Cell::new("No architectural structures (Structs) found.")
                 .fg(Color::DarkGrey)
-                .add_attribute(Attribute::Italic),
+                .add_attribute(Attribute::Italic)
+                .set_alignment(comfy_table::CellAlignment::Center),
         ]);
         println!("{table}");
         println!();

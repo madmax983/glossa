@@ -23,9 +23,17 @@ fn main() -> Result<()> {
             run_file(&input)?;
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Mentor) => {
-            glossa::tools::mentor::run_mentor()?;
+            #[cfg(feature = "nova")]
+            {
+                glossa::tools::mentor::run_mentor()?;
+            }
+            #[cfg(not(feature = "nova"))]
+            {
+                miette::bail!(
+                    "The 'mentor' command requires the experimental 'nova' feature.\nPlease run again with: cargo run --features nova -- mentor"
+                );
+            }
         }
 
         Some(Commands::Build { input, output }) => {
@@ -52,19 +60,46 @@ fn main() -> Result<()> {
             glossa::tools::tester::run_tests(&input)?;
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Mosaic { input }) => {
-            glossa::tools::mosaic::run_mosaic(&input)?;
+            #[cfg(feature = "nova")]
+            {
+                glossa::tools::mosaic::run_mosaic(&input)?;
+            }
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input; // Ignore unused variable warning
+                miette::bail!(
+                    "The 'mosaic' command requires the experimental 'nova' feature.\nPlease run again with: cargo run --features nova -- mosaic <file>"
+                );
+            }
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Map { input }) => {
-            glossa::tools::cartographer::run_map(&input)?;
+            #[cfg(feature = "nova")]
+            {
+                glossa::tools::cartographer::run_map(&input)?;
+            }
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'map' command requires the experimental 'nova' feature.\nPlease run again with: cargo run --features nova -- map <file>"
+                );
+            }
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Weave { input }) => {
-            glossa::tools::weave::run_weave(&input)?;
+            #[cfg(feature = "nova")]
+            {
+                glossa::tools::weave::run_weave(&input)?;
+            }
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'weave' command requires the experimental 'nova' feature.\nPlease run again with: cargo run --features nova -- weave <file>"
+                );
+            }
         }
 
         Some(Commands::Repl) | None => {
