@@ -95,6 +95,27 @@ pub struct LexiconEntry {
 }
 
 impl LexiconEntry {
+    /// Converts a static lexicon entry into a dynamically usable MorphAnalysis.
+    ///
+    /// This is necessary because the Lexicon is static (and optimized to use `&'static str`),
+    /// but during parsing and ambiguity resolution we may need to dynamically adjust
+    /// or duplicate these analyses (e.g. creating owned strings for stems we construct).
+    ///
+    /// The resulting `MorphAnalysis` always has a confidence of `1.0` since lexicon entries
+    /// are the definitive source of truth for irregular and core vocabulary.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::morphology::{lexicon::lookup, Case, PartOfSpeech};
+    ///
+    /// let entry = lookup("αριθμος").expect("Word not found");
+    /// let analysis = entry.to_analysis();
+    ///
+    /// assert_eq!(analysis.part_of_speech, PartOfSpeech::Noun);
+    /// assert_eq!(analysis.case, Some(Case::Nominative));
+    /// assert_eq!(analysis.confidence, 1.0);
+    /// ```
     pub fn to_analysis(&self) -> MorphAnalysis {
         MorphAnalysis {
             lemma: Cow::Borrowed(self.lemma),

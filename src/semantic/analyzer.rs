@@ -22,6 +22,32 @@ pub struct AnalyzedProgram {
     pub scope: Scope,
 }
 
+/// Semantically analyze a single statement and update the scope environment.
+///
+/// This function acts as the entry point for understanding *what* the AST is trying
+/// to express. It systematically checks against known high-level constructs
+/// (Function definitions, Struct instantiations, Control flow).
+/// If it matches none of those patterns, it falls back to the `Assembler` which
+/// attempts to assemble a meaningful sentence from individual words.
+///
+/// # Returns
+/// A `Vec<AnalyzedStatement>` because a single block statement can return
+/// multiple analyzed statements internally when expanded in scope.
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::parser::parse;
+/// use glossa::semantic::{Scope, analyzer::analyze_statement};
+///
+/// let mut scope = Scope::new();
+/// let ast = parse("ξ πέντε ἔστω.").unwrap(); // "Let ξ be 5."
+///
+/// let statements = analyze_statement(&ast.statements[0], &mut scope).unwrap();
+///
+/// assert_eq!(statements.len(), 1);
+/// assert!(scope.lookup_binding("ξ").is_some());
+/// ```
 pub fn analyze_statement(
     stmt: &Statement,
     scope: &mut Scope,
