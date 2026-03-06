@@ -43,7 +43,7 @@ use crate::codegen::generate_rust_file;
 use crate::parser::parse;
 use crate::semantic::analyze_program;
 use crate::tools::ui::Status;
-use comfy_table::{Attribute, Cell, Color, Table, presets};
+use comfy_table::{Attribute, Cell, CellAlignment, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
@@ -255,14 +255,16 @@ pub fn run_tests(input: &Path) -> Result<()> {
     println!();
 
     let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL).set_header(vec![
-        Cell::new("Test Case")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-        Cell::new("Status").add_attribute(Attribute::Bold),
-    ]);
+    table.load_preset(presets::UTF8_FULL);
 
     if !results.is_empty() {
+        table.set_header(vec![
+            Cell::new("Test Case")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("Status").add_attribute(Attribute::Bold),
+        ]);
+
         for result in &results {
             let status_cell = match result.status {
                 TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
@@ -279,11 +281,16 @@ pub fn run_tests(input: &Path) -> Result<()> {
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
     } else {
+        table.set_header(vec![
+            Cell::new("Status")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Yellow),
+        ]);
         table.add_row(vec![
             Cell::new("No tests found.")
                 .fg(Color::DarkGrey)
-                .add_attribute(Attribute::Italic),
-            Cell::new("-").fg(Color::DarkGrey),
+                .add_attribute(Attribute::Italic)
+                .set_alignment(CellAlignment::Center),
         ]);
     }
 
