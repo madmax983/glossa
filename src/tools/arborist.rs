@@ -663,9 +663,42 @@ mod comprehensive_tests {
 
     #[test]
     fn test_tree_match() {
-        // Need to use syntax supported by parser
-        // glossa syntax is different, we can skip Match if it's too difficult, or use proper syntax.
-        // Given that we are just testing AST tree generation, we can manually construct the AST and generate the tree for the complicated ones, or write accurate Glossa.
+        use crate::semantic::{AnalyzedExpr, AnalyzedExprKind};
+        let mut program = crate::semantic::AnalyzedProgram {
+            statements: vec![],
+            scope: crate::semantic::Scope::new(),
+        };
+
+        let dummy_expr = |kind| AnalyzedExpr {
+            expr: kind,
+            glossa_type: crate::semantic::GlossaType::Number,
+        };
+
+        program.statements.push(AnalyzedStatement::Match {
+            scrutinee: Box::new(dummy_expr(AnalyzedExprKind::Variable("x".into()))),
+            arms: vec![
+                (
+                    dummy_expr(AnalyzedExprKind::NumberLiteral(1)),
+                    vec![AnalyzedStatement::Break, AnalyzedStatement::Continue],
+                ),
+                (
+                    dummy_expr(AnalyzedExprKind::Variable("_".into())),
+                    vec![AnalyzedStatement::Continue],
+                ),
+            ],
+        });
+
+        // Test match with empty arms
+        program.statements.push(AnalyzedStatement::Match {
+            scrutinee: Box::new(dummy_expr(AnalyzedExprKind::Variable("y".into()))),
+            arms: vec![],
+        });
+
+        let tree = generate_tree(&program);
+        assert!(tree.contains("Match"));
+        assert!(tree.contains("Arm"));
+        assert!(tree.contains("NumberLiteral: 1"));
+        assert!(tree.contains("Variable: _"));
     }
 
     #[test]
@@ -768,6 +801,18 @@ mod comprehensive_tests {
         };
 
         program.statements.push(AnalyzedStatement::Expression(vec![
+            dummy_expr(AnalyzedExprKind::ArrayLiteral(vec![])),
+            dummy_expr(AnalyzedExprKind::MethodCall {
+                receiver: Box::new(dummy_expr(AnalyzedExprKind::Variable("x".into()))),
+                method: "speak".into(),
+                args: vec![dummy_expr(AnalyzedExprKind::NumberLiteral(1))],
+            }),
+            dummy_expr(AnalyzedExprKind::TraitMethodCall {
+                receiver: Box::new(dummy_expr(AnalyzedExprKind::Variable("x".into()))),
+                trait_name: "Say".into(),
+                method_name: "speak".into(),
+                args: vec![dummy_expr(AnalyzedExprKind::NumberLiteral(1))],
+            }),
             dummy_expr(AnalyzedExprKind::PropertyAccess {
                 owner: Box::new(dummy_expr(AnalyzedExprKind::Variable("obj".into()))),
                 property: "prop".into(),
@@ -870,16 +915,34 @@ mod comprehensive_tests {
                 end: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(10))),
                 inclusive: true,
             }),
+            dummy_expr(AnalyzedExprKind::Range {
+                start: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(1))),
+                end: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(10))),
+                inclusive: false,
+            }),
             dummy_expr(AnalyzedExprKind::Lambda {
                 params: vec!["x".into()],
                 body: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(1))),
                 capture_mode: CaptureMode::Borrow,
             }),
+            dummy_expr(AnalyzedExprKind::Lambda {
+                params: vec!["y".into(), "z".into()],
+                body: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(1))),
+                capture_mode: CaptureMode::Move,
+            }),
+            dummy_expr(AnalyzedExprKind::Lambda {
+                params: vec![],
+                body: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(1))),
+                capture_mode: CaptureMode::Memoize,
+            }),
         ]));
 
         let tree = generate_tree(&program);
         assert!(tree.contains("Range: ..="));
+        assert!(tree.contains("Range: ..\n"));
         assert!(tree.contains("Lambda: |x| (mode: Borrow)"));
+        assert!(tree.contains("Lambda: |y, z| (mode: Move)"));
+        assert!(tree.contains("Lambda: || (mode: Memoize)"));
     }
 
     #[test]
@@ -894,6 +957,14 @@ mod comprehensive_tests {
             expr: AnalyzedExprKind::NumberLiteral(2),
             glossa_type: crate::semantic::GlossaType::Number,
         };
+
+        // Also test empty program
+        let empty_program = crate::semantic::AnalyzedProgram {
+            statements: vec![],
+            scope: crate::semantic::Scope::new(),
+        };
+        let empty_tree = generate_tree(&empty_program);
+        assert_eq!(empty_tree, "Program\n");
 
         program.statements.push(AnalyzedStatement::Binding {
             name: "y".into(),
