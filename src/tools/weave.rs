@@ -14,6 +14,7 @@ use crate::codegen::generate_rust_file;
 use crate::parser::parse;
 use crate::semantic::analyze_program;
 use crate::tools::mosaic::run_mosaic_inner;
+use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
@@ -30,7 +31,7 @@ pub fn run_weave(input: &Path) -> Result<()> {
 
     let status = Status::start_with_symbol("Ὕφανσις (Weaving)", "🕸️");
 
-    let source = fs::read_to_string(input).into_diagnostic()?;
+    let source = load_source(input)?;
 
     // 1. Parse & Analyze
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
@@ -130,5 +131,28 @@ mod tests {
         let result = run_weave(path);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_run_weave_file_too_large() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("too_large.γλ");
+
+        // Create a file larger than MAX_FILE_SIZE (1MB)
+        let max_size = 1024 * 1024;
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            let data = vec![0u8; max_size + 1];
+            f.write_all(&data).unwrap();
+        }
+
+        let result = run_weave(&input_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον λίαν μέγα")
+        );
     }
 }
