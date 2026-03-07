@@ -281,11 +281,6 @@ pub fn run_tests(input: &Path) -> Result<()> {
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
     } else {
-        table.set_header(vec![
-            Cell::new("Status")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
-        ]);
         table.add_row(vec![
             Cell::new("No tests found.")
                 .fg(Color::DarkGrey)
