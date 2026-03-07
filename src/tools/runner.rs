@@ -106,14 +106,24 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
 ///
 /// ## Examples
 ///
-/// ```no_run
+/// ```
 /// use glossa::tools::runner::build_file;
-/// use std::path::Path;
+/// use std::path::PathBuf;
+/// use std::fs;
+/// use tempfile::tempdir;
 ///
-/// let input = Path::new("main.γλ");
-/// let output = Path::new("main.rs");
+/// let dir = tempdir().unwrap();
+/// let input = dir.path().join("main.γλ");
+/// let output = dir.path().join("main.rs");
+///
+/// // Create a temporary Glossa file
+/// fs::write(&input, "ξ 5 ἔστω.").unwrap();
+///
 /// // Compiles main.γλ to main.rs
-/// build_file(input, Some(output)).unwrap();
+/// build_file(&input, Some(output.as_path())).unwrap();
+///
+/// // Verify the output file was created
+/// assert!(output.exists());
 /// ```
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🏗️");
@@ -175,13 +185,20 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 ///
 /// ## Examples
 ///
-/// ```no_run
+/// ```
 /// use glossa::tools::runner::run_file;
-/// use std::path::Path;
+/// use std::path::PathBuf;
+/// use std::fs;
+/// use tempfile::tempdir;
 ///
-/// let input = Path::new("main.γλ");
+/// let dir = tempdir().unwrap();
+/// let input = dir.path().join("main.γλ");
+///
+/// // Create a temporary Glossa file
+/// fs::write(&input, "ξ 5 ἔστω.").unwrap();
+///
 /// // Compiles and immediately executes the file
-/// run_file(input).unwrap();
+/// run_file(&input).unwrap();
 /// ```
 pub fn run_file(input: &Path) -> Result<()> {
     if !input.exists() {
@@ -295,13 +312,20 @@ pub fn run_file(input: &Path) -> Result<()> {
 ///
 /// ## Examples
 ///
-/// ```no_run
+/// ```
 /// use glossa::tools::runner::check_file;
-/// use std::path::Path;
+/// use std::path::PathBuf;
+/// use std::fs;
+/// use tempfile::tempdir;
 ///
-/// let input = Path::new("main.γλ");
+/// let dir = tempdir().unwrap();
+/// let input = dir.path().join("main.γλ");
+///
+/// // Create a temporary Glossa file
+/// fs::write(&input, "ξ 5 ἔστω.").unwrap();
+///
 /// // Checks the file for errors without compiling it
-/// check_file(input).unwrap();
+/// check_file(&input).unwrap();
 /// ```
 pub fn check_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
@@ -335,13 +359,20 @@ pub fn check_file(input: &Path) -> Result<()> {
 ///
 /// ## Examples
 ///
-/// ```no_run
+/// ```
 /// use glossa::tools::runner::highlight_file;
-/// use std::path::Path;
+/// use std::path::PathBuf;
+/// use std::fs;
+/// use tempfile::tempdir;
 ///
-/// let input = Path::new("main.γλ");
+/// let dir = tempdir().unwrap();
+/// let input = dir.path().join("main.γλ");
+///
+/// // Create a temporary Glossa file
+/// fs::write(&input, "ξ 5 ἔστω.").unwrap();
+///
 /// // Prints the highlighted source code to stdout
-/// highlight_file(input).unwrap();
+/// highlight_file(&input).unwrap();
 /// ```
 pub fn highlight_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
@@ -366,13 +397,20 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 ///
 /// ## Examples
 ///
-/// ```no_run
+/// ```
 /// use glossa::tools::runner::bard_file;
-/// use std::path::Path;
+/// use std::path::PathBuf;
+/// use std::fs;
+/// use tempfile::tempdir;
 ///
-/// let input = Path::new("main.γλ");
+/// let dir = tempdir().unwrap();
+/// let input = dir.path().join("main.γλ");
+///
+/// // Create a temporary Glossa file
+/// fs::write(&input, "ξ 5 ἔστω.").unwrap();
+///
 /// // Prints the English narrative of the program's logic
-/// bard_file(input).unwrap();
+/// bard_file(&input).unwrap();
 /// ```
 pub fn bard_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
