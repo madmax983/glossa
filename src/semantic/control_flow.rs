@@ -15,6 +15,7 @@ use super::{
 };
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
+use crate::limits::MAX_CONTROL_FLOW_DEPTH;
 use crate::morphology::lexicon;
 
 /// Check if a statement is a control flow construct and analyze it
@@ -571,8 +572,6 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
 
     Err(GlossaError::semantic("Invalid match pattern"))
 }
-
-const MAX_CONTROL_FLOW_DEPTH: usize = 100;
 
 /// Parse a conditional statement (εἰ/ἐάν)
 fn parse_conditional(
