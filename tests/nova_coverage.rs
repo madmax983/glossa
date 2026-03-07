@@ -144,3 +144,39 @@ fn test_run_tests_rustc_error() {
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("Rustc Error"));
 }
+
+#[test]
+fn test_run_tree_success() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "ξ 10 ἔστω.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::arborist::run_tree(temp_file.path());
+    assert!(result.is_ok(), "Arborist run_tree failed: {:?}", result.err());
+}
+
+#[test]
+fn test_run_tree_empty() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    // File with no valid AST nodes
+    let source = " ";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::arborist::run_tree(temp_file.path());
+    assert!(result.is_ok(), "Arborist run_tree failed: {:?}", result.err());
+}
+
+#[test]
+fn test_run_tree_file_not_found() {
+    let path = PathBuf::from("non_existent_file.γλ");
+    let result = glossa::tools::arborist::run_tree(&path);
+    assert!(result.is_err());
+}
