@@ -144,3 +144,22 @@ fn test_run_tests_rustc_error() {
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("Rustc Error"));
 }
+
+#[cfg(feature = "nova")]
+#[test]
+fn test_run_typetree_success() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "
+        εἶδος Χρήστης ὁρίζειν {
+            ὄνομα ὀνόματος.
+        }.
+    ";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::typetree::run_typetree(temp_file.path());
+    assert!(result.is_ok(), "TypeTree failed: {:?}", result.err());
+}

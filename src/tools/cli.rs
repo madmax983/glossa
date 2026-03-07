@@ -168,4 +168,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Visualize the program types as a tree (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    TypeTree {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

@@ -356,6 +356,16 @@ impl Scope {
             })
         })
     }
+
+    /// Get all types defined in this scope (helper for typetree)
+    pub fn get_all_types(&self) -> Vec<(SmolStr, GlossaType)> {
+        self.types().map(|(k, v)| (k.clone(), v.clone())).collect()
+    }
+
+    /// Get all traits defined in this scope (helper for typetree)
+    pub fn get_all_traits(&self) -> Vec<(SmolStr, crate::semantic::model::TraitDef)> {
+        self.traits().map(|(k, v)| (k.clone(), v.clone())).collect()
+    }
 }
 
 impl Default for Scope {

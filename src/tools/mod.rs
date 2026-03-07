@@ -33,6 +33,8 @@ pub mod repl;
 pub mod report;
 pub mod runner;
 pub mod tester;
+#[cfg(feature = "nova")]
+pub mod typetree;
 pub mod ui;
 #[cfg(feature = "nova")]
 pub mod weave;
