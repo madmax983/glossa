@@ -51,7 +51,7 @@ pub fn analyze_type_definition(
     );
 
     // Analyze fields
-    let mut fields = Vec::new();
+    let mut fields = Vec::with_capacity(type_def.fields.len());
     for field in &type_def.fields {
         let field_name = field.name.normalized.clone();
         let type_name_gen = &field.type_name.normalized;
@@ -128,13 +128,13 @@ pub fn analyze_trait_definition(
     }
 
     // Analyze methods
-    let mut analyzed_methods = Vec::new();
+    let mut analyzed_methods = Vec::with_capacity(trait_def.methods.len());
 
     for method in &trait_def.methods {
         let method_name = method.name.normalized.clone();
 
         // Analyze method parameters
-        let mut params = Vec::new();
+        let mut params = Vec::with_capacity(method.params.len());
         for param in &method.params {
             let param_name = param.name.normalized.clone();
             // For now, trait method parameters don't have explicit types
@@ -145,7 +145,7 @@ pub fn analyze_trait_definition(
         if method.is_default {
             // Analyze default method body
             let body = if let Some(body_stmts) = &method.body {
-                let mut analyzed_body = Vec::new();
+                let mut analyzed_body = Vec::with_capacity(body_stmts.len());
                 // Create a child scope for the method
                 {
                     let mut scope = scope.enter_scope();
@@ -233,14 +233,14 @@ pub fn analyze_trait_impl(
         .ok_or_else(|| GlossaError::semantic(format!("Type {} is not defined", type_name)))?;
 
     // Collect implemented methods
-    let mut implemented_method_names = Vec::new();
-    let mut analyzed_methods = Vec::new();
+    let mut implemented_method_names = Vec::with_capacity(trait_impl.methods.len());
+    let mut analyzed_methods = Vec::with_capacity(trait_impl.methods.len());
 
     for method in &trait_impl.methods {
         let method_name = method.name.normalized.clone();
 
         // Analyze method parameters
-        let mut params = Vec::new();
+        let mut params = Vec::with_capacity(method.params.len());
         for param in &method.params {
             let param_name = param.name.normalized.clone();
             // For now, trait method parameters don't have explicit types
@@ -248,7 +248,7 @@ pub fn analyze_trait_impl(
         }
 
         // Create a child scope for the method body with self bound
-        let mut analyzed_body = Vec::new();
+        let mut analyzed_body = Vec::with_capacity(method.body.len());
         {
             let mut scope = scope.enter_scope();
             scope.define("self".to_string(), struct_type.clone());
@@ -371,7 +371,8 @@ pub fn parse_function_definition(
     let params = extract_parameters_from_expr(header_expr, scope)?;
 
     // Use enter_scope() to create a child scope that inherits types/traits
-    let mut body_statements = Vec::new();
+    // We can pre-allocate since we know exactly how many expressions form the body
+    let mut body_statements = Vec::with_capacity(clause.expressions.len().saturating_sub(1));
     {
         let mut function_scope = scope.enter_scope();
         for (param_name, param_type) in &params {
@@ -542,7 +543,7 @@ pub fn analyze_test_declaration(
     let test_name = test_decl.name.clone();
 
     // Analyze the test body statements
-    let mut analyzed_body = Vec::new();
+    let mut analyzed_body = Vec::with_capacity(test_decl.body.len());
 
     // Create a child scope for the test
     {
