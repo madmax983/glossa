@@ -7,11 +7,11 @@
 //! - Return (δός)
 //! - Break/Continue (παῦε, συνέχιζε)
 
+use super::analyzer::analyze_statement;
 use super::conversion::convert_assembled_to_analyzed;
 use super::expressions::get_first_word;
 use super::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, StatementAnalyzer,
-    assemble_statement,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, assemble_statement,
 };
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
@@ -23,7 +23,6 @@ use crate::morphology::lexicon;
 pub fn analyze_control_flow(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // Note: Function definitions are handled in `mod.rs` before calling this.
 
@@ -36,22 +35,22 @@ pub fn analyze_control_flow(
 
     // Conditional: εἰ/ἐάν condition, body [, εἰ δὲ μή, else_body]
     if lexicon::is_conditional_particle(&normalized) {
-        return parse_conditional(stmt, scope, analyzer, 0);
+        return parse_conditional(stmt, scope, 0);
     }
 
     // While loop: ἕως condition, body
     if normalized == "εως" {
-        return parse_while_loop(stmt, scope, analyzer);
+        return parse_while_loop(stmt, scope);
     }
 
     // For loop with range: ἀπὸ start μέχρι/ἕως end, body
     if normalized == "απο" {
-        return parse_for_range_loop(stmt, scope, analyzer);
+        return parse_for_range_loop(stmt, scope);
     }
 
     // For loop with iteration: διὰ collection, body
     if normalized == "δια" {
-        return parse_for_iteration_loop(stmt, scope, analyzer);
+        return parse_for_iteration_loop(stmt, scope);
     }
 
     if lexicon::is_loop_particle(&normalized) {
@@ -60,7 +59,7 @@ pub fn analyze_control_flow(
     }
 
     if lexicon::is_match_particle(&normalized) {
-        return parse_match_expression(stmt, scope, analyzer);
+        return parse_match_expression(stmt, scope);
     }
 
     // Return: δός (give)
@@ -87,7 +86,6 @@ pub fn analyze_control_flow(
 fn parse_while_loop(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
@@ -109,7 +107,7 @@ fn parse_while_loop(
     };
 
     // Analyze body using unified helper
-    let body_analyzed = analyzer.analyze_statement(&body_stmt, scope)?;
+    let body_analyzed = analyze_statement(&body_stmt, scope)?;
 
     Ok(Some(AnalyzedStatement::While {
         condition: Box::new(condition_expr),
@@ -122,7 +120,6 @@ fn parse_while_loop(
 fn parse_for_range_loop(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
@@ -247,7 +244,7 @@ fn parse_for_range_loop(
         let mut loop_scope = scope.enter_scope();
         loop_scope.define(variable.clone(), GlossaType::Number);
 
-        analyzer.analyze_statement(&body_stmt, &mut loop_scope)?
+        analyze_statement(&body_stmt, &mut loop_scope)?
     };
 
     Ok(Some(AnalyzedStatement::For {
@@ -263,7 +260,6 @@ fn parse_for_range_loop(
 fn parse_for_iteration_loop(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
@@ -334,7 +330,7 @@ fn parse_for_iteration_loop(
         // TODO: Infer element type from collection type
         loop_scope.define(variable.clone(), GlossaType::String);
 
-        analyzer.analyze_statement(&body_stmt, &mut loop_scope)?
+        analyze_statement(&body_stmt, &mut loop_scope)?
     };
 
     Ok(Some(AnalyzedStatement::For {
@@ -350,7 +346,6 @@ fn parse_for_iteration_loop(
 fn parse_match_expression(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().is_empty() {
         return Err(GlossaError::semantic(
@@ -398,7 +393,7 @@ fn parse_match_expression(
                 is_query: false,
                 is_propagate: false,
             };
-            let body_analyzed = analyzer.analyze_statement(&body_stmt, scope)?;
+            let body_analyzed = analyze_statement(&body_stmt, scope)?;
 
             arms.push((pattern, body_analyzed));
         }
@@ -577,7 +572,6 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
 fn parse_conditional(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
     depth: usize,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if depth > MAX_CONTROL_FLOW_DEPTH {
@@ -611,7 +605,7 @@ fn parse_conditional(
             is_query: false,
             is_propagate: false,
         };
-        analyzer.analyze_statement(&stmt, scope)?
+        analyze_statement(&stmt, scope)?
     };
 
     // Check for else/elif clause
@@ -625,7 +619,7 @@ fn parse_conditional(
                 is_query: false,
                 is_propagate: false,
             };
-            Some(analyzer.analyze_statement(&stmt, scope)?)
+            Some(analyze_statement(&stmt, scope)?)
         }
         // Check if it's "εἰ" or "ἐάν" (elif)
         else if check_conditional_start(second_expr) {
@@ -647,8 +641,7 @@ fn parse_conditional(
             };
 
             // Recursively parse as a new conditional (which becomes the else body)
-            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope, analyzer, depth + 1)?
-            {
+            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope, depth + 1)? {
                 Some(vec![elif_analyzed])
             } else {
                 None
