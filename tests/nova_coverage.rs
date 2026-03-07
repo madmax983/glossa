@@ -156,7 +156,11 @@ fn test_run_tree_success() {
     write!(temp_file, "{}", source).expect("Failed to write to temp file");
 
     let result = glossa::tools::arborist::run_tree(temp_file.path());
-    assert!(result.is_ok(), "Arborist run_tree failed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Arborist run_tree failed: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -171,7 +175,11 @@ fn test_run_tree_empty() {
     write!(temp_file, "{}", source).expect("Failed to write to temp file");
 
     let result = glossa::tools::arborist::run_tree(temp_file.path());
-    assert!(result.is_ok(), "Arborist run_tree failed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Arborist run_tree failed: {:?}",
+        result.err()
+    );
 }
 
 #[test]

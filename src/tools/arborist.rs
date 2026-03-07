@@ -647,7 +647,9 @@ mod comprehensive_tests {
             variable: "x".into(),
             iterator: Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::ArrayLiteral(vec![]),
-                glossa_type: crate::semantic::GlossaType::List(Box::new(crate::semantic::GlossaType::Number)),
+                glossa_type: crate::semantic::GlossaType::List(Box::new(
+                    crate::semantic::GlossaType::Number,
+                )),
             }),
             body: vec![AnalyzedStatement::Break],
         });
@@ -703,11 +705,13 @@ mod comprehensive_tests {
             }],
         });
 
-        program.statements.push(AnalyzedStatement::TraitImplementation {
-            trait_name: "Say".into(),
-            type_name: "User".into(),
-            methods: vec![],
-        });
+        program
+            .statements
+            .push(AnalyzedStatement::TraitImplementation {
+                trait_name: "Say".into(),
+                type_name: "User".into(),
+                methods: vec![],
+            });
 
         let tree = generate_tree(&program);
         assert!(tree.contains("TypeDefinition: User {name}"));
@@ -732,17 +736,15 @@ mod comprehensive_tests {
 
         program.statements.push(AnalyzedStatement::TestDeclaration {
             name: "test".into(),
-            body: vec![
-                AnalyzedStatement::Expression(vec![
-                    dummy_expr(AnalyzedExprKind::AssertEq {
-                        left: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(10))),
-                        right: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(10))),
-                    }),
-                    dummy_expr(AnalyzedExprKind::Assert {
-                        condition: Box::new(dummy_expr(AnalyzedExprKind::BooleanLiteral(true))),
-                    }),
-                ])
-            ],
+            body: vec![AnalyzedStatement::Expression(vec![
+                dummy_expr(AnalyzedExprKind::AssertEq {
+                    left: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(10))),
+                    right: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(10))),
+                }),
+                dummy_expr(AnalyzedExprKind::Assert {
+                    condition: Box::new(dummy_expr(AnalyzedExprKind::BooleanLiteral(true))),
+                }),
+            ])],
         });
 
         let tree = generate_tree(&program);
@@ -753,6 +755,7 @@ mod comprehensive_tests {
 
     #[test]
     fn test_tree_expressions() {
+        use crate::morphology::lexicon::{BinaryOp, UnaryOp};
         use crate::semantic::{AnalyzedExpr, AnalyzedExprKind};
         let mut program = crate::semantic::AnalyzedProgram {
             statements: vec![],
@@ -765,17 +768,46 @@ mod comprehensive_tests {
         };
 
         program.statements.push(AnalyzedStatement::Expression(vec![
+            dummy_expr(AnalyzedExprKind::PropertyAccess {
+                owner: Box::new(dummy_expr(AnalyzedExprKind::Variable("obj".into()))),
+                property: "prop".into(),
+            }),
+            dummy_expr(AnalyzedExprKind::VerbCall {
+                verb: "do".into(),
+                args: vec![dummy_expr(AnalyzedExprKind::NumberLiteral(1))],
+            }),
+            dummy_expr(AnalyzedExprKind::BinOp {
+                left: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(1))),
+                op: BinaryOp::Add,
+                right: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(2))),
+            }),
+            dummy_expr(AnalyzedExprKind::UnaryOp {
+                op: UnaryOp::Not,
+                operand: Box::new(dummy_expr(AnalyzedExprKind::BooleanLiteral(false))),
+            }),
             dummy_expr(AnalyzedExprKind::StructInstantiation {
                 type_name: "User".into(),
                 fields: vec!["name".into()],
-                args: vec![dummy_expr(AnalyzedExprKind::StringLiteral("Socrates".into()))],
+                args: vec![dummy_expr(AnalyzedExprKind::StringLiteral(
+                    "Socrates".into(),
+                ))],
             }),
-            dummy_expr(AnalyzedExprKind::Some(Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(1))))),
+            dummy_expr(AnalyzedExprKind::Some(Box::new(dummy_expr(
+                AnalyzedExprKind::NumberLiteral(1),
+            )))),
             dummy_expr(AnalyzedExprKind::None),
-            dummy_expr(AnalyzedExprKind::Ok(Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(1))))),
-            dummy_expr(AnalyzedExprKind::Err(Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(1))))),
-            dummy_expr(AnalyzedExprKind::Unwrap(Box::new(dummy_expr(AnalyzedExprKind::Variable("x".into()))))),
-            dummy_expr(AnalyzedExprKind::Try(Box::new(dummy_expr(AnalyzedExprKind::Variable("x".into()))))),
+            dummy_expr(AnalyzedExprKind::Ok(Box::new(dummy_expr(
+                AnalyzedExprKind::NumberLiteral(1),
+            )))),
+            dummy_expr(AnalyzedExprKind::Err(Box::new(dummy_expr(
+                AnalyzedExprKind::NumberLiteral(1),
+            )))),
+            dummy_expr(AnalyzedExprKind::Unwrap(Box::new(dummy_expr(
+                AnalyzedExprKind::Variable("x".into()),
+            )))),
+            dummy_expr(AnalyzedExprKind::Try(Box::new(dummy_expr(
+                AnalyzedExprKind::Variable("x".into()),
+            )))),
             dummy_expr(AnalyzedExprKind::IndexAccess {
                 array: Box::new(dummy_expr(AnalyzedExprKind::Variable("arr".into()))),
                 index: Box::new(dummy_expr(AnalyzedExprKind::NumberLiteral(0))),
@@ -801,6 +833,10 @@ mod comprehensive_tests {
         ]));
 
         let tree = generate_tree(&program);
+        assert!(tree.contains("PropertyAccess: .prop"));
+        assert!(tree.contains("VerbCall: do"));
+        assert!(tree.contains("BinOp: Add"));
+        assert!(tree.contains("UnaryOp: Not"));
         assert!(tree.contains("StructInstantiation: User"));
         assert!(tree.contains("Some"));
         assert!(tree.contains("None"));
@@ -854,18 +890,44 @@ mod comprehensive_tests {
             scope: crate::semantic::Scope::new(),
         };
 
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(2),
+            glossa_type: crate::semantic::GlossaType::Number,
+        };
+
+        program.statements.push(AnalyzedStatement::Binding {
+            name: "y".into(),
+            value: dummy_expr.clone(),
+            mutable: true,
+        });
+        program.statements.push(AnalyzedStatement::Binding {
+            name: "z".into(),
+            value: dummy_expr.clone(),
+            mutable: false,
+        });
         program.statements.push(AnalyzedStatement::Assignment {
             name: "ξ".into(),
-            value: AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(2),
-                glossa_type: crate::semantic::GlossaType::Number,
-            },
+            value: dummy_expr.clone(),
         });
+        program
+            .statements
+            .push(AnalyzedStatement::Print(vec![dummy_expr.clone()]));
+        program
+            .statements
+            .push(AnalyzedStatement::Query(vec![dummy_expr.clone()]));
+        program
+            .statements
+            .push(AnalyzedStatement::Return { value: None });
         program.statements.push(AnalyzedStatement::Break);
         program.statements.push(AnalyzedStatement::Continue);
 
         let tree = generate_tree(&program);
+        assert!(tree.contains("Binding: name: y (mutable)"));
+        assert!(tree.contains("Binding: name: z\n"));
         assert!(tree.contains("Assignment: name: ξ"));
+        assert!(tree.contains("Print"));
+        assert!(tree.contains("Query"));
+        assert!(tree.contains("Return"));
         assert!(tree.contains("Break"));
         assert!(tree.contains("Continue"));
     }
