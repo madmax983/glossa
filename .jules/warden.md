@@ -74,3 +74,6 @@ Signed,
 **2023-10-27 - Remove Unsafe Drop in AST**
 **Threat:** Use of `unsafe` code with `std::ptr::read` in `src/ast.rs`'s `Drop` implementation to prevent recursion, which could have led to bugs or memory leaks on panics and was highly dependent on exact memory layouts and variant checks.
 **Defense:** Rewrote the `Drop` implementation using 100% safe Rust via `std::mem::replace` and `std::mem::take` to explicitly dismantle nested enum variants by replacing their children with trivial non-allocating dummy values, allowing safe teardown without risking stack overflows.
+**2024-05-15 - Unbounded File Read DoS in Weave Tool**
+**Threat:** The `run_weave` tool was using `std::fs::read_to_string`, which loads an entire file into memory without limits. An attacker could use a massive file or an infinite stream (like `/dev/zero`) to exhaust memory and crash the application.
+**Defense:** Replaced the unbounded read with the localized safe abstraction `load_source` from `crate::tools::runner::load_source`. `load_source` enforces a strict 1MB size limit by checking metadata and using `take()` on streams, preventing memory exhaustion.

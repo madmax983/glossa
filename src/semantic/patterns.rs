@@ -136,197 +136,198 @@ pub fn try_parse_struct_instantiation(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // Only process Regular statements
-    if let Statement::Regular { clauses, .. } = stmt {
-        // Should have exactly one clause
-        if clauses.len() != 1 {
-            return Ok(None);
-        }
+    let Statement::Regular { clauses, .. } = stmt else {
+        return Ok(None);
+    };
 
-        let clause = &clauses[0];
-        if clause.expressions.len() != 1 {
-            return Ok(None);
-        }
-
-        // Should be a Phrase with at least 4 terms
-        if let Expr::Phrase(terms) = &clause.expressions[0] {
-            if terms.len() < 4 {
-                return Ok(None);
-            }
-
-            // Verify structural words (0, 1, 2, Last) are Words
-            let var_word = if let Expr::Word(w) = &terms[0] {
-                w
-            } else {
-                return Ok(None);
-            };
-
-            let adj_word = if let Expr::Word(w) = &terms[1] {
-                w
-            } else {
-                return Ok(None);
-            };
-
-            let type_word = if let Expr::Word(w) = &terms[2] {
-                w
-            } else {
-                return Ok(None);
-            };
-
-            let last_word = if let Expr::Word(w) = terms.last().unwrap() {
-                w
-            } else {
-                return Ok(None);
-            };
-
-            // Check pattern: var_name νέον TypeName args... ἔστω
-            // Last word should be ἔστω (binding verb)
-            if !crate::morphology::lexicon::is_binding_verb(&last_word.normalized) {
-                return Ok(None);
-            }
-
-            // Second word should be νέον (new) - check both normalized form and if it's "new" via morphology
-            let normalized_adj = crate::text::normalize_greek(&adj_word.normalized);
-            // Check if it's "new" - could be νέον, νεον, etc.
-            if normalized_adj != "νεον" && normalized_adj != "νεος" {
-                return Ok(None);
-            }
-
-            // Extract components
-            let var_name = &var_word.normalized;
-            let type_name = &type_word.normalized;
-
-            // Check for built-in collection types first (HashSet, HashMap)
-            if let Some((rust_type, glossa_type)) =
-                crate::semantic::types::detect_collection_type(type_name)
-            {
-                let collection_new = AnalyzedExpr {
-                    expr: AnalyzedExprKind::CollectionNew {
-                        collection_type: rust_type.to_string(),
-                    },
-                    glossa_type: glossa_type.clone(),
-                };
-
-                // Register variable in scope (collections are implicitly mutable for insert)
-                scope.define_mut(var_name.clone(), glossa_type.clone());
-
-                return Ok(Some(AnalyzedStatement::Binding {
-                    name: var_name.clone(),
-                    value: collection_new,
-                    mutable: true,
-                }));
-            }
-
-            // Check if type exists as a user-defined struct
-            if let Some(struct_type) = scope.lookup_type(type_name).cloned() {
-                // Extract fields from struct type
-                let fields_info: Vec<(SmolStr, GlossaType)> =
-                    if let GlossaType::Struct { fields, .. } = &struct_type {
-                        fields.clone()
-                    } else {
-                        vec![]
-                    };
-
-                let field_names: Vec<SmolStr> =
-                    fields_info.iter().map(|(n, _)| n.clone()).collect();
-
-                // Collect constructor arguments (everything between type_name and ἔστω)
-                let mut args = Vec::new();
-                for (i, term) in terms[3..terms.len() - 1].iter().enumerate() {
-                    let expected_type = if i < fields_info.len() {
-                        &fields_info[i].1
-                    } else {
-                        &GlossaType::Unknown
-                    };
-
-                    let analyzed_arg = match term {
-                        Expr::Word(word) => {
-                            // Convert word to analyzed expression
-                            if let Ok(num) = word.original.parse::<i64>() {
-                                // Direct numeric literal like "5" stored as word
-                                AnalyzedExpr {
-                                    expr: AnalyzedExprKind::NumberLiteral(num),
-                                    glossa_type: GlossaType::Number,
-                                }
-                            } else if let Some(num) =
-                                crate::morphology::lexicon::numeral_value(&word.normalized)
-                            {
-                                // Greek numeral word like πέντε -> 5
-                                AnalyzedExpr {
-                                    expr: AnalyzedExprKind::NumberLiteral(num),
-                                    glossa_type: GlossaType::Number,
-                                }
-                            } else {
-                                // Variable reference
-                                let var_type = scope
-                                    .lookup(&word.normalized)
-                                    .cloned()
-                                    .unwrap_or(GlossaType::Unknown);
-                                AnalyzedExpr {
-                                    expr: AnalyzedExprKind::Variable(word.normalized.clone()),
-                                    glossa_type: var_type,
-                                }
-                            }
-                        }
-                        Expr::StringLiteral(s) => {
-                            let lit_expr = AnalyzedExpr {
-                                expr: AnalyzedExprKind::StringLiteral(s.clone()),
-                                glossa_type: GlossaType::String,
-                            };
-
-                            if matches!(expected_type, GlossaType::String) {
-                                // Wrap in .to_string() for struct fields expecting String
-                                AnalyzedExpr {
-                                    expr: AnalyzedExprKind::MethodCall {
-                                        receiver: Box::new(lit_expr),
-                                        method: "to_string".into(),
-                                        args: vec![],
-                                    },
-                                    glossa_type: GlossaType::String,
-                                }
-                            } else {
-                                lit_expr
-                            }
-                        }
-                        Expr::NumberLiteral(n) => AnalyzedExpr {
-                            expr: AnalyzedExprKind::NumberLiteral(*n),
-                            glossa_type: GlossaType::Number,
-                        },
-                        Expr::BooleanLiteral(b) => AnalyzedExpr {
-                            expr: AnalyzedExprKind::BooleanLiteral(*b),
-                            glossa_type: GlossaType::Boolean,
-                        },
-                        _ => return Ok(None), // Unsupported argument type
-                    };
-                    args.push(analyzed_arg);
-                }
-
-                // Build struct instantiation
-                let struct_inst = AnalyzedExpr {
-                    expr: AnalyzedExprKind::StructInstantiation {
-                        type_name: type_name.clone(),
-                        fields: field_names,
-                        args,
-                    },
-                    glossa_type: struct_type.clone(),
-                };
-
-                // Register variable in scope with correct type
-                scope.define(var_name.clone(), struct_type.clone());
-
-                return Ok(Some(AnalyzedStatement::Binding {
-                    name: var_name.clone(),
-                    value: struct_inst,
-                    mutable: false,
-                }));
-            } else {
-                // If it looks like a struct instantiation (var νέον Type ... ἔστω)
-                // but the type is unknown, return an error instead of falling back.
-                return Err(GlossaError::undefined(type_name.to_string()));
-            }
-        }
+    // Should have exactly one clause
+    if clauses.len() != 1 {
+        return Ok(None);
     }
 
-    Ok(None)
+    let clause = &clauses[0];
+    if clause.expressions.len() != 1 {
+        return Ok(None);
+    }
+
+    // Should be a Phrase with at least 4 terms
+    let Expr::Phrase(terms) = &clause.expressions[0] else {
+        return Ok(None);
+    };
+
+    if terms.len() < 4 {
+        return Ok(None);
+    }
+
+    // Verify structural words (0, 1, 2, Last) are Words
+    let Expr::Word(var_word) = &terms[0] else {
+        return Ok(None);
+    };
+    let Expr::Word(adj_word) = &terms[1] else {
+        return Ok(None);
+    };
+    let Expr::Word(type_word) = &terms[2] else {
+        return Ok(None);
+    };
+    let Expr::Word(last_word) = terms.last().unwrap() else {
+        return Ok(None);
+    };
+
+    // Check pattern: var_name νέον TypeName args... ἔστω
+    // Last word should be ἔστω (binding verb)
+    if !crate::morphology::lexicon::is_binding_verb(&last_word.normalized) {
+        return Ok(None);
+    }
+
+    // Second word should be νέον (new) - check both normalized form and if it's "new" via morphology
+    let normalized_adj = crate::text::normalize_greek(&adj_word.normalized);
+    // Check if it's "new" - could be νέον, νεον, etc.
+    if normalized_adj != "νεον" && normalized_adj != "νεος" {
+        return Ok(None);
+    }
+
+    // Extract components
+    let var_name = &var_word.normalized;
+    let type_name = &type_word.normalized;
+
+    // Check for built-in collection types first (HashSet, HashMap)
+    if let Some((rust_type, glossa_type)) =
+        crate::semantic::types::detect_collection_type(type_name)
+    {
+        let collection_new = AnalyzedExpr {
+            expr: AnalyzedExprKind::CollectionNew {
+                collection_type: rust_type.to_string(),
+            },
+            glossa_type: glossa_type.clone(),
+        };
+
+        // Register variable in scope (collections are implicitly mutable for insert)
+        scope.define_mut(var_name.clone(), glossa_type.clone());
+
+        return Ok(Some(AnalyzedStatement::Binding {
+            name: var_name.clone(),
+            value: collection_new,
+            mutable: true,
+        }));
+    }
+
+    // Check if type exists as a user-defined struct
+    let Some(struct_type) = scope.lookup_type(type_name).cloned() else {
+        // If it looks like a struct instantiation (var νέον Type ... ἔστω)
+        // but the type is unknown, return an error instead of falling back.
+        return Err(GlossaError::undefined(type_name.to_string()));
+    };
+
+    // Extract fields from struct type
+    let fields_info: Vec<(SmolStr, GlossaType)> =
+        if let GlossaType::Struct { fields, .. } = &struct_type {
+            fields.clone()
+        } else {
+            vec![]
+        };
+
+    let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
+
+    // Collect constructor arguments (everything between type_name and ἔστω)
+    let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], &fields_info, scope) else {
+        return Ok(None);
+    };
+
+    // Build struct instantiation
+    let struct_inst = AnalyzedExpr {
+        expr: AnalyzedExprKind::StructInstantiation {
+            type_name: type_name.clone(),
+            fields: field_names,
+            args,
+        },
+        glossa_type: struct_type.clone(),
+    };
+
+    // Register variable in scope with correct type
+    scope.define(var_name.clone(), struct_type.clone());
+
+    Ok(Some(AnalyzedStatement::Binding {
+        name: var_name.clone(),
+        value: struct_inst,
+        mutable: false,
+    }))
+}
+
+fn parse_struct_args(
+    args_terms: &[Expr],
+    fields_info: &[(SmolStr, GlossaType)],
+    scope: &Scope,
+) -> Option<Vec<AnalyzedExpr>> {
+    let mut args = Vec::with_capacity(args_terms.len());
+    for (i, term) in args_terms.iter().enumerate() {
+        let expected_type = if i < fields_info.len() {
+            &fields_info[i].1
+        } else {
+            &GlossaType::Unknown
+        };
+
+        let analyzed_arg = match term {
+            Expr::Word(word) => {
+                // Convert word to analyzed expression
+                if let Ok(num) = word.original.parse::<i64>() {
+                    // Direct numeric literal like "5" stored as word
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(num),
+                        glossa_type: GlossaType::Number,
+                    }
+                } else if let Some(num) =
+                    crate::morphology::lexicon::numeral_value(&word.normalized)
+                {
+                    // Greek numeral word like πέντε -> 5
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(num),
+                        glossa_type: GlossaType::Number,
+                    }
+                } else {
+                    // Variable reference
+                    let var_type = scope
+                        .lookup(&word.normalized)
+                        .cloned()
+                        .unwrap_or(GlossaType::Unknown);
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(word.normalized.clone()),
+                        glossa_type: var_type,
+                    }
+                }
+            }
+            Expr::StringLiteral(s) => {
+                let lit_expr = AnalyzedExpr {
+                    expr: AnalyzedExprKind::StringLiteral(s.clone()),
+                    glossa_type: GlossaType::String,
+                };
+
+                if matches!(expected_type, GlossaType::String) {
+                    // Wrap in .to_string() for struct fields expecting String
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::MethodCall {
+                            receiver: Box::new(lit_expr),
+                            method: "to_string".into(),
+                            args: vec![],
+                        },
+                        glossa_type: GlossaType::String,
+                    }
+                } else {
+                    lit_expr
+                }
+            }
+            Expr::NumberLiteral(n) => AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(*n),
+                glossa_type: GlossaType::Number,
+            },
+            Expr::BooleanLiteral(b) => AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(*b),
+                glossa_type: GlossaType::Boolean,
+            },
+            _ => return None, // Unsupported argument type
+        };
+        args.push(analyzed_arg);
+    }
+    Some(args)
 }
 
 /// Detect iterator patterns with participles

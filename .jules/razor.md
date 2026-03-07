@@ -102,3 +102,6 @@
 **Bloat:** `QuantifierFlags` struct in `src/semantic/patterns.rs` was a classic 'Enterprise FizzBuzz' wrapper for two booleans.
 **Cut:** Removed the struct entirely and extracted its logic into a simple helper function `determine_quantifiers` that returns a `(bool, bool)` tuple.
 **Saved:** 1 struct definition, 1 impl block, simplified method signatures.
+**Bloat:** `MAX_*` depth/limit constants scattered across `src/semantic/assembly/model.rs` and `src/semantic/control_flow.rs`, creating architectural duplication and inconsistent definition points.
+**Cut:** Centralized all compiler depth limit constants into `src/limits.rs`.
+**Saved:** Centralized logic (Single Source of Truth) and improved transparency for architectural constraints.
