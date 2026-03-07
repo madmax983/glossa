@@ -7,11 +7,10 @@
 //! - Function definitions (ὁρίζειν for functions)
 //! - Test declarations (δοκιμή)
 
-use super::{AnalyzedMethod, AnalyzedStatement, GlossaType, Scope};
+use super::{AnalyzedMethod, AnalyzedStatement, GlossaType, Scope, StatementAnalyzer};
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::morphology::{self};
-use crate::semantic::analyzer::analyze_statement;
 use smol_str::SmolStr;
 
 /// Analyze a type definition statement
@@ -36,6 +35,7 @@ use smol_str::SmolStr;
 pub fn analyze_type_definition(
     type_def: &crate::ast::TypeDef,
     scope: &mut Scope,
+    _analyzer: &mut impl StatementAnalyzer,
 ) -> Result<AnalyzedStatement, GlossaError> {
     // Extract type name
     let type_name = type_def.name.normalized.clone();
@@ -115,6 +115,7 @@ fn check_recursive_type(target_name: &str, ty: &GlossaType) -> bool {
 pub fn analyze_trait_definition(
     trait_def: &crate::ast::TraitDef,
     scope: &mut Scope,
+    analyzer: &mut impl StatementAnalyzer,
 ) -> Result<AnalyzedStatement, GlossaError> {
     // Extract trait name
     let trait_name = trait_def.name.normalized.clone();
@@ -155,7 +156,7 @@ pub fn analyze_trait_definition(
                     }
                     // Properly analyze statements in the body using unified helper
                     for body_stmt in body_stmts {
-                        analyzed_body.extend(analyze_statement(body_stmt, &mut scope)?);
+                        analyzed_body.extend(analyzer.analyze_statement(body_stmt, &mut scope)?);
                     }
                 }
                 Some(analyzed_body)
@@ -215,6 +216,7 @@ pub fn analyze_trait_definition(
 pub fn analyze_trait_impl(
     trait_impl: &crate::ast::TraitImplDef,
     scope: &mut Scope,
+    analyzer: &mut impl StatementAnalyzer,
 ) -> Result<AnalyzedStatement, GlossaError> {
     // Extract type and trait names
     let type_name = trait_impl.type_name.normalized.clone();
@@ -260,7 +262,7 @@ pub fn analyze_trait_impl(
 
             // Analyze the method body using unified helper
             for body_stmt in &method.body {
-                analyzed_body.extend(analyze_statement(body_stmt, &mut scope)?);
+                analyzed_body.extend(analyzer.analyze_statement(body_stmt, &mut scope)?);
             }
         }
 
@@ -345,6 +347,7 @@ pub fn resolve_type_name(name: &str, scope: &Scope) -> Result<GlossaType, Glossa
 pub fn parse_function_definition(
     stmt: &Statement,
     scope: &mut Scope,
+    analyzer: &mut impl StatementAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // The middle dot (·) separates expressions within a clause
     // Structure: expr1 · expr2 where expr1 is "name ὁρίζειν [params]" and expr2 is the body
@@ -397,7 +400,7 @@ pub fn parse_function_definition(
             };
 
             // Analyze each body expression using unified helper
-            body_statements.extend(analyze_statement(&clause_stmt, &mut function_scope)?);
+            body_statements.extend(analyzer.analyze_statement(&clause_stmt, &mut function_scope)?);
         }
     }
 
@@ -539,6 +542,7 @@ pub fn infer_return_type_from_body(body: &[AnalyzedStatement]) -> Option<GlossaT
 pub fn analyze_test_declaration(
     test_decl: &crate::ast::TestDecl,
     scope: &mut Scope,
+    analyzer: &mut impl StatementAnalyzer,
 ) -> Result<AnalyzedStatement, GlossaError> {
     let test_name = test_decl.name.clone();
 
@@ -550,7 +554,7 @@ pub fn analyze_test_declaration(
         let mut test_scope = scope.enter_scope();
 
         for body_stmt in &test_decl.body {
-            analyzed_body.extend(analyze_statement(body_stmt, &mut test_scope)?);
+            analyzed_body.extend(analyzer.analyze_statement(body_stmt, &mut test_scope)?);
         }
     }
 
