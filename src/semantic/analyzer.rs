@@ -155,13 +155,21 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
     for stmt in &program.statements {
         // Handle type definitions
         if let Statement::TypeDefinition(type_def) = stmt {
-            analyzed_statements.push(analyze_type_definition(type_def, &mut scope, &mut analyzer)?);
+            analyzed_statements.push(analyze_type_definition(
+                type_def,
+                &mut scope,
+                &mut analyzer,
+            )?);
             continue;
         }
 
         // Handle trait definitions
         if let Statement::TraitDefinition(trait_def) = stmt {
-            analyzed_statements.push(analyze_trait_definition(trait_def, &mut scope, &mut analyzer)?);
+            analyzed_statements.push(analyze_trait_definition(
+                trait_def,
+                &mut scope,
+                &mut analyzer,
+            )?);
             continue;
         }
 
@@ -173,7 +181,11 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
 
         // Handle test declarations
         if let Statement::TestDeclaration(test_decl) = stmt {
-            analyzed_statements.push(analyze_test_declaration(test_decl, &mut scope, &mut analyzer)?);
+            analyzed_statements.push(analyze_test_declaration(
+                test_decl,
+                &mut scope,
+                &mut analyzer,
+            )?);
             continue;
         }
 

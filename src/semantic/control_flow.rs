@@ -10,7 +10,8 @@
 use super::conversion::convert_assembled_to_analyzed;
 use super::expressions::get_first_word;
 use super::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, StatementAnalyzer, assemble_statement,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, StatementAnalyzer,
+    assemble_statement,
 };
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
@@ -647,7 +648,8 @@ fn parse_conditional(
             };
 
             // Recursively parse as a new conditional (which becomes the else body)
-            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope, analyzer, depth + 1)? {
+            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope, analyzer, depth + 1)?
+            {
                 Some(vec![elif_analyzed])
             } else {
                 None
