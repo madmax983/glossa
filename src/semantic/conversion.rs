@@ -45,6 +45,7 @@ use crate::morphology::{self};
 use crate::semantic::assembly::AssembledStatement;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
 use crate::semantic::resolver::Scope;
+
 use crate::semantic::types::GlossaType;
 use crate::semantic::{Constituent, Literal};
 
@@ -1046,12 +1047,14 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
     }
 
     if asm_stmt.is_propagate && !exprs.is_empty() {
-        let last_expr = exprs.pop().unwrap();
-        let try_expr = AnalyzedExpr {
-            glossa_type: last_expr.glossa_type.clone(),
-            expr: AnalyzedExprKind::Try(Box::new(last_expr)),
-        };
-        exprs.push(try_expr);
+        #[allow(clippy::collapsible_if)]
+        if let Some(last_expr) = exprs.pop() {
+            let try_expr = AnalyzedExpr {
+                glossa_type: last_expr.glossa_type.clone(),
+                expr: AnalyzedExprKind::Try(Box::new(last_expr)),
+            };
+            exprs.push(try_expr);
+        }
     }
 
     Ok(AnalyzedStatement::Expression(exprs))
@@ -1509,4 +1512,29 @@ pub fn extract_value(
         },
         GlossaType::Number,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_classify_expression_empty_exprs_propagate() {
+        // Create an AssembledStatement that will produce an empty `exprs` array
+        // but has `is_propagate` set to true.
+        let asm_stmt = AssembledStatement {
+            is_propagate: true,
+            ..Default::default()
+        };
+        // No literals, operators, subject, object, or nested phrases -> exprs will be empty.
+
+        let result = classify_expression(&asm_stmt);
+        assert!(result.is_ok());
+
+        if let AnalyzedStatement::Expression(exprs) = result.unwrap() {
+            assert!(exprs.is_empty(), "Expected empty expressions array");
+        } else {
+            panic!("Expected AnalyzedStatement::Expression");
+        }
+    }
 }
