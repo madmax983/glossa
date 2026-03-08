@@ -207,8 +207,8 @@ mod tests {
 
     #[test]
     fn test_semantic_analyzer_new_and_default() {
-        let analyzer1 = SemanticAnalyzer::new();
-        let analyzer2 = SemanticAnalyzer::default();
+        let _analyzer1 = SemanticAnalyzer::new();
+        let _analyzer2 = SemanticAnalyzer;
 
         // Just verifying they can be created without panic
         // and cover the new/default methods which may not

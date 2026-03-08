@@ -317,3 +317,164 @@ test test_standalone_method_call ... ok
 test test_override_default_method ... ok
 
 test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
+
+[2m2026-03-08T12:23:24.863919Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:23:24.863988Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/coverage_perfect_fold-00405dea1be5832e
+
+running 1 test
+test test_perfect_fold_coverage ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+
+[2m2026-03-08T12:23:29.071912Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:23:29.071980Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/coverage_perfect_participle-a2981226ec1214f0
+
+running 1 test
+test test_perfect_passive_map_coverage ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+[2m2026-03-08T12:34:49.601632Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:34:49.609958Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_nested_tests-a4d7516864230486
+
+running 1 test
+test tests::test_deeply_nested_tests_dos ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+[2m2026-03-08T12:34:58.697812Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:34:58.700682Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/nova_coverage-b84f8c1f582a29c2
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[2m2026-03-08T12:34:59.537854Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:34:59.537961Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/collection_tests-c243f0eefaa68287
+
+running 27 tests
+test test_codegen_empty_array ... ok
+test test_codegen_array_literal ... ok
+test test_array_iteration_with_body ... ok
+test test_array_iteration ... ok
+test test_hashmap_insert ... ok
+test test_hashmap_get ... ok
+test test_hashset_insert ... ok
+test test_hashset_insert_string ... ok
+test test_hashmap_contains_key ... ok
+test test_hashset_contains ... ok
+test test_length_multiple ... ok
+test test_length_property ... ok
+test test_ordinal_index_first ... ok
+test test_ordinal_index_second ... ok
+test test_parse_array_literal ... ok
+test test_parse_array_with_variables ... ok
+test test_parse_empty_array ... ok
+test test_ordinal_index_third ... ok
+test test_numeric_index_expression ... ok
+test test_numeric_index ... ok
+test test_pop_operation ... ok
+test test_pop_multiple ... ok
+test test_push_multiple ... ok
+test test_push_operation ... ok
+test test_string_contains ... ok
+test test_string_join ... ok
+test test_string_split ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.30s
+
+[2m2026-03-08T12:35:07.409969Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:35:07.410056Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/parser_error_tests-ecb13c30145ba0a9
+
+running 1 test
+test tests::test_empty_term_handling ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+[2m2026-03-08T12:35:14.151643Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:35:14.151822Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/option_result_tests-2c908c15b1ca1831
+
+running 59 tests
+test test_epitychia_is_ok ... ok
+test test_err_expression_analyzed ... ok
+test test_err_with_different_types ... ok
+test test_err_codegen ... ok
+test test_err_with_string_literal ... ok
+test test_err_expression_exact_output ... ok
+test test_is_ok_word_helper ... ok
+test test_is_none_word_helper ... ok
+test test_is_err_word_helper ... ok
+test test_is_some_word_helper ... ok
+test test_multiple_results_in_sequence ... ok
+test test_nested_option ... ok
+test test_none_codegen ... ok
+test test_none_expression_analyzed ... ok
+test test_multiple_unwraps_sequence ... ok
+test test_ok_codegen ... ok
+test test_ok_expression_analyzed ... ok
+test test_ok_expression_exact_output ... ok
+test test_optative_aorist_passive ... ok
+test test_mixed_option_result ... ok
+test test_optative_present_active ... ok
+test test_none_handling ... ok
+test test_option_none_generates_correctly ... ok
+test test_option_in_print ... ok
+test test_option_to_rust ... ok
+test test_option_with_string ... ok
+test test_option_type_exists ... ok
+test test_option_workflow ... ok
+test test_ouden_is_none ... ok
+test test_propagation_generates_question_mark ... ok
+test test_chained_propagation ... ok
+test test_propagation_operator_detection ... ok
+test test_option_type_compatibility ... ok
+test test_propagation_with_result ... ok
+test test_realistic_error_handling ... ok
+test test_result_err_generates_correctly ... ok
+test test_result_ok_generates_correctly ... ok
+test test_result_parallels_option ... ok
+test test_result_print_directly ... ok
+test test_result_to_rust ... ok
+test test_result_type_compatibility ... ok
+test test_propagation_vs_unwrap ... ok
+test test_result_type_exists ... ok
+test test_propagation_early_return ... ok
+test test_propagation_in_workflow ... ok
+test test_result_with_number_error ... ok
+test test_result_workflow ... ok
+test test_result_with_number_value ... ok
+test test_some_codegen ... ok
+test test_some_with_different_types ... ok
+test test_some_expression_analyzed ... ok
+test test_sphalma_is_err ... ok
+test test_ti_is_some ... ok
+test test_statement_end_with_semicolon ... ok
+test test_unwrap_in_expression ... ok
+test test_unwrap_preserves_value ... ok
+test test_separate_option_and_variable ... ok
+test test_result_unwrap ... ok
+test test_unwrap_operator_codegen ... ok
+
+test result: ok. 59 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+
+[2m2026-03-08T12:35:22.778230Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:35:22.778396Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/razor_coverage-df52a5e8dbc61ab8
+
+running 4 tests
+test test_errors_help_module ... ok
+test test_assembler_structs_derive_coverage ... ok
+test test_assembly_errors_display_impls ... ok
+test test_errors_display_impls ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+[2m2026-03-08T12:35:29.273865Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:35:29.273951Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/security_dos_file_size-9b909dd50128422d
+
+running 1 test
+test test_file_size_limit_cli ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 48.05s
+
+[2m2026-03-08T12:36:17.937839Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:36:17.937916Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/security_tests-d9735dbd171caa84
