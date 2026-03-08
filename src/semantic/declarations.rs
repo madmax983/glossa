@@ -328,7 +328,7 @@ pub fn resolve_type_name(name: &str, scope: &Scope) -> Result<GlossaType, Glossa
     }
 }
 
-/// Parse a function definition: name ὁρίζειν [params]· body
+/// Parse a function definition: name ὁρίζειν \[params\]· body
 ///
 /// This handles the `ὁρίζειν` verb when used to define standalone functions.
 ///

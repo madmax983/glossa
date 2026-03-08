@@ -612,7 +612,7 @@ fn classify_insert(
 }
 
 /// Helper: Detect δεῖ assertion pattern
-/// Pattern: <condition> δεῖ (any word order)
+/// Pattern: `<condition>` δεῖ (any word order)
 /// Examples: "2 ἐν χ δεῖ", "δεῖ 2 ἐν χ"
 fn classify_assertion(
     asm_stmt: &AssembledStatement,
@@ -688,7 +688,7 @@ fn classify_assertion(
 }
 
 /// Helper: Detect ἰσοῦται equality assertion pattern
-/// Pattern: <value1> <value2> ἰσοῦται (any word order)
+/// Pattern: `<value1>` `<value2>` ἰσοῦται (any word order)
 /// Examples: "κ 5 ἰσοῦται", "ἰσοῦται κ 5", "5 κ ἰσοῦται"
 fn classify_equality_assertion(
     asm_stmt: &AssembledStatement,
