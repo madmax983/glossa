@@ -84,7 +84,7 @@ const AORIST_ACTIVE_SUBJ: &[(&str, Person, Number)] = &[
 
 /// Present Active Optative endings
 /// Pattern: γράφοιμι "I might write"
-/// The optative mood expresses possibility, wish, or potential - natural for Option<T>
+/// The optative mood expresses possibility, wish, or potential - natural for `Option<T>`
 /// NOTE: Must be sorted by length descending!
 const PRESENT_ACTIVE_OPT: &[(&str, Person, Number)] = &[
     ("οιμεν", Person::First, Number::Plural),
@@ -97,7 +97,7 @@ const PRESENT_ACTIVE_OPT: &[(&str, Person, Number)] = &[
 
 /// Aorist Passive Optative endings
 /// Pattern: εὑρεθείη "might be found"
-/// Used for values that "might exist" (Option<T> semantics)
+/// Used for values that "might exist" (`Option<T>` semantics)
 /// NOTE: Must be sorted by length descending!
 const AORIST_PASSIVE_OPT: &[(&str, Person, Number)] = &[
     ("θειημεν", Person::First, Number::Plural),
