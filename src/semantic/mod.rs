@@ -53,7 +53,6 @@ mod resolver;
 #[cfg(test)]
 mod sentry_conversion_tests;
 
-pub(crate) mod traits;
 mod types;
 pub(crate) mod validation;
 
@@ -63,9 +62,9 @@ pub use assembly::Assembler;
 pub use assembly::{
     AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
+pub use analyzer::SemanticAnalyzer;
 pub use model::*;
 pub use resolver::*;
-pub use traits::StatementAnalyzer;
 pub use types::*;
 
 use self::expressions::feed_expr_to_assembler_with_context;
