@@ -478,3 +478,195 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 [2m2026-03-08T12:36:17.937839Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
 [2m2026-03-08T12:36:17.937916Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/security_tests-d9735dbd171caa84
+
+running 2 tests
+test test_stack_overflow_nested_parens ... ok
+test test_diacritic_only_variable_panic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+[2m2026-03-08T12:36:23.289914Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:36:23.290006Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/sentry_participle_tests-fe02c7109c47990f
+
+running 3 tests
+test test_invalid_participles ... ok
+test test_participle_analysis_coverage ... ok
+test test_participle_lemma_generation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+[2m2026-03-08T12:48:58.336673Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:48:58.357975Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_hashdos-2f6c1f6018593e0c
+
+running 4 tests
+test test_cache_key_format ... ok
+test test_cache_key_canonicalization ... ok
+test test_cache_key_uniqueness ... ok
+test test_cache_key_determinism ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+[2m2026-03-08T12:49:07.904729Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:49:07.904926Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_nested_phrase-043b27c5fb87505a
+
+running 3 tests
+test test_function_definition_scope ... ok
+test test_nested_phrase_binding_error ... ok
+test test_nested_phrase_valid_function ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+
+[2m2026-03-08T12:49:14.404655Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:49:14.404733Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_neg_overflow-e4601a76c0f50f73
+
+running 2 tests
+test test_warden_neg_overflow_non_number_fallback ... ok
+test test_warden_neg_overflow_defense ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+[2m2026-03-08T12:49:20.184644Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:49:20.184712Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_text_dos-b86000f6e4e39b65
+
+running 1 test
+test test_dos_sigma_normalization ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+[2m2026-03-08T12:49:25.812679Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:49:25.814489Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/compile_tests-96fd6fead6ca9a23
+
+running 14 tests
+test test_assignment_missing_value_error ... ok
+test test_greek_numeral_word ... ok
+test test_assignment_codegen ... ok
+test test_immutable_assignment_error ... ok
+test test_mutable_binding ... ok
+test test_mutable_binding_and_reassignment ... ok
+test test_multiple_statements ... ok
+test test_hello_cosmos ... ok
+test test_preserves_greek_in_strings ... ok
+test test_variable_binding ... ok
+test test_variable_binding_and_use ... ok
+test test_undefined_assignment_error ... ok
+test test_number_literal ... ok
+test test_array_index_codegen ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.04s
+
+[2m2026-03-08T12:49:35.148929Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:49:35.149019Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_transliteration-4e7b7d8cb1a8bb5b
+
+running 1 test
+test test_type_identifier_collision ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s
+
+[2m2026-03-08T12:49:42.132672Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:49:42.132757Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/reproduce_silent_failure-45661b82620170ae
+
+running 1 test
+test test_undefined_struct_type_error ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+[2m2026-03-08T12:49:48.608753Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:49:48.608842Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_fuzz-0ffb02f95db04514
+
+running 3 tests
+test fuzz_parser_structured ... ok
+test fuzz_parser ... ok
+test fuzz_semantic_validish_source ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+
+[2m2026-03-08T12:49:58.192666Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:49:58.192743Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_recursion-6144b51869b50896
+
+running 2 tests
+test test_wide_phrase_limit ... ok
+test test_deep_phrase_recursion ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+[2m2026-03-08T12:50:04.872691Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:50:04.872777Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/operator_tests-a481db0059bed79d
+
+running 13 tests
+test test_arithmetic_product ... ok
+test test_arithmetic_difference ... ok
+test test_arithmetic_quotient ... ok
+test test_arithmetic_sum ... ok
+test test_arithmetic_remainder ... ok
+test test_boolean_not ... ok
+test test_boolean_or ... ok
+test test_boolean_and ... ok
+test test_comparison_in_binding ... ok
+test test_arithmetic_in_binding ... ok
+test test_comparison_greater_than ... ok
+test test_comparison_less_than ... ok
+test test_comparison_equal ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+
+[2m2026-03-08T12:50:13.589674Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:50:13.589868Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/lambda_tests-2e494450da5667fd
+
+running 38 tests
+test cycle12_aorist_participles::test_aorist_participle_detection ... ok
+test cycle12_aorist_participles::test_aorist_participle_in_ast ... ok
+test cycle11_variable_capture::test_no_capture_with_literal ... ok
+test cycle11_variable_capture::test_capture_in_any ... ok
+test cycle12_aorist_participles::test_present_vs_aorist_capture_mode ... ok
+test cycle13_perfect_participles::test_memoization_codegen ... ok
+test cycle11_variable_capture::test_capture_in_filter ... ok
+test cycle13_perfect_participles::test_tense_capture_mode_mapping ... ok
+test cycle13_perfect_participles::test_perfect_participle_detection ... ok
+test cycle13_perfect_participles::test_perfect_generates_memoized_closure ... ok
+test cycle1_participle_morphology::test_aorist_active_participle_feminine ... ok
+test cycle1_participle_morphology::test_aorist_active_participle_masculine ... ok
+test cycle1_participle_morphology::test_aorist_active_participle_neuter ... ok
+test cycle1_participle_morphology::test_verb_lemma_extraction ... ok
+test cycle1_participle_morphology::test_present_middle_participle ... ok
+test cycle1_participle_morphology::test_present_active_participle ... ok
+test cycle1_participle_morphology::test_perfect_passive_participle ... ok
+test cycle4_map_operation::test_map_with_participle ... ok
+test cycle5_filter_operation::test_comparative_adjective_detection ... ok
+test cycle4_map_operation::test_participle_word_detection ... ok
+test cycle4_map_operation::test_map_with_participle_simple ... ok
+test cycle5_filter_operation::test_filter_with_comparative ... ok
+test cycle6_find_operation::test_find_verb_detection ... ok
+test cycle7_fold_operation::test_fold_verb_detection ... ok
+test cycle5_filter_operation::test_filter_less_than ... ok
+test cycle6_find_operation::test_find_with_comparative ... ok
+test cycle8_any_all_operations::test_all_quantifier ... ok
+test cycle6_find_operation::test_find_first_element ... ok
+test cycle8_any_all_operations::test_all_with_predicate ... ok
+test cycle8_any_all_operations::test_any_quantifier_detection ... ok
+test cycle8_any_all_operations::test_any_with_predicate ... ok
+test cycle9_combined_operations::test_filter_then_any ... ok
+test cycle9_combined_operations::test_filter_then_map ... ok
+test cycle8_any_all_operations::test_any_less_than ... ok
+test cycle9_combined_operations::test_triple_chain ... ok
+test cycle7_fold_operation::test_fold_with_sum ... ok
+test cycle7_fold_operation::test_fold_with_product ... ok
+test cycle9_combined_operations::test_map_then_fold ... ok
+
+test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+
+[2m2026-03-08T12:50:21.036641Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:50:21.036710Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/function_tests-35a1fc950661739e
+
+running 10 tests
+test test_function_typed_params ... ok
+test test_function_with_two_params ... ok
+test test_nested_calls ... ok
+test test_parameter_shadowing ... ok
+test test_parse_simple_function_no_params ... ok
+test test_return_type_inference ... ok
+test test_simple_return ... ok
+test test_function_call ... ok
+test test_codegen_function_keyword ... ok
+test test_function_local_variables ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
