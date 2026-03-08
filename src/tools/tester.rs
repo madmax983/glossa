@@ -254,10 +254,10 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     println!();
 
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
-
     if !results.is_empty() {
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
+
         table.set_header(vec![
             Cell::new("Test Case")
                 .add_attribute(Attribute::Bold)
@@ -280,16 +280,17 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
+        println!("{table}");
     } else {
-        table.add_row(vec![
+        let mut empty_table = Table::new();
+        empty_table.add_row(vec![
             Cell::new("No tests found.")
                 .fg(Color::DarkGrey)
                 .add_attribute(Attribute::Italic)
                 .set_alignment(CellAlignment::Center),
         ]);
+        println!("{empty_table}");
     }
-
-    println!("{table}");
 
     // If there were failures, try to extract and print them nicely
     if !test_output.status.success() {
