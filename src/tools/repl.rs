@@ -472,11 +472,23 @@ mod tests {
 
     #[test]
     fn test_print_env_empty() {
-        let context = ReplContext::new();
+        let mut context = ReplContext::new();
         let mut buf = Vec::new();
+
+        // Context with no last_scope
         print_env(&context, &mut buf).unwrap();
-        let s = String::from_utf8(buf).unwrap();
+        let s = String::from_utf8(buf.clone()).unwrap();
         assert!(s.contains("No variables defined"));
+
+        // Execute a statement that does not create a binding
+        // so last_scope becomes Some(scope) but bindings is empty
+        buf.clear();
+        let _ = context.execute("«χαῖρε» λέγε.").unwrap();
+
+        assert!(context.last_scope.is_some());
+        print_env(&context, &mut buf).unwrap();
+        let s2 = String::from_utf8(buf).unwrap();
+        assert!(s2.contains("No variables defined"));
     }
 
     #[test]
