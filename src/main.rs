@@ -67,6 +67,11 @@ fn main() -> Result<()> {
             glossa::tools::weave::run_weave(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Typetree { input }) => {
+            glossa::tools::typetree::run_typetree(&input)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

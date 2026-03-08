@@ -168,4 +168,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Visualize semantic data models as a tree (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Typetree {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

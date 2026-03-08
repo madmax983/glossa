@@ -14,3 +14,8 @@
 **Concept:** An interactive tutorial mode (`glossa mentor`) that guides users through learning the language via Socratic challenges. It verifies not just syntax but semantic correctness (e.g., "Create a variable named 'x'").
 **Fate:** Merged
 **Lesson:** By connecting the `Repl` loop with the `Analyzer`'s internal state, we can create a powerful educational tool that provides real-time feedback. This transforms the compiler from a tool into a teacher.
+
+## 🌟 The TypeTree (τὸ Δένδρον)
+**Concept:** A CLI tool (`glossa typetree`) that visualizes the nested structures of semantic data models (εἶδος/Structs and χαρακτήρ/Traits) from the program's Scope as an ASCII/Unicode hierarchy.
+**Fate:** Merged
+**Lesson:** Visualizing data models is an important tool to help humans conceptualize the code structures they have defined in Greek.
