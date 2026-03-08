@@ -57,12 +57,12 @@ mod types;
 pub(crate) mod validation;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
+pub use analyzer::SemanticAnalyzer;
 pub use analyzer::{AnalyzedProgram, analyze_program};
 pub use assembly::Assembler;
 pub use assembly::{
     AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
-pub use analyzer::SemanticAnalyzer;
 pub use model::*;
 pub use resolver::*;
 pub use types::*;
