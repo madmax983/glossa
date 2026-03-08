@@ -169,7 +169,7 @@ pub fn try_parse_struct_instantiation(
     let Expr::Word(type_word) = &terms[2] else {
         return Ok(None);
     };
-    let Expr::Word(last_word) = terms.last().unwrap() else {
+    let Some(Expr::Word(last_word)) = terms.last() else {
         return Ok(None);
     };
 
@@ -1304,5 +1304,26 @@ mod coverage_tests {
         } else {
             panic!("Expected MethodCall 'collect'");
         }
+    }
+
+    #[test]
+    fn test_try_parse_struct_instantiation_empty_terms() {
+        let mut scope = Scope::new();
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![crate::ast::Expr::Phrase(vec![
+                    crate::ast::Expr::Word(crate::ast::Word::new("var")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("νεον")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("Type")),
+                    crate::ast::Expr::NumberLiteral(5),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = try_parse_struct_instantiation(&stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
     }
 }
