@@ -178,12 +178,13 @@ fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
         bindings.sort_by(|a, b| a.0.cmp(b.0));
 
         if bindings.is_empty() {
-            writeln!(
-                w,
-                "{}",
-                "Οὐδεμία μεταβλητή (No variables defined).".yellow()
-            )
-            .into_diagnostic()?;
+            let mut empty_table = Table::new();
+            empty_table.add_row(vec![
+                Cell::new("Οὐδεμία μεταβλητή (No variables defined).")
+                    .fg(Color::Yellow)
+                    .set_alignment(comfy_table::CellAlignment::Center),
+            ]);
+            writeln!(w, "{}", empty_table).into_diagnostic()?;
             return Ok(());
         }
 
@@ -218,12 +219,13 @@ fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
         }
         writeln!(w, "{table}").into_diagnostic()?;
     } else {
-        writeln!(
-            w,
-            "{}",
-            "Οὐδεμία μεταβλητή (No variables defined).".yellow()
-        )
-        .into_diagnostic()?;
+        let mut empty_table = Table::new();
+        empty_table.add_row(vec![
+            Cell::new("Οὐδεμία μεταβλητή (No variables defined).")
+                .fg(Color::Yellow)
+                .set_alignment(comfy_table::CellAlignment::Center),
+        ]);
+        writeln!(w, "{}", empty_table).into_diagnostic()?;
     }
     Ok(())
 }
