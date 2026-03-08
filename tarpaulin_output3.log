@@ -1,0 +1,319 @@
+[2m2026-03-08T12:20:33.253501Z[0m [32m INFO[0m [2mcargo_tarpaulin::config[0m[2m:[0m Creating config
+[2m2026-03-08T12:20:33.448202Z[0m [32m INFO[0m [2mcargo_tarpaulin[0m[2m:[0m Running Tarpaulin
+[2m2026-03-08T12:20:33.448233Z[0m [32m INFO[0m [2mcargo_tarpaulin[0m[2m:[0m Building project
+[2m2026-03-08T12:20:33.449102Z[0m [32m INFO[0m [2mcargo_tarpaulin::cargo[0m[2m:[0m Cleaning project
+   Compiling libc v0.2.180
+   Compiling cfg-if v1.0.4
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.22
+   Compiling quote v1.0.43
+   Compiling memchr v2.7.6
+   Compiling rustix v1.1.3
+   Compiling getrandom v0.3.4
+   Compiling syn v2.0.114
+   Compiling bitflags v2.10.0
+   Compiling linux-raw-sys v0.11.0
+   Compiling object v0.37.3
+   Compiling typenum v1.19.0
+   Compiling shlex v1.3.0
+   Compiling find-msvc-tools v0.1.9
+   Compiling version_check v0.9.5
+   Compiling cc v1.2.56
+   Compiling generic-array v0.14.7
+   Compiling errno v0.3.14
+   Compiling signal-hook v0.3.18
+   Compiling parking_lot_core v0.9.12
+   Compiling once_cell v1.21.3
+   Compiling unicode-segmentation v1.12.0
+   Compiling convert_case v0.10.0
+   Compiling signal-hook-registry v1.4.8
+   Compiling ucd-trie v0.1.7
+   Compiling gimli v0.32.3
+   Compiling scopeguard v1.2.0
+   Compiling fastrand v2.3.0
+   Compiling ar_archive_writer v0.5.1
+   Compiling smallvec v1.15.1
+   Compiling log v0.4.29
+   Compiling adler2 v2.0.1
+   Compiling utf8parse v0.2.2
+   Compiling anstyle-parse v0.2.7
+   Compiling miniz_oxide v0.8.9
+   Compiling mio v1.1.1
+   Compiling psm v0.1.30
+   Compiling tempfile v3.24.0
+   Compiling lock_api v0.4.14
+   Compiling derive_more-impl v2.1.1
+   Compiling pest v2.8.5
+   Compiling addr2line v0.25.1
+   Compiling anstyle-query v1.1.5
+   Compiling rustc-demangle v0.1.27
+   Compiling owo-colors v4.2.3
+   Compiling anstyle v1.0.13
+   Compiling litrs v1.0.0
+   Compiling colorchoice v1.0.4
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling unicode-width v0.2.2
+   Compiling zerocopy v0.8.38
+   Compiling anstream v0.6.21
+   Compiling document-features v0.2.12
+   Compiling pest_meta v2.8.5
+   Compiling derive_more v2.1.1
+   Compiling signal-hook-mio v0.2.5
+   Compiling parking_lot v0.12.5
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling stacker v0.1.23
+   Compiling rand_core v0.9.5
+   Compiling unicode-linebreak v0.1.5
+   Compiling strsim v0.11.1
+   Compiling clap_lex v0.7.7
+   Compiling tinyvec_macros v0.1.1
+   Compiling autocfg v1.5.0
+   Compiling thiserror v2.0.18
+   Compiling heck v0.5.0
+   Compiling is_ci v1.2.0
+   Compiling num-traits v0.2.19
+   Compiling backtrace v0.3.76
+   Compiling supports-color v3.0.2
+   Compiling clap_derive v4.5.49
+   Compiling backtrace-ext v0.2.1
+   Compiling tinyvec v1.10.0
+   Compiling clap_builder v4.5.54
+   Compiling textwrap v0.16.2
+   Compiling digest v0.10.7
+   Compiling pest_generator v2.8.5
+   Compiling crossterm v0.29.0
+   Compiling miette-derive v7.6.0
+   Compiling thiserror-impl v2.0.18
+   Compiling terminal_size v0.4.3
+   Compiling dirs-sys-next v0.1.2
+   Compiling supports-unicode v3.0.0
+   Compiling cpufeatures v0.2.17
+   Compiling supports-hyperlinks v3.2.0
+   Compiling unicode-width v0.1.14
+   Compiling miette v7.6.0
+   Compiling sha2 v0.10.9
+   Compiling dirs-next v2.0.0
+   Compiling clap v4.5.54
+   Compiling comfy-table v7.2.2
+   Compiling pest_derive v2.8.5
+   Compiling unicode-normalization v0.1.25
+   Compiling wait-timeout v0.2.1
+   Compiling hex v0.4.3
+   Compiling bit-vec v0.8.0
+   Compiling smol_str v0.3.5
+   Compiling rustc-hash v2.1.1
+   Compiling fnv v1.0.7
+   Compiling quick-error v1.2.3
+   Compiling rusty-fork v0.3.1
+   Compiling bit-set v0.8.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand v0.9.2
+   Compiling rand_chacha v0.9.0
+   Compiling rand_xorshift v0.4.0
+   Compiling console v0.15.11
+   Compiling similar v2.7.0
+   Compiling yansi v1.0.1
+   Compiling regex-syntax v0.8.9
+   Compiling unarray v0.1.4
+   Compiling diff v0.1.13
+   Compiling pretty_assertions v1.4.1
+   Compiling insta v1.46.1
+   Compiling glossa v0.1.0 (/app)
+   Compiling proptest v1.9.0
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 48s
+[2m2026-03-08T12:22:26.283951Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:26.284028Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/codegen_coverage-0cb0b4e687b0741c
+
+running 7 tests
+test test_comparison_fallback ... ok
+test test_boolean_ops_fallback ... ok
+test test_comparison_ops_fallback ... ok
+test test_string_concatenation_fallback ... ok
+test test_number_boolean_ops_codegen ... ok
+test test_number_comparison_ops_codegen ... ok
+test test_arithmetic_ops_fallback ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+[2m2026-03-08T12:22:29.367937Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:29.367993Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/regression_codegen_complex-89453a3bb8faded1
+
+running 1 test
+test test_complex_types_panic_and_import ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+[2m2026-03-08T12:22:32.035927Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:32.035994Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_recursive_struct_mutual-cd1ee6204f0e1483
+
+running 2 tests
+test test_unknown_type_fails ... ok
+test test_mutual_recursive_struct_fails ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+[2m2026-03-08T12:22:34.779925Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:34.779995Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/test_declaration_test-df0e353cf1bd2366
+
+running 4 tests
+test test_parse_test_declaration ... ok
+test test_parse_multiple_tests ... ok
+test test_parse_test_with_body ... ok
+test test_parse_test_unaccented_keywords ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+[2m2026-03-08T12:22:37.647971Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:37.648042Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_disambiguation_panic-54a1ffc423ee06c5
+
+running 1 test
+test test_disambiguate_nan_panic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+[2m2026-03-08T12:22:40.507948Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:40.508016Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/sentry_morphology_empty_string-07ff96707192eb4e
+
+running 2 tests
+test test_morphology_invalid_unicode ... ok
+test test_morphology_empty_string_does_not_panic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+[2m2026-03-08T12:22:43.495924Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:43.495991Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_limits-251f82f2fd9dd867
+
+running 2 tests
+test test_recursion_limit ... ok
+test test_operator_limit ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+[2m2026-03-08T12:22:46.855916Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:46.855982Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/narrator_coverage-bb4513a5bd5e090a
+
+running 17 tests
+test test_bard_break_continue ... ok
+test test_bard_assignment ... ok
+test test_bard_expression_stmt ... ok
+test test_bard_binding_mutable ... ok
+test test_bard_function_def ... ok
+test test_bard_exprs ... ok
+test test_bard_print_multiple ... ok
+test test_bard_for ... ok
+test test_bard_return ... ok
+test test_bard_test_decl ... ok
+test test_bard_trait_def ... ok
+test test_bard_trait_impl ... ok
+test test_bard_type_def ... ok
+test test_bard_query ... ok
+test test_bard_types ... ok
+test test_bard_match ... ok
+test test_bard_while ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
+
+[2m2026-03-08T12:22:51.111966Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:51.112031Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/glossa-772469fa65c1c554
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[2m2026-03-08T12:22:55.232308Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:55.232434Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/repro_ignored_block-6fe866d704e225d2
+
+running 2 tests
+test test_multi_statement_block_ignored ... ok
+test test_block_in_binding_ignored ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
+[2m2026-03-08T12:22:59.899988Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:22:59.900069Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_recursive_struct-49e2467f0c01851d
+
+running 1 test
+test test_recursive_struct_fails ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+[2m2026-03-08T12:23:04.208028Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:23:04.208208Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/codegen_optimizations-4624eab89cefcf02
+
+running 1 test
+test test_print_optimization_compile_time_format ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+
+[2m2026-03-08T12:23:08.783911Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:23:08.783974Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/morphology_models_test-b67f7bc8f330c583
+
+running 5 tests
+test test_enum_variants ... ok
+test test_morph_analysis_creation ... ok
+test test_morph_analysis_with_confidence ... ok
+test test_analyses_compatible ... ok
+test test_display_impls ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[2m2026-03-08T12:23:12.519924Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:23:12.519992Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/nova_numerals-d2d97ee5c461128c
+
+running 6 tests
+test test_arabic_fallback ... ok
+test test_greek_numerals_assignment ... ok
+test test_greek_numerals_array ... ok
+test test_greek_numerals_index ... ok
+test test_greek_numerals_mixed ... ok
+test test_invalid_greek_logic ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+[2m2026-03-08T12:23:16.235945Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:23:16.236018Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_overflow-d1030f9dc4b07863
+
+running 1 test
+test test_stack_overflow_mitigation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+[2m2026-03-08T12:23:20.247977Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:23:20.248051Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/trait_tests-5d73423d29077bd5
+
+running 32 tests
+test test_analyze_trait_definition ... ok
+test test_analyze_trait_impl ... ok
+test test_call_default_method ... ok
+test test_call_trait_method_with_args ... ok
+test test_call_trait_method ... ok
+test test_codegen_trait_definition ... ok
+test test_codegen_trait_impl ... ok
+test test_codegen_trait_method_call_genitive ... ok
+test test_codegen_trait_with_default ... ok
+test test_call_both_trait_methods_on_same_type ... ok
+test test_codegen_full_example ... ok
+test test_duplicate_trait_error ... ok
+test test_impl_with_default_method_not_required ... ok
+test test_default_method_body_analysis ... ok
+test test_multiple_types_implement_same_trait ... ok
+test test_missing_required_method_error ... ok
+test test_parse_empty_trait ... ok
+test test_parse_empty_trait_impl ... ok
+test test_parse_impl_multiple_methods ... ok
+test test_parse_trait_impl_with_method ... ok
+test test_parse_trait_multiple_methods ... ok
+test test_parse_trait_with_default_method ... ok
+test test_parse_trait_with_required_method ... ok
+test test_impl_for_undefined_trait_error ... ok
+test test_impl_for_undefined_type_error ... ok
+test test_repro_trait_default_method_return_type ... ok
+test test_trait_method_call_error_not_implemented ... ok
+test test_trait_stored_in_scope ... ok
+test test_type_implements_multiple_traits ... ok
+test test_repro_trait_impl_return_type ... ok
+test test_standalone_method_call ... ok
+test test_override_default_method ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s

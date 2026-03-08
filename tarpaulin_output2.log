@@ -123,3 +123,1106 @@
    Compiling insta v1.46.1
    Compiling glossa v0.1.0 (/app)
    Compiling proptest v1.9.0
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 27s
+[2m2026-03-08T12:02:22.741209Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:02:22.741268Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/operator_tests-a481db0059bed79d
+
+running 13 tests
+test test_arithmetic_difference ... ok
+test test_arithmetic_product ... ok
+test test_arithmetic_quotient ... ok
+test test_arithmetic_sum ... ok
+test test_arithmetic_remainder ... ok
+test test_boolean_not ... ok
+test test_boolean_or ... ok
+test test_boolean_and ... ok
+test test_comparison_in_binding ... ok
+test test_arithmetic_in_binding ... ok
+test test_comparison_greater_than ... ok
+test test_comparison_less_than ... ok
+test test_comparison_equal ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.44s
+
+[2m2026-03-08T12:14:45.912336Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:14:45.929800Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/codegen_coverage-0cb0b4e687b0741c
+
+running 7 tests
+test test_comparison_fallback ... ok
+test test_boolean_ops_fallback ... ok
+test test_comparison_ops_fallback ... ok
+test test_string_concatenation_fallback ... ok
+test test_arithmetic_ops_fallback ... ok
+test test_number_boolean_ops_codegen ... ok
+test test_number_comparison_ops_codegen ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
+
+[2m2026-03-08T12:14:54.916679Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:14:54.916837Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/parser_error_tests-ecb13c30145ba0a9
+
+running 1 test
+test tests::test_empty_term_handling ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+[2m2026-03-08T12:15:05.687445Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:15:05.689179Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_proptest_normalization-995f6424e869abc3
+
+running 12 tests
+test test_analyze_noun_no_panic ... ok
+test test_analyze_article_no_panic ... ok
+test test_analyze_participle_no_panic ... ok
+test test_assembler_feed_string_no_panic ... ok
+test test_detect_collection_type_no_panic ... ok
+test test_get_stem_no_panic ... ok
+test test_analyze_verb_no_panic ... ok
+test test_normalize_greek_no_panic ... ok
+test test_transliterate_no_panic ... ok
+test test_highlight_no_panic ... ok
+test test_morphology_analyze_all_no_panic ... ok
+test test_morphology_analyze_no_panic ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.89s
+
+[2m2026-03-08T12:15:20.560047Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:15:20.560119Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/type_tests-d3ef9c9bf10a9d7c
+
+running 12 tests
+test test_analyze_type_with_multiple_fields ... ok
+test test_analyze_type_definition ... ok
+test test_instantiation_multiple_fields ... ok
+test test_instantiation ... ok
+test test_instantiation_with_boolean ... ok
+test test_instantiation_with_explicit_numeric_word ... ok
+test test_instantiation_with_word_number ... ok
+test test_parse_empty_type ... ok
+test test_parse_type_with_field ... ok
+test test_instantiation_with_literals ... ok
+test test_field_access_multiple_fields ... ok
+test test_field_access ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+[2m2026-03-08T12:15:25.655957Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:15:25.656023Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/razor_coverage-df52a5e8dbc61ab8
+
+running 4 tests
+test test_assembly_errors_display_impls ... ok
+test test_errors_help_module ... ok
+test test_assembler_structs_derive_coverage ... ok
+test test_errors_display_impls ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+[2m2026-03-08T12:15:29.955996Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:15:29.956074Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/security_tests-d9735dbd171caa84
+
+running 2 tests
+test test_stack_overflow_nested_parens ... ok
+test test_diacritic_only_variable_panic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+[2m2026-03-08T12:15:34.459941Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:15:34.460015Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_fuzz-0ffb02f95db04514
+
+running 3 tests
+test fuzz_parser_structured ... ok
+test fuzz_parser ... ok
+test fuzz_semantic_validish_source ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s
+
+[2m2026-03-08T12:15:42.315971Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:15:42.316051Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_disambiguation_panic-54a1ffc423ee06c5
+
+running 1 test
+test test_disambiguate_nan_panic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+[2m2026-03-08T12:15:47.319849Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:15:47.319933Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_limits-251f82f2fd9dd867
+
+running 2 tests
+test test_recursion_limit ... ok
+test test_operator_limit ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+
+[2m2026-03-08T12:15:53.664007Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:15:53.664077Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/collection_tests-c243f0eefaa68287
+
+running 27 tests
+test test_codegen_empty_array ... ok
+test test_codegen_array_literal ... ok
+test test_array_iteration ... ok
+test test_array_iteration_with_body ... ok
+test test_hashmap_insert ... ok
+test test_hashset_insert ... ok
+test test_hashmap_get ... ok
+test test_hashset_insert_string ... ok
+test test_hashmap_contains_key ... ok
+test test_hashset_contains ... ok
+test test_length_property ... ok
+test test_length_multiple ... ok
+test test_ordinal_index_second ... ok
+test test_ordinal_index_first ... ok
+test test_parse_array_literal ... ok
+test test_ordinal_index_third ... ok
+test test_parse_array_with_variables ... ok
+test test_parse_empty_array ... ok
+test test_numeric_index_expression ... ok
+test test_numeric_index ... ok
+test test_pop_multiple ... ok
+test test_pop_operation ... ok
+test test_push_operation ... ok
+test test_push_multiple ... ok
+test test_string_contains ... ok
+test test_string_split ... ok
+test test_string_join ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.04s
+
+[2m2026-03-08T12:16:02.152201Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:16:02.152461Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/morphology_models_test-b67f7bc8f330c583
+
+running 5 tests
+test test_enum_variants ... ok
+test test_morph_analysis_creation ... ok
+test test_morph_analysis_with_confidence ... ok
+test test_display_impls ... ok
+test test_analyses_compatible ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+[2m2026-03-08T12:16:18.858831Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:16:18.858934Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_recursive_struct-49e2467f0c01851d
+
+running 1 test
+test test_recursive_struct_fails ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+[2m2026-03-08T12:16:30.180414Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:16:30.180608Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_overflow-d1030f9dc4b07863
+
+running 1 test
+test test_stack_overflow_mitigation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.58s
+
+[2m2026-03-08T12:16:52.138720Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:16:52.155524Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/word_order_tests-c6eab154e314868c
+
+running 9 tests
+test test_article_disambiguation_context ... ok
+test test_number_binding_variations ... ok
+test test_binding_word_order_independence ... ok
+test test_multiple_statement_scope ... ok
+test test_assembler_consistency ... ok
+test test_query_produces_output ... ok
+test test_variable_binding_and_reference ... ok
+test test_print_word_order_independence ... ok
+test test_string_binding ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.83s
+
+[2m2026-03-08T12:17:09.088068Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:17:09.088203Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_coverage-7c6d1a30a422e99c
+
+running 3 tests
+test test_coverage_find_patterns ... ok
+test test_coverage_filter_patterns ... ok
+test test_coverage_any_all_patterns ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.24s
+
+[2m2026-03-08T12:17:27.700453Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:17:27.700613Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/nova_coverage-b84f8c1f582a29c2
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+[2m2026-03-08T12:17:29.864032Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:17:29.864170Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/expression_coverage-d77c5ad93579aab0
+
+running 10 tests
+test test_excess_operators_error - should panic ... ok
+test test_dangling_operator_ignored ... ok
+test test_expression_propagation ... ok
+test test_dangling_propagation ... ok
+test test_operator_without_subject_ignored ... ok
+test test_standalone_subject_op_literal ... ok
+test test_standalone_subject_op_nominative ... ok
+test test_operator_only_ignored ... ok
+test test_checked_arithmetic_codegen ... ok
+test test_standalone_subject_op_object ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.37s
+
+[2m2026-03-08T12:17:45.048066Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:17:45.048199Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/struct_instantiation-208b9cb16a268573
+
+running 1 test
+test test_struct_instantiation_with_variable_args ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.28s
+
+[2m2026-03-08T12:17:53.623966Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:17:53.624038Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_exploit-fc424860fdcfb5f6
+
+running 1 test
+test test_exploit_unicode_panic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+
+[2m2026-03-08T12:18:00.796049Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:18:00.796140Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/security_memoize_repro-fe7a902c462e75c3
+
+running 1 test
+test test_security_memoize_repro - should panic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+[2m2026-03-08T12:18:07.448245Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:18:07.448346Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_logic-09fd4329fefe5e3b
+
+running 1 test
+test tests::test_trim_end_matches_bug_reproduction ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+[2m2026-03-08T12:18:13.796180Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:18:13.796346Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/control_flow_tests-c7934abd77f2a7ae
+
+running 20 tests
+test test_continue ... ok
+test test_break ... ok
+test test_comparison_with_genitive ... ok
+test test_for_iteration ... ok
+test test_for_range_exclusive ... ok
+test test_ean_conditional ... ok
+test test_for_range_inclusive ... ok
+test test_lexicon_conditional_particles ... ok
+test test_lexicon_else_particle ... ok
+test test_lexicon_loop_control ... ok
+test test_lexicon_loop_particles ... ok
+test test_lexicon_match_particle ... ok
+test test_if_else ... ok
+test test_block_in_while_loop ... ok
+test test_simple_if ... ok
+test test_if_elif_else ... ok
+test test_while_loop ... ok
+test test_subjunctive_verb_form ... ok
+test test_match_basic ... ok
+test test_match_wildcard ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s
+
+[2m2026-03-08T12:18:20.835927Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:18:20.836053Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/coverage_perfect_fold-00405dea1be5832e
+
+running 1 test
+test test_perfect_fold_coverage ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+[2m2026-03-08T12:18:27.708301Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:18:27.708437Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/regression_codegen_complex-89453a3bb8faded1
+
+running 1 test
+test test_complex_types_panic_and_import ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+[2m2026-03-08T12:18:34.004056Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:18:34.004141Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/repro_codegen_perf-53b5c8150576c7fe
+
+running 3 tests
+test test_sanitizer_edge_cases ... ok
+test test_allocations ... ok
+test test_generate_type_tokens_coverage ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+[2m2026-03-08T12:18:41.588635Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:18:41.588707Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/glossa-6117d64f9e3a1021
+
+running 436 tests
+test codegen::tests::test_basic_types ... ok
+test codegen::tests::refactor_tests::test_generate_memoized_closure ... ok
+test codegen::tests::refactor_tests::test_generate_checked_arithmetic ... ok
+test codegen::tests::test_container_types ... ok
+test codegen::tests::refactor_tests::test_generate_trait_parts_manual ... ok
+test codegen::tests::test_generate_number ... ok
+test codegen::tests::test_generate_hello ... ok
+test codegen::tests::test_generate_statement_code ... ok
+test codegen::tests::test_generate_unreachable_operators ... ok
+test codegen::tests::test_sanitize_greek_letter ... ok
+test codegen::tests::test_sanitize_keywords_and_prefix ... ok
+test codegen::tests::test_struct_type ... ok
+test codegen::tests::test_generate_binding ... ok
+test codegen::tests::test_transliterate ... ok
+test codegen::tests::test_sanitize_edge_cases ... ok
+test codegen::tests::test_transliterate_mixed_valid_invalid ... ok
+test codegen::tests::test_transliterate_unique ... ok
+test errors::tests::test_undefined_error ... ok
+test errors::tests::test_parse_error ... ok
+test errors::tests::test_category_greek ... ok
+test morphology::conjugation::tests::test_analyze_verb_all_discrepancies ... ok
+test morphology::conjugation::tests::test_augment_stripping ... ok
+test morphology::conjugation::tests::test_aorist_active ... ok
+test morphology::conjugation::tests::test_constants_sorted ... ok
+test morphology::conjugation::tests::test_analyze_verb_coverage_forms ... ok
+test morphology::conjugation::tests::test_eimi_subjunctive ... ok
+test morphology::conjugation::tests::test_infinitive ... ok
+test morphology::conjugation::tests::test_present_active_imperative ... ok
+test morphology::conjugation::tests::test_infinitive_form ... ok
+test morphology::conjugation::tests::test_conjugate ... ok
+test morphology::conjugation::tests::test_present_active_indicative ... ok
+test morphology::declension::tests::test_analyze_noun_all_ambiguity ... ok
+test morphology::declension::tests::test_constants_sorted ... ok
+test morphology::declension::tests::test_analyze_noun_disambiguation_alpha ... ok
+test morphology::declension::tests::test_decline_fallthrough ... ok
+test morphology::conjugation::tests::test_strip_augment_function ... ok
+test morphology::declension::tests::test_decline_second_masculine ... ok
+test morphology::declension::tests::test_decline_alpha_mismatch ... ok
+test morphology::declension::tests::test_first_declension_alpha ... ok
+test morphology::declension::tests::test_first_declension_eta ... ok
+test morphology::declension::tests::test_decline_table ... ok
+test morphology::declension::tests::test_second_declension_accusative ... ok
+test morphology::declension::tests::test_second_declension_genitive ... ok
+test morphology::declension::tests::test_second_declension_dative ... ok
+test morphology::declension::tests::test_second_declension_neuter_plural ... ok
+test morphology::declension::tests::test_second_declension_nominative ... ok
+test morphology::declension::tests::test_second_declension_vocative ... ok
+test morphology::declension::tests::test_second_declension_plural ... ok
+test morphology::declension::tests::test_third_declension_ma ... ok
+test morphology::disambiguation::tests::test_article_context ... ok
+test morphology::disambiguation::tests::test_neuter_article_ambiguity ... ok
+test morphology::disambiguation::tests::test_no_context_preserves_order ... ok
+test morphology::disambiguation::tests::test_verb_context ... ok
+test morphology::declension::tests::test_get_stem ... ok
+test morphology::lexicon::tests::test_assert_verb_lexicon_entry ... ok
+test morphology::lexicon::tests::test_boolean_lookup ... ok
+test codegen::tests::test_generate_full_program ... ok
+test morphology::lexicon::tests::test_arithmetic_operators ... ok
+test morphology::lexicon::tests::test_declined_collection_nouns ... ok
+test morphology::lexicon::tests::test_equals_verb_lexicon_entry ... ok
+test morphology::lexicon::tests::test_gignetai_is_assignment_verb ... ok
+test morphology::lexicon::tests::test_gignetai_lexicon_entry ... ok
+test morphology::lexicon::tests::test_insert_verb_lexicon_entries ... ok
+test morphology::lexicon::tests::test_is_assert_verb ... ok
+test morphology::lexicon::tests::test_is_containment_preposition ... ok
+test morphology::lexicon::tests::test_is_delimiter_preposition ... ok
+test morphology::lexicon::tests::test_is_equals_verb ... ok
+test morphology::lexicon::tests::test_is_insert_verb ... ok
+test morphology::lexicon::tests::test_is_join_verb ... ok
+test morphology::lexicon::tests::test_is_print_verb ... ok
+test morphology::lexicon::tests::test_is_split_verb ... ok
+test morphology::lexicon::tests::test_join_verb_lexicon_entries ... ok
+test morphology::lexicon::tests::test_lookup_binding ... ok
+test morphology::lexicon::tests::test_lookup_type ... ok
+test morphology::lexicon::tests::test_lookup_verb ... ok
+test morphology::lexicon::tests::test_meta_is_mutable_marker ... ok
+test morphology::lexicon::tests::test_meta_lexicon_entry ... ok
+test morphology::lexicon::tests::test_non_assignment_verb ... ok
+test morphology::lexicon::tests::test_non_mutable_marker ... ok
+test morphology::lexicon::tests::test_numeral_value ... ok
+test morphology::lexicon::tests::test_comparison_operators ... ok
+test morphology::lexicon::tests::test_operator_lexicon_entries ... ok
+test morphology::lexicon::tests::test_split_verb_lexicon_entries ... ok
+test morphology::lexicon::tests::test_boolean_operators ... ok
+test morphology::matcher::tests::test_basic_match ... ok
+test morphology::matcher::tests::test_callback_mutable_state ... ok
+test morphology::matcher::tests::test_early_exit ... ok
+test morphology::matcher::tests::test_empty_stem_check ... ok
+test morphology::matcher::tests::test_multiple_matches ... ok
+test morphology::matcher::tests::test_no_match ... ok
+test morphology::matcher::tests::test_unicode_suffix ... ok
+test morphology::participle::tests::test_aorist_neuter ... ok
+test morphology::participle::tests::test_perfect_passive_participle ... ok
+test morphology::participle::tests::test_present_active_participle_feminine ... ok
+test morphology::participle::tests::test_present_active_participle_masculine ... ok
+test morphology::participle::tests::test_present_active_participle_neuter ... ok
+test morphology::participle::tests::test_present_middle_participle ... ok
+test morphology::participle::tests::test_aorist_feminine ... ok
+test morphology::participle::tests::test_aorist_active_participle ... ok
+test morphology::tests::test_ambiguous_word_analysis ... ok
+test morphology::participle::tests::test_verb_lemma ... ok
+test morphology::tests::test_analyze_accusative ... ok
+test morphology::tests::test_analyze_dative ... ok
+test morphology::tests::test_analyze_lexicon_lookup ... ok
+test morphology::tests::test_analyze_nominative ... ok
+test morphology::tests::test_analyze_verb_imperative ... ok
+test morphology::tests::test_analyze_verb_present ... ok
+test morphology::tests::test_analyze_genitive ... ok
+test morphology::tests::test_single_greek_letter_fallback ... ok
+test morphology::tests::test_analyze_all_coverage_forms ... ok
+test morphology::tests::test_sort_safety_with_nan ... ok
+test morphology::tests::test_unknown_word_fallback ... ok
+test parser::grammar::tests::test_parse_ascii_question_mark ... ok
+test parser::grammar::tests::test_parse_chained_statements ... ok
+test parser::grammar::tests::test_parse_greek_question_mark ... ok
+test parser::grammar::tests::test_parse_genitive_property_access ... ok
+test parser::grammar::tests::test_parse_hello_cosmos ... ok
+test parser::grammar::tests::test_parse_inline_comment ... ok
+test parser::grammar::tests::test_parse_line_comment ... ok
+test parser::grammar::tests::test_parse_number_literal ... ok
+test parser::grammar::tests::test_parse_multiple_statements ... ok
+test parser::grammar::tests::test_parse_variable_binding ... ok
+test parser::grammar::tests::test_parse_simple_string_print ... ok
+test morphology::disambiguation::tests::test_disambiguate_with_article ... ok
+test parser::grammar::tests::test_parse_variable_use ... ok
+test morphology::tests::test_display_impls ... ok
+test parser::numerals::tests::test_2024 ... ok
+test parser::numerals::tests::test_hundreds ... ok
+test parser::numerals::tests::test_sigma_uppercase ... ok
+test parser::numerals::tests::test_archaic ... ok
+test parser::numerals::tests::test_teens ... ok
+test parser::numerals::tests::test_tens ... ok
+test parser::numerals::tests::test_thousands ... ok
+test parser::numerals::tests::test_units ... ok
+test parser::tests::test_parse_source_hello ... ok
+test parser::tests::test_parse_source_multiple_statements ... ok
+test parser::numerals::tests::test_invalid ... ok
+test parser::tests::test_parse_source_number_literal ... ok
+test parser::tests::test_parse_source_variable_binding ... ok
+test parser::tests::test_parse_source_string_literal ... ok
+test parser::tests::test_parse_source_with_comma ... ok
+test parser::tests::test_parse_source_query ... ok
+test parser::tests::test_recursion_limit_ignored_in_string ... ok
+test parser::tests::test_recursion_limit_mixed_brackets ... ok
+test parser::tests::test_recursion_limit_exceeded ... ok
+test parser::numerals::tests::test_full_coverage ... ok
+test parser::tests::test_recursion_limit_not_exceeded ... ok
+test parser::tests::test_recursion_limit_unbalanced_but_safe ... ok
+test semantic::assembler_tests::test_assembled_statement_derive_coverage ... ok
+test parser::tests::test_word_normalization ... ok
+test parser::tests::test_recursion_limit_ignored_in_comment ... ok
+test semantic::assembler_tests::test_assembler_arithmetic_operators_coverage ... ok
+test semantic::assembler_tests::test_assembler_boolean_and_coverage ... ok
+test semantic::assembler_tests::test_assembler_numeral_coverage ... ok
+test semantic::assembler_tests::test_assembler_error_cases_coverage ... ok
+test semantic::assembler_tests::test_assembler_method_verbs_join_coverage ... ok
+test semantic::assembler_tests::test_assembler_set_flags_coverage ... ok
+test semantic::assembler_tests::test_assembler_method_verbs_split_coverage ... ok
+test semantic::assembler_tests::test_constituent_derive_coverage ... ok
+test semantic::assembler_tests::test_double_indirect_object_error ... ok
+test semantic::assembler_tests::test_length_property_not_ignored_without_subject ... ok
+test semantic::assembler_tests::test_assembler_ordinal_index_coverage ... ok
+test semantic::assembler_tests::test_assembler_special_markers_coverage ... ok
+test semantic::assembler_tests::test_limit_arrays ... ok
+test semantic::assembler_tests::test_limit_blocks ... ok
+test semantic::assembler_tests::test_limit_literals ... ok
+test semantic::assembler_tests::test_limit_genitives ... ok
+test semantic::assembler_tests::test_limit_adjectives ... ok
+test semantic::assembler_tests::test_limit_nested_phrases ... ok
+test semantic::assembler_tests::test_limit_operators ... ok
+test semantic::assembler_tests::test_limit_nominatives ... ok
+test semantic::assembler_tests::test_limit_index_accesses ... ok
+test semantic::assembler_tests::test_limit_operators_arithmetic ... ok
+test semantic::assembler_tests::test_limit_ordinal_index ... ok
+test semantic::assembler_tests::test_limit_operators_comparison ... ok
+test semantic::assembler_tests::test_limit_operators_or ... ok
+test semantic::assembler_tests::test_limit_property_accesses ... ok
+test semantic::assembler_tests::test_neuter_plural_agreement ... ok
+test semantic::assembler_tests::test_limit_string_method_properties ... ok
+test semantic::assembler_tests::test_ordinal_not_ignored_without_subject ... ok
+test semantic::assembler_tests::test_split_verb_not_ignored_without_delimiter ... ok
+test semantic::assembler_tests::test_verbless_statement ... ok
+test semantic::assembler_tests::test_split_verb_consumes_literal_without_subject ... ok
+test semantic::assembly::tests::test_dative_indirect_object ... ok
+test semantic::assembly::tests::test_boolean_or_detection ... ok
+test semantic::assembly::tests::test_double_object_error ... ok
+test semantic::assembly::tests::test_double_verb_error ... ok
+test semantic::assembly::tests::test_disambiguation_en_vs_hen ... ok
+test semantic::assembly::tests::test_gender_mismatch_ignored ... ok
+test semantic::assembly::tests::test_genitive_possession ... ok
+test semantic::assembler_tests::test_limit_unwraps ... ok
+test semantic::assembler_tests::test_limit_participles ... ok
+test semantic::assembly::tests::test_immediate_agreement_failure_svo ... ok
+test semantic::assembly::tests::test_full_boolean_or_expression ... ok
+test semantic::assembly::tests::test_immediate_agreement_failure_vso ... ok
+test semantic::assembly::tests::test_literals ... ok
+test semantic::assembly::tests::test_imperative_mismatch ... ok
+test semantic::assembly::tests::test_max_genitives_exceeded ... ok
+test semantic::assembly::tests::test_max_blocks_exceeded ... ok
+test semantic::assembly::tests::test_max_arrays_exceeded ... ok
+test semantic::assembly::tests::test_max_adjectives_exceeded ... ok
+test semantic::assembly::tests::test_max_index_accesses_exceeded ... ok
+test semantic::assembly::tests::test_max_literals_exceeded ... ok
+test semantic::assembly::tests::test_max_nested_phrases_exceeded ... ok
+test semantic::assembly::tests::test_max_property_accesses_exceeded ... ok
+test semantic::assembly::tests::test_max_participles_exceeded ... ok
+test semantic::assembly::tests::test_max_operators_exceeded ... ok
+test semantic::assembly::tests::test_max_nominatives_exceeded ... ok
+test semantic::assembly::tests::test_max_unwraps_exceeded ... ok
+test semantic::assembly::tests::test_multiple_nominatives ... ok
+test semantic::assembly::tests::test_neuter_plural_subject_first_person_verb ... ok
+test semantic::assembly::tests::test_simple_sov ... ok
+test semantic::assembly::tests::test_operator_detection ... ok
+test semantic::assembly::tests::test_neuter_plural_subject_singular_verb ... ok
+test semantic::assembly::tests::test_split_method_generation ... ok
+test semantic::assembly::tests::test_subject_verb_person_agreement ... ok
+test semantic::assembly::tests::test_vso_same_result ... ok
+test semantic::assembly::tests::test_verb_constituent_has_voice ... ok
+test semantic::assembly::tests::test_silent_swallowing_of_unknown_case ... ok
+test semantic::assembly::tests::test_unknown_case_becomes_object_when_slot_empty ... ok
+test semantic::classification_tests::test_classify_binding_false_participle ... ok
+test semantic::classification_tests::test_classify_print_default ... ok
+test semantic::classification_tests::test_classify_binding_fallback_participle ... ok
+test semantic::classification_tests::test_classify_print_binary_op ... ok
+test semantic::classification_tests::test_classify_print_property_access ... ok
+test semantic::classification_tests::test_classify_simple_binding ... ok
+test semantic::classification_tests::test_classify_binding_subject_object_swap ... ok
+test semantic::classification_tests::test_classify_print_index_access ... ok
+test semantic::classification_tests::test_classify_print_unwrap ... ok
+test semantic::conversion_tests::test_classify_pop ... ok
+test semantic::conversion_tests::test_classify_push_literal ... ok
+test semantic::conversion_tests::test_classify_push_default ... ok
+test semantic::conversion_tests::test_classify_insert_set ... ok
+test semantic::conversion_tests::test_classify_push_object ... ok
+test semantic::conversion_tests::test_default_case ... ok
+test semantic::conversion_tests::test_classify_insert_map ... ok
+test semantic::conversion_tests::test_extract_binary_op_object_and_literal ... ok
+test semantic::conversion_tests::test_extract_binary_op_nominative_and_nominative ... ok
+test semantic::conversion_tests::test_extract_literal ... ok
+test semantic::conversion_tests::test_extract_binary_op_object_and_nominative ... ok
+test semantic::conversion_tests::test_extract_err ... ok
+test semantic::conversion_tests::test_extract_object_variable ... ok
+test semantic::conversion_tests::test_extract_object_numeral ... ok
+test semantic::conversion_tests::test_extract_subject_none ... ok
+test semantic::conversion_tests::test_extract_subject_some ... ok
+test semantic::conversion_tests::test_extract_object_some ... ok
+test semantic::conversion_tests::test_extract_object_none ... ok
+test semantic::conversion_tests::test_extract_ok ... ok
+test semantic::conversion_tests::test_extract_unwrap ... ok
+test semantic::expressions::regression_tests::test_dropped_operator_regression ... ok
+test semantic::declarations::tests::test_check_recursive_type ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_errors_on_empty_block ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_errors_on_invalid_block_structure ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_errors_on_empty_phrase ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_errors_on_block_with_empty_clause ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_handles_block ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_errors_on_invalid_property ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_handles_array ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_handles_phrase_recursion ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_handles_property_access ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_handles_index_access ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_propagates_error_in_array ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_propagates_error_in_binop ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_propagates_error_in_function_args ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_propagates_error_in_index_access ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_propagates_error_in_property_owner ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_handles_binop ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_propagates_error_in_unary_op ... ok
+test semantic::expressions::tests::test_build_expressions_insufficient_literals ... ok
+test semantic::expressions::tests::test_backtracking_failure_propagates_error ... ok
+test semantic::expressions::tests::test_dropped_operator ... ok
+test semantic::expressions::tests::test_dropped_operator_insufficient_literals ... ok
+test semantic::expressions::tests::test_phrase_errors_on_multiple_terms ... ok
+test semantic::expressions::tests::test_recursion_limit_expression_analysis ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_handles_unwrap ... ok
+test semantic::expressions::tests::test_analyze_argument_expr_handles_function_call ... ok
+test semantic::expressions::tests::test_vso_ambiguity_resolution ... ok
+test semantic::expressions::tests::test_build_expressions_preserves_literals ... ok
+test semantic::patterns::coverage_tests::test_detect_iterator_pattern_any ... ok
+test semantic::patterns::tests::test_extract_comparison_value_lemma ... ok
+test semantic::patterns::coverage_tests::test_detect_iterator_pattern_find ... ok
+test semantic::patterns::tests::test_extract_comparison_value_original ... ok
+test semantic::patterns::tests::test_extract_comparison_value_fallback ... ok
+test semantic::patterns::tests::test_extract_comparison_value_stripped ... ok
+test semantic::patterns::coverage_tests::test_detect_iterator_pattern_filter ... ok
+test semantic::property_access_tests::test_property_access_on_accusative_owner ... ok
+test semantic::property_access_tests::test_nested_property_access ... ok
+test semantic::recursion_safety_tests::test_check_safety_array_recursion ... ok
+test semantic::recursion_safety_tests::test_check_safety_binop_recursion_left ... ok
+test semantic::recursion_safety_tests::test_check_safety_binop_recursion_right ... ok
+test semantic::recursion_safety_tests::test_check_safety_binding_recursion ... ok
+test semantic::recursion_safety_tests::test_check_safety_call_recursion ... ok
+test semantic::recursion_safety_tests::test_check_safety_index_access_recursion_array ... ok
+test semantic::recursion_safety_tests::test_check_safety_index_access_recursion_index ... ok
+test semantic::recursion_safety_tests::test_check_safety_phrase_recursion ... ok
+test semantic::resolver::tests::test_enter_exit_scope ... ok
+test semantic::resolver::tests::test_enter_shadowing ... ok
+test semantic::recursion_safety_tests::test_check_safety_unary_op_recursion ... ok
+test semantic::resolver::tests::test_child_scope_shadows ... ok
+test semantic::resolver::tests::test_child_scope_inherits ... ok
+test semantic::resolver::tests::test_lookup_binding_not_found ... ok
+test semantic::resolver::tests::test_lookup_binding_immutable ... ok
+test semantic::resolver::tests::test_lookup_binding_returns_full_binding ... ok
+test semantic::resolver::tests::test_lookup_binding_parent_scope ... ok
+test semantic::resolver::tests::test_mutable_binding ... ok
+test semantic::resolver::tests::test_scope_define_and_lookup ... ok
+test semantic::resolver::tests::test_scope_exit_underflow_protection ... ok
+test semantic::resolver::tests::test_mark_used ... ok
+test semantic::resolver::tests::test_scope_mixed_namespace_collisions ... ok
+test semantic::resolver::tests::test_shadowing_across_types ... ok
+test semantic::resolver::tests::test_scope_type_coverage ... ok
+test semantic::resolver::tests::test_scope_trait_coverage ... ok
+test semantic::resolver::tests::test_scope_function_coverage ... ok
+test semantic::sentry_conversion_tests::test_binding_subject_object_swap ... ok
+test semantic::resolver::tests::test_unused_bindings ... ok
+test semantic::sentry_conversion_tests::test_binding_with_propagate ... ok
+test semantic::sentry_conversion_tests::test_extract_value_complex_binary_op_fallback ... ok
+test semantic::sentry_conversion_tests::test_extract_value_complex_binary_op_two_nominatives ... ok
+test semantic::sentry_conversion_tests::test_assignment_to_immutable_variable_returns_error ... ok
+test semantic::sentry_conversion_tests::test_extract_value_from_block ... ok
+test semantic::sentry_conversion_tests::test_extract_value_from_nested_phrase ... ok
+test semantic::sentry_conversion_tests::test_assignment_without_value_returns_error ... ok
+test semantic::sentry_conversion_tests::test_extract_value_array_literal ... ok
+test semantic::tests::test_analyze_binding ... ok
+test semantic::tests::test_analyze_hello ... ok
+test semantic::tests::test_analyze_number_literal ... ok
+test semantic::tests::test_analyze_string_literal ... ok
+test semantic::tests::test_analyze_variable_use ... ok
+test semantic::sentry_conversion_tests::test_extract_value_index_access ... ok
+test semantic::types::tests::test_detect_collection_type ... ok
+test semantic::sentry_conversion_tests::test_extract_value_property_access ... ok
+test semantic::types::tests::test_type_to_greek ... ok
+test semantic::types::tests::test_type_compatibility ... ok
+test text::tests::test_normalize_anthropos ... ok
+test text::tests::test_normalize_athenai ... ok
+test semantic::sentry_conversion_tests::test_subjunctive_comparison ... ok
+test text::tests::test_normalize_chaire ... ok
+test text::tests::test_normalize_circumflex ... ok
+test text::tests::test_normalize_esto ... ok
+test text::tests::test_normalize_genitive_ending ... ok
+test text::tests::test_normalize_iota_subscript ... ok
+test text::tests::test_normalize_lege ... ok
+test text::tests::test_normalize_meizon ... ok
+test text::tests::test_normalize_mixed_text ... ok
+test text::tests::test_normalize_or_particle ... ok
+test text::tests::test_normalize_preserves_base_letters ... ok
+test text::tests::test_normalize_rough_breathing ... ok
+test text::tests::test_normalize_case_insensitive ... ok
+test text::tests::test_normalize_diacritics_with_sigma ... ok
+test text::tests::test_normalize_subjunctive_eimi ... ok
+test text::tests::test_normalize_sigma_cases ... ok
+test semantic::types::tests::test_display_formatting ... ok
+test tools::dictionary::tests::test_lookup_unknown_word ... ok
+test tools::dictionary::tests::test_lookup_known_word ... ok
+test tools::dictionary::tests::test_lookup_word_without_rust_equiv ... ok
+test tools::dictionary::tests::test_lookup_verb ... ok
+test tools::highlight::tests::test_highlight_all_binops ... ok
+test tools::highlight::tests::test_highlight_binding ... ok
+test tools::highlight::tests::test_highlight_binop ... ok
+test tools::highlight::tests::test_highlight_article_context ... ok
+test tools::highlight::tests::test_highlight_array_literal ... ok
+test tools::highlight::tests::test_highlight_boolean_literal ... ok
+test tools::highlight::tests::test_highlight_dative ... ok
+test tools::highlight::tests::test_highlight_complex_nested ... ok
+test tools::highlight::tests::test_highlight_clause_separator ... ok
+test tools::highlight::tests::test_highlight_block ... ok
+test tools::highlight::tests::test_highlight_function_call ... ok
+test tools::highlight::tests::test_highlight_error ... ok
+test tools::highlight::tests::test_highlight_multiple_statements ... ok
+test tools::highlight::tests::test_highlight_nested_phrase ... ok
+test tools::highlight::tests::test_highlight_number_literal ... ok
+test tools::highlight::tests::test_highlight_participle ... ok
+test tools::highlight::tests::test_highlight_phrase ... ok
+test tools::highlight::tests::test_highlight_pos_variants ... ok
+test tools::highlight::tests::test_highlight_propagate ... ok
+test tools::highlight::tests::test_highlight_property_access ... ok
+test tools::highlight::tests::test_highlight_query ... ok
+test tools::highlight::tests::test_highlight_simple_sentence ... ok
+test tools::highlight::tests::test_highlight_string_injection ... ok
+test tools::highlight::tests::test_highlight_string_literal ... ok
+test tools::highlight::tests::test_highlight_index_access ... ok
+test tools::highlight::tests::test_highlight_trait_impl ... ok
+test tools::highlight::tests::test_highlight_unary_neg ... ok
+test tools::highlight::tests::test_highlight_unary_op ... ok
+test tools::highlight::tests::test_highlight_vocative_and_adjective ... ok
+test tools::highlight::tests::test_manual_ast_nodes ... ok
+test tools::highlight::tests::test_highlight_definitions_formatting ... ok
+test tools::highlight::tests::test_highlight_definitions ... ok
+test tools::highlight::tests::test_highlight_test_declaration ... ok
+test tools::repl::tests::test_print_env_empty ... ok
+test tools::repl::tests::test_print_banner_coverage ... ok
+test tools::repl::tests::test_print_help_coverage ... ok
+test tools::narrator::tests::test_bard_basic ... ok
+test tools::narrator::tests::test_bard_print ... ok
+test tools::repl::tests::test_repl_execute_variants ... ok
+test tools::repl::tests::test_repl_source_limit ... ok
+test tools::repl::tests::test_repl_output_display ... ok
+test tools::repl::tests::test_run_repl_inner_eof ... ok
+test tools::repl::tests::test_run_repl_inner_help ... ok
+test tools::repl::tests::test_run_repl_inner_error_output ... ok
+test tools::repl::tests::test_repl_env_coverage ... ok
+test tools::repl::tests::test_run_repl_inner_workflow ... ok
+test tools::report::tests::test_program_stats_coverage ... ok
+test tools::report::tests::test_compilation_report_coverage ... ok
+test tools::report::tests::test_report_generation_coverage ... ok
+test tools::report::tests::test_report_manual_ast_coverage ... ok
+test tools::runner::tests::test_build_file_size_limit ... ok
+test tools::repl::tests::test_repl_binding_limit ... ok
+test tools::runner::tests::test_bard_file_valid ... ok
+test tools::runner::tests::test_compile_full_program ... ok
+test tools::runner::tests::test_compile_hello ... ok
+test tools::runner::tests::test_file_size_check_internal ... ok
+test tools::runner::tests::test_compile_binding ... ok
+test tools::runner::tests::test_build_file_success ... ok
+test tools::runner::tests::test_check_file_valid ... ok
+test tools::runner::tests::test_run_file_size_limit ... ok
+test tools::runner::tests::test_highlight_file_valid ... ok
+test tools::tester::additional_sentry_tests::test_parse_test_output_empty_parts ... ok
+test tools::runner::tests::test_run_compile_error ... ok
+test tools::tester::tests::test_extract_failures_edge_cases ... ok
+test tools::tester::tests::test_extract_failures_multiple ... ok
+test tools::tester::tests::test_extract_failures_basic ... ok
+test tools::tester::tests::test_parse_output_basic ... ok
+test tools::tester::tests::test_parse_output_failure ... ok
+test tools::tester::tests::test_parse_test_output_edge_cases ... ok
+test tools::ui::tests::test_status_custom_symbol ... ok
+test tools::tester::tests::test_parse_output_ignored ... ok
+test tools::ui::tests::test_status_no_tty_error ... ok
+test tools::ui::tests::test_status_no_tty_success ... ok
+test tools::ui::tests::test_status_no_tty_update ... ok
+[?25l[?25l[?25htest tools::ui::tests::test_status_drop ... ok
+[?25l[K[K[?25htest tools::ui::tests::test_status_tty_error ... ok
+[?25htest tools::ui::tests::test_status_tty_success ... ok
+[?25l[K[K[?25htest tools::ui::tests::test_status_tty_update ... ok
+test tools::runner::tests::test_run_rustc_error ... ok
+test
+test
+test tools::runner::tests::test_run_file_success ... ok
+
+test result: ok. 436 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.80s
+
+[2m2026-03-08T12:18:49.923993Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:18:49.924056Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/nova_numerals-d2d97ee5c461128c
+
+running 6 tests
+test test_greek_numerals_assignment ... ok
+test test_arabic_fallback ... ok
+test test_greek_numerals_array ... ok
+test test_greek_numerals_mixed ... ok
+test test_greek_numerals_index ... ok
+test test_invalid_greek_logic ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+[2m2026-03-08T12:18:55.643939Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:18:55.644004Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_recursive_struct_mutual-cd1ee6204f0e1483
+
+running 2 tests
+test test_mutual_recursive_struct_fails ... ok
+test test_unknown_type_fails ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+[2m2026-03-08T12:19:01.359987Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:19:01.360052Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/sentry_morphology_empty_string-07ff96707192eb4e
+
+running 2 tests
+test test_morphology_invalid_unicode ... ok
+test test_morphology_empty_string_does_not_panic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+[2m2026-03-08T12:19:07.100003Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:19:07.100070Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/lambda_tests-2e494450da5667fd
+
+running 38 tests
+test cycle12_aorist_participles::test_aorist_participle_detection ... ok
+test cycle12_aorist_participles::test_aorist_participle_in_ast ... ok
+test cycle12_aorist_participles::test_present_vs_aorist_capture_mode ... ok
+test cycle13_perfect_participles::test_memoization_codegen ... ok
+test cycle13_perfect_participles::test_perfect_generates_memoized_closure ... ok
+test cycle11_variable_capture::test_capture_in_any ... ok
+test cycle11_variable_capture::test_capture_in_filter ... ok
+test cycle11_variable_capture::test_no_capture_with_literal ... ok
+test cycle13_perfect_participles::test_perfect_participle_detection ... ok
+test cycle1_participle_morphology::test_aorist_active_participle_neuter ... ok
+test cycle1_participle_morphology::test_aorist_active_participle_masculine ... ok
+test cycle1_participle_morphology::test_aorist_active_participle_feminine ... ok
+test cycle13_perfect_participles::test_tense_capture_mode_mapping ... ok
+test cycle1_participle_morphology::test_perfect_passive_participle ... ok
+test cycle1_participle_morphology::test_present_active_participle ... ok
+test cycle1_participle_morphology::test_present_middle_participle ... ok
+test cycle4_map_operation::test_participle_word_detection ... ok
+test cycle4_map_operation::test_map_with_participle_simple ... ok
+test cycle4_map_operation::test_map_with_participle ... ok
+test cycle1_participle_morphology::test_verb_lemma_extraction ... ok
+test cycle5_filter_operation::test_comparative_adjective_detection ... ok
+test cycle6_find_operation::test_find_verb_detection ... ok
+test cycle5_filter_operation::test_filter_with_comparative ... ok
+test cycle7_fold_operation::test_fold_verb_detection ... ok
+test cycle5_filter_operation::test_filter_less_than ... ok
+test cycle6_find_operation::test_find_with_comparative ... ok
+test cycle8_any_all_operations::test_all_quantifier ... ok
+test cycle6_find_operation::test_find_first_element ... ok
+test cycle7_fold_operation::test_fold_with_product ... ok
+test cycle8_any_all_operations::test_all_with_predicate ... ok
+test cycle8_any_all_operations::test_any_less_than ... ok
+test cycle7_fold_operation::test_fold_with_sum ... ok
+test cycle8_any_all_operations::test_any_with_predicate ... ok
+test cycle8_any_all_operations::test_any_quantifier_detection ... ok
+test cycle9_combined_operations::test_triple_chain ... ok
+test cycle9_combined_operations::test_map_then_fold ... ok
+test cycle9_combined_operations::test_filter_then_map ... ok
+test cycle9_combined_operations::test_filter_then_any ... ok
+
+test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+
+[2m2026-03-08T12:19:13.583952Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:19:13.584015Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/mosaic_coverage-99a58003d98433ce
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[2m2026-03-08T12:19:13.947936Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:19:13.947992Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/compile_tests-96fd6fead6ca9a23
+
+running 14 tests
+test test_assignment_missing_value_error ... ok
+test test_greek_numeral_word ... ok
+test test_assignment_codegen ... ok
+test test_immutable_assignment_error ... ok
+test test_mutable_binding ... ok
+test test_hello_cosmos ... ok
+test test_number_literal ... ok
+test test_preserves_greek_in_strings ... ok
+test test_undefined_assignment_error ... ok
+test test_variable_binding ... ok
+test test_mutable_binding_and_reassignment ... ok
+test test_multiple_statements ... ok
+test test_variable_binding_and_use ... ok
+test test_array_index_codegen ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s
+
+[2m2026-03-08T12:19:20.832110Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:19:20.832314Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_limits-09fcc5972d75c0fe
+
+running 12 tests
+test test_limit_blocks ... ok
+test test_limit_arrays ... ok
+test test_limit_literals ... ok
+test test_limit_nested_phrases ... ok
+test test_limit_nominatives ... ok
+test test_limit_adjectives ... ok
+test test_limit_genitives ... ok
+test test_limit_index_accesses_via_ordinals ... ok
+test test_limit_operators ... ok
+test test_limit_property_accesses ... ok
+test test_limit_unwraps ... ok
+test test_limit_participles ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+
+[2m2026-03-08T12:19:27.276111Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:19:27.276198Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_nested_phrase-043b27c5fb87505a
+
+running 3 tests
+test test_function_definition_scope ... ok
+test test_nested_phrase_binding_error ... ok
+test test_nested_phrase_valid_function ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+
+[2m2026-03-08T12:19:34.359955Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:19:34.360019Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_feed_recursion-f070abce6be4b48d
+
+running 1 test
+test test_property_access_stack_overflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+[2m2026-03-08T12:19:40.999974Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:19:41.000041Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_recursion-6144b51869b50896
+
+running 2 tests
+test test_wide_phrase_limit ... ok
+test test_deep_phrase_recursion ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+
+[2m2026-03-08T12:19:47.647991Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:19:47.648097Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_recursion_drop-b2c77a50829a2f58
+
+running 3 tests
+test test_expr_variants_coverage ... ok
+test test_deep_recursion_phrase ... ok
+test test_deep_recursion_comparison ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.57s
+
+[2m2026-03-08T12:19:55.375950Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:19:55.376019Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_hashdos-2f6c1f6018593e0c
+
+running 4 tests
+test test_cache_key_determinism ... ok
+test test_cache_key_canonicalization ... ok
+test test_cache_key_uniqueness ... ok
+test test_cache_key_format ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+[2m2026-03-08T12:20:01.664466Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:20:01.664533Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/sentry_participle_tests-fe02c7109c47990f
+
+running 3 tests
+test test_invalid_participles ... ok
+test test_participle_analysis_coverage ... ok
+test test_participle_lemma_generation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+[2m2026-03-08T12:20:09.635955Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:20:09.636029Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/test_declaration_test-df0e353cf1bd2366
+
+running 4 tests
+test test_parse_test_declaration ... ok
+test test_parse_test_with_body ... ok
+test test_parse_test_unaccented_keywords ... ok
+test test_parse_multiple_tests ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+[2m2026-03-08T12:20:16.531929Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:20:16.531991Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_dos-c924a8b450b41594
+
+running 1 test
+test test_dos_dev_zero ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+[2m2026-03-08T12:20:23.159991Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:20:23.160074Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_coverage-8d08e5ace5066cfb
+
+running 6 tests
+test test_phrase_recursion_coverage ... ok
+test test_binop_recursion_coverage ... ok
+test test_unaryop_recursion_coverage ... ok
+test test_property_access_recursion_happy_path ... ok
+test test_binding_recursion_coverage ... ok
+test test_call_recursion_coverage ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+[2m2026-03-08T12:20:30.095965Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:20:30.096066Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_index_overflow-f8d588b2ea0cd0b2
+
+running 1 test
+test test_index_truncation_simulation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[2m2026-03-08T12:20:30.580249Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:20:30.580305Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_repro-9a9053b67013311d
+
+running 1 test
+test havoc_return_complex_expression - should panic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.70s
+
+[2m2026-03-08T12:20:51.394910Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_operator_stress-b461e2f4b4cff1dc doesn't exist
+[2m2026-03-08T12:20:51.395098Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/coverage_perfect_participle-a2981226ec1214f0 doesn't exist
+[2m2026-03-08T12:20:51.395108Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc-d0fdbf4792869d8e doesn't exist
+[2m2026-03-08T12:20:51.395115Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_elif_overflow-9f97656ce93ffed3 doesn't exist
+[2m2026-03-08T12:20:51.395121Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_nested_tests-a4d7516864230486 doesn't exist
+[2m2026-03-08T12:20:51.395127Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_transliteration-4e7b7d8cb1a8bb5b doesn't exist
+[2m2026-03-08T12:20:51.395133Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/security_dos_file_size-9b909dd50128422d doesn't exist
+[2m2026-03-08T12:20:51.395139Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/option_result_tests-2c908c15b1ca1831 doesn't exist
+[2m2026-03-08T12:20:51.395144Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/repro_ignored_block-6fe866d704e225d2 doesn't exist
+[2m2026-03-08T12:20:51.395150Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/warden_text_dos-b86000f6e4e39b65 doesn't exist
+[2m2026-03-08T12:20:51.395157Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/glossa-772469fa65c1c554 doesn't exist
+[2m2026-03-08T12:20:51.395162Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/codegen_optimizations-4624eab89cefcf02 doesn't exist
+[2m2026-03-08T12:20:51.395169Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/reproduce_silent_failure-45661b82620170ae doesn't exist
+[2m2026-03-08T12:20:51.395176Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/test_assertions_test-fe30ee8e1cf07381 doesn't exist
+[2m2026-03-08T12:20:51.395182Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/narrator_coverage-bb4513a5bd5e090a doesn't exist
+[2m2026-03-08T12:20:51.395188Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/function_tests-35a1fc950661739e doesn't exist
+[2m2026-03-08T12:20:51.395204Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/trait_tests-5d73423d29077bd5 doesn't exist
+[2m2026-03-08T12:20:51.395210Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/warden_neg_overflow-e4601a76c0f50f73 doesn't exist
+[2m2026-03-08T12:20:57.207258Z[0m [32m INFO[0m [2mcargo_tarpaulin::report[0m[2m:[0m Coverage Results:
+|| Uncovered Lines:
+|| src/ast.rs: 184-187, 189-192, 200-203, 211-214, 222-225
+|| src/codegen.rs: 297, 368, 371, 374, 494-495, 500, 533, 660, 674, 744, 746, 748, 752, 758-761, 763-766, 772, 776-778, 784, 791, 798, 804, 806, 810, 812, 814, 818, 824-827, 830-831, 833, 836-837, 843, 852, 859, 862-866, 868-869, 873, 876, 878, 896, 898, 900, 902, 906, 922, 929, 958, 960, 1110, 1127-1129, 1213-1214, 1217-1219, 1221, 1292, 1298-1301, 1304-1307, 1314-1316, 1319-1320, 1323-1325, 1328-1330, 1338-1340, 1343-1345, 1348-1351
+|| src/errors/mod.rs: 149-151
+|| src/morphology/conjugation.rs: 442-443, 450, 463-464, 603-605, 610, 649-651, 660, 685
+|| src/morphology/declension.rs: 186-187, 191, 275, 303, 311-312, 314, 321, 376
+|| src/morphology/disambiguation.rs: 57, 59-61, 95, 126, 197, 199, 229
+|| src/morphology/lexicon.rs: 2211-2213, 2280, 2351, 2373-2376, 2380-2383, 2468-2470, 2476-2477, 2482-2483, 2487-2488
+|| src/morphology/matcher.rs: 35
+|| src/morphology/participle.rs: 527
+|| src/parser/declarations.rs: 46-47, 71, 73, 111-112, 126, 130, 132-134, 155-156, 165-166, 175-176, 190, 199-203, 205-206, 209-212, 214-217, 222-224, 232-234, 238, 241, 272, 284-285, 294-297, 299-300, 302-304, 307, 309, 317-319, 323, 326, 328-332, 334
+|| src/parser/expressions.rs: 48, 106-108, 111, 113, 164, 166
+|| src/parser/mod.rs: 115-116, 119, 121
+|| src/parser/recursion.rs: 40
+|| src/semantic/analyzer.rs: 64, 87-88, 125, 129-130, 166, 176, 182
+|| src/semantic/assembly/mod.rs: 229, 233, 251-252, 293-294, 496, 554, 556-557, 559, 897-899, 908-909
+|| src/semantic/control_flow.rs: 59, 93, 128, 137, 144, 150, 166, 174, 181, 195, 203, 219, 228, 230-231, 233, 236, 269, 278, 284, 289, 292, 314, 316-317, 319, 322, 356, 384, 389, 408, 426, 451, 455-457, 463-465, 468-471, 477, 479-482, 485-488, 491-494, 497-500, 520, 545, 547-550, 553-554, 557-560, 565-568, 573, 584-585, 591, 603, 654, 657, 701, 719, 737, 742, 757, 760-761, 763, 769
+|| src/semantic/conversion.rs: 81, 84, 87, 90, 160, 171, 175, 210-211, 220, 225-226, 237-238, 241, 244, 247-250, 254-256, 259, 263, 266-267, 269-271, 294, 343, 360, 416, 582-584, 586-588, 591, 628-629, 632, 634, 636, 638-639, 642, 647-648, 651-652, 655, 664, 676, 682, 701-702, 705-706, 708-710, 715-716, 719, 721, 728, 778, 863, 865-867, 931, 965-967, 969, 971, 973-976, 979, 1016-1018, 1041-1043, 1068-1069, 1071-1072, 1074-1075, 1078-1080, 1083-1088, 1090, 1092, 1114, 1227, 1238, 1476, 1479
+|| src/semantic/declarations.rs: 115, 121, 124-125, 132, 134-135, 138-140, 143, 146, 148-149, 152, 154-155, 158-159, 162, 164, 167-168, 170, 173-177, 180-184, 191-192, 196, 198-200, 216, 222-223, 226-227, 229, 232-233, 235, 238-239, 241-242, 245-247, 249, 253, 255-256, 259-260, 264-265, 269, 271-276, 281-283, 292-293, 297, 299-302, 357, 364, 382-383, 447, 480, 483-485, 488-492, 494, 496-497, 501-502, 542, 547, 550, 554, 556-557, 561-563
+|| src/semantic/expressions.rs: 94, 105-107, 120, 140, 330, 401, 470, 512, 526, 633
+|| src/semantic/patterns.rs: 88-90, 93, 95-96, 100, 108, 140, 145, 173, 218, 226, 233, 266, 275, 326, 367, 467-469, 489, 520, 567, 624, 710, 716, 719, 785, 884, 887, 903-905, 914, 925
+|| src/semantic/resolver.rs: 150, 157, 176, 184, 189-190, 194, 199-202, 206, 210-213, 217-220, 225, 236-237, 250-251, 283-284, 286, 302, 324
+|| src/semantic/types.rs: 156-165, 173-176, 178-180
+|| src/semantic/validation.rs: 21-22, 96-97, 123, 145-148
+|| src/text.rs: 92-93, 114, 129, 135
+|| src/tools/cache.rs: 34-35
+|| src/tools/dictionary.rs: 118, 145-146, 195
+|| src/tools/highlight.rs: 111, 120, 199, 259, 263, 265, 320-321, 324-327, 330
+|| src/tools/mentor.rs: 92-93, 95-96, 98, 100-101, 103-104, 106, 110-112, 115-116, 119-121, 125-128, 130, 132, 135-136, 138, 141, 144-145, 151-152, 155-157, 160, 168-173, 176-182, 185-187, 190-194, 197-199, 203
+|| src/tools/mosaic.rs: 64-65, 67-87, 90, 93-96, 98-105, 111-116, 118-126, 131-132
+|| src/tools/narrator.rs: 85-90, 102-108, 111-117, 120, 125-129, 132-133, 136-140, 142-143, 147-152, 154-155, 158, 163-167, 169-170, 173-178, 180-185, 187-188, 193-196, 200-203, 206-208, 210, 212-215, 218, 224, 226-228, 231, 233-234, 236, 239, 242-245, 247-248, 251-252, 254, 256-260, 263-268, 271, 276-280, 283-288, 290-291, 301-304, 306-308, 310-311, 313-314, 316, 321-322, 324-326, 328-335, 337-339, 341, 346-347, 349, 351, 354, 360-361, 363, 366, 369, 374, 376, 378-379, 381, 383, 388-391, 393, 395-396, 398-399, 401-402, 407-420, 422-423
+|| src/tools/repl.rs: 60-64, 71, 82, 88, 92, 95, 99, 104, 108, 110, 154-155, 159-160, 163-164, 181-182, 184, 187, 222, 330, 373
+|| src/tools/report.rs: 114-115, 123, 130, 137-139, 155, 183, 190, 207, 214, 301-303, 308-310
+|| src/tools/runner.rs: 66, 205, 226, 296
+|| src/tools/tester.rs: 165-166, 169-172, 175, 181-182, 187, 189, 192, 194-195, 197, 200, 204, 206, 208, 212-215, 219, 221, 227, 230-231, 233-237, 245-247, 255, 257-258, 260-265, 268-274, 279, 281, 284-288, 292, 295-297, 299, 301-303, 309, 311, 314-315, 317, 319-320, 324-326, 331-332, 335
+|| src/tools/ui.rs: 37-38, 63, 86
+|| Tested/Total Lines:
+|| src/ast.rs: 107/127
+|| src/codegen.rs: 328/434
+|| src/errors/mod.rs: 20/23
+|| src/morphology/conjugation.rs: 132/146
+|| src/morphology/declension.rs: 67/77
+|| src/morphology/disambiguation.rs: 67/76
+|| src/morphology/lexicon.rs: 348/370
+|| src/morphology/matcher.rs: 5/6
+|| src/morphology/mod.rs: 37/37
+|| src/morphology/models.rs: 31/31
+|| src/morphology/participle.rs: 25/26
+|| src/parser/common.rs: 5/5
+|| src/parser/declarations.rs: 82/148
+|| src/parser/expressions.rs: 75/83
+|| src/parser/grammar.rs: 2/2
+|| src/parser/mod.rs: 30/34
+|| src/parser/numerals.rs: 49/49
+|| src/parser/recursion.rs: 42/43
+|| src/parser/statements.rs: 29/29
+|| src/semantic/analyzer.rs: 45/54
+|| src/semantic/assembly/mod.rs: 263/279
+|| src/semantic/classification_tests.rs: 8/8
+|| src/semantic/control_flow.rs: 197/289
+|| src/semantic/conversion.rs: 544/657
+|| src/semantic/conversion_tests.rs: 8/8
+|| src/semantic/declarations.rs: 97/206
+|| src/semantic/expressions.rs: 270/282
+|| src/semantic/mod.rs: 9/9
+|| src/semantic/patterns.rs: 260/296
+|| src/semantic/recursion_safety_tests.rs: 6/6
+|| src/semantic/resolver.rs: 106/136
+|| src/semantic/sentry_conversion_tests.rs: 8/8
+|| src/semantic/types.rs: 29/46
+|| src/semantic/validation.rs: 69/78
+|| src/text.rs: 45/50
+|| src/tools/cache.rs: 27/29
+|| src/tools/dictionary.rs: 92/96
+|| src/tools/highlight.rs: 169/182
+|| src/tools/mentor.rs: 0/61
+|| src/tools/mosaic.rs: 0/53
+|| src/tools/narrator.rs: 46/243
+|| src/tools/repl.rs: 128/155
+|| src/tools/report.rs: 161/179
+|| src/tools/runner.rs: 107/111
+|| src/tools/tester.rs: 45/125
+|| src/tools/ui.rs: 49/53
+||
+78.40% coverage, 4269/5445 lines covered

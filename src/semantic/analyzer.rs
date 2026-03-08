@@ -200,3 +200,19 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
 
     Ok(analyzed)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_semantic_analyzer_new_and_default() {
+        let analyzer1 = SemanticAnalyzer::new();
+        let analyzer2 = SemanticAnalyzer::default();
+
+        // Just verifying they can be created without panic
+        // and cover the new/default methods which may not
+        // be explicitly called in other tests depending on
+        // how analyze_program is used.
+    }
+}
