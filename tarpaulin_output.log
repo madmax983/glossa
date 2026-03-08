@@ -257,3 +257,156 @@ test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 
 [2m2026-03-08T11:50:00.901275Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
 [2m2026-03-08T11:50:00.901335Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/parser_error_tests-ecb13c30145ba0a9
+
+running 1 test
+test tests::test_empty_term_handling ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+[2m2026-03-08T11:50:04.301244Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T11:50:04.301305Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_logic-09fd4329fefe5e3b
+
+running 1 test
+test tests::test_trim_end_matches_bug_reproduction ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+[2m2026-03-08T12:00:04.900500Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:00:04.914306Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_recursive_struct-49e2467f0c01851d
+
+running 1 test
+test test_recursive_struct_fails ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+[2m2026-03-08T12:00:12.411741Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:00:12.421101Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/coverage_perfect_fold-00405dea1be5832e
+
+running 1 test
+test test_perfect_fold_coverage ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+
+[2m2026-03-08T12:00:18.033198Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:00:18.033262Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/nova_coverage-b84f8c1f582a29c2
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[2m2026-03-08T12:00:18.533650Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:00:18.533709Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/test_assertions_test-fe30ee8e1cf07381
+
+running 6 tests
+test test_empty_test_body ... ok
+test test_multiple_assertions_in_one_test ... ok
+test test_assert_eq_compiles ... ok
+test test_test_function_name_sanitization ... ok
+test test_hashset_assertion ... ok
+test test_assert_containment_compiles ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+
+[2m2026-03-08T12:00:24.069265Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:00:24.069334Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_transliteration-4e7b7d8cb1a8bb5b
+
+running 1 test
+test test_type_identifier_collision ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.92s
+
+[2m2026-03-08T12:00:31.433293Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:00:31.433376Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/test_declaration_test-df0e353cf1bd2366
+
+running 4 tests
+test test_parse_test_declaration ... ok
+test test_parse_test_unaccented_keywords ... ok
+test test_parse_test_with_body ... ok
+test test_parse_multiple_tests ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+[2m2026-03-08T12:00:36.025224Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-03-08T12:00:36.025293Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/security_dos_file_size-9b909dd50128422d
+
+running 1 test
+test test_file_size_limit_cli ... FAILED
+
+failures:
+
+---- test_file_size_limit_cli stdout ----
+
+thread 'test_file_size_limit_cli' (29967) panicked at tests/security_dos_file_size.rs:37:5:
+Expected error message about file size, got: error: extern location for clap does not exist: /app/target/debug/deps/libclap-3b39f3e42b7c3a1b.rlib
+ --> src/main.rs:5:5
+  |
+5 | use clap::Parser;
+  |     ^^^^
+
+error: extern location for miette does not exist: /app/target/debug/deps/libmiette-9ef76170776d54a4.rlib
+ --> src/main.rs:6:5
+  |
+6 | use miette::Result;
+  |     ^^^^^^
+
+error[E0463]: can't find crate for `glossa`
+ --> src/main.rs:8:5
+  |
+8 | use glossa::tools::cli::{Cli, Commands};
+  |     ^^^^^^ can't find crate
+
+For more information about this error, try `rustc --explain E0463`.
+error: could not compile `glossa` (bin "glossa") due to 3 previous errors
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    test_file_size_limit_cli
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 33.26s
+
+[2m2026-03-08T12:01:09.714850Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_limits-09fcc5972d75c0fe doesn't exist
+[2m2026-03-08T12:01:09.715030Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/sentry_morphology_empty_string-07ff96707192eb4e doesn't exist
+[2m2026-03-08T12:01:09.715095Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_nested_tests-a4d7516864230486 doesn't exist
+[2m2026-03-08T12:01:09.715107Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/codegen_coverage-0cb0b4e687b0741c doesn't exist
+[2m2026-03-08T12:01:09.715118Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/struct_instantiation-208b9cb16a268573 doesn't exist
+[2m2026-03-08T12:01:09.715129Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/sentry_participle_tests-fe02c7109c47990f doesn't exist
+[2m2026-03-08T12:01:09.715138Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/control_flow_tests-c7934abd77f2a7ae doesn't exist
+[2m2026-03-08T12:01:09.715147Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/expression_coverage-d77c5ad93579aab0 doesn't exist
+[2m2026-03-08T12:01:09.715158Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/warden_coverage-7c6d1a30a422e99c doesn't exist
+[2m2026-03-08T12:01:09.715167Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/function_tests-35a1fc950661739e doesn't exist
+[2m2026-03-08T12:01:09.715178Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_coverage-8d08e5ace5066cfb doesn't exist
+[2m2026-03-08T12:01:09.715188Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/warden_exploit-fc424860fdcfb5f6 doesn't exist
+[2m2026-03-08T12:01:09.715481Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/warden_hashdos-2f6c1f6018593e0c doesn't exist
+[2m2026-03-08T12:01:09.715505Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/warden_index_overflow-f8d588b2ea0cd0b2 doesn't exist
+[2m2026-03-08T12:01:09.715636Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/lambda_tests-2e494450da5667fd doesn't exist
+[2m2026-03-08T12:01:09.715648Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc-d0fdbf4792869d8e doesn't exist
+[2m2026-03-08T12:01:09.715657Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_fuzz-0ffb02f95db04514 doesn't exist
+[2m2026-03-08T12:01:09.715667Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/mosaic_coverage-99a58003d98433ce doesn't exist
+[2m2026-03-08T12:01:09.715675Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/trait_tests-5d73423d29077bd5 doesn't exist
+[2m2026-03-08T12:01:09.715684Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_repro-9a9053b67013311d doesn't exist
+[2m2026-03-08T12:01:09.715694Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/narrator_coverage-bb4513a5bd5e090a doesn't exist
+[2m2026-03-08T12:01:09.715793Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_recursion-6144b51869b50896 doesn't exist
+[2m2026-03-08T12:01:09.715810Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/warden_recursive_struct_mutual-cd1ee6204f0e1483 doesn't exist
+[2m2026-03-08T12:01:09.715845Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/collection_tests-c243f0eefaa68287 doesn't exist
+[2m2026-03-08T12:01:09.715928Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/reproduce_silent_failure-45661b82620170ae doesn't exist
+[2m2026-03-08T12:01:09.715943Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/security_memoize_repro-fe7a902c462e75c3 doesn't exist
+[2m2026-03-08T12:01:09.715952Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/regression_codegen_complex-89453a3bb8faded1 doesn't exist
+[2m2026-03-08T12:01:09.715960Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/security_tests-d9735dbd171caa84 doesn't exist
+[2m2026-03-08T12:01:09.715969Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/compile_tests-96fd6fead6ca9a23 doesn't exist
+[2m2026-03-08T12:01:09.715978Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/coverage_perfect_participle-a2981226ec1214f0 doesn't exist
+[2m2026-03-08T12:01:09.715986Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_recursion_drop-b2c77a50829a2f58 doesn't exist
+[2m2026-03-08T12:01:09.715994Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/warden_nested_phrase-043b27c5fb87505a doesn't exist
+[2m2026-03-08T12:01:09.716004Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/option_result_tests-2c908c15b1ca1831 doesn't exist
+[2m2026-03-08T12:01:09.716012Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/warden_text_dos-b86000f6e4e39b65 doesn't exist
+[2m2026-03-08T12:01:09.716020Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_elif_overflow-9f97656ce93ffed3 doesn't exist
+[2m2026-03-08T12:01:09.716028Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_operator_stress-b461e2f4b4cff1dc doesn't exist
+[2m2026-03-08T12:01:09.716036Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/razor_coverage-df52a5e8dbc61ab8 doesn't exist
+[2m2026-03-08T12:01:09.716044Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/glossa-772469fa65c1c554 doesn't exist
+[2m2026-03-08T12:01:09.716053Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_disambiguation_panic-54a1ffc423ee06c5 doesn't exist
+[2m2026-03-08T12:01:09.716062Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_feed_recursion-f070abce6be4b48d doesn't exist
+[2m2026-03-08T12:01:09.716071Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/codegen_optimizations-4624eab89cefcf02 doesn't exist
+[2m2026-03-08T12:01:09.716082Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/havoc_proptest_normalization-995f6424e869abc3 doesn't exist
+[2m2026-03-08T12:01:09.716087Z[0m [33m WARN[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Test at /app/target/debug/deps/glossa-6117d64f9e3a1021 doesn't exist
+Error: "Test failed during run"
