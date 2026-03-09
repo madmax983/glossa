@@ -1,4 +1,4 @@
-use glossa::morphology::{Case, Gender, Number, Tense, Voice, participle::analyze_participle};
+use glossa::morphology::{Case, Gender, Number, Tense, Voice, analyze_participle};
 
 #[test]
 fn test_participle_analysis_coverage() {

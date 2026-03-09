@@ -32,6 +32,7 @@ pub struct Status {
     active: bool,
 }
 
+#[allow(dead_code)]
 impl Status {
     /// Create a new status indicator with default symbol
     pub fn start(message: impl Into<String>) -> Self {

@@ -52,10 +52,10 @@ proptest! {
 // Actually, proptest strings are valid UTF-8, which is good enough to fuzz parser.
 
 use glossa::morphology::Declension;
-use glossa::morphology::conjugation::analyze_verb;
-use glossa::morphology::declension::{analyze_noun, get_stem};
-use glossa::morphology::disambiguation::analyze_article;
-use glossa::morphology::participle::analyze_participle;
+use glossa::morphology::analyze_article;
+use glossa::morphology::analyze_participle;
+use glossa::morphology::analyze_verb;
+use glossa::morphology::{analyze_noun, get_stem};
 
 proptest! {
     #[test]
@@ -84,7 +84,7 @@ proptest! {
     }
 }
 
-use glossa::semantic::assembly::Assembler;
+use glossa::semantic::Assembler;
 
 proptest! {
     #[test]

@@ -199,22 +199,27 @@ pub(crate) mod assembly;
 pub use assembly::AssemblyError;
 
 /// Help messages in Greek
-pub mod help {
+pub(crate) mod help {
     /// Help for the binding construct
+    #[allow(dead_code)]
     pub const BINDING: &str = "Χρῆσις: ὄνομα τιμή ἔστω.
 Παράδειγμα: ξ πέντε ἔστω.";
 
     /// Help for the print construct
+    #[allow(dead_code)]
     pub const PRINT: &str = "Χρῆσις: τιμή λέγε.
 Παράδειγμα: «χαῖρε κόσμε» λέγε.";
 
     /// Help for cases
+    #[allow(dead_code)]
     pub const CASES: &str = "Πτώσεις καὶ σημασίαι:
 • Ὀνομαστική - τὸ ὑποκείμενον
 • Γενική - κτῆσις, δάνεισμα (&)
 • Δοτική - δάνεισμα μεταβλητόν (&mut)
 • Αἰτιατική - τὸ ἀντικείμενον, κίνησις";
 }
+
+pub use help::{BINDING, CASES, PRINT};
 
 #[cfg(test)]
 mod tests {

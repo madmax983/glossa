@@ -1,4 +1,4 @@
-use glossa::tools::cache::Cache;
+use glossa::tools::Cache;
 use std::path::Path;
 
 #[test]
@@ -28,7 +28,7 @@ fn test_cache_key_format() {
 
     // Check if it's hex
     assert!(
-        key.chars().all(|c| c.is_ascii_hexdigit()),
+        key.chars().all(|c: char| c.is_ascii_hexdigit()),
         "Cache key must be hex string"
     );
 }

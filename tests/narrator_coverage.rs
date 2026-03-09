@@ -2,7 +2,7 @@ use glossa::parser::parse;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, CaptureMode, GlossaType, analyze_program,
 };
-use glossa::tools::narrator::tell_tale;
+use glossa::tools::tell_tale;
 
 fn compile_and_tell(source: &str) -> String {
     let ast = parse(source).expect("AST build failed");
@@ -276,7 +276,7 @@ fn test_bard_exprs() {
 
     test_expr_tale(
         AnalyzedExprKind::UnaryOp {
-            op: glossa::morphology::lexicon::UnaryOp::Not,
+            op: glossa::morphology::UnaryOp::Not,
             operand: Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::BooleanLiteral(true),
                 glossa_type: GlossaType::Boolean,

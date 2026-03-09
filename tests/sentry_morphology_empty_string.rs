@@ -1,6 +1,6 @@
-use glossa::morphology::conjugation::analyze_verb;
-use glossa::morphology::declension::analyze_noun;
-use glossa::morphology::participle::analyze_participle;
+use glossa::morphology::analyze_noun;
+use glossa::morphology::analyze_participle;
+use glossa::morphology::analyze_verb;
 
 #[test]
 fn test_morphology_empty_string_does_not_panic() {

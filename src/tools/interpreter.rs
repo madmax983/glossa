@@ -21,6 +21,7 @@ use std::fmt;
 
 /// Runtime Value
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum Value {
     Number(i64),
     String(String),
@@ -42,6 +43,7 @@ impl fmt::Display for Value {
 
 /// Evaluation Error
 #[derive(Debug, thiserror::Error)]
+#[allow(dead_code)]
 pub enum EvalError {
     #[error("μεταβλητὴ οὐχ εὑρέθη (Variable not found): {0}")]
     VariableNotFound(String),
@@ -80,6 +82,7 @@ pub enum EvalError {
 /// let mut interp = Interpreter::new();
 /// // You could then run a program via `interp.run(&analyzed_program)`
 /// ```
+#[allow(dead_code)]
 pub struct Interpreter {
     // Stack of scopes. For now, just one global scope for simplicity.
     // In a real implementation, this would be `Vec<HashMap<String, Value>>`.
@@ -95,6 +98,7 @@ impl Default for Interpreter {
     }
 }
 
+#[allow(dead_code)]
 impl Interpreter {
     /// Creates a new, empty Interpreter environment.
     ///

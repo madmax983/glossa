@@ -134,7 +134,7 @@ fn test_sphalma_is_err() {
 
 #[test]
 fn test_is_none_word_helper() {
-    use glossa::morphology::lexicon::is_none_word;
+    use glossa::morphology::is_none_word;
 
     assert!(is_none_word("ουδεν"));
     assert!(!is_none_word("τι"));
@@ -142,7 +142,7 @@ fn test_is_none_word_helper() {
 
 #[test]
 fn test_is_some_word_helper() {
-    use glossa::morphology::lexicon::is_some_word;
+    use glossa::morphology::is_some_word;
 
     assert!(is_some_word("τι"));
     assert!(!is_some_word("ουδεν"));
@@ -150,7 +150,7 @@ fn test_is_some_word_helper() {
 
 #[test]
 fn test_is_ok_word_helper() {
-    use glossa::morphology::lexicon::is_ok_word;
+    use glossa::morphology::is_ok_word;
 
     assert!(is_ok_word("επιτυχια"));
     assert!(!is_ok_word("σφαλμα"));
@@ -158,7 +158,7 @@ fn test_is_ok_word_helper() {
 
 #[test]
 fn test_is_err_word_helper() {
-    use glossa::morphology::lexicon::is_err_word;
+    use glossa::morphology::is_err_word;
 
     assert!(is_err_word("σφαλμα"));
     assert!(!is_err_word("επιτυχια"));

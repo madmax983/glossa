@@ -124,6 +124,7 @@ pub struct AnalyzedProgram {
 /// assert_eq!(statements.len(), 1);
 /// assert!(scope.lookup_binding("ξ").is_some());
 /// ```
+#[allow(dead_code)]
 pub fn analyze_statement(
     stmt: &Statement,
     scope: &mut Scope,
