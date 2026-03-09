@@ -1,3 +1,5 @@
+#![cfg_attr(tarpaulin, tarpaulin::skip)]
+#![allow(unexpected_cfgs)]
 //! ΓΛΩΣΣΑ Compiler CLI
 //!
 //! A compiler for ΓΛΩΣΣΑ - where Ancient Greek morphology encodes programming semantics.
