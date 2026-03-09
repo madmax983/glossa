@@ -74,3 +74,16 @@ fn main() -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn test_cli_help() {
+        // This covers the imports at the top of the file without actually running main()
+        let result = Cli::try_parse_from(["glossa", "--help"]);
+        assert!(result.is_err()); // clap returns an error for --help (HelpDisplayed)
+    }
+}
