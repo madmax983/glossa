@@ -327,8 +327,9 @@ mod tests {
     #[test]
     fn test_overflow_neg() {
         // -9223372036854775808 is i64::MIN, its negation overflows i64.
-        // We calculate it by starting at 9223372036854775807, negating it, and subtracting 1.
-        let code = "ξ 9223372036854775807 μὴ ἔστω. ψ ξ 1 διαφορὰ ἔστω. ψ μὴ λέγε.";
+        // We calculate it by starting at -9223372036854775807 and subtracting 1.
+        // The correct syntax for negation of a variable is `<var> μὴ`.
+        let code = "ἄλφα 9223372036854775807 μὴ ἔστω. βῆτα 1 ἔστω. γάμμα ἄλφα βῆτα διαφορὰ ἔστω. γάμμα μὴ λέγε.";
         let ast = parse(code).expect("Parse error");
         let program = analyze_program(&ast).expect("Analysis error");
         let mut interpreter = Interpreter::new();
