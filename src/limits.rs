@@ -6,7 +6,7 @@
 
 /// Maximum recursion depth during the parsing phase (CST construction).
 /// This is checked via a linear scan before deep recursive descent begins.
-pub const MAX_PARSE_DEPTH: usize = 500;
+pub const MAX_PARSE_DEPTH: usize = 250;
 
 /// Maximum recursion depth during semantic analysis (AST processing).
 /// This prevents stack overflows when processing deeply nested phrases or expressions.

@@ -290,7 +290,7 @@ mod tests {
     fn test_recursion_limit_unbalanced_but_safe() {
         // Unbalanced brackets that don't exceed depth
         // (((...))) then (((...))) - sequential, not nested
-        let part = "(".repeat(100) + &")".repeat(100);
+        let part = "(".repeat(400) + &")".repeat(400);
         let source = part.clone() + &part;
         let result = recursion::check_recursion_depth(&source);
         assert!(result.is_ok());
