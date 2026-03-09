@@ -231,6 +231,11 @@ mod tests {
     }
 
     #[test]
+    fn test_lookup_unknown_no_analyses() {
+        lookup_word("asdfasdfasdf").unwrap();
+    }
+
+    #[test]
     fn test_lookup_verb() {
         lookup_word("λέγε").unwrap();
     }
