@@ -59,6 +59,9 @@ pub enum EvalError {
     #[error("διαίρεσις διὰ μηδενός (Division by zero)")]
     DivisionByZero,
 
+    #[error("ὑπερχείλισις ἀριθμοῦ (Arithmetic overflow)")]
+    ArithmeticOverflow,
+
     #[error("μὴ ὑλοποιημένον (Not implemented): {0}")]
     NotImplemented(String),
 }
@@ -179,14 +182,24 @@ impl Interpreter {
     fn eval_bin_op(&self, op: &BinaryOp, left: Value, right: Value) -> Result<Value, EvalError> {
         match (op, &left, &right) {
             // Arithmetic
-            (BinaryOp::Add, Value::Number(l), Value::Number(r)) => Ok(Value::Number(l + r)),
-            (BinaryOp::Sub, Value::Number(l), Value::Number(r)) => Ok(Value::Number(l - r)),
-            (BinaryOp::Mul, Value::Number(l), Value::Number(r)) => Ok(Value::Number(l * r)),
+            (BinaryOp::Add, Value::Number(l), Value::Number(r)) => {
+                let res = l.checked_add(*r).ok_or(EvalError::ArithmeticOverflow)?;
+                Ok(Value::Number(res))
+            }
+            (BinaryOp::Sub, Value::Number(l), Value::Number(r)) => {
+                let res = l.checked_sub(*r).ok_or(EvalError::ArithmeticOverflow)?;
+                Ok(Value::Number(res))
+            }
+            (BinaryOp::Mul, Value::Number(l), Value::Number(r)) => {
+                let res = l.checked_mul(*r).ok_or(EvalError::ArithmeticOverflow)?;
+                Ok(Value::Number(res))
+            }
             (BinaryOp::Div, Value::Number(l), Value::Number(r)) => {
                 if *r == 0 {
                     return Err(EvalError::DivisionByZero);
                 }
-                Ok(Value::Number(l / r))
+                let res = l.checked_div(*r).ok_or(EvalError::ArithmeticOverflow)?;
+                Ok(Value::Number(res))
             }
 
             // Comparison
@@ -210,7 +223,10 @@ impl Interpreter {
     fn eval_unary_op(&self, op: &UnaryOp, operand: Value) -> Result<Value, EvalError> {
         match (op, operand) {
             (UnaryOp::Not, Value::Boolean(b)) => Ok(Value::Boolean(!b)),
-            (UnaryOp::Neg, Value::Number(n)) => Ok(Value::Number(-n)),
+            (UnaryOp::Neg, Value::Number(n)) => {
+                let res = n.checked_neg().ok_or(EvalError::ArithmeticOverflow)?;
+                Ok(Value::Number(res))
+            }
             _ => Err(EvalError::NotImplemented(format!("Unary op {:?}", op))),
         }
     }
@@ -296,5 +312,27 @@ mod tests {
         let mut interpreter = Interpreter::new();
         let result = interpreter.run(&program);
         assert!(matches!(result, Err(EvalError::DivisionByZero)));
+    }
+
+    #[test]
+    fn test_overflow_add() {
+        let code = "9223372036854775807 1 ἄθροισμα λέγε.";
+        let ast = parse(code).expect("Parse error");
+        let program = analyze_program(&ast).expect("Analysis error");
+        let mut interpreter = Interpreter::new();
+        let result = interpreter.run(&program);
+        assert!(matches!(result, Err(EvalError::ArithmeticOverflow)));
+    }
+
+    #[test]
+    fn test_overflow_neg() {
+        // -9223372036854775808 is i64::MIN, its negation overflows i64.
+        // We calculate it by starting at 9223372036854775807, negating it, and subtracting 1.
+        let code = "ξ 9223372036854775807 μὴ ἔστω. ψ ξ 1 διαφορὰ ἔστω. ψ μὴ λέγε.";
+        let ast = parse(code).expect("Parse error");
+        let program = analyze_program(&ast).expect("Analysis error");
+        let mut interpreter = Interpreter::new();
+        let result = interpreter.run(&program);
+        assert!(matches!(result, Err(EvalError::ArithmeticOverflow)));
     }
 }
