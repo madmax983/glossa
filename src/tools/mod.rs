@@ -43,6 +43,8 @@ pub use cartographer::run_map;
 pub use cli::{Cli, Commands};
 pub use dictionary::lookup_word;
 #[cfg(feature = "nova")]
+pub use interpreter::Interpreter;
+#[cfg(feature = "nova")]
 pub use mentor::run_mentor;
 #[cfg(feature = "nova")]
 pub use mosaic::{run_mosaic, run_mosaic_inner};

@@ -77,7 +77,7 @@ pub enum EvalError {
 /// # Examples
 ///
 /// ```rust
-/// use glossa::tools::interpreter::Interpreter;
+/// use glossa::tools::Interpreter;
 ///
 /// let mut interp = Interpreter::new();
 /// // You could then run a program via `interp.run(&analyzed_program)`
@@ -107,7 +107,7 @@ impl Interpreter {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::interpreter::Interpreter;
+    /// use glossa::tools::Interpreter;
     ///
     /// let interp = Interpreter::new();
     /// assert_eq!(interp.get_output(), "");
