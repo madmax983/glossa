@@ -83,12 +83,6 @@ impl SemanticAnalyzer {
     }
 }
 
-impl Default for SemanticAnalyzer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// Analyzed program with resolved names and types
 #[derive(Debug, Clone)]
 pub struct AnalyzedProgram {
