@@ -814,6 +814,37 @@ mod tests {
     }
 
     #[test]
+    fn test_for_iteration_error_missing_collection() {
+        let mut scope = Scope::new();
+        let mut analyzer = SemanticAnalyzer::new();
+
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![Expr::Word(Word::new("δια"))])],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("ν")),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope, &mut analyzer);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("For iteration needs: διὰ collection")
+        );
+    }
+
+    #[test]
     fn test_for_iteration_error_not_phrase() {
         let mut scope = Scope::new();
         let mut analyzer = SemanticAnalyzer::new();
