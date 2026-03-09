@@ -11,7 +11,7 @@ use super::declarations::{
 };
 use super::expressions::contains_function_definition_verb;
 use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
-use super::{AnalyzedStatement, GlossaType, Scope, StatementAnalyzer, assemble_statement};
+use super::{AnalyzedStatement, GlossaType, Scope, assemble_statement};
 use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
 
@@ -22,16 +22,8 @@ impl SemanticAnalyzer {
     pub fn new() -> Self {
         Self
     }
-}
 
-impl Default for SemanticAnalyzer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl StatementAnalyzer for SemanticAnalyzer {
-    fn analyze_statement(
+    pub fn analyze_statement(
         &mut self,
         stmt: &Statement,
         scope: &mut Scope,
@@ -88,6 +80,12 @@ impl StatementAnalyzer for SemanticAnalyzer {
         let assembled = assemble_statement(stmt)?;
         let analyzed = convert_assembled_to_analyzed(&assembled, scope)?;
         Ok(vec![analyzed])
+    }
+}
+
+impl Default for SemanticAnalyzer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
