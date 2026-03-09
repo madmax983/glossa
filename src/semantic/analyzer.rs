@@ -11,7 +11,7 @@ use super::declarations::{
 };
 use super::expressions::contains_function_definition_verb;
 use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
-use super::{AnalyzedStatement, GlossaType, Scope, StatementAnalyzer, assemble_statement};
+use super::{AnalyzedStatement, GlossaType, Scope, assemble_statement};
 use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
 
@@ -30,8 +30,8 @@ impl Default for SemanticAnalyzer {
     }
 }
 
-impl StatementAnalyzer for SemanticAnalyzer {
-    fn analyze_statement(
+impl SemanticAnalyzer {
+    pub fn analyze_statement(
         &mut self,
         stmt: &Statement,
         scope: &mut Scope,

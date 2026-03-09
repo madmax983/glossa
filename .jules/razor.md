@@ -102,3 +102,8 @@
 **Bloat:** `MAX_*` depth/limit constants scattered across `src/semantic/assembly/model.rs` and `src/semantic/control_flow.rs`, creating architectural duplication and inconsistent definition points.
 **Cut:** Centralized all compiler depth limit constants into `src/limits.rs`.
 **Saved:** Centralized logic (Single Source of Truth) and improved transparency for architectural constraints.
+
+## [Reduction]
+**Bloat:** Single-implementation traits used for dependency injection (like `StatementAnalyzer`).
+**Cut:** Removed the trait and used a concrete struct reference instead.
+**Saved:** Reduced boilerplate, removed unnecessary files (`src/semantic/traits.rs`), and simplified imports.

@@ -53,19 +53,17 @@ mod resolver;
 #[cfg(test)]
 mod sentry_conversion_tests;
 
-pub(crate) mod traits;
 mod types;
 pub(crate) mod validation;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
-pub use analyzer::{AnalyzedProgram, analyze_program};
+pub use analyzer::{AnalyzedProgram, SemanticAnalyzer, analyze_program};
 pub use assembly::Assembler;
 pub use assembly::{
     AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
 pub use model::*;
 pub use resolver::*;
-pub use traits::StatementAnalyzer;
 pub use types::*;
 
 use self::expressions::feed_expr_to_assembler_with_context;
