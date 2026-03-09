@@ -287,3 +287,13 @@ fn test_block_in_while_loop() {
         "Expected addition in loop body"
     );
 }
+
+#[test]
+fn test_for_iteration_errors() {
+    // Missing collection: διὰ, ν λέγε.
+    let ast1 = parse("διὰ, ν λέγε.").unwrap();
+    let res1 = analyze_program(&ast1);
+    assert!(res1.is_err());
+
+    // Not a phrase: (Can only be tested through ast creation, so we will skip it and instead just let the other one cover things)
+}

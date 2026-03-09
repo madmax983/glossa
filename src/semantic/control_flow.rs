@@ -772,3 +772,78 @@ fn check_conditional_start(expr: &Expr) -> bool {
         false
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Clause, Expr, Statement, Word};
+    use crate::semantic::analyzer::SemanticAnalyzer;
+
+    #[test]
+    fn test_for_iteration_error_not_word() {
+        let mut scope = Scope::new();
+        let mut analyzer = SemanticAnalyzer::new();
+
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("δια")),
+                        Expr::NumberLiteral(5),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("ν")),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope, &mut analyzer);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Expected word for collection")
+        );
+    }
+
+    #[test]
+    fn test_for_iteration_error_not_phrase() {
+        let mut scope = Scope::new();
+        let mut analyzer = SemanticAnalyzer::new();
+
+        // This requires testing parse_for_iteration_loop directly or bypassing analyze_control_flow
+        // Since analyze_control_flow filters on get_first_word (which expects a Phrase),
+        // we call the inner function.
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::NumberLiteral(10)], // Not a phrase
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("ν")),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = parse_for_iteration_loop(&stmt, &mut scope, &mut analyzer);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Expected phrase in for iteration")
+        );
+    }
+}
