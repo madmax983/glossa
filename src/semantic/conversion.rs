@@ -1557,4 +1557,131 @@ mod tests {
             panic!("Expected AnalyzedStatement::Expression");
         }
     }
+
+    #[test]
+    fn test_classify_early_returns_coverage() {
+        let mut scope = Scope::new();
+
+        // Test missing verb
+        let no_verb_stmt = AssembledStatement {
+            verb: None,
+            ..Default::default()
+        };
+
+        // All classification functions that check for a verb should return Ok(None) early.
+        assert!(classify_pop("pop_verb", &no_verb_stmt, &scope).unwrap().is_none());
+        assert!(classify_push("push_verb", &no_verb_stmt, &scope).unwrap().is_none());
+        assert!(classify_insert("insert_verb", &no_verb_stmt, &scope).unwrap().is_none());
+        assert!(classify_assertion(&no_verb_stmt, &mut scope).unwrap().is_none());
+        assert!(classify_equality_assertion(&no_verb_stmt, &mut scope).unwrap().is_none());
+        assert!(classify_print(&no_verb_stmt, &mut scope).unwrap().is_none());
+        assert!(classify_collection_mutation(&no_verb_stmt, &mut scope).unwrap().is_none());
+
+        // Test non-matching verbs
+        let wrong_verb = Some(crate::semantic::assembly::model::VerbConstituent {
+            original: "wrong".into(),
+            normalized: "wrong".into(),
+            lemma: "wrong".into(),
+            person: None,
+            number: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        });
+
+        let wrong_verb_stmt = AssembledStatement {
+            verb: wrong_verb.clone(),
+            ..Default::default()
+        };
+
+        // classify_pop, classify_push, classify_insert
+        // Here we test passing incorrect verb_lemma directly
+        assert!(classify_pop("wrong", &wrong_verb_stmt, &scope).unwrap().is_none());
+        assert!(classify_push("wrong", &wrong_verb_stmt, &scope).unwrap().is_none());
+        assert!(classify_insert("wrong", &wrong_verb_stmt, &scope).unwrap().is_none());
+
+        // These take asm_stmt which has wrong_verb
+        assert!(classify_assertion(&wrong_verb_stmt, &mut scope).unwrap().is_none());
+        assert!(classify_equality_assertion(&wrong_verb_stmt, &mut scope).unwrap().is_none());
+        assert!(classify_print(&wrong_verb_stmt, &mut scope).unwrap().is_none());
+        assert!(classify_collection_mutation(&wrong_verb_stmt, &mut scope).unwrap().is_none());
+
+        // Test missing subject where required
+        let push_verb = crate::semantic::assembly::model::VerbConstituent {
+            original: "ὠθεῖ".into(),
+            normalized: "ὠθεῖ".into(),
+            lemma: "ὠθέω".into(),
+            person: None,
+            number: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        };
+        let pop_verb = crate::semantic::assembly::model::VerbConstituent {
+            original: "ἕλκει".into(),
+            normalized: "ἕλκει".into(),
+            lemma: "ἕλκω".into(),
+            person: None,
+            number: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        };
+        let insert_verb = crate::semantic::assembly::model::VerbConstituent {
+            original: "τίθησι".into(),
+            normalized: "τίθησι".into(),
+            lemma: "τίθημι".into(),
+            person: None,
+            number: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        };
+        let assert_verb = crate::semantic::assembly::model::VerbConstituent {
+            original: "δεῖ".into(),
+            normalized: "δεῖ".into(),
+            lemma: "δεῖ".into(),
+            person: None,
+            number: None,
+            tense: None,
+            mood: None,
+            voice: None,
+        };
+
+        // classify_push without subject
+        let mut stmt_no_subj = AssembledStatement {
+            verb: Some(push_verb.clone()),
+            subject: None,
+            ..Default::default()
+        };
+        assert!(classify_push("ὠθέω", &stmt_no_subj, &scope).unwrap().is_none());
+
+        // classify_pop without subject
+        stmt_no_subj.verb = Some(pop_verb.clone());
+        assert!(classify_pop("ἕλκω", &stmt_no_subj, &scope).unwrap().is_none());
+
+        // classify_insert without subject
+        stmt_no_subj.verb = Some(insert_verb.clone());
+        assert!(classify_insert("τίθημι", &stmt_no_subj, &scope).unwrap().is_none());
+
+        // classify_assertion without subject
+        stmt_no_subj.verb = Some(assert_verb.clone());
+        stmt_no_subj.has_containment_preposition = true; // Meet containment condition
+        assert!(classify_assertion(&stmt_no_subj, &mut scope).unwrap().is_none());
+
+        // Test classify_assertion without containment preposition
+        let stmt_no_containment = AssembledStatement {
+            verb: Some(assert_verb.clone()),
+            has_containment_preposition: false,
+            ..Default::default()
+        };
+        assert!(classify_assertion(&stmt_no_containment, &mut scope).unwrap().is_none());
+
+        // Test classify_query early return
+        let not_query_stmt = AssembledStatement {
+            is_query: false,
+            ..Default::default()
+        };
+        assert!(classify_query(&not_query_stmt, &mut scope).unwrap().is_none());
+    }
 }
