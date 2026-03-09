@@ -25,3 +25,6 @@
 **Refactoring `classify_*` in `src/semantic/conversion.rs`**
 **Learning:** Functions that parse or classify elements using heuristic priorities often become a "Pyramid of Doom" through nested `if let Some(...) = ...` blocks. This increases cognitive load and hides the critical failure path.
 **Action:** Use "Guard Clauses" (early returns) extensively in classification functions. `let Some(x) = y else { return ... };` keeps the execution path flat and adheres strictly to the 'Grandma Test'.
+**Flattened Conversion Classifications**
+**Learning:** Returning `Result<Option<T>, E>` inside a deep `if let` block causes rightward drift ('Pyramid of Doom'). Flattening with guard clauses using `else { return Ok(None); }` significantly improves readability and reduces nesting depth.
+**Action:** Always prefer guard clauses (early returns) when handling optional variables before executing the main logic.
