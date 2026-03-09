@@ -134,9 +134,9 @@ fn test_for_range_inclusive() {
 
 #[test]
 fn test_for_iteration() {
-    // διὰ στοιχείων, στοιχεῖον λέγε.
-    // "through elements, say element"
-    let source = "διὰ στοιχείων, στοιχεῖον λέγε.";
+    // διὰ ἀριθμοῦ, ν λέγε.
+    // "through numbers, say element"
+    let source = "ἀριθμός [1, 2, 3] ἔστω. διὰ ἀριθμοῦ, ν λέγε.";
     let output = compile_to_rust(source);
 
     eprintln!("Generated output:\n{}", output);
@@ -286,4 +286,14 @@ fn test_block_in_while_loop() {
         output.contains("+") || output.contains("checked_add"),
         "Expected addition in loop body"
     );
+}
+
+#[test]
+fn test_for_iteration_errors() {
+    // Missing collection: διὰ, ν λέγε.
+    let ast1 = parse("διὰ, ν λέγε.").unwrap();
+    let res1 = analyze_program(&ast1);
+    assert!(res1.is_err());
+
+    // Not a phrase: (Can only be tested through ast creation, so we will skip it and instead just let the other one cover things)
 }
