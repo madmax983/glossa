@@ -134,9 +134,9 @@ fn test_for_range_inclusive() {
 
 #[test]
 fn test_for_iteration() {
-    // διὰ στοιχείων, στοιχεῖον λέγε.
-    // "through elements, say element"
-    let source = "διὰ στοιχείων, στοιχεῖον λέγε.";
+    // διὰ ἀριθμοῦ, ν λέγε.
+    // "through numbers, say element"
+    let source = "ἀριθμός [1, 2, 3] ἔστω. διὰ ἀριθμοῦ, ν λέγε.";
     let output = compile_to_rust(source);
 
     eprintln!("Generated output:\n{}", output);

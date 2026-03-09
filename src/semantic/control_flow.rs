@@ -278,27 +278,30 @@ fn parse_for_iteration_loop(
         return Err(GlossaError::semantic("Empty collection clause in for loop"));
     }
 
-    let collection_name = if let Expr::Phrase(terms) = &collection_clause.expressions[0] {
-        // Skip διά (first word) and get the collection name (second word)
-        if terms.len() < 2 {
-            return Err(GlossaError::semantic("For iteration needs: διὰ collection"));
-        }
-        if let Expr::Word(w) = &terms[1] {
-            w.normalized.clone()
+    let (collection_name_raw, collection_name) =
+        if let Expr::Phrase(terms) = &collection_clause.expressions[0] {
+            // Skip διά (first word) and get the collection name (second word)
+            if terms.len() < 2 {
+                return Err(GlossaError::semantic("For iteration needs: διὰ collection"));
+            }
+            if let Expr::Word(w) = &terms[1] {
+                // Get lemma of the word to match the definition
+                let lemma = crate::morphology::analyze(&w.normalized).lemma.to_string();
+                (w.normalized.clone(), lemma)
+            } else {
+                return Err(GlossaError::semantic("Expected word for collection"));
+            }
         } else {
-            return Err(GlossaError::semantic("Expected word for collection"));
-        }
-    } else {
-        return Err(GlossaError::semantic("Expected phrase in for iteration"));
-    };
+            return Err(GlossaError::semantic("Expected phrase in for iteration"));
+        };
 
     // Create a variable expression for the collection
     let collection_type = scope
         .lookup(&collection_name)
         .cloned()
-        .unwrap_or(GlossaType::String);
+        .ok_or_else(|| GlossaError::undefined(collection_name_raw.to_string()))?;
     let collection_expr = AnalyzedExpr {
-        expr: AnalyzedExprKind::Variable(collection_name),
+        expr: AnalyzedExprKind::Variable(collection_name.into()),
         glossa_type: collection_type,
     };
 
