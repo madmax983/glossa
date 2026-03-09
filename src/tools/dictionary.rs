@@ -45,7 +45,7 @@
 //!    λόγος  Noun  Accusative, Singular, Masculine  1.00
 //! ```
 
-use comfy_table::{Attribute, Cell, Color, Table, presets};
+use comfy_table::{Attribute, Cell, CellAlignment, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
 
@@ -142,7 +142,13 @@ pub fn lookup_word(word: &str) -> Result<()> {
     let analyses = analyze_all(word);
 
     if analyses.is_empty() {
-        println!("   {}", "× No morphological analysis found.".red());
+        let mut empty_table = Table::new();
+        empty_table.add_row(vec![
+            Cell::new("× No morphological analysis found.")
+                .fg(Color::Red)
+                .set_alignment(CellAlignment::Center),
+        ]);
+        println!("{empty_table}");
         return Ok(());
     }
 
