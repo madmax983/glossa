@@ -96,10 +96,8 @@
 
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedProgram, AnalyzedStatement,
-    CaptureMode, GlossaType,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, CaptureMode, GlossaType,
 };
-use crate::text::normalize_greek;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 // ==================================================================================
@@ -355,21 +353,15 @@ pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
 
 /// Generate Rust code from an Analyzed Program
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
-    // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
-    let mut trait_defs = Vec::new();
+    // Separate struct defs, function defs, tests, and main body statements
     let mut struct_defs = Vec::new();
-    let mut trait_impls = Vec::new();
     let mut fn_defs = Vec::new();
     let mut test_defs = Vec::new();
     let mut main_stmts = Vec::new();
 
     for stmt in &program.statements {
         match stmt {
-            AnalyzedStatement::TraitDefinition { .. } => trait_defs.push(generate_statement(stmt)),
             AnalyzedStatement::TypeDefinition { .. } => struct_defs.push(generate_statement(stmt)),
-            AnalyzedStatement::TraitImplementation { .. } => {
-                trait_impls.push(generate_statement(stmt))
-            }
             AnalyzedStatement::FunctionDef { .. } => fn_defs.push(generate_statement(stmt)),
             AnalyzedStatement::TestDeclaration { .. } => test_defs.push(generate_statement(stmt)),
             _ => main_stmts.push(generate_statement(stmt)),
@@ -387,11 +379,7 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
     let output = quote! {
         #imports
 
-        #(#trait_defs)*
-
         #(#struct_defs)*
-
-        #(#trait_impls)*
 
         #(#fn_defs)*
 
@@ -491,12 +479,6 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             return_type,
         } => generate_fn_def(name, params, body, return_type),
         AnalyzedStatement::TypeDefinition { name, fields } => generate_struct_def(name, fields),
-        AnalyzedStatement::TraitDefinition { name, methods } => generate_trait_def(name, methods),
-        AnalyzedStatement::TraitImplementation {
-            trait_name,
-            type_name,
-            methods,
-        } => generate_trait_impl(trait_name, type_name, methods),
         AnalyzedStatement::TestDeclaration { name, body } => generate_test(name, body),
     }
 }
@@ -708,154 +690,6 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
     }
 }
 
-struct TraitMethodParts {
-    name: Ident,
-    params: Vec<TokenStream>,
-    return_type: Option<TokenStream>,
-}
-
-fn generate_trait_method_parts(method: &AnalyzedMethod) -> TraitMethodParts {
-    let method_name = sanitize_ident(&method.name);
-
-    let param_tokens: Vec<TokenStream> = method
-        .params
-        .iter()
-        .enumerate()
-        .map(|(idx, (param_name, param_type))| {
-            if is_self_parameter(param_name, idx) {
-                quote! { &self }
-            } else {
-                let param_ident = sanitize_ident(param_name);
-                let type_tokens = generate_type_tokens(param_type);
-                quote! { #param_ident: #type_tokens }
-            }
-        })
-        .collect();
-
-    let ret_tokens = method.return_type.as_ref().map(generate_type_tokens);
-
-    TraitMethodParts {
-        name: method_name,
-        params: param_tokens,
-        return_type: ret_tokens,
-    }
-}
-
-fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
-    // Capitalize trait name for Rust conventions
-    let trait_name = format_ident!(
-        "{}",
-        Sanitizer {
-            name,
-            capitalize: true
-        }
-        .to_string()
-    );
-
-    // Generate method signatures
-    let method_tokens: Vec<TokenStream> = methods
-        .iter()
-        .map(|method| {
-            let parts = generate_trait_method_parts(method);
-            let method_name = parts.name;
-            let param_tokens = parts.params;
-
-            if let Some(ret_ty) = parts.return_type {
-                if let Some(body) = &method.body {
-                    let body_stmts = generate_statements(body);
-                    quote! {
-                        fn #method_name(#(#param_tokens),*) -> #ret_ty {
-                            #(#body_stmts)*
-                        }
-                    }
-                } else {
-                    quote! {
-                        fn #method_name(#(#param_tokens),*) -> #ret_ty;
-                    }
-                }
-            } else if let Some(body) = &method.body {
-                let body_stmts = generate_statements(body);
-                quote! {
-                    fn #method_name(#(#param_tokens),*) {
-                        #(#body_stmts)*
-                    }
-                }
-            } else {
-                quote! {
-                    fn #method_name(#(#param_tokens),*);
-                }
-            }
-        })
-        .collect();
-
-    quote! {
-        trait #trait_name {
-            #(#method_tokens)*
-        }
-    }
-}
-
-fn generate_trait_impl(
-    trait_name: &str,
-    type_name: &str,
-    methods: &[AnalyzedMethod],
-) -> TokenStream {
-    // Capitalize trait and type names for Rust conventions
-    let trait_ident = format_ident!(
-        "{}",
-        Sanitizer {
-            name: trait_name,
-            capitalize: true
-        }
-        .to_string()
-    );
-    let type_ident = format_ident!(
-        "{}",
-        Sanitizer {
-            name: type_name,
-            capitalize: true
-        }
-        .to_string()
-    );
-
-    // Generate method implementations
-    let method_tokens: Vec<TokenStream> = methods
-        .iter()
-        .map(|method| {
-            let parts = generate_trait_method_parts(method);
-            let method_name = parts.name;
-            let param_tokens = parts.params;
-
-            // Generate method body
-            let body_stmts: Vec<TokenStream> = if let Some(body) = &method.body {
-                generate_statements(body)
-            } else {
-                Vec::new()
-            };
-
-            if let Some(ret_ty) = parts.return_type {
-                quote! {
-                    fn #method_name(#(#param_tokens),*) -> #ret_ty {
-                        #(#body_stmts)*
-                    }
-                }
-            } else {
-                quote! {
-                    fn #method_name(#(#param_tokens),*) {
-                        #(#body_stmts)*
-                    }
-                }
-            }
-        })
-        .collect();
-
-    quote! {
-        impl #trait_ident for #type_ident {
-            #(#method_tokens)*
-        }
-    }
-}
-
 fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
     // Sanitize test name for Rust function identifier
     // Replace spaces and special chars with underscores
@@ -918,13 +752,6 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             method,
             args,
         } => generate_method_call(receiver, method, args),
-
-        AnalyzedExprKind::TraitMethodCall {
-            receiver,
-            method_name,
-            args,
-            ..
-        } => generate_trait_method_call(receiver, method_name, args),
 
         AnalyzedExprKind::VerbCall { verb, args }
         | AnalyzedExprKind::FunctionCall { func: verb, args } => generate_function_call(verb, args),
@@ -1116,19 +943,6 @@ fn generate_closure(
     }
 }
 
-/// Check if a parameter represents the self parameter in a trait method
-fn is_self_parameter(param_name: &str, idx: usize) -> bool {
-    if idx != 0 {
-        return false;
-    }
-    let normalized = normalize_greek(param_name);
-    // Check for "self", "τω" (normalized from τῷ), or if param name contains "self"
-    normalized == "self"
-        || param_name == "self"
-        || normalized == "τω"
-        || param_name.contains("self")
-}
-
 /// Check if a method name belongs to the Rust standard library allowlist
 fn is_std_method(name: &str) -> bool {
     matches!(
@@ -1281,18 +1095,6 @@ fn generate_method_call(
         sanitize_ident(method)
     };
 
-    let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-    quote! { #recv.#method_ident(#(#arg_tokens),*) }
-}
-
-fn generate_trait_method_call(
-    receiver: &AnalyzedExpr,
-    method_name: &str,
-    args: &[AnalyzedExpr],
-) -> TokenStream {
-    // Treat as regular method call
-    let recv = generate_expr(receiver);
-    let method_ident = sanitize_ident(method_name);
     let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
     quote! { #recv.#method_ident(#(#arg_tokens),*) }
 }
@@ -1597,35 +1399,6 @@ mod tests {
             assert!(code.contains("None"));
             assert!(code.contains("borrow_mut"));
             assert!(code.contains("unwrap"));
-        }
-
-        #[test]
-        fn test_generate_trait_parts_manual() {
-            // Manual construction of a trait method
-            let method = AnalyzedMethod {
-                name: SmolStr::new("test_method"),
-                params: vec![
-                    (SmolStr::new("self"), GlossaType::Unknown), // Self param
-                    (SmolStr::new("arg1"), GlossaType::Number),
-                ],
-                body: None,
-                return_type: Some(GlossaType::Boolean),
-            };
-
-            let parts = generate_trait_method_parts(&method);
-
-            assert_eq!(parts.name.to_string(), "g_test_method");
-
-            // Check params
-            let params_str: Vec<String> = parts.params.iter().map(|t| t.to_string()).collect();
-            assert_eq!(params_str.len(), 2);
-            assert_eq!(params_str[0], "& self");
-            assert!(params_str[1].contains("g_arg1"));
-            assert!(params_str[1].contains("i64"));
-
-            // Check return type
-            assert!(parts.return_type.is_some());
-            assert_eq!(parts.return_type.unwrap().to_string(), "bool");
         }
 
         #[test]

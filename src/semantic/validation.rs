@@ -85,9 +85,7 @@ fn check_statement_depth(stmt: &AnalyzedStatement, depth: usize) -> Result<(), G
         }
         AnalyzedStatement::Break
         | AnalyzedStatement::Continue
-        | AnalyzedStatement::TypeDefinition { .. }
-        | AnalyzedStatement::TraitDefinition { .. }
-        | AnalyzedStatement::TraitImplementation { .. } => {}
+        | AnalyzedStatement::TypeDefinition { .. } => {}
     }
     Ok(())
 }
@@ -130,8 +128,7 @@ fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> Result<(), GlossaError
             check_expr_depth(array, depth + 1)?;
             check_expr_depth(index, depth + 1)?;
         }
-        AnalyzedExprKind::MethodCall { receiver, args, .. }
-        | AnalyzedExprKind::TraitMethodCall { receiver, args, .. } => {
+        AnalyzedExprKind::MethodCall { receiver, args, .. } => {
             check_expr_depth(receiver, depth + 1)?;
             for arg in args {
                 check_expr_depth(arg, depth + 1)?;

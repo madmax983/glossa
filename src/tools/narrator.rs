@@ -260,26 +260,6 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
                 Cell::new("Struct").fg(Color::Blue),
             ]);
         }
-        AnalyzedStatement::TraitDefinition { name, methods: _ } => {
-            let script = format!("Trait `{}`", name);
-            table.add_row(vec![
-                Cell::new("TRAIT").fg(Color::Blue),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Interface").fg(Color::Blue),
-            ]);
-        }
-        AnalyzedStatement::TraitImplementation {
-            trait_name,
-            type_name,
-            methods: _,
-        } => {
-            let script = format!("Impl `{}` for `{}`", trait_name, type_name);
-            table.add_row(vec![
-                Cell::new("IMPL").fg(Color::Blue),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Implementation").fg(Color::Blue),
-            ]);
-        }
         AnalyzedStatement::TestDeclaration { name, body } => {
             let script = format!("Test `{}`:", name);
             table.add_row(vec![
@@ -348,21 +328,6 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
                 "{}.{}({})",
                 tell_expr(receiver),
                 method,
-                args_str.join(", ")
-            )
-        }
-        AnalyzedExprKind::TraitMethodCall {
-            receiver,
-            trait_name,
-            method_name,
-            args,
-        } => {
-            let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-            format!(
-                "{} as {}::{}({})",
-                tell_expr(receiver),
-                trait_name,
-                method_name,
                 args_str.join(", ")
             )
         }

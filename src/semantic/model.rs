@@ -149,29 +149,6 @@ pub enum AnalyzedStatement {
         name: SmolStr,
         fields: Vec<(SmolStr, GlossaType)>,
     },
-    /// Trait definition
-    ///
-    /// # Example
-    /// ```glossa
-    /// χαρακτήρ Show ...
-    /// ```
-    /// -> `trait Show { ... }`
-    TraitDefinition {
-        name: SmolStr,
-        methods: Vec<AnalyzedMethod>,
-    },
-    /// Trait implementation
-    ///
-    /// # Example
-    /// ```glossa
-    /// εἶδος User τῷ Show ἐμπίπτειν ...
-    /// ```
-    /// -> `impl Show for User { ... }`
-    TraitImplementation {
-        trait_name: SmolStr,
-        type_name: SmolStr,
-        methods: Vec<AnalyzedMethod>,
-    },
     /// Test declaration
     ///
     /// # Example
@@ -345,17 +322,6 @@ pub enum AnalyzedExprKind {
         args: Vec<AnalyzedExpr>,
     },
 
-    /// Trait method call `receiver.<TraitName>::method(args)` (from trait impl)
-    ///
-    /// # Example
-    /// `user.Show::print()`
-    TraitMethodCall {
-        receiver: Box<AnalyzedExpr>,
-        trait_name: SmolStr,
-        method_name: SmolStr,
-        args: Vec<AnalyzedExpr>,
-    },
-
     /// Struct instantiation: `variable νέον type_name args... ἔστω`
     ///
     /// # Example
@@ -407,20 +373,4 @@ pub enum CaptureMode {
     /// Used to cache the result of the lambda for identical inputs.
     /// This turns the closure into a lazy, memoized value.
     Memoize,
-}
-
-// --- Trait and Type Definitions (moved from types.rs) ---
-
-/// Trait definition for semantic analysis
-#[derive(Debug, Clone)]
-pub struct TraitDef {
-    pub name: SmolStr,
-    pub methods: Vec<AnalyzedMethod>,
-}
-
-/// Trait implementation for a type
-#[derive(Debug, Clone)]
-pub struct TraitImpl {
-    pub trait_name: SmolStr,
-    pub type_name: SmolStr,
 }

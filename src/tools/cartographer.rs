@@ -34,7 +34,7 @@
 //! ```
 
 use crate::parser::parse;
-use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, analyze_program};
+use crate::semantic::{AnalyzedProgram, GlossaType, analyze_program};
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
@@ -121,35 +121,6 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
         }
     }
 
-    // 2. Iterate over traits
-    let mut traits: Vec<_> = program.scope.traits().collect();
-    traits.sort_by(|a, b| a.0.cmp(b.0));
-
-    for (_key, trait_def) in traits {
-        let name = &trait_def.name;
-        map.push_str(&format!("    class {} {{\n", name));
-        map.push_str("        <<interface>>\n");
-        for method in &trait_def.methods {
-            let params_str: Vec<String> = method
-                .params
-                .iter()
-                .map(|(n, t)| format!("{}: {}", n, t))
-                .collect();
-            let ret_str = method
-                .return_type
-                .as_ref()
-                .map(|t| format!(": {}", t))
-                .unwrap_or_default();
-            map.push_str(&format!(
-                "        +{}({}){}\n",
-                method.name,
-                params_str.join(", "),
-                ret_str
-            ));
-        }
-        map.push_str("    }\n");
-    }
-
     // 3. Add dependencies (struct field usage)
     // Only include dependencies if the target is actually a defined type/trait in the diagram
     // to avoid arrows to "Unknown" or external things if not modeled.
@@ -171,22 +142,6 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     for (source, target) in sorted_deps {
         if defined_types.contains(&target) {
             map.push_str(&format!("    {} --> {}\n", source, target));
-        }
-    }
-
-    // 4. Add trait implementations
-    // Iterate statements to find implementations
-    for stmt in &program.statements {
-        if let AnalyzedStatement::TraitImplementation {
-            trait_name,
-            type_name,
-            ..
-        } = stmt
-        {
-            map.push_str(&format!(
-                "    {} <|.. {} : implements\n",
-                trait_name, type_name
-            ));
         }
     }
 
@@ -260,31 +215,6 @@ mod tests {
         assert!(map.contains("class διευθυνσις") || map.contains("class Διεύθυνσις"));
         // Check for relationship (normalized)
         assert!(map.contains("χρηστης --> διευθυνσις") || map.contains("Χρήστης --> Διεύθυνσις"));
-    }
-
-    #[test]
-    fn test_cartographer_trait_impl() {
-        let source = "
-            χαρακτήρ Εκτυπώσιμος ὁρίζειν {
-                δεῖ τυπωσις τῷ self.
-            }.
-
-            εἶδος Χ ὁρίζειν { χ ἀριθμοῦ. }.
-
-            εἶδος Χ τῷ Εκτυπώσιμος ἐμπίπτειν {
-                τυπωσις τῷ self· «x» λέγε.
-            }.
-        ";
-        let ast = parse(source).unwrap();
-        let program = analyze_program(&ast).unwrap();
-        let map = generate_map(&program);
-
-        assert!(map.contains("class εκτυπωσιμος") || map.contains("class Εκτυπώσιμος"));
-        assert!(map.contains("<<interface>>"));
-        assert!(
-            map.contains("εκτυπωσιμος <|.. χ : implements")
-                || map.contains("Εκτυπώσιμος <|.. Χ : implements")
-        );
     }
 
     #[test]
@@ -398,44 +328,6 @@ mod tests {
 
         // Should NOT contain arrow to Other (because Other is not in scope)
         assert!(!map.contains("Node --> Other"));
-    }
-
-    #[test]
-    fn test_cartographer_complex_methods() {
-        use crate::semantic::{AnalyzedMethod, Scope, TraitDef};
-
-        let mut scope = Scope::new();
-
-        // Manually define a trait with complex method signature
-        let method = AnalyzedMethod {
-            name: "complex_method".into(),
-            params: vec![
-                ("a".into(), GlossaType::Number),
-                ("b".into(), GlossaType::String),
-            ],
-            body: None,
-            return_type: Some(GlossaType::Boolean),
-        };
-
-        let trait_def = TraitDef {
-            name: "ComplexTrait".into(),
-            methods: vec![method],
-        };
-
-        scope.define_trait("ComplexTrait", trait_def);
-
-        let program = AnalyzedProgram {
-            statements: vec![],
-            scope,
-        };
-
-        let map = generate_map(&program);
-
-        assert!(map.contains("class ComplexTrait"));
-        assert!(map.contains("complex_method"));
-        assert!(map.contains("a: Ἀριθμός"));
-        assert!(map.contains("b: Ὄνομα"));
-        assert!(map.contains(": Ἀληθές/Ψεῦδος"));
     }
 
     #[test]

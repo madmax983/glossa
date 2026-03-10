@@ -183,37 +183,6 @@ fn test_bard_type_def() {
 }
 
 #[test]
-fn test_bard_trait_def() {
-    let stmt = AnalyzedStatement::TraitDefinition {
-        name: "MyTrait".into(),
-        methods: vec![],
-    };
-    let program = glossa::semantic::AnalyzedProgram {
-        statements: vec![stmt],
-        scope: glossa::semantic::Scope::new(),
-    };
-    let tale = tell_tale(&program);
-    assert!(tale.contains("TRAIT"));
-    assert!(tale.contains("Trait `MyTrait`"));
-}
-
-#[test]
-fn test_bard_trait_impl() {
-    let stmt = AnalyzedStatement::TraitImplementation {
-        trait_name: "MyTrait".into(),
-        type_name: "MyType".into(),
-        methods: vec![],
-    };
-    let program = glossa::semantic::AnalyzedProgram {
-        statements: vec![stmt],
-        scope: glossa::semantic::Scope::new(),
-    };
-    let tale = tell_tale(&program);
-    assert!(tale.contains("IMPL"));
-    assert!(tale.contains("Impl `MyTrait` for `MyType`"));
-}
-
-#[test]
 fn test_bard_test_decl() {
     let stmt = AnalyzedStatement::TestDeclaration {
         name: "my_test".into(),
@@ -372,19 +341,6 @@ fn test_bard_exprs() {
             args: vec![],
         },
         "`obj`.m()",
-    );
-
-    test_expr_tale(
-        AnalyzedExprKind::TraitMethodCall {
-            receiver: Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable("obj".into()),
-                glossa_type: GlossaType::Unknown,
-            }),
-            trait_name: "T".into(),
-            method_name: "m".into(),
-            args: vec![],
-        },
-        "`obj` as T::m()",
     );
 
     test_expr_tale(
