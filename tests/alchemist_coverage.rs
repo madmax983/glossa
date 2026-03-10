@@ -1,14 +1,45 @@
 #![cfg(feature = "nova")]
 
 use glossa::morphology::lexicon::{BinaryOp, UnaryOp};
-use glossa::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
-};
-use glossa::tools::alchemist::transpile_to_python;
+use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope};
+use glossa::tools::alchemist::{transpile_to_python, run_alchemist};
+use std::io::Write;
+use tempfile::Builder;
 
 #[test]
 fn test_alchemist_coverage() {
     let statements = vec![
+        // Query
+        AnalyzedStatement::Query(vec![AnalyzedExpr {
+            expr: AnalyzedExprKind::StringLiteral("query".into()),
+            glossa_type: GlossaType::String,
+        }]),
+        // Assignment
+        AnalyzedStatement::Assignment {
+            name: "assign".into(),
+            value: AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(10),
+                glossa_type: GlossaType::Number,
+            },
+        },
+        // If empty then
+        AnalyzedStatement::If {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: GlossaType::Boolean,
+            }),
+            then_body: vec![],
+            else_body: None,
+        },
+        // If empty else
+        AnalyzedStatement::If {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(false),
+                glossa_type: GlossaType::Boolean,
+            }),
+            then_body: vec![AnalyzedStatement::Break],
+            else_body: Some(vec![]),
+        },
         // While loop
         AnalyzedStatement::While {
             condition: Box::new(AnalyzedExpr {
@@ -203,6 +234,17 @@ fn test_alchemist_coverage() {
                 },
                 glossa_type: GlossaType::Boolean,
             },
+            // Unary !
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::UnaryOp {
+                    op: UnaryOp::Not,
+                    operand: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::BooleanLiteral(false),
+                        glossa_type: GlossaType::Boolean,
+                    }),
+                },
+                glossa_type: GlossaType::Boolean,
+            },
             // Fallback unhandled expr
             AnalyzedExpr {
                 expr: AnalyzedExprKind::None,
@@ -246,4 +288,23 @@ fn test_alchemist_coverage() {
     assert!(py.contains("(1 % 2)"));
     assert!(py.contains("(1 <= 2)"));
     assert!(py.contains("(1 >= 2)"));
+    assert!(py.contains("print(\"query\")"));
+    assert!(py.contains("g_assign = 10"));
+    assert!(py.contains("if True:\n    pass"));
+    assert!(py.contains("else:\n    pass"));
+    assert!(py.contains("not False"));
+}
+
+#[test]
+fn test_run_alchemist() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "ξ 1 ἔστω. ξ λέγε.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = run_alchemist(temp_file.path());
+    assert!(result.is_ok(), "Alchemist failed: {:?}", result.err());
 }
