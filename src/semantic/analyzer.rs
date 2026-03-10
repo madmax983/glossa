@@ -18,6 +18,12 @@ use crate::errors::GlossaError;
 /// The Semantic Analyzer orchestrates the semantic analysis process.
 pub struct SemanticAnalyzer;
 
+impl Default for SemanticAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SemanticAnalyzer {
     pub fn new() -> Self {
         Self
@@ -83,11 +89,6 @@ impl SemanticAnalyzer {
     }
 }
 
-impl Default for SemanticAnalyzer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 /// Analyzed program with resolved names and types
 #[derive(Debug, Clone)]
@@ -120,7 +121,7 @@ pub struct AnalyzedProgram {
 /// let statements = analyze_statement(&ast.statements[0], &mut scope).unwrap();
 ///
 /// assert_eq!(statements.len(), 1);
-/// assert!(scope.lookup_binding("ξ").is_some());
+/// assert!(scope.lookup("ξ").is_some());
 /// ```
 pub fn analyze_statement(
     stmt: &Statement,
