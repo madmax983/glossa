@@ -244,8 +244,9 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             }
             out.trim_end().to_string()
         }
-        // Placeholders for later steps
-        _ => format!("{}# Unimplemented statement", ind),
+        AnalyzedStatement::TraitDefinition { .. } | AnalyzedStatement::TraitImplementation { .. } => {
+            format!("{}# Traits not natively supported in simple Python transpile", ind)
+        }
     }
 }
 
@@ -323,8 +324,8 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
                 UnaryOp::Ref => o, // Python does not have explicit references
             }
         }
-        // Placeholders for later steps
-        _ => format!("/* Unimplemented expr {:?} */", expr.expr),
+        // Fallback for unsupported complex expressions like Try, Option variants, etc.
+        e => format!("/* Unimplemented expr {:?} */", e),
     }
 }
 

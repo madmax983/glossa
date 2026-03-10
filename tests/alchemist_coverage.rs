@@ -245,15 +245,27 @@ fn test_alchemist_coverage() {
                 },
                 glossa_type: GlossaType::Boolean,
             },
-            // Fallback unhandled expr
+            // Additional unimplemented cases to force fallbacks
             AnalyzedExpr {
                 expr: AnalyzedExprKind::None,
+                glossa_type: GlossaType::Option(Box::new(GlossaType::Unknown)),
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::None,
+                    glossa_type: GlossaType::Unknown,
+                })),
                 glossa_type: GlossaType::Unknown,
             },
         ]),
-        // Fallback unhandled stmt
+        // Additional unimplemented statement cases
         AnalyzedStatement::TraitDefinition {
             name: "T".into(),
+            methods: vec![],
+        },
+        AnalyzedStatement::TraitImplementation {
+            trait_name: "T".into(),
+            type_name: "T".into(),
             methods: vec![],
         },
     ];
