@@ -1083,44 +1083,50 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
 }
 
 /// Helper: Common logic for genitive method call parsing
-#[allow(clippy::collapsible_if)]
 fn try_parse_genitive_method_call(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Option<(AnalyzedExpr, GlossaType)> {
-    if let Some(ref subject) = asm_stmt.subject {
-        if !asm_stmt.genitives.is_empty() {
-            let owner_lemma = &asm_stmt.genitives[0].lemma;
-            let method_name = &subject.normalized;
+    let Some(ref subject) = asm_stmt.subject else {
+        return None;
+    };
 
-            if let Some(owner_type) = scope.lookup(owner_lemma) {
-                if !scope.is_defined(method_name) {
-                    let receiver = AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
-                        glossa_type: owner_type.clone(),
-                    };
-
-                    let mut args = Vec::with_capacity(asm_stmt.literals.len());
-                    for lit in &asm_stmt.literals {
-                        args.push(literal_to_analyzed_expr(lit));
-                    }
-
-                    return Some((
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::MethodCall {
-                                receiver: Box::new(receiver),
-                                method: method_name.clone(),
-                                args,
-                            },
-                            glossa_type: GlossaType::Unknown,
-                        },
-                        GlossaType::Unknown,
-                    ));
-                }
-            }
-        }
+    if asm_stmt.genitives.is_empty() {
+        return None;
     }
-    None
+
+    let owner_lemma = &asm_stmt.genitives[0].lemma;
+    let method_name = &subject.normalized;
+
+    let Some(owner_type) = scope.lookup(owner_lemma) else {
+        return None;
+    };
+
+    if scope.is_defined(method_name) {
+        return None;
+    }
+
+    let receiver = AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
+        glossa_type: owner_type.clone(),
+    };
+
+    let mut args = Vec::with_capacity(asm_stmt.literals.len());
+    for lit in &asm_stmt.literals {
+        args.push(literal_to_analyzed_expr(lit));
+    }
+
+    Some((
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(receiver),
+                method: method_name.clone(),
+                args,
+            },
+            glossa_type: GlossaType::Unknown,
+        },
+        GlossaType::Unknown,
+    ))
 }
 
 /// Helper: Detect genitive method call (owner.method)
@@ -1956,6 +1962,95 @@ mod tests {
         let result = try_print_unwrap(&asm_stmt, &mut scope);
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_try_parse_genitive_method_call_no_subject() {
+        let asm_stmt = AssembledStatement {
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = try_parse_genitive_method_call(&asm_stmt, &scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_parse_genitive_method_call_no_genitives() {
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "len".into(),
+                normalized: "len".into(),
+                original: "len".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            genitives: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = try_parse_genitive_method_call(&asm_stmt, &scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_parse_genitive_method_call_owner_not_found() {
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "len".into(),
+                normalized: "len".into(),
+                original: "len".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            genitives: vec![Constituent {
+                lemma: "x".into(), // Not in scope
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Genitive,
+                number: None,
+                person: None,
+            }],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = try_parse_genitive_method_call(&asm_stmt, &scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_parse_genitive_method_call_method_already_defined() {
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "len".into(),
+                normalized: "len".into(),
+                original: "len".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            genitives: vec![Constituent {
+                lemma: "x".into(),
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Genitive,
+                number: None,
+                person: None,
+            }],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        scope.define("x", GlossaType::String);
+        scope.define("len", GlossaType::Number); // Method name is already a defined variable in scope
+        let result = try_parse_genitive_method_call(&asm_stmt, &scope);
+        assert!(result.is_none());
     }
 
     #[test]
