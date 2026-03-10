@@ -466,4 +466,145 @@ mod tests {
         assert!(tale.contains("Proclaim: \"χαῖρε\""));
     }
 
+    #[test]
+    fn test_describe_all_variants() {
+        // This explicitly covers all basic match arms of describe_statement so that line coverage
+        // is met inside the unit test phase, rather than just the integration test phase.
+        use crate::semantic::model::{AnalyzedMethod, AnalyzedStatement};
+
+        let dummy_expr = crate::semantic::model::AnalyzedExpr {
+            expr: crate::semantic::model::AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        };
+
+        // Assignment
+        let stmt = AnalyzedStatement::Assignment {
+            name: "x".into(),
+            value: dummy_expr.clone(),
+        };
+        assert_eq!(describe_statement(&stmt).0, "SET");
+
+        // Expression
+        let stmt = AnalyzedStatement::Expression(vec![dummy_expr.clone()]);
+        assert_eq!(describe_statement(&stmt).0, "EXPR");
+
+        // Query
+        let stmt = AnalyzedStatement::Query(vec![dummy_expr.clone()]);
+        assert_eq!(describe_statement(&stmt).0, "QUERY");
+
+        // If
+        let stmt = AnalyzedStatement::If {
+            condition: Box::new(dummy_expr.clone()),
+            then_body: vec![],
+            else_body: None,
+        };
+        assert_eq!(describe_statement(&stmt).0, "IF");
+
+        // While
+        let stmt = AnalyzedStatement::While {
+            condition: Box::new(dummy_expr.clone()),
+            body: vec![],
+        };
+        assert_eq!(describe_statement(&stmt).0, "WHILE");
+
+        // For
+        let stmt = AnalyzedStatement::For {
+            variable: "x".into(),
+            iterator: Box::new(dummy_expr.clone()),
+            body: vec![],
+        };
+        assert_eq!(describe_statement(&stmt).0, "FOR");
+
+        // Match
+        let stmt = AnalyzedStatement::Match {
+            scrutinee: Box::new(dummy_expr.clone()),
+            arms: vec![],
+        };
+        assert_eq!(describe_statement(&stmt).0, "MATCH");
+
+        // Break
+        let stmt = AnalyzedStatement::Break;
+        assert_eq!(describe_statement(&stmt).0, "BREAK");
+
+        // Continue
+        let stmt = AnalyzedStatement::Continue;
+        assert_eq!(describe_statement(&stmt).0, "CONT");
+
+        // Return (with value)
+        let stmt = AnalyzedStatement::Return {
+            value: Some(Box::new(dummy_expr.clone())),
+        };
+        assert_eq!(describe_statement(&stmt).0, "RET");
+
+        // Return (no value)
+        let stmt = AnalyzedStatement::Return { value: None };
+        assert_eq!(describe_statement(&stmt).0, "RET");
+
+        // FunctionDef
+        let stmt = AnalyzedStatement::FunctionDef {
+            name: "f".into(),
+            params: vec![("x".into(), Some(GlossaType::Number))],
+            return_type: Some(GlossaType::Number),
+            body: vec![],
+        };
+        assert_eq!(describe_statement(&stmt).0, "DEF");
+
+        // TypeDefinition
+        let stmt = AnalyzedStatement::TypeDefinition {
+            name: "T".into(),
+            fields: vec![("x".into(), GlossaType::Number)],
+        };
+        assert_eq!(describe_statement(&stmt).0, "TYPE");
+
+        // TraitDefinition
+        let stmt = AnalyzedStatement::TraitDefinition {
+            name: "Tr".into(),
+            methods: vec![AnalyzedMethod {
+                name: "m".into(),
+                params: vec![],
+                return_type: None,
+                body: None,
+            }],
+        };
+        assert_eq!(describe_statement(&stmt).0, "TRAIT");
+
+        // TraitImplementation
+        let stmt = AnalyzedStatement::TraitImplementation {
+            trait_name: "Tr".into(),
+            type_name: "T".into(),
+            methods: vec![],
+        };
+        assert_eq!(describe_statement(&stmt).0, "IMPL");
+
+        // TestDeclaration
+        let stmt = AnalyzedStatement::TestDeclaration {
+            name: "test".into(),
+            body: vec![],
+        };
+        assert_eq!(describe_statement(&stmt).0, "TEST");
+    }
+
+    #[test]
+    fn test_add_statement_nested() {
+        let dummy_expr = crate::semantic::model::AnalyzedExpr {
+            expr: crate::semantic::model::AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        };
+
+        let inner_stmt = crate::semantic::model::AnalyzedStatement::Break;
+
+        let stmt = crate::semantic::model::AnalyzedStatement::If {
+            condition: Box::new(dummy_expr),
+            then_body: vec![inner_stmt.clone()],
+            else_body: Some(vec![inner_stmt.clone()]),
+        };
+
+        let mut table = comfy_table::Table::new();
+        add_statement(&mut table, &stmt, 0);
+
+        let tale = table.to_string();
+        assert!(tale.contains("BREAK"));
+        assert!(tale.contains("IF"));
+        assert!(tale.contains("ELSE"));
+    }
 }
