@@ -26,7 +26,8 @@ pub enum Value {
     String(String),
     Boolean(bool),
     Unit,
-    // Future: List(Vec<Value>), Struct(HashMap<String, Value>), etc.
+    List(Vec<Value>),
+    Struct(HashMap<String, Value>),
 }
 
 impl fmt::Display for Value {
@@ -36,6 +37,28 @@ impl fmt::Display for Value {
             Value::String(s) => write!(f, "{}", s),
             Value::Boolean(b) => write!(f, "{}", b),
             Value::Unit => write!(f, "()"),
+            Value::List(l) => {
+                write!(f, "[")?;
+                for (i, v) in l.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", v)?;
+                }
+                write!(f, "]")
+            }
+            Value::Struct(s) => {
+                write!(f, "{{ ")?;
+                let mut first = true;
+                for (k, v) in s {
+                    if !first {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: {}", k, v)?;
+                    first = false;
+                }
+                write!(f, " }}")
+            }
         }
     }
 }
@@ -152,6 +175,62 @@ impl Interpreter {
                     self.eval_expr(expr)?;
                 }
             }
+            AnalyzedStatement::TypeDefinition { .. } => {
+                // Ignore type definitions for now in the simple interpreter
+            }
+            AnalyzedStatement::If {
+                condition,
+                then_body,
+                else_body,
+            } => {
+                let cond_val = self.eval_expr(condition)?;
+                if let Value::Boolean(b) = cond_val {
+                    if b {
+                        for stmt in then_body {
+                            self.eval_statement(stmt)?;
+                        }
+                    } else if let Some(else_stmts) = else_body {
+                        for stmt in else_stmts {
+                            self.eval_statement(stmt)?;
+                        }
+                    }
+                } else {
+                    return Err(EvalError::TypeMismatch {
+                        expected: "Boolean".to_string(),
+                        got: format!("{:?}", cond_val),
+                    });
+                }
+            }
+            AnalyzedStatement::For {
+                variable,
+                iterator,
+                body,
+            } => {
+                let iter_val = self.eval_expr(iterator)?;
+                // Mock simple for loops over ranges or arrays for now
+                match iter_val {
+                    Value::List(l) => {
+                        for val in l {
+                            self.define_var(variable, val);
+                            for stmt in body {
+                                self.eval_statement(stmt)?;
+                            }
+                        }
+                    }
+                    Value::Unit => {
+                        // Dummy
+                    }
+                    _ => {
+                        return Err(EvalError::NotImplemented(format!(
+                            "for over {:?}",
+                            iter_val
+                        )));
+                    }
+                }
+            }
+            AnalyzedStatement::FunctionDef { .. } => {
+                // Ignore functions
+            }
             _ => return Err(EvalError::NotImplemented(format!("{:?}", stmt))),
         }
         Ok(())
@@ -163,6 +242,19 @@ impl Interpreter {
             AnalyzedExprKind::StringLiteral(s) => Ok(Value::String(s.clone())),
             AnalyzedExprKind::BooleanLiteral(b) => Ok(Value::Boolean(*b)),
             AnalyzedExprKind::Variable(name) => self.lookup_var(name),
+            AnalyzedExprKind::PropertyAccess { owner, property } => {
+                let owner_val = self.eval_expr(owner)?;
+                match owner_val {
+                    Value::Struct(s) => {
+                        if let Some(val) = s.get(property.as_str()) {
+                            Ok(val.clone())
+                        } else {
+                            Err(EvalError::NotImplemented(format!("Property {} not found on Struct", property)))
+                        }
+                    }
+                    _ => Err(EvalError::NotImplemented(format!("Property access on {:?}", owner_val))),
+                }
+            }
             AnalyzedExprKind::BinOp { left, op, right } => {
                 let l = self.eval_expr(left)?;
                 let r = self.eval_expr(right)?;
@@ -171,6 +263,39 @@ impl Interpreter {
             AnalyzedExprKind::UnaryOp { op, operand } => {
                 let val = self.eval_expr(operand)?;
                 self.eval_unary_op(op, val)
+            }
+            AnalyzedExprKind::StructInstantiation { fields, args, .. } => {
+                let mut struct_val = HashMap::new();
+                for (field, arg_expr) in fields.iter().zip(args.iter()) {
+                    let val = self.eval_expr(arg_expr)?;
+                    struct_val.insert(field.to_string(), val);
+                }
+                Ok(Value::Struct(struct_val))
+            }
+            AnalyzedExprKind::ArrayLiteral(exprs) => {
+                let mut list = Vec::new();
+                for expr in exprs {
+                    list.push(self.eval_expr(expr)?);
+                }
+                Ok(Value::List(list))
+            }
+            AnalyzedExprKind::MethodCall {
+                receiver,
+                method,
+                args: _,
+            } => {
+                let rec_val = self.eval_expr(receiver)?;
+                if method == "to_string" {
+                    match rec_val {
+                        Value::String(s) => Ok(Value::String(s)),
+                        _ => Ok(Value::String(rec_val.to_string())),
+                    }
+                } else {
+                    Err(EvalError::NotImplemented(format!(
+                        "MethodCall {} on {:?}",
+                        method, rec_val
+                    )))
+                }
             }
             _ => Err(EvalError::NotImplemented(format!("{:?}", expr.expr))),
         }
@@ -296,5 +421,32 @@ mod tests {
         let mut interpreter = Interpreter::new();
         let result = interpreter.run(&program);
         assert!(matches!(result, Err(EvalError::DivisionByZero)));
+    }
+
+    #[test]
+    fn test_eval_if_true() {
+        let interpreter = run_code("εἰ ἀληθές ἐστι, «ναι» λέγε.");
+        assert_eq!(interpreter.get_output(), "ναι");
+    }
+
+    #[test]
+    fn test_eval_if_false() {
+        // Since we don't have else logic parsing easily accessible in a one-liner without more complex setup,
+        // we just test it does nothing on false.
+        let interpreter = run_code("εἰ ψεῦδος ἐστι, «ναι» λέγε.");
+        assert_eq!(interpreter.get_output(), "");
+    }
+
+    #[test]
+    fn test_eval_for_loop() {
+        let interpreter = run_code("ἀριθμός [1, 2, 3] ἔστω. διὰ ἀριθμοῦ, ν λέγε.");
+        assert_eq!(interpreter.get_output(), "1\n2\n3");
+    }
+
+    #[test]
+    fn test_struct_instantiation() {
+        let code = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }. χρήστης νέον Χρήστης «Σωκράτης» ἔστω. χρήστου ὄνομα λέγε.";
+        let interpreter = run_code(code);
+        assert_eq!(interpreter.get_output(), "Σωκράτης");
     }
 }

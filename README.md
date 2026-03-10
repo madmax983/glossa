@@ -157,6 +157,13 @@ Translate your code into an English narrative (available without `nova`).
 cargo run --release -- bard examples/quickstart.γλ
 ```
 
+### 5. The Simulator (Tree-Walk Interpreter)
+Run your code immediately without compiling to Rust.
+
+```bash
+cargo run --release --features nova -- sim examples/quickstart.γλ
+```
+
 ## Features
 
 - **Greek Syntax**: Write code using authentic Ancient Greek grammatical constructs

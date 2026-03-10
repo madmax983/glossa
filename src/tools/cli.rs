@@ -175,4 +175,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Run a .γλ file immediately in the tree-walk simulator without compiling (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Sim {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

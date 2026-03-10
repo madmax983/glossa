@@ -424,6 +424,36 @@ pub fn bard_file(input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Run a ΓΛΩΣΣΑ file immediately in the tree-walk simulator without compiling
+///
+/// Uses the `Interpreter` to execute the AST directly in-memory.
+///
+/// ## Errors
+///
+/// Returns an error if the input file does not exist, exceeds the size limit,
+/// contains syntax/semantic errors, or encounters a runtime error.
+#[cfg(feature = "nova")]
+pub fn run_sim(input: &Path) -> Result<()> {
+    let status = Status::start_with_symbol("Προσομοίωσις (Simulation)", "🔮");
+    let source = load_source(input)?;
+
+    let analyzed = analyze_source(&source)?;
+
+    status.success();
+    println!();
+    println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
+
+    let mut interpreter = crate::tools::interpreter::Interpreter::new();
+    if let Err(e) = interpreter.run(&analyzed) {
+        println!("{}", "--- Σφάλμα (Error) ---".red());
+        return Err(miette::miette!("{}", e));
+    }
+
+    println!("{}", "--- Τέλος (End) ---".dim());
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
