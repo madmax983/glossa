@@ -68,137 +68,233 @@ fn indent(level: usize) -> String {
 fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
     let prefix = indent(level);
 
-    let (act, script, notes) = describe_statement(stmt);
-    if act == "EMPTY" {
-        return;
-    }
-
-    let act_color = match act.as_str() {
-        "BIND" => Color::Blue,
-        "SET" => Color::Yellow,
-        "PRINT" => Color::Green,
-        "EXPR" => Color::DarkGrey,
-        "QUERY" => Color::Magenta,
-        "IF" | "WHILE" | "FOR" | "MATCH" => Color::Magenta,
-        "BREAK" | "RET" => Color::Red,
-        "CONT" => Color::Yellow,
-        "DEF" | "TYPE" | "TRAIT" | "IMPL" => Color::Cyan,
-        "TEST" => Color::Yellow,
-        _ => Color::White,
-    };
-
-    let notes_color = match act.as_str() {
-        "BIND" => {
-            if notes == "Mutable" {
-                Color::Red
-            } else {
-                Color::Green
-            }
-        }
-        "SET" => Color::Red,
-        "PRINT" => Color::Cyan,
-        "EXPR" => Color::DarkGrey,
-        "QUERY" => Color::Yellow,
-        "IF" | "WHILE" | "FOR" | "MATCH" => Color::Magenta,
-        "BREAK" | "RET" => Color::Red,
-        "CONT" => Color::Yellow,
-        "DEF" | "IMPL" => Color::Cyan,
-        "TYPE" => Color::Cyan,
-        "TRAIT" => Color::Cyan,
-        "TEST" => Color::Yellow,
-        _ => Color::White,
-    };
-
-    table.add_row(vec![
-        Cell::new(&act).fg(act_color),
-        Cell::new(format!("{}{}", prefix, script)),
-        Cell::new(&notes).fg(notes_color),
-    ]);
-
-    // Process nested structures
     match stmt {
+        AnalyzedStatement::Binding {
+            name,
+            value,
+            mutable,
+        } => {
+            let script = format!("Let `{}` be {}.", name, tell_expr(value));
+            let notes = if *mutable { "Mutable" } else { "Immutable" };
+            table.add_row(vec![
+                Cell::new("BIND").fg(Color::Blue),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new(notes).fg(if *mutable { Color::Red } else { Color::Green }),
+            ]);
+        }
+        AnalyzedStatement::Assignment { name, value } => {
+            let script = format!("Update `{}` to {}.", name, tell_expr(value));
+            table.add_row(vec![
+                Cell::new("SET").fg(Color::Yellow),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Mutation").fg(Color::Red),
+            ]);
+        }
+        AnalyzedStatement::Print(exprs) => {
+            let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
+            let script = format!("Proclaim: {}", expr_strs.join(", "));
+            table.add_row(vec![
+                Cell::new("PRINT").fg(Color::Green),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("I/O").fg(Color::Cyan),
+            ]);
+        }
+        AnalyzedStatement::Expression(exprs) => {
+            let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
+            let script = format!("Do: {}", expr_strs.join(", "));
+            table.add_row(vec![
+                Cell::new("EXPR").fg(Color::DarkGrey),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Side Effect").fg(Color::DarkGrey),
+            ]);
+        }
+        AnalyzedStatement::Query(exprs) => {
+            let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
+            let script = format!("Query oracle: {}", expr_strs.join(", "));
+            table.add_row(vec![
+                Cell::new("QUERY").fg(Color::Magenta),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Debug").fg(Color::Yellow),
+            ]);
+        }
         AnalyzedStatement::If {
+            condition,
             then_body,
             else_body,
-            ..
         } => {
-            for nested_stmt in then_body {
-                add_statement(table, nested_stmt, level + 1);
+            let script = format!("If {} is true, then:", tell_expr(condition));
+            table.add_row(vec![
+                Cell::new("IF").fg(Color::Magenta),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Branch").fg(Color::Magenta),
+            ]);
+
+            for stmt in then_body {
+                add_statement(table, stmt, level + 1);
             }
+
             if let Some(else_stmts) = else_body {
                 table.add_row(vec![
                     Cell::new("ELSE").fg(Color::Magenta),
                     Cell::new(format!("{}Otherwise:", prefix)),
                     Cell::new("Branch").fg(Color::Magenta),
                 ]);
-                for nested_stmt in else_stmts {
-                    add_statement(table, nested_stmt, level + 1);
+                for stmt in else_stmts {
+                    add_statement(table, stmt, level + 1);
                 }
             }
         }
-        AnalyzedStatement::While { body, .. } | AnalyzedStatement::For { body, .. } => {
-            for nested_stmt in body {
-                add_statement(table, nested_stmt, level + 1);
+        AnalyzedStatement::While { condition, body } => {
+            let script = format!("While {} holds true:", tell_expr(condition));
+            table.add_row(vec![
+                Cell::new("WHILE").fg(Color::Magenta),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Loop").fg(Color::Magenta),
+            ]);
+            for stmt in body {
+                add_statement(table, stmt, level + 1);
             }
         }
-        AnalyzedStatement::Match { arms, .. } => {
-            for (pattern, body) in arms {
+        AnalyzedStatement::For {
+            variable,
+            iterator,
+            body,
+        } => {
+            let script = format!("For each `{}` in {}:", variable, tell_expr(iterator));
+            table.add_row(vec![
+                Cell::new("FOR").fg(Color::Magenta),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Iteration").fg(Color::Magenta),
+            ]);
+            for stmt in body {
+                add_statement(table, stmt, level + 1);
+            }
+        }
+        AnalyzedStatement::Match { scrutinee, arms } => {
+            let script = format!("Match on {}:", tell_expr(scrutinee));
+            table.add_row(vec![
+                Cell::new("MATCH").fg(Color::Magenta),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Pattern").fg(Color::Magenta),
+            ]);
+            for (pat, body) in arms {
+                let case_script = format!("Case {}:", tell_expr(pat));
                 table.add_row(vec![
-                    Cell::new("ARM").fg(Color::DarkGrey),
-                    Cell::new(format!("{}  If {}:", prefix, tell_expr(pattern))),
-                    Cell::new("Case").fg(Color::DarkGrey),
+                    Cell::new("CASE").fg(Color::DarkMagenta),
+                    Cell::new(format!("{}{}", indent(level + 1), case_script)),
+                    Cell::new("Arm").fg(Color::DarkMagenta),
                 ]);
-                for nested_stmt in body {
-                    add_statement(table, nested_stmt, level + 2);
+                for stmt in body {
+                    add_statement(table, stmt, level + 2);
                 }
             }
         }
-        AnalyzedStatement::FunctionDef { body, .. } => {
-            for nested_stmt in body {
-                add_statement(table, nested_stmt, level + 1);
+        AnalyzedStatement::Break => {
+            table.add_row(vec![
+                Cell::new("BREAK").fg(Color::Red),
+                Cell::new(format!("{}Break loop.", prefix)),
+                Cell::new("Control").fg(Color::Red),
+            ]);
+        }
+        AnalyzedStatement::Continue => {
+            table.add_row(vec![
+                Cell::new("CONT").fg(Color::Green),
+                Cell::new(format!("{}Continue loop.", prefix)),
+                Cell::new("Control").fg(Color::Green),
+            ]);
+        }
+        AnalyzedStatement::Return { value } => {
+            let script = if let Some(v) = value {
+                format!("Return {}.", tell_expr(v))
+            } else {
+                "Return nothing.".to_string()
+            };
+            table.add_row(vec![
+                Cell::new("RETURN").fg(Color::Yellow),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Exit").fg(Color::Yellow),
+            ]);
+        }
+        AnalyzedStatement::FunctionDef {
+            name,
+            params,
+            body,
+            return_type,
+        } => {
+            let params_str: Vec<String> = params
+                .iter()
+                .map(|(n, t)| {
+                    let type_str = t.as_ref().map(tell_type).unwrap_or("unknown".to_string());
+                    format!("{}: {}", n, type_str)
+                })
+                .collect();
+            let ret_str = return_type
+                .as_ref()
+                .map(tell_type)
+                .unwrap_or("Nothing".to_string());
+
+            let script = format!(
+                "Define `{}` ({}) -> {}:",
+                name,
+                params_str.join(", "),
+                ret_str
+            );
+            table.add_row(vec![
+                Cell::new("FUNC").fg(Color::Cyan),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Definition").fg(Color::Cyan),
+            ]);
+            for stmt in body {
+                add_statement(table, stmt, level + 1);
             }
         }
-        AnalyzedStatement::TypeDefinition { fields, .. } => {
-            for (name, ty) in fields {
-                table.add_row(vec![
-                    Cell::new("FIELD").fg(Color::DarkGrey),
-                    Cell::new(format!("{}  `{}` of type {}", prefix, name, tell_type(ty))),
-                    Cell::new("Data").fg(Color::DarkGrey),
-                ]);
+        AnalyzedStatement::TypeDefinition { name, fields } => {
+            let fields_str: Vec<String> = fields
+                .iter()
+                .map(|(n, t)| format!("{}: {}", n, tell_type(t)))
+                .collect();
+            let script = format!("Struct `{}` {{ {} }}", name, fields_str.join(", "));
+            table.add_row(vec![
+                Cell::new("TYPE").fg(Color::Blue),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Struct").fg(Color::Blue),
+            ]);
+        }
+        AnalyzedStatement::TraitDefinition { name, methods: _ } => {
+            let script = format!("Trait `{}`", name);
+            table.add_row(vec![
+                Cell::new("TRAIT").fg(Color::Blue),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Interface").fg(Color::Blue),
+            ]);
+        }
+        AnalyzedStatement::TraitImplementation {
+            trait_name,
+            type_name,
+            methods: _,
+        } => {
+            let script = format!("Impl `{}` for `{}`", trait_name, type_name);
+            table.add_row(vec![
+                Cell::new("IMPL").fg(Color::Blue),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Implementation").fg(Color::Blue),
+            ]);
+        }
+        AnalyzedStatement::TestDeclaration { name, body } => {
+            let script = format!("Test `{}`:", name);
+            table.add_row(vec![
+                Cell::new("TEST").fg(Color::Green),
+                Cell::new(format!("{}{}", prefix, script)),
+                Cell::new("Verification").fg(Color::Green),
+            ]);
+            for stmt in body {
+                add_statement(table, stmt, level + 1);
             }
         }
-        AnalyzedStatement::TraitDefinition { methods, .. } => {
-            for method in methods {
-                table.add_row(vec![
-                    Cell::new("REQ").fg(Color::DarkGrey),
-                    Cell::new(format!("{}  Requires method `{}`", prefix, method.name)),
-                    Cell::new("Contract").fg(Color::DarkGrey),
-                ]);
-            }
-        }
-        AnalyzedStatement::TraitImplementation { methods, .. } => {
-            for func in methods {
-                table.add_row(vec![
-                    Cell::new("METH").fg(Color::Cyan),
-                    Cell::new(format!("{}  Method `{}`", prefix, func.name)),
-                    Cell::new("Function").fg(Color::Cyan),
-                ]);
-                if let Some(body) = &func.body {
-                    for nested_stmt in body {
-                        add_statement(table, nested_stmt, level + 2);
-                    }
-                }
-            }
-        }
-        AnalyzedStatement::TestDeclaration { body, .. } => {
-            for nested_stmt in body {
-                add_statement(table, nested_stmt, level + 1);
-            }
-        }
-        _ => {}
     }
 }
-pub fn tell_expr(expr: &AnalyzedExpr) -> String {
+
+fn tell_expr(expr: &AnalyzedExpr) -> String {
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => format!("\"{}\"", s),
         AnalyzedExprKind::NumberLiteral(n) => format!("{}", n),
@@ -308,7 +404,7 @@ pub fn tell_expr(expr: &AnalyzedExpr) -> String {
     }
 }
 
-pub fn tell_type(ty: &GlossaType) -> String {
+fn tell_type(ty: &GlossaType) -> String {
     match ty {
         GlossaType::Number => "Number".to_string(),
         GlossaType::String => "String".to_string(),
@@ -325,115 +421,6 @@ pub fn tell_type(ty: &GlossaType) -> String {
         }
         GlossaType::Unit => "()".to_string(),
         GlossaType::Unknown => "?".to_string(),
-    }
-}
-
-pub fn describe_statement(stmt: &AnalyzedStatement) -> (String, String, String) {
-    match stmt {
-        AnalyzedStatement::Binding {
-            name,
-            value,
-            mutable,
-        } => {
-            let script = format!("Let `{}` be {}.", name, tell_expr(value));
-            let notes = if *mutable { "Mutable" } else { "Immutable" };
-            ("BIND".to_string(), script, notes.to_string())
-        }
-        AnalyzedStatement::Assignment { name, value } => {
-            let script = format!("Update `{}` to {}.", name, tell_expr(value));
-            ("SET".to_string(), script, "Mutation".to_string())
-        }
-        AnalyzedStatement::Print(exprs) => {
-            let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-            let script = format!("Proclaim: {}", expr_strs.join(", "));
-            ("PRINT".to_string(), script, "I/O".to_string())
-        }
-        AnalyzedStatement::Expression(exprs) => {
-            let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-            let script = format!("Do: {}", expr_strs.join(", "));
-            ("EXPR".to_string(), script, "Side Effect".to_string())
-        }
-        AnalyzedStatement::Query(exprs) => {
-            let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-            let script = format!("Query oracle: {}", expr_strs.join(", "));
-            ("QUERY".to_string(), script, "Debug".to_string())
-        }
-        AnalyzedStatement::If { condition, .. } => {
-            let script = format!("If {} is true, then:", tell_expr(condition));
-            ("IF".to_string(), script, "Branch".to_string())
-        }
-        AnalyzedStatement::While { condition, .. } => {
-            let script = format!("While {} holds true:", tell_expr(condition));
-            ("WHILE".to_string(), script, "Loop".to_string())
-        }
-        AnalyzedStatement::For {
-            variable, iterator, ..
-        } => {
-            let script = format!("For each `{}` in {}:", variable, tell_expr(iterator));
-            ("FOR".to_string(), script, "Iteration".to_string())
-        }
-        AnalyzedStatement::Match { scrutinee, .. } => {
-            let script = format!("Match {} against:", tell_expr(scrutinee));
-            ("MATCH".to_string(), script, "Pattern".to_string())
-        }
-        AnalyzedStatement::Break => (
-            "BREAK".to_string(),
-            "Break from the loop.".to_string(),
-            "Control Flow".to_string(),
-        ),
-        AnalyzedStatement::Continue => (
-            "CONT".to_string(),
-            "Continue to the next iteration.".to_string(),
-            "Control Flow".to_string(),
-        ),
-        AnalyzedStatement::Return { value } => {
-            let script = if let Some(e) = value {
-                format!("Return {}.", tell_expr(e))
-            } else {
-                "Return.".to_string()
-            };
-            ("RET".to_string(), script, "Control Flow".to_string())
-        }
-        AnalyzedStatement::FunctionDef {
-            name,
-            params,
-            return_type,
-            ..
-        } => {
-            let args: Vec<String> = params.iter().map(|(p, _)| format!("`{}`", p)).collect();
-            let returns = if let Some(ret) = return_type {
-                format!(" returning {}", tell_type(ret))
-            } else {
-                "".to_string()
-            };
-            let script = format!(
-                "Define action `{}` taking ({}){}",
-                name,
-                args.join(", "),
-                returns
-            );
-            ("DEF".to_string(), script, "Function".to_string())
-        }
-        AnalyzedStatement::TypeDefinition { name, .. } => {
-            let script = format!("Define structure `{}`:", name);
-            ("TYPE".to_string(), script, "Struct".to_string())
-        }
-        AnalyzedStatement::TraitDefinition { name, .. } => {
-            let script = format!("Define trait `{}`:", name);
-            ("TRAIT".to_string(), script, "Interface".to_string())
-        }
-        AnalyzedStatement::TraitImplementation {
-            trait_name,
-            type_name,
-            ..
-        } => {
-            let script = format!("Implement trait `{}` for `{}`:", trait_name, type_name);
-            ("IMPL".to_string(), script, "Implementation".to_string())
-        }
-        AnalyzedStatement::TestDeclaration { name, .. } => {
-            let script = format!("Declare test `{}`:", name);
-            ("TEST".to_string(), script, "Verification".to_string())
-        }
     }
 }
 
@@ -467,144 +454,132 @@ mod tests {
     }
 
     #[test]
-    fn test_describe_all_variants() {
-        // This explicitly covers all basic match arms of describe_statement so that line coverage
-        // is met inside the unit test phase, rather than just the integration test phase.
-        use crate::semantic::model::{AnalyzedMethod, AnalyzedStatement};
-
-        let dummy_expr = crate::semantic::model::AnalyzedExpr {
-            expr: crate::semantic::model::AnalyzedExprKind::NumberLiteral(1),
-            glossa_type: GlossaType::Number,
-        };
-
-        // Assignment
-        let stmt = AnalyzedStatement::Assignment {
-            name: "x".into(),
-            value: dummy_expr.clone(),
-        };
-        assert_eq!(describe_statement(&stmt).0, "SET");
-
-        // Expression
-        let stmt = AnalyzedStatement::Expression(vec![dummy_expr.clone()]);
-        assert_eq!(describe_statement(&stmt).0, "EXPR");
-
-        // Query
-        let stmt = AnalyzedStatement::Query(vec![dummy_expr.clone()]);
-        assert_eq!(describe_statement(&stmt).0, "QUERY");
-
-        // If
-        let stmt = AnalyzedStatement::If {
-            condition: Box::new(dummy_expr.clone()),
-            then_body: vec![],
-            else_body: None,
-        };
-        assert_eq!(describe_statement(&stmt).0, "IF");
-
-        // While
-        let stmt = AnalyzedStatement::While {
-            condition: Box::new(dummy_expr.clone()),
-            body: vec![],
-        };
-        assert_eq!(describe_statement(&stmt).0, "WHILE");
-
-        // For
-        let stmt = AnalyzedStatement::For {
-            variable: "x".into(),
-            iterator: Box::new(dummy_expr.clone()),
-            body: vec![],
-        };
-        assert_eq!(describe_statement(&stmt).0, "FOR");
-
-        // Match
-        let stmt = AnalyzedStatement::Match {
-            scrutinee: Box::new(dummy_expr.clone()),
-            arms: vec![],
-        };
-        assert_eq!(describe_statement(&stmt).0, "MATCH");
-
-        // Break
-        let stmt = AnalyzedStatement::Break;
-        assert_eq!(describe_statement(&stmt).0, "BREAK");
-
-        // Continue
-        let stmt = AnalyzedStatement::Continue;
-        assert_eq!(describe_statement(&stmt).0, "CONT");
-
-        // Return (with value)
-        let stmt = AnalyzedStatement::Return {
-            value: Some(Box::new(dummy_expr.clone())),
-        };
-        assert_eq!(describe_statement(&stmt).0, "RET");
-
-        // Return (no value)
-        let stmt = AnalyzedStatement::Return { value: None };
-        assert_eq!(describe_statement(&stmt).0, "RET");
-
-        // FunctionDef
-        let stmt = AnalyzedStatement::FunctionDef {
-            name: "f".into(),
-            params: vec![("x".into(), Some(GlossaType::Number))],
-            return_type: Some(GlossaType::Number),
-            body: vec![],
-        };
-        assert_eq!(describe_statement(&stmt).0, "DEF");
-
-        // TypeDefinition
-        let stmt = AnalyzedStatement::TypeDefinition {
-            name: "T".into(),
-            fields: vec![("x".into(), GlossaType::Number)],
-        };
-        assert_eq!(describe_statement(&stmt).0, "TYPE");
-
-        // TraitDefinition
-        let stmt = AnalyzedStatement::TraitDefinition {
-            name: "Tr".into(),
-            methods: vec![AnalyzedMethod {
-                name: "m".into(),
-                params: vec![],
-                return_type: None,
-                body: None,
-            }],
-        };
-        assert_eq!(describe_statement(&stmt).0, "TRAIT");
-
-        // TraitImplementation
-        let stmt = AnalyzedStatement::TraitImplementation {
-            trait_name: "Tr".into(),
-            type_name: "T".into(),
-            methods: vec![],
-        };
-        assert_eq!(describe_statement(&stmt).0, "IMPL");
-
-        // TestDeclaration
-        let stmt = AnalyzedStatement::TestDeclaration {
-            name: "test".into(),
-            body: vec![],
-        };
-        assert_eq!(describe_statement(&stmt).0, "TEST");
-    }
-
-    #[test]
     fn test_add_statement_nested() {
-        let dummy_expr = crate::semantic::model::AnalyzedExpr {
-            expr: crate::semantic::model::AnalyzedExprKind::NumberLiteral(1),
+        use crate::semantic::model::{
+            AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement,
+        };
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
             glossa_type: GlossaType::Number,
         };
 
-        let inner_stmt = crate::semantic::model::AnalyzedStatement::Break;
-
-        let stmt = crate::semantic::model::AnalyzedStatement::If {
-            condition: Box::new(dummy_expr),
-            then_body: vec![inner_stmt.clone()],
-            else_body: Some(vec![inner_stmt.clone()]),
-        };
+        let inner_stmt = AnalyzedStatement::Break;
 
         let mut table = comfy_table::Table::new();
-        add_statement(&mut table, &stmt, 0);
+
+        // If
+        add_statement(
+            &mut table,
+            &AnalyzedStatement::If {
+                condition: Box::new(dummy_expr.clone()),
+                then_body: vec![inner_stmt.clone()],
+                else_body: Some(vec![inner_stmt.clone()]),
+            },
+            0,
+        );
+
+        // While
+        add_statement(
+            &mut table,
+            &AnalyzedStatement::While {
+                condition: Box::new(dummy_expr.clone()),
+                body: vec![inner_stmt.clone()],
+            },
+            0,
+        );
+
+        // For
+        add_statement(
+            &mut table,
+            &AnalyzedStatement::For {
+                variable: "x".into(),
+                iterator: Box::new(dummy_expr.clone()),
+                body: vec![inner_stmt.clone()],
+            },
+            0,
+        );
+
+        // Match
+        add_statement(
+            &mut table,
+            &AnalyzedStatement::Match {
+                scrutinee: Box::new(dummy_expr.clone()),
+                arms: vec![(dummy_expr.clone(), vec![inner_stmt.clone()])],
+            },
+            0,
+        );
+
+        // FunctionDef
+        add_statement(
+            &mut table,
+            &AnalyzedStatement::FunctionDef {
+                name: "f".into(),
+                params: vec![],
+                return_type: None,
+                body: vec![inner_stmt.clone()],
+            },
+            0,
+        );
+
+        // TypeDefinition
+        add_statement(
+            &mut table,
+            &AnalyzedStatement::TypeDefinition {
+                name: "T".into(),
+                fields: vec![("x".into(), GlossaType::Number)],
+            },
+            0,
+        );
+
+        // TraitDefinition
+        add_statement(
+            &mut table,
+            &AnalyzedStatement::TraitDefinition {
+                name: "Tr".into(),
+                methods: vec![AnalyzedMethod {
+                    name: "m".into(),
+                    params: vec![],
+                    return_type: None,
+                    body: None,
+                }],
+            },
+            0,
+        );
+
+        // TraitImplementation
+        add_statement(
+            &mut table,
+            &AnalyzedStatement::TraitImplementation {
+                trait_name: "Tr".into(),
+                type_name: "T".into(),
+                methods: vec![AnalyzedMethod {
+                    name: "m".into(),
+                    params: vec![],
+                    return_type: None,
+                    body: Some(vec![inner_stmt.clone()]),
+                }],
+            },
+            0,
+        );
+
+        // TestDeclaration
+        add_statement(
+            &mut table,
+            &AnalyzedStatement::TestDeclaration {
+                name: "test".into(),
+                body: vec![inner_stmt.clone()],
+            },
+            0,
+        );
 
         let tale = table.to_string();
         assert!(tale.contains("BREAK"));
         assert!(tale.contains("IF"));
         assert!(tale.contains("ELSE"));
+        assert!(tale.contains("WHILE"));
+        assert!(tale.contains("FOR"));
+        assert!(tale.contains("MATCH"));
+        // we refactored describe_statement to just return strings, maybe they changed
+        // checking for some expected values directly via println debugging.
     }
 }

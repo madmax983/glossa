@@ -14,8 +14,3 @@
 **Concept:** An interactive tutorial mode (`glossa mentor`) that guides users through learning the language via Socratic challenges. It verifies not just syntax but semantic correctness (e.g., "Create a variable named 'x'").
 **Fate:** Merged
 **Lesson:** By connecting the `Repl` loop with the `Analyzer`'s internal state, we can create a powerful educational tool that provides real-time feedback. This transforms the compiler from a tool into a teacher.
-
-## 🌟 The Tracer (ὁ Ἰχνηλάτης)
-**Concept:** A CLI tool (`glossa trace`) that mashups the Simulator (Interpreter) and the Bard (Narrator). It executes a ΓΛΩΣΣΑ program step-by-step, explaining the semantic meaning of each statement before executing it and inspecting the resulting variable state, allowing developers to see the program "think".
-**Fate:** Merged
-**Lesson:** Refactoring `describe_statement` out of the Narrator allowed me to reuse its powerful storytelling engine. Mashing up two existing features is faster and more cohesive than building a completely new engine from scratch.

@@ -278,27 +278,30 @@ fn parse_for_iteration_loop(
         return Err(GlossaError::semantic("Empty collection clause in for loop"));
     }
 
-    let collection_name = if let Expr::Phrase(terms) = &collection_clause.expressions[0] {
-        // Skip διά (first word) and get the collection name (second word)
-        if terms.len() < 2 {
-            return Err(GlossaError::semantic("For iteration needs: διὰ collection"));
-        }
-        if let Expr::Word(w) = &terms[1] {
-            w.normalized.clone()
+    let (collection_name_raw, collection_name) =
+        if let Expr::Phrase(terms) = &collection_clause.expressions[0] {
+            // Skip διά (first word) and get the collection name (second word)
+            if terms.len() < 2 {
+                return Err(GlossaError::semantic("For iteration needs: διὰ collection"));
+            }
+            if let Expr::Word(w) = &terms[1] {
+                // Get lemma of the word to match the definition
+                let lemma = crate::morphology::analyze(&w.normalized).lemma.to_string();
+                (w.normalized.clone(), lemma)
+            } else {
+                return Err(GlossaError::semantic("Expected word for collection"));
+            }
         } else {
-            return Err(GlossaError::semantic("Expected word for collection"));
-        }
-    } else {
-        return Err(GlossaError::semantic("Expected phrase in for iteration"));
-    };
+            return Err(GlossaError::semantic("Expected phrase in for iteration"));
+        };
 
     // Create a variable expression for the collection
     let collection_type = scope
         .lookup(&collection_name)
         .cloned()
-        .unwrap_or(GlossaType::String);
+        .ok_or_else(|| GlossaError::undefined(collection_name_raw.to_string()))?;
     let collection_expr = AnalyzedExpr {
-        expr: AnalyzedExprKind::Variable(collection_name),
+        expr: AnalyzedExprKind::Variable(collection_name.into()),
         glossa_type: collection_type,
     };
 
@@ -767,5 +770,111 @@ fn check_conditional_start(expr: &Expr) -> bool {
         lexicon::is_conditional_particle(&word)
     } else {
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Clause, Expr, Statement, Word};
+    use crate::semantic::analyzer::SemanticAnalyzer;
+
+    #[test]
+    fn test_for_iteration_error_not_word() {
+        let mut scope = Scope::new();
+        let mut analyzer = SemanticAnalyzer::new();
+
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("δια")),
+                        Expr::NumberLiteral(5),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("ν")),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope, &mut analyzer);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Expected word for collection")
+        );
+    }
+
+    #[test]
+    fn test_for_iteration_error_missing_collection() {
+        let mut scope = Scope::new();
+        let mut analyzer = SemanticAnalyzer::new();
+
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![Expr::Word(Word::new("δια"))])],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("ν")),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope, &mut analyzer);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("For iteration needs: διὰ collection")
+        );
+    }
+
+    #[test]
+    fn test_for_iteration_error_not_phrase() {
+        let mut scope = Scope::new();
+        let mut analyzer = SemanticAnalyzer::new();
+
+        // This requires testing parse_for_iteration_loop directly or bypassing analyze_control_flow
+        // Since analyze_control_flow filters on get_first_word (which expects a Phrase),
+        // we call the inner function.
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::NumberLiteral(10)], // Not a phrase
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("ν")),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = parse_for_iteration_loop(&stmt, &mut scope, &mut analyzer);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Expected phrase in for iteration")
+        );
     }
 }
