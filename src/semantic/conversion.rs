@@ -2270,7 +2270,6 @@ mod tests {
         assert!(result.unwrap().is_none());
     }
 
-
     #[test]
     fn test_classify_function_call_no_subject() {
         let asm_stmt = AssembledStatement {
@@ -2297,11 +2296,7 @@ mod tests {
             ..Default::default()
         };
         let mut scope = Scope::new();
-        scope.define_function(
-            "myfunc",
-            vec![],
-            Some(GlossaType::Number),
-        );
+        scope.define_function("myfunc", vec![], Some(GlossaType::Number));
         let result = classify_function_call(&asm_stmt, &mut scope);
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
@@ -2363,9 +2358,13 @@ mod tests {
         let scope = Scope::new();
         let result = resolve_binding_target(&asm_stmt, &scope);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Binding without subject"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Binding without subject")
+        );
     }
-
 
     #[test]
     fn test_classify_query_containment_no_literal() {
