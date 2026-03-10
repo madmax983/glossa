@@ -97,3 +97,8 @@
 **Bloat:** `Analyzer` struct in `src/semantic/analyzer.rs` was completely empty with no fields, used purely as a namespace for the `analyze` method that was passed around to other modules.
 **Cut:** Deleted the `Analyzer` struct and converted `Analyzer::analyze` into a standalone `analyze_statement` function. Updated calling signatures across `control_flow.rs` and `declarations.rs` to remove the unnecessary `analyzer: &mut Analyzer` parameter.
 **Saved:** Removed empty struct instantiation, cleaned up ~20 function signatures, improved modular cohesion and flattened architectural layers.
+
+## [Reduction]
+**Bloat:** `MAX_*` depth/limit constants scattered across `src/semantic/assembly/model.rs` and `src/semantic/control_flow.rs`, creating architectural duplication and inconsistent definition points.
+**Cut:** Centralized all compiler depth limit constants into `src/limits.rs`.
+**Saved:** Centralized logic (Single Source of Truth) and improved transparency for architectural constraints.

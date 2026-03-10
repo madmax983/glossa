@@ -471,7 +471,12 @@ const PERFECT_PASSIVE_PARTICIPLE: &[ParticiplePattern] = &[
 ///
 /// Pre-computed once to avoid allocation and sorting on every call.
 static ALL_PATTERNS: LazyLock<Vec<&'static ParticiplePattern>> = LazyLock::new(|| {
-    let mut patterns = Vec::new();
+    let mut patterns = Vec::with_capacity(
+        PRESENT_ACTIVE_PARTICIPLE.len()
+            + PRESENT_MIDDLE_PARTICIPLE.len()
+            + AORIST_ACTIVE_PARTICIPLE.len()
+            + PERFECT_PASSIVE_PARTICIPLE.len(),
+    );
     patterns.extend(PRESENT_ACTIVE_PARTICIPLE.iter());
     patterns.extend(PRESENT_MIDDLE_PARTICIPLE.iter());
     patterns.extend(AORIST_ACTIVE_PARTICIPLE.iter());

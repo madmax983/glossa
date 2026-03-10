@@ -1,3 +1,3 @@
-**[Optimized Internal Symbol Table Lookups]**
-**Learning:** The `std::collections::HashMap` in Rust defaults to SipHash, a cryptographically secure hash function. This is often overkill for internal compiler symbol tables where keys are small, interned strings (e.g., `SmolStr`), and where HashDoS attacks are not a risk.
-**Action:** Always prefer `rustc_hash::FxHashMap` for compiler-internal maps (such as scope resolution) mapping strings to AST nodes or types. It is much faster and deterministic.
+**Pre-allocate semantic conversions**
+**Learning:** Pre-allocating `Vec` instances based on inner AST node sizes is extremely effective for improving AST generation speed during semantic conversion, directly removing multiple unneeded O(log N) heap allocations.
+**Action:** Implemented pre-allocation `Vec::with_capacity` optimizations in `src/semantic/declarations.rs`.

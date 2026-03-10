@@ -38,7 +38,7 @@
 
 // Loops
 // Create a list of numbers
-ἀριθμοί [1, 2, 3] ἔστωσαν.
+ἀριθμός [1, 2, 3] ἔστω.
 
 // Iterate through the list and print each number
-διὰ ἀριθμοί, ν λέγε.
+διὰ ἀριθμοῦ, ν λέγε.

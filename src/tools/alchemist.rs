@@ -15,9 +15,8 @@ use crate::parser::parse;
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, analyze_program,
 };
-use std::path::Path;
-
 use std::fs;
+use std::path::Path;
 
 /// Run the Alchemist tool on a file
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
@@ -244,8 +243,12 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             }
             out.trim_end().to_string()
         }
-        AnalyzedStatement::TraitDefinition { .. } | AnalyzedStatement::TraitImplementation { .. } => {
-            format!("{}# Traits not natively supported in simple Python transpile", ind)
+        AnalyzedStatement::TraitDefinition { .. }
+        | AnalyzedStatement::TraitImplementation { .. } => {
+            format!(
+                "{}# Traits not natively supported in simple Python transpile",
+                ind
+            )
         }
     }
 }
@@ -371,7 +374,6 @@ mod tests {
     #[test]
     fn test_transpile_if() {
         // Need a complete sentence for the condition to avoid "Binding without subject" from partial parsing
-        // `εἰ ξ 0 μεῖζον ᾖ` or just comparing raw literals might fail analysis if not bound right
         let code = "εἰ ἀληθές ἐστι, «ναι» λέγε.";
         let py = transpile_code(code);
         assert!(py.contains("if True:"));

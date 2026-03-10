@@ -1,6 +1,37 @@
 //! Name resolution and scope tracking
 //!
-//! Manages variable bindings and scope for ΓΛΩΣΣΑ programs.
+//! This module acts as the "Memory" of the ΓΛΩΣΣΑ compiler during semantic analysis.
+//! It tracks the identity, type, and lifecycle of every symbol (variables, functions,
+//! custom types, and traits) across lexical scopes.
+//!
+//! # The Architecture
+//!
+//! The resolver uses a stack-based lexical environment:
+//! * **[`Scope`]**: The entire environment, containing a stack of [`ScopeLevel`]s.
+//! * **[`ScopeLevel`]**: A single dictionary (using `FxHashMap` for speed) mapping names to [`Symbol`]s.
+//! * **[`ScopeGuard`]**: An RAII (Resource Acquisition Is Initialization) guard returned by [`Scope::enter_scope`].
+//!   When the guard goes out of scope, it automatically drops the deepest `ScopeLevel`.
+//!
+//! This design guarantees that variable shadowing works correctly and that symbols
+//! are strictly confined to the block where they are defined, preventing leakage.
+//!
+//! # Example
+//!
+//! ```rust
+//! use glossa::semantic::Scope;
+//! use glossa::semantic::GlossaType;
+//!
+//! let mut scope = Scope::new();
+//! scope.define("ἡλικία", GlossaType::Number); // Let age be a Number
+//!
+//! {
+//!     let mut inner_scope = scope.enter_scope();
+//!     inner_scope.define("ὄνομα", GlossaType::String); // Name exists only here
+//! } // `inner_scope` is dropped, removing "ὄνομα"
+//!
+//! assert!(scope.lookup("ἡλικία").is_some());
+//! assert!(scope.lookup("ὄνομα").is_none());
+//! ```
 
 use crate::semantic::GlossaType;
 use rustc_hash::FxHashMap;
@@ -32,20 +63,40 @@ impl ScopeLevel {
     }
 }
 
-/// A scope containing variable bindings
+/// A scope containing variable bindings.
+///
+/// This struct represents the entire lexical environment of a program at a given point
+/// in time. It holds a stack of [`ScopeLevel`]s, allowing for variable shadowing
+/// and nested block scopes.
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::semantic::Scope;
+/// use glossa::semantic::GlossaType;
+///
+/// let mut scope = Scope::new();
+/// scope.define("ξ", GlossaType::Number);
+///
+/// assert!(scope.is_defined("ξ"));
+/// assert_eq!(scope.lookup("ξ"), Some(&GlossaType::Number));
+/// ```
 #[derive(Debug, Clone)]
 pub struct Scope {
     levels: Vec<ScopeLevel>,
 }
 
-/// A function signature for tracking defined functions
+/// A function signature for tracking defined functions.
+///
+/// Functions are tracked across the semantic scope so that they can be
+/// resolved and their types can be validated when called.
 #[derive(Debug, Clone)]
 pub struct FunctionSignature {
-    /// The function name (normalized)
+    /// The normalized Greek name of the function (typically the verb lemma).
     pub name: SmolStr,
-    /// Parameter types
+    /// The ordered list of expected parameter [`GlossaType`]s.
     pub param_types: Vec<GlossaType>,
-    /// Return type (None for void)
+    /// The expected return [`GlossaType`], or `None` if the function yields no value (void).
     pub return_type: Option<GlossaType>,
 }
 
@@ -73,21 +124,35 @@ impl<'a> std::ops::DerefMut for ScopeGuard<'a> {
     }
 }
 
-/// A variable binding with type and metadata
+/// A tracked variable binding with type and metadata.
+///
+/// Bindings are resolved when a variable is used (e.g., retrieving its value).
+/// They contain the underlying Rust-compatible [`GlossaType`] for the object
+/// and other mutable flags that power compiler warnings and optimizations.
 #[derive(Debug, Clone)]
 pub struct Binding {
-    /// The variable name (normalized)
+    /// The normalized variable name, acting as the key in the lookup.
     pub name: SmolStr,
-    /// The type of the variable
+    /// The underlying data type of the variable.
     pub glossa_type: GlossaType,
-    /// Whether this binding is mutable
+    /// Whether the binding's value can be changed after definition.
     pub mutable: bool,
-    /// Whether this binding has been used
+    /// Tracks if the variable was ever accessed (used for emitting unused variable warnings).
     pub used: bool,
 }
 
 impl Scope {
-    /// Create a new empty scope
+    /// Initializes a new lexical environment.
+    ///
+    /// The scope starts with a single, root `ScopeLevel`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::semantic::Scope;
+    ///
+    /// let scope = Scope::new();
+    /// ```
     pub fn new() -> Self {
         Scope {
             levels: vec![ScopeLevel::new()],
@@ -99,7 +164,33 @@ impl Scope {
         self.levels.push(ScopeLevel::new());
     }
 
-    /// Enter a new scope level and return a RAII guard that exits it on drop
+    /// Creates a nested lexical scope and returns a RAII [`ScopeGuard`].
+    ///
+    /// The returned guard allows defining symbols that only exist within the block.
+    /// When the guard goes out of scope and is dropped, the inner scope level
+    /// is automatically destroyed.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::semantic::Scope;
+    /// use glossa::semantic::GlossaType;
+    ///
+    /// let mut scope = Scope::new();
+    /// scope.define("a", GlossaType::Number); // Parent level
+    ///
+    /// {
+    ///     // Enters child scope level
+    ///     let mut child_scope = scope.enter_scope();
+    ///     child_scope.define("b", GlossaType::String);
+    ///
+    ///     assert!(child_scope.is_defined("a")); // Inherits parent scope
+    ///     assert!(child_scope.is_defined("b")); // Defines own scope
+    /// } // `child_scope` is dropped, child level is destroyed
+    ///
+    /// assert!(scope.is_defined("a"));
+    /// assert!(!scope.is_defined("b")); // "b" no longer exists
+    /// ```
     pub fn enter_scope(&mut self) -> ScopeGuard<'_> {
         self.enter();
         ScopeGuard { scope: self }
@@ -239,7 +330,10 @@ impl Scope {
         );
     }
 
-    /// Define a mutable binding
+    /// Defines a mutable variable in the current, deepest lexical scope level.
+    ///
+    /// If a symbol with the same name already exists in an outer scope, the new definition
+    /// will shadow the older one until the current `ScopeLevel` is dropped.
     pub fn define_mut(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
         let name = name.into();
         self.current_level().symbols.insert(
@@ -263,7 +357,11 @@ impl Scope {
         None
     }
 
-    /// Look up a binding by name, searching parent scopes
+    /// Looks up a variable's type, searching from the deepest scope outwards.
+    ///
+    /// This method traverses the `ScopeLevel` stack from top (most nested) to bottom
+    /// (global). It returns the type of the first matching variable symbol it encounters,
+    /// correctly handling variable shadowing.
     pub fn lookup(&self, name: &str) -> Option<&GlossaType> {
         match self.lookup_symbol(name) {
             Some(Symbol::Variable(binding)) => Some(&binding.glossa_type),

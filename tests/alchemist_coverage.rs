@@ -1,8 +1,10 @@
 #![cfg(feature = "nova")]
 
 use glossa::morphology::lexicon::{BinaryOp, UnaryOp};
-use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope};
-use glossa::tools::alchemist::{transpile_to_python, run_alchemist};
+use glossa::semantic::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
+};
+use glossa::tools::alchemist::{run_alchemist, transpile_to_python};
 use std::io::Write;
 use tempfile::Builder;
 

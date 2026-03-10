@@ -64,6 +64,22 @@ pub enum EvalError {
 }
 
 /// The Interpreter Context
+///
+/// A simple tree-walk interpreter for Glossa code.
+///
+/// Unlike the traditional compiler which converts the AST into Rust code,
+/// the simulator lets us execute Glossa code directly from the AST. It holds
+/// the runtime environment, meaning the state of variables defined along
+/// the execution path.
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::tools::interpreter::Interpreter;
+///
+/// let mut interp = Interpreter::new();
+/// // You could then run a program via `interp.run(&analyzed_program)`
+/// ```
 pub struct Interpreter {
     // Stack of scopes. For now, just one global scope for simplicity.
     // In a real implementation, this would be `Vec<HashMap<String, Value>>`.
@@ -80,6 +96,18 @@ impl Default for Interpreter {
 }
 
 impl Interpreter {
+    /// Creates a new, empty Interpreter environment.
+    ///
+    /// It initializes a single global scope and an empty output buffer.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::interpreter::Interpreter;
+    ///
+    /// let interp = Interpreter::new();
+    /// assert_eq!(interp.get_output(), "");
+    /// ```
     pub fn new() -> Self {
         Self {
             env: vec![HashMap::new()],
