@@ -249,10 +249,16 @@ impl Interpreter {
                         if let Some(val) = s.get(property.as_str()) {
                             Ok(val.clone())
                         } else {
-                            Err(EvalError::NotImplemented(format!("Property {} not found on Struct", property)))
+                            Err(EvalError::NotImplemented(format!(
+                                "Property {} not found on Struct",
+                                property
+                            )))
                         }
                     }
-                    _ => Err(EvalError::NotImplemented(format!("Property access on {:?}", owner_val))),
+                    _ => Err(EvalError::NotImplemented(format!(
+                        "Property access on {:?}",
+                        owner_val
+                    ))),
                 }
             }
             AnalyzedExprKind::BinOp { left, op, right } => {
