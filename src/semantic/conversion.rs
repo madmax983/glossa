@@ -1541,6 +1541,128 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_classify_pop_missing_subject() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ὠθεῖ".into(), // actually a push verb, let's use ἕλκεται for pop, but any string works for the missing subject test since it checks lemma first
+                normalized: "ἕλκεται".into(),
+                original: "ἕλκεται".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        // The check inside classify_pop explicitly looks at the passed verb_lemma ("ἕλκεται" is pop)
+        let result = classify_pop("ἕλκεται", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_push_missing_subject() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ὠθεῖ".into(),
+                normalized: "ὠθεῖ".into(),
+                original: "ὠθεῖ".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_push("ὠθεῖ", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_insert_missing_subject() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "τίθησι".into(),
+                normalized: "τίθησι".into(),
+                original: "τίθησι".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_insert("τίθησι", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_assertion_missing_subject() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "δεῖ".into(),
+                normalized: "δεῖ".into(),
+                original: "δεῖ".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            has_containment_preposition: true,
+            subject: None,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_equality_assertion_missing_right_expr() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ἰσοῦται".into(),
+                normalized: "ἰσοῦται".into(),
+                original: "ἰσοῦται".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: Some(Constituent {
+                lemma: "x".into(),
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            literals: vec![], // Empty literals means right_expr will be None
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        scope.define("x", GlossaType::Number);
+        let result = classify_equality_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
     fn test_classify_expression_empty_exprs_propagate() {
         // Create an AssembledStatement that will produce an empty `exprs` array
         // but has `is_propagate` set to true.
