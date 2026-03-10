@@ -2050,6 +2050,148 @@ mod tests {
     }
 
     #[test]
+    fn test_classify_genitive_method_call_empty() {
+        let asm_stmt = AssembledStatement {
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_genitive_method_call(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_unwrap_empty() {
+        let asm_stmt = AssembledStatement {
+            unwraps: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_unwrap(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_enum_from_subject_empty() {
+        let asm_stmt = AssembledStatement {
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_enum_from_subject(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_genitive_method_empty() {
+        let asm_stmt = AssembledStatement {
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_genitive_method(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_enum_from_nominatives_empty() {
+        let asm_stmt = AssembledStatement {
+            nominatives: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_enum_from_nominatives(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_property_access_empty() {
+        let asm_stmt = AssembledStatement {
+            property_accesses: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_property_access(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_index_access_empty() {
+        let asm_stmt = AssembledStatement {
+            index_accesses: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_index_access(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_array_empty() {
+        let asm_stmt = AssembledStatement {
+            arrays: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_array(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_binary_op_empty() {
+        let asm_stmt = AssembledStatement {
+            operators: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_binary_op(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_enum_from_object_empty() {
+        let asm_stmt = AssembledStatement {
+            object: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_enum_from_object(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_literal_empty() {
+        let asm_stmt = AssembledStatement {
+            literals: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_literal(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_object_fallback_empty() {
+        let asm_stmt = AssembledStatement {
+            object: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_object_fallback(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
     fn test_classify_expression_empty_exprs_propagate() {
         // Create an AssembledStatement that will produce an empty `exprs` array
         // but has `is_propagate` set to true.
