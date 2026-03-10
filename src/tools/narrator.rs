@@ -69,7 +69,9 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
     let prefix = indent(level);
 
     let (act, script, notes) = describe_statement(stmt);
-    if act == "EMPTY" { return; }
+    if act == "EMPTY" {
+        return;
+    }
 
     let act_color = match act.as_str() {
         "BIND" => Color::Blue,
@@ -86,7 +88,13 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
     };
 
     let notes_color = match act.as_str() {
-        "BIND" => if notes == "Mutable" { Color::Red } else { Color::Green },
+        "BIND" => {
+            if notes == "Mutable" {
+                Color::Red
+            } else {
+                Color::Green
+            }
+        }
         "SET" => Color::Red,
         "PRINT" => Color::Cyan,
         "EXPR" => Color::DarkGrey,
@@ -109,7 +117,11 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
 
     // Process nested structures
     match stmt {
-        AnalyzedStatement::If { then_body, else_body, .. } => {
+        AnalyzedStatement::If {
+            then_body,
+            else_body,
+            ..
+        } => {
             for nested_stmt in then_body {
                 add_statement(table, nested_stmt, level + 1);
             }
