@@ -403,3 +403,42 @@ fn test_binding_subject_object_swap() {
         panic!("Expected Binding statement");
     }
 }
+
+#[test]
+fn test_try_parse_genitive_method_call_extraction() {
+    let mut scope = Scope::new();
+    scope.define(
+        "owner",
+        GlossaType::Struct {
+            name: "OwnerType".into(),
+            gender: crate::morphology::Gender::Masculine,
+            fields: vec![],
+        },
+    );
+
+    let asm_stmt = AssembledStatement {
+        subject: Some(make_constituent("method_name", "method_name")),
+        genitives: vec![make_constituent("owner", "owner")],
+        ..Default::default()
+    };
+
+    let (analyzed, _) =
+        extract_value(&asm_stmt, &scope).expect("Should extract genitive method call");
+
+    if let AnalyzedExprKind::MethodCall {
+        receiver,
+        method,
+        args,
+    } = analyzed.expr
+    {
+        assert_eq!(method, "method_name");
+        assert!(args.is_empty());
+        if let AnalyzedExprKind::Variable(owner_name) = receiver.expr {
+            assert_eq!(owner_name, "owner");
+        } else {
+            panic!("Expected receiver to be a Variable");
+        }
+    } else {
+        panic!("Expected MethodCall, got {:?}", analyzed.expr);
+    }
+}

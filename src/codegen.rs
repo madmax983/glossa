@@ -1554,6 +1554,32 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_checked_op() {
+        let left = quote! { a };
+        let right = quote! { b };
+        let code =
+            generate_checked_op(left, right, "checked_add", "arithmetic overflow").to_string();
+        assert!(code.contains("checked_add"));
+        assert!(code.contains("expect"));
+        assert!(code.contains("arithmetic overflow"));
+    }
+
+    #[test]
+    fn test_generate_control_unwrap() {
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(42),
+                glossa_type: GlossaType::Number,
+            })),
+            glossa_type: GlossaType::Number,
+        };
+
+        let code = generate_expr(&expr).to_string();
+        assert!(code.contains("unwrap"));
+        assert!(code.contains("42"));
+    }
+
+    #[test]
     fn test_generate_unreachable_operators() {
         // Manually trigger fallback operators like Le/Ge that aren't parsed yet
         let left = AnalyzedExpr {
