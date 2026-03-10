@@ -105,4 +105,34 @@ mod tests {
         // Verify state is inspected
         assert!(output_str.contains("`ξ` = 5"));
     }
+
+    #[test]
+    fn test_run_trace_error() {
+        let source = "1 0 μέρος λέγε."; // 1 / 0 -> division by zero
+        let ast = parse(source).unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+
+        let mut output = Vec::new();
+        run_trace_inner(&analyzed, &mut output).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("Starting Trace"));
+        assert!(output_str.contains("Error:"));
+        assert!(output_str.contains("DivisionByZero"));
+    }
+
+    #[test]
+    fn test_run_trace_empty_scope() {
+        // A program that executes without creating any bindings in the global scope
+        let source = "«γεια» λέγε.";
+        let ast = parse(source).unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+
+        let mut output = Vec::new();
+        run_trace_inner(&analyzed, &mut output).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("Starting Trace"));
+        assert!(!output_str.contains("State:")); // No state dumped because no bindings
+    }
 }
