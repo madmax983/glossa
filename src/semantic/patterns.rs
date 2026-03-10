@@ -17,10 +17,11 @@
 //! Consider the task: *"Take a list of numbers, double them, keep only those greater than 10, and print them."*
 //!
 //! In Rust:
-//! ```rust,ignore
+//! ```rust
+//! # let vec = vec![1, 2, 3];
 //! vec.iter()
 //!    .map(|x| x * 2)
-//!    .filter(|x| x > 10)
+//!    .filter(|x| *x > 10)
 //!    .for_each(|x| println!("{}", x));
 //! ```
 //!

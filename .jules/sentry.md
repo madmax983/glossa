@@ -37,3 +37,7 @@
 ## [Error Message Consistency]
 **Learning:** `AGENTS.md` explicitly calls for Greek error messages in the compiler, but random unprompted strings might confuse other agents/reviewers.
 **Action:** Ensure error context provided via `ok_or_else()` uses standard English unless explicitly writing a user-facing compiler diagnostic intended to be translated.
+
+## [Doc Tests Compilation Check]
+**Learning:** `rustdoc` executes and verifies ````rust```` blocks inside `///` documentation comments to ensure API examples are always up to date. Using ````rust,ignore```` circumvents this compiler safety check and hides compilation failures without explicitly suppressing linter tools.
+**Action:** Replace ````rust,ignore```` with ````text```` for purely illustrative language-concept examples (like the `cargo test` dummy output), or provide the necessary `# use ...` boilerplate hidden comments to make valid ````rust```` code executable.

@@ -25,12 +25,15 @@
 //! 1. **Choose the Lemma**: `λογιζομαι` (1st person singular present indicative).
 //! 2. **Add Forms**: Add entries for the forms you want to support.
 //!
-//! ```rust,ignore
+//! ```rust
+//! # use std::collections::HashMap;
+//! # use glossa::morphology::{LexiconEntry, PartOfSpeech, Number, Person, Tense, Mood, Voice};
+//! # let mut m = HashMap::new();
 //! // λογίζομαι - to calculate
 //! m.insert(
 //!     "λογιζομαι",
 //!     LexiconEntry {
-//!         lemma: "λογιζομαι",
+//!         lemma: "λογιζομαι".into(),
 //!         pos: PartOfSpeech::Verb,
 //!         gender: None,
 //!         meaning: "calculate, reckon",

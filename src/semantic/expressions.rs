@@ -30,7 +30,7 @@ use crate::semantic::types::GlossaType;
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```text
 /// use glossa::semantic::{Scope, AnalyzedExprKind, GlossaType};
 /// use glossa::semantic::expressions::analyze_argument_expr;
 /// use glossa::ast::{Expr, Word};

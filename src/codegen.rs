@@ -68,7 +68,7 @@
 //! ```
 //!
 //! **Generated Rust:**
-//! ```rust,ignore
+//! ```rust
 //! #[derive(Clone, Debug, PartialEq)]
 //! struct Point {
 //!     x: i64,

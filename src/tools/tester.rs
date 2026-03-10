@@ -30,7 +30,8 @@
 //!
 //! This compiles to:
 //!
-//! ```rust,ignore
+//! ```text
+//! // This represents the generated test code
 //! #[test]
 //! fn test_addition_works() {
 //!     let g_x = 10;
