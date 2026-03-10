@@ -329,13 +329,11 @@ impl Display for GlossaReport<'_> {
         if !functions.is_empty() {
             writeln!(f, "\n{}", "ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)".bold())?;
             let mut func_table = Table::new();
-            func_table
-                .load_preset(presets::UTF8_FULL)
-                .set_header(vec![
-                    "Ὄνομα (Name)",
-                    "Παράμετροι (Params)",
-                    "Επιστροφή (Returns)",
-                ]);
+            func_table.load_preset(presets::UTF8_FULL).set_header(vec![
+                "Ὄνομα (Name)",
+                "Παράμετροι (Params)",
+                "Επιστροφή (Returns)",
+            ]);
 
             for func in functions {
                 let params = func
