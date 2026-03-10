@@ -134,4 +134,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Transpile a .γλ file to Python (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Alchemist {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

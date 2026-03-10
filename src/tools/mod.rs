@@ -16,6 +16,8 @@
 //! * [`tester`]: **The Judge** - Built-in test runner for unit tests defined in ΓΛΩΣΣΑ files.
 //! * [`ui`]: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
+#[cfg(feature = "nova")]
+pub mod alchemist;
 pub mod cache;
 #[cfg(feature = "nova")]
 pub mod cartographer;
