@@ -1880,6 +1880,85 @@ mod tests {
     }
 
     #[test]
+    fn test_classify_print_no_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: None,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_print(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_print_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(), // not a print verb (λέγε is, but here testing the literal check)
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_print(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_try_print_binary_op_empty() {
+        let asm_stmt = AssembledStatement {
+            operators: vec![],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = try_print_binary_op(&asm_stmt, &mut scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_print_property_access_empty() {
+        let asm_stmt = AssembledStatement {
+            property_accesses: vec![],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = try_print_property_access(&asm_stmt, &mut scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_print_index_access_empty() {
+        let asm_stmt = AssembledStatement {
+            index_accesses: vec![],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = try_print_index_access(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_try_print_unwrap_empty() {
+        let asm_stmt = AssembledStatement {
+            unwraps: vec![],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = try_print_unwrap(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
     fn test_classify_expression_empty_exprs_propagate() {
         // Create an AssembledStatement that will produce an empty `exprs` array
         // but has `is_propagate` set to true.
