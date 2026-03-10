@@ -1541,6 +1541,27 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_classify_pop_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(), // not a pop verb
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_pop("λέγει", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
     fn test_classify_pop_missing_subject() {
         let asm_stmt = AssembledStatement {
             verb: Some(crate::semantic::assembly::VerbConstituent {
@@ -1559,6 +1580,27 @@ mod tests {
         let scope = Scope::new();
         // The check inside classify_pop explicitly looks at the passed verb_lemma ("ἕλκεται" is pop)
         let result = classify_pop("ἕλκεται", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_push_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(),
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_push("λέγει", &asm_stmt, &scope);
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
@@ -1586,6 +1628,27 @@ mod tests {
     }
 
     #[test]
+    fn test_classify_insert_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(),
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_insert("λέγει", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
     fn test_classify_insert_missing_subject() {
         let asm_stmt = AssembledStatement {
             verb: Some(crate::semantic::assembly::VerbConstituent {
@@ -1603,6 +1666,61 @@ mod tests {
         };
         let scope = Scope::new();
         let result = classify_insert("τίθησι", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_assertion_no_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: None,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_assertion_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(),
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_assertion_no_containment() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "δεῖ".into(),
+                normalized: "δεῖ".into(),
+                original: "δεῖ".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            has_containment_preposition: false,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_assertion(&asm_stmt, &mut scope);
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
@@ -1626,6 +1744,93 @@ mod tests {
         };
         let mut scope = Scope::new();
         let result = classify_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_equality_assertion_no_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: None,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_equality_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_equality_assertion_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(),
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_equality_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_equality_assertion_missing_left_expr() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ἰσοῦται".into(),
+                normalized: "ἰσοῦται".into(),
+                original: "ἰσοῦται".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: None, // Missing subject means left_expr will be None
+            literals: vec![Literal::Number(5)],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_equality_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_equality_assertion_undefined_left_expr() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ἰσοῦται".into(),
+                normalized: "ἰσοῦται".into(),
+                original: "ἰσοῦται".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: Some(Constituent {
+                lemma: "y".into(), // y is not defined in scope
+                normalized: "y".into(),
+                original: "y".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            literals: vec![Literal::Number(5)],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_equality_assertion(&asm_stmt, &mut scope);
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
@@ -1658,6 +1863,18 @@ mod tests {
         let mut scope = Scope::new();
         scope.define("x", GlossaType::Number);
         let result = classify_equality_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_collection_mutation_no_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: None,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_collection_mutation(&asm_stmt, &mut scope);
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
