@@ -37,3 +37,7 @@
 ## [Error Message Consistency]
 **Learning:** `AGENTS.md` explicitly calls for Greek error messages in the compiler, but random unprompted strings might confuse other agents/reviewers.
 **Action:** Ensure error context provided via `ok_or_else()` uses standard English unless explicitly writing a user-facing compiler diagnostic intended to be translated.
+
+**2025-03-05 - Avoid unreachable!() in Pattern Matching Fallbacks**
+**Learning:** `unreachable!()` inside complex logic like the `process_participles` pattern matcher in `src/semantic/patterns.rs` acts as a ticking time bomb. Even if the expected conditions are validated elsewhere, unexpected invalid configurations (like `BinaryOp::Sub` in a fold pattern) could sneak in during earlier assembly phases and cause panic instead of graceful failures.
+**Action:** Replace `unreachable!()` with safe negative-match default returns (e.g., `return (false, false);` or `None`), and explicitly construct a failing unit test under `#[cfg(test)] mod tests` to cover this exact structural configuration.
