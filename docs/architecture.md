@@ -88,6 +88,7 @@ C4Component
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
         Component(types, "Type System", "src/semantic/types.rs", "GlossaType definitions and utilities")
+        Component(traits, "Traits", "src/semantic/traits.rs", "Defines StatementAnalyzer trait for abstraction")
     }
 
     Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
@@ -95,13 +96,16 @@ C4Component
     Rel(orchestrator, declarations, "Delegates to")
     Rel(orchestrator, control_flow, "Delegates to")
     Rel(orchestrator, conversion, "Delegates to")
+    Rel(orchestrator, traits, "Implements")
 
     Rel(declarations, resolver, "Defines Symbols")
     Rel(declarations, types, "Uses")
     Rel(declarations, model, "Produces")
+    Rel(declarations, traits, "Uses for recursion")
 
     Rel(control_flow, expressions, "Analyzes conditions")
     Rel(control_flow, model, "Produces")
+    Rel(control_flow, traits, "Uses for recursion")
 
     Rel(conversion, assembly, "Uses Assembler")
     Rel(assembly, morphology, "Uses")
