@@ -102,3 +102,7 @@
 **Bloat:** `MAX_*` depth/limit constants scattered across `src/semantic/assembly/model.rs` and `src/semantic/control_flow.rs`, creating architectural duplication and inconsistent definition points.
 **Cut:** Centralized all compiler depth limit constants into `src/limits.rs`.
 **Saved:** Centralized logic (Single Source of Truth) and improved transparency for architectural constraints.
+## [Reduction]
+**Bloat:** The `StatementAnalyzer` trait in `src/semantic/traits.rs`.
+**Cut:** Removed the single-implementation trait and replaced all `&mut impl StatementAnalyzer` references with concrete `&mut SemanticAnalyzer` references, taking advantage of Rust's ability to handle circular module dependencies.
+**Saved:** 15 lines of code, 1 file (`traits.rs`), and cognitive load of following trait indirection.
