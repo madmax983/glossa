@@ -30,7 +30,7 @@ C4Container
     Container(lexer, "Lexer", "src/parser/grammar.rs", "Tokenizes source, handling Unicode normalization")
     Container(parser, "Parser", "src/parser", "Constructs AST, enforcing recursion limits (max depth 500)")
     Container(morphology, "Declension Resolver", "src/morphology", "Analyzes case, gender, number, and resolves agreement")
-    Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
+    Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, ownership, and enforces semantic recursion limits (max depth 200)")
 
     Container_Boundary(tools, "Developer Experience (Nova)") {
         Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
@@ -88,11 +88,13 @@ C4Component
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
         Component(types, "Type System", "src/semantic/types.rs", "GlossaType definitions and utilities")
+        Component(validation, "Validation", "src/semantic/validation.rs", "Enforces AST depth recursion limits (MAX_EXPRESSION_DEPTH)")
     }
 
     Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
 
     Rel(orchestrator, declarations, "Delegates to")
+    Rel(orchestrator, validation, "Delegates to")
     Rel(orchestrator, control_flow, "Delegates to")
     Rel(orchestrator, conversion, "Delegates to")
 
