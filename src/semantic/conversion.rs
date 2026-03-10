@@ -204,37 +204,12 @@ fn classify_function_call(
         return Ok(None);
     }
 
-    // Check if object/nominative/genitive is a user-defined function
-    let mut func_name = None;
-    for nominative in &asm_stmt.nominatives {
-        if scope.is_function(&nominative.lemma) {
-            func_name = Some(nominative.lemma.clone());
-            break;
-        }
-    }
-
-    if func_name.is_none()
-        && let Some(ref object) = asm_stmt.object
-        && scope.is_function(&object.lemma)
-    {
-        func_name = Some(object.lemma.clone());
-    }
-
-    if func_name.is_none() {
-        for genitive in &asm_stmt.genitives {
-            if scope.is_function(&genitive.lemma) {
-                func_name = Some(genitive.lemma.clone());
-                break;
-            }
-        }
-    }
-
-    // If we found a function name, build the call
-    let Some(func) = func_name else {
+    let Some(subject) = &asm_stmt.subject else {
         return Ok(None);
     };
 
-    let Some(subject) = &asm_stmt.subject else {
+    // If we found a function name, build the call
+    let Some(func) = resolve_function_name(asm_stmt, scope) else {
         return Ok(None);
     };
 
@@ -271,6 +246,32 @@ fn classify_function_call(
         value: func_call,
         mutable: false,
     }))
+}
+
+/// Helper: Resolve the function name from an assembled statement
+fn resolve_function_name(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Option<smol_str::SmolStr> {
+    for nominative in &asm_stmt.nominatives {
+        if scope.is_function(&nominative.lemma) {
+            return Some(nominative.lemma.clone());
+        }
+    }
+
+    if let Some(ref object) = asm_stmt.object
+        && scope.is_function(&object.lemma)
+    {
+        return Some(object.lemma.clone());
+    }
+
+    for genitive in &asm_stmt.genitives {
+        if scope.is_function(&genitive.lemma) {
+            return Some(genitive.lemma.clone());
+        }
+    }
+
+    None
 }
 
 /// Helper: Detect subjunctive comparison (which looks like binding verb but isn't)
@@ -1315,57 +1316,57 @@ fn extract_binary_op(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
-    if !asm_stmt.operators.is_empty() {
-        // Check if we can build from literals alone (2+ literals)
-        if asm_stmt.literals.len() >= 2 {
-            let exprs =
-                build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
-            if let Some(expr) = exprs.into_iter().next() {
-                let ty = expr.glossa_type.clone();
-                return Ok(Some((expr, ty)));
-            }
+    if asm_stmt.operators.is_empty() {
+        return Ok(None);
+    }
+
+    // Check if we can build from literals alone (2+ literals)
+    if asm_stmt.literals.len() >= 2 {
+        let exprs =
+            build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
+        if let Some(expr) = exprs.into_iter().next() {
+            let ty = expr.glossa_type.clone();
+            return Ok(Some((expr, ty)));
         }
+    }
 
-        let make_var = |lemma: &smol_str::SmolStr| AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(lemma.clone()),
-            glossa_type: scope.lookup(lemma).cloned().unwrap_or(GlossaType::Unknown),
-        };
+    let make_var = |lemma: &smol_str::SmolStr| AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(lemma.clone()),
+        glossa_type: scope.lookup(lemma).cloned().unwrap_or(GlossaType::Unknown),
+    };
 
-        // Or check if we can combine object + literal with operator
-        if let Some(ref obj) = asm_stmt.object
-            && !asm_stmt.literals.is_empty()
-        {
+    let op = asm_stmt.operators[0];
+
+    // Or check if we can combine object + literal with operator
+    if let Some(ref obj) = asm_stmt.object {
+        if !asm_stmt.literals.is_empty() {
             // Build: object op literal
             let left = make_var(&obj.lemma);
             let right = literal_to_analyzed_expr(&asm_stmt.literals[0]);
-            let op = asm_stmt.operators[0];
             let bin_expr = build_binary_expr(left, op, right);
             let ty = bin_expr.glossa_type.clone();
             return Ok(Some((bin_expr, ty)));
         }
 
         // Object + Nominative (e.g. x + y)
-        if let Some(ref obj) = asm_stmt.object
-            && let Some(nom) = asm_stmt.nominatives.first()
-        {
+        if let Some(nom) = asm_stmt.nominatives.first() {
             let left = make_var(&obj.lemma);
             let right = make_var(&nom.lemma);
-            let op = asm_stmt.operators[0];
-            let bin_expr = build_binary_expr(left, op, right);
-            let ty = bin_expr.glossa_type.clone();
-            return Ok(Some((bin_expr, ty)));
-        }
-
-        // Nominative + Nominative (e.g. a + b, where both are extra nominatives)
-        if asm_stmt.nominatives.len() >= 2 {
-            let left = make_var(&asm_stmt.nominatives[0].lemma);
-            let right = make_var(&asm_stmt.nominatives[1].lemma);
-            let op = asm_stmt.operators[0];
             let bin_expr = build_binary_expr(left, op, right);
             let ty = bin_expr.glossa_type.clone();
             return Ok(Some((bin_expr, ty)));
         }
     }
+
+    // Nominative + Nominative (e.g. a + b, where both are extra nominatives)
+    if asm_stmt.nominatives.len() >= 2 {
+        let left = make_var(&asm_stmt.nominatives[0].lemma);
+        let right = make_var(&asm_stmt.nominatives[1].lemma);
+        let bin_expr = build_binary_expr(left, op, right);
+        let ty = bin_expr.glossa_type.clone();
+        return Ok(Some((bin_expr, ty)));
+    }
+
     Ok(None)
 }
 
