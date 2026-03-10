@@ -140,11 +140,10 @@ mod tests {
         let ast = parse("«χαῖρε κόσμε» λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
 
-        if let AnalyzedStatement::Print(exprs) = &analyzed.statements[0] {
-            assert_eq!(exprs[0].glossa_type, GlossaType::String);
-        } else {
+        let AnalyzedStatement::Print(exprs) = &analyzed.statements[0] else {
             panic!("Expected Print statement");
-        }
+        };
+        assert_eq!(exprs[0].glossa_type, GlossaType::String);
     }
 
     #[test]
@@ -152,10 +151,9 @@ mod tests {
         let ast = parse("42 λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
 
-        if let AnalyzedStatement::Print(exprs) = &analyzed.statements[0] {
-            assert_eq!(exprs[0].glossa_type, GlossaType::Number);
-        } else {
+        let AnalyzedStatement::Print(exprs) = &analyzed.statements[0] else {
             panic!("Expected Print statement");
-        }
+        };
+        assert_eq!(exprs[0].glossa_type, GlossaType::Number);
     }
 }
