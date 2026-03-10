@@ -52,6 +52,17 @@ Verbs drive the action. We use the imperative mood for commands.
 ὄνομα λέγε.
 ```
 
+To define a custom action (function), use `ὁρίζειν` separated by a middle dot (`·`):
+
+```glossa
+// Define a function named 'foo'
+φ ὁρίζειν ·
+    «hello» λέγε.
+
+// Call the function
+φ.
+```
+
 ### Chapter 3: The Structure (Types)
 
 We define the shape of our world with `εἶδος` (form/type).
@@ -93,7 +104,7 @@ A guide for travelers from other lands.
 | **Print** | `println!("Hi");` | `«χαῖρε» λέγε.` | "Say 'Hi'." |
 | **If** | `if x > 0 { ... }` | `εἰ ξ 0 μεῖζον ᾖ, ...` | "If x [is] greater than 0..." |
 | **Loop** | `for x in numbers { ... }` | `διὰ ἀριθμοί, ν λέγε.` | "Through numbers, say n." |
-| **Function** | `fn foo() { ... }` | `... ὁρίζειν ...` | "To define..." |
+| **Function** | `fn foo() { ... }` | `φ ὁρίζειν · ...` | "To define..." |
 | **Struct** | `struct User { ... }` | `εἶδος Χρήστης ...` | "Form User..." |
 
 ## Troubleshooting
