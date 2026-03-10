@@ -370,7 +370,7 @@ fn parse_match_expression(
     let scrutinee = skip_first_word_and_parse(&synthetic_clause, scope)?;
 
     // Build arms: pattern from clause[i], expr 1 → body from clause[i+1], expr 0
-    let mut arms = Vec::new();
+    let mut arms = Vec::with_capacity(stmt.clauses().len() / 2);
 
     for i in 0..stmt.clauses().len() {
         let clause = &stmt.clauses()[i];
@@ -633,7 +633,7 @@ fn parse_conditional(
         // Check if it's "εἰ" or "ἐάν" (elif)
         else if check_conditional_start(second_expr) {
             // Build a new statement for the elif chain
-            let mut elif_clauses = Vec::new();
+            let mut elif_clauses = Vec::with_capacity(stmt.clauses().len() - 1);
 
             // New clause 0: just the elif condition (from clause 1, expr 1)
             elif_clauses.push(Clause {

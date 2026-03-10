@@ -763,7 +763,7 @@ fn try_print_property_access(
     scope: &mut Scope,
 ) -> Option<Vec<AnalyzedExpr>> {
     if !asm_stmt.property_accesses.is_empty() {
-        let mut args = Vec::new();
+        let mut args = Vec::with_capacity(asm_stmt.property_accesses.len());
         for (owner, method) in &asm_stmt.property_accesses {
             let receiver = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(owner.clone().into()),
@@ -806,7 +806,7 @@ fn try_print_index_access(
     scope: &mut Scope,
 ) -> Result<Option<Vec<AnalyzedExpr>>, GlossaError> {
     if !asm_stmt.index_accesses.is_empty() {
-        let mut args = Vec::new();
+        let mut args = Vec::with_capacity(asm_stmt.index_accesses.len());
         for (array_expr, index_expr) in &asm_stmt.index_accesses {
             let array_analyzed = analyze_argument_expr(array_expr, scope)?;
             let index_analyzed = analyze_argument_expr(index_expr, scope)?;
@@ -828,7 +828,7 @@ fn try_print_unwrap(
     scope: &mut Scope,
 ) -> Result<Option<Vec<AnalyzedExpr>>, GlossaError> {
     if !asm_stmt.unwraps.is_empty() {
-        let mut args = Vec::new();
+        let mut args = Vec::with_capacity(asm_stmt.unwraps.len());
         for unwrap_expr in &asm_stmt.unwraps {
             let inner_analyzed = analyze_argument_expr(unwrap_expr, scope)?;
             args.push(AnalyzedExpr {
@@ -963,7 +963,7 @@ fn classify_query(
         }
 
         // Regular query
-        let mut exprs = Vec::new();
+        let mut exprs = Vec::with_capacity(asm_stmt.literals.len() + 1);
         for lit in &asm_stmt.literals {
             exprs.push(literal_to_analyzed_expr(lit));
         }
@@ -1078,7 +1078,7 @@ fn try_parse_genitive_method_call(
                         glossa_type: owner_type.clone(),
                     };
 
-                    let mut args = Vec::new();
+                    let mut args = Vec::with_capacity(asm_stmt.literals.len());
                     for lit in &asm_stmt.literals {
                         args.push(literal_to_analyzed_expr(lit));
                     }
