@@ -318,11 +318,10 @@ impl Display for GlossaReport<'_> {
             ]);
         }
 
-        writeln!(
-            f,
-            "\n{}",
-            "ΑΝΑΦΟΡΑ ΓΛΩΣΣΗΣ (LANGUAGE REPORT)".bold().underlined()
-        )?;
+        writeln!(f)?;
+        writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
+        writeln!(f, "   {}", "Language Metrics Dashboard".italic().dim())?;
+        writeln!(f)?;
         writeln!(f, "{}", table)?;
 
         // If there are top-level functions, list them
@@ -330,13 +329,11 @@ impl Display for GlossaReport<'_> {
         if !functions.is_empty() {
             writeln!(f, "\n{}", "ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)".bold())?;
             let mut func_table = Table::new();
-            func_table
-                .load_preset(presets::UTF8_HORIZONTAL_ONLY)
-                .set_header(vec![
-                    "Ὄνομα (Name)",
-                    "Παράμετροι (Params)",
-                    "Επιστροφή (Returns)",
-                ]);
+            func_table.load_preset(presets::UTF8_FULL).set_header(vec![
+                "Ὄνομα (Name)",
+                "Παράμετροι (Params)",
+                "Επιστροφή (Returns)",
+            ]);
 
             for func in functions {
                 let params = func
@@ -451,13 +448,10 @@ impl Display for CompilationReport {
             Cell::new(self.stats.function_count),
         ]);
 
-        writeln!(
-            f,
-            "\n{}",
-            "ΑΝΑΦΟΡΑ ΜΕΤΑΓΛΩΤΤΙΣΕΩΣ (COMPILATION REPORT)"
-                .bold()
-                .underlined()
-        )?;
+        writeln!(f)?;
+        writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
+        writeln!(f, "   {}", "Compilation Metrics Dashboard".italic().dim())?;
+        writeln!(f)?;
         writeln!(f, "{}", table)?;
 
         Ok(())
@@ -525,7 +519,7 @@ mod tests {
         let report = GlossaReport::new(&program, "test.gl".to_string());
         let output = format!("{}", report);
 
-        assert!(output.contains("ΑΝΑΦΟΡΑ ΓΛΩΣΣΗΣ"));
+        assert!(output.contains("R E P O R T"));
         assert!(output.contains("test.gl"));
         assert!(output.contains("test_func")); // Function list
         assert!(output.contains("3")); // Statement count
@@ -546,7 +540,7 @@ mod tests {
 
         let output = format!("{}", report);
 
-        assert!(output.contains("ΑΝΑΦΟΡΑ ΜΕΤΑΓΛΩΤΤΙΣΕΩΣ"));
+        assert!(output.contains("R E P O R T"));
         assert!(output.contains("input.gl"));
         assert!(output.contains("output.rs"));
         assert!(output.contains("123")); // Time

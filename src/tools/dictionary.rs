@@ -133,8 +133,8 @@ pub fn lookup_word(word: &str) -> Result<()> {
         println!("{table}");
         println!();
     } else {
-        println!("   {}", "× Not found in built-in lexicon.".red());
-        println!("   Showing morphological analysis only.");
+        println!("   {}", "✕ Not found in built-in lexicon.".red().bold());
+        println!("   {}", "Showing morphological analysis only.".dim());
         println!();
     }
 
