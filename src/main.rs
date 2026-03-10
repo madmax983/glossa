@@ -67,6 +67,17 @@ fn main() -> Result<()> {
             glossa::tools::weave::run_weave(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Trace { input }) => {
+            let source = std::fs::read_to_string(&input)
+                .map_err(|e| miette::miette!("Failed to read {}: {}", input.display(), e))?;
+            let ast = glossa::parser::parse(&source)
+                .map_err(|e| miette::miette!("Parse error: {}", e))?;
+            let program = glossa::semantic::analyze_program(&ast)
+                .map_err(|e| miette::miette!("Semantic error: {}", e))?;
+            glossa::tools::tracer::run_trace(&program)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

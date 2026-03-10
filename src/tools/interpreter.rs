@@ -128,6 +128,23 @@ impl Interpreter {
         self.output.join("\n")
     }
 
+    /// Get and clear the captured output
+    pub fn take_output(&mut self) -> String {
+        let out = self.output.join("\n");
+        self.output.clear();
+        out
+    }
+
+    /// Evaluate a single statement directly
+    pub fn eval_statement_public(&mut self, stmt: &AnalyzedStatement) -> Result<(), EvalError> {
+        self.eval_statement(stmt)
+    }
+
+    /// Get a reference to the global environment
+    pub fn global_env(&self) -> Option<&HashMap<String, Value>> {
+        self.env.first()
+    }
+
     fn eval_statement(&mut self, stmt: &AnalyzedStatement) -> Result<(), EvalError> {
         match stmt {
             AnalyzedStatement::Binding { name, value, .. } => {

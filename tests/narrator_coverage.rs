@@ -104,8 +104,8 @@ fn test_bard_match() {
     let source = "ξ πέντε ἔστω. κατὰ ξ· μηδὲν ᾖ, «μηδέν» λέγε.";
     let tale = compile_and_tell(source);
     assert!(tale.contains("MATCH"));
-    assert!(tale.contains("Match on `ξ`"));
-    assert!(tale.contains("CASE"));
+    assert!(tale.contains("Match `ξ` against"));
+    assert!(tale.contains("ARM"));
 }
 
 #[test]
@@ -118,9 +118,9 @@ fn test_bard_break_continue() {
     };
     let tale = tell_tale(&program);
     assert!(tale.contains("BREAK"));
-    assert!(tale.contains("Break loop"));
+    assert!(tale.contains("Break from the loop"));
     assert!(tale.contains("CONT"));
-    assert!(tale.contains("Continue loop"));
+    assert!(tale.contains("Continue to the next iteration"));
 }
 
 #[test]
@@ -136,7 +136,7 @@ fn test_bard_return() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("RETURN"));
+    assert!(tale.contains("RET"));
     assert!(tale.contains("Return 42"));
 
     let stmt_empty = AnalyzedStatement::Return { value: None };
@@ -145,7 +145,7 @@ fn test_bard_return() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale_empty = tell_tale(&program_empty);
-    assert!(tale_empty.contains("Return nothing"));
+    assert!(tale_empty.contains("Return."));
 }
 
 #[test]
@@ -163,8 +163,8 @@ fn test_bard_function_def() {
         scope: glossa::semantic::Scope::new(),
     };
     let tale = tell_tale(&program);
-    assert!(tale.contains("FUNC"));
-    assert!(tale.contains("Define `my_func` (p1: Number) -> Bool"));
+    assert!(tale.contains("DEF"));
+    assert!(tale.contains("Define action `my_func` taking (`p1`) returning Bool"));
 }
 
 #[test]
@@ -179,7 +179,7 @@ fn test_bard_type_def() {
     };
     let tale = tell_tale(&program);
     assert!(tale.contains("TYPE"));
-    assert!(tale.contains("Struct `MyType` { field1: Number }"));
+    assert!(tale.contains("Define structure `MyType`"));
 }
 
 #[test]
@@ -194,7 +194,7 @@ fn test_bard_trait_def() {
     };
     let tale = tell_tale(&program);
     assert!(tale.contains("TRAIT"));
-    assert!(tale.contains("Trait `MyTrait`"));
+    assert!(tale.contains("Define trait `MyTrait`"));
 }
 
 #[test]
@@ -210,7 +210,7 @@ fn test_bard_trait_impl() {
     };
     let tale = tell_tale(&program);
     assert!(tale.contains("IMPL"));
-    assert!(tale.contains("Impl `MyTrait` for `MyType`"));
+    assert!(tale.contains("Implement trait `MyTrait` for `MyType`"));
 }
 
 #[test]
@@ -225,7 +225,7 @@ fn test_bard_test_decl() {
     };
     let tale = tell_tale(&program);
     assert!(tale.contains("TEST"));
-    assert!(tale.contains("Test `my_test`:"));
+    assert!(tale.contains("Declare test `my_test`:"));
 }
 
 // --- Expression Coverage ---

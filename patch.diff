@@ -1,0 +1,74 @@
+--- tests/narrator_coverage.rs
++++ tests/narrator_coverage.rs
+@@ -104,7 +104,7 @@
+         scope: glossa::semantic::Scope::new(),
+     };
+     let tale = tell_tale(&program);
+-    assert!(tale.contains("Match on `ξ`"));
++    assert!(tale.contains("Match `ξ` against"));
+ }
+
+ #[test]
+@@ -118,9 +118,9 @@
+     let tale = tell_tale(&program);
+     assert!(tale.contains("BREAK"));
+-    assert!(tale.contains("Break loop"));
++    assert!(tale.contains("Break from the loop"));
+     assert!(tale.contains("CONT"));
+-    assert!(tale.contains("Continue loop"));
++    assert!(tale.contains("Continue to the next iteration"));
+ }
+
+ #[test]
+@@ -136,7 +136,7 @@
+         scope: glossa::semantic::Scope::new(),
+     };
+     let tale = tell_tale(&program);
+-    assert!(tale.contains("RETURN"));
++    assert!(tale.contains("RET"));
+ }
+
+ #[test]
+@@ -163,7 +163,7 @@
+         scope: glossa::semantic::Scope::new(),
+     };
+     let tale = tell_tale(&program);
+-    assert!(tale.contains("FUNC"));
++    assert!(tale.contains("DEF"));
+ }
+
+ #[test]
+@@ -179,7 +179,7 @@
+         scope: glossa::semantic::Scope::new(),
+     };
+     let tale = tell_tale(&program);
+-    assert!(tale.contains("Struct `MyType` { field1: Number }"));
++    assert!(tale.contains("Define structure `MyType`"));
+ }
+
+ #[test]
+@@ -194,7 +194,7 @@
+         scope: glossa::semantic::Scope::new(),
+     };
+     let tale = tell_tale(&program);
+-    assert!(tale.contains("Trait `MyTrait`"));
++    assert!(tale.contains("Define trait `MyTrait`"));
+ }
+
+ #[test]
+@@ -210,7 +210,7 @@
+         scope: glossa::semantic::Scope::new(),
+     };
+     let tale = tell_tale(&program);
+-    assert!(tale.contains("Impl `MyTrait` for `MyType`"));
++    assert!(tale.contains("Implement trait `MyTrait` for `MyType`"));
+ }
+
+ #[test]
+@@ -225,5 +225,5 @@
+         scope: glossa::semantic::Scope::new(),
+     };
+     let tale = tell_tale(&program);
+-    assert!(tale.contains("Test `my_test`:"));
++    assert!(tale.contains("Declare test `my_test`:"));
+ }

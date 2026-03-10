@@ -168,4 +168,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Trace the execution of a program step-by-step (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Trace {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
