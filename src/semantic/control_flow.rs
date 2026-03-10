@@ -7,11 +7,11 @@
 //! - Return (δός)
 //! - Break/Continue (παῦε, συνέχιζε)
 
+use super::analyzer::SemanticAnalyzer;
 use super::conversion::convert_assembled_to_analyzed;
 use super::expressions::get_first_word;
 use super::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, StatementAnalyzer,
-    assemble_statement,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, assemble_statement,
 };
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
@@ -23,7 +23,7 @@ use crate::morphology::lexicon;
 pub fn analyze_control_flow(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut SemanticAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // Note: Function definitions are handled in `mod.rs` before calling this.
 
@@ -87,7 +87,7 @@ pub fn analyze_control_flow(
 fn parse_while_loop(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut SemanticAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
@@ -122,7 +122,7 @@ fn parse_while_loop(
 fn parse_for_range_loop(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut SemanticAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
@@ -263,7 +263,7 @@ fn parse_for_range_loop(
 fn parse_for_iteration_loop(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut SemanticAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().len() < 2 {
         return Err(GlossaError::semantic(
@@ -353,7 +353,7 @@ fn parse_for_iteration_loop(
 fn parse_match_expression(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut SemanticAnalyzer,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if stmt.clauses().is_empty() {
         return Err(GlossaError::semantic(
@@ -580,7 +580,7 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
 fn parse_conditional(
     stmt: &Statement,
     scope: &mut Scope,
-    analyzer: &mut impl StatementAnalyzer,
+    analyzer: &mut SemanticAnalyzer,
     depth: usize,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if depth > MAX_CONTROL_FLOW_DEPTH {
