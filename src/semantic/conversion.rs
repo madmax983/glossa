@@ -1087,9 +1087,7 @@ fn try_parse_genitive_method_call(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Option<(AnalyzedExpr, GlossaType)> {
-    let Some(ref subject) = asm_stmt.subject else {
-        return None;
-    };
+    let subject = asm_stmt.subject.as_ref()?;
 
     if asm_stmt.genitives.is_empty() {
         return None;
@@ -1098,9 +1096,7 @@ fn try_parse_genitive_method_call(
     let owner_lemma = &asm_stmt.genitives[0].lemma;
     let method_name = &subject.normalized;
 
-    let Some(owner_type) = scope.lookup(owner_lemma) else {
-        return None;
-    };
+    let owner_type = scope.lookup(owner_lemma)?;
 
     if scope.is_defined(method_name) {
         return None;
