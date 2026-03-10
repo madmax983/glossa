@@ -24,10 +24,28 @@ use crate::semantic::{
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 
-/// Tells the tale of the program in English.
+/// Tells the tale of the program in English, rendering the "Scroll of Logic".
 ///
-/// This function translates the semantic meaning of the program into a readable English narrative.
-/// It acts as the entry point for the "Bard" tool.
+/// This function exists to provide a human-readable translation of the internal
+/// semantic program. By converting abstract syntax into a structured narrative table,
+/// it serves as a powerful debugging tool: if the English story doesn't match the
+/// developer's intent, they immediately know they have a logic or grammar error.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::tools::narrator::tell_tale;
+///
+/// let source = "ξ 5 ἔστω.";
+/// let ast = parse(source).unwrap();
+/// let analyzed = analyze_program(&ast).unwrap();
+///
+/// let narrative = tell_tale(&analyzed);
+/// assert!(narrative.contains("BIND"));
+/// assert!(narrative.contains("Let `ξ` be 5"));
+/// ```
 pub fn tell_tale(program: &AnalyzedProgram) -> String {
     let mut table = Table::new();
     table
@@ -61,10 +79,33 @@ pub fn tell_tale(program: &AnalyzedProgram) -> String {
     table.to_string()
 }
 
+/// Calculates the visual indentation string for nested statements.
+///
+/// This exists because the Scroll of Logic represents hierarchical control flow
+/// (like `if` statements and loops) using horizontal spacing rather than
+/// traditional block delimiters like braces.
+///
+/// # Examples
+///
+/// ```text
+/// let level_zero = indent(0); // ""
+/// let level_two = indent(2);  // "    "
+/// ```
 fn indent(level: usize) -> String {
     "  ".repeat(level)
 }
 
+/// Appends a semantic statement as a descriptive row in the narrative table.
+///
+/// Instead of merely printing the abstract syntax tree, this function translates
+/// rigid compiler constructs into human-readable English "Acts". This bridges the gap
+/// between the raw parsed data and the developer's original intent, helping users verify
+/// what the compiler actually understood.
+///
+/// # Panics
+///
+/// This function does not panic, but relies on the underlying table implementation
+/// to handle memory allocation for new rows.
 fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
     let prefix = indent(level);
 
@@ -294,6 +335,12 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
     }
 }
 
+/// Translates a semantic expression into a readable English string.
+///
+/// This exists to flatten recursive expression trees (like `AnalyzedExprKind::BinOp`)
+/// into linear, human-readable strings. Unlike a standard `Debug` representation
+/// which outputs nested structs, this formats operations in a pseudo-code style
+/// that is immediately recognizable to developers.
 fn tell_expr(expr: &AnalyzedExpr) -> String {
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => format!("\"{}\"", s),
@@ -404,6 +451,12 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
     }
 }
 
+/// Converts a semantic type into a familiar Rust-like type signature string.
+///
+/// While ΓΛΩΣΣΑ uses Greek terminology internally (e.g., `ἀριθμός`, `λίστη`),
+/// the Scroll of Logic translates these into conventional programming type names
+/// (e.g., `Number`, `[Type]`) to help developers map the Greek concepts to
+/// concepts they already understand.
 fn tell_type(ty: &GlossaType) -> String {
     match ty {
         GlossaType::Number => "Number".to_string(),
