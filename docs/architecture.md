@@ -78,7 +78,9 @@ C4Component
     title Component Diagram for Semantic Analysis
 
     Container_Boundary(semantic, "Semantic Analysis") {
-        Component(orchestrator, "Orchestrator", "src/semantic/mod.rs", "Coordinates analysis pipeline")
+        Component(orchestrator, "Orchestrator", "src/semantic/mod.rs", "Facade for public API")
+        Component(analyzer, "Analyzer", "src/semantic/analyzer.rs", "Coordinates analysis pipeline")
+        Component(traits, "Traits", "src/semantic/traits.rs", "Abstracts recursive analysis")
         Component(declarations, "Declarations", "src/semantic/declarations.rs", "Analyzes Types, Traits, Functions")
         Component(control_flow, "Control Flow", "src/semantic/control_flow.rs", "Analyzes If, While, Match")
         Component(expressions, "Expressions", "src/semantic/expressions.rs", "Recursively analyzes nested expressions")
@@ -92,9 +94,14 @@ C4Component
 
     Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
 
-    Rel(orchestrator, declarations, "Delegates to")
-    Rel(orchestrator, control_flow, "Delegates to")
-    Rel(orchestrator, conversion, "Delegates to")
+    Rel(orchestrator, analyzer, "Delegates to")
+    Rel(analyzer, declarations, "Delegates to")
+    Rel(analyzer, control_flow, "Delegates to")
+    Rel(analyzer, conversion, "Delegates to")
+
+    Rel(declarations, traits, "Calls back for nested statements")
+    Rel(control_flow, traits, "Calls back for nested statements")
+    Rel(analyzer, traits, "Implements")
 
     Rel(declarations, resolver, "Defines Symbols")
     Rel(declarations, types, "Uses")
