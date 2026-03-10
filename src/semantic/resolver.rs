@@ -6,22 +6,19 @@ use crate::semantic::GlossaType;
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 
-/// A unified symbol entry in the scope
-#[derive(Debug, Clone)]
-pub enum Symbol {
-    Variable(Binding),
-    Function(FunctionSignature),
-    Type(GlossaType),
-    Trait(crate::semantic::model::TraitDef),
-}
-
 /// A scope level containing symbol bindings
 #[derive(Debug, Clone, Default)]
 struct ScopeLevel {
-    /// Symbols defined in this scope.
+    /// Variables defined in this scope.
     /// ⚡ Bolt Optimization: Uses `FxHashMap` instead of the standard `HashMap`
     /// to avoid cryptographic hashing overhead for fast, deterministic lookups of interned strings.
-    symbols: FxHashMap<SmolStr, Symbol>,
+    variables: FxHashMap<SmolStr, Binding>,
+    /// Functions defined in this scope
+    functions: FxHashMap<SmolStr, FunctionSignature>,
+    /// Types defined in this scope
+    types: FxHashMap<SmolStr, GlossaType>,
+    /// Traits defined in this scope
+    traits: FxHashMap<SmolStr, crate::semantic::model::TraitDef>,
     /// Trait implementations in this scope
     trait_impls: Vec<crate::semantic::model::TraitImpl>,
 }
@@ -126,44 +123,40 @@ impl Scope {
         return_type: Option<GlossaType>,
     ) {
         let name = name.into();
-        self.current_level().symbols.insert(
+        self.current_level().functions.insert(
             name.clone(),
-            Symbol::Function(FunctionSignature {
+            FunctionSignature {
                 name,
                 param_types,
                 return_type,
-            }),
+            },
         );
     }
 
     /// Check if a name is a defined function
     pub fn is_function(&self, name: &str) -> bool {
-        self.lookup_symbol(name)
-            .map(|s| matches!(s, Symbol::Function(_)))
-            .unwrap_or(false)
+        self.levels.iter().any(|l| l.functions.contains_key(name))
     }
 
     /// Look up a function signature
     pub fn lookup_function(&self, name: &str) -> Option<&FunctionSignature> {
-        match self.lookup_symbol(name) {
-            Some(Symbol::Function(sig)) => Some(sig),
-            _ => None,
-        }
+        self.levels
+            .iter()
+            .rev()
+            .find_map(|level| level.functions.get(name))
     }
 
     /// Define a type in this scope
     pub fn define_type(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
-        self.current_level()
-            .symbols
-            .insert(name.into(), Symbol::Type(glossa_type));
+        self.current_level().types.insert(name.into(), glossa_type);
     }
 
     /// Look up a type by name
     pub fn lookup_type(&self, name: &str) -> Option<&GlossaType> {
-        match self.lookup_symbol(name) {
-            Some(Symbol::Type(ty)) => Some(ty),
-            _ => None,
-        }
+        self.levels
+            .iter()
+            .rev()
+            .find_map(|level| level.types.get(name))
     }
 
     /// Define a trait in this scope
@@ -172,17 +165,15 @@ impl Scope {
         name: impl Into<SmolStr>,
         trait_def: crate::semantic::model::TraitDef,
     ) {
-        self.current_level()
-            .symbols
-            .insert(name.into(), Symbol::Trait(trait_def));
+        self.current_level().traits.insert(name.into(), trait_def);
     }
 
     /// Look up a trait by name
     pub fn lookup_trait(&self, name: &str) -> Option<&crate::semantic::model::TraitDef> {
-        match self.lookup_symbol(name) {
-            Some(Symbol::Trait(def)) => Some(def),
-            _ => None,
-        }
+        self.levels
+            .iter()
+            .rev()
+            .find_map(|level| level.traits.get(name))
     }
 
     /// Register a trait implementation
@@ -228,86 +219,79 @@ impl Scope {
     /// Define a new binding in this scope
     pub fn define(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
         let name = name.into();
-        self.current_level().symbols.insert(
+        self.current_level().variables.insert(
             name.clone(),
-            Symbol::Variable(Binding {
+            Binding {
                 name,
                 glossa_type,
                 mutable: false,
                 used: false,
-            }),
+            },
         );
     }
 
     /// Define a mutable binding
     pub fn define_mut(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
         let name = name.into();
-        self.current_level().symbols.insert(
+        self.current_level().variables.insert(
             name.clone(),
-            Symbol::Variable(Binding {
+            Binding {
                 name,
                 glossa_type,
                 mutable: true,
                 used: false,
-            }),
+            },
         );
-    }
-
-    /// Helper to look up any symbol
-    fn lookup_symbol(&self, name: &str) -> Option<&Symbol> {
-        for level in self.levels.iter().rev() {
-            if let Some(symbol) = level.symbols.get(name) {
-                return Some(symbol);
-            }
-        }
-        None
     }
 
     /// Look up a binding by name, searching parent scopes
     pub fn lookup(&self, name: &str) -> Option<&GlossaType> {
-        match self.lookup_symbol(name) {
-            Some(Symbol::Variable(binding)) => Some(&binding.glossa_type),
-            _ => None,
-        }
+        self.levels
+            .iter()
+            .rev()
+            .find_map(|level| level.variables.get(name).map(|b| &b.glossa_type))
     }
 
     /// Look up full binding information by name, searching parent scopes
     pub fn lookup_binding(&self, name: &str) -> Option<&Binding> {
-        match self.lookup_symbol(name) {
-            Some(Symbol::Variable(binding)) => Some(binding),
-            _ => None,
-        }
+        self.levels
+            .iter()
+            .rev()
+            .find_map(|level| level.variables.get(name))
     }
 
     /// Check if a name is defined in this scope (not parents)
     pub fn is_defined_locally(&self, name: &str) -> bool {
         self.levels
             .last()
-            .map(|l| l.symbols.contains_key(name))
+            .map(|l| {
+                l.variables.contains_key(name)
+                    || l.types.contains_key(name)
+                    || l.functions.contains_key(name)
+                    || l.traits.contains_key(name)
+            })
             .unwrap_or(false)
     }
 
     /// Check if a name is defined anywhere in scope chain
     pub fn is_defined(&self, name: &str) -> bool {
-        // We only check for variables with this method typically,
-        // but let's check for any symbol as name collision prevents definition
-        self.lookup_symbol(name).is_some()
+        self.levels.iter().any(|l| {
+            l.variables.contains_key(name)
+                || l.types.contains_key(name)
+                || l.functions.contains_key(name)
+                || l.traits.contains_key(name)
+        })
     }
 
     /// Get all bindings in this scope (from all levels)
     pub fn bindings(&self) -> impl Iterator<Item = (&SmolStr, &Binding)> {
-        self.levels.iter().flat_map(|l| {
-            l.symbols.iter().filter_map(|(k, v)| match v {
-                Symbol::Variable(b) => Some((k, b)),
-                _ => None,
-            })
-        })
+        self.levels.iter().flat_map(|l| l.variables.iter())
     }
 
     /// Mark a binding as used
     pub fn mark_used(&mut self, name: &str) {
         for level in self.levels.iter_mut().rev() {
-            if let Some(Symbol::Variable(binding)) = level.symbols.get_mut(name) {
+            if let Some(binding) = level.variables.get_mut(name) {
                 binding.used = true;
                 return;
             }
@@ -318,43 +302,24 @@ impl Scope {
     pub fn unused_bindings(&self) -> Vec<&Binding> {
         self.levels
             .iter()
-            .flat_map(|l| l.symbols.values())
-            .filter_map(|s| match s {
-                Symbol::Variable(b) => Some(b),
-                _ => None,
-            })
+            .flat_map(|l| l.variables.values())
             .filter(|b| !b.used)
             .collect()
     }
 
     /// Get all functions defined in this scope
     pub fn functions(&self) -> impl Iterator<Item = &FunctionSignature> {
-        self.levels.iter().flat_map(|l| {
-            l.symbols.values().filter_map(|s| match s {
-                Symbol::Function(f) => Some(f),
-                _ => None,
-            })
-        })
+        self.levels.iter().flat_map(|l| l.functions.values())
     }
 
     /// Get all types defined in this scope
     pub fn types(&self) -> impl Iterator<Item = (&SmolStr, &GlossaType)> {
-        self.levels.iter().flat_map(|l| {
-            l.symbols.iter().filter_map(|(k, v)| match v {
-                Symbol::Type(t) => Some((k, t)),
-                _ => None,
-            })
-        })
+        self.levels.iter().flat_map(|l| l.types.iter())
     }
 
     /// Get all traits defined in this scope
     pub fn traits(&self) -> impl Iterator<Item = (&SmolStr, &crate::semantic::model::TraitDef)> {
-        self.levels.iter().flat_map(|l| {
-            l.symbols.iter().filter_map(|(k, v)| match v {
-                Symbol::Trait(t) => Some((k, t)),
-                _ => None,
-            })
-        })
+        self.levels.iter().flat_map(|l| l.traits.iter())
     }
 }
 
@@ -536,8 +501,8 @@ mod tests {
         // Should find as variable
         assert!(scope.lookup("Τ").is_some());
 
-        // Should NOT find as type anymore (shadowed by variable)
-        assert!(scope.lookup_type("Τ").is_none());
+        // Should STILL find as type (separate namespaces)
+        assert!(scope.lookup_type("Τ").is_some());
     }
 
     #[test]
@@ -606,8 +571,8 @@ mod tests {
         // Overwrite with variable (shadowing)
         scope.define(name.to_string(), GlossaType::Number);
 
-        // Should now be a variable, not a function (in lookups specific to functions)
-        assert!(!scope.is_function(name));
+        // Should STILL be a function (separate namespaces)
+        assert!(scope.is_function(name));
         assert!(scope.lookup(name).is_some());
     }
 }
