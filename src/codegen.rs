@@ -356,12 +356,17 @@ pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
 /// Generate Rust code from an Analyzed Program
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
     // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
-    let mut trait_defs = Vec::new();
-    let mut struct_defs = Vec::new();
-    let mut trait_impls = Vec::new();
-    let mut fn_defs = Vec::new();
-    let mut test_defs = Vec::new();
-    let mut main_stmts = Vec::new();
+    let capacity = program.statements.len();
+
+    // ⚡ Bolt Optimization: Pre-allocate vectors using a heuristic (`capacity / 4`)
+    // based on the total number of statements to reduce intermediate heap reallocations
+    // while categorizing AST nodes during code generation.
+    let mut trait_defs = Vec::with_capacity(capacity / 4);
+    let mut struct_defs = Vec::with_capacity(capacity / 4);
+    let mut trait_impls = Vec::with_capacity(capacity / 4);
+    let mut fn_defs = Vec::with_capacity(capacity / 4);
+    let mut test_defs = Vec::with_capacity(capacity / 4);
+    let mut main_stmts = Vec::with_capacity(capacity);
 
     for stmt in &program.statements {
         match stmt {
