@@ -919,13 +919,6 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
             args,
         } => generate_method_call(receiver, method, args),
 
-        AnalyzedExprKind::TraitMethodCall {
-            receiver,
-            method_name,
-            args,
-            ..
-        } => generate_trait_method_call(receiver, method_name, args),
-
         AnalyzedExprKind::VerbCall { verb, args }
         | AnalyzedExprKind::FunctionCall { func: verb, args } => generate_function_call(verb, args),
 
@@ -1285,18 +1278,6 @@ fn generate_method_call(
         sanitize_ident(method)
     };
 
-    let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
-    quote! { #recv.#method_ident(#(#arg_tokens),*) }
-}
-
-fn generate_trait_method_call(
-    receiver: &AnalyzedExpr,
-    method_name: &str,
-    args: &[AnalyzedExpr],
-) -> TokenStream {
-    // Treat as regular method call
-    let recv = generate_expr(receiver);
-    let method_ident = sanitize_ident(method_name);
     let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
     quote! { #recv.#method_ident(#(#arg_tokens),*) }
 }

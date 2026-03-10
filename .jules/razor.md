@@ -97,3 +97,7 @@
 **Bloat:** `Analyzer` struct in `src/semantic/analyzer.rs` was completely empty with no fields, used purely as a namespace for the `analyze` method that was passed around to other modules.
 **Cut:** Deleted the `Analyzer` struct and converted `Analyzer::analyze` into a standalone `analyze_statement` function. Updated calling signatures across `control_flow.rs` and `declarations.rs` to remove the unnecessary `analyzer: &mut Analyzer` parameter.
 **Saved:** Removed empty struct instantiation, cleaned up ~20 function signatures, improved modular cohesion and flattened architectural layers.
+## [Reduction]
+**Bloat:** `AnalyzedExprKind::TraitMethodCall` variant duplicated `MethodCall` logic throughout the compiler, but traits resolve functionally identical to regular method calls.
+**Cut:** Deleted `TraitMethodCall` completely and migrated all AST processing layers (codegen, validation, report, narrator) to solely rely on `MethodCall` logic.
+**Saved:** Removed an unnecessary abstraction, simplified match blocks across 4 tools, and eliminated `generate_trait_method_call` (saving ~50 lines of boilerplate).

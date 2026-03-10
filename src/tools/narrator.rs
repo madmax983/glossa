@@ -351,21 +351,6 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
                 args_str.join(", ")
             )
         }
-        AnalyzedExprKind::TraitMethodCall {
-            receiver,
-            trait_name,
-            method_name,
-            args,
-        } => {
-            let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-            format!(
-                "{} as {}::{}({})",
-                tell_expr(receiver),
-                trait_name,
-                method_name,
-                args_str.join(", ")
-            )
-        }
         AnalyzedExprKind::StructInstantiation {
             type_name,
             fields,

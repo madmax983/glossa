@@ -345,17 +345,6 @@ pub enum AnalyzedExprKind {
         args: Vec<AnalyzedExpr>,
     },
 
-    /// Trait method call `receiver.<TraitName>::method(args)` (from trait impl)
-    ///
-    /// # Example
-    /// `user.Show::print()`
-    TraitMethodCall {
-        receiver: Box<AnalyzedExpr>,
-        trait_name: SmolStr,
-        method_name: SmolStr,
-        args: Vec<AnalyzedExpr>,
-    },
-
     /// Struct instantiation: `variable νέον type_name args... ἔστω`
     ///
     /// # Example
