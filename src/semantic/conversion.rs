@@ -460,19 +460,22 @@ fn classify_collection_mutation(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = &verb.lemma;
+    let Some(ref verb) = asm_stmt.verb else {
+        return Ok(None);
+    };
 
-        if let Some(res) = classify_pop(verb_lemma, asm_stmt, scope)? {
-            return Ok(Some(res));
-        }
-        if let Some(res) = classify_push(verb_lemma, asm_stmt, scope)? {
-            return Ok(Some(res));
-        }
-        if let Some(res) = classify_insert(verb_lemma, asm_stmt, scope)? {
-            return Ok(Some(res));
-        }
+    let verb_lemma = &verb.lemma;
+
+    if let Some(res) = classify_pop(verb_lemma, asm_stmt, scope)? {
+        return Ok(Some(res));
     }
+    if let Some(res) = classify_push(verb_lemma, asm_stmt, scope)? {
+        return Ok(Some(res));
+    }
+    if let Some(res) = classify_insert(verb_lemma, asm_stmt, scope)? {
+        return Ok(Some(res));
+    }
+
     Ok(None)
 }
 
@@ -481,29 +484,32 @@ fn classify_pop(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if crate::morphology::lexicon::is_pop_verb(verb_lemma)
-        && let Some(ref subject) = asm_stmt.subject
-    {
-        let receiver = AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
-            glossa_type: scope
-                .lookup(&subject.lemma)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown),
-        };
-
-        let method_call = AnalyzedExpr {
-            expr: AnalyzedExprKind::MethodCall {
-                receiver: Box::new(receiver),
-                method: "pop".into(),
-                args: vec![],
-            },
-            glossa_type: GlossaType::Unknown,
-        };
-
-        return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
+    if !crate::morphology::lexicon::is_pop_verb(verb_lemma) {
+        return Ok(None);
     }
-    Ok(None)
+
+    let Some(ref subject) = asm_stmt.subject else {
+        return Ok(None);
+    };
+
+    let receiver = AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+        glossa_type: scope
+            .lookup(&subject.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown),
+    };
+
+    let method_call = AnalyzedExpr {
+        expr: AnalyzedExprKind::MethodCall {
+            receiver: Box::new(receiver),
+            method: "pop".into(),
+            args: vec![],
+        },
+        glossa_type: GlossaType::Unknown,
+    };
+
+    Ok(Some(AnalyzedStatement::Expression(vec![method_call])))
 }
 
 fn classify_push(
@@ -511,46 +517,49 @@ fn classify_push(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if crate::morphology::lexicon::is_push_verb(verb_lemma)
-        && let Some(ref subject) = asm_stmt.subject
-    {
-        let receiver = AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+    if !crate::morphology::lexicon::is_push_verb(verb_lemma) {
+        return Ok(None);
+    }
+
+    let Some(ref subject) = asm_stmt.subject else {
+        return Ok(None);
+    };
+
+    let receiver = AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+        glossa_type: scope
+            .lookup(&subject.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown),
+    };
+
+    let arg = if let Some(lit) = asm_stmt.literals.first() {
+        literal_to_analyzed_expr(lit)
+    } else if let Some(ref obj) = asm_stmt.object {
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
             glossa_type: scope
-                .lookup(&subject.lemma)
+                .lookup(&obj.lemma)
                 .cloned()
                 .unwrap_or(GlossaType::Unknown),
-        };
+        }
+    } else {
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(0),
+            glossa_type: GlossaType::Number,
+        }
+    };
 
-        let arg = if let Some(lit) = asm_stmt.literals.first() {
-            literal_to_analyzed_expr(lit)
-        } else if let Some(ref obj) = asm_stmt.object {
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: scope
-                    .lookup(&obj.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown),
-            }
-        } else {
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(0),
-                glossa_type: GlossaType::Number,
-            }
-        };
+    let method_call = AnalyzedExpr {
+        expr: AnalyzedExprKind::MethodCall {
+            receiver: Box::new(receiver),
+            method: "push".into(),
+            args: vec![arg],
+        },
+        glossa_type: GlossaType::Unit,
+    };
 
-        let method_call = AnalyzedExpr {
-            expr: AnalyzedExprKind::MethodCall {
-                receiver: Box::new(receiver),
-                method: "push".into(),
-                args: vec![arg],
-            },
-            glossa_type: GlossaType::Unit,
-        };
-
-        return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
-    }
-    Ok(None)
+    Ok(Some(AnalyzedStatement::Expression(vec![method_call])))
 }
 
 fn classify_insert(
@@ -558,58 +567,61 @@ fn classify_insert(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if crate::morphology::lexicon::is_insert_verb(verb_lemma)
-        && let Some(ref subject) = asm_stmt.subject
-    {
-        let subj_name = &subject.normalized;
-        let subj_type = scope
-            .lookup(subj_name)
-            .cloned()
-            .unwrap_or(GlossaType::Unknown);
-
-        let receiver = AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(subj_name.clone()),
-            glossa_type: subj_type.clone(),
-        };
-
-        let is_map = matches!(subj_type, GlossaType::Map(_, _));
-
-        let args = if is_map && asm_stmt.literals.len() >= 2 {
-            vec![
-                literal_to_analyzed_expr(&asm_stmt.literals[0]),
-                literal_to_analyzed_expr(&asm_stmt.literals[1]),
-            ]
-        } else if let Some(lit) = asm_stmt.literals.first() {
-            vec![literal_to_analyzed_expr(lit)]
-        } else if let Some(ref obj) = asm_stmt.object {
-            vec![AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: scope
-                    .lookup(&obj.lemma)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown),
-            }]
-        } else {
-            vec![]
-        };
-
-        let return_type = if is_map {
-            GlossaType::Option(Box::new(GlossaType::Unknown))
-        } else {
-            GlossaType::Boolean
-        };
-        let method_call = AnalyzedExpr {
-            expr: AnalyzedExprKind::MethodCall {
-                receiver: Box::new(receiver),
-                method: "insert".into(),
-                args,
-            },
-            glossa_type: return_type,
-        };
-
-        return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
+    if !crate::morphology::lexicon::is_insert_verb(verb_lemma) {
+        return Ok(None);
     }
-    Ok(None)
+
+    let Some(ref subject) = asm_stmt.subject else {
+        return Ok(None);
+    };
+
+    let subj_name = &subject.normalized;
+    let subj_type = scope
+        .lookup(subj_name)
+        .cloned()
+        .unwrap_or(GlossaType::Unknown);
+
+    let receiver = AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(subj_name.clone()),
+        glossa_type: subj_type.clone(),
+    };
+
+    let is_map = matches!(subj_type, GlossaType::Map(_, _));
+
+    let args = if is_map && asm_stmt.literals.len() >= 2 {
+        vec![
+            literal_to_analyzed_expr(&asm_stmt.literals[0]),
+            literal_to_analyzed_expr(&asm_stmt.literals[1]),
+        ]
+    } else if let Some(lit) = asm_stmt.literals.first() {
+        vec![literal_to_analyzed_expr(lit)]
+    } else if let Some(ref obj) = asm_stmt.object {
+        vec![AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+            glossa_type: scope
+                .lookup(&obj.lemma)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown),
+        }]
+    } else {
+        vec![]
+    };
+
+    let return_type = if is_map {
+        GlossaType::Option(Box::new(GlossaType::Unknown))
+    } else {
+        GlossaType::Boolean
+    };
+    let method_call = AnalyzedExpr {
+        expr: AnalyzedExprKind::MethodCall {
+            receiver: Box::new(receiver),
+            method: "insert".into(),
+            args,
+        },
+        glossa_type: return_type,
+    };
+
+    Ok(Some(AnalyzedStatement::Expression(vec![method_call])))
 }
 
 /// Helper: Detect δεῖ assertion pattern
@@ -619,73 +631,79 @@ fn classify_assertion(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = &verb.lemma;
+    let Some(ref verb) = asm_stmt.verb else {
+        return Ok(None);
+    };
 
-        if crate::morphology::lexicon::is_assert_verb(verb_lemma) {
-            // The condition is everything except the verb
-            // Common pattern: <element> ἐν <collection> δεῖ
-
-            // Check for collection contains pattern (most common in tests)
-            if asm_stmt.has_containment_preposition
-                && let Some(ref subj) = asm_stmt.subject
-            {
-                // Pattern: element ἐν collection δεῖ
-                let subj_name = &subj.normalized;
-                let collection_type = scope
-                    .lookup(subj_name)
-                    .cloned()
-                    .unwrap_or(GlossaType::Unknown);
-
-                let element = if let Some(lit) = asm_stmt.literals.first() {
-                    literal_to_analyzed_expr(lit)
-                } else {
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(0),
-                        glossa_type: GlossaType::Number,
-                    }
-                };
-
-                let is_map = matches!(collection_type, GlossaType::Map(_, _));
-                let method = if is_map { "contains_key" } else { "contains" };
-
-                // Handle referencing argument if not a string literal
-                let arg_expr = if matches!(element.expr, AnalyzedExprKind::StringLiteral(_)) {
-                    element
-                } else {
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::UnaryOp {
-                            op: crate::morphology::lexicon::UnaryOp::Ref,
-                            operand: Box::new(element),
-                        },
-                        glossa_type: GlossaType::Unknown,
-                    }
-                };
-
-                let contains_expr = AnalyzedExpr {
-                    expr: AnalyzedExprKind::MethodCall {
-                        receiver: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(subj_name.clone()),
-                            glossa_type: collection_type.clone(),
-                        }),
-                        method: method.into(),
-                        args: vec![arg_expr],
-                    },
-                    glossa_type: GlossaType::Boolean,
-                };
-
-                let assert_expr = AnalyzedExpr {
-                    expr: AnalyzedExprKind::Assert {
-                        condition: Box::new(contains_expr),
-                    },
-                    glossa_type: GlossaType::Unit,
-                };
-
-                return Ok(Some(AnalyzedStatement::Expression(vec![assert_expr])));
-            }
-        }
+    let verb_lemma = &verb.lemma;
+    if !crate::morphology::lexicon::is_assert_verb(verb_lemma) {
+        return Ok(None);
     }
-    Ok(None)
+
+    // The condition is everything except the verb
+    // Common pattern: <element> ἐν <collection> δεῖ
+
+    // Check for collection contains pattern (most common in tests)
+    if !asm_stmt.has_containment_preposition {
+        return Ok(None);
+    }
+
+    let Some(ref subj) = asm_stmt.subject else {
+        return Ok(None);
+    };
+
+    // Pattern: element ἐν collection δεῖ
+    let subj_name = &subj.normalized;
+    let collection_type = scope
+        .lookup(subj_name)
+        .cloned()
+        .unwrap_or(GlossaType::Unknown);
+
+    let element = if let Some(lit) = asm_stmt.literals.first() {
+        literal_to_analyzed_expr(lit)
+    } else {
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(0),
+            glossa_type: GlossaType::Number,
+        }
+    };
+
+    let is_map = matches!(collection_type, GlossaType::Map(_, _));
+    let method = if is_map { "contains_key" } else { "contains" };
+
+    // Handle referencing argument if not a string literal
+    let arg_expr = if matches!(element.expr, AnalyzedExprKind::StringLiteral(_)) {
+        element
+    } else {
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::UnaryOp {
+                op: crate::morphology::lexicon::UnaryOp::Ref,
+                operand: Box::new(element),
+            },
+            glossa_type: GlossaType::Unknown,
+        }
+    };
+
+    let contains_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::MethodCall {
+            receiver: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj_name.clone()),
+                glossa_type: collection_type.clone(),
+            }),
+            method: method.into(),
+            args: vec![arg_expr],
+        },
+        glossa_type: GlossaType::Boolean,
+    };
+
+    let assert_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::Assert {
+            condition: Box::new(contains_expr),
+        },
+        glossa_type: GlossaType::Unit,
+    };
+
+    Ok(Some(AnalyzedStatement::Expression(vec![assert_expr])))
 }
 
 /// Helper: Detect ἰσοῦται equality assertion pattern
@@ -695,43 +713,47 @@ fn classify_equality_assertion(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if let Some(ref verb) = asm_stmt.verb {
-        let verb_lemma = &verb.lemma;
+    let Some(ref verb) = asm_stmt.verb else {
+        return Ok(None);
+    };
 
-        if crate::morphology::lexicon::is_equals_verb(verb_lemma) {
-            // We need two values to compare
-            let mut left_expr = None;
-            let mut right_expr = None;
-
-            // Get subject (variable)
-            if let Some(ref subj) = asm_stmt.subject
-                && let Some(var_type) = scope.lookup(&subj.lemma)
-            {
-                left_expr = Some(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                });
-            }
-
-            // Get literal (expected value)
-            if let Some(literal) = asm_stmt.literals.first() {
-                right_expr = Some(literal_to_analyzed_expr(literal));
-            }
-
-            if let (Some(left), Some(right)) = (left_expr, right_expr) {
-                let assert_eq_expr = AnalyzedExpr {
-                    expr: AnalyzedExprKind::AssertEq {
-                        left: Box::new(left),
-                        right: Box::new(right),
-                    },
-                    glossa_type: GlossaType::Unit,
-                };
-
-                return Ok(Some(AnalyzedStatement::Expression(vec![assert_eq_expr])));
-            }
-        }
+    let verb_lemma = &verb.lemma;
+    if !crate::morphology::lexicon::is_equals_verb(verb_lemma) {
+        return Ok(None);
     }
-    Ok(None)
+
+    // We need two values to compare
+    let mut left_expr = None;
+    let mut right_expr = None;
+
+    // Get subject (variable)
+    if let Some(ref subj) = asm_stmt.subject
+        && let Some(var_type) = scope.lookup(&subj.lemma)
+    {
+        left_expr = Some(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+            glossa_type: var_type.clone(),
+        });
+    }
+
+    // Get literal (expected value)
+    if let Some(literal) = asm_stmt.literals.first() {
+        right_expr = Some(literal_to_analyzed_expr(literal));
+    }
+
+    let (Some(left), Some(right)) = (left_expr, right_expr) else {
+        return Ok(None);
+    };
+
+    let assert_eq_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::AssertEq {
+            left: Box::new(left),
+            right: Box::new(right),
+        },
+        glossa_type: GlossaType::Unit,
+    };
+
+    Ok(Some(AnalyzedStatement::Expression(vec![assert_eq_expr])))
 }
 
 fn try_print_binary_op(
@@ -1062,44 +1084,46 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
 }
 
 /// Helper: Common logic for genitive method call parsing
-#[allow(clippy::collapsible_if)]
 fn try_parse_genitive_method_call(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Option<(AnalyzedExpr, GlossaType)> {
-    if let Some(ref subject) = asm_stmt.subject {
-        if !asm_stmt.genitives.is_empty() {
-            let owner_lemma = &asm_stmt.genitives[0].lemma;
-            let method_name = &subject.normalized;
+    let subject = asm_stmt.subject.as_ref()?;
 
-            if let Some(owner_type) = scope.lookup(owner_lemma) {
-                if !scope.is_defined(method_name) {
-                    let receiver = AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
-                        glossa_type: owner_type.clone(),
-                    };
-
-                    let mut args = Vec::with_capacity(asm_stmt.literals.len());
-                    for lit in &asm_stmt.literals {
-                        args.push(literal_to_analyzed_expr(lit));
-                    }
-
-                    return Some((
-                        AnalyzedExpr {
-                            expr: AnalyzedExprKind::MethodCall {
-                                receiver: Box::new(receiver),
-                                method: method_name.clone(),
-                                args,
-                            },
-                            glossa_type: GlossaType::Unknown,
-                        },
-                        GlossaType::Unknown,
-                    ));
-                }
-            }
-        }
+    if asm_stmt.genitives.is_empty() {
+        return None;
     }
-    None
+
+    let owner_lemma = &asm_stmt.genitives[0].lemma;
+    let method_name = &subject.normalized;
+
+    let owner_type = scope.lookup(owner_lemma)?;
+
+    if scope.is_defined(method_name) {
+        return None;
+    }
+
+    let receiver = AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(owner_lemma.clone()),
+        glossa_type: owner_type.clone(),
+    };
+
+    let mut args = Vec::with_capacity(asm_stmt.literals.len());
+    for lit in &asm_stmt.literals {
+        args.push(literal_to_analyzed_expr(lit));
+    }
+
+    Some((
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(receiver),
+                method: method_name.clone(),
+                args,
+            },
+            glossa_type: GlossaType::Unknown,
+        },
+        GlossaType::Unknown,
+    ))
 }
 
 /// Helper: Detect genitive method call (owner.method)
@@ -1518,6 +1542,1020 @@ pub fn extract_value(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_classify_pop_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(), // not a pop verb
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_pop("λέγει", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_pop_missing_subject() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ὠθεῖ".into(), // actually a push verb, let's use ἕλκεται for pop, but any string works for the missing subject test since it checks lemma first
+                normalized: "ἕλκεται".into(),
+                original: "ἕλκεται".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        // The check inside classify_pop explicitly looks at the passed verb_lemma ("ἕλκεται" is pop)
+        let result = classify_pop("ἕλκεται", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_push_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(),
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_push("λέγει", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_push_missing_subject() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ὠθεῖ".into(),
+                normalized: "ὠθεῖ".into(),
+                original: "ὠθεῖ".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_push("ὠθεῖ", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_insert_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(),
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_insert("λέγει", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_insert_missing_subject() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "τίθησι".into(),
+                normalized: "τίθησι".into(),
+                original: "τίθησι".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_insert("τίθησι", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_assertion_no_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: None,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_assertion_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(),
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_assertion_no_containment() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "δεῖ".into(),
+                normalized: "δεῖ".into(),
+                original: "δεῖ".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            has_containment_preposition: false,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_assertion_missing_subject() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "δεῖ".into(),
+                normalized: "δεῖ".into(),
+                original: "δεῖ".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            has_containment_preposition: true,
+            subject: None,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_equality_assertion_no_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: None,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_equality_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_equality_assertion_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(),
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_equality_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_equality_assertion_missing_left_expr() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ἰσοῦται".into(),
+                normalized: "ἰσοῦται".into(),
+                original: "ἰσοῦται".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: None, // Missing subject means left_expr will be None
+            literals: vec![Literal::Number(5)],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_equality_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_equality_assertion_undefined_left_expr() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ἰσοῦται".into(),
+                normalized: "ἰσοῦται".into(),
+                original: "ἰσοῦται".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: Some(Constituent {
+                lemma: "y".into(), // y is not defined in scope
+                normalized: "y".into(),
+                original: "y".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            literals: vec![Literal::Number(5)],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_equality_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_equality_assertion_missing_right_expr() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ἰσοῦται".into(),
+                normalized: "ἰσοῦται".into(),
+                original: "ἰσοῦται".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: Some(Constituent {
+                lemma: "x".into(),
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            literals: vec![], // Empty literals means right_expr will be None
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        scope.define("x", GlossaType::Number);
+        let result = classify_equality_assertion(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_collection_mutation_no_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: None,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_collection_mutation(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_print_no_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: None,
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_print(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_print_wrong_verb() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγει".into(), // not a print verb (λέγε is, but here testing the literal check)
+                normalized: "λέγει".into(),
+                original: "λέγει".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_print(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_try_print_binary_op_empty() {
+        let asm_stmt = AssembledStatement {
+            operators: vec![],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = try_print_binary_op(&asm_stmt, &mut scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_print_property_access_empty() {
+        let asm_stmt = AssembledStatement {
+            property_accesses: vec![],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = try_print_property_access(&asm_stmt, &mut scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_print_index_access_empty() {
+        let asm_stmt = AssembledStatement {
+            index_accesses: vec![],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = try_print_index_access(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_try_print_unwrap_empty() {
+        let asm_stmt = AssembledStatement {
+            unwraps: vec![],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = try_print_unwrap(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_try_parse_genitive_method_call_no_subject() {
+        let asm_stmt = AssembledStatement {
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = try_parse_genitive_method_call(&asm_stmt, &scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_parse_genitive_method_call_no_genitives() {
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "len".into(),
+                normalized: "len".into(),
+                original: "len".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            genitives: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = try_parse_genitive_method_call(&asm_stmt, &scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_parse_genitive_method_call_owner_not_found() {
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "len".into(),
+                normalized: "len".into(),
+                original: "len".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            genitives: vec![Constituent {
+                lemma: "x".into(), // Not in scope
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Genitive,
+                number: None,
+                person: None,
+            }],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = try_parse_genitive_method_call(&asm_stmt, &scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_parse_genitive_method_call_method_already_defined() {
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "len".into(),
+                normalized: "len".into(),
+                original: "len".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            genitives: vec![Constituent {
+                lemma: "x".into(),
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Genitive,
+                number: None,
+                person: None,
+            }],
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        scope.define("x", GlossaType::String);
+        scope.define("len", GlossaType::Number); // Method name is already a defined variable in scope
+        let result = try_parse_genitive_method_call(&asm_stmt, &scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_classify_genitive_method_call_empty() {
+        let asm_stmt = AssembledStatement {
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_genitive_method_call(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_unwrap_empty() {
+        let asm_stmt = AssembledStatement {
+            unwraps: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_unwrap(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_enum_from_subject_empty() {
+        let asm_stmt = AssembledStatement {
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_enum_from_subject(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_genitive_method_empty() {
+        let asm_stmt = AssembledStatement {
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_genitive_method(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_enum_from_nominatives_empty() {
+        let asm_stmt = AssembledStatement {
+            nominatives: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_enum_from_nominatives(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_property_access_empty() {
+        let asm_stmt = AssembledStatement {
+            property_accesses: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_property_access(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_index_access_empty() {
+        let asm_stmt = AssembledStatement {
+            index_accesses: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_index_access(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_array_empty() {
+        let asm_stmt = AssembledStatement {
+            arrays: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_array(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_binary_op_empty() {
+        let asm_stmt = AssembledStatement {
+            operators: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_binary_op(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_enum_from_object_empty() {
+        let asm_stmt = AssembledStatement {
+            object: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_enum_from_object(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_literal_empty() {
+        let asm_stmt = AssembledStatement {
+            literals: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_literal(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_object_fallback_empty() {
+        let asm_stmt = AssembledStatement {
+            object: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_object_fallback(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_property_access_print_owner_not_in_scope() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγε".into(),
+                normalized: "λέγε".into(),
+                original: "λέγε".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            genitives: vec![Constituent {
+                lemma: "owner".into(),
+                normalized: "owner".into(),
+                original: "owner".into(),
+                gender: None,
+                case: crate::morphology::Case::Genitive,
+                number: None,
+                person: None,
+            }],
+            subject: Some(Constituent {
+                lemma: "prop".into(),
+                normalized: "prop".into(),
+                original: "prop".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_property_access_print(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_property_access_print_owner_not_struct() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "λέγε".into(),
+                normalized: "λέγε".into(),
+                original: "λέγε".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            genitives: vec![Constituent {
+                lemma: "owner".into(),
+                normalized: "owner".into(),
+                original: "owner".into(),
+                gender: None,
+                case: crate::morphology::Case::Genitive,
+                number: None,
+                person: None,
+            }],
+            subject: Some(Constituent {
+                lemma: "prop".into(),
+                normalized: "prop".into(),
+                original: "prop".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        scope.define("owner", GlossaType::Number); // Not a struct
+        let result = classify_property_access_print(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_function_call_no_subject() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ἔστω".into(), // Binding verb
+                normalized: "ἔστω".into(),
+                original: "ἔστω".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            object: Some(Constituent {
+                lemma: "myfunc".into(),
+                normalized: "myfunc".into(),
+                original: "myfunc".into(),
+                gender: None,
+                case: crate::morphology::Case::Accusative,
+                number: None,
+                person: None,
+            }),
+            subject: None, // No subject
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        scope.define_function("myfunc", vec![], Some(GlossaType::Number));
+        let result = classify_function_call(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_classify_subjunctive_comparison_no_subject() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ἔστω".into(), // Binding verb
+                normalized: "ἔστω".into(),
+                original: "ἔστω".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: Some(crate::morphology::Mood::Subjunctive),
+                voice: None,
+            }),
+            operators: vec![crate::morphology::lexicon::BinaryOp::Eq],
+            literals: vec![Literal::Number(5)],
+            subject: None, // No subject
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        let result = classify_subjunctive_comparison(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_resolve_binding_target_no_subject_has_participle() {
+        let asm_stmt = AssembledStatement {
+            subject: None,
+            participles: vec![crate::semantic::assembly::ParticipleConstituent {
+                verb_lemma: "participle".into(),
+                normalized: "participle".into(),
+                original: "participle".into(),
+                gender: crate::morphology::Gender::Masculine,
+                case: crate::morphology::Case::Nominative,
+                number: crate::morphology::Number::Singular,
+                voice: crate::morphology::Voice::Active,
+                tense: crate::morphology::Tense::Present,
+            }],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = resolve_binding_target(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().0, "participle");
+    }
+
+    #[test]
+    fn test_resolve_binding_target_no_subject_no_participle() {
+        let asm_stmt = AssembledStatement {
+            subject: None,
+            participles: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = resolve_binding_target(&asm_stmt, &scope);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Binding without subject")
+        );
+    }
+
+    #[test]
+    fn test_classify_query_containment_no_literal() {
+        let asm_stmt = AssembledStatement {
+            is_query: true,
+            has_containment_preposition: true,
+            subject: Some(Constituent {
+                lemma: "x".into(),
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            literals: vec![], // No literal element
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        scope.define("x", GlossaType::List(Box::new(GlossaType::Number)));
+        let result = classify_query(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        let stmt = result.unwrap();
+        assert!(stmt.is_some());
+
+        // Ensure the fallback literal generation (0) happened
+        if let AnalyzedStatement::Query(exprs) = stmt.unwrap() {
+            assert_eq!(exprs.len(), 1);
+            if let AnalyzedExprKind::MethodCall { args, .. } = &exprs[0].expr {
+                assert_eq!(args.len(), 1);
+                if let AnalyzedExprKind::UnaryOp { op, operand } = &args[0].expr {
+                    assert_eq!(*op, crate::morphology::lexicon::UnaryOp::Ref);
+                    assert!(matches!(operand.expr, AnalyzedExprKind::NumberLiteral(0)));
+                } else {
+                    panic!("Expected UnaryOp Ref");
+                }
+            } else {
+                panic!("Expected MethodCall");
+            }
+        } else {
+            panic!("Expected Query");
+        }
+    }
+
+    #[test]
+    fn test_classify_insert_no_args() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "τιθημι".into(), // insert verb
+                normalized: "τιθημι".into(),
+                original: "τίθησι".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: Some(Constituent {
+                lemma: "x".into(),
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            literals: vec![],
+            object: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_insert("τιθημι", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        let opt_stmt = result.unwrap();
+        assert!(opt_stmt.is_some());
+        if let AnalyzedStatement::Expression(exprs) = opt_stmt.unwrap() {
+            if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
+                assert_eq!(method, "insert");
+                assert!(args.is_empty());
+            } else {
+                panic!("Expected MethodCall");
+            }
+        } else {
+            panic!("Expected Expression statement");
+        }
+    }
+
+    #[test]
+    fn test_classify_insert_object() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "τιθημι".into(), // insert verb
+                normalized: "τιθημι".into(),
+                original: "τίθησι".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: Some(Constituent {
+                lemma: "x".into(),
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            object: Some(Constituent {
+                lemma: "y".into(),
+                normalized: "y".into(),
+                original: "y".into(),
+                gender: None,
+                case: crate::morphology::Case::Accusative,
+                number: None,
+                person: None,
+            }),
+            literals: vec![],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_insert("τιθημι", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        let opt_stmt = result.unwrap();
+        assert!(opt_stmt.is_some());
+        if let AnalyzedStatement::Expression(exprs) = opt_stmt.unwrap() {
+            if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
+                assert_eq!(method, "insert");
+                assert_eq!(args.len(), 1);
+                if let AnalyzedExprKind::Variable(var_name) = &args[0].expr {
+                    assert_eq!(var_name, "y");
+                } else {
+                    panic!("Expected Variable argument");
+                }
+            } else {
+                panic!("Expected MethodCall");
+            }
+        } else {
+            panic!("Expected Expression statement");
+        }
+    }
+
+    #[test]
+    fn test_classify_push_no_args() {
+        let asm_stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "ωθω".into(), // push verb
+                normalized: "ωθω".into(),
+                original: "ὠθεῖ".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            subject: Some(Constituent {
+                lemma: "x".into(),
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            literals: vec![],
+            object: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = classify_push("ωθω", &asm_stmt, &scope);
+        assert!(result.is_ok());
+        let opt_stmt = result.unwrap();
+        assert!(opt_stmt.is_some());
+        if let AnalyzedStatement::Expression(exprs) = opt_stmt.unwrap() {
+            if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
+                assert_eq!(method, "push");
+                assert_eq!(args.len(), 1);
+                if let AnalyzedExprKind::NumberLiteral(val) = args[0].expr {
+                    assert_eq!(val, 0); // fallback is 0
+                } else {
+                    panic!("Expected NumberLiteral fallback argument");
+                }
+            } else {
+                panic!("Expected MethodCall");
+            }
+        } else {
+            panic!("Expected Expression statement");
+        }
+    }
 
     #[test]
     fn test_classify_expression_empty_exprs_propagate() {
