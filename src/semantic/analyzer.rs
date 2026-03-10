@@ -89,7 +89,6 @@ impl SemanticAnalyzer {
     }
 }
 
-
 /// Analyzed program with resolved names and types
 #[derive(Debug, Clone)]
 pub struct AnalyzedProgram {
