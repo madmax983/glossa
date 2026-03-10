@@ -7,8 +7,8 @@
 //! - Return (δός)
 //! - Break/Continue (παῦε, συνέχιζε)
 
-use super::conversion::convert_assembled_to_analyzed;
 use super::analyzer::analyze_statement;
+use super::conversion::convert_assembled_to_analyzed;
 use super::expressions::get_first_word;
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope, assemble_statement,
@@ -644,8 +644,7 @@ fn parse_conditional(
             };
 
             // Recursively parse as a new conditional (which becomes the else body)
-            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope, depth + 1)?
-            {
+            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope, depth + 1)? {
                 Some(vec![elif_analyzed])
             } else {
                 None
