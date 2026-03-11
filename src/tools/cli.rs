@@ -175,4 +175,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Run the Philosopher static analyzer (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Philosopher {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
