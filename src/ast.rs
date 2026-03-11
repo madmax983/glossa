@@ -550,25 +550,59 @@ pub enum UnaryOperator {
     Unwrap,
 }
 
-/// A Greek word with original and normalized forms
+/// Represents a parsed word from the ΓΛΩΣΣΑ source code.
 ///
-/// This struct preserves the original polytonic Greek text (for display)
-/// while providing a normalized version for compiler analysis.
+/// A `Word` in the AST is not just a `String`. Because Ancient Greek has
+/// rich diacritics (accents, breathings) and capitalization, comparing words
+/// directly is error-prone. This struct acts as a bridge between the
+/// human-readable source and the compiler's internal matching logic,
+/// preserving the original polytonic text (for display) while providing
+/// a normalized version for compiler analysis.
 ///
-/// # Examples
+/// ## Why it exists
 ///
-/// ```
+/// In the morphological analysis phase, the compiler needs to look up words
+/// in its lexicon. If a user writes `Ἄνθρωπος` (Capital A, smooth breathing, acute accent),
+/// the compiler must recognize it as the same lemma as `ἄνθρωπος` (lowercase a, smooth, acute)
+/// or even `ανθρωπος` (stripped of all diacritics).
+///
+/// Storing both the `original` string (for exact error reporting) and the `normalized`
+/// string (for lexicon lookups and comparisons) in a single struct solves this problem
+/// at the parsing stage, preventing expensive re-allocations later.
+///
+/// ## Examples
+///
+/// You can construct a `Word` via `Word::new` for convenience, or construct it directly
+/// using [`smol_str::SmolStr`] to avoid heap allocations for small strings.
+///
+/// ```rust
 /// use glossa::ast::Word;
 ///
 /// let word = Word::new("Ἀθῆναι");
-/// assert_eq!(word.original, "Ἀθῆναι");
-/// assert_eq!(word.normalized, "αθηναι");
+/// assert_eq!(word.original.as_str(), "Ἀθῆναι");
+/// assert_eq!(word.normalized.as_str(), "αθηναι");
+/// ```
+///
+/// ```rust
+/// use glossa::ast::Word;
+/// use smol_str::SmolStr;
+///
+/// // Create a word representing the noun "ἄνθρωπος" (man) directly
+/// let man = Word {
+///     original: SmolStr::new("Ἄνθρωπος"),
+///     normalized: SmolStr::new("ανθρωπος"),
+/// };
+///
+/// assert_eq!(man.original.as_str(), "Ἄνθρωπος");
+/// assert_eq!(man.normalized.as_str(), "ανθρωπος");
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Word {
-    /// Original text with diacritics
+    /// The exact string from the source code, preserving case and diacritics.
+    /// Useful for accurate compilation error messages and source maps.
     pub original: SmolStr,
-    /// Normalized (lowercase, no diacritics)
+    /// The lowercase, diacritic-stripped version of the word.
+    /// Used for lexicon lookups, keyword matching, and semantic hashing.
     pub normalized: SmolStr,
 }
 
