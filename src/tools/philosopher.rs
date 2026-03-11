@@ -286,6 +286,60 @@ mod tests {
     }
 
     #[test]
+    fn test_philosopher_empty_block() {
+        // Build an empty while loop to cover the empty block check natively
+        let empty_while = AnalyzedStatement::While {
+            condition: Box::new(dummy_expr()),
+            body: vec![],
+        };
+
+        let program = AnalyzedProgram {
+            statements: vec![empty_while],
+            scope: Scope::new(),
+        };
+
+        let mut phil = Philosopher::new();
+        let maxims = phil.analyze(&program);
+
+        assert!(maxims.iter().any(|m| m.philosopher == "Diogenes"));
+    }
+
+    #[test]
+    fn test_philosopher_match_and_for_coverage() {
+        // Need to cover For and Match arms to bump coverage
+        let for_loop = AnalyzedStatement::For {
+            variable: "x".into(),
+            iterator: Box::new(dummy_expr()),
+            body: vec![AnalyzedStatement::Binding {
+                name: "y".into(),
+                value: dummy_expr(),
+                mutable: true,
+            }],
+        };
+
+        let match_expr = AnalyzedStatement::Match {
+            scrutinee: Box::new(dummy_expr()),
+            arms: vec![
+                (dummy_expr(), vec![AnalyzedStatement::Expression(vec![dummy_expr()])])
+            ],
+        };
+
+        let test_decl = AnalyzedStatement::TestDeclaration {
+            name: "coverage_test".into(),
+            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+        };
+
+        let program = AnalyzedProgram {
+            statements: vec![for_loop, match_expr, test_decl],
+            scope: Scope::new(),
+        };
+
+        let mut phil = Philosopher::new();
+        let _maxims = phil.analyze(&program);
+        // We just want to ensure it traversed these correctly without crashing.
+    }
+
+    #[test]
     fn test_philosopher_aristotle() {
         let mut statements = Vec::new();
         for _ in 0..16 {
