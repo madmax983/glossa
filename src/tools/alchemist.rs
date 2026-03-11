@@ -15,7 +15,6 @@ use crate::parser::parse;
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, analyze_program,
 };
-use std::fs;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
@@ -23,8 +22,7 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let status =
         crate::tools::ui::Status::start_with_symbol("Χημεία (Transpiling to Python)", "⚗️");
 
-    let source =
-        fs::read_to_string(input).map_err(|e| miette::miette!("Failed to read file: {}", e))?;
+    let source = crate::tools::runner::load_source(input)?;
 
     let ast = parse(&source).map_err(|e| miette::miette!("Parse error: {}", e))?;
     let program = analyze_program(&ast).map_err(|e| miette::miette!("Semantic error: {}", e))?;
@@ -386,5 +384,29 @@ mod tests {
         let py = transpile_code(code);
         assert!(py.contains("def g_προσθεσις(g_α, g_β):"));
         assert!(py.contains("    return (g_α + g_β)"));
+    }
+
+    #[test]
+    fn test_run_alchemist_file_too_large() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("too_large.γλ");
+
+        // Create a file larger than MAX_FILE_SIZE (1MB)
+        let max_size = 1024 * 1024;
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            let data = vec![0u8; max_size + 1];
+            f.write_all(&data).unwrap();
+        }
+
+        let result = run_alchemist(&input_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Ἀρχεῖον λίαν μέγα")
+        );
     }
 }
