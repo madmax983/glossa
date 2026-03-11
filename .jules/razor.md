@@ -102,3 +102,8 @@
 **Bloat:** `MAX_*` depth/limit constants scattered across `src/semantic/assembly/model.rs` and `src/semantic/control_flow.rs`, creating architectural duplication and inconsistent definition points.
 **Cut:** Centralized all compiler depth limit constants into `src/limits.rs`.
 **Saved:** Centralized logic (Single Source of Truth) and improved transparency for architectural constraints.
+
+## [Reduction]
+**Bloat:** `StatementAnalyzer` trait in `src/semantic/traits.rs` and empty `SemanticAnalyzer` struct in `src/semantic/analyzer.rs` implemented "The 'One-Time' Trait" pattern and added unnecessary indirection.
+**Cut:** Deleted the trait and struct, moving logic into the standalone `analyze_statement` function. Updated calling signatures across `control_flow.rs` and `declarations.rs` to remove the unnecessary `analyzer: &mut impl StatementAnalyzer` parameter.
+**Saved:** Removed 1 file (`traits.rs`), 1 empty struct instantiation per statement analysis, and simplified ~10 function signatures.
