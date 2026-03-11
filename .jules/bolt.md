@@ -1,3 +1,3 @@
-**Pre-allocate semantic conversions**
-**Learning:** Pre-allocating `Vec` instances based on inner AST node sizes is extremely effective for improving AST generation speed during semantic conversion, directly removing multiple unneeded O(log N) heap allocations.
-**Action:** Implemented pre-allocation `Vec::with_capacity` optimizations in `src/semantic/declarations.rs`.
+**[Replacing .lines().collect() with .lines().peekable()]**
+**Learning:** When parsing text output streams (like from `rustc`), avoid collecting `output.lines()` into an intermediate `Vec<&str>` just to iterate using index variables. This creates an unnecessary O(N) heap allocation. Instead, use a `.peekable()` iterator and process the stream in place, manually managing `.next()` and `.peek()` calls. Be careful with mutable references when using iterator `by_ref()` and `peek()` simultaneously within the same block to avoid borrow checker errors (`cannot borrow as mutable more than once at a time`).
+**Action:** Use `output.lines().peekable()` and a `while let Some(line) = lines.next()` structure for stream processing instead of `Vec` collection.

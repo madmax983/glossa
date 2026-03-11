@@ -97,27 +97,24 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
     results
 }
 
+/// Extracts failed tests and their output from `rustc --test` output.
+///
+/// ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<&str>>()` allocation.
+/// This parses the output stream in-place using a `Peekable` iterator, reducing memory
+/// allocations when test outputs are large.
 fn extract_failures(output: &str) -> Vec<(String, String)> {
     let mut failures = Vec::new();
-    let lines: Vec<&str> = output.lines().collect();
-    let mut i = 0;
+    let mut lines = output.lines().peekable();
 
     // Skip until "failures:"
-    while i < lines.len() {
-        if lines[i].trim() == "failures:" {
+    for line in lines.by_ref() {
+        if line.trim() == "failures:" {
             break;
         }
-        i += 1;
     }
-
-    if i >= lines.len() {
-        return failures;
-    }
-    i += 1;
 
     // Scan for "---- <name> stdout ----"
-    while i < lines.len() {
-        let line = lines[i];
+    while let Some(line) = lines.next() {
         if line.trim().starts_with("----") && line.trim().ends_with("stdout ----") {
             // Extract name: "---- test_name stdout ----"
             let trimmed = line.trim();
@@ -132,10 +129,8 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                 .to_string();
 
             // Capture output until next "----" or empty line followed by "failures:"
-            i += 1;
             let mut message = String::new();
-            while i < lines.len() {
-                let current = lines[i];
+            while let Some(current) = lines.peek() {
                 if current.trim().starts_with("----") && current.trim().ends_with("stdout ----") {
                     // Start of next failure
                     break;
@@ -146,12 +141,10 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                 }
                 message.push_str(current);
                 message.push('\n');
-                i += 1;
+                lines.next();
             }
             failures.push((name, message.trim().to_string()));
-            continue; // Don't increment i, loop will check current line again
         }
-        i += 1;
     }
 
     failures
