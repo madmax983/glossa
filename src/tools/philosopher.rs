@@ -319,9 +319,10 @@ mod tests {
 
         let match_expr = AnalyzedStatement::Match {
             scrutinee: Box::new(dummy_expr()),
-            arms: vec![
-                (dummy_expr(), vec![AnalyzedStatement::Expression(vec![dummy_expr()])])
-            ],
+            arms: vec![(
+                dummy_expr(),
+                vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+            )],
         };
 
         let test_decl = AnalyzedStatement::TestDeclaration {
