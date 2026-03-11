@@ -330,8 +330,14 @@ mod tests {
             body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
         };
 
+        let if_stmt = AnalyzedStatement::If {
+            condition: Box::new(dummy_expr()),
+            then_body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+            else_body: Some(vec![AnalyzedStatement::Expression(vec![dummy_expr()])]),
+        };
+
         let program = AnalyzedProgram {
-            statements: vec![for_loop, match_expr, test_decl],
+            statements: vec![for_loop, match_expr, test_decl, if_stmt],
             scope: Scope::new(),
         };
 
