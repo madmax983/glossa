@@ -297,4 +297,194 @@ mod tests {
         let result = interpreter.run(&program);
         assert!(matches!(result, Err(EvalError::DivisionByZero)));
     }
+
+    #[test]
+    fn test_default_impl() {
+        let interp = Interpreter::default();
+        assert_eq!(interp.env.len(), 1);
+        assert!(interp.output.is_empty());
+    }
+
+    #[test]
+    fn test_value_display() {
+        assert_eq!(Value::Unit.to_string(), "()");
+        assert_eq!(Value::Number(42).to_string(), "42");
+        assert_eq!(Value::Boolean(true).to_string(), "true");
+        assert_eq!(Value::String("test".to_string()).to_string(), "test");
+    }
+
+    #[test]
+    fn test_eval_expression_statement() {
+        // Just evaluating an expression without printing or binding
+        let stmt = AnalyzedStatement::Expression(vec![AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(42),
+            glossa_type: crate::semantic::GlossaType::Number,
+        }]);
+        let program = AnalyzedProgram {
+            statements: vec![stmt],
+            scope: crate::semantic::Scope::new(),
+        };
+        let mut interpreter = Interpreter::new();
+        interpreter.run(&program).expect("Runtime error");
+        assert!(interpreter.get_output().is_empty());
+    }
+
+    #[test]
+    fn test_not_implemented_statement() {
+        let stmt = AnalyzedStatement::Return { value: None };
+        let mut interpreter = Interpreter::new();
+        let result = interpreter.eval_statement(&stmt);
+        assert!(matches!(result, Err(EvalError::NotImplemented(_))));
+    }
+
+    #[test]
+    fn test_not_implemented_expression() {
+        let expr2 = AnalyzedExpr {
+            expr: AnalyzedExprKind::StructInstantiation {
+                type_name: "TestStruct".into(),
+                fields: vec![],
+                args: vec![],
+            },
+            glossa_type: crate::semantic::GlossaType::Unknown,
+        };
+        let interpreter = Interpreter::new();
+        let result = interpreter.eval_expr(&expr2);
+        assert!(matches!(result, Err(EvalError::NotImplemented(_))));
+    }
+
+    #[test]
+    fn test_eval_unary_op() {
+        let interpreter = Interpreter::new();
+
+        let not_true = interpreter
+            .eval_unary_op(&UnaryOp::Not, Value::Boolean(true))
+            .unwrap();
+        assert_eq!(not_true, Value::Boolean(false));
+
+        let neg_five = interpreter
+            .eval_unary_op(&UnaryOp::Neg, Value::Number(5))
+            .unwrap();
+        assert_eq!(neg_five, Value::Number(-5));
+
+        let invalid_unary = interpreter.eval_unary_op(&UnaryOp::Not, Value::Number(1));
+        assert!(matches!(invalid_unary, Err(EvalError::NotImplemented(_))));
+
+        // Test the eval_expr wrapper around unary ops
+        let unary_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::UnaryOp {
+                op: UnaryOp::Not,
+                operand: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: crate::semantic::GlossaType::Boolean,
+                }),
+            },
+            glossa_type: crate::semantic::GlossaType::Boolean,
+        };
+        let unary_eval = interpreter.eval_expr(&unary_expr).unwrap();
+        assert_eq!(unary_eval, Value::Boolean(false));
+    }
+
+    #[test]
+    fn test_eval_binary_op() {
+        let interpreter = Interpreter::new();
+
+        // Sub
+        assert_eq!(
+            interpreter
+                .eval_bin_op(&BinaryOp::Sub, Value::Number(10), Value::Number(4))
+                .unwrap(),
+            Value::Number(6)
+        );
+
+        // Mul
+        assert_eq!(
+            interpreter
+                .eval_bin_op(&BinaryOp::Mul, Value::Number(3), Value::Number(4))
+                .unwrap(),
+            Value::Number(12)
+        );
+
+        // Div (Success)
+        assert_eq!(
+            interpreter
+                .eval_bin_op(&BinaryOp::Div, Value::Number(12), Value::Number(3))
+                .unwrap(),
+            Value::Number(4)
+        );
+
+        // Eq & Ne (Strings, to hit the general case)
+        assert_eq!(
+            interpreter
+                .eval_bin_op(
+                    &BinaryOp::Eq,
+                    Value::String("a".into()),
+                    Value::String("a".into())
+                )
+                .unwrap(),
+            Value::Boolean(true)
+        );
+        assert_eq!(
+            interpreter
+                .eval_bin_op(
+                    &BinaryOp::Ne,
+                    Value::String("a".into()),
+                    Value::String("b".into())
+                )
+                .unwrap(),
+            Value::Boolean(true)
+        );
+
+        // Lt & Gt
+        assert_eq!(
+            interpreter
+                .eval_bin_op(&BinaryOp::Lt, Value::Number(3), Value::Number(5))
+                .unwrap(),
+            Value::Boolean(true)
+        );
+        assert_eq!(
+            interpreter
+                .eval_bin_op(&BinaryOp::Gt, Value::Number(5), Value::Number(3))
+                .unwrap(),
+            Value::Boolean(true)
+        );
+
+        // And & Or
+        assert_eq!(
+            interpreter
+                .eval_bin_op(&BinaryOp::And, Value::Boolean(true), Value::Boolean(false))
+                .unwrap(),
+            Value::Boolean(false)
+        );
+        assert_eq!(
+            interpreter
+                .eval_bin_op(&BinaryOp::Or, Value::Boolean(false), Value::Boolean(true))
+                .unwrap(),
+            Value::Boolean(true)
+        );
+
+        // Invalid Operation
+        let invalid = interpreter.eval_bin_op(
+            &BinaryOp::Add,
+            Value::Number(1),
+            Value::String("foo".into()),
+        );
+        assert!(matches!(invalid, Err(EvalError::InvalidOperation { .. })));
+    }
+
+    #[test]
+    fn test_variable_not_found() {
+        let mut interpreter = Interpreter::new();
+
+        // Lookup
+        assert!(matches!(
+            interpreter.lookup_var("x"),
+            Err(EvalError::VariableNotFound(_))
+        ));
+
+        // Assign
+        assert!(matches!(
+            interpreter.assign_var("x", Value::Number(1)),
+            Err(EvalError::VariableNotFound(_))
+        ));
+    }
 }
