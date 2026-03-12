@@ -112,3 +112,6 @@
 **Tangle:** Internal modules were needlessly exposed via `pub mod` across `src/lib.rs`, `src/tools/mod.rs`, `src/parser/mod.rs`, `src/semantic/mod.rs`, etc. This broke clear module boundaries and leaked implementation details.
 **Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all internal modules while keeping `pub mod` only where necessary for public APIs (`parser`, `semantic`, `codegen`, `morphology`) and re-exported features (`highlight`).
 **Stability:** Enforced high cohesion and low coupling by ensuring strict encapsulation and clean public interfaces.
+**[Breaking The Leak: Encapsulation via pub(crate)]
+**Tangle:** Internal modules were needlessly exposed via `pub mod` across various modules. This broke clear module boundaries and leaked implementation details.
+**Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all internal modules while keeping `pub mod` only where necessary for public APIs.

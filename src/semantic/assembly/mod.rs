@@ -104,7 +104,7 @@
 //! assert!(stmt.object.is_some());
 //! ```
 
-pub mod model;
+pub(crate) mod model;
 pub use model::*;
 
 use crate::ast::{Expr, Word};
