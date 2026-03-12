@@ -27,3 +27,7 @@
 ## 2025-03-11 - Cohesive Doc Block Structure
 **Confusion:** Adding new sections (like "Why it exists" and "Examples") to existing doc blocks can lead to disjointed reading experiences (e.g., an example, followed by a summary, followed by another example) if the existing block structure is not fully considered.
 **Clarification:** When updating existing rustdoc comments with new sections, reorganize the entire doc block so the top-level summary is at the very beginning, followed by explanatory sections, and ending with the code examples. Do not simply append to the end of an existing block if it breaks the logical flow.
+
+## 2025-03-11 - Constructing Errors Consistently
+**Confusion:** The constructors for `GlossaError` (`parse`, `semantic`, `codegen`, etc.) in `src/errors/mod.rs` were missing rustdoc comments, leading to confusion about when to use which constructor and how they map to the underlying enum variants.
+**Clarification:** I added cohesive rustdoc to all public error constructors. Each block now explains *what* the constructor makes, *why* you would use it (e.g., syntactical invalidity vs logical invalidity vs internal compiler bug), and provides an executable example demonstrating its usage.

@@ -66,7 +66,7 @@ impl ScopeLevel {
 /// A scope containing variable bindings.
 ///
 /// This struct represents the entire lexical environment of a program at a given point
-/// in time. It holds a stack of [`ScopeLevel`]s, allowing for variable shadowing
+/// in time. It holds a stack of internal levels, allowing for variable shadowing
 /// and nested block scopes.
 ///
 /// # Examples
