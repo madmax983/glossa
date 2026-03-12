@@ -130,7 +130,19 @@ pub enum GlossaError {
 }
 
 impl GlossaError {
-    /// Create a parse error
+    /// Creates a new `GlossaError::ParseError`.
+    ///
+    /// This is used when the source code contains invalid syntax or characters,
+    /// meaning the lexer/parser cannot convert it into a valid abstract syntax tree.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::errors::GlossaError;
+    ///
+    /// let error = GlossaError::parse("expected closing brace");
+    /// assert!(matches!(error, GlossaError::ParseError { .. }));
+    /// ```
     pub fn parse(message: impl Into<String>) -> Self {
         GlossaError::ParseError {
             message: message.into(),
@@ -139,7 +151,25 @@ impl GlossaError {
         }
     }
 
-    /// Create a parse error with source context
+    /// Creates a new `GlossaError::ParseError` complete with source file context.
+    ///
+    /// By providing the source string and the span representing the exact location
+    /// of the error, the compiler can print helpful error diagnostics with lines,
+    /// carets, and context using the [`miette`] crate.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::errors::GlossaError;
+    /// use miette::SourceSpan;
+    ///
+    /// let source = "ἔστω x 5".to_string(); // Invalid: variables start with greek letters
+    /// let error = GlossaError::parse_with_source(
+    ///     "invalid variable name",
+    ///     source.clone(),
+    ///     SourceSpan::new(5.into(), 1_usize)
+    /// );
+    /// ```
     pub fn parse_with_source(
         message: impl Into<String>,
         src: impl Into<String>,
@@ -152,26 +182,79 @@ impl GlossaError {
         }
     }
 
-    /// Create a semantic error
+    /// Creates a new `GlossaError::SemanticError`.
+    ///
+    /// This is used when code is syntactically valid but breaks logical language rules,
+    /// such as type mismatches, calling non-functions, or missing required fields.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::errors::GlossaError;
+    ///
+    /// let error = GlossaError::semantic("type mismatch: expected Number, found String");
+    /// assert!(matches!(error, GlossaError::SemanticError { .. }));
+    /// ```
     pub fn semantic(message: impl Into<String>) -> Self {
         GlossaError::SemanticError {
             message: message.into(),
         }
     }
 
-    /// Create an undefined name error
+    /// Creates a new `GlossaError::UndefinedName`.
+    ///
+    /// This specific semantic error is thrown when code attempts to reference a variable,
+    /// type, or function that hasn't been defined in the current or parent [`Scope`].
+    ///
+    /// [`Scope`]: crate::semantic::Scope
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::errors::GlossaError;
+    ///
+    /// let error = GlossaError::undefined("ἀριθμός");
+    /// assert!(matches!(error, GlossaError::UndefinedName { .. }));
+    /// ```
     pub fn undefined(name: impl Into<String>) -> Self {
         GlossaError::UndefinedName { name: name.into() }
     }
 
-    /// Create an agreement error
+    /// Creates a new `GlossaError::AgreementError`.
+    ///
+    /// This error occurs when the morphological traits of linked words do not match.
+    /// In Ancient Greek grammar, adjectives must agree with their nouns in gender,
+    /// number, and case; subjects must agree with verbs in person and number.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::errors::GlossaError;
+    ///
+    /// let error = GlossaError::agreement("Subject is singular but verb is plural");
+    /// assert!(matches!(error, GlossaError::AgreementError { .. }));
+    /// ```
     pub fn agreement(message: impl Into<String>) -> Self {
         GlossaError::AgreementError {
             message: message.into(),
         }
     }
 
-    /// Create a codegen error
+    /// Creates a new `GlossaError::CodegenError`.
+    ///
+    /// This error represents an internal failure during the translation from the
+    /// semantically validated abstract syntax tree into Rust source code.
+    /// This generally indicates a compiler bug where a semantic construct
+    /// lacks a corresponding code generation implementation.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::errors::GlossaError;
+    ///
+    /// let error = GlossaError::codegen("Unsupported expression type during generation");
+    /// assert!(matches!(error, GlossaError::CodegenError { .. }));
+    /// ```
     pub fn codegen(message: impl Into<String>) -> Self {
         GlossaError::CodegenError {
             message: message.into(),
