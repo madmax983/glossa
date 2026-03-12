@@ -336,14 +336,104 @@ mod tests {
             else_body: Some(vec![AnalyzedStatement::Expression(vec![dummy_expr()])]),
         };
 
+        let function_def_stmt = AnalyzedStatement::FunctionDef {
+            name: "foo".into(),
+            params: vec![],
+            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+            return_type: None,
+        };
+
+        let while_stmt = AnalyzedStatement::While {
+            condition: Box::new(dummy_expr()),
+            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+        };
+
+        let _query = AnalyzedStatement::Query(vec![dummy_expr()]);
+        let _expr = AnalyzedStatement::Expression(vec![dummy_expr()]);
+        let _print = AnalyzedStatement::Print(vec![dummy_expr()]);
+        let _break = AnalyzedStatement::Break;
+        let _continue = AnalyzedStatement::Continue;
+        let _return = AnalyzedStatement::Return {
+            value: Some(Box::new(dummy_expr())),
+        };
+
+        let type_def = AnalyzedStatement::TypeDefinition {
+            name: "TestType".into(),
+            fields: vec![],
+        };
+
+        let trait_def = AnalyzedStatement::TraitDefinition {
+            name: "TestTrait".into(),
+            methods: vec![],
+        };
+
+        let trait_impl = AnalyzedStatement::TraitImplementation {
+            trait_name: "TestTrait".into(),
+            type_name: "TestType".into(),
+            methods: vec![],
+        };
+
+        let _assignment = AnalyzedStatement::Assignment {
+            name: "foo".into(),
+            value: dummy_expr(),
+        };
+
+        let _binding = AnalyzedStatement::Binding {
+            name: "bar".into(),
+            value: dummy_expr(),
+            mutable: false, // Ensure we hit the non-mutable arm
+        };
+
         let program = AnalyzedProgram {
-            statements: vec![for_loop, match_expr, test_decl, if_stmt],
+            statements: vec![
+                for_loop,
+                match_expr,
+                test_decl,
+                if_stmt,
+                function_def_stmt,
+                while_stmt,
+                _query,
+                _expr,
+                _print,
+                _break,
+                _continue,
+                _return,
+                type_def,
+                trait_def,
+                trait_impl,
+                _assignment,
+                _binding,
+            ],
             scope: Scope::new(),
         };
 
         let mut phil = Philosopher::new();
         let _maxims = phil.analyze(&program);
         // We just want to ensure it traversed these correctly without crashing.
+    }
+
+    #[test]
+    fn test_philosopher_happy_path() {
+        let program = AnalyzedProgram {
+            statements: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+            scope: Scope::new(),
+        };
+
+        let mut phil = Philosopher::new();
+        let maxims = phil.analyze(&program);
+        assert!(maxims.is_empty());
+    }
+
+    #[test]
+    fn test_philosopher_no_maxims() {
+        let program = AnalyzedProgram {
+            statements: vec![],
+            scope: Scope::new(),
+        };
+
+        let mut phil = Philosopher::new();
+        let maxims = phil.analyze(&program);
+        assert!(maxims.is_empty());
     }
 
     #[test]
