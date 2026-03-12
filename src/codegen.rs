@@ -361,7 +361,7 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
     let mut trait_impls = Vec::new();
     let mut fn_defs = Vec::new();
     let mut test_defs = Vec::new();
-    let mut main_stmts = Vec::with_capacity(program.statements.len());
+    let mut main_stmts = Vec::new();
 
     for stmt in &program.statements {
         match stmt {

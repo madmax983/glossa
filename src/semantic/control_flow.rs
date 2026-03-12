@@ -450,11 +450,7 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
     // ⚡ Bolt Optimization: Uses a slice of the terms array instead of collecting into a new Vec.
     // This avoids unnecessary O(n) heap allocation during control flow analysis.
     let words = if let Some(Expr::Phrase(terms)) = clause.expressions.first() {
-        if terms.len() > 1 {
-            &terms[1..]
-        } else {
-            &[]
-        }
+        if terms.len() > 1 { &terms[1..] } else { &[] }
     } else {
         &[]
     };
