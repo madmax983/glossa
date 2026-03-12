@@ -441,16 +441,6 @@ mod tests {
             )],
         };
 
-        let _test_declaration_with_body = AnalyzedStatement::TestDeclaration {
-            name: "body_test".into(),
-            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
-        };
-
-        let _test_declaration_with_body = AnalyzedStatement::TestDeclaration {
-            name: "body_test".into(),
-            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
-        };
-
         let _return_none = AnalyzedStatement::Return { value: None };
 
         let _continue_statement = AnalyzedStatement::Continue;
@@ -473,7 +463,7 @@ mod tests {
 
         let _test_declaration_with_body = AnalyzedStatement::TestDeclaration {
             name: "body_test".into(),
-            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])]
+            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
         };
 
         let program = AnalyzedProgram {
