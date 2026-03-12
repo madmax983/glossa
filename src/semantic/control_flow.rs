@@ -772,11 +772,9 @@ mod tests {
     use super::*;
     use crate::ast::{Clause, Expr, Statement, Word};
 
-
     #[test]
     fn test_for_iteration_error_not_word() {
         let mut scope = Scope::new();
-
 
         let stmt = Statement::Regular {
             clauses: vec![
@@ -811,7 +809,6 @@ mod tests {
     fn test_for_iteration_error_missing_collection() {
         let mut scope = Scope::new();
 
-
         let stmt = Statement::Regular {
             clauses: vec![
                 Clause {
@@ -841,7 +838,6 @@ mod tests {
     #[test]
     fn test_for_iteration_error_not_phrase() {
         let mut scope = Scope::new();
-
 
         // This requires testing parse_for_iteration_loop directly or bypassing analyze_control_flow
         // Since analyze_control_flow filters on get_first_word (which expects a Phrase),
