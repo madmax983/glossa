@@ -225,27 +225,34 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     if test_output.status.success() {
         status.success();
+    } else {
+        status.error("Ἀποτυχία (Failure)");
+    }
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
+    println!("   {}", "Unit Test Results".italic().dim());
+    println!();
+
+    if test_output.status.success() {
         if !results.is_empty() {
-            println!();
             println!(
                 "   {}",
                 "✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed)"
                     .green()
                     .bold()
             );
+            println!();
         }
     } else {
-        status.error("Ἀποτυχία (Failure)");
-        println!();
         println!(
             "   {}",
             "✕ Τινὲς δοκιμασίαι ἀπέτυχαν (Some tests failed)"
                 .red()
                 .bold()
         );
+        println!();
     }
-
-    println!();
 
     if !results.is_empty() {
         let mut table = Table::new();
@@ -277,6 +284,11 @@ pub fn run_tests(input: &Path) -> Result<()> {
     } else {
         let mut empty_table = Table::new();
         empty_table.load_preset(presets::UTF8_FULL);
+        empty_table.set_header(vec![
+            Cell::new("Status")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Yellow),
+        ]);
         empty_table.add_row(vec![
             Cell::new("No tests found.")
                 .fg(Color::DarkGrey)
