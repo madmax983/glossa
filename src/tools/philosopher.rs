@@ -466,6 +466,12 @@ mod tests {
             body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
         };
 
+        let _binding_mut = AnalyzedStatement::Binding {
+            name: "mut_var".into(),
+            value: dummy_expr(),
+            mutable: true,
+        };
+
         let program = AnalyzedProgram {
             statements: vec![
                 for_loop,
@@ -496,6 +502,7 @@ mod tests {
                 _continue_statement,
                 _break_statement,
                 _array_literal,
+                _binding_mut,
             ],
             scope: Scope::new(),
         };
