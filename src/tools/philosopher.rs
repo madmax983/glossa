@@ -568,4 +568,59 @@ mod tests {
 
         assert!(maxims.iter().any(|m| m.philosopher == "Aristotle"));
     }
+
+    #[test]
+    fn test_run_philosopher_empty_file() {
+        use std::fs;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("empty.gl");
+        fs::write(&file_path, "").unwrap();
+
+        let result = run_philosopher(&file_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_philosopher_with_violations() {
+        use std::fs;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("bad.gl");
+        // Empty block should trigger "Diogenes"
+        fs::write(&file_path, "ποιέω το έργον\n{\n};").unwrap();
+
+        let result = run_philosopher(&file_path);
+        assert!(result.is_ok(), "Expected Ok but got {:?}", result);
+    }
+
+    #[test]
+    fn test_run_philosopher_no_violations() {
+        use std::fs;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("good.gl");
+        // A simple valid program that has no code smells
+        fs::write(&file_path, "γράψω 5;").unwrap();
+
+        let result = run_philosopher(&file_path);
+        assert!(result.is_ok(), "Expected Ok but got {:?}", result);
+    }
+
+    #[test]
+    fn test_run_philosopher_parse_error() {
+        use std::fs;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("error.gl");
+        // Syntax error to trigger the bail!()
+        fs::write(&file_path, "this is not valid glossa").unwrap();
+
+        let result = run_philosopher(&file_path);
+        assert!(result.is_err());
+    }
 }
