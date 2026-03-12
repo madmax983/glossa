@@ -389,6 +389,18 @@ mod tests {
             body: vec![],
         };
 
+        let _assignment_nested = AnalyzedStatement::Assignment {
+            name: "foo".into(),
+            value: AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(dummy_expr()),
+                    method: "bar".into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Number,
+            },
+        };
+
         let _if_stmt_without_else = AnalyzedStatement::If {
             condition: Box::new(dummy_expr()),
             then_body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
@@ -461,11 +473,6 @@ mod tests {
             body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
         };
 
-        let _test_declaration_with_body = AnalyzedStatement::TestDeclaration {
-            name: "body_test".into(),
-            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
-        };
-
         let _binding_mut = AnalyzedStatement::Binding {
             name: "mut_var".into(),
             value: dummy_expr(),
@@ -503,6 +510,7 @@ mod tests {
                 _break_statement,
                 _array_literal,
                 _binding_mut,
+                _assignment_nested,
             ],
             scope: Scope::new(),
         };
