@@ -94,7 +94,11 @@ fn analyze_statement(
                 analyze_statement(s, depth + 1, context.clone(), smells);
             }
         }
-        AnalyzedStatement::For { variable: _, iterator: _, body } => {
+        AnalyzedStatement::For {
+            variable: _,
+            iterator: _,
+            body,
+        } => {
             for s in body {
                 analyze_statement(s, depth + 1, context.clone(), smells);
             }
@@ -107,7 +111,10 @@ fn analyze_statement(
             }
         }
         AnalyzedStatement::FunctionDef {
-            name, params, body, return_type: _
+            name,
+            params,
+            body,
+            return_type: _,
         } => {
             let func_name = name.to_string();
             if params.len() > MAX_FUNCTION_PARAMS {
@@ -143,7 +150,9 @@ fn analyze_statement(
             }
         }
         AnalyzedStatement::TraitImplementation {
-            trait_name: _, type_name, methods
+            trait_name: _,
+            type_name,
+            methods,
         } => {
             let impl_context = format!("Impl {}", type_name);
             for method in methods {
