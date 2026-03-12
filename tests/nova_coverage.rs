@@ -144,3 +144,48 @@ fn test_run_tests_rustc_error() {
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("Rustc Error"));
 }
+
+#[test]
+fn test_run_philosopher_success() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "ξ πέντε ἔστω.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::philosopher::run_philosopher(temp_file.path());
+    assert!(result.is_ok(), "Philosopher failed: {:?}", result.err());
+}
+
+#[test]
+fn test_run_philosopher_smells() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "
+        εἶδος Τέρας ὁρίζειν {
+            α ἀριθμοῦ.
+            β ἀριθμοῦ.
+            γ ἀριθμοῦ.
+            δ ἀριθμοῦ.
+            ε ἀριθμοῦ.
+            ζ ἀριθμοῦ.
+            η ἀριθμοῦ.
+        }.
+    ";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::philosopher::run_philosopher(temp_file.path());
+    assert!(result.is_ok(), "Philosopher failed: {:?}", result.err());
+}
+
+#[test]
+fn test_run_philosopher_error() {
+    let path = PathBuf::from("non_existent_file.γλ");
+    let result = glossa::tools::philosopher::run_philosopher(&path);
+    assert!(result.is_err());
+}
