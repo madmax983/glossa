@@ -101,6 +101,13 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Analyze code smells using philosophical maxims (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Philosopher {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Start the interactive tutorial (Requires "nova" feature)
     #[cfg(feature = "nova")]
     Mentor,
