@@ -1,6 +1,5 @@
 use glossa::ast::*;
 
-
 #[test]
 fn test_expr_clone() {
     let w = Word::new("λέγε");
@@ -108,14 +107,8 @@ fn test_expr_eq_same_variants_different_data() {
         Expr::StringLiteral("a".to_string()),
         Expr::StringLiteral("b".to_string())
     );
-    assert_ne!(
-        Expr::NumberLiteral(1),
-        Expr::NumberLiteral(2)
-    );
-    assert_ne!(
-        Expr::BooleanLiteral(true),
-        Expr::BooleanLiteral(false)
-    );
+    assert_ne!(Expr::NumberLiteral(1), Expr::NumberLiteral(2));
+    assert_ne!(Expr::BooleanLiteral(true), Expr::BooleanLiteral(false));
     assert_ne!(
         Expr::ArrayLiteral(vec![Expr::NumberLiteral(1)]),
         Expr::ArrayLiteral(vec![Expr::NumberLiteral(2)])
@@ -130,10 +123,7 @@ fn test_expr_eq_same_variants_different_data() {
             index: Box::new(Expr::NumberLiteral(0)),
         }
     );
-    assert_ne!(
-        Expr::Word(Word::new("α")),
-        Expr::Word(Word::new("β"))
-    );
+    assert_ne!(Expr::Word(Word::new("α")), Expr::Word(Word::new("β")));
     assert_ne!(
         Expr::Phrase(vec![Expr::NumberLiteral(1)]),
         Expr::Phrase(vec![Expr::NumberLiteral(2)])
