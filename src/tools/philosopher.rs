@@ -395,22 +395,12 @@ mod tests {
             else_body: None,
         };
 
-        let _test_declaration_empty = AnalyzedStatement::TestDeclaration {
-            name: "empty_test".into(),
-            body: vec![],
-        };
-
-        let _test_declaration_empty = AnalyzedStatement::TestDeclaration {
-            name: "empty_test".into(),
-            body: vec![],
-        };
-
         let _nested_while = AnalyzedStatement::While {
             condition: Box::new(dummy_expr()),
             body: vec![AnalyzedStatement::While {
                 condition: Box::new(dummy_expr()),
-                body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])]
-            }]
+                body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+            }],
         };
 
         let _if_stmt_nested = AnalyzedStatement::If {
@@ -433,8 +423,8 @@ mod tests {
             body: vec![AnalyzedStatement::For {
                 variable: "b".into(),
                 iterator: Box::new(dummy_expr()),
-                body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])]
-            }]
+                body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+            }],
         };
 
         let _nested_match = AnalyzedStatement::Match {
@@ -445,10 +435,45 @@ mod tests {
                     scrutinee: Box::new(dummy_expr()),
                     arms: vec![(
                         dummy_expr(),
-                        vec![AnalyzedStatement::Expression(vec![dummy_expr()])]
-                    )]
-                }]
-            )]
+                        vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+                    )],
+                }],
+            )],
+        };
+
+        let _test_declaration_with_body = AnalyzedStatement::TestDeclaration {
+            name: "body_test".into(),
+            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+        };
+
+        let _test_declaration_with_body = AnalyzedStatement::TestDeclaration {
+            name: "body_test".into(),
+            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+        };
+
+        let _return_none = AnalyzedStatement::Return { value: None };
+
+        let _continue_statement = AnalyzedStatement::Continue;
+
+        let _break_statement = AnalyzedStatement::Break;
+
+        let _array_literal = AnalyzedStatement::Binding {
+            name: "arr".into(),
+            value: AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(vec![dummy_expr()]),
+                glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
+            },
+            mutable: false,
+        };
+
+        let _test_declaration_with_body = AnalyzedStatement::TestDeclaration {
+            name: "body_test".into(),
+            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+        };
+
+        let _test_declaration_with_body = AnalyzedStatement::TestDeclaration {
+            name: "body_test".into(),
+            body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])]
         };
 
         let program = AnalyzedProgram {
@@ -476,6 +501,11 @@ mod tests {
                 _if_stmt_nested,
                 _nested_for,
                 _nested_match,
+                _test_declaration_with_body,
+                _return_none,
+                _continue_statement,
+                _break_statement,
+                _array_literal,
             ],
             scope: Scope::new(),
         };
