@@ -25,3 +25,7 @@
 **Refactoring `classify_*` in `src/semantic/conversion.rs`**
 **Learning:** Functions that parse or classify elements using heuristic priorities often become a "Pyramid of Doom" through nested `if let Some(...) = ...` blocks. This increases cognitive load and hides the critical failure path.
 **Action:** Use "Guard Clauses" (early returns) extensively in classification functions. `let Some(x) = y else { return ... };` keeps the execution path flat and adheres strictly to the 'Grandma Test'.
+
+**2024-03-24 - Exhaustiveness Preservation**
+**Learning:** Extracting large `match` statements by grouping variants under wildcard catch-alls (`_ => helper()`) destroys the compiler's exhaustiveness checking, leading to severe maintainability regressions if new variants are added.
+**Action:** Always extract the *inner block logic* of specific match arms into helper functions while preserving the exhaustive structure of the outer `match` block.
