@@ -384,6 +384,22 @@ mod tests {
             mutable: false, // Ensure we hit the non-mutable arm
         };
 
+        let _test_declaration_empty = AnalyzedStatement::TestDeclaration {
+            name: "empty_test".into(),
+            body: vec![],
+        };
+
+        let _if_stmt_without_else = AnalyzedStatement::If {
+            condition: Box::new(dummy_expr()),
+            then_body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+            else_body: None,
+        };
+
+        let _test_declaration_empty = AnalyzedStatement::TestDeclaration {
+            name: "empty_test".into(),
+            body: vec![],
+        };
+
         let program = AnalyzedProgram {
             statements: vec![
                 for_loop,
@@ -403,6 +419,8 @@ mod tests {
                 trait_impl,
                 _assignment,
                 _binding,
+                _test_declaration_empty,
+                _if_stmt_without_else,
             ],
             scope: Scope::new(),
         };
