@@ -400,6 +400,57 @@ mod tests {
             body: vec![],
         };
 
+        let _test_declaration_empty = AnalyzedStatement::TestDeclaration {
+            name: "empty_test".into(),
+            body: vec![],
+        };
+
+        let _nested_while = AnalyzedStatement::While {
+            condition: Box::new(dummy_expr()),
+            body: vec![AnalyzedStatement::While {
+                condition: Box::new(dummy_expr()),
+                body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])]
+            }]
+        };
+
+        let _if_stmt_nested = AnalyzedStatement::If {
+            condition: Box::new(dummy_expr()),
+            then_body: vec![AnalyzedStatement::If {
+                condition: Box::new(dummy_expr()),
+                then_body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+                else_body: Some(vec![AnalyzedStatement::Expression(vec![dummy_expr()])]),
+            }],
+            else_body: Some(vec![AnalyzedStatement::If {
+                condition: Box::new(dummy_expr()),
+                then_body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])],
+                else_body: Some(vec![AnalyzedStatement::Expression(vec![dummy_expr()])]),
+            }]),
+        };
+
+        let _nested_for = AnalyzedStatement::For {
+            variable: "a".into(),
+            iterator: Box::new(dummy_expr()),
+            body: vec![AnalyzedStatement::For {
+                variable: "b".into(),
+                iterator: Box::new(dummy_expr()),
+                body: vec![AnalyzedStatement::Expression(vec![dummy_expr()])]
+            }]
+        };
+
+        let _nested_match = AnalyzedStatement::Match {
+            scrutinee: Box::new(dummy_expr()),
+            arms: vec![(
+                dummy_expr(),
+                vec![AnalyzedStatement::Match {
+                    scrutinee: Box::new(dummy_expr()),
+                    arms: vec![(
+                        dummy_expr(),
+                        vec![AnalyzedStatement::Expression(vec![dummy_expr()])]
+                    )]
+                }]
+            )]
+        };
+
         let program = AnalyzedProgram {
             statements: vec![
                 for_loop,
@@ -421,6 +472,10 @@ mod tests {
                 _binding,
                 _test_declaration_empty,
                 _if_stmt_without_else,
+                _nested_while,
+                _if_stmt_nested,
+                _nested_for,
+                _nested_match,
             ],
             scope: Scope::new(),
         };
