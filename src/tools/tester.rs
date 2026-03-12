@@ -276,6 +276,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
         println!("{table}");
     } else {
         let mut empty_table = Table::new();
+        empty_table.load_preset(presets::UTF8_FULL);
         empty_table.add_row(vec![
             Cell::new("No tests found.")
                 .fg(Color::DarkGrey)
