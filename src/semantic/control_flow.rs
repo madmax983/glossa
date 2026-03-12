@@ -447,11 +447,12 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
     // - A literal: πέντε
     // - An operation: ξ δύο ἄθροισμα
 
-    // Get all words after δός
+    // ⚡ Bolt Optimization: Uses a slice of the terms array instead of collecting into a new Vec.
+    // This avoids unnecessary O(n) heap allocation during control flow analysis.
     let words = if let Some(Expr::Phrase(terms)) = clause.expressions.first() {
-        terms.iter().skip(1).collect::<Vec<_>>() // Skip δός
+        if terms.len() > 1 { &terms[1..] } else { &[] }
     } else {
-        vec![]
+        &[]
     };
 
     if words.is_empty() {
@@ -463,7 +464,7 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
 
     // Simple heuristic: if single word or literal
     if words.len() == 1 {
-        match words[0] {
+        match &words[0] {
             Expr::Word(w) => {
                 let normalized = &w.normalized;
 

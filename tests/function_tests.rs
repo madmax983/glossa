@@ -69,6 +69,13 @@ fn test_return_type_inference() {
     assert!(code.contains("-> i64"));
 }
 
+#[test]
+fn test_empty_return() {
+    let code = compile("κενός ὁρίζειν· δός.");
+    eprintln!("Generated code:\n{}", code);
+    assert!(code.contains("return"));
+}
+
 // ============================================================================
 // CYCLE 4: Function Calls
 // ============================================================================
