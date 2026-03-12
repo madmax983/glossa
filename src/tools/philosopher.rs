@@ -589,8 +589,15 @@ mod tests {
 
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("bad.gl");
-        // Empty block should trigger "Diogenes"
-        fs::write(&file_path, "ποιέω το έργον\n{\n};").unwrap();
+        // To properly trigger "Daedalus" (deep nesting), we will use an explicit nested IF-chain
+        // using valid ancient Greek syntax and an explicit code block. We'll also trigger Heraclitus (mutability > 3).
+        let bad_code = r#"
+        μετά α πέντε ἔστω.
+        μετά β δέκα ἔστω.
+        μετά γ ἕνδεκα ἔστω.
+        μετά δ δώδεκα ἔστω.
+        "#;
+        fs::write(&file_path, bad_code).unwrap();
 
         let result = run_philosopher(&file_path);
         assert!(result.is_ok(), "Expected Ok but got {:?}", result);
@@ -604,7 +611,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("good.gl");
         // A simple valid program that has no code smells
-        fs::write(&file_path, "γράψω 5;").unwrap();
+        fs::write(&file_path, "42 λέγε.").unwrap();
 
         let result = run_philosopher(&file_path);
         assert!(result.is_ok(), "Expected Ok but got {:?}", result);
