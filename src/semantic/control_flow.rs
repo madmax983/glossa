@@ -684,6 +684,28 @@ fn skip_first_word_and_parse(
         && !terms.is_empty()
     {
         terms.remove(0);
+
+        // Fast path for single word/variable expressions to bypass strict Statement constraints
+        #[allow(clippy::collapsible_if)]
+        if terms.len() == 1 {
+            if let Expr::Word(w) = &terms[0] {
+                let normalized = &w.normalized;
+                if let Some(val) = crate::morphology::lexicon::numeral_value(normalized) {
+                    return Ok(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(val),
+                        glossa_type: GlossaType::Number,
+                    });
+                }
+                let var_type = scope
+                    .lookup(normalized)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(normalized.clone()),
+                    glossa_type: var_type,
+                });
+            }
+        }
     }
 
     // Parse the modified clause as a statement

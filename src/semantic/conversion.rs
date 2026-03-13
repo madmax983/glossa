@@ -109,6 +109,19 @@ pub fn classify_assembled_statement(
         return Ok(res);
     }
 
+    // Detect invalid raw statements that lack verbs, operators, or literals.
+    // A statement consisting only of a subject and object without a verb is incomplete.
+    if asm_stmt.verb.is_none()
+        && asm_stmt.operators.is_empty()
+        && asm_stmt.property_accesses.is_empty()
+        && asm_stmt.string_method.is_none()
+        && !asm_stmt.is_query
+        && !asm_stmt.is_propagate
+        && asm_stmt.literals.is_empty()
+    {
+        return Err(crate::errors::AssemblyError::MissingVerb.into());
+    }
+
     classify_expression(asm_stmt)
 }
 

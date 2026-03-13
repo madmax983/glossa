@@ -591,12 +591,14 @@ mod tests {
     fn test_run_rustc_error() {
         let dir = tempfile::tempdir().unwrap();
         let input_path = dir.path().join("rustc_error.gl");
+        // Write a type definition and then instantiate it with the wrong type to trigger Rust E0308.
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            // This is valid Glossa but invalid Rust (redefining String)
-            // Memory says: εἶδος String ὁρίζειν...
-            f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes())
-                .unwrap();
+            // Valid Glossa, transpiles to invalid Rust due to type mismatch: String vs bool
+            f.write_all(
+                "εἶδος User ὁρίζειν { ὄνομα ὀνόματος. }. x νέον User ἀληθές ἔστω.".as_bytes(),
+            )
+            .unwrap();
         }
 
         let result = run_file(&input_path);
