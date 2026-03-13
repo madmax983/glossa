@@ -25,3 +25,7 @@
 **Refactoring `classify_*` in `src/semantic/conversion.rs`**
 **Learning:** Functions that parse or classify elements using heuristic priorities often become a "Pyramid of Doom" through nested `if let Some(...) = ...` blocks. This increases cognitive load and hides the critical failure path.
 **Action:** Use "Guard Clauses" (early returns) extensively in classification functions. `let Some(x) = y else { return ... };` keeps the execution path flat and adheres strictly to the 'Grandma Test'.
+
+**Refactoring `Assembler` limit checks in `src/semantic/assembly/mod.rs`**
+**Learning:** Manual inline length checking against limits (`if len >= MAX { return Err... }`) creates unnecessary duplication across state accumulation functions (`feed_*`, `handle_*`). Introducing a simple `check_limit(&self, len, max, resource)` helper condenses error handling logic and strips away noise.
+**Action:** Encapsulate validation and error generation for limits or boundaries into private instance methods rather than duplicating the `if` structures and constructing error variants inline.
