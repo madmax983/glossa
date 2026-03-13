@@ -33,6 +33,7 @@ C4Container
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
 
     Container_Boundary(tools, "Developer Experience (Nova)") {
+        Container(alchemist, "Alchemist", "src/tools/alchemist.rs", "Transpiles Analyzed Program to Python source code")
         Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
         Container(cartographer, "Cartographer", "src/tools/cartographer.rs", "Generates Mermaid Class Diagrams")
         Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
@@ -47,6 +48,7 @@ C4Container
         Container(runner, "Runner", "src/tools/runner.rs", "Orchestrates the compilation pipeline")
         Container(tester, "The Judge", "src/tools/tester.rs", "Verifies Correctness (Test Runner)")
         Container(ui, "The Stage", "src/tools/ui.rs", "Presentation Layer & UI Helpers")
+        Container(weave, "Weave", "src/tools/weave.rs", "Generates a 'Rosetta Stone' Markdown document")
     }
 
     Container(codegen, "Code Generator", "src/codegen.rs", "Generates Rust source code")
@@ -62,6 +64,8 @@ C4Container
     Rel(semantic, mosaic, "Analyzed Program")
     Rel(semantic, tester, "Analyzed Program")
     Rel(semantic, interpreter, "Analyzed Program")
+    Rel(semantic, alchemist, "Analyzed Program")
+    Rel(semantic, weave, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 
     Rel(morphology, dictionary, "Lexicon Data")
@@ -78,7 +82,7 @@ C4Component
     title Component Diagram for Semantic Analysis
 
     Container_Boundary(semantic, "Semantic Analysis") {
-        Component(orchestrator, "Orchestrator", "src/semantic/mod.rs", "Coordinates analysis pipeline")
+        Component(orchestrator, "Orchestrator", "src/semantic/analyzer.rs", "Coordinates analysis pipeline")
         Component(declarations, "Declarations", "src/semantic/declarations.rs", "Analyzes Types, Traits, Functions")
         Component(control_flow, "Control Flow", "src/semantic/control_flow.rs", "Analyzes If, While, Match")
         Component(expressions, "Expressions", "src/semantic/expressions.rs", "Recursively analyzes nested expressions")
