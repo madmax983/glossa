@@ -593,3 +593,28 @@ fn test_default_case() {
 
     assert_eq!(glossa_type, GlossaType::Number);
 }
+
+#[test]
+fn test_classify_missing_verb_with_genitive() {
+    // Tests that a genitive method call fallback doesn't immediately panic with MissingVerb
+    let mut asm_stmt = AssembledStatement::default();
+    asm_stmt.genitives.push(Constituent {
+        lemma: "test".into(),
+        normalized: "test".into(),
+        original: "test".into(),
+        gender: None,
+        case: crate::morphology::Case::Genitive,
+        number: None,
+        person: None,
+    });
+    // This has no verb, no string_method, no properties, no literals.
+    // It should hit classify_expression, which then evaluates to an expression containing unknown variable.
+    let mut scope = Scope::new();
+    let result = super::conversion::classify_assembled_statement(&asm_stmt, &mut scope);
+    assert!(result.is_ok());
+    if let Ok(AnalyzedStatement::Expression(exprs)) = result {
+        assert!(exprs.is_empty() || exprs.len() == 1);
+    } else {
+        panic!("Expected expression");
+    }
+}

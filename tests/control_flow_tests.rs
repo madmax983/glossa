@@ -297,3 +297,38 @@ fn test_for_iteration_errors() {
 
     // Not a phrase: (Can only be tested through ast creation, so we will skip it and instead just let the other one cover things)
 }
+
+#[test]
+fn test_match_single_word_variable() {
+    let source = "ξ πέντε ἔστω. κατὰ ξ· μηδὲν ᾖ, «μηδέν» λέγε· ἄλλο ᾖ, «ἄλλο» λέγε.";
+    let output = compile_to_rust(source);
+    assert!(output.contains("match"));
+}
+
+#[test]
+fn test_match_single_word_literal() {
+    let source = "κατὰ 5· πέντε ᾖ, «πέντε» λέγε· ἄλλο ᾖ, «ἄλλο» λέγε.";
+    let output = compile_to_rust(source);
+    assert!(output.contains("match"));
+}
+
+#[test]
+fn test_match_single_word_variable_missing() {
+    let source = "κατὰ ἄγνωστο· ἄγνωστο ᾖ, «ἄγνωστο» λέγε· ἄλλο ᾖ, «ἄλλο» λέγε.";
+    let output = crate::compile_to_rust(source);
+    assert!(output.contains("match"));
+}
+
+#[test]
+fn test_skip_first_word_and_parse_single_literal_number() {
+    let source = "εἰ 1, 1 λέγε.";
+    let output = crate::compile_to_rust(source);
+    assert!(output.contains("if"));
+}
+
+#[test]
+fn test_skip_first_word_and_parse_single_literal_numeral_word() {
+    let source = "εἰ πέντε, πέντε λέγε.";
+    let output = crate::compile_to_rust(source);
+    assert!(output.contains("if"));
+}
