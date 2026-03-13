@@ -23,7 +23,7 @@ pub mod cli;
 pub mod dictionary;
 pub mod highlight;
 #[cfg(feature = "nova")]
-pub mod interpreter;
+pub(crate) mod interpreter;
 #[cfg(feature = "nova")]
 pub mod mentor;
 #[cfg(feature = "nova")]
@@ -33,6 +33,6 @@ pub mod repl;
 pub mod report;
 pub mod runner;
 pub mod tester;
-pub mod ui;
+pub(crate) mod ui;
 #[cfg(feature = "nova")]
 pub mod weave;
