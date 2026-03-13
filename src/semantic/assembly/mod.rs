@@ -60,7 +60,7 @@
 //! * **Literals**: Max 1024
 //! * **Nested Structures**: Max 256 (Arrays, Blocks, Phrases)
 //!
-//! See [`model`] for the full list of limits.
+//! See [`crate::limits`] for the full list of limits.
 //!
 //! ## The Hero's Journey: A Sentence's Path
 //!
