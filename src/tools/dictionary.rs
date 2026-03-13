@@ -69,7 +69,10 @@ pub fn lookup_word(word: &str) -> Result<()> {
 
     // 1. Direct Lexicon Lookup
     if let Some(entry) = lexicon::lookup(&normalized) {
-        println!("   {}", "📚 Lexicon Entry (Definitive)".green().bold().underlined());
+        println!(
+            "   {}",
+            "📚 Lexicon Entry (Definitive)".green().bold().underlined()
+        );
 
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL).set_header(vec![
