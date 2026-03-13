@@ -102,3 +102,8 @@
 **Bloat:** `MAX_*` depth/limit constants scattered across `src/semantic/assembly/model.rs` and `src/semantic/control_flow.rs`, creating architectural duplication and inconsistent definition points.
 **Cut:** Centralized all compiler depth limit constants into `src/limits.rs`.
 **Saved:** Centralized logic (Single Source of Truth) and improved transparency for architectural constraints.
+
+## [De-abstract StatementAnalyzer Trait]
+**Bloat:** The `StatementAnalyzer` trait was introduced to resolve a circular dependency between `semantic::analyzer`, `semantic::control_flow`, and `semantic::declarations`. However, since these modules all live within the same crate (`semantic`), Rust permits circular module dependencies natively via free functions, rendering the trait abstraction unnecessary. Additionally, `StatementAnalyzer` was a single-implementation trait only implemented by the empty struct `SemanticAnalyzer`.
+**Cut:** Deleted the `StatementAnalyzer` trait and the `SemanticAnalyzer` struct entirely. Replaced trait method dispatch across submodules with direct calls to `crate::semantic::analyzer::analyze_statement`.
+**Saved:** Eliminated trait boilerplate, reduced the number of files by deleting `src/semantic/traits.rs`, and removed empty struct allocations, significantly reducing cognitive overhead by flattening the semantic analysis architecture.
