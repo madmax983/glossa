@@ -181,7 +181,6 @@ impl Assembler {
     /// let obj = analyze("λόγον");
     /// asm.feed(&obj, "λόγον").unwrap();
     /// ```
-    #[allow(dead_code)]
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
         let normalized = normalize_greek(original);
         self.feed_with_normalized(analysis, original, &normalized)

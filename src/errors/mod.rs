@@ -39,7 +39,7 @@
 
 #![allow(unused_assignments)]
 
-use miette::{Diagnostic, SourceSpan};
+use miette::Diagnostic;
 use thiserror::Error;
 
 /// Main error type for ΓΛΩΣΣΑ
@@ -61,12 +61,6 @@ pub enum GlossaError {
     #[diagnostic(code(glossa::parse))]
     ParseError {
         message: String,
-        #[source_code]
-        #[allow(dead_code)]
-        src: String,
-        #[label("ἐνταῦθα")]
-        #[allow(dead_code)]
-        span: Option<SourceSpan>,
     },
 
     /// **Semantic Error**: The code is syntactically valid but semantically meaningless.
@@ -134,21 +128,6 @@ impl GlossaError {
     pub fn parse(message: impl Into<String>) -> Self {
         GlossaError::ParseError {
             message: message.into(),
-            src: String::new(),
-            span: None,
-        }
-    }
-
-    /// Create a parse error with source context
-    pub fn parse_with_source(
-        message: impl Into<String>,
-        src: impl Into<String>,
-        span: SourceSpan,
-    ) -> Self {
-        GlossaError::ParseError {
-            message: message.into(),
-            src: src.into(),
-            span: Some(span),
         }
     }
 

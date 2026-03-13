@@ -113,7 +113,6 @@ pub struct AssembledStatement {
 
 /// A noun/pronoun constituent with its grammatical info
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct Constituent {
     /// The dictionary form
     pub lemma: SmolStr,
@@ -139,7 +138,6 @@ pub struct Constituent {
 
 /// A verb constituent with its grammatical info
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct VerbConstituent {
     /// The dictionary form
     pub lemma: SmolStr,
@@ -168,7 +166,6 @@ pub struct VerbConstituent {
 
 /// A participle constituent (used for lambdas/closures)
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ParticipleConstituent {
     /// The verb stem extracted from the participle
     pub verb_lemma: SmolStr,

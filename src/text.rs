@@ -88,11 +88,6 @@ struct GreekLowercaseIterator<'a> {
 }
 
 impl<'a> GreekLowercaseIterator<'a> {
-    #[allow(dead_code)]
-    fn new(text: &'a str) -> Self {
-        Self::new_with_state(text, false)
-    }
-
     fn new_with_state(text: &'a str, last_cased: bool) -> Self {
         let mut slf = Self {
             iter: text.chars(),
