@@ -1,4 +1,6 @@
 use glossa::ast::Expr;
+use std::env;
+use std::process::Command;
 
 /// 👺 Havoc: Stack Overflow in Derived Debug
 ///
@@ -11,21 +13,42 @@ use glossa::ast::Expr;
 /// all protections and crash the process with a Stack Overflow.
 #[test]
 fn havoc_crash_debug_stack_overflow() {
-    let depth = 50_000;
+    // If we are running in the subprocess, execute the crash vector
+    if env::var("HAVOC_DETONATE_DEBUG").is_ok() {
+        let depth = 50_000;
 
-    // Construct a deeply nested expression
-    let mut deep_expr = Expr::NumberLiteral(1);
-    for _ in 0..depth {
-        deep_expr = Expr::Phrase(vec![deep_expr]);
+        // Construct a deeply nested expression
+        let mut deep_expr = Expr::NumberLiteral(1);
+        for _ in 0..depth {
+            deep_expr = Expr::Phrase(vec![deep_expr]);
+        }
+
+        // 💥 DETONATE
+        // The derived `Debug` implementation recurses into `Expr::Phrase`
+        // without `stacker::maybe_grow` or explicit loop.
+        // This will immediately exhaust the thread stack and crash the runner.
+        println!("Formatting deep expression (depth {})...", depth);
+        let _s = format!("{:?}", deep_expr);
+
+        // This line will never be reached!
+        println!("Survived? Impossible.");
+        std::process::exit(0);
     }
 
-    // 💥 DETONATE
-    // The derived `Debug` implementation recurses into `Expr::Phrase`
-    // without `stacker::maybe_grow` or explicit loop.
-    // This will immediately exhaust the thread stack and crash the runner.
-    println!("Formatting deep expression (depth {})...", depth);
-    let _s = format!("{:?}", deep_expr);
+    // Otherwise, we are the test runner orchestrator.
+    // Spawn a subprocess to run this exact test, and verify it CRASHES.
+    let exe = env::current_exe().expect("Failed to get current executable");
 
-    // This line will never be reached!
-    println!("Survived? Impossible.");
+    let status = Command::new(exe)
+        .env("HAVOC_DETONATE_DEBUG", "1")
+        .arg("--nocapture")
+        .arg("havoc_crash_debug_stack_overflow")
+        .status()
+        .expect("Failed to spawn subprocess");
+
+    // The test SUCCEEDS if the subprocess FAILED (crashed via SIGSEGV/Stack Overflow)
+    assert!(
+        !status.success(),
+        "Bug fixed? The subprocess should have crashed with a stack overflow!"
+    );
 }
