@@ -38,14 +38,13 @@ use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, analyze_pr
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
-use miette::Result;
 use std::collections::HashSet;
 use std::path::Path;
 
 /// Run the Cartographer tool on a file
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
-pub fn run_map(input: &Path) -> Result<()> {
+pub fn run_map(input: &Path) -> miette::Result<()> {
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
 
     let source = crate::tools::runner::load_source(input)?;

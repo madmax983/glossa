@@ -47,13 +47,12 @@
 
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
-use miette::Result;
 
 use crate::morphology::{analyze_all, lexicon};
 use crate::text::normalize_greek;
 
 /// Lookup a word in the dictionary
-pub fn lookup_word(word: &str) -> Result<()> {
+pub fn lookup_word(word: &str) -> miette::Result<()> {
     let normalized = normalize_greek(word);
 
     // Header

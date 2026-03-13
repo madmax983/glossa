@@ -17,14 +17,14 @@ use crate::tools::mosaic::run_mosaic_inner;
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
-use miette::{IntoDiagnostic, Result};
+use miette::IntoDiagnostic;
 use std::fs;
 use std::path::Path;
 
 /// Run the Weave tool on a file
 ///
 /// Reads the source file, compiles it, generates the mosaic, and writes out a Markdown file.
-pub fn run_weave(input: &Path) -> Result<()> {
+pub fn run_weave(input: &Path) -> miette::Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }

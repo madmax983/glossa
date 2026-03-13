@@ -36,7 +36,7 @@ fn compile(source: &str) -> Result<String> {
 }
 
 /// Check file size to prevent DoS
-fn check_file_size(input: &Path) -> Result<()> {
+fn check_file_size(input: &Path) -> miette::Result<()> {
     let metadata = fs::metadata(input).into_diagnostic()?;
     if metadata.len() > MAX_FILE_SIZE {
         return Err(miette::miette!(
@@ -125,7 +125,7 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
 /// // Verify the output file was created
 /// assert!(output.exists());
 /// ```
-pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
+pub fn build_file(input: &Path, output: Option<&Path>) -> miette::Result<()> {
     let status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🏗️");
     let start = std::time::Instant::now();
     let source = load_source(input)?;
@@ -200,7 +200,7 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 /// // Compiles and immediately executes the file
 /// run_file(&input).unwrap();
 /// ```
-pub fn run_file(input: &Path) -> Result<()> {
+pub fn run_file(input: &Path) -> miette::Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
@@ -327,7 +327,7 @@ pub fn run_file(input: &Path) -> Result<()> {
 /// // Checks the file for errors without compiling it
 /// check_file(&input).unwrap();
 /// ```
-pub fn check_file(input: &Path) -> Result<()> {
+pub fn check_file(input: &Path) -> miette::Result<()> {
     let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
     let source = load_source(input)?;
 
@@ -374,7 +374,7 @@ pub fn check_file(input: &Path) -> Result<()> {
 /// // Prints the highlighted source code to stdout
 /// highlight_file(&input).unwrap();
 /// ```
-pub fn highlight_file(input: &Path) -> Result<()> {
+pub fn highlight_file(input: &Path) -> miette::Result<()> {
     let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
     let source = load_source(input)?;
     let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
@@ -412,7 +412,7 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 /// // Prints the English narrative of the program's logic
 /// bard_file(&input).unwrap();
 /// ```
-pub fn bard_file(input: &Path) -> Result<()> {
+pub fn bard_file(input: &Path) -> miette::Result<()> {
     let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
     let source = load_source(input)?;
     let analyzed = analyze_source(&source)?;

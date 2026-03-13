@@ -83,13 +83,13 @@ const LESSONS: &[Lesson] = &[
 ///
 /// This function enters a loop where it presents lessons to the user and waits
 /// for them to type code that satisfies the lesson's requirements.
-pub fn run_mentor() -> Result<()> {
+pub fn run_mentor() -> miette::Result<()> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
     run_mentor_inner(&mut stdin.lock(), &mut stdout)
 }
 
-fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
+fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> miette::Result<()> {
     print_banner(output)?;
 
     for (i, lesson) in LESSONS.iter().enumerate() {
@@ -165,7 +165,7 @@ fn process_submission(source: &str) -> Result<AnalyzedProgram, String> {
     analyze_program(&ast).map_err(|e| e.to_string())
 }
 
-fn print_banner<W: Write>(w: &mut W) -> Result<()> {
+fn print_banner<W: Write>(w: &mut W) -> miette::Result<()> {
     writeln!(w).into_diagnostic()?;
     writeln!(w, "   {}", "Γ Λ Ω Σ Σ Α   M E N T O R".bold().cyan()).into_diagnostic()?;
     writeln!(w, "   {}", "Interactive Tutorial Mode".italic().dim()).into_diagnostic()?;
@@ -173,7 +173,7 @@ fn print_banner<W: Write>(w: &mut W) -> Result<()> {
     Ok(())
 }
 
-fn print_lesson<W: Write>(w: &mut W, index: usize, lesson: &Lesson) -> Result<()> {
+fn print_lesson<W: Write>(w: &mut W, index: usize, lesson: &Lesson) -> miette::Result<()> {
     let mut table = Table::new();
     table.load_preset(presets::UTF8_FULL).set_header(vec![
         Cell::new(format!("Lesson {}", index))

@@ -31,13 +31,13 @@ use crate::tools::ui::Status;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
-use miette::{IntoDiagnostic, Result};
+use miette::IntoDiagnostic;
 use std::path::Path;
 
 /// Run the Mosaic tool on a file
 ///
 /// Reads the source file, parses it, and prints the semantic assembly table to stdout.
-pub fn run_mosaic(input_path: &Path) -> Result<()> {
+pub fn run_mosaic(input_path: &Path) -> miette::Result<()> {
     let status = Status::start_with_symbol("Ψηφιδωτόν (Mosaic)", "🧩");
 
     let source = crate::tools::runner::load_source(input_path)?;
@@ -61,7 +61,7 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
 /// Internal implementation of Mosaic logic
 ///
 /// Separated for testing purposes (allows injecting a writer).
-pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Result<()> {
+pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> miette::Result<()> {
     let program = parse(source)?;
 
     let mut table = Table::new();

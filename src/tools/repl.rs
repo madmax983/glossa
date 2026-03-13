@@ -25,7 +25,7 @@
 
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
-use miette::{IntoDiagnostic, Result};
+use miette::IntoDiagnostic;
 use std::io::{BufRead, Write};
 
 use crate::codegen::generate_statement_code;
@@ -57,7 +57,7 @@ const MAX_REPL_SOURCE_LEN: usize = 50_000;
 /// ✓ Ἐκτελέσθη
 ///   println!("{}", ξ);
 /// ```
-pub fn run_repl() -> Result<()> {
+pub fn run_repl() -> miette::Result<()> {
     print_banner();
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
@@ -65,7 +65,7 @@ pub fn run_repl() -> Result<()> {
 }
 
 /// Internal REPL loop that can be tested with arbitrary streams
-fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
+fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> miette::Result<()> {
     let mut context = ReplContext::new();
 
     loop {
@@ -139,7 +139,7 @@ fn print_banner() {
     println!();
 }
 
-fn print_help<W: Write>(w: &mut W) -> Result<()> {
+fn print_help<W: Write>(w: &mut W) -> miette::Result<()> {
     let mut table = Table::new();
     table.load_preset(presets::UTF8_FULL).set_header(vec![
         Cell::new("Ἐντολή (Command)")
@@ -171,7 +171,7 @@ fn print_help<W: Write>(w: &mut W) -> Result<()> {
     Ok(())
 }
 
-fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
+fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> miette::Result<()> {
     if let Some(scope) = &context.last_scope {
         // Collect and sort bindings for consistent display
         let mut bindings: Vec<_> = scope.bindings().collect();

@@ -45,7 +45,7 @@ use crate::semantic::analyze_program;
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, CellAlignment, Color, Table, presets};
 use crossterm::style::Stylize;
-use miette::{IntoDiagnostic, Result};
+use miette::IntoDiagnostic;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -155,7 +155,7 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
 /// This tool compiles the Glossa source to Rust, but instead of building a regular binary,
 /// it compiles it with `rustc --test`. This creates a test harness that runs all functions
 /// marked with `#[test]` (which `codegen` generates for `TestDeclaration` nodes).
-pub fn run_tests(input: &Path) -> Result<()> {
+pub fn run_tests(input: &Path) -> miette::Result<()> {
     let mut status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
 
     // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
