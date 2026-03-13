@@ -512,18 +512,20 @@ fn extract_parameters_from_expr(
 /// Collect all Word nodes from an expression (flattening phrases)
 fn collect_words_from_expr(expr: &Expr) -> Vec<&crate::ast::Word> {
     let mut words = Vec::new();
+    collect_words_from_expr_into(expr, &mut words);
+    words
+}
 
+fn collect_words_from_expr_into<'a>(expr: &'a Expr, words: &mut Vec<&'a crate::ast::Word>) {
     match expr {
         Expr::Word(word) => words.push(word),
         Expr::Phrase(terms) => {
             for term in terms {
-                words.extend(collect_words_from_expr(term));
+                collect_words_from_expr_into(term, words);
             }
         }
         _ => {}
     }
-
-    words
 }
 
 /// Infer the return type from the function body by examining return statements
