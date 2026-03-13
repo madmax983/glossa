@@ -7,7 +7,7 @@
 //!
 //! 1. **Morphological Analysis**: Raw words are analyzed for case, gender, number, etc.
 //!    (handled by the `morphology` module).
-//! 2. **Slot-Based Assembly**: The [`Assembler`] routes these words into grammatical slots
+//! 2. **Slot-Based Assembly**: The [`AssembledStatement`] routes these words into grammatical slots
 //!    (Subject, Object, Verb) based on their case endings. This provides the
 //!    language's signature free word order.
 //! 3. **Pattern Recognition**: The assembled sentence is classified into a statement kind
@@ -15,10 +15,10 @@
 //! 4. **Name Resolution**: Variables are looked up in the [`Scope`] to ensure they exist.
 //! 5. **Type Inference**: Types are inferred from usage and lexical definitions.
 //!
-//! # The Assembler Approach
+//! # The AssembledStatement Approach
 //!
 //! Unlike traditional parsers that rely on fixed word positions (e.g., "verb follows subject"),
-//! ΓΛΩΣΣΑ uses the `Assembler` to assemble sentences based on grammatical *roles*.
+//! ΓΛΩΣΣΑ uses the `AssembledStatement` to assemble sentences based on grammatical *roles*.
 //!
 //! ```text
 //! "ὁ ἄνθρωπος τὸν λόγον λέγει"
@@ -58,9 +58,9 @@ pub(crate) mod validation;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub use analyzer::{AnalyzedProgram, analyze_program};
-pub use assembly::Assembler;
+pub use assembly::AssembledStatement;
 pub use assembly::{
-    AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,
+    AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
 pub use model::*;
 pub use resolver::*;
@@ -72,9 +72,9 @@ use crate::errors::GlossaError;
 
 /// Analyze a single statement using the slot-based assembler
 pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
-    let mut asm = Assembler::new();
-    asm.set_query(stmt.is_query());
-    asm.set_propagate(stmt.is_propagate());
+    let mut stmt_asm = AssembledStatement::new();
+    stmt_asm.set_query(stmt.is_query());
+    stmt_asm.set_propagate(stmt.is_propagate());
 
     // Disambiguation context accumulator - articles set context for following words
     let mut current_context = DisambiguationContext::new();
@@ -83,12 +83,12 @@ pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, Glossa
     // Process all clauses - they're separated by commas in the grammar
     for clause in stmt.clauses() {
         for expr in &clause.expressions {
-            feed_expr_to_assembler_with_context(&mut asm, expr, &mut current_context)?;
+            feed_expr_to_assembler_with_context(&mut stmt_asm, expr, &mut current_context)?;
         }
     }
 
     // Finalize the statement
-    Ok(asm.finalize()?)
+    Ok(stmt_asm.finalize()?)
 }
 
 #[cfg(test)]

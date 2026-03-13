@@ -1,8 +1,9 @@
+#![allow(unused_mut)]
 use crate::ast::{Expr, Word};
 use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person, analyze};
 use crate::semantic::AssemblyError;
 use crate::semantic::assembly::{
-    Assembler, MAX_ADJECTIVES, MAX_ARRAYS, MAX_BLOCKS, MAX_GENITIVES, MAX_INDEX_ACCESSES,
+    AssembledStatement, MAX_ADJECTIVES, MAX_ARRAYS, MAX_BLOCKS, MAX_GENITIVES, MAX_INDEX_ACCESSES,
     MAX_LITERALS, MAX_NESTED_PHRASES, MAX_NOMINATIVES, MAX_OPERATORS, MAX_PARTICIPLES,
     MAX_PROPERTY_ACCESSES, MAX_UNWRAPS,
 };
@@ -12,19 +13,19 @@ use std::borrow::Cow;
 
 #[test]
 fn test_split_verb_consumes_literal_without_subject() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // 1. Feed "κατά" (delimiter preposition)
     let kata = analyze("κατα"); // Should be preposition
-    asm.feed(&kata, "κατά").unwrap();
+    stmt.feed(&kata, "κατά").unwrap();
 
     // 2. Feed string literal " "
-    asm.feed_string(" ".to_string()).unwrap();
+    stmt.feed_string(" ".to_string()).unwrap();
 
     // 3. Feed "σχίζεται" (split verb)
     // This triggers check_method_verbs
     let split = analyze("σχιζεται");
-    asm.feed(&split, "σχίζεται").unwrap();
+    stmt.feed(&split, "σχίζεται").unwrap();
 
     // At this point, if the bug exists:
     // - check_method_verbs returned true (so it was "handled")
@@ -33,15 +34,15 @@ fn test_split_verb_consumes_literal_without_subject() {
 
     // 4. Feed "λόγος" (subject)
     let subject = analyze("λογος");
-    asm.feed(&subject, "λόγος").unwrap();
+    stmt.feed(&subject, "λόγος").unwrap();
 
     // 5. Feed "λέγε" (print verb)
     // REMOVED: Since "split" is now correctly identified as a verb when the pattern match fails,
     // adding another verb would cause a DoubleVerb error.
     // let verb = analyze("λεγε");
-    // asm.feed(&verb, "λέγε").unwrap();
+    // stmt.feed(&verb, "λέγε").unwrap();
 
-    let stmt = asm.finalize().unwrap();
+    let mut stmt = stmt.clone();
 
     // If the literal was consumed by the failed split pattern match, it will be missing.
     // If it was preserved, it should be in stmt.literals.
@@ -57,19 +58,19 @@ fn test_split_verb_consumes_literal_without_subject() {
 
 #[test]
 fn test_split_verb_not_ignored_without_delimiter() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // Feed subject "word"
     let subj = analyze("λογος"); // "word"
-    asm.feed(&subj, "λόγος").unwrap();
+    stmt.feed(&subj, "λόγος").unwrap();
 
     // Feed "splits" (σχίζει) without "by" (κατά) and delimiter string
     // normalized: σχιζει
     // This should now be treated as a normal verb because the split pattern didn't match!
     let split_verb = analyze("σχιζει");
-    asm.feed(&split_verb, "σχίζει").unwrap();
+    stmt.feed(&split_verb, "σχίζει").unwrap();
 
-    let stmt = asm.finalize();
+    let stmt = stmt.finalize();
 
     match stmt {
         Ok(s) => {
@@ -90,23 +91,23 @@ fn test_split_verb_not_ignored_without_delimiter() {
 
 #[test]
 fn test_ordinal_not_ignored_without_subject() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // Feed "first" (πρῶτον) - Ordinal
     // normalized: πρωτον
     // Since there is no subject yet, it should fall through and be treated as an Adjective
     let first = analyze("πρωτον");
-    asm.feed(&first, "πρῶτον").unwrap();
+    stmt.feed(&first, "πρῶτον").unwrap();
 
     // Feed "man" (ἄνθρωπος) - Subject
     let man = analyze("ανθρωπος");
-    asm.feed(&man, "ἄνθρωπος").unwrap();
+    stmt.feed(&man, "ἄνθρωπος").unwrap();
 
     // Feed "is" (ἐστί) - Verb
     let is_verb = analyze("εστι");
-    asm.feed(&is_verb, "ἐστί").unwrap();
+    stmt.feed(&is_verb, "ἐστί").unwrap();
 
-    let stmt = asm.finalize().unwrap();
+    let mut stmt = stmt.clone();
 
     assert!(stmt.subject.is_some(), "Subject should be present");
     assert_eq!(stmt.subject.unwrap().original, "ἄνθρωπος");
@@ -126,22 +127,22 @@ fn test_ordinal_not_ignored_without_subject() {
 
 #[test]
 fn test_length_property_not_ignored_without_subject() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // Feed "length" (μῆκος) - Noun
     // normalized: μηκος
     // Since there is no subject, it should fall through and be treated as a Noun (Subject/Object)
     let len = analyze("μηκος");
-    asm.feed(&len, "μῆκος").unwrap();
+    stmt.feed(&len, "μῆκος").unwrap();
 
     // Feed "is" (ἐστί)
     let is_verb = analyze("εστι");
-    asm.feed(&is_verb, "ἐστί").unwrap();
+    stmt.feed(&is_verb, "ἐστί").unwrap();
 
     // Feed "5"
-    asm.feed_number(5).unwrap();
+    stmt.feed_number(5).unwrap();
 
-    let stmt = asm.finalize().unwrap();
+    let mut stmt = stmt.clone();
 
     // "length" should be the subject now!
     assert!(stmt.subject.is_some(), "Subject should be present (length)");
@@ -157,7 +158,7 @@ fn test_length_property_not_ignored_without_subject() {
 
 #[test]
 fn test_limit_adjectives() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let analysis = MorphAnalysis {
         lemma: Cow::Borrowed("adj"),
         part_of_speech: PartOfSpeech::Adjective,
@@ -172,10 +173,10 @@ fn test_limit_adjectives() {
     };
 
     for _ in 0..MAX_ADJECTIVES {
-        asm.feed(&analysis, "adj").unwrap();
+        stmt.feed(&analysis, "adj").unwrap();
     }
 
-    match asm.feed(&analysis, "adj") {
+    match stmt.feed(&analysis, "adj") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Adjectives");
             assert_eq!(max, MAX_ADJECTIVES);
@@ -186,12 +187,12 @@ fn test_limit_adjectives() {
 
 #[test]
 fn test_limit_literals() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     for _ in 0..MAX_LITERALS {
-        asm.feed_number(1).unwrap();
+        stmt.feed_number(1).unwrap();
     }
 
-    match asm.feed_number(1) {
+    match stmt.feed_number(1) {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Literals");
             assert_eq!(max, MAX_LITERALS);
@@ -202,7 +203,7 @@ fn test_limit_literals() {
 
 #[test]
 fn test_limit_nominatives() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let analysis = MorphAnalysis {
         lemma: Cow::Borrowed("noun"),
         part_of_speech: PartOfSpeech::Noun,
@@ -217,14 +218,14 @@ fn test_limit_nominatives() {
     };
 
     // First nominative goes to subject slot
-    asm.feed(&analysis, "noun").unwrap();
+    stmt.feed(&analysis, "noun").unwrap();
 
     // Subsequent nominatives go to nominatives list
     for _ in 0..MAX_NOMINATIVES {
-        asm.feed(&analysis, "noun").unwrap();
+        stmt.feed(&analysis, "noun").unwrap();
     }
 
-    match asm.feed(&analysis, "noun") {
+    match stmt.feed(&analysis, "noun") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Nominatives");
             assert_eq!(max, MAX_NOMINATIVES);
@@ -235,7 +236,7 @@ fn test_limit_nominatives() {
 
 #[test]
 fn test_limit_genitives() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let analysis = MorphAnalysis {
         lemma: Cow::Borrowed("gen"),
         part_of_speech: PartOfSpeech::Noun,
@@ -250,10 +251,10 @@ fn test_limit_genitives() {
     };
 
     for _ in 0..MAX_GENITIVES {
-        asm.feed(&analysis, "gen").unwrap();
+        stmt.feed(&analysis, "gen").unwrap();
     }
 
-    match asm.feed(&analysis, "gen") {
+    match stmt.feed(&analysis, "gen") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Genitives");
             assert_eq!(max, MAX_GENITIVES);
@@ -264,12 +265,12 @@ fn test_limit_genitives() {
 
 #[test]
 fn test_limit_arrays() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     for _ in 0..MAX_ARRAYS {
-        asm.feed_array(vec![]).unwrap();
+        stmt.feed_array(vec![]).unwrap();
     }
 
-    match asm.feed_array(vec![]) {
+    match stmt.feed_array(vec![]) {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Arrays");
             assert_eq!(max, MAX_ARRAYS);
@@ -280,15 +281,15 @@ fn test_limit_arrays() {
 
 #[test]
 fn test_limit_index_accesses() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let array = Expr::NumberLiteral(1);
     let index = Expr::NumberLiteral(0);
 
     for _ in 0..MAX_INDEX_ACCESSES {
-        asm.feed_index_access(array.clone(), index.clone()).unwrap();
+        stmt.feed_index_access(array.clone(), index.clone()).unwrap();
     }
 
-    match asm.feed_index_access(array, index) {
+    match stmt.feed_index_access(array, index) {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Index Accesses");
             assert_eq!(max, MAX_INDEX_ACCESSES);
@@ -299,12 +300,12 @@ fn test_limit_index_accesses() {
 
 #[test]
 fn test_limit_nested_phrases() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     for _ in 0..MAX_NESTED_PHRASES {
-        asm.feed_nested_phrase(vec![]).unwrap();
+        stmt.feed_nested_phrase(vec![]).unwrap();
     }
 
-    match asm.feed_nested_phrase(vec![]) {
+    match stmt.feed_nested_phrase(vec![]) {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Nested Phrases");
             assert_eq!(max, MAX_NESTED_PHRASES);
@@ -315,14 +316,14 @@ fn test_limit_nested_phrases() {
 
 #[test]
 fn test_limit_unwraps() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let expr = Expr::Word(Word::new("x"));
 
     for _ in 0..MAX_UNWRAPS {
-        asm.feed_unwrap(expr.clone()).unwrap();
+        stmt.feed_unwrap(expr.clone()).unwrap();
     }
 
-    match asm.feed_unwrap(expr) {
+    match stmt.feed_unwrap(expr) {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Unwraps");
             assert_eq!(max, MAX_UNWRAPS);
@@ -333,7 +334,7 @@ fn test_limit_unwraps() {
 
 #[test]
 fn test_limit_participles() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let analysis = crate::morphology::ParticipleAnalysis {
         stem: "stem".to_string(),
         tense: crate::morphology::Tense::Present,
@@ -345,10 +346,10 @@ fn test_limit_participles() {
     };
 
     for _ in 0..MAX_PARTICIPLES {
-        asm.feed_participle(&analysis, "part").unwrap();
+        stmt.feed_participle(&analysis, "part").unwrap();
     }
 
-    match asm.feed_participle(&analysis, "part") {
+    match stmt.feed_participle(&analysis, "part") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Participles");
             assert_eq!(max, MAX_PARTICIPLES);
@@ -359,12 +360,12 @@ fn test_limit_participles() {
 
 #[test]
 fn test_limit_blocks() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     for _ in 0..MAX_BLOCKS {
-        asm.feed_block(vec![]).unwrap();
+        stmt.feed_block(vec![]).unwrap();
     }
 
-    match asm.feed_block(vec![]) {
+    match stmt.feed_block(vec![]) {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Blocks");
             assert_eq!(max, MAX_BLOCKS);
@@ -376,7 +377,7 @@ fn test_limit_blocks() {
 #[test]
 fn test_limit_operators() {
     // This tests the check_operators function which returns false on limit
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     // Use an analysis that triggers check_operators (e.g. "καί")
     let analysis = MorphAnalysis {
         lemma: Cow::Borrowed("και"),
@@ -393,10 +394,10 @@ fn test_limit_operators() {
 
     for _ in 0..MAX_OPERATORS {
         // "καί" is an operator
-        asm.feed(&analysis, "καί").unwrap();
+        stmt.feed(&analysis, "καί").unwrap();
     }
 
-    match asm.feed(&analysis, "καί") {
+    match stmt.feed(&analysis, "καί") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Operators");
             assert_eq!(max, MAX_OPERATORS);
@@ -408,7 +409,7 @@ fn test_limit_operators() {
 #[test]
 fn test_limit_property_accesses() {
     // This tests check_special_properties which returns false on limit
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // Setup subject for property access
     let subj = MorphAnalysis {
@@ -439,14 +440,14 @@ fn test_limit_property_accesses() {
 
     for _ in 0..MAX_PROPERTY_ACCESSES {
         // Feed subject
-        asm.feed(&subj, "text").unwrap();
+        stmt.feed(&subj, "text").unwrap();
         // Feed property "μῆκος" (length)
-        asm.feed(&prop_analysis, "μῆκος").unwrap();
+        stmt.feed(&prop_analysis, "μῆκος").unwrap();
     }
 
     // Try one more
-    asm.feed(&subj, "text").unwrap();
-    match asm.feed(&prop_analysis, "μῆκος") {
+    stmt.feed(&subj, "text").unwrap();
+    match stmt.feed(&prop_analysis, "μῆκος") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Property Accesses");
             assert_eq!(max, MAX_PROPERTY_ACCESSES);
@@ -458,7 +459,7 @@ fn test_limit_property_accesses() {
 #[test]
 fn test_limit_string_method_properties() {
     // This tests try_create_string_method (called by check_method_verbs)
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     let subj = MorphAnalysis {
         lemma: Cow::Borrowed("subj"),
@@ -516,17 +517,17 @@ fn test_limit_string_method_properties() {
     };
 
     for _ in 0..MAX_PROPERTY_ACCESSES {
-        asm.feed(&subj, "text").unwrap();
-        asm.feed(&prop_analysis, "μῆκος").unwrap();
+        stmt.feed(&subj, "text").unwrap();
+        stmt.feed(&prop_analysis, "μῆκος").unwrap();
     }
 
     // Now try to trigger a string method which would add another property access
-    asm.feed(&subj, "text").unwrap();
-    asm.feed(&delimiter_prep, "κατά").unwrap();
-    asm.feed_string(",".to_string()).unwrap(); // Delimiter literal
+    stmt.feed(&subj, "text").unwrap();
+    stmt.feed(&delimiter_prep, "κατά").unwrap();
+    stmt.feed_string(",".to_string()).unwrap(); // Delimiter literal
 
     // Feed split verb - should fail to create method call (return false)
-    match asm.feed(&split_verb, "σχίζεται") {
+    match stmt.feed(&split_verb, "σχίζεται") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Property Accesses");
             assert_eq!(max, MAX_PROPERTY_ACCESSES);
@@ -540,7 +541,7 @@ fn test_limit_string_method_properties() {
 #[test]
 fn test_limit_operators_or() {
     // This tests the OR path in check_operators
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let analysis = MorphAnalysis {
         lemma: Cow::Borrowed("η"),
         part_of_speech: PartOfSpeech::Conjunction,
@@ -555,10 +556,10 @@ fn test_limit_operators_or() {
     };
 
     for _ in 0..MAX_OPERATORS {
-        asm.feed(&analysis, "ἤ").unwrap();
+        stmt.feed(&analysis, "ἤ").unwrap();
     }
 
-    match asm.feed(&analysis, "ἤ") {
+    match stmt.feed(&analysis, "ἤ") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Operators");
             assert_eq!(max, MAX_OPERATORS);
@@ -570,7 +571,7 @@ fn test_limit_operators_or() {
 #[test]
 fn test_limit_operators_comparison() {
     // This tests the Comparison path in check_operators
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let analysis = MorphAnalysis {
         lemma: Cow::Borrowed("μειζον"),
         part_of_speech: PartOfSpeech::Adjective,
@@ -585,10 +586,10 @@ fn test_limit_operators_comparison() {
     };
 
     for _ in 0..MAX_OPERATORS {
-        asm.feed(&analysis, "μεῖζον").unwrap();
+        stmt.feed(&analysis, "μεῖζον").unwrap();
     }
 
-    match asm.feed(&analysis, "μεῖζον") {
+    match stmt.feed(&analysis, "μεῖζον") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Operators");
             assert_eq!(max, MAX_OPERATORS);
@@ -600,7 +601,7 @@ fn test_limit_operators_comparison() {
 #[test]
 fn test_limit_operators_arithmetic() {
     // This tests the Arithmetic path in check_operators
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let analysis = MorphAnalysis {
         lemma: Cow::Borrowed("αθροισμα"),
         part_of_speech: PartOfSpeech::Noun,
@@ -615,10 +616,10 @@ fn test_limit_operators_arithmetic() {
     };
 
     for _ in 0..MAX_OPERATORS {
-        asm.feed(&analysis, "ἄθροισμα").unwrap();
+        stmt.feed(&analysis, "ἄθροισμα").unwrap();
     }
 
-    match asm.feed(&analysis, "ἄθροισμα") {
+    match stmt.feed(&analysis, "ἄθροισμα") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Operators");
             assert_eq!(max, MAX_OPERATORS);
@@ -630,7 +631,7 @@ fn test_limit_operators_arithmetic() {
 #[test]
 fn test_limit_ordinal_index() {
     // This tests the ordinal adjective path in check_special_properties
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     let subj = MorphAnalysis {
         lemma: Cow::Borrowed("subj"),
@@ -659,12 +660,12 @@ fn test_limit_ordinal_index() {
     };
 
     for _ in 0..MAX_INDEX_ACCESSES {
-        asm.feed(&subj, "text").unwrap();
-        asm.feed(&ordinal, "πρῶτον").unwrap();
+        stmt.feed(&subj, "text").unwrap();
+        stmt.feed(&ordinal, "πρῶτον").unwrap();
     }
 
-    asm.feed(&subj, "text").unwrap();
-    match asm.feed(&ordinal, "πρῶτον") {
+    stmt.feed(&subj, "text").unwrap();
+    match stmt.feed(&ordinal, "πρῶτον") {
         Err(AssemblyError::LimitExceeded { resource, max }) => {
             assert_eq!(resource, "Index Accesses");
             assert_eq!(max, MAX_INDEX_ACCESSES);
@@ -677,7 +678,7 @@ fn test_limit_ordinal_index() {
 
 #[test]
 fn test_double_indirect_object_error() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // First indirect object: τῷ ἀνθρώπῳ (to the man)
     let dat1 = MorphAnalysis {
@@ -692,7 +693,7 @@ fn test_double_indirect_object_error() {
         voice: None,
         confidence: 1.0,
     };
-    asm.feed(&dat1, "ἀνθρώπῳ").unwrap();
+    stmt.feed(&dat1, "ἀνθρώπῳ").unwrap();
 
     // Second indirect object: τῷ θεῷ (to the god)
     let dat2 = MorphAnalysis {
@@ -708,7 +709,7 @@ fn test_double_indirect_object_error() {
         confidence: 1.0,
     };
 
-    let result = asm.feed(&dat2, "θεῷ");
+    let result = stmt.feed(&dat2, "θεῷ");
 
     // SENTRY: This assertion enforces that we DO NOT allow silent overwrites.
     assert!(
@@ -720,7 +721,7 @@ fn test_double_indirect_object_error() {
 
 #[test]
 fn test_neuter_plural_agreement() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // Subject: τὰ ζῷα (Neuter Plural)
     let subj = MorphAnalysis {
@@ -735,7 +736,7 @@ fn test_neuter_plural_agreement() {
         voice: None,
         confidence: 1.0,
     };
-    asm.feed(&subj, "ζῷα").unwrap();
+    stmt.feed(&subj, "ζῷα").unwrap();
 
     // Verb: τρέχουσιν (Plural)
     let verb = MorphAnalysis {
@@ -750,9 +751,9 @@ fn test_neuter_plural_agreement() {
         voice: None,
         confidence: 1.0,
     };
-    asm.feed(&verb, "τρέχουσιν").unwrap();
+    stmt.feed(&verb, "τρέχουσιν").unwrap();
 
-    let stmt = asm.finalize();
+    let stmt = stmt.finalize();
     assert!(
         stmt.is_ok(),
         "Neuter plural subject should allow plural verb (current behavior), got {:?}",
@@ -762,7 +763,7 @@ fn test_neuter_plural_agreement() {
 
 #[test]
 fn test_verbless_statement() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // Subject: ὁ ἄνθρωπος
     let subj = MorphAnalysis {
@@ -777,11 +778,11 @@ fn test_verbless_statement() {
         voice: None,
         confidence: 1.0,
     };
-    asm.feed(&subj, "ἄνθρωπος").unwrap();
+    stmt.feed(&subj, "ἄνθρωπος").unwrap();
 
     // No verb fed.
 
-    let stmt = asm.finalize();
+    let stmt = stmt.finalize();
     // Current behavior allows verbless statements if they have content.
     assert!(
         stmt.is_ok(),
@@ -810,47 +811,47 @@ fn test_assembled_statement_derive_coverage() {
 
 #[test]
 fn test_assembler_special_markers_coverage() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // "μετά" (mutable marker)
     let meta = analyze("μετα"); // Preposition
-    asm.feed(&meta, "μετά").unwrap();
-    let stmt = asm.finalize().unwrap();
+    stmt.feed(&meta, "μετά").unwrap();
+    let mut stmt = stmt.clone();
     assert!(stmt.has_mutable_marker);
 
     // "ἐν" (containment)
     let en = analyze("εν"); // Preposition
-    asm.feed(&en, "ἐν").unwrap();
-    let stmt2 = asm.finalize().unwrap();
+    stmt.feed(&en, "ἐν").unwrap();
+    let mut stmt2 = stmt.clone();
     assert!(stmt2.has_containment_preposition);
 
     // "κατά" (delimiter)
     let kata = analyze("κατα"); // Preposition
-    asm.feed(&kata, "κατά").unwrap();
-    let stmt3 = asm.finalize().unwrap();
+    stmt.feed(&kata, "κατά").unwrap();
+    let stmt3 = stmt.clone().finalize().unwrap();
     assert!(stmt3.has_delimiter_preposition);
 }
 
 #[test]
 fn test_assembler_method_verbs_join_coverage() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // 1. Subject: "list"
     let list = analyze("λιστη");
-    asm.feed(&list, "λίστη").unwrap();
+    stmt.feed(&list, "λίστη").unwrap();
 
     // 2. Delimiter Preposition: "κατά"
     let kata = analyze("κατα");
-    asm.feed(&kata, "κατά").unwrap();
+    stmt.feed(&kata, "κατά").unwrap();
 
     // 3. Delimiter Literal: ","
-    asm.feed_string(",".to_string()).unwrap();
+    stmt.feed_string(",".to_string()).unwrap();
 
     // 4. Join Verb: "ἑνοῦνται"
     let join = analyze("ενουνται");
-    asm.feed(&join, "ἑνοῦνται").unwrap();
+    stmt.feed(&join, "ἑνοῦνται").unwrap();
 
-    let stmt = asm.finalize().unwrap();
+    let mut stmt = stmt.clone();
     assert_eq!(
         stmt.string_method,
         Some(("join".to_string(), ",".to_string()))
@@ -859,47 +860,47 @@ fn test_assembler_method_verbs_join_coverage() {
 
 #[test]
 fn test_assembler_arithmetic_operators_coverage() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // "ἄθροισμα" (sum -> +)
     let sum = analyze("αθροισμα");
-    asm.feed(&sum, "ἄθροισμα").unwrap();
+    stmt.feed(&sum, "ἄθροισμα").unwrap();
 
-    let stmt = asm.finalize().unwrap();
+    let mut stmt = stmt.clone();
     assert!(!stmt.operators.is_empty());
 }
 
 #[test]
 fn test_assembler_boolean_and_coverage() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // "καί" (and)
     let and = analyze("και");
-    asm.feed(&and, "καί").unwrap();
+    stmt.feed(&and, "καί").unwrap();
 
-    let stmt = asm.finalize().unwrap();
+    let mut stmt = stmt.clone();
     assert!(!stmt.operators.is_empty());
 }
 
 #[test]
 fn test_assembler_numeral_coverage() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // "πέντε" (5)
     let five = analyze("πεντε");
-    asm.feed(&five, "πέντε").unwrap();
+    stmt.feed(&five, "πέντε").unwrap();
 
-    let stmt = asm.finalize().unwrap();
+    let mut stmt = stmt.clone();
     assert_eq!(stmt.literals.len(), 1);
 }
 
 #[test]
 fn test_assembler_set_flags_coverage() {
-    let mut asm = Assembler::new();
-    asm.set_query(true);
-    asm.set_propagate(true);
+    let mut stmt = AssembledStatement::new();
+    stmt.set_query(true);
+    stmt.set_propagate(true);
 
-    let stmt = asm.finalize().unwrap();
+    let mut stmt = stmt.clone();
     assert!(stmt.is_query);
     assert!(stmt.is_propagate);
 }
@@ -908,24 +909,24 @@ fn test_assembler_set_flags_coverage() {
 
 #[test]
 fn test_assembler_method_verbs_split_coverage() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // 1. Subject: "string"
     let string_noun = analyze("λογος");
-    asm.feed(&string_noun, "λόγος").unwrap();
+    stmt.feed(&string_noun, "λόγος").unwrap();
 
     // 2. Delimiter Preposition: "κατά"
     let kata = analyze("κατα");
-    asm.feed(&kata, "κατά").unwrap();
+    stmt.feed(&kata, "κατά").unwrap();
 
     // 3. Delimiter Literal: "."
-    asm.feed_string(".".to_string()).unwrap();
+    stmt.feed_string(".".to_string()).unwrap();
 
     // 4. Split Verb: "σχίζεται"
     let split = analyze("σχιζεται");
-    asm.feed(&split, "σχίζεται").unwrap();
+    stmt.feed(&split, "σχίζεται").unwrap();
 
-    let stmt = asm.finalize().unwrap();
+    let mut stmt = stmt.clone();
     assert_eq!(
         stmt.string_method,
         Some(("split".to_string(), ".".to_string()))
@@ -934,17 +935,17 @@ fn test_assembler_method_verbs_split_coverage() {
 
 #[test]
 fn test_assembler_ordinal_index_coverage() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // 1. Subject: "array" (use known noun "λιστη")
     let array = analyze("λιστη");
-    asm.feed(&array, "λίστη").unwrap();
+    stmt.feed(&array, "λίστη").unwrap();
 
     // 2. Ordinal: "first" (should map to index 0)
     let first = analyze("πρωτον");
-    asm.feed(&first, "πρῶτον").unwrap();
+    stmt.feed(&first, "πρῶτον").unwrap();
 
-    let stmt = asm.finalize().unwrap();
+    let mut stmt = stmt.clone();
     assert_eq!(stmt.index_accesses.len(), 1);
     // Subject should be consumed
     assert!(stmt.subject.is_none());
@@ -952,26 +953,26 @@ fn test_assembler_ordinal_index_coverage() {
 
 #[test]
 fn test_assembler_error_cases_coverage() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
 
     // Double Verb
     let verb1 = analyze("λεγει");
-    asm.feed(&verb1, "λέγει").unwrap();
-    let result = asm.feed(&verb1, "λέγει");
+    stmt.feed(&verb1, "λέγει").unwrap();
+    let result = stmt.feed(&verb1, "λέγει");
     assert!(matches!(result, Err(AssemblyError::DoubleVerb)));
-    let _ = asm.finalize();
+    let _ = stmt.finalize();
 
     // Double Object
     let obj = analyze("λογον");
-    asm.feed(&obj, "λόγον").unwrap();
-    let result = asm.feed(&obj, "λόγον");
+    stmt.feed(&obj, "λόγον").unwrap();
+    let result = stmt.feed(&obj, "λόγον");
     assert!(matches!(result, Err(AssemblyError::DoubleObject)));
-    let _ = asm.finalize();
+    let _ = stmt.finalize();
 
     // Double Indirect
     let ind = analyze("ανθρωπω");
-    asm.feed(&ind, "ἀνθρώπῳ").unwrap();
-    let result = asm.feed(&ind, "ἀνθρώπῳ");
+    stmt.feed(&ind, "ἀνθρώπῳ").unwrap();
+    let result = stmt.feed(&ind, "ἀνθρώπῳ");
     assert!(matches!(result, Err(AssemblyError::DoubleIndirect)));
 }
 

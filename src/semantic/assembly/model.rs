@@ -2,7 +2,7 @@
 //!
 //! This module contains the data structures that represent the semantic components
 //! of a sentence (Subject, Verb, Object, etc.) and the final `AssembledStatement`.
-//! It decouples the data from the assembly logic (`Assembler`).
+//! It decouples the data from the assembly logic (`AssembledStatement`).
 
 use crate::ast::Expr;
 use crate::morphology::lexicon::BinaryOp;

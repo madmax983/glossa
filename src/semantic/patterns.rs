@@ -3,7 +3,7 @@
 //! This module acts as a "bridge" between the low-level, word-order-independent
 //! Greek grammar and high-level programming patterns.
 //!
-//! While the [`Assembler`](crate::semantic::Assembler) handles the grammatical roles (Subject, Object, Verb),
+//! While the [`AssembledStatement`](crate::semantic::AssembledStatement) handles the grammatical roles (Subject, Object, Verb),
 //! this module identifies idiomatic combinations of these roles that map to complex semantics.
 //!
 //! # Supported Patterns

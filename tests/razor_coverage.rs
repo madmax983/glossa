@@ -94,7 +94,7 @@ fn test_errors_help_module() {
     assert!(glossa::errors::help::CASES.contains("Πτώσεις"));
 }
 
-// --- Assembler Structs Coverage ---
+// --- AssembledStatement Structs Coverage ---
 
 #[test]
 fn test_assembler_structs_derive_coverage() {

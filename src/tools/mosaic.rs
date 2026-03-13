@@ -8,7 +8,7 @@
 //! Ancient Greek is a language of "free word order". The meaning is determined by
 //! case endings, not position.
 //!
-//! "Mosaic" reveals how the compiler's [`Assembler`](crate::semantic::Assembler)
+//! "Mosaic" reveals how the compiler's [`AssembledStatement`](crate::semantic::AssembledStatement)
 //! deconstructs this freedom. It shows exactly which words land in which grammatical
 //! slot (Subject, Object, Verb, etc.), proving that `SOV`, `VSO`, and `OVS` all map
 //! to the same semantic structure.
@@ -88,7 +88,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
         ]);
 
     for (i, stmt) in program.statements.iter().enumerate() {
-        // Only assemble regular statements (others like TypeDef don't go through Assembler in the same way)
+        // Only assemble regular statements (others like TypeDef don't go through AssembledStatement in the same way)
         // Check if it's a regular statement
         if let crate::ast::Statement::Regular { .. } = stmt {
             match assemble_statement(stmt) {

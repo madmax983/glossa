@@ -23,7 +23,7 @@
 //!
 //! # The Compiler Pipeline
 //!
-//! The compiler follows a standard multi-pass architecture, but with a unique "Assembler" phase:
+//! The compiler follows a standard multi-pass architecture, but with a unique "AssembledStatement" phase:
 //!
 //! 1. **Parsing** ([`parser::grammar`]):
 //!    * Uses a PEG grammar to tokenize the input.
@@ -101,7 +101,7 @@
 //! * [`parser`]: **The Builder** - Constructs the AST from the raw parse tree.
 //! * [`tools::report`]: **The Scribe** - Report generation and statistics.
 //! * [`tools::narrator`]: **The Bard** - Code-to-story translator for debugging and learning.
-//! * [`semantic`]: **The Assembler** - The slot-based engine that assembles sentences from words.
+//! * [`semantic`]: **The AssembledStatement** - The slot-based engine that assembles sentences from words.
 //! * [`text`]: **The Sizer** - Text utilities and normalization (polytonic -> monotonic).
 
 pub mod ast;

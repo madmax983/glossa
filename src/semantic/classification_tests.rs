@@ -212,7 +212,7 @@ fn test_classify_print_property_access() {
     scope.define("user", GlossaType::Unknown); // Type doesn't matter much for lookup unless it fails
 
     // "user.name print"
-    // Assembler represents this as property_accesses: [("user", "name")]
+    // AssembledStatement represents this as property_accesses: [("user", "name")]
     let asm_stmt = AssembledStatement {
         property_accesses: vec![("user".into(), "name".into())],
         verb: Some(make_verb("print", "λεγε")),

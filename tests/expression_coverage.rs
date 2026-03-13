@@ -124,8 +124,8 @@ fn test_standalone_subject_op_nominative() {
     // In Glossa, if we have "Alpha Beta Greater.",
     // Alpha -> Subject (Nom)
     // Beta -> Nominative (Nom) - usually triggers "DoubleSubject" error if verb is present,
-    // but without verb, Assembler might accept it if we feed carefully or if Assembler allows multiple nominatives.
-    // Assembler::handle_nominal allows multiple nominatives if subject is filled.
+    // but without verb, AssembledStatement might accept it if we feed carefully or if AssembledStatement allows multiple nominatives.
+    // AssembledStatement::handle_nominal allows multiple nominatives if subject is filled.
 
     // Note: This source is identical to `test_standalone_subject_op_object` if β is parsed as object.
     // But `β` (Beta) is ambiguous. If we want it to be nominative, we rely on the parser/assembler logic.

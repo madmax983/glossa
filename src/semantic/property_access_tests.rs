@@ -1,10 +1,10 @@
 use crate::ast::Expr;
 use crate::semantic::expressions::feed_expr_to_assembler_with_context;
-use crate::semantic::{Assembler, DisambiguationContext};
+use crate::semantic::{AssembledStatement, DisambiguationContext};
 
 #[test]
 fn test_property_access_on_accusative_owner() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
 
     let owner = Expr::Word(crate::ast::Word::new("λόγον"));
@@ -14,8 +14,8 @@ fn test_property_access_on_accusative_owner() {
         property: Box::new(property),
     };
 
-    feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx).unwrap();
-    let stmt = asm.finalize().unwrap();
+    feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx).unwrap();
+    let stmt = stmt.finalize().unwrap();
 
     // EXPECTATION: The Property Access should be preserved as a nested phrase
     // This allows extract_value to handle it correctly later
@@ -38,7 +38,7 @@ fn test_property_access_on_accusative_owner() {
 
 #[test]
 fn test_nested_property_access() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
 
     let inner_phrase = Expr::Phrase(vec![
@@ -54,8 +54,8 @@ fn test_nested_property_access() {
         property: Box::new(property),
     };
 
-    feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx).unwrap();
-    let stmt = asm.finalize().unwrap();
+    feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx).unwrap();
+    let stmt = stmt.finalize().unwrap();
 
     // EXPECTATION: The Property Access should be preserved as a nested phrase
     assert!(

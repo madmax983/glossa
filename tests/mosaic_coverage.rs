@@ -53,7 +53,7 @@ fn test_mosaic_comprehensive_coverage() {
     // Parentheses enforce nesting in `build_expression`.
     // So `(ὁ ἄνθρωπος)` -> `Expr::Phrase`.
     // `λέγε (ὁ ἄνθρωπος)` -> `Expr::Phrase(vec![Word, Expr::Phrase])`.
-    // This should trigger `asm.feed_nested_phrase`.
+    // This should trigger `stmt.feed_nested_phrase`.
     assert!(output.contains("Phrases:"), "Missing Nested Phrases output");
 
     // Verify Unwraps (from `α!`)

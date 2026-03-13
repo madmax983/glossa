@@ -1,13 +1,13 @@
 //! Expression analysis and recursive descent
 //!
 //! This module handles the analysis of individual expressions within statements.
-//! While the `Assembler` handles the top-level sentence structure (Subject-Verb-Object),
+//! While the `AssembledStatement` handles the top-level sentence structure (Subject-Verb-Object),
 //! expressions like function calls, array literals, and binary operations are handled
 //! here via recursive descent.
 //!
 //! # The Two Modes of Analysis
 //!
-//! 1. **Assembler Feed**: Top-level words are "fed" to the assembler to find their grammatical slot.
+//! 1. **AssembledStatement Feed**: Top-level words are "fed" to the assembler to find their grammatical slot.
 //!    See [`feed_expr_to_assembler_with_context`].
 //! 2. **Recursive Analysis**: Nested expressions (args inside a function call) are analyzed
 //!    recursively to produce an [`AnalyzedExpr`]. See [`analyze_argument_expr`].
@@ -16,7 +16,7 @@ use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
 use crate::limits::MAX_AST_DEPTH;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
-use crate::semantic::assembly::Assembler;
+use crate::semantic::assembly::AssembledStatement;
 use crate::semantic::assembly::Literal;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
 use crate::semantic::resolver::Scope;
@@ -374,7 +374,7 @@ pub fn contains_verb_in_expr(expr: &Expr, verb: &str) -> bool {
 
 /// Feed an expression into the assembler with disambiguation context
 ///
-/// This function takes a raw AST expression and "feeds" it into the [`Assembler`].
+/// This function takes a raw AST expression and "feeds" it into the [`AssembledStatement`].
 /// It handles morphological analysis, disambiguation (using the context), and
 /// recursively handles complex expressions like arrays or nested phrases.
 ///
@@ -384,15 +384,15 @@ pub fn contains_verb_in_expr(expr: &Expr, verb: &str) -> bool {
 /// the context expects an Accusative noun next. This helps resolve ambiguity for words that
 /// could be either Nominative or Accusative.
 pub(crate) fn feed_expr_to_assembler_with_context(
-    asm: &mut Assembler,
+    stmt: &mut AssembledStatement,
     expr: &Expr,
     context: &mut DisambiguationContext,
 ) -> Result<(), GlossaError> {
-    feed_expr_recursive(asm, expr, context, 0)
+    feed_expr_recursive(stmt, expr, context, 0)
 }
 
 fn feed_expr_recursive(
-    asm: &mut Assembler,
+    stmt: &mut AssembledStatement,
     expr: &Expr,
     context: &mut DisambiguationContext,
     depth: usize,
@@ -405,13 +405,13 @@ fn feed_expr_recursive(
 
     match expr {
         Expr::StringLiteral(s) => {
-            asm.feed_string(s.clone())?;
+            stmt.feed_string(s.clone())?;
         }
         Expr::NumberLiteral(n) => {
-            asm.feed_number(*n)?;
+            stmt.feed_number(*n)?;
         }
         Expr::BooleanLiteral(b) => {
-            asm.feed_boolean(*b)?;
+            stmt.feed_boolean(*b)?;
         }
         Expr::Word(w) => {
             // Check if this is an article using ORIGINAL form (preserves diacritics)
@@ -432,7 +432,7 @@ fn feed_expr_recursive(
             if !in_lexicon && !is_numeral {
                 let participle_check = morphology::analyze_participle(&w.normalized);
                 if let Some(participle_analysis) = participle_check {
-                    asm.feed_participle(&participle_analysis, &w.original)?;
+                    stmt.feed_participle(&participle_analysis, &w.original)?;
                     return Ok(());
                 }
             }
@@ -451,7 +451,7 @@ fn feed_expr_recursive(
             let mut success = false;
 
             for candidate in candidates {
-                match asm.feed_with_normalized(&candidate, &w.original, &w.normalized) {
+                match stmt.feed_with_normalized(&candidate, &w.original, &w.normalized) {
                     Ok(_) => {
                         success = true;
                         break;
@@ -482,10 +482,10 @@ fn feed_expr_recursive(
                     // This is a nested phrase (parenthesized expression)
                     // Store it for later analysis instead of flattening
                     if let Expr::Phrase(nested_terms) = term {
-                        asm.feed_nested_phrase(nested_terms.clone())?;
+                        stmt.feed_nested_phrase(nested_terms.clone())?;
                     }
                 } else {
-                    feed_expr_recursive(asm, term, context, depth + 1)?;
+                    feed_expr_recursive(stmt, term, context, depth + 1)?;
                 }
             }
         }
@@ -498,7 +498,7 @@ fn feed_expr_recursive(
             // SECURITY: Ensure we don't clone excessively deep structures, which would stack overflow.
             check_cloning_depth_safety(expr, MAX_AST_DEPTH)?;
 
-            asm.feed_nested_phrase(vec![expr.clone()])?;
+            stmt.feed_nested_phrase(vec![expr.clone()])?;
         }
         Expr::Call { verb, arguments } => {
             // Feed the verb - verbs can set context for subjects
@@ -508,13 +508,13 @@ fn feed_expr_recursive(
             // Set context from verb for potential subject agreement
             *context = DisambiguationContext::from_verb(&best_verb);
 
-            if let Err(e) = asm.feed_with_normalized(&best_verb, &verb.original, &verb.normalized) {
+            if let Err(e) = stmt.feed_with_normalized(&best_verb, &verb.original, &verb.normalized) {
                 return Err(GlossaError::semantic(e.to_string()));
             }
 
             // Feed arguments
             for arg in arguments {
-                feed_expr_recursive(asm, arg, context, depth + 1)?;
+                feed_expr_recursive(stmt, arg, context, depth + 1)?;
             }
         }
         Expr::Binding { name, value } => {
@@ -522,38 +522,38 @@ fn feed_expr_recursive(
             let analyses = morphology::analyze_all(&name.normalized);
             let best_name = resolve_best(analyses, context);
 
-            if let Err(e) = asm.feed_with_normalized(&best_name, &name.original, &name.normalized) {
+            if let Err(e) = stmt.feed_with_normalized(&best_name, &name.original, &name.normalized) {
                 return Err(GlossaError::semantic(e.to_string()));
             }
-            feed_expr_recursive(asm, value, context, depth + 1)?;
+            feed_expr_recursive(stmt, value, context, depth + 1)?;
         }
         Expr::BinOp { left, op: _, right } => {
             // TODO: Implement binary operation handling
-            feed_expr_recursive(asm, left, context, depth + 1)?;
-            feed_expr_recursive(asm, right, context, depth + 1)?;
+            feed_expr_recursive(stmt, left, context, depth + 1)?;
+            feed_expr_recursive(stmt, right, context, depth + 1)?;
         }
         Expr::UnaryOp { op, operand } => {
             // Handle unwrap operator specially - it's a postfix operator that doesn't need word-order handling
             if matches!(op, crate::ast::UnaryOperator::Unwrap) {
                 // Store the unwrap expression for special handling
-                asm.feed_unwrap(operand.as_ref().clone())?;
+                stmt.feed_unwrap(operand.as_ref().clone())?;
             } else {
                 // TODO: Implement other unary operations (Not, Neg)
-                feed_expr_recursive(asm, operand, context, depth + 1)?;
+                feed_expr_recursive(stmt, operand, context, depth + 1)?;
             }
         }
         Expr::Block(statements) => {
             // Parenthesized expressions are stored as blocks for later analysis
             // Don't feed their contents to the main assembler - they'll be analyzed separately
-            asm.feed_block(statements.clone())?;
+            stmt.feed_block(statements.clone())?;
         }
         Expr::ArrayLiteral(elements) => {
             // Feed array literal to assembler
-            asm.feed_array(elements.clone())?;
+            stmt.feed_array(elements.clone())?;
         }
         Expr::IndexAccess { array, index } => {
             // Feed index access to assembler
-            asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone())?;
+            stmt.feed_index_access(array.as_ref().clone(), index.as_ref().clone())?;
         }
     }
     Ok(())
@@ -1142,7 +1142,7 @@ mod tests {
     #[test]
     fn test_vso_ambiguity_resolution() {
         use crate::ast::Word;
-        use crate::semantic::{Assembler, DisambiguationContext};
+        use crate::semantic::{AssembledStatement, DisambiguationContext};
 
         // Test sentence: λέγω τὸ πρῶτον
         // "I say" (1st Person) "the first" (Neuter Nom/Acc 3rd Person?)
@@ -1152,23 +1152,23 @@ mod tests {
         // Should parse as: Verb(I say) + Object(name)
         // NOT: Subject(name) + Verb(I say) -> Agreement Error
 
-        let mut asm = Assembler::new();
+        let mut stmt = AssembledStatement::new();
         let mut ctx = DisambiguationContext::new();
 
         // 1. Feed "λέγω" (I say)
         let verb = Expr::Word(Word::new("λέγω"));
-        feed_expr_to_assembler_with_context(&mut asm, &verb, &mut ctx).unwrap();
+        feed_expr_to_assembler_with_context(&mut stmt, &verb, &mut ctx).unwrap();
 
         // 2. Feed "τό" (the)
         let article = Expr::Word(Word::new("τό"));
-        feed_expr_to_assembler_with_context(&mut asm, &article, &mut ctx).unwrap();
+        feed_expr_to_assembler_with_context(&mut stmt, &article, &mut ctx).unwrap();
 
         // 3. Feed "ὄνομα" (name)
         let noun = Expr::Word(Word::new("ὄνομα"));
-        feed_expr_to_assembler_with_context(&mut asm, &noun, &mut ctx).unwrap();
+        feed_expr_to_assembler_with_context(&mut stmt, &noun, &mut ctx).unwrap();
 
         // 4. Finalize
-        let stmt = asm.finalize().unwrap();
+        let stmt = stmt.finalize().unwrap();
 
         // Verify
         assert!(stmt.verb.is_some(), "Should have a verb");
@@ -1188,23 +1188,23 @@ mod tests {
     #[test]
     fn test_backtracking_failure_propagates_error() {
         use crate::ast::Word;
-        use crate::semantic::{Assembler, DisambiguationContext};
+        use crate::semantic::{AssembledStatement, DisambiguationContext};
 
         // Test sentence: ἐγὼ τρέχει
         // "I" (Subj 1st) "runs" (Verb 3rd) -> Agreement Error
         // This should fail for ALL backtracking candidates of "τρέχει".
         // We verify that the error is propagated.
 
-        let mut asm = Assembler::new();
+        let mut stmt = AssembledStatement::new();
         let mut ctx = DisambiguationContext::new();
 
         // 1. Feed "ἐγώ" (I)
         let subj = Expr::Word(Word::new("ἐγώ"));
-        feed_expr_to_assembler_with_context(&mut asm, &subj, &mut ctx).unwrap();
+        feed_expr_to_assembler_with_context(&mut stmt, &subj, &mut ctx).unwrap();
 
         // 2. Feed "τρέχει" (runs - 3rd person)
         let verb = Expr::Word(Word::new("τρέχει"));
-        let result = feed_expr_to_assembler_with_context(&mut asm, &verb, &mut ctx);
+        let result = feed_expr_to_assembler_with_context(&mut stmt, &verb, &mut ctx);
 
         assert!(
             result.is_err(),

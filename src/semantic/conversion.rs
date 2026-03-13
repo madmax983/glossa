@@ -1,7 +1,7 @@
 //! Conversion from assembled statements to analyzed statements
 //!
 //! This module acts as the "interpreter" of the assembled semantic structure.
-//! While the [`Assembler`](crate::semantic::Assembler) ensures grammatical correctness (Subject-Verb agreement),
+//! While the [`AssembledStatement`](crate::semantic::AssembledStatement) ensures grammatical correctness (Subject-Verb agreement),
 //! this module assigns *meaning* to the grammatical structures.
 //!
 //! # The Interpreter Pattern
@@ -55,7 +55,7 @@ use crate::semantic::{Constituent, Literal};
 ///
 /// # Arguments
 ///
-/// * `asm_stmt` - The assembled statement from the `Assembler`.
+/// * `asm_stmt` - The assembled statement from the `AssembledStatement`.
 /// * `scope` - The current semantic scope (for variable lookup and definition).
 pub fn convert_assembled_to_analyzed(
     asm_stmt: &AssembledStatement,

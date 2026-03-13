@@ -82,7 +82,7 @@ fn test_assembler_consistency() {
     let source = "ξ πέντε ἔστω. ξ λέγε.";
     let output1 = compile_to_rust(source);
     let output2 = compile_to_rust(source);
-    assert_eq!(output1, output2, "Assembler should be deterministic");
+    assert_eq!(output1, output2, "AssembledStatement should be deterministic");
 }
 
 /// Test string literal binding

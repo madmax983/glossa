@@ -97,3 +97,14 @@
 **Bloat:** `Analyzer` struct in `src/semantic/analyzer.rs` was completely empty with no fields, used purely as a namespace for the `analyze` method that was passed around to other modules.
 **Cut:** Deleted the `Analyzer` struct and converted `Analyzer::analyze` into a standalone `analyze_statement` function. Updated calling signatures across `control_flow.rs` and `declarations.rs` to remove the unnecessary `analyzer: &mut Analyzer` parameter.
 **Saved:** Removed empty struct instantiation, cleaned up ~20 function signatures, improved modular cohesion and flattened architectural layers.
+
+
+## [Reduction]
+**Bloat:** `Assembler` struct in `src/semantic/assembly/mod.rs` was an unnecessary wrapper around `AssembledStatement` (`struct Assembler { state: AssembledStatement }`), complicating references and adding a layer of indirection.
+**Cut:** Inlined all builder methods (`feed_*`, `finalize`, etc.) directly into `impl AssembledStatement` and deleted the `Assembler` struct completely.
+**Saved:** Removed wrapper struct layer, simplifying semantic API and removing ~10 lines of delegation.
+
+## [Learning]
+**Bloat:** Initially targeted `ScopeGuard` for removal to flatten abstractions.
+**Insight:** RAII (Resource Acquisition Is Initialization) is not "speculative generality" or bloat when used for error-safety. Removing `ScopeGuard` caused scope leaks on `?` early returns.
+**Action:** Do not remove RAII guards that manage critical state across error paths. Essentialism means removing *unnecessary* complexity, not *required* safety mechanisms.

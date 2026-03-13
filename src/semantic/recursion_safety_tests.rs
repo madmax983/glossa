@@ -1,7 +1,7 @@
 use crate::ast::{Expr, Word};
 use crate::limits::MAX_AST_DEPTH;
 use crate::semantic::expressions::feed_expr_to_assembler_with_context;
-use crate::semantic::{Assembler, DisambiguationContext};
+use crate::semantic::{AssembledStatement, DisambiguationContext};
 
 // Helper to create a nested structure of a specific type
 fn make_nested_expr(depth: usize, constructor: impl Fn(Expr) -> Expr) -> Expr {
@@ -18,31 +18,31 @@ fn make_nested_expr(depth: usize, constructor: impl Fn(Expr) -> Expr) -> Expr {
 
 #[test]
 fn test_check_safety_phrase_recursion() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
     let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::Phrase(vec![e]));
 
-    let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
+    let result = feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx);
     assert!(result.is_err(), "Should catch recursion in Phrase");
 }
 
 #[test]
 fn test_check_safety_array_recursion() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
     let depth = MAX_AST_DEPTH + 10;
 
     let expr = make_nested_expr(depth, |e| Expr::ArrayLiteral(vec![e]));
 
-    let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
+    let result = feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx);
     assert!(result.is_err(), "Should catch recursion in ArrayLiteral");
 }
 
 #[test]
 fn test_check_safety_index_access_recursion_array() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
     let depth = MAX_AST_DEPTH + 10;
 
@@ -51,7 +51,7 @@ fn test_check_safety_index_access_recursion_array() {
         index: Box::new(Expr::NumberLiteral(0)),
     });
 
-    let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
+    let result = feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx);
     assert!(
         result.is_err(),
         "Should catch recursion in IndexAccess (array)"
@@ -60,7 +60,7 @@ fn test_check_safety_index_access_recursion_array() {
 
 #[test]
 fn test_check_safety_index_access_recursion_index() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
     let depth = MAX_AST_DEPTH + 10;
 
@@ -69,7 +69,7 @@ fn test_check_safety_index_access_recursion_index() {
         index: Box::new(e),
     });
 
-    let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
+    let result = feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx);
     assert!(
         result.is_err(),
         "Should catch recursion in IndexAccess (index)"
@@ -78,7 +78,7 @@ fn test_check_safety_index_access_recursion_index() {
 
 #[test]
 fn test_check_safety_binop_recursion_left() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
     let depth = MAX_AST_DEPTH + 10;
 
@@ -88,13 +88,13 @@ fn test_check_safety_binop_recursion_left() {
         right: Box::new(Expr::NumberLiteral(1)),
     });
 
-    let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
+    let result = feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx);
     assert!(result.is_err(), "Should catch recursion in BinOp (left)");
 }
 
 #[test]
 fn test_check_safety_binop_recursion_right() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
     let depth = MAX_AST_DEPTH + 10;
 
@@ -104,13 +104,13 @@ fn test_check_safety_binop_recursion_right() {
         right: Box::new(e),
     });
 
-    let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
+    let result = feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx);
     assert!(result.is_err(), "Should catch recursion in BinOp (right)");
 }
 
 #[test]
 fn test_check_safety_unary_op_recursion() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
     let depth = MAX_AST_DEPTH + 10;
 
@@ -119,13 +119,13 @@ fn test_check_safety_unary_op_recursion() {
         operand: Box::new(e),
     });
 
-    let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
+    let result = feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx);
     assert!(result.is_err(), "Should catch recursion in UnaryOp");
 }
 
 #[test]
 fn test_check_safety_binding_recursion() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
     let depth = MAX_AST_DEPTH + 10;
 
@@ -134,13 +134,13 @@ fn test_check_safety_binding_recursion() {
         value: Box::new(e),
     });
 
-    let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
+    let result = feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx);
     assert!(result.is_err(), "Should catch recursion in Binding");
 }
 
 #[test]
 fn test_check_safety_call_recursion() {
-    let mut asm = Assembler::new();
+    let mut stmt = AssembledStatement::new();
     let mut ctx = DisambiguationContext::new();
     let depth = MAX_AST_DEPTH + 10;
 
@@ -149,6 +149,6 @@ fn test_check_safety_call_recursion() {
         arguments: vec![e],
     });
 
-    let result = feed_expr_to_assembler_with_context(&mut asm, &expr, &mut ctx);
+    let result = feed_expr_to_assembler_with_context(&mut stmt, &expr, &mut ctx);
     assert!(result.is_err(), "Should catch recursion in Call");
 }
