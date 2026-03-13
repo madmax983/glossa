@@ -58,6 +58,11 @@ fn main() -> Result<()> {
         }
 
         #[cfg(feature = "nova")]
+        Some(Commands::Philosopher { input }) => {
+            glossa::tools::philosopher::run_philosopher(&input)?;
+        }
+
+        #[cfg(feature = "nova")]
         Some(Commands::Map { input }) => {
             glossa::tools::cartographer::run_map(&input)?;
         }

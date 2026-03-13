@@ -95,6 +95,12 @@ pub struct Cli {
 /// ```
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Analyze a .γλ file for philosophical code smells (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Philosopher {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
     /// Run a .γλ file (default)
     Run {
         /// Input file (.γλ)

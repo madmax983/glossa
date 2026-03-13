@@ -38,3 +38,6 @@ pub mod tester;
 pub mod ui;
 #[cfg(feature = "nova")]
 pub mod weave;
+
+#[cfg(feature = "nova")]
+pub mod philosopher;
