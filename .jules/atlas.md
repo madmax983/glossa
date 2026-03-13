@@ -115,3 +115,7 @@
 **[Breaking The Leak: Encapsulation via pub(crate)]
 **Tangle:** Internal modules were needlessly exposed via `pub mod` across various modules. This broke clear module boundaries and leaked implementation details.
 **Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all internal modules while keeping `pub mod` only where necessary for public APIs.
+
+## [Breaking The Leak: Encapsulation via pub(crate)]
+**Tangle:** Internal modules were needlessly exposed via `pub mod` across various modules. This broke clear module boundaries and leaked implementation details.
+**Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all internal modules while keeping `pub mod` only where necessary for public APIs.
