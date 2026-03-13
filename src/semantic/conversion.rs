@@ -111,6 +111,8 @@ pub fn classify_assembled_statement(
 
     // Detect invalid raw statements that lack verbs, operators, or literals.
     // A statement consisting only of a subject and object without a verb is incomplete.
+    // Note: Genitive method calls (like pου show) are handled earlier, so they won't reach this point,
+    // but if they don't resolve successfully and fall through, they shouldn't panic either.
     if asm_stmt.verb.is_none()
         && asm_stmt.operators.is_empty()
         && asm_stmt.property_accesses.is_empty()
@@ -118,6 +120,8 @@ pub fn classify_assembled_statement(
         && !asm_stmt.is_query
         && !asm_stmt.is_propagate
         && asm_stmt.literals.is_empty()
+        // Allow fallback for valid but unresolved genitive method call attempts:
+        && asm_stmt.genitives.is_empty()
     {
         return Err(crate::errors::AssemblyError::MissingVerb.into());
     }

@@ -15,7 +15,7 @@ fn test_nested_phrase_binding_error() {
 #[test]
 fn test_function_definition_scope() {
     // Note: Added trailing period
-    let source = "συνάρτησις ὁρίζειν (χ)· { χ. }.";
+    let source = "συνάρτησις ὁρίζειν (χ)· { δός χ. }.";
     let ast = parse(source).unwrap();
     let result = analyze_program(&ast);
 
@@ -35,7 +35,7 @@ fn test_nested_phrase_valid_function() {
     // Note: Added trailing period to first statement
     // Use `α (foo 2) ἔστω.` instead of `α (1 (foo 2)) ἔστω.`
     let source = "
-    foo ὁρίζειν (x)· { x. }.
+    foo ὁρίζειν (x)· { δός x. }.
     α (foo 2) ἔστω.
     ";
     let ast = parse(source).unwrap();

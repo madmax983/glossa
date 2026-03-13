@@ -134,9 +134,8 @@ fn test_run_tests_rustc_error() {
         .tempfile()
         .expect("Failed to create temp file");
 
-    // This creates valid Glossa code that produces invalid Rust code (redefining String)
-    // "εἶδος String ὁρίζειν { }." -> "struct String { }" -> conflicts with std::string::String
-    let source = "εἶδος String ὁρίζειν { }. τέλος.";
+    // This creates valid Glossa code that produces invalid Rust code (type mismatch)
+    let source = "εἶδος User ὁρίζειν { ὄνομα ὀνόματος. }. x νέον User ἀληθές ἔστω.";
     write!(temp_file, "{}", source).expect("Failed to write");
 
     let result = run_tests(temp_file.path());
