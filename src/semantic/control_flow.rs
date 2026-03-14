@@ -722,46 +722,39 @@ fn skip_first_word_and_parse(
 
 /// Check if a clause starts with "εἰ δὲ μή" (else pattern)
 fn check_else_pattern_in_expression(expr: &Expr) -> bool {
-    // Extract first 3 words from the expression
-    let words: Vec<String> = if let Expr::Phrase(terms) = expr {
-        terms
-            .iter()
-            .take(3)
-            .filter_map(|term| {
-                if let Expr::Word(w) = term {
-                    Some(w.normalized.to_string())
-                } else {
-                    None
-                }
-            })
-            .collect()
-    } else {
-        vec![]
+    let Expr::Phrase(terms) = expr else {
+        return false;
     };
 
-    let phrase = words.join(" ");
-    lexicon::is_else_pattern(&phrase)
+    if terms.len() < 3 {
+        return false;
+    }
+
+    terms.iter().take(3).enumerate().all(|(i, term)| {
+        if let Expr::Word(w) = term {
+            w.normalized == lexicon::ELSE_PATTERN_WORDS[i]
+        } else {
+            false
+        }
+    })
 }
 
 /// Check if an expression starts with a conditional particle (εἰ or ἐάν)
 fn check_conditional_start(expr: &Expr) -> bool {
-    // Get the first word from the expression
-    let first_word = if let Expr::Phrase(terms) = expr {
-        terms.first().and_then(|term| {
+    let first_word = match expr {
+        Expr::Phrase(terms) => terms.first().and_then(|term| {
             if let Expr::Word(w) = term {
-                Some(w.normalized.clone())
+                Some(w.normalized.as_str())
             } else {
                 None
             }
-        })
-    } else if let Expr::Word(w) = expr {
-        Some(w.normalized.clone())
-    } else {
-        None
+        }),
+        Expr::Word(w) => Some(w.normalized.as_str()),
+        _ => None,
     };
 
     if let Some(word) = first_word {
-        lexicon::is_conditional_particle(&word)
+        lexicon::is_conditional_particle(word)
     } else {
         false
     }

@@ -2392,6 +2392,8 @@ pub fn is_conditional_particle(normalized_word: &str) -> bool {
     matches!(normalized_word, "ει" | "εαν" | "ην" | "αν")
 }
 
+pub const ELSE_PATTERN_WORDS: [&str; 3] = ["ει", "δε", "μη"];
+
 /// Check if a sequence is the else pattern (εἰ δὲ μή)
 pub fn is_else_pattern(normalized_phrase: &str) -> bool {
     normalized_phrase == "ει δε μη"
