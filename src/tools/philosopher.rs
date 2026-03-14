@@ -65,13 +65,13 @@ pub fn run_philosopher(input_path: &Path) -> Result<()> {
     Ok(())
 }
 
-struct CodeSmell {
-    maxim: String,
+pub struct CodeSmell {
+    pub maxim: String,
     location: String,
     critique: String,
 }
 
-fn analyze_program_smells(program: &AnalyzedProgram, smells: &mut Vec<CodeSmell>) {
+pub fn analyze_program_smells(program: &AnalyzedProgram, smells: &mut Vec<CodeSmell>) {
     for stmt in &program.statements {
         analyze_statement(stmt, 0, "Global", smells);
     }

@@ -52,4 +52,27 @@ mod tests {
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("Μέτρον ἄριστον (Moderation is best)"));
     }
+
+    #[test]
+    fn test_philosopher_cli_perfect() {
+        let temp_dir = tempdir().unwrap();
+        let source_path = temp_dir.path().join("test3.gl");
+        let source_code = "
+            α 5 ἔστω.
+        ";
+        fs::write(&source_path, source_code).unwrap();
+
+        let output = Command::new(env!("CARGO"))
+            .arg("run")
+            .arg("--features")
+            .arg("nova")
+            .arg("--")
+            .arg("philosopher")
+            .arg(&source_path)
+            .output()
+            .unwrap();
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("Aristotle would be proud"));
+    }
 }
