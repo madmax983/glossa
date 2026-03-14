@@ -329,6 +329,193 @@ mod tests {
     }
 
     #[test]
+    fn test_philosopher_visit_statement_coverage() {
+        let stmts = vec![
+            AnalyzedStatement::Binding {
+                name: "x".into(),
+                value: *dummy_expr(),
+                mutable: false,
+            },
+            AnalyzedStatement::Assignment {
+                name: "x".into(),
+                value: *dummy_expr(),
+            },
+            AnalyzedStatement::Print(vec![*dummy_expr()]),
+            AnalyzedStatement::Expression(vec![*dummy_expr()]),
+            AnalyzedStatement::Query(vec![*dummy_expr()]),
+            AnalyzedStatement::If {
+                condition: dummy_expr(),
+                then_body: vec![AnalyzedStatement::Break],
+                else_body: Some(vec![AnalyzedStatement::Continue]),
+            },
+            AnalyzedStatement::While {
+                condition: dummy_expr(),
+                body: vec![AnalyzedStatement::Break],
+            },
+            AnalyzedStatement::For {
+                variable: "i".into(),
+                iterator: dummy_expr(),
+                body: vec![AnalyzedStatement::Break],
+            },
+            AnalyzedStatement::Match {
+                scrutinee: dummy_expr(),
+                arms: vec![(*dummy_expr(), vec![AnalyzedStatement::Break])],
+            },
+            AnalyzedStatement::FunctionDef {
+                name: "test".into(),
+                params: vec![
+                    ("a".into(), None),
+                    ("b".into(), None),
+                    ("c".into(), None),
+                    ("d".into(), None),
+                    ("e".into(), None),
+                ],
+                body: vec![
+                    AnalyzedStatement::Break,
+                    AnalyzedStatement::Break,
+                    AnalyzedStatement::Break,
+                    AnalyzedStatement::Break,
+                    AnalyzedStatement::Break,
+                    AnalyzedStatement::Break,
+                    AnalyzedStatement::Break,
+                    AnalyzedStatement::Break,
+                    AnalyzedStatement::Break,
+                    AnalyzedStatement::Break,
+                    AnalyzedStatement::Break,
+                ],
+                return_type: None,
+            },
+            AnalyzedStatement::TestDeclaration {
+                name: "test".into(),
+                body: vec![AnalyzedStatement::Break],
+            },
+            AnalyzedStatement::Return {
+                value: Some(dummy_expr()),
+            },
+            AnalyzedStatement::Return { value: None },
+            AnalyzedStatement::Break,
+            AnalyzedStatement::Continue,
+            AnalyzedStatement::TypeDefinition {
+                name: "User".into(),
+                fields: vec![],
+            },
+            AnalyzedStatement::TraitDefinition {
+                name: "Show".into(),
+                methods: vec![],
+            },
+            AnalyzedStatement::TraitImplementation {
+                trait_name: "Show".into(),
+                type_name: "User".into(),
+                methods: vec![],
+            },
+        ];
+
+        let program = AnalyzedProgram {
+            statements: stmts,
+            scope: Scope::new(),
+        };
+
+        let mut philosopher = Philosopher::new();
+        philosopher.contemplate(&program);
+
+        let maxims = philosopher.get_maxims();
+        assert!(
+            maxims.iter().any(|m| m.observation.contains("Function has 5 parameters")),
+            "Did not find the expected many parameters observation."
+        );
+        assert!(
+            maxims.iter().any(|m| m.observation.contains("Function contains 11 statements")),
+            "Did not find the expected many statements observation."
+        );
+    }
+
+    #[test]
+    fn test_philosopher_visit_expr_coverage() {
+        let exprs = vec![
+            AnalyzedExprKind::PropertyAccess {
+                owner: dummy_expr(),
+                property: "name".into(),
+            },
+            AnalyzedExprKind::VerbCall {
+                verb: "say".into(),
+                args: vec![*dummy_expr()],
+            },
+            AnalyzedExprKind::BinOp {
+                left: dummy_expr(),
+                op: crate::morphology::lexicon::BinaryOp::Add,
+                right: dummy_expr(),
+            },
+            AnalyzedExprKind::UnaryOp {
+                op: crate::morphology::lexicon::UnaryOp::Not,
+                operand: dummy_expr(),
+            },
+            AnalyzedExprKind::Range {
+                start: dummy_expr(),
+                end: dummy_expr(),
+                inclusive: false,
+            },
+            AnalyzedExprKind::ArrayLiteral(vec![*dummy_expr()]),
+            AnalyzedExprKind::Some(dummy_expr()),
+            AnalyzedExprKind::Ok(dummy_expr()),
+            AnalyzedExprKind::Err(dummy_expr()),
+            AnalyzedExprKind::Unwrap(dummy_expr()),
+            AnalyzedExprKind::Try(dummy_expr()),
+            AnalyzedExprKind::IndexAccess {
+                array: dummy_expr(),
+                index: dummy_expr(),
+            },
+            AnalyzedExprKind::FunctionCall {
+                func: "func".into(),
+                args: vec![*dummy_expr()],
+            },
+            AnalyzedExprKind::StructInstantiation {
+                type_name: "User".into(),
+                fields: vec![],
+                args: vec![*dummy_expr()],
+            },
+            AnalyzedExprKind::MethodCall {
+                receiver: dummy_expr(),
+                method: "push".into(),
+                args: vec![*dummy_expr()],
+            },
+            AnalyzedExprKind::TraitMethodCall {
+                receiver: dummy_expr(),
+                trait_name: "Show".into(),
+                method_name: "print".into(),
+                args: vec![*dummy_expr()],
+            },
+            AnalyzedExprKind::Lambda {
+                params: vec!["x".into()],
+                body: dummy_expr(),
+                capture_mode: crate::semantic::CaptureMode::Borrow,
+            },
+            AnalyzedExprKind::Assert {
+                condition: dummy_expr(),
+            },
+            AnalyzedExprKind::AssertEq {
+                left: dummy_expr(),
+                right: dummy_expr(),
+            },
+            AnalyzedExprKind::StringLiteral("hello".into()),
+            AnalyzedExprKind::NumberLiteral(42),
+            AnalyzedExprKind::Variable("x".into()),
+            AnalyzedExprKind::None,
+            AnalyzedExprKind::CollectionNew {
+                collection_type: "HashSet".into(),
+            },
+        ];
+
+        let mut philosopher = Philosopher::new();
+        for expr in exprs {
+            let analyzed_expr = AnalyzedExpr {
+                expr,
+                glossa_type: GlossaType::Unknown,
+            };
+            philosopher.visit_expr(&analyzed_expr, "Test");
+        }
+    }
+
+    #[test]
     fn test_philosopher_function_params() {
         let mut scope = Scope::new();
         // Add a function with 5 parameters to scope to trigger the warning
