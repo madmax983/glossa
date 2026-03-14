@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use glossa::semantic::{AnalyzedProgram, AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType, Scope};
-    use glossa::tools::philosopher::{analyze_program_smells, CodeSmell};
+    use glossa::semantic::{
+        AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
+    };
+    use glossa::tools::philosopher::{CodeSmell, analyze_program_smells};
 
     fn get_smells(program: &AnalyzedProgram) -> Vec<CodeSmell> {
         let mut smells = Vec::new();
@@ -14,23 +16,39 @@ mod tests {
         let program = AnalyzedProgram {
             statements: vec![
                 AnalyzedStatement::If {
-                    condition: Box::new(AnalyzedExpr { expr: AnalyzedExprKind::StringLiteral("".to_string()), glossa_type: GlossaType::Unknown }),
+                    condition: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::StringLiteral("".to_string()),
+                        glossa_type: GlossaType::Unknown,
+                    }),
                     then_body: vec![],
                     else_body: Some(vec![AnalyzedStatement::Break]),
                 },
                 AnalyzedStatement::Match {
-                    scrutinee: Box::new(AnalyzedExpr { expr: AnalyzedExprKind::StringLiteral("".to_string()), glossa_type: GlossaType::Unknown }),
-                    arms: vec![
-                        (AnalyzedExpr { expr: AnalyzedExprKind::StringLiteral("".to_string()), glossa_type: GlossaType::Unknown }, vec![AnalyzedStatement::Break]),
-                    ],
+                    scrutinee: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::StringLiteral("".to_string()),
+                        glossa_type: GlossaType::Unknown,
+                    }),
+                    arms: vec![(
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::StringLiteral("".to_string()),
+                            glossa_type: GlossaType::Unknown,
+                        },
+                        vec![AnalyzedStatement::Break],
+                    )],
                 },
                 AnalyzedStatement::While {
-                    condition: Box::new(AnalyzedExpr { expr: AnalyzedExprKind::StringLiteral("".to_string()), glossa_type: GlossaType::Unknown }),
+                    condition: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::StringLiteral("".to_string()),
+                        glossa_type: GlossaType::Unknown,
+                    }),
                     body: vec![AnalyzedStatement::Break],
                 },
                 AnalyzedStatement::For {
                     variable: smol_str::SmolStr::new("x"),
-                    iterator: Box::new(AnalyzedExpr { expr: AnalyzedExprKind::StringLiteral("".to_string()), glossa_type: GlossaType::Unknown }),
+                    iterator: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::StringLiteral("".to_string()),
+                        glossa_type: GlossaType::Unknown,
+                    }),
                     body: vec![AnalyzedStatement::Break],
                 },
                 AnalyzedStatement::Break,

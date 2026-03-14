@@ -1,8 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use glossa::semantic::{AnalyzedProgram, AnalyzedStatement, AnalyzedMethod, AnalyzedExpr, AnalyzedExprKind, GlossaType, Scope};
+    use glossa::semantic::{
+        AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedProgram, AnalyzedStatement,
+        GlossaType, Scope,
+    };
+    use glossa::tools::philosopher::{CodeSmell, analyze_program_smells};
     use smol_str::SmolStr;
-    use glossa::tools::philosopher::{analyze_program_smells, CodeSmell};
     use std::fs;
     use std::process::Command;
     use tempfile::tempdir;
@@ -14,7 +17,10 @@ mod tests {
     }
 
     fn dummy_expr() -> AnalyzedExpr {
-        AnalyzedExpr { expr: AnalyzedExprKind::StringLiteral("".to_string()), glossa_type: GlossaType::Unknown }
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::StringLiteral("".to_string()),
+            glossa_type: GlossaType::Unknown,
+        }
     }
 
     #[test]
@@ -57,7 +63,11 @@ mod tests {
             scope: Scope::new(),
         };
         let smells = get_smells(&program);
-        assert!(smells.iter().any(|s| s.maxim == "Μηδὲν ἄγαν (Nothing in excess)"));
+        assert!(
+            smells
+                .iter()
+                .any(|s| s.maxim == "Μηδὲν ἄγαν (Nothing in excess)")
+        );
     }
 
     #[test]
@@ -77,7 +87,11 @@ mod tests {
             scope: Scope::new(),
         };
         let smells = get_smells(&program);
-        assert!(smells.iter().any(|s| s.maxim == "Μέτρον ἄριστον (Moderation is best)"));
+        assert!(
+            smells
+                .iter()
+                .any(|s| s.maxim == "Μέτρον ἄριστον (Moderation is best)")
+        );
     }
 
     #[test]
@@ -90,7 +104,11 @@ mod tests {
             scope: Scope::new(),
         };
         let smells = get_smells(&program);
-        assert!(smells.iter().any(|s| s.maxim == "Μέτρον ἄριστον (Moderation is best)"));
+        assert!(
+            smells
+                .iter()
+                .any(|s| s.maxim == "Μέτρον ἄριστον (Moderation is best)")
+        );
     }
 
     #[test]
@@ -109,7 +127,7 @@ mod tests {
                 AnalyzedStatement::Match {
                     scrutinee: Box::new(dummy_expr()),
                     arms: vec![(dummy_expr(), vec![AnalyzedStatement::Break])],
-                }
+                },
             ],
             scope: Scope::new(),
         };
