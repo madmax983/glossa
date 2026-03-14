@@ -2399,10 +2399,6 @@ pub fn is_else_pattern(normalized_phrase: &str) -> bool {
     normalized_phrase == "ει δε μη"
 }
 
-/// Check if an array of words matches the else pattern.
-pub fn is_else_pattern_words(words: &[&str]) -> bool {
-    words == ELSE_PATTERN_WORDS
-}
 
 /// Check if a word is a loop particle
 pub fn is_loop_particle(normalized_word: &str) -> bool {
