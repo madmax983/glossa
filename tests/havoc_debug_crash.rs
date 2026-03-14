@@ -30,13 +30,13 @@ fn havoc_crash_debug_stack_overflow() {
         println!("Formatting deep expression (depth {})...", depth);
         let _s = format!("{:?}", deep_expr);
 
-        // This line will never be reached!
-        println!("Survived? Impossible.");
+        // If the bug is fixed, we will reach this line and exit with success (0)
+        println!("Survived! The bug is fixed.");
         std::process::exit(0);
     }
 
     // Otherwise, we are the test runner orchestrator.
-    // Spawn a subprocess to run this exact test, and verify it CRASHES.
+    // Spawn a subprocess to run this exact test, and verify it SUCCEEDS.
     let exe = env::current_exe().expect("Failed to get current executable");
 
     let status = Command::new(exe)
@@ -46,9 +46,9 @@ fn havoc_crash_debug_stack_overflow() {
         .status()
         .expect("Failed to spawn subprocess");
 
-    // The test SUCCEEDS if the subprocess FAILED (crashed via SIGSEGV/Stack Overflow)
+    // The test SUCCEEDS if the subprocess SUCCEEDS (does NOT crash with Stack Overflow)
     assert!(
-        !status.success(),
-        "Bug fixed? The subprocess should have crashed with a stack overflow!"
+        status.success(),
+        "Bug is still present! The subprocess crashed with a stack overflow!"
     );
 }

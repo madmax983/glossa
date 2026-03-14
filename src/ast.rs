@@ -231,7 +231,6 @@ impl Statement {
 ///
 /// Expressions represent values that can be evaluated.
 /// They include literals, variable references, operations, and function calls.
-#[derive(Debug)]
 pub enum Expr {
     /// A string literal: «text»
     ///
@@ -323,6 +322,52 @@ pub enum Expr {
 
     /// A block of statements in braces { ... }
     Block(Vec<Statement>),
+}
+
+impl std::fmt::Debug for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Prevent stack overflow on deep formatting
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            Expr::StringLiteral(s) => f.debug_tuple("StringLiteral").field(s).finish(),
+            Expr::NumberLiteral(n) => f.debug_tuple("NumberLiteral").field(n).finish(),
+            Expr::BooleanLiteral(b) => f.debug_tuple("BooleanLiteral").field(b).finish(),
+            Expr::ArrayLiteral(v) => f.debug_tuple("ArrayLiteral").field(v).finish(),
+            Expr::IndexAccess { array, index } => f
+                .debug_struct("IndexAccess")
+                .field("array", array)
+                .field("index", index)
+                .finish(),
+            Expr::Word(w) => f.debug_tuple("Word").field(w).finish(),
+            Expr::Phrase(v) => f.debug_tuple("Phrase").field(v).finish(),
+            Expr::PropertyAccess { owner, property } => f
+                .debug_struct("PropertyAccess")
+                .field("owner", owner)
+                .field("property", property)
+                .finish(),
+            Expr::Call { verb, arguments } => f
+                .debug_struct("Call")
+                .field("verb", verb)
+                .field("arguments", arguments)
+                .finish(),
+            Expr::Binding { name, value } => f
+                .debug_struct("Binding")
+                .field("name", name)
+                .field("value", value)
+                .finish(),
+            Expr::BinOp { left, op, right } => f
+                .debug_struct("BinOp")
+                .field("left", left)
+                .field("op", op)
+                .field("right", right)
+                .finish(),
+            Expr::UnaryOp { op, operand } => f
+                .debug_struct("UnaryOp")
+                .field("op", op)
+                .field("operand", operand)
+                .finish(),
+            Expr::Block(stmts) => f.debug_tuple("Block").field(stmts).finish(),
+        })
+    }
 }
 
 impl Clone for Expr {

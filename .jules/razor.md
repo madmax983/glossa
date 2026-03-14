@@ -107,3 +107,8 @@
 **Bloat:** The `StatementAnalyzer` trait was introduced to resolve a circular dependency between `semantic::analyzer`, `semantic::control_flow`, and `semantic::declarations`. However, since these modules all live within the same crate (`semantic`), Rust permits circular module dependencies natively via free functions, rendering the trait abstraction unnecessary. Additionally, `StatementAnalyzer` was a single-implementation trait only implemented by the empty struct `SemanticAnalyzer`.
 **Cut:** Deleted the `StatementAnalyzer` trait and the `SemanticAnalyzer` struct entirely. Replaced trait method dispatch across submodules with direct calls to `crate::semantic::analyzer::analyze_statement`.
 **Saved:** Eliminated trait boilerplate, reduced the number of files by deleting `src/semantic/traits.rs`, and removed empty struct allocations, significantly reducing cognitive overhead by flattening the semantic analysis architecture.
+
+## [Reduction]
+**Bloat:** Derived `Debug` on deeply recursive `Expr` enum triggered stack overflows.
+**Cut:** Replaced derived `Debug` with a manual implementation wrapped in `stacker::maybe_grow`.
+**Saved:** Prevented application crashes; eliminated silent DoS vulnerability during error reporting.
