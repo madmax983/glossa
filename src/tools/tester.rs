@@ -97,27 +97,24 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
     results
 }
 
+/// Extracts failed tests and their output from `rustc --test` output.
+///
+/// ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<&str>>()` allocation.
+/// This parses the output stream in-place using a `Peekable` iterator, reducing memory
+/// allocations when test outputs are large.
 fn extract_failures(output: &str) -> Vec<(String, String)> {
     let mut failures = Vec::new();
-    let lines: Vec<&str> = output.lines().collect();
-    let mut i = 0;
+    let mut lines = output.lines().peekable();
 
     // Skip until "failures:"
-    while i < lines.len() {
-        if lines[i].trim() == "failures:" {
+    for line in lines.by_ref() {
+        if line.trim() == "failures:" {
             break;
         }
-        i += 1;
     }
-
-    if i >= lines.len() {
-        return failures;
-    }
-    i += 1;
 
     // Scan for "---- <name> stdout ----"
-    while i < lines.len() {
-        let line = lines[i];
+    while let Some(line) = lines.next() {
         if line.trim().starts_with("----") && line.trim().ends_with("stdout ----") {
             // Extract name: "---- test_name stdout ----"
             let trimmed = line.trim();
@@ -132,10 +129,8 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                 .to_string();
 
             // Capture output until next "----" or empty line followed by "failures:"
-            i += 1;
             let mut message = String::new();
-            while i < lines.len() {
-                let current = lines[i];
+            while let Some(current) = lines.peek() {
                 if current.trim().starts_with("----") && current.trim().ends_with("stdout ----") {
                     // Start of next failure
                     break;
@@ -146,12 +141,10 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                 }
                 message.push_str(current);
                 message.push('\n');
-                i += 1;
+                lines.next();
             }
             failures.push((name, message.trim().to_string()));
-            continue; // Don't increment i, loop will check current line again
         }
-        i += 1;
     }
 
     failures
@@ -232,27 +225,34 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     if test_output.status.success() {
         status.success();
+    } else {
+        status.error("Ἀποτυχία (Failure)");
+    }
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
+    println!("   {}", "Unit Test Results".italic().dim());
+    println!();
+
+    if test_output.status.success() {
         if !results.is_empty() {
-            println!();
             println!(
                 "   {}",
                 "✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed)"
                     .green()
                     .bold()
             );
+            println!();
         }
     } else {
-        status.error("Ἀποτυχία (Failure)");
-        println!();
         println!(
             "   {}",
             "✕ Τινὲς δοκιμασίαι ἀπέτυχαν (Some tests failed)"
                 .red()
                 .bold()
         );
+        println!();
     }
-
-    println!();
 
     if !results.is_empty() {
         let mut table = Table::new();
@@ -283,6 +283,12 @@ pub fn run_tests(input: &Path) -> Result<()> {
         println!("{table}");
     } else {
         let mut empty_table = Table::new();
+        empty_table.load_preset(presets::UTF8_FULL);
+        empty_table.set_header(vec![
+            Cell::new("Status")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Yellow),
+        ]);
         empty_table.add_row(vec![
             Cell::new("No tests found.")
                 .fg(Color::DarkGrey)
@@ -551,5 +557,36 @@ mod additional_sentry_tests {
         let output = "test \n test"; // Not enough parts
         let results = parse_test_output(output);
         assert_eq!(results.len(), 0);
+    }
+}
+
+#[cfg(test)]
+mod tests_failures {
+    use super::*;
+
+    #[test]
+    fn test_extract_failures_no_matching_start() {
+        let output = "
+failures:
+
+some random text
+no dashed lines here
+
+failures:
+    test_one
+";
+        let failures = extract_failures(output);
+        assert_eq!(failures.len(), 0);
+    }
+
+    #[test]
+    fn test_parse_test_output_various_parts() {
+        let output = "
+test   ... ok
+test name ... ok
+test name with spaces ... ok
+";
+        let results = parse_test_output(output);
+        assert_eq!(results.len(), 2);
     }
 }

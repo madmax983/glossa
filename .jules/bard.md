@@ -19,3 +19,15 @@
 ## 2025-03-05 - The `cargo test --doc` Dependency Trap
 **Confusion:** Running `rustdoc --test src/codegen.rs` manually failed with unresolved import errors for internal modules like `morphology`, `semantic`, and external crates like `proc_macro2` and `smol_str`. It seemed as if the doc tests were missing imports.
 **Clarification:** Doc tests inside a crate are compiled as external black-box tests. When using `cargo test --doc`, Cargo correctly sets up the environment with `extern crate glossa` and all external dependencies available, meaning you just use `glossa::...` and external crates resolve automatically. Manual `rustdoc` runs lack this crate resolution context. Doc tests should only be verified with `cargo test --doc`.
+
+## 2025-03-11 - The Intra-Doc Link Warning Dilemma
+**Confusion:** The compiler output a warning `public documentation for Scope links to private item ScopeLevel`. Attempting to fix this by making `ScopeLevel` public violates the principle of keeping internal implementations hidden. Attempting to fix it by removing the intra-doc link (`[ScopeLevel]`) violates the Bard directive to use clickable links.
+**Clarification:** You should not expose internal private structs as public API solely to resolve `cargo doc` intra-doc link warnings. Making internal implementation details public is considered an anti-pattern. If a link points to a private item, the warning is acceptable if the alternative compromises the public API surface or explicitly contradicts persona guidelines. In this case, `ScopeLevel` remains private and the warning is tolerated.
+
+## 2025-03-11 - Cohesive Doc Block Structure
+**Confusion:** Adding new sections (like "Why it exists" and "Examples") to existing doc blocks can lead to disjointed reading experiences (e.g., an example, followed by a summary, followed by another example) if the existing block structure is not fully considered.
+**Clarification:** When updating existing rustdoc comments with new sections, reorganize the entire doc block so the top-level summary is at the very beginning, followed by explanatory sections, and ending with the code examples. Do not simply append to the end of an existing block if it breaks the logical flow.
+
+## 2025-03-11 - Constructing Errors Consistently
+**Confusion:** The constructors for `GlossaError` (`parse`, `semantic`, `codegen`, etc.) in `src/errors/mod.rs` were missing rustdoc comments, leading to confusion about when to use which constructor and how they map to the underlying enum variants.
+**Clarification:** I added cohesive rustdoc to all public error constructors. Each block now explains *what* the constructor makes, *why* you would use it (e.g., syntactical invalidity vs logical invalidity vs internal compiler bug), and provides an executable example demonstrating its usage.

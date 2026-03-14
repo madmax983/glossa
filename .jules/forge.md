@@ -25,3 +25,11 @@
 **Refactoring `classify_*` in `src/semantic/conversion.rs`**
 **Learning:** Functions that parse or classify elements using heuristic priorities often become a "Pyramid of Doom" through nested `if let Some(...) = ...` blocks. This increases cognitive load and hides the critical failure path.
 **Action:** Use "Guard Clauses" (early returns) extensively in classification functions. `let Some(x) = y else { return ... };` keeps the execution path flat and adheres strictly to the 'Grandma Test'.
+
+**2024-03-24 - Exhaustiveness Preservation**
+**Learning:** Extracting large `match` statements by grouping variants under wildcard catch-alls (`_ => helper()`) destroys the compiler's exhaustiveness checking, leading to severe maintainability regressions if new variants are added.
+**Action:** Always extract the *inner block logic* of specific match arms into helper functions while preserving the exhaustive structure of the outer `match` block.
+
+**Refactoring God Functions in the Alchemist**
+**Learning:** `transpile_statement` in `src/tools/alchemist.rs` was a classic God Function (over 200 lines) with a deeply nested match statement containing complex string building logic for each AST node. When using `replace_with_git_merge_diff` or python scripting to extract match arms into helper functions (`transpile_if`, `transpile_while`, etc.), it's critical to capture or destructure the enum variables correctly in the helper functions to prevent `unused_variables` warnings from clippy. In this case, I used `AnalyzedStatement::If { .. } => transpile_if(stmt, indent)` in the top-level match and handled destructuring inside `transpile_if` to resolve warnings.
+**Action:** Always verify `cargo clippy --all-targets --all-features -- -D warnings` after extracting match arms. If variables bound in the match arm are no longer used locally because the whole object is passed, use `..` to ignore them.

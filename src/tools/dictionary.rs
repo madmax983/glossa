@@ -59,6 +59,8 @@ pub fn lookup_word(word: &str) -> Result<()> {
     // Header
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   L E X I C O N".bold().cyan());
+    println!("   {}", "Semantic Dictionary Lookup".italic().dim());
+    println!();
     println!("   Analyzing: {}", word.yellow().bold());
     if normalized != word {
         println!("   Normalized: {}", normalized.dim());
@@ -67,7 +69,10 @@ pub fn lookup_word(word: &str) -> Result<()> {
 
     // 1. Direct Lexicon Lookup
     if let Some(entry) = lexicon::lookup(&normalized) {
-        println!("   {}", "📚 Lexicon Entry (Definitive)".bold().underlined());
+        println!(
+            "   {}",
+            "📚 Lexicon Entry (Definitive)".green().bold().underlined()
+        );
 
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL).set_header(vec![
@@ -133,7 +138,7 @@ pub fn lookup_word(word: &str) -> Result<()> {
         println!("{table}");
         println!();
     } else {
-        println!("   {}", "✕ Not found in built-in lexicon.".red().bold());
+        println!("   {}", "✕ Not found in built-in lexicon.".yellow().bold());
         println!("   {}", "Showing morphological analysis only.".dim());
         println!();
     }
@@ -142,13 +147,14 @@ pub fn lookup_word(word: &str) -> Result<()> {
     let analyses = analyze_all(word);
 
     if analyses.is_empty() {
-        println!("   {}", "× No morphological analysis found.".red());
+        println!("   {}", "× No morphological analysis found.".dark_grey());
         return Ok(());
     }
 
     println!(
         "   {}",
         "🔬 Morphological Analysis (All Possibilities)"
+            .yellow()
             .bold()
             .underlined()
     );
@@ -157,10 +163,16 @@ pub fn lookup_word(word: &str) -> Result<()> {
     table.load_preset(presets::UTF8_FULL).set_header(vec![
         Cell::new("Lemma")
             .add_attribute(Attribute::Bold)
+            .fg(Color::Yellow),
+        Cell::new("PoS")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Magenta),
+        Cell::new("Grammar")
+            .add_attribute(Attribute::Bold)
             .fg(Color::Cyan),
-        Cell::new("PoS").add_attribute(Attribute::Bold),
-        Cell::new("Grammar").add_attribute(Attribute::Bold),
-        Cell::new("Confidence").add_attribute(Attribute::Bold),
+        Cell::new("Confidence")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Yellow),
     ]);
 
     for analysis in analyses {

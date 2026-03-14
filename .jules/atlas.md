@@ -117,3 +117,10 @@
 **Tangle:** Internal modules inside `src/` like `conjugation`, `declension`, `analyzer`, `assembly` were marked as `pub mod` but didn't actually need to be exposed outside their parent crate or module. This increased coupling and leaked internals.
 **Blueprint:** Updated visibility modifiers from `pub mod` to `pub(crate) mod` where appropriate in `src/morphology/mod.rs`, `src/semantic/mod.rs`, `src/parser/mod.rs`, and `src/semantic/assembly/mod.rs`. Maintained `pub mod` at the top level in `src/lib.rs` and for required submodule `tools/highlight.rs`.
 **Stability:** Enforced high cohesion and low coupling by ensuring strict encapsulation and clean public interfaces.
+**[Breaking The Leak: Encapsulation via pub(crate)]
+**Tangle:** Internal modules were needlessly exposed via `pub mod` across various modules. This broke clear module boundaries and leaked implementation details.
+**Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all internal modules while keeping `pub mod` only where necessary for public APIs.
+
+## [Breaking The Leak: Encapsulation via pub(crate)]
+**Tangle:** Internal modules were needlessly exposed via `pub mod` across various modules. This broke clear module boundaries and leaked implementation details.
+**Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all internal modules while keeping `pub mod` only where necessary for public APIs.

@@ -179,6 +179,7 @@ fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
 
         if bindings.is_empty() {
             let mut empty_table = Table::new();
+            empty_table.load_preset(presets::UTF8_FULL);
             empty_table.add_row(vec![
                 Cell::new("Οὐδεμία μεταβλητή (No variables defined).")
                     .fg(Color::Yellow)
@@ -220,6 +221,7 @@ fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
         writeln!(w, "{table}").into_diagnostic()?;
     } else {
         let mut empty_table = Table::new();
+        empty_table.load_preset(presets::UTF8_FULL);
         empty_table.add_row(vec![
             Cell::new("Οὐδεμία μεταβλητή (No variables defined).")
                 .fg(Color::Yellow)

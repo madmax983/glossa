@@ -77,3 +77,10 @@ Signed,
 **2024-05-15 - Unbounded File Read DoS in Weave Tool**
 **Threat:** The `run_weave` tool was using `std::fs::read_to_string`, which loads an entire file into memory without limits. An attacker could use a massive file or an infinite stream (like `/dev/zero`) to exhaust memory and crash the application.
 **Defense:** Replaced the unbounded read with the localized safe abstraction `load_source` from `crate::tools::runner::load_source`. `load_source` enforces a strict 1MB size limit by checking metadata and using `take()` on streams, preventing memory exhaustion.
+2024-05-24 - [Unbounded File Read in Alchemist]
+**Threat:** The `run_alchemist` tool used `std::fs::read_to_string`, which loads the entire file into memory without bounds checking. A malicious user could supply a massively large file, leading to memory exhaustion and a Denial of Service (DoS).
+**Defense:** Replaced the direct use of `fs::read_to_string` with `crate::tools::runner::load_source`, which enforces a strict 1MB file size limit and uses `take()` to limit read streams, preventing out-of-memory errors on large or infinite file streams (like `/dev/zero`). Verified with an automated test case (`test_run_alchemist_file_too_large`).
+
+**2024-05-19 - [Interpreter Arithmetic Overflow DoS]
+**Threat:** [Integer overflow in the Simulator interpreter via uncontrolled add, sub, mul, and neg causing unexpected rustc panics.]
+**Defense:** [Replaced unsafe math operations (`+`, `-`, `*`, unary `-`) with `checked_add`, `checked_sub`, `checked_mul`, and `checked_neg` returning a new `EvalError::ArithmeticOverflow` variant instead of panicking.]

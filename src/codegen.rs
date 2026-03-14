@@ -549,10 +549,15 @@ fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
     if args.is_empty() {
         quote! { println!(); }
     } else {
-        // Generate format string with {} separated by spaces to avoid runtime Vec allocation
-        let format_str = std::iter::repeat_n("{}", args.len())
-            .collect::<Vec<_>>()
-            .join(" ");
+        // ⚡ Bolt Optimization: Build the format string directly to avoid the O(n) heap
+        // allocation of the intermediate Vec<_> created by .collect::<Vec<_>>().join(" ").
+        let mut format_str = String::with_capacity(args.len() * 3 - 1);
+        for i in 0..args.len() {
+            if i > 0 {
+                format_str.push(' ');
+            }
+            format_str.push_str("{}");
+        }
 
         let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
         quote! { println!(#format_str, #(#arg_tokens),*); }

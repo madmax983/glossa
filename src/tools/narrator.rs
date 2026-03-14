@@ -114,224 +114,315 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
             name,
             value,
             mutable,
-        } => {
-            let script = format!("Let `{}` be {}.", name, tell_expr(value));
-            let notes = if *mutable { "Mutable" } else { "Immutable" };
-            table.add_row(vec![
-                Cell::new("BIND").fg(Color::Blue),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new(notes).fg(if *mutable { Color::Red } else { Color::Green }),
-            ]);
-        }
+        } => add_binding(table, &prefix, name, value, *mutable),
         AnalyzedStatement::Assignment { name, value } => {
-            let script = format!("Update `{}` to {}.", name, tell_expr(value));
-            table.add_row(vec![
-                Cell::new("SET").fg(Color::Yellow),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Mutation").fg(Color::Red),
-            ]);
+            add_assignment(table, &prefix, name, value)
         }
-        AnalyzedStatement::Print(exprs) => {
-            let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-            let script = format!("Proclaim: {}", expr_strs.join(", "));
-            table.add_row(vec![
-                Cell::new("PRINT").fg(Color::Green),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("I/O").fg(Color::Cyan),
-            ]);
-        }
-        AnalyzedStatement::Expression(exprs) => {
-            let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-            let script = format!("Do: {}", expr_strs.join(", "));
-            table.add_row(vec![
-                Cell::new("EXPR").fg(Color::DarkGrey),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Side Effect").fg(Color::DarkGrey),
-            ]);
-        }
-        AnalyzedStatement::Query(exprs) => {
-            let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-            let script = format!("Query oracle: {}", expr_strs.join(", "));
-            table.add_row(vec![
-                Cell::new("QUERY").fg(Color::Magenta),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Debug").fg(Color::Yellow),
-            ]);
-        }
+        AnalyzedStatement::Print(exprs) => add_print(table, &prefix, exprs),
+        AnalyzedStatement::Expression(exprs) => add_expression(table, &prefix, exprs),
+        AnalyzedStatement::Query(exprs) => add_query(table, &prefix, exprs),
         AnalyzedStatement::If {
             condition,
             then_body,
             else_body,
-        } => {
-            let script = format!("If {} is true, then:", tell_expr(condition));
-            table.add_row(vec![
-                Cell::new("IF").fg(Color::Magenta),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Branch").fg(Color::Magenta),
-            ]);
-
-            for stmt in then_body {
-                add_statement(table, stmt, level + 1);
-            }
-
-            if let Some(else_stmts) = else_body {
-                table.add_row(vec![
-                    Cell::new("ELSE").fg(Color::Magenta),
-                    Cell::new(format!("{}Otherwise:", prefix)),
-                    Cell::new("Branch").fg(Color::Magenta),
-                ]);
-                for stmt in else_stmts {
-                    add_statement(table, stmt, level + 1);
-                }
-            }
-        }
+        } => add_if(table, &prefix, level, condition, then_body, else_body),
         AnalyzedStatement::While { condition, body } => {
-            let script = format!("While {} holds true:", tell_expr(condition));
-            table.add_row(vec![
-                Cell::new("WHILE").fg(Color::Magenta),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Loop").fg(Color::Magenta),
-            ]);
-            for stmt in body {
-                add_statement(table, stmt, level + 1);
-            }
+            add_while(table, &prefix, level, condition, body)
         }
         AnalyzedStatement::For {
             variable,
             iterator,
             body,
-        } => {
-            let script = format!("For each `{}` in {}:", variable, tell_expr(iterator));
-            table.add_row(vec![
-                Cell::new("FOR").fg(Color::Magenta),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Iteration").fg(Color::Magenta),
-            ]);
-            for stmt in body {
-                add_statement(table, stmt, level + 1);
-            }
-        }
+        } => add_for(table, &prefix, level, variable, iterator, body),
         AnalyzedStatement::Match { scrutinee, arms } => {
-            let script = format!("Match on {}:", tell_expr(scrutinee));
-            table.add_row(vec![
-                Cell::new("MATCH").fg(Color::Magenta),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Pattern").fg(Color::Magenta),
-            ]);
-            for (pat, body) in arms {
-                let case_script = format!("Case {}:", tell_expr(pat));
-                table.add_row(vec![
-                    Cell::new("CASE").fg(Color::DarkMagenta),
-                    Cell::new(format!("{}{}", indent(level + 1), case_script)),
-                    Cell::new("Arm").fg(Color::DarkMagenta),
-                ]);
-                for stmt in body {
-                    add_statement(table, stmt, level + 2);
-                }
-            }
+            add_match(table, &prefix, level, scrutinee, arms)
         }
-        AnalyzedStatement::Break => {
-            table.add_row(vec![
-                Cell::new("BREAK").fg(Color::Red),
-                Cell::new(format!("{}Break loop.", prefix)),
-                Cell::new("Control").fg(Color::Red),
-            ]);
-        }
-        AnalyzedStatement::Continue => {
-            table.add_row(vec![
-                Cell::new("CONT").fg(Color::Green),
-                Cell::new(format!("{}Continue loop.", prefix)),
-                Cell::new("Control").fg(Color::Green),
-            ]);
-        }
-        AnalyzedStatement::Return { value } => {
-            let script = if let Some(v) = value {
-                format!("Return {}.", tell_expr(v))
-            } else {
-                "Return nothing.".to_string()
-            };
-            table.add_row(vec![
-                Cell::new("RETURN").fg(Color::Yellow),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Exit").fg(Color::Yellow),
-            ]);
-        }
+        AnalyzedStatement::Break => add_break(table, &prefix),
+        AnalyzedStatement::Continue => add_continue(table, &prefix),
+        AnalyzedStatement::Return { value } => add_return(table, &prefix, value),
         AnalyzedStatement::FunctionDef {
             name,
             params,
             body,
             return_type,
-        } => {
-            let params_str: Vec<String> = params
-                .iter()
-                .map(|(n, t)| {
-                    let type_str = t.as_ref().map(tell_type).unwrap_or("unknown".to_string());
-                    format!("{}: {}", n, type_str)
-                })
-                .collect();
-            let ret_str = return_type
-                .as_ref()
-                .map(tell_type)
-                .unwrap_or("Nothing".to_string());
-
-            let script = format!(
-                "Define `{}` ({}) -> {}:",
-                name,
-                params_str.join(", "),
-                ret_str
-            );
-            table.add_row(vec![
-                Cell::new("FUNC").fg(Color::Cyan),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Definition").fg(Color::Cyan),
-            ]);
-            for stmt in body {
-                add_statement(table, stmt, level + 1);
-            }
-        }
+        } => add_function_def(table, &prefix, level, name, params, body, return_type),
         AnalyzedStatement::TypeDefinition { name, fields } => {
-            let fields_str: Vec<String> = fields
-                .iter()
-                .map(|(n, t)| format!("{}: {}", n, tell_type(t)))
-                .collect();
-            let script = format!("Struct `{}` {{ {} }}", name, fields_str.join(", "));
-            table.add_row(vec![
-                Cell::new("TYPE").fg(Color::Blue),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Struct").fg(Color::Blue),
-            ]);
+            add_type_def(table, &prefix, name, fields)
         }
         AnalyzedStatement::TraitDefinition { name, methods: _ } => {
-            let script = format!("Trait `{}`", name);
-            table.add_row(vec![
-                Cell::new("TRAIT").fg(Color::Blue),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Interface").fg(Color::Blue),
-            ]);
+            add_trait_def(table, &prefix, name)
         }
         AnalyzedStatement::TraitImplementation {
             trait_name,
             type_name,
             methods: _,
-        } => {
-            let script = format!("Impl `{}` for `{}`", trait_name, type_name);
-            table.add_row(vec![
-                Cell::new("IMPL").fg(Color::Blue),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Implementation").fg(Color::Blue),
-            ]);
-        }
+        } => add_trait_impl(table, &prefix, trait_name, type_name),
         AnalyzedStatement::TestDeclaration { name, body } => {
-            let script = format!("Test `{}`:", name);
-            table.add_row(vec![
-                Cell::new("TEST").fg(Color::Green),
-                Cell::new(format!("{}{}", prefix, script)),
-                Cell::new("Verification").fg(Color::Green),
-            ]);
-            for stmt in body {
-                add_statement(table, stmt, level + 1);
-            }
+            add_test_decl(table, &prefix, level, name, body)
         }
+    }
+}
+
+fn add_binding(table: &mut Table, prefix: &str, name: &str, value: &AnalyzedExpr, mutable: bool) {
+    let script = format!("Let `{}` be {}.", name, tell_expr(value));
+    let notes = if mutable { "Mutable" } else { "Immutable" };
+    table.add_row(vec![
+        Cell::new("BIND").fg(Color::Blue),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new(notes).fg(if mutable { Color::Red } else { Color::Green }),
+    ]);
+}
+
+fn add_assignment(table: &mut Table, prefix: &str, name: &str, value: &AnalyzedExpr) {
+    let script = format!("Update `{}` to {}.", name, tell_expr(value));
+    table.add_row(vec![
+        Cell::new("SET").fg(Color::Yellow),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Mutation").fg(Color::Red),
+    ]);
+}
+
+fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
+    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
+    let script = format!("Proclaim: {}", expr_strs.join(", "));
+    table.add_row(vec![
+        Cell::new("PRINT").fg(Color::Green),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("I/O").fg(Color::Cyan),
+    ]);
+}
+
+fn add_expression(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
+    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
+    let script = format!("Do: {}", expr_strs.join(", "));
+    table.add_row(vec![
+        Cell::new("EXPR").fg(Color::DarkGrey),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Side Effect").fg(Color::DarkGrey),
+    ]);
+}
+
+fn add_query(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
+    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
+    let script = format!("Query oracle: {}", expr_strs.join(", "));
+    table.add_row(vec![
+        Cell::new("QUERY").fg(Color::Magenta),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Debug").fg(Color::Yellow),
+    ]);
+}
+
+fn add_if(
+    table: &mut Table,
+    prefix: &str,
+    level: usize,
+    condition: &AnalyzedExpr,
+    then_body: &[AnalyzedStatement],
+    else_body: &Option<Vec<AnalyzedStatement>>,
+) {
+    let script = format!("If {} is true, then:", tell_expr(condition));
+    table.add_row(vec![
+        Cell::new("IF").fg(Color::Magenta),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Branch").fg(Color::Magenta),
+    ]);
+
+    for stmt in then_body {
+        add_statement(table, stmt, level + 1);
+    }
+
+    if let Some(else_stmts) = else_body {
+        table.add_row(vec![
+            Cell::new("ELSE").fg(Color::Magenta),
+            Cell::new(format!("{}Otherwise:", prefix)),
+            Cell::new("Branch").fg(Color::Magenta),
+        ]);
+        for stmt in else_stmts {
+            add_statement(table, stmt, level + 1);
+        }
+    }
+}
+
+fn add_while(
+    table: &mut Table,
+    prefix: &str,
+    level: usize,
+    condition: &AnalyzedExpr,
+    body: &[AnalyzedStatement],
+) {
+    let script = format!("While {} holds true:", tell_expr(condition));
+    table.add_row(vec![
+        Cell::new("WHILE").fg(Color::Magenta),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Loop").fg(Color::Magenta),
+    ]);
+    for stmt in body {
+        add_statement(table, stmt, level + 1);
+    }
+}
+
+fn add_for(
+    table: &mut Table,
+    prefix: &str,
+    level: usize,
+    variable: &str,
+    iterator: &AnalyzedExpr,
+    body: &[AnalyzedStatement],
+) {
+    let script = format!("For each `{}` in {}:", variable, tell_expr(iterator));
+    table.add_row(vec![
+        Cell::new("FOR").fg(Color::Magenta),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Iteration").fg(Color::Magenta),
+    ]);
+    for stmt in body {
+        add_statement(table, stmt, level + 1);
+    }
+}
+
+fn add_match(
+    table: &mut Table,
+    prefix: &str,
+    level: usize,
+    scrutinee: &AnalyzedExpr,
+    arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
+) {
+    let script = format!("Match on {}:", tell_expr(scrutinee));
+    table.add_row(vec![
+        Cell::new("MATCH").fg(Color::Magenta),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Pattern").fg(Color::Magenta),
+    ]);
+    for (pat, body) in arms {
+        let case_script = format!("Case {}:", tell_expr(pat));
+        table.add_row(vec![
+            Cell::new("CASE").fg(Color::DarkMagenta),
+            Cell::new(format!("{}{}", indent(level + 1), case_script)),
+            Cell::new("Arm").fg(Color::DarkMagenta),
+        ]);
+        for stmt in body {
+            add_statement(table, stmt, level + 2);
+        }
+    }
+}
+
+fn add_break(table: &mut Table, prefix: &str) {
+    table.add_row(vec![
+        Cell::new("BREAK").fg(Color::Red),
+        Cell::new(format!("{}Break loop.", prefix)),
+        Cell::new("Control").fg(Color::Red),
+    ]);
+}
+
+fn add_continue(table: &mut Table, prefix: &str) {
+    table.add_row(vec![
+        Cell::new("CONT").fg(Color::Green),
+        Cell::new(format!("{}Continue loop.", prefix)),
+        Cell::new("Control").fg(Color::Green),
+    ]);
+}
+
+fn add_return(table: &mut Table, prefix: &str, value: &Option<Box<AnalyzedExpr>>) {
+    let script = if let Some(v) = value {
+        format!("Return {}.", tell_expr(v))
+    } else {
+        "Return nothing.".to_string()
+    };
+    table.add_row(vec![
+        Cell::new("RETURN").fg(Color::Yellow),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Exit").fg(Color::Yellow),
+    ]);
+}
+
+fn add_function_def(
+    table: &mut Table,
+    prefix: &str,
+    level: usize,
+    name: &str,
+    params: &[(smol_str::SmolStr, Option<GlossaType>)],
+    body: &[AnalyzedStatement],
+    return_type: &Option<GlossaType>,
+) {
+    let params_str: Vec<String> = params
+        .iter()
+        .map(|(n, t)| {
+            let type_str = t.as_ref().map(tell_type).unwrap_or("unknown".to_string());
+            format!("{}: {}", n, type_str)
+        })
+        .collect();
+    let ret_str = return_type
+        .as_ref()
+        .map(tell_type)
+        .unwrap_or("Nothing".to_string());
+
+    let script = format!(
+        "Define `{}` ({}) -> {}:",
+        name,
+        params_str.join(", "),
+        ret_str
+    );
+    table.add_row(vec![
+        Cell::new("FUNC").fg(Color::Cyan),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Definition").fg(Color::Cyan),
+    ]);
+    for stmt in body {
+        add_statement(table, stmt, level + 1);
+    }
+}
+
+fn add_type_def(
+    table: &mut Table,
+    prefix: &str,
+    name: &str,
+    fields: &[(smol_str::SmolStr, GlossaType)],
+) {
+    let fields_str: Vec<String> = fields
+        .iter()
+        .map(|(n, t)| format!("{}: {}", n, tell_type(t)))
+        .collect();
+    let script = format!("Struct `{}` {{ {} }}", name, fields_str.join(", "));
+    table.add_row(vec![
+        Cell::new("TYPE").fg(Color::Blue),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Struct").fg(Color::Blue),
+    ]);
+}
+
+fn add_trait_def(table: &mut Table, prefix: &str, name: &str) {
+    let script = format!("Trait `{}`", name);
+    table.add_row(vec![
+        Cell::new("TRAIT").fg(Color::Blue),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Interface").fg(Color::Blue),
+    ]);
+}
+
+fn add_trait_impl(table: &mut Table, prefix: &str, trait_name: &str, type_name: &str) {
+    let script = format!("Impl `{}` for `{}`", trait_name, type_name);
+    table.add_row(vec![
+        Cell::new("IMPL").fg(Color::Blue),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Implementation").fg(Color::Blue),
+    ]);
+}
+
+fn add_test_decl(
+    table: &mut Table,
+    prefix: &str,
+    level: usize,
+    name: &str,
+    body: &[AnalyzedStatement],
+) {
+    let script = format!("Test `{}`:", name);
+    table.add_row(vec![
+        Cell::new("TEST").fg(Color::Green),
+        Cell::new(format!("{}{}", prefix, script)),
+        Cell::new("Verification").fg(Color::Green),
+    ]);
+    for stmt in body {
+        add_statement(table, stmt, level + 1);
     }
 }
 
@@ -350,10 +441,7 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
         AnalyzedExprKind::PropertyAccess { owner, property } => {
             format!("{}.{}", tell_expr(owner), property)
         }
-        AnalyzedExprKind::VerbCall { verb, args } => {
-            let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-            format!("{}({})", verb, args_str.join(", "))
-        }
+        AnalyzedExprKind::VerbCall { verb, args } => tell_verb_call(verb, args),
         AnalyzedExprKind::BinOp { left, op, right } => {
             format!("({} {:?} {})", tell_expr(left), op, tell_expr(right))
         }
@@ -368,10 +456,7 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
             let range_op = if *inclusive { "..=" } else { ".." };
             format!("{}{}{}", tell_expr(start), range_op, tell_expr(end))
         }
-        AnalyzedExprKind::ArrayLiteral(exprs) => {
-            let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-            format!("[{}]", expr_strs.join(", "))
-        }
+        AnalyzedExprKind::ArrayLiteral(exprs) => tell_array_literal(exprs),
         AnalyzedExprKind::Some(e) => format!("Some({})", tell_expr(e)),
         AnalyzedExprKind::None => "None".to_string(),
         AnalyzedExprKind::Ok(e) => format!("Ok({})", tell_expr(e)),
@@ -381,64 +466,28 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
         AnalyzedExprKind::IndexAccess { array, index } => {
             format!("{}[{}]", tell_expr(array), tell_expr(index))
         }
-        AnalyzedExprKind::FunctionCall { func, args } => {
-            let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-            format!("{}({})", func, args_str.join(", "))
-        }
+        AnalyzedExprKind::FunctionCall { func, args } => tell_function_call(func, args),
         AnalyzedExprKind::MethodCall {
             receiver,
             method,
             args,
-        } => {
-            let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-            format!(
-                "{}.{}({})",
-                tell_expr(receiver),
-                method,
-                args_str.join(", ")
-            )
-        }
+        } => tell_method_call(receiver, method, args),
         AnalyzedExprKind::TraitMethodCall {
             receiver,
             trait_name,
             method_name,
             args,
-        } => {
-            let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-            format!(
-                "{} as {}::{}({})",
-                tell_expr(receiver),
-                trait_name,
-                method_name,
-                args_str.join(", ")
-            )
-        }
+        } => tell_trait_method_call(receiver, trait_name, method_name, args),
         AnalyzedExprKind::StructInstantiation {
             type_name,
             fields,
             args,
-        } => {
-            let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-            // Zip fields and args for better display
-            let fields_args: Vec<String> = fields
-                .iter()
-                .zip(args_str.iter())
-                .map(|(f, a)| format!("{}: {}", f, a))
-                .collect();
-            format!("{} {{ {} }}", type_name, fields_args.join(", "))
-        }
+        } => tell_struct_instantiation(type_name, fields, args),
         AnalyzedExprKind::Lambda {
             params,
             body,
             capture_mode,
-        } => {
-            let mode = match capture_mode {
-                CaptureMode::Borrow => "",
-                CaptureMode::Move => "move ",
-                CaptureMode::Memoize => "memo ",
-            };
-            format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
-        }
+        } => tell_lambda(params, body, capture_mode),
         AnalyzedExprKind::CollectionNew { collection_type } => {
             format!("{}::new()", collection_type)
         }
@@ -449,6 +498,75 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
             format!("assert_eq({}, {})", tell_expr(left), tell_expr(right))
         }
     }
+}
+
+fn tell_verb_call(verb: &str, args: &[AnalyzedExpr]) -> String {
+    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
+    format!("{}({})", verb, args_str.join(", "))
+}
+
+fn tell_array_literal(exprs: &[AnalyzedExpr]) -> String {
+    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
+    format!("[{}]", expr_strs.join(", "))
+}
+
+fn tell_function_call(func: &str, args: &[AnalyzedExpr]) -> String {
+    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
+    format!("{}({})", func, args_str.join(", "))
+}
+
+fn tell_method_call(receiver: &AnalyzedExpr, method: &str, args: &[AnalyzedExpr]) -> String {
+    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
+    format!(
+        "{}.{}({})",
+        tell_expr(receiver),
+        method,
+        args_str.join(", ")
+    )
+}
+
+fn tell_trait_method_call(
+    receiver: &AnalyzedExpr,
+    trait_name: &str,
+    method_name: &str,
+    args: &[AnalyzedExpr],
+) -> String {
+    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
+    format!(
+        "{} as {}::{}({})",
+        tell_expr(receiver),
+        trait_name,
+        method_name,
+        args_str.join(", ")
+    )
+}
+
+fn tell_struct_instantiation(
+    type_name: &str,
+    fields: &[smol_str::SmolStr],
+    args: &[AnalyzedExpr],
+) -> String {
+    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
+    // Zip fields and args for better display
+    let fields_args: Vec<String> = fields
+        .iter()
+        .zip(args_str.iter())
+        .map(|(f, a)| format!("{}: {}", f, a))
+        .collect();
+    format!("{} {{ {} }}", type_name, fields_args.join(", "))
+}
+
+fn tell_lambda(
+    params: &[smol_str::SmolStr],
+    body: &AnalyzedExpr,
+    capture_mode: &CaptureMode,
+) -> String {
+    let mode = match capture_mode {
+        CaptureMode::Borrow => "",
+        CaptureMode::Move => "move ",
+        CaptureMode::Memoize => "memo ",
+    };
+    format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
 }
 
 /// Converts a semantic type into a familiar Rust-like type signature string.
