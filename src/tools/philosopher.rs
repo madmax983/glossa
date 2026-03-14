@@ -420,11 +420,15 @@ mod tests {
 
         let maxims = philosopher.get_maxims();
         assert!(
-            maxims.iter().any(|m| m.observation.contains("Function has 5 parameters")),
+            maxims
+                .iter()
+                .any(|m| m.observation.contains("Function has 5 parameters")),
             "Did not find the expected many parameters observation."
         );
         assert!(
-            maxims.iter().any(|m| m.observation.contains("Function contains 11 statements")),
+            maxims
+                .iter()
+                .any(|m| m.observation.contains("Function contains 11 statements")),
             "Did not find the expected many statements observation."
         );
     }
