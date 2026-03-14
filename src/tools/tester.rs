@@ -559,3 +559,34 @@ mod additional_sentry_tests {
         assert_eq!(results.len(), 0);
     }
 }
+
+#[cfg(test)]
+mod tests_failures {
+    use super::*;
+
+    #[test]
+    fn test_extract_failures_no_matching_start() {
+        let output = "
+failures:
+
+some random text
+no dashed lines here
+
+failures:
+    test_one
+";
+        let failures = extract_failures(output);
+        assert_eq!(failures.len(), 0);
+    }
+
+    #[test]
+    fn test_parse_test_output_various_parts() {
+        let output = "
+test   ... ok
+test name ... ok
+test name with spaces ... ok
+";
+        let results = parse_test_output(output);
+        assert_eq!(results.len(), 2);
+    }
+}
