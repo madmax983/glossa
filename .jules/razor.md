@@ -107,3 +107,8 @@
 **Bloat:** The `StatementAnalyzer` trait was introduced to resolve a circular dependency between `semantic::analyzer`, `semantic::control_flow`, and `semantic::declarations`. However, since these modules all live within the same crate (`semantic`), Rust permits circular module dependencies natively via free functions, rendering the trait abstraction unnecessary. Additionally, `StatementAnalyzer` was a single-implementation trait only implemented by the empty struct `SemanticAnalyzer`.
 **Cut:** Deleted the `StatementAnalyzer` trait and the `SemanticAnalyzer` struct entirely. Replaced trait method dispatch across submodules with direct calls to `crate::semantic::analyzer::analyze_statement`.
 **Saved:** Eliminated trait boilerplate, reduced the number of files by deleting `src/semantic/traits.rs`, and removed empty struct allocations, significantly reducing cognitive overhead by flattening the semantic analysis architecture.
+
+## [Reduction]
+**Bloat:** Repetitive, copy-pasted inline capacity limit validation (`if self.state.x.len() >= MAX { return Err(LimitExceeded) }`) across over a dozen state accumulation methods in `src/semantic/assembly/mod.rs` (the `Assembler`).
+**Cut:** Encapsulated the limit validation logic into a private, reusable `Self::check_limit` helper function and replaced all inline occurrences using the `?` operator.
+**Saved:** ~75 lines of redundant boilerplate code, reducing structural noise and improving method readability while preserving exactly identical error semantics.

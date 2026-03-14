@@ -1,0 +1,23 @@
+422-        if self.state.participles.len() >= MAX_PARTICIPLES {
+423:            return Err(AssemblyError::LimitExceeded {
+--
+676-                if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
+677:                    return Err(AssemblyError::LimitExceeded {
+--
+722-            if self.state.operators.len() >= MAX_OPERATORS {
+723:                return Err(AssemblyError::LimitExceeded {
+--
+732-            if self.state.operators.len() >= MAX_OPERATORS {
+733:                return Err(AssemblyError::LimitExceeded {
+--
+745-            if self.state.operators.len() >= MAX_OPERATORS {
+746:                return Err(AssemblyError::LimitExceeded {
+--
+757-            if self.state.operators.len() >= MAX_OPERATORS {
+758:                return Err(AssemblyError::LimitExceeded {
+--
+782-                if self.state.property_accesses.len() >= MAX_PROPERTY_ACCESSES {
+783:                    return Err(AssemblyError::LimitExceeded {
+--
+803-                if self.state.index_accesses.len() >= MAX_INDEX_ACCESSES {
+804:                    return Err(AssemblyError::LimitExceeded {
