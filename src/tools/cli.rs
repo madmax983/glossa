@@ -175,4 +175,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Analyze a .γλ file for philosophical code smells (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Philosopher {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

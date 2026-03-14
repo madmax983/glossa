@@ -31,6 +31,8 @@ pub mod mentor;
 #[cfg(feature = "nova")]
 pub mod mosaic;
 pub mod narrator;
+#[cfg(feature = "nova")]
+pub mod philosopher;
 pub mod repl;
 pub mod report;
 pub mod runner;
