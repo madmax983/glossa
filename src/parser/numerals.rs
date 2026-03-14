@@ -246,3 +246,20 @@ mod tests {
         }
     }
 }
+
+
+#[cfg(test)]
+mod additional_tests {
+    use super::*;
+
+    #[test]
+    fn test_overflow_does_not_panic() {
+        let mut overflow_str = String::new();
+        for _ in 0..20 {
+            overflow_str.push('\u{0375}'); // Multiplier 1000
+        }
+        overflow_str.push('α');
+        let res = parse_greek_numeral(&overflow_str);
+        assert!(res.is_err());
+    }
+}
