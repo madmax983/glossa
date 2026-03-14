@@ -2399,7 +2399,6 @@ pub fn is_else_pattern(normalized_phrase: &str) -> bool {
     normalized_phrase == "ει δε μη"
 }
 
-
 /// Check if a word is a loop particle
 pub fn is_loop_particle(normalized_word: &str) -> bool {
     matches!(normalized_word, "εως" | "δια")
