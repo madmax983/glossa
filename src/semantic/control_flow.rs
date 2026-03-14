@@ -721,26 +721,22 @@ fn skip_first_word_and_parse(
 }
 
 /// Check if a clause starts with "εἰ δὲ μή" (else pattern)
+/// ⚡ Bolt Optimization: Avoids heap allocations (`.collect::<Vec<String>>()`, `.join(" ")`)
+/// by checking the normalized strings directly from the iterator.
 fn check_else_pattern_in_expression(expr: &Expr) -> bool {
-    // Extract first 3 words from the expression
-    let words: Vec<String> = if let Expr::Phrase(terms) = expr {
-        terms
-            .iter()
-            .take(3)
-            .filter_map(|term| {
-                if let Expr::Word(w) = term {
-                    Some(w.normalized.to_string())
-                } else {
-                    None
-                }
-            })
-            .collect()
-    } else {
-        vec![]
-    };
+    if let Expr::Phrase(terms) = expr {
+        let mut words = terms.iter().filter_map(|term| {
+            if let Expr::Word(w) = term {
+                Some(w.normalized.as_str())
+            } else {
+                None
+            }
+        });
 
-    let phrase = words.join(" ");
-    lexicon::is_else_pattern(&phrase)
+        words.next() == Some("ει") && words.next() == Some("δε") && words.next() == Some("μη")
+    } else {
+        false
+    }
 }
 
 /// Check if an expression starts with a conditional particle (εἰ or ἐάν)
