@@ -520,6 +520,42 @@ mod tests {
     }
 
     #[test]
+    fn test_run_philosopher_with_smells() {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
+        let source = r#"
+        ἕως ἀληθές,
+            ἕως ἀληθές,
+                ἕως ἀληθές,
+                    ἕως ἀληθές,
+                        παῦε.
+        "#;
+        write!(temp_file, "{}", source).expect("Failed to write temp file");
+
+        // We run the tool, expecting it to succeed and output the maxims (which it prints to stdout)
+        let result = run_philosopher(temp_file.path());
+        assert!(result.is_ok(), "run_philosopher should succeed: {:?}", result.unwrap_err());
+    }
+
+    #[test]
+    fn test_run_philosopher_clean() {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
+        let source = r#"
+        «χαῖρε» λέγε.
+        "#;
+        write!(temp_file, "{}", source).expect("Failed to write temp file");
+
+        // We run the tool, expecting it to succeed and print the "clean" message
+        let result = run_philosopher(temp_file.path());
+        assert!(result.is_ok(), "run_philosopher should succeed");
+    }
+
+    #[test]
     fn test_philosopher_function_params() {
         let mut scope = Scope::new();
         // Add a function with 5 parameters to scope to trigger the warning
