@@ -46,9 +46,9 @@ fn havoc_crash_debug_stack_overflow() {
         .status()
         .expect("Failed to spawn subprocess");
 
-    // The test SUCCEEDS if the subprocess FAILED (crashed via SIGSEGV/Stack Overflow)
+    // The test SUCCEEDS if the subprocess SUCCEEDS (it no longer crashes!)
     assert!(
-        !status.success(),
-        "Bug fixed? The subprocess should have crashed with a stack overflow!"
+        status.success(),
+        "Bug persists! The subprocess should NOT have crashed."
     );
 }
