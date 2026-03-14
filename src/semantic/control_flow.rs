@@ -860,4 +860,14 @@ mod tests {
                 .contains("Expected phrase in for iteration")
         );
     }
+
+    #[test]
+    fn test_else_pattern_not_word() {
+        let phrase = Expr::Phrase(vec![
+            Expr::Word(Word::new("ει")),
+            Expr::NumberLiteral(5), // Not a word
+            Expr::Word(Word::new("μη")),
+        ]);
+        assert!(!check_else_pattern_in_expression(&phrase));
+    }
 }
