@@ -870,4 +870,22 @@ mod tests {
         ]);
         assert!(!check_else_pattern_in_expression(&phrase));
     }
+
+    #[test]
+    fn test_check_conditional_start_branches() {
+        // Test Expr::Word branch
+        let word_expr = Expr::Word(Word::new("ει"));
+        assert!(check_conditional_start(&word_expr));
+
+        let non_conditional_word = Expr::Word(Word::new("λεγε"));
+        assert!(!check_conditional_start(&non_conditional_word));
+
+        // Test Expr::Phrase with non-word first term
+        let phrase_non_word = Expr::Phrase(vec![Expr::NumberLiteral(10)]);
+        assert!(!check_conditional_start(&phrase_non_word));
+
+        // Test fallback (e.g. NumberLiteral directly)
+        let num_expr = Expr::NumberLiteral(5);
+        assert!(!check_conditional_start(&num_expr));
+    }
 }
