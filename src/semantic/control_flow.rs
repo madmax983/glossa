@@ -725,7 +725,7 @@ fn skip_first_word_and_parse(
 /// by checking the normalized strings directly from the iterator.
 fn check_else_pattern_in_expression(expr: &Expr) -> bool {
     if let Expr::Phrase(terms) = expr {
-        let mut words = terms.iter().filter_map(|term| {
+        let mut words = terms.iter().take(3).filter_map(|term| {
             if let Expr::Word(w) = term {
                 Some(w.normalized.as_str())
             } else {
@@ -733,7 +733,9 @@ fn check_else_pattern_in_expression(expr: &Expr) -> bool {
             }
         });
 
-        words.next() == Some("ει") && words.next() == Some("δε") && words.next() == Some("μη")
+        words.next() == Some(lexicon::ELSE_PATTERN_WORDS[0])
+            && words.next() == Some(lexicon::ELSE_PATTERN_WORDS[1])
+            && words.next() == Some(lexicon::ELSE_PATTERN_WORDS[2])
     } else {
         false
     }
@@ -862,5 +864,11 @@ mod tests {
                 .to_string()
                 .contains("Expected phrase in for iteration")
         );
+    }
+
+    #[test]
+    fn test_check_else_pattern_not_phrase() {
+        let expr = Expr::NumberLiteral(42);
+        assert!(!super::check_else_pattern_in_expression(&expr));
     }
 }
