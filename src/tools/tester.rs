@@ -131,16 +131,26 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
             // Capture output until next "----" or empty line followed by "failures:"
             let mut message = String::new();
             while let Some(current) = lines.peek() {
-                if current.trim().starts_with("----") && current.trim().ends_with("stdout ----") {
+                let current_str = *current;
+                if current_str.trim().starts_with("----") && current_str.trim().ends_with("stdout ----") {
                     // Start of next failure
                     break;
                 }
-                if current.trim() == "failures:" {
+                if current_str.trim() == "failures:" {
                     // End of details section
                     break;
                 }
-                message.push_str(current);
-                message.push('\n');
+
+                // Filter out ugly Rust boilerplate to keep the output focused and "native" to Glossa
+                // Specifically filter out the auto-generated Rust file path in the panic line
+                if current_str.contains("panicked at") && current_str.contains("/tmp/glossa_test_") {
+                    // We skip the generic panic location line because it points to an internal temp file
+                } else if current_str.contains("note: run with `RUST_BACKTRACE=1`") {
+                    // Skip backtrace instructions
+                } else {
+                    message.push_str(current_str);
+                    message.push('\n');
+                }
                 lines.next();
             }
             failures.push((name, message.trim().to_string()));
@@ -312,18 +322,23 @@ pub fn run_tests(input: &Path) -> Result<()> {
                     "FAILED:".red().bold(),
                     name.cyan().bold().underlined()
                 );
-                // Create a box for the error message
-                let border_top =
-                    "╭───────────────────────────────────────────────────────────────────╮".red();
-                let border_bottom =
-                    "╰───────────────────────────────────────────────────────────────────╯".red();
+                let mut error_table = Table::new();
+                error_table.load_preset(presets::UTF8_FULL);
 
-                println!("{}", border_top);
-                for line in msg.lines() {
-                    // Wrap extremely long lines if needed, but for now simple print
-                    println!("{} {}", "│".red(), line);
+                let cell = Cell::new(&msg);
+                error_table.add_row(vec![cell]);
+
+                // Use comfy_table to set the cell alignment to the left
+                error_table
+                    .column_mut(0)
+                    .unwrap()
+                    .set_cell_alignment(CellAlignment::Left);
+
+                // Print the colored table (we wrap it in a red block to colorize both the content and the border)
+                let table_str = format!("{}", error_table);
+                for line in table_str.lines() {
+                    println!("{}", line.red());
                 }
-                println!("{}", border_bottom);
                 println!();
             }
         } else {
