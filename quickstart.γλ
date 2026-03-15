@@ -1,0 +1,30 @@
+// Let x be 10.
+ξ 10 ἔστω.
+
+// Let name be "Socrates".
+ὄνομα «Σωκράτης» ἔστω.
+
+// Say "Hello"
+«χαῖρε» λέγε.
+
+// Say the name (using the variable from Chapter 1)
+ὄνομα λέγε.
+
+// Define a User type
+εἶδος Χρήστης ὁρίζειν {
+    ὄνομα ὀνόματος.    // String
+    ἡλικία ἀριθμοῦ. // i64
+}.
+
+// Create an instance
+χρήστης νέον Χρήστης
+    «Πλάτων»
+    80
+ἔστω.
+
+// Let age be 80
+ἡλικία 80 ἔστω.
+
+// If age is greater than 50...
+εἰ ἡλικία 50 μεῖζον ᾖ,
+    «σοφός» λέγε.
