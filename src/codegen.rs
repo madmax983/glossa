@@ -898,17 +898,32 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
 
         AnalyzedExprKind::ArrayLiteral(elements) => generate_collection_array(elements),
 
-        AnalyzedExprKind::Some(inner) => generate_variant_some(inner),
+        AnalyzedExprKind::Some(inner) => {
+            let inner_tokens = generate_expr(inner);
+            quote! { Some(#inner_tokens) }
+        }
 
-        AnalyzedExprKind::None => generate_variant_none(),
+        AnalyzedExprKind::None => quote! { None },
 
-        AnalyzedExprKind::Ok(inner) => generate_variant_ok(inner),
+        AnalyzedExprKind::Ok(inner) => {
+            let inner_tokens = generate_expr(inner);
+            quote! { Ok(#inner_tokens) }
+        }
 
-        AnalyzedExprKind::Err(inner) => generate_variant_err(inner),
+        AnalyzedExprKind::Err(inner) => {
+            let inner_tokens = generate_expr(inner);
+            quote! { Err(#inner_tokens) }
+        }
 
-        AnalyzedExprKind::Try(inner) => generate_control_try(inner),
+        AnalyzedExprKind::Try(inner) => {
+            let inner_tokens = generate_expr(inner);
+            quote! { #inner_tokens? }
+        }
 
-        AnalyzedExprKind::Unwrap(inner) => generate_control_unwrap(inner),
+        AnalyzedExprKind::Unwrap(inner) => {
+            let inner_tokens = generate_expr(inner);
+            quote! { #inner_tokens.unwrap() }
+        }
 
         AnalyzedExprKind::IndexAccess { array, index } => generate_collection_index(array, index),
 
@@ -1315,35 +1330,6 @@ fn generate_function_call(verb: &str, args: &[AnalyzedExpr]) -> TokenStream {
 // ==================================================================================
 // EXPRESSION HELPERS (CONTROL FLOW)
 // ==================================================================================
-
-fn generate_variant_some(inner: &AnalyzedExpr) -> TokenStream {
-    let inner_tokens = generate_expr(inner);
-    quote! { Some(#inner_tokens) }
-}
-
-fn generate_variant_none() -> TokenStream {
-    quote! { None }
-}
-
-fn generate_variant_ok(inner: &AnalyzedExpr) -> TokenStream {
-    let inner_tokens = generate_expr(inner);
-    quote! { Ok(#inner_tokens) }
-}
-
-fn generate_variant_err(inner: &AnalyzedExpr) -> TokenStream {
-    let inner_tokens = generate_expr(inner);
-    quote! { Err(#inner_tokens) }
-}
-
-fn generate_control_try(inner: &AnalyzedExpr) -> TokenStream {
-    let inner_tokens = generate_expr(inner);
-    quote! { #inner_tokens? }
-}
-
-fn generate_control_unwrap(inner: &AnalyzedExpr) -> TokenStream {
-    let inner_tokens = generate_expr(inner);
-    quote! { #inner_tokens.unwrap() }
-}
 
 fn generate_control_assert(condition: &AnalyzedExpr) -> TokenStream {
     let cond = generate_expr(condition);
