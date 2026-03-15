@@ -4,4 +4,4 @@
 #
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
-cc 3c7a6f3f2e5db78c4dd3a902ea772a1087564e1b1e9d845844bdaa7e4c8dfbd8 # shrinks to n = 1
+cc c687c6bac86377ea48b34f8cacf52546589db2ac17761a5155cfaad4f9337a9d # shrinks to val = 1

@@ -1,101 +1,35 @@
+use glossa::parser::numerals::parse_greek_numeral;
+use glossa::parser::parse;
 use proptest::prelude::*;
-use glossa::tools::interpreter::Interpreter;
-use glossa::semantic::*;
-use glossa::morphology::lexicon::BinaryOp;
 
-// This test WILL panic during execution because Interpreter uses standard + - * operators.
-// Since Havoc's job is to present wreckage, we do not fix it!
-// Just assert that we caused the wreckage (which cargo test captures as panic).
-// However, to keep CI somewhat happy but prove we did it, we could `#[should_panic]` it.
-// The instructions specifically said:
-// 3. 💥 DETONATE - The Run: Run the harness. If it crashes/panics/deadlocks: "SUCCESS."
-// So adding `#[should_panic]` lets Cargo test pass while formally acknowledging we broke it.
 proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+
     #[test]
-    #[should_panic(expected = "attempt to add with overflow")]
-    fn integer_overflow_crash(n in 1i64..100) {
-        let mut interp = Interpreter::new();
-        let expr = AnalyzedExpr {
-            expr: AnalyzedExprKind::BinOp {
-                op: BinaryOp::Add,
-                left: Box::new(AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(i64::MAX),
-                    glossa_type: GlossaType::Number,
-                }),
-                right: Box::new(AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(n),
-                    glossa_type: GlossaType::Number,
-                }),
-            },
-            glossa_type: GlossaType::Number,
-        };
+    fn fuzz_numerals(s in "[\\u0370-\\u03FF]*") {
+        // Attempt to parse random Greek strings.
+        // We don't care about the result (Ok/Err), only that it doesn't panic.
+        let _ = parse_greek_numeral(&s);
+    }
 
-        let stmt = AnalyzedStatement::Expression(vec![expr]);
-        let prog = AnalyzedProgram {
-            statements: vec![stmt],
-            scope: Scope::new(),
-        };
-
-        let _ = interp.run(&prog);
+    #[test]
+    fn fuzz_parser(s in "\\PC*") {
+        // Fuzz the entire parser with random strings.
+        // This checks for panics in the grammar or builder.
+        let _ = parse(&s);
     }
 }
 
-proptest! {
-    #[test]
-    #[should_panic(expected = "attempt to subtract with overflow")]
-    fn integer_underflow_crash(n in 1i64..100) {
-        let mut interp = Interpreter::new();
-        let expr = AnalyzedExpr {
-            expr: AnalyzedExprKind::BinOp {
-                op: BinaryOp::Sub,
-                left: Box::new(AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(i64::MIN),
-                    glossa_type: GlossaType::Number,
-                }),
-                right: Box::new(AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(n),
-                    glossa_type: GlossaType::Number,
-                }),
-            },
-            glossa_type: GlossaType::Number,
-        };
-
-        let stmt = AnalyzedStatement::Expression(vec![expr]);
-        let prog = AnalyzedProgram {
-            statements: vec![stmt],
-            scope: Scope::new(),
-        };
-
-        let _ = interp.run(&prog);
-    }
-}
-
-proptest! {
-    #[test]
-    #[should_panic(expected = "attempt to multiply with overflow")]
-    fn integer_multiply_crash(n in 2i64..100) {
-        let mut interp = Interpreter::new();
-        let expr = AnalyzedExpr {
-            expr: AnalyzedExprKind::BinOp {
-                op: BinaryOp::Mul,
-                left: Box::new(AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(i64::MAX),
-                    glossa_type: GlossaType::Number,
-                }),
-                right: Box::new(AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(n),
-                    glossa_type: GlossaType::Number,
-                }),
-            },
-            glossa_type: GlossaType::Number,
-        };
-
-        let stmt = AnalyzedStatement::Expression(vec![expr]);
-        let prog = AnalyzedProgram {
-            statements: vec![stmt],
-            scope: Scope::new(),
-        };
-
-        let _ = interp.run(&prog);
-    }
+#[test]
+fn test_huge_numeral_overflow_attempt() {
+    // Attempt to overflow i64 with a massive string of 900s (ϡ)
+    // Each ϡ is 900.
+    // i64::MAX is ~9e18.
+    // We need ~1e16 chars to overflow.
+    // We can't allocate that. But we can verify it handles a large-ish string gracefully.
+    // And if we ever switch to i32, this would catch it.
+    let huge_string = "ϡ".repeat(100_000); // 900 * 100,000 = 90,000,000
+    let res = parse_greek_numeral(&huge_string);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), 90_000_000);
 }
