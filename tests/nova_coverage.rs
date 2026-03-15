@@ -144,3 +144,23 @@ fn test_run_tests_rustc_error() {
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("Rustc Error"));
 }
+
+#[test]
+fn test_timeline_tool_coverage() {
+    let mut temp_file = tempfile::Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "μετά ξ 5 ἔστω. ξ 10 γίγνεται. εἰ ξ 5 μεῖζον ᾖ, «μεῖζον» λέγε. ἕως ξ 10 ἔλασσον ᾖ, ξ 10 γίγνεται. ἀριθμός [1, 2, 3] ἔστω. διὰ ἀριθμοῦ, ν λέγε.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::experimental::timeline::run_timeline(temp_file.path());
+    assert!(result.is_ok(), "Timeline failed: {:?}", result.err());
+}
+
+#[test]
+fn test_timeline_tool_file_not_found() {
+    let result = glossa::experimental::timeline::run_timeline(&std::path::PathBuf::from("nonexistent.γλ"));
+    assert!(result.is_err());
+}
