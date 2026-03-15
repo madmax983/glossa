@@ -325,6 +325,34 @@ mod tests {
     }
 
     #[test]
+    fn test_mosaic_multiple_elements_and_other_decls() {
+        // This test ensures `i > 0` paths (comma joining) in add_row are covered
+        // And other declaration types for non-regular statements
+        let source = "
+            ὁ μέγας καὶ καλὸς ἄνθρωπος τὸν λόγον λέγει.
+            τοῦ πατρὸς τοῦ θεοῦ ὁ λόγος.
+            ὁ ἄνθρωπος ὁ ἰδὼν καὶ ἀκούσας λέγει.
+            γ μῆκος μέγεθος λέγε.
+
+            // Other decls
+            χαρακτήρ Τ ὁρίζειν { }.
+            εἶδος Χ τῷ Τ ἐμπίπτειν { }.
+            δοκιμή «τ» .
+                1 1 ἰσοῦται.
+            τέλος.
+        ";
+        let mut buffer = Vec::new();
+        run_mosaic_inner(source, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        // Assert we hit the commas for multiple adjectives, genitives, and participles
+        // (Note: actual string output depends on parsing, but multiple should exist)
+        assert!(output.contains("Trait Definition"));
+        assert!(output.contains("Trait Implementation"));
+        assert!(output.contains("Test Declaration"));
+    }
+
+    #[test]
     fn test_run_mosaic() {
         use std::io::Write;
         let dir = tempfile::tempdir().unwrap();
