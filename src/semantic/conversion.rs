@@ -54,10 +54,42 @@ use crate::semantic::{Constituent, Literal};
 /// This is the main entry point for lowering the "Assembled" semantic model (slot-based)
 /// to the "Analyzed" model (HIR/AST-like).
 ///
+/// Evaluates and translates a grammatically sound statement into the semantically typed AST.
+///
+/// This serves as the top-level interpreter connecting the raw output of the
+/// [`crate::semantic::Assembler`] (`AssembledStatement`) with the High-Level Intermediate
+/// Representation (`AnalyzedStatement`). It assigns concrete meaning to grammatical roles
+/// (e.g., assigning a Subject the role of "Variable Name").
+///
 /// # Arguments
 ///
 /// * `asm_stmt` - The assembled statement from the `Assembler`.
 /// * `scope` - The current semantic scope (for variable lookup and definition).
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Example cannot be run as a doctest because this module is pub(crate)
+/// use glossa::semantic::assembly::AssembledStatement;
+/// use glossa::semantic::conversion::convert_assembled_to_analyzed;
+/// use glossa::semantic::resolver::Scope;
+/// use glossa::ast::{Expr, Word};
+/// use glossa::morphology::lexicon::{LexiconEntry, VerbType};
+///
+/// let mut scope = Scope::new();
+/// let mut asm = AssembledStatement::new();
+///
+/// // Simulate: "«χαῖρε» λέγε."
+/// asm.verb = Some(LexiconEntry {
+///     lemma: "λεγω".into(),
+///     english_equivalent: "say".into(),
+///     part_of_speech: glossa::morphology::lexicon::PartOfSpeech::Verb(VerbType::Transitive),
+/// });
+/// asm.strings.push("χαῖρε".into());
+///
+/// let result = convert_assembled_to_analyzed(&asm, &mut scope);
+/// assert!(result.is_ok());
+/// ```
 pub fn convert_assembled_to_analyzed(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
@@ -65,9 +97,43 @@ pub fn convert_assembled_to_analyzed(
     classify_assembled_statement(asm_stmt, scope)
 }
 
-/// Classify an assembled statement and extract analyzed expressions
+/// Diagnoses the semantic intent of an assembled statement using heuristic pattern matching.
 ///
-/// This function implements the heuristic priority list described in the module-level documentation.
+/// The assembler organizes sentences by grammatical slots (subject, verb, object), but does
+/// not understand *what* the sentence is trying to do (e.g., is it an assignment, a print call,
+/// or a function invocation?). This classification must happen first, as a value extraction
+/// for a Binding operates entirely differently from a Function Call argument extraction.
+///
+/// This implements the prioritized heuristic order defined in the module-level documentation.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Example cannot be run as a doctest because this module is pub(crate)
+/// use glossa::semantic::assembly::AssembledStatement;
+/// use glossa::semantic::conversion::classify_assembled_statement;
+/// use glossa::semantic::resolver::Scope;
+/// use glossa::ast::{Expr, Word};
+/// use glossa::morphology::lexicon::{LexiconEntry, VerbType};
+///
+/// let mut scope = Scope::new();
+/// let mut asm = AssembledStatement::new();
+///
+/// // Represents: "«χαῖρε» λέγε." (Say "hello")
+/// asm.verb = Some(LexiconEntry {
+///     lemma: "λεγω".into(),
+///     english_equivalent: "say".into(),
+///     part_of_speech: glossa::morphology::lexicon::PartOfSpeech::Verb(VerbType::Transitive),
+/// });
+/// asm.strings.push("χαῖρε".into());
+///
+/// let stmt = classify_assembled_statement(&asm, &mut scope).unwrap();
+///
+/// match stmt {
+///     glossa::semantic::AnalyzedStatement::Print { .. } => assert!(true),
+///     _ => panic!("Expected Print statement"),
+/// }
+/// ```
 pub fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
@@ -1463,9 +1529,42 @@ fn extract_object_fallback(
 /// 9. **Literals**: `42`, `"hello"`
 /// 10. **Variables (Object)**: `x`
 ///
+/// Consolidates scattering values (numbers, strings, blocks) into a single logical expression.
+///
+/// In GLOSSA, depending on the sentence phrasing, the "value" of an assignment might be located
+/// in the subject slot, an explicit number literal slot, a string slot, or nested inside a phrase.
+/// This function acts as a semantic vacuum, pulling out the first valid expression value it can find
+/// in the statement regardless of where the `Assembler` categorized it grammatically.
+///
 /// # Returns
 ///
-/// Returns a tuple of `(AnalyzedExpr, GlossaType)`.
+/// * `Ok((AnalyzedExpr, GlossaType))` containing the resolved expression and its inferred type.
+/// * `Err(GlossaError)` if no valid value expression can be identified.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Example cannot be run as a doctest because this module is pub(crate)
+/// use glossa::semantic::assembly::AssembledStatement;
+/// use glossa::semantic::conversion::extract_value;
+/// use glossa::semantic::resolver::Scope;
+/// use glossa::semantic::types::GlossaType;
+/// use glossa::semantic::AnalyzedExprKind;
+///
+/// let scope = Scope::new();
+/// let mut asm = AssembledStatement::new();
+///
+/// // Simulate a statement that contains a number literal: 42
+/// asm.numbers.push(42);
+///
+/// let (expr, ty) = extract_value(&asm, &scope).unwrap();
+///
+/// assert_eq!(ty, GlossaType::Number);
+/// match expr.expr {
+///     AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 42),
+///     _ => panic!("Expected NumberLiteral"),
+/// }
+/// ```
 pub fn extract_value(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
