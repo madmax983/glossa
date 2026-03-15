@@ -1,7 +1,9 @@
-use glossa::morphology::lexicon::BinaryOp;
-use glossa::semantic::*;
-use glossa::tools::interpreter::Interpreter;
+#![cfg(feature = "nova")]
+
 use proptest::prelude::*;
+use glossa::tools::interpreter::Interpreter;
+use glossa::semantic::*;
+use glossa::morphology::lexicon::BinaryOp;
 
 proptest! {
     #[test]
