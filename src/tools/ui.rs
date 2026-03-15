@@ -24,6 +24,19 @@ use std::io::{self, IsTerminal, Write};
 use std::time::Instant;
 
 /// Status indicator for long-running operations
+///
+/// Handles displaying a spinner (or static log message) while a task runs,
+/// and automatically cleaning up the line when the task finishes.
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::tools::ui::Status;
+///
+/// let mut status = Status::start("Compiling");
+/// status.update("Analyzing");
+/// status.success();
+/// ```
 pub struct Status {
     message: String,
     symbol: String,
@@ -33,12 +46,28 @@ pub struct Status {
 }
 
 impl Status {
-    /// Create a new status indicator with default symbol
+    /// Create a new status indicator with default symbol (⚡)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::ui::Status;
+    /// let status = Status::start("Compiling...");
+    /// status.success();
+    /// ```
     pub fn start(message: impl Into<String>) -> Self {
         Self::start_with_symbol(message, "⚡")
     }
 
     /// Create a new status indicator with a custom symbol
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::ui::Status;
+    /// let status = Status::start_with_symbol("Testing", "🧪");
+    /// status.success();
+    /// ```
     pub fn start_with_symbol(message: impl Into<String>, symbol: impl Into<String>) -> Self {
         let is_tty = io::stderr().is_terminal();
         Self::new(message, symbol, is_tty)
@@ -58,6 +87,18 @@ impl Status {
     }
 
     /// Update the status message
+    ///
+    /// Changes the text displayed next to the symbol.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::ui::Status;
+    /// let mut status = Status::start("Running Phase 1");
+    /// // ... work ...
+    /// status.update("Running Phase 2");
+    /// status.success();
+    /// ```
     pub fn update(&mut self, message: impl Into<String>) {
         if !self.active {
             return;
@@ -67,6 +108,17 @@ impl Status {
     }
 
     /// Mark the operation as complete success
+    ///
+    /// Prints a green checkmark and the time elapsed.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::ui::Status;
+    /// let status = Status::start("Connecting");
+    /// // ... work ...
+    /// status.success(); // Prints "✓ Connecting (0.01s)"
+    /// ```
     pub fn success(mut self) {
         if !self.active {
             return;
@@ -81,6 +133,17 @@ impl Status {
     }
 
     /// Mark the operation as failed
+    ///
+    /// Prints a red cross, the original message, and the error.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::ui::Status;
+    /// let status = Status::start("Downloading");
+    /// // ... fail ...
+    /// status.error("Connection Refused"); // Prints "✕ Downloading" and then the error
+    /// ```
     pub fn error(mut self, err: impl std::fmt::Display) {
         if !self.active {
             return;

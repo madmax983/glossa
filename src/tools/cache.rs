@@ -26,6 +26,17 @@ use std::time::SystemTime;
 /// Manages the build cache for compiled programs.
 ///
 /// Handles path resolution, key generation, and validity checking for cached binaries.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::cache::Cache;
+/// use std::path::Path;
+///
+/// let cache = Cache::new();
+/// // In a real scenario, you'd call cache.init().unwrap() to ensure the directory exists
+/// let (rs_path, exe_path) = cache.get_paths(Path::new("my_program.gl"));
+/// ```
 pub struct Cache {
     base_dir: PathBuf,
 }
@@ -41,6 +52,13 @@ impl Cache {
     ///
     /// Resolves the cache directory to the system standard (e.g. `~/.cache` or `%LOCALAPPDATA%`)
     /// appended with `.glossa/cache`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::cache::Cache;
+    /// let cache = Cache::new();
+    /// ```
     pub fn new() -> Self {
         let base_dir = dirs_next::cache_dir()
             .or_else(dirs_next::home_dir)
@@ -54,6 +72,14 @@ impl Cache {
     ///
     /// Creates the directory structure if it doesn't already exist.
     /// Should be called before writing any files.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use glossa::tools::cache::Cache;
+    /// let cache = Cache::new();
+    /// cache.init().unwrap(); // Creates ~/.cache/.glossa/cache
+    /// ```
     pub fn init(&self) -> std::io::Result<()> {
         fs::create_dir_all(&self.base_dir)
     }
@@ -76,6 +102,17 @@ impl Cache {
     ///
     /// The content change detection relies on filesystem timestamps, which is standard practice
     /// for build tools (like `make` or `cargo`).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::cache::Cache;
+    /// use std::path::Path;
+    ///
+    /// let cache = Cache::new();
+    /// let key = cache.key(Path::new("hero.gl"));
+    /// assert_eq!(key.len(), 64); // SHA-256 hex string
+    /// ```
     pub fn key(&self, input: &Path) -> String {
         use sha2::{Digest, Sha256};
 
@@ -98,6 +135,17 @@ impl Cache {
     /// Returns a tuple of:
     /// 1. Path to the generated Rust source (`{hash}.rs`)
     /// 2. Path to the compiled executable (`{hash}` or `{hash}.exe`)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::cache::Cache;
+    /// use std::path::Path;
+    ///
+    /// let cache = Cache::new();
+    /// let (rs_file, exe_file) = cache.get_paths(Path::new("hero.gl"));
+    /// assert!(rs_file.to_string_lossy().ends_with(".rs"));
+    /// ```
     pub fn get_paths(&self, input: &Path) -> (PathBuf, PathBuf) {
         let key = self.key(input);
         let cached_rs = self.base_dir.join(format!("{}.rs", key));
@@ -125,6 +173,20 @@ impl Cache {
     ///
     /// If the source file has been modified *after* the executable was built,
     /// `mtime(source)` will be greater, making the condition false (invalid).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::cache::Cache;
+    /// use std::path::Path;
+    ///
+    /// let cache = Cache::new();
+    /// let source_path = Path::new("main.gl");
+    /// let (_, exe_path) = cache.get_paths(source_path);
+    ///
+    /// // If main.gl was modified recently, this returns false
+    /// let is_hot = cache.is_valid(source_path, &exe_path);
+    /// ```
     pub fn is_valid(&self, input: &Path, cached_exe: &Path) -> bool {
         let source_modified = fs::metadata(input)
             .and_then(|m| m.modified())
