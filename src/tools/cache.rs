@@ -199,3 +199,15 @@ impl Cache {
         exe_modified > source_modified
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cache_default() {
+        let cache = Cache::default();
+        // Just assert it initializes without panicking.
+        assert!(cache.base_dir.ends_with("cache"));
+    }
+}
