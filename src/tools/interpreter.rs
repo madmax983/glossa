@@ -119,6 +119,22 @@ impl Interpreter {
     }
 
     /// Execute a program
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::tools::interpreter::Interpreter;
+    /// use glossa::parser::parse;
+    /// use glossa::semantic::analyze_program;
+    ///
+    /// let code = "ξ πέντε ἔστω. ξ λέγε.";
+    /// let ast = parse(code).unwrap();
+    /// let program = analyze_program(&ast).unwrap();
+    ///
+    /// let mut interp = Interpreter::new();
+    /// interp.run(&program).unwrap();
+    /// assert_eq!(interp.get_output(), "5");
+    /// ```
     pub fn run(&mut self, program: &AnalyzedProgram) -> Result<(), EvalError> {
         for stmt in &program.statements {
             self.eval_statement(stmt)?;
@@ -160,6 +176,7 @@ impl Interpreter {
         Ok(())
     }
 
+    /// Evaluates a given expression into a value.
     fn eval_expr(&self, expr: &AnalyzedExpr) -> Result<Value, EvalError> {
         match &expr.expr {
             AnalyzedExprKind::NumberLiteral(n) => Ok(Value::Number(*n)),
