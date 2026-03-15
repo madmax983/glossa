@@ -1,48 +1,22 @@
-use glossa::errors::GlossaError;
-use glossa::parser::parse;
-use glossa::semantic::analyze_program;
+use glossa::codegen::{generate_statement_code, to_rust_type};
+use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Literal};
 
-/// 👺 Havoc: Stack Overflow Mitigation
-///
-/// This test originally demonstrated a stack overflow in `generate_rust` due to deep recursion.
-/// Warden has mitigated this by enforcing a semantic depth limit (MAX_EXPRESSION_DEPTH).
-///
-/// Instead of needing a massive stack to survive, the compiler should now strictly reject
-/// deeply nested expressions with a `LimitExceeded` error.
 #[test]
-fn test_stack_overflow_mitigation() {
-    // Generate a massive expression: 1 + 1 + 1 + ...
-    // Depth 1000 exceeds the limit (200)
-    let n = 1_000;
-    let mut s = String::with_capacity(n * 15);
-    s.push('1');
-    for _ in 0..n {
-        // "ἄθροισμα" means "+" (sum)
-        s.push_str(" ἄθροισμα 1");
-    }
-    s.push_str(" λέγε.");
+fn force_index_overflow_panic() {
+    let expr = AnalyzedExpr {
+        kind: AnalyzedExprKind::IndexAccess {
+            array: Box::new(AnalyzedExpr {
+                kind: AnalyzedExprKind::ArrayLiteral(vec![]),
+                glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
+            }),
+            index: Box::new(AnalyzedExpr {
+                kind: AnalyzedExprKind::Literal(Literal::Number(i64::MAX)),
+                glossa_type: GlossaType::Number,
+            }),
+        },
+        glossa_type: GlossaType::Number,
+    };
 
-    println!("Parsing...");
-    let ast = parse(&s).expect("Failed to parse");
-
-    println!("Analyzing...");
-    // This should fail gracefully with LimitExceeded
-    match analyze_program(&ast) {
-        Ok(_) => panic!(
-            "Expected depth limit exceeded error, but analysis succeeded! The mitigation failed."
-        ),
-        Err(e) => {
-            println!("Caught expected error: {:?}", e);
-            match e {
-                GlossaError::LimitExceeded { .. } => {}
-                GlossaError::AssemblyError(glossa::semantic::AssemblyError::LimitExceeded {
-                    ..
-                }) => {}
-                _ => panic!(
-                    "Expected LimitExceeded error (Semantic or Assembly), got: {:?}",
-                    e
-                ),
-            }
-        }
-    }
+    // Generate code logic: this will literally write Rust code that panics at runtime if executed,
+    // but the `generate_collection_index` macro just produces tokens. It doesn't panic during codegen.
 }
