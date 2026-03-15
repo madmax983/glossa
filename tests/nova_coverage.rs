@@ -161,6 +161,7 @@ fn test_timeline_tool_coverage() {
 
 #[test]
 fn test_timeline_tool_file_not_found() {
-    let result = glossa::experimental::timeline::run_timeline(&std::path::PathBuf::from("nonexistent.γλ"));
+    let result =
+        glossa::experimental::timeline::run_timeline(&std::path::PathBuf::from("nonexistent.γλ"));
     assert!(result.is_err());
 }
