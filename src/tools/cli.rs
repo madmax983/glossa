@@ -175,4 +175,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Simulate the timeline of a .γλ file (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Timeline {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

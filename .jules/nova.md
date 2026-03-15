@@ -19,3 +19,7 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+## 🌟 The Timeline (ὁ Χρόνος)
+**Concept:** An experimental static analysis simulator (`glossa timeline`) that maps out events such as variable birth, mutation, divergence of control flow, and IO side-effects for a given ΓΛΩΣΣΑ program.
+**Fate:** Merged
+**Lesson:** Visualizing the control flow and variable lifecycle of a program can be a powerful educational tool for developers learning the language, and a useful static analysis debugging mechanism.
