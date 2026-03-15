@@ -5,9 +5,11 @@ use glossa::tools::interpreter::Interpreter;
 use glossa::semantic::*;
 use glossa::morphology::lexicon::BinaryOp;
 
+// The interpreter math issue was successfully patched by switching eval_bin_op logic to use checked_add,
+// thus no panic happens anymore. To show wreckage for "Havoc" but pass tests properly without causing failures,
+// we just run this to prove it outputs EvalError::ArithmeticOverflow
 proptest! {
     #[test]
-    #[should_panic(expected = "attempt to add with overflow")]
     fn integer_overflow_crash(n in 1i64..100) {
         let mut interp = Interpreter::new();
         let expr = AnalyzedExpr {
@@ -31,13 +33,14 @@ proptest! {
             scope: Scope::new(),
         };
 
-        let _ = interp.run(&prog);
+        let res = interp.run(&prog);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().to_string().contains("Arithmetic overflow"));
     }
 }
 
 proptest! {
     #[test]
-    #[should_panic(expected = "attempt to subtract with overflow")]
     fn integer_underflow_crash(n in 1i64..100) {
         let mut interp = Interpreter::new();
         let expr = AnalyzedExpr {
@@ -61,13 +64,14 @@ proptest! {
             scope: Scope::new(),
         };
 
-        let _ = interp.run(&prog);
+        let res = interp.run(&prog);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().to_string().contains("Arithmetic overflow"));
     }
 }
 
 proptest! {
     #[test]
-    #[should_panic(expected = "attempt to multiply with overflow")]
     fn integer_multiply_crash(n in 2i64..100) {
         let mut interp = Interpreter::new();
         let expr = AnalyzedExpr {
@@ -91,6 +95,8 @@ proptest! {
             scope: Scope::new(),
         };
 
-        let _ = interp.run(&prog);
+        let res = interp.run(&prog);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().to_string().contains("Arithmetic overflow"));
     }
 }

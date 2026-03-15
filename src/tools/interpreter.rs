@@ -59,6 +59,9 @@ pub enum EvalError {
     #[error("διαίρεσις διὰ μηδενός (Division by zero)")]
     DivisionByZero,
 
+    #[error("ὑπερχείλισις (Arithmetic overflow)")]
+    ArithmeticOverflow,
+
     #[error("μὴ ὑλοποιημένον (Not implemented): {0}")]
     NotImplemented(String),
 }
@@ -179,14 +182,25 @@ impl Interpreter {
     fn eval_bin_op(&self, op: &BinaryOp, left: Value, right: Value) -> Result<Value, EvalError> {
         match (op, &left, &right) {
             // Arithmetic
-            (BinaryOp::Add, Value::Number(l), Value::Number(r)) => Ok(Value::Number(l + r)),
-            (BinaryOp::Sub, Value::Number(l), Value::Number(r)) => Ok(Value::Number(l - r)),
-            (BinaryOp::Mul, Value::Number(l), Value::Number(r)) => Ok(Value::Number(l * r)),
+            (BinaryOp::Add, Value::Number(l), Value::Number(r)) => l
+                .checked_add(*r)
+                .map(Value::Number)
+                .ok_or(EvalError::ArithmeticOverflow),
+            (BinaryOp::Sub, Value::Number(l), Value::Number(r)) => l
+                .checked_sub(*r)
+                .map(Value::Number)
+                .ok_or(EvalError::ArithmeticOverflow),
+            (BinaryOp::Mul, Value::Number(l), Value::Number(r)) => l
+                .checked_mul(*r)
+                .map(Value::Number)
+                .ok_or(EvalError::ArithmeticOverflow),
             (BinaryOp::Div, Value::Number(l), Value::Number(r)) => {
                 if *r == 0 {
                     return Err(EvalError::DivisionByZero);
                 }
-                Ok(Value::Number(l / r))
+                l.checked_div(*r)
+                    .map(Value::Number)
+                    .ok_or(EvalError::ArithmeticOverflow)
             }
 
             // Comparison
@@ -210,7 +224,10 @@ impl Interpreter {
     fn eval_unary_op(&self, op: &UnaryOp, operand: Value) -> Result<Value, EvalError> {
         match (op, operand) {
             (UnaryOp::Not, Value::Boolean(b)) => Ok(Value::Boolean(!b)),
-            (UnaryOp::Neg, Value::Number(n)) => Ok(Value::Number(-n)),
+            (UnaryOp::Neg, Value::Number(n)) => n
+                .checked_neg()
+                .map(Value::Number)
+                .ok_or(EvalError::ArithmeticOverflow),
             _ => Err(EvalError::NotImplemented(format!("Unary op {:?}", op))),
         }
     }
