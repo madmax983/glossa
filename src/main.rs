@@ -5,6 +5,9 @@
 use clap::Parser;
 use miette::Result;
 
+#[cfg(not(feature = "nova"))]
+use crossterm::style::Stylize;
+
 use glossa::tools::cli::{Cli, Commands};
 use glossa::tools::dictionary::lookup_word;
 use glossa::tools::repl::run_repl;
@@ -23,9 +26,11 @@ fn main() -> Result<()> {
             run_file(&input)?;
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Mentor) => {
+            #[cfg(feature = "nova")]
             glossa::tools::mentor::run_mentor()?;
+            #[cfg(not(feature = "nova"))]
+            print_nova_required("Μέντωρ (Mentor)", "mentor");
         }
 
         Some(Commands::Build { input, output }) => {
@@ -52,24 +57,36 @@ fn main() -> Result<()> {
             glossa::tools::tester::run_tests(&input)?;
         }
 
-        #[cfg(feature = "nova")]
+        #[allow(unused_variables)]
         Some(Commands::Mosaic { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::mosaic::run_mosaic(&input)?;
+            #[cfg(not(feature = "nova"))]
+            print_nova_required("Ψηφιδωτόν (Mosaic)", "mosaic");
         }
 
-        #[cfg(feature = "nova")]
+        #[allow(unused_variables)]
         Some(Commands::Map { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::cartographer::run_map(&input)?;
+            #[cfg(not(feature = "nova"))]
+            print_nova_required("Χαρτογράφησις (Map)", "map");
         }
 
-        #[cfg(feature = "nova")]
+        #[allow(unused_variables)]
         Some(Commands::Weave { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::weave::run_weave(&input)?;
+            #[cfg(not(feature = "nova"))]
+            print_nova_required("Ὕφανσις (Weave)", "weave");
         }
 
-        #[cfg(feature = "nova")]
+        #[allow(unused_variables)]
         Some(Commands::Alchemist { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::alchemist::run_alchemist(&input)?;
+            #[cfg(not(feature = "nova"))]
+            print_nova_required("Χημεία (Alchemist)", "alchemist");
         }
 
         Some(Commands::Repl) | None => {
@@ -78,4 +95,27 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(not(feature = "nova"))]
+fn print_nova_required(tool_name: &str, cli_command: &str) {
+    println!();
+    println!(
+        "   {}",
+        format!("Γ Λ Ω Σ Σ Α   {}", tool_name).bold().cyan()
+    );
+    println!("   {}", "Experimental Tool Disabled".italic().dim());
+    println!();
+    println!("   {}", "✕ Feature Not Enabled".red().bold());
+    println!(
+        "   The `{}` tool is experimental and requires the `nova` feature.",
+        cli_command
+    );
+    println!();
+    println!("   {}", "To use it, recompile glossa with:".dim());
+    println!(
+        "   {}",
+        format!("cargo run --features nova -- {} [args...]", cli_command).yellow()
+    );
+    println!();
 }
