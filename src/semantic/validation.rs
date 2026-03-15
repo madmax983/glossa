@@ -156,3 +156,73 @@ fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> Result<(), GlossaError
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::semantic::GlossaType;
+    use smol_str::SmolStr;
+
+    #[test]
+    fn test_statement_depth_limit() {
+        let stmt = AnalyzedStatement::Break;
+        let result = check_statement_depth(&stmt, MAX_EXPRESSION_DEPTH + 1);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::LimitExceeded { resource, max } => {
+                assert_eq!(resource, "statement depth");
+                assert_eq!(max, MAX_EXPRESSION_DEPTH);
+            }
+            _ => panic!("Expected LimitExceeded error"),
+        }
+    }
+
+    #[test]
+    fn test_expr_depth_limit() {
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: GlossaType::Unknown,
+        };
+        let result = check_expr_depth(&expr, MAX_EXPRESSION_DEPTH + 1);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::LimitExceeded { resource, max } => {
+                assert_eq!(resource, "expression depth");
+                assert_eq!(max, MAX_EXPRESSION_DEPTH);
+            }
+            _ => panic!("Expected LimitExceeded error"),
+        }
+    }
+
+    #[test]
+    fn test_return_statement_depth() {
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: GlossaType::Unknown,
+        };
+        let stmt = AnalyzedStatement::Return {
+            value: Some(Box::new(expr)),
+        };
+        let result = check_statement_depth(&stmt, 0);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_trait_method_call_depth() {
+        let receiver = AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: GlossaType::Unknown,
+        };
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::TraitMethodCall {
+                receiver: Box::new(receiver),
+                method_name: SmolStr::new("test_method"),
+                trait_name: SmolStr::new("test_trait"),
+                args: vec![],
+            },
+            glossa_type: GlossaType::Unknown,
+        };
+        let result = check_expr_depth(&expr, 0);
+        assert!(result.is_ok());
+    }
+}
