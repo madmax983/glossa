@@ -107,3 +107,7 @@
 **Bloat:** The `StatementAnalyzer` trait was introduced to resolve a circular dependency between `semantic::analyzer`, `semantic::control_flow`, and `semantic::declarations`. However, since these modules all live within the same crate (`semantic`), Rust permits circular module dependencies natively via free functions, rendering the trait abstraction unnecessary. Additionally, `StatementAnalyzer` was a single-implementation trait only implemented by the empty struct `SemanticAnalyzer`.
 **Cut:** Deleted the `StatementAnalyzer` trait and the `SemanticAnalyzer` struct entirely. Replaced trait method dispatch across submodules with direct calls to `crate::semantic::analyzer::analyze_statement`.
 **Saved:** Eliminated trait boilerplate, reduced the number of files by deleting `src/semantic/traits.rs`, and removed empty struct allocations, significantly reducing cognitive overhead by flattening the semantic analysis architecture.
+## [Reduction]
+**Bloat:** `src/semantic/assembly/` directory contained `mod.rs` and `model.rs`. `model.rs` contained DTOs tightly coupled to the assembler.
+**Cut:** Merged `model.rs` into `mod.rs` and renamed it to `src/semantic/assembly.rs`, deleting the `assembly/` folder.
+**Saved:** 1 directory, 1 file, reduced module indirection.
