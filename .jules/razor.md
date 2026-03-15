@@ -107,3 +107,8 @@
 **Bloat:** The `StatementAnalyzer` trait was introduced to resolve a circular dependency between `semantic::analyzer`, `semantic::control_flow`, and `semantic::declarations`. However, since these modules all live within the same crate (`semantic`), Rust permits circular module dependencies natively via free functions, rendering the trait abstraction unnecessary. Additionally, `StatementAnalyzer` was a single-implementation trait only implemented by the empty struct `SemanticAnalyzer`.
 **Cut:** Deleted the `StatementAnalyzer` trait and the `SemanticAnalyzer` struct entirely. Replaced trait method dispatch across submodules with direct calls to `crate::semantic::analyzer::analyze_statement`.
 **Saved:** Eliminated trait boilerplate, reduced the number of files by deleting `src/semantic/traits.rs`, and removed empty struct allocations, significantly reducing cognitive overhead by flattening the semantic analysis architecture.
+
+## [Reduction]
+**Bloat:** `Statement::expressions()` method in `src/ast.rs` was never used in the codebase.
+**Cut:** Deleted the dead code and its associated tests in `tests/ast_coverage_tests.rs`.
+**Saved:** Removed unused method and simplified the `Statement` AST node implementation.

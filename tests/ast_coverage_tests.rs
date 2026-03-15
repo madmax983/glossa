@@ -275,7 +275,6 @@ fn test_statement_methods() {
     assert!(!stmt.is_query());
     assert!(!stmt.is_propagate());
     assert_eq!(stmt.clauses().len(), 0);
-    assert_eq!(stmt.expressions().count(), 0);
 
     let stmt = Statement::TypeDefinition(TypeDef {
         name: Word::new("t"),
@@ -284,7 +283,6 @@ fn test_statement_methods() {
     assert!(!stmt.is_query());
     assert!(!stmt.is_propagate());
     assert_eq!(stmt.clauses().len(), 0);
-    assert_eq!(stmt.expressions().count(), 0);
 
     let stmt = Statement::TraitDefinition(TraitDef {
         name: Word::new("t"),
@@ -293,7 +291,6 @@ fn test_statement_methods() {
     assert!(!stmt.is_query());
     assert!(!stmt.is_propagate());
     assert_eq!(stmt.clauses().len(), 0);
-    assert_eq!(stmt.expressions().count(), 0);
 
     let stmt = Statement::TraitImpl(TraitImplDef {
         type_name: Word::new("t"),
@@ -303,5 +300,4 @@ fn test_statement_methods() {
     assert!(!stmt.is_query());
     assert!(!stmt.is_propagate());
     assert_eq!(stmt.clauses().len(), 0);
-    assert_eq!(stmt.expressions().count(), 0);
 }
