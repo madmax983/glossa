@@ -305,3 +305,44 @@ fn test_statement_methods() {
     assert_eq!(stmt.clauses().len(), 0);
     assert_eq!(stmt.expressions().count(), 0);
 }
+
+#[test]
+fn test_statement_debug() {
+    let stmt = Statement::Regular {
+        clauses: vec![],
+        is_query: true,
+        is_propagate: false,
+    };
+    let s = format!("{:?}", stmt);
+    assert!(s.contains("Regular"));
+    assert!(s.contains("is_query: true"));
+
+    let stmt2 = Statement::TypeDefinition(TypeDef {
+        name: Word::new("t"),
+        fields: vec![],
+    });
+    let s2 = format!("{:?}", stmt2);
+    assert!(s2.contains("TypeDefinition"));
+
+    let stmt3 = Statement::TraitDefinition(TraitDef {
+        name: Word::new("t"),
+        methods: vec![],
+    });
+    let s3 = format!("{:?}", stmt3);
+    assert!(s3.contains("TraitDefinition"));
+
+    let stmt4 = Statement::TraitImpl(TraitImplDef {
+        type_name: Word::new("t"),
+        trait_name: Word::new("tr"),
+        methods: vec![],
+    });
+    let s4 = format!("{:?}", stmt4);
+    assert!(s4.contains("TraitImpl"));
+
+    let stmt5 = Statement::TestDeclaration(TestDecl {
+        name: "test".to_string(),
+        body: vec![],
+    });
+    let s5 = format!("{:?}", stmt5);
+    assert!(s5.contains("TestDeclaration"));
+}
