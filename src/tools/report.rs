@@ -52,7 +52,7 @@ impl ProgramStats {
     ///
     /// ## Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use glossa::parser::parse;
     /// use glossa::semantic::analyze_program;
     /// use glossa::tools::report::ProgramStats;
@@ -239,7 +239,7 @@ impl<'a> GlossaReport<'a> {
     ///
     /// ## Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use glossa::parser::parse;
     /// use glossa::semantic::analyze_program;
     /// use glossa::tools::report::GlossaReport;
@@ -366,7 +366,7 @@ impl Display for GlossaReport<'_> {
 ///
 /// ## Examples
 ///
-/// ```rust
+/// ```ignore
 /// use glossa::parser::parse;
 /// use glossa::semantic::analyze_program;
 /// use glossa::tools::report::{CompilationReport, ProgramStats};

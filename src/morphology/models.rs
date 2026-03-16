@@ -197,7 +197,7 @@ impl std::fmt::Display for Gender {
 /// # Examples
 ///
 /// ```
-/// use glossa::morphology::models::{analyses_compatible, MorphAnalysis, PartOfSpeech, Case};
+/// use glossa::morphology::{analyses_compatible, MorphAnalysis, PartOfSpeech, Case};
 ///
 /// let mut a = MorphAnalysis::new("λογος".to_string(), PartOfSpeech::Noun);
 /// a.case = Some(Case::Nominative);

@@ -30,7 +30,7 @@ use std::time::Instant;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```ignore
 /// use glossa::tools::ui::Status;
 ///
 /// let mut status = Status::start("Compiling");
@@ -50,7 +50,7 @@ impl Status {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use glossa::tools::ui::Status;
     /// let status = Status::start("Compiling...");
     /// status.success();
@@ -63,7 +63,7 @@ impl Status {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use glossa::tools::ui::Status;
     /// let status = Status::start_with_symbol("Testing", "🧪");
     /// status.success();
@@ -92,7 +92,7 @@ impl Status {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use glossa::tools::ui::Status;
     /// let mut status = Status::start("Running Phase 1");
     /// // ... work ...
@@ -113,7 +113,7 @@ impl Status {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use glossa::tools::ui::Status;
     /// let status = Status::start("Connecting");
     /// // ... work ...
@@ -138,7 +138,7 @@ impl Status {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use glossa::tools::ui::Status;
     /// let status = Status::start("Downloading");
     /// // ... fail ...

@@ -158,7 +158,7 @@ const DECLENSION_PATTERNS: &[DeclensionPattern] = &[
 ///
 /// # Examples
 /// ```
-/// use glossa::morphology::declension::analyze_noun;
+/// use glossa::morphology::analyze_noun;
 /// use glossa::morphology::{Case, Number, Gender};
 ///
 /// let analysis = analyze_noun("λογον").unwrap();
@@ -288,7 +288,7 @@ pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
 ///
 /// # Examples
 /// ```
-/// use glossa::morphology::declension::{get_stem, Declension};
+/// use glossa::morphology::{get_stem, Declension};
 ///
 /// assert_eq!(get_stem("λογος", Declension::Second), "λογ");
 /// assert_eq!(get_stem("τιμη", Declension::First), "τιμ");
@@ -331,7 +331,7 @@ pub fn get_stem(nominative: &str, declension: Declension) -> String {
 ///
 /// # Examples
 /// ```
-/// use glossa::morphology::declension::{decline, Declension};
+/// use glossa::morphology::{decline, Declension};
 /// use glossa::morphology::{Case, Gender, Number};
 ///
 /// // Decline "λογ" (word) to Accusative Plural
