@@ -251,6 +251,101 @@ fn test_deep_expr_drop() {
     drop(expr);
 }
 #[test]
+fn test_expr_debug_formatting() {
+    let exprs = vec![
+        Expr::StringLiteral("test".to_string()),
+        Expr::NumberLiteral(42),
+        Expr::BooleanLiteral(true),
+        Expr::ArrayLiteral(vec![Expr::NumberLiteral(1)]),
+        Expr::IndexAccess {
+            array: Box::new(Expr::Word(Word::new("arr"))),
+            index: Box::new(Expr::NumberLiteral(0)),
+        },
+        Expr::Word(Word::new("word")),
+        Expr::Phrase(vec![Expr::Word(Word::new("phrase"))]),
+        Expr::PropertyAccess {
+            owner: Box::new(Expr::Word(Word::new("obj"))),
+            property: Box::new(Expr::Word(Word::new("prop"))),
+        },
+        Expr::Call {
+            verb: Word::new("call"),
+            arguments: vec![Expr::NumberLiteral(1)],
+        },
+        Expr::Binding {
+            name: Word::new("var"),
+            value: Box::new(Expr::NumberLiteral(1)),
+        },
+        Expr::BinOp {
+            left: Box::new(Expr::NumberLiteral(1)),
+            op: BinOperator::Add,
+            right: Box::new(Expr::NumberLiteral(2)),
+        },
+        Expr::UnaryOp {
+            op: UnaryOperator::Not,
+            operand: Box::new(Expr::BooleanLiteral(true)),
+        },
+        Expr::Block(vec![Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        }]),
+    ];
+
+    for expr in exprs {
+        let s = format!("{:?}", expr);
+        assert!(!s.is_empty());
+    }
+}
+
+#[test]
+fn test_statement_debug_formatting() {
+    let stmts = vec![
+        Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::NumberLiteral(1)],
+            }],
+            is_query: true,
+            is_propagate: false,
+        },
+        Statement::TypeDefinition(TypeDef {
+            name: Word::new("Type"),
+            fields: vec![],
+        }),
+        Statement::TraitDefinition(TraitDef {
+            name: Word::new("Trait"),
+            methods: vec![],
+        }),
+        Statement::TraitImpl(TraitImplDef {
+            type_name: Word::new("Type"),
+            trait_name: Word::new("Trait"),
+            methods: vec![],
+        }),
+        Statement::TestDeclaration(TestDecl {
+            name: "test".to_string(),
+            body: vec![],
+        }),
+    ];
+
+    for stmt in stmts {
+        let s = format!("{:?}", stmt);
+        assert!(!s.is_empty());
+    }
+}
+
+#[test]
+fn test_program_debug_formatting() {
+    let prog = Program {
+        statements: vec![Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        }],
+    };
+    let s = format!("{:?}", prog);
+    assert!(s.contains("Program"));
+}
+
+#[test]
 fn test_statement_methods() {
     let stmt = Statement::Regular {
         clauses: vec![],

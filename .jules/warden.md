@@ -84,3 +84,7 @@ Signed,
 **2024-05-19 - [Interpreter Arithmetic Overflow DoS]
 **Threat:** [Integer overflow in the Simulator interpreter via uncontrolled add, sub, mul, and neg causing unexpected rustc panics.]
 **Defense:** [Replaced unsafe math operations (`+`, `-`, `*`, unary `-`) with `checked_add`, `checked_sub`, `checked_mul`, and `checked_neg` returning a new `EvalError::ArithmeticOverflow` variant instead of panicking.]
+
+**2025-03-01 - [Stack Overflow in Derived Debug on Recursive Enums]**
+**Threat:** DoS via Stack Overflow. The `Expr`, `Statement`, `Clause`, and `Program` enums in `src/ast.rs` are recursive. While `Drop`, `Clone`, and `PartialEq` used `stacker::maybe_grow`, `Debug` was auto-derived (`#[derive(Debug)]`), meaning printing a deeply nested AST (e.g. during error formatting) bypassed all checks and crashed the thread.
+**Defense:** Removed `#[derive(Debug)]` and manually implemented `std::fmt::Debug` for all recursive AST nodes using `stacker::maybe_grow` to securely handle deep nesting during formatting.

@@ -41,14 +41,24 @@ use smol_str::SmolStr;
 /// A complete GLOSSA program
 ///
 /// The root of the Abstract Syntax Tree, containing a sequence of statements.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Program {
     /// The list of top-level statements in the program.
     pub statements: Vec<Statement>,
 }
 
+impl std::fmt::Debug for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            f.debug_struct("Program")
+                .field("statements", &self.statements)
+                .finish()
+        })
+    }
+}
+
 /// A single statement, ending with . (statement), ? (query), or ; (propagate)
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum Statement {
     /// A regular statement with clauses
     ///
@@ -173,10 +183,41 @@ pub struct TestDecl {
 }
 
 /// A clause within a statement (comma-separated)
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Clause {
     /// Expressions in this clause (chained with middle dot)
     pub expressions: Vec<Expr>,
+}
+
+impl std::fmt::Debug for Clause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            f.debug_struct("Clause")
+                .field("expressions", &self.expressions)
+                .finish()
+        })
+    }
+}
+
+impl std::fmt::Debug for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            Statement::Regular {
+                clauses,
+                is_query,
+                is_propagate,
+            } => f
+                .debug_struct("Regular")
+                .field("clauses", clauses)
+                .field("is_query", is_query)
+                .field("is_propagate", is_propagate)
+                .finish(),
+            Statement::TypeDefinition(td) => f.debug_tuple("TypeDefinition").field(td).finish(),
+            Statement::TraitDefinition(td) => f.debug_tuple("TraitDefinition").field(td).finish(),
+            Statement::TraitImpl(ti) => f.debug_tuple("TraitImpl").field(ti).finish(),
+            Statement::TestDeclaration(td) => f.debug_tuple("TestDeclaration").field(td).finish(),
+        })
+    }
 }
 
 impl Statement {
@@ -231,7 +272,6 @@ impl Statement {
 ///
 /// Expressions represent values that can be evaluated.
 /// They include literals, variable references, operations, and function calls.
-#[derive(Debug)]
 pub enum Expr {
     /// A string literal: «text»
     ///
@@ -323,6 +363,51 @@ pub enum Expr {
 
     /// A block of statements in braces { ... }
     Block(Vec<Statement>),
+}
+
+impl std::fmt::Debug for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            Expr::StringLiteral(s) => f.debug_tuple("StringLiteral").field(s).finish(),
+            Expr::NumberLiteral(n) => f.debug_tuple("NumberLiteral").field(n).finish(),
+            Expr::BooleanLiteral(b) => f.debug_tuple("BooleanLiteral").field(b).finish(),
+            Expr::ArrayLiteral(v) => f.debug_tuple("ArrayLiteral").field(v).finish(),
+            Expr::IndexAccess { array, index } => f
+                .debug_struct("IndexAccess")
+                .field("array", array)
+                .field("index", index)
+                .finish(),
+            Expr::Word(w) => f.debug_tuple("Word").field(w).finish(),
+            Expr::Phrase(v) => f.debug_tuple("Phrase").field(v).finish(),
+            Expr::PropertyAccess { owner, property } => f
+                .debug_struct("PropertyAccess")
+                .field("owner", owner)
+                .field("property", property)
+                .finish(),
+            Expr::Call { verb, arguments } => f
+                .debug_struct("Call")
+                .field("verb", verb)
+                .field("arguments", arguments)
+                .finish(),
+            Expr::Binding { name, value } => f
+                .debug_struct("Binding")
+                .field("name", name)
+                .field("value", value)
+                .finish(),
+            Expr::BinOp { left, op, right } => f
+                .debug_struct("BinOp")
+                .field("left", left)
+                .field("op", op)
+                .field("right", right)
+                .finish(),
+            Expr::UnaryOp { op, operand } => f
+                .debug_struct("UnaryOp")
+                .field("op", op)
+                .field("operand", operand)
+                .finish(),
+            Expr::Block(stmts) => f.debug_tuple("Block").field(stmts).finish(),
+        })
+    }
 }
 
 impl Clone for Expr {
