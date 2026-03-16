@@ -165,3 +165,40 @@ fn test_timeline_tool_file_not_found() {
         glossa::experimental::timeline::run_timeline(&std::path::PathBuf::from("nonexistent.γλ"));
     assert!(result.is_err());
 }
+
+#[test]
+fn test_timeline_tool_additional_statements() {
+    let mut temp_file = tempfile::Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "μετά ξ 5 ἔστω. ξ λέγε. παῦε.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::experimental::timeline::run_timeline(temp_file.path());
+    assert!(result.is_ok(), "Timeline failed: {:?}", result.err());
+}
+
+#[test]
+fn test_timeline_all_statement_types() {
+    let mut temp_file = tempfile::Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    // We inject a wide variety of statements to trigger the match arms in generate_timeline
+    let source = "
+        μετά ξ 5 ἔστω.
+        ξ 10 γίγνεται.
+        εἰ ξ 5 μεῖζον ᾖ, «μεῖζον» λέγε. εἰ δὲ μή, «ἔλασσον» λέγε.
+        ἕως ξ 10 ἔλασσον ᾖ, ξ 10 γίγνεται.
+        ἀριθμός [1, 2, 3] ἔστω. διὰ ἀριθμοῦ, ν λέγε.
+        «χαῖρε» λέγε.
+        παῦε.
+    ";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::experimental::timeline::run_timeline(temp_file.path());
+    assert!(result.is_ok(), "Timeline failed: {:?}", result.err());
+}
