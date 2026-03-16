@@ -111,3 +111,7 @@
 **Bloat:** `src/semantic/assembly/` directory contained `mod.rs` and `model.rs`. `model.rs` contained DTOs tightly coupled to the assembler.
 **Cut:** Merged `model.rs` into `mod.rs` and renamed it to `src/semantic/assembly.rs`, deleting the `assembly/` folder.
 **Saved:** 1 directory, 1 file, reduced module indirection.
+## [Reduction]
+**Bloat:** `GlossaReport` and `CompilationReport` in `src/tools/report.rs` were purely formatting wrappers around data, implementing `Display` just to be printed once ("Layer Lasagna").
+**Cut:** Replaced the structs and trait implementations with straightforward, standalone formatting functions (`format_glossa_report` and `format_compilation_report`).
+**Saved:** Removed 2 structs and 2 trait implementations (~20 lines of boilerplate), simplified call sites in `runner.rs`.
