@@ -84,9 +84,8 @@ pub enum EvalError {
 /// // You could then run a program via `interp.run(&analyzed_program)`
 /// ```
 pub struct Interpreter {
-    // Stack of scopes. For now, just one global scope for simplicity.
-    // In a real implementation, this would be `Vec<HashMap<String, Value>>`.
-    env: Vec<HashMap<String, Value>>,
+    // Single global scope
+    env: HashMap<String, Value>,
 
     // Output buffer for capturing print statements (useful for testing/WASM)
     output: Vec<String>,
@@ -113,7 +112,7 @@ impl Interpreter {
     /// ```
     pub fn new() -> Self {
         Self {
-            env: vec![HashMap::new()],
+            env: HashMap::new(),
             output: Vec::new(),
         }
     }
@@ -250,28 +249,21 @@ impl Interpreter {
     }
 
     fn define_var(&mut self, name: &str, value: Value) {
-        // Define in the current (top) scope
-        if let Some(scope) = self.env.last_mut() {
-            scope.insert(name.to_string(), value);
-        }
+        // Define in the global scope
+        self.env.insert(name.to_string(), value);
     }
 
     fn assign_var(&mut self, name: &str, value: Value) -> Result<(), EvalError> {
-        // Walk up the scopes to find the variable
-        for scope in self.env.iter_mut().rev() {
-            if scope.contains_key(name) {
-                scope.insert(name.to_string(), value);
-                return Ok(());
-            }
+        if self.env.contains_key(name) {
+            self.env.insert(name.to_string(), value);
+            return Ok(());
         }
         Err(EvalError::VariableNotFound(name.to_string()))
     }
 
     fn lookup_var(&self, name: &str) -> Result<Value, EvalError> {
-        for scope in self.env.iter().rev() {
-            if let Some(val) = scope.get(name) {
-                return Ok(val.clone());
-            }
+        if let Some(val) = self.env.get(name) {
+            return Ok(val.clone());
         }
         Err(EvalError::VariableNotFound(name.to_string()))
     }
@@ -335,7 +327,7 @@ mod tests {
     #[test]
     fn test_default_impl() {
         let interp = Interpreter::default();
-        assert_eq!(interp.env.len(), 1);
+        assert_eq!(interp.env.len(), 0);
         assert!(interp.output.is_empty());
     }
 

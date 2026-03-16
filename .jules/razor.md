@@ -107,3 +107,7 @@
 **Bloat:** The `StatementAnalyzer` trait was introduced to resolve a circular dependency between `semantic::analyzer`, `semantic::control_flow`, and `semantic::declarations`. However, since these modules all live within the same crate (`semantic`), Rust permits circular module dependencies natively via free functions, rendering the trait abstraction unnecessary. Additionally, `StatementAnalyzer` was a single-implementation trait only implemented by the empty struct `SemanticAnalyzer`.
 **Cut:** Deleted the `StatementAnalyzer` trait and the `SemanticAnalyzer` struct entirely. Replaced trait method dispatch across submodules with direct calls to `crate::semantic::analyzer::analyze_statement`.
 **Saved:** Eliminated trait boilerplate, reduced the number of files by deleting `src/semantic/traits.rs`, and removed empty struct allocations, significantly reducing cognitive overhead by flattening the semantic analysis architecture.
+## [Reduction]
+**Bloat:** `Interpreter` env used a `Vec<HashMap<String, Value>>` to represent a stack of scopes. However, only one global scope was ever instantiated or utilized within the interpreter, leading to unnecessary complexity (e.g. `.iter().rev()` for variable lookup and speculative generality).
+**Cut:** Flattened `env` to a single `HashMap<String, Value>` and simplified variable assignment, definition, and lookup logic to operate directly on the flat `HashMap`.
+**Saved:** Reduced cognitive load and unnecessary heap allocations/iteration overhead for the interpreter's variable resolution.
