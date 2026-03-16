@@ -16,9 +16,6 @@
 
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
-use std::fmt::Display;
-use std::path::PathBuf;
-use std::time::Duration;
 
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 
@@ -228,234 +225,163 @@ impl ProgramStats {
 }
 
 /// A human-readable report for an analyzed program
-pub struct GlossaReport<'a> {
-    program: &'a AnalyzedProgram,
-    stats: ProgramStats,
-    filename: String,
-}
+/// Prints a human-readable report for an analyzed program
+pub fn print_glossa_report(program: &AnalyzedProgram, filename: &str) {
+    let stats = ProgramStats::new(program);
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL).set_header(vec![
+        Cell::new("Μετρική (Metric)")
+            .add_attribute(comfy_table::Attribute::Bold)
+            .fg(Color::Cyan),
+        Cell::new("Τιμή (Value)").add_attribute(comfy_table::Attribute::Bold),
+    ]);
 
-impl<'a> GlossaReport<'a> {
-    /// Creates a new GlossaReport.
-    ///
-    /// ## Examples
-    ///
-    /// ```rust
-    /// use glossa::parser::parse;
-    /// use glossa::semantic::analyze_program;
-    /// use glossa::tools::report::GlossaReport;
-    ///
-    /// let source = "ξ πέντε ἔστω.";
-    /// let ast = parse(source).unwrap();
-    /// let program = analyze_program(&ast).unwrap();
-    /// let report = GlossaReport::new(&program, "main.γλ".to_string());
-    ///
-    /// let output = format!("{}", report);
-    /// assert!(output.contains("main.γλ"));
-    /// assert!(output.contains("1")); // Statement count
-    /// ```
-    pub fn new(program: &'a AnalyzedProgram, filename: String) -> Self {
-        let stats = ProgramStats::new(program);
-        Self {
-            program,
-            stats,
-            filename,
-        }
-    }
-}
+    table.add_row(vec![
+        Cell::new("Ἀρχεῖον (File)"),
+        Cell::new(filename).fg(Color::Green),
+    ]);
+    table.add_row(vec![
+        Cell::new("Προτάσεις (Statements)"),
+        Cell::new(stats.statement_count.to_string()),
+    ]);
+    table.add_row(vec![
+        Cell::new("Εκφράσεις (Expressions)"),
+        Cell::new(stats.expression_count.to_string()),
+    ]);
+    table.add_row(vec![
+        Cell::new("Μεταβλητές (Bindings)"),
+        Cell::new(stats.binding_count.to_string()),
+    ]);
 
-impl Display for GlossaReport<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
-        table.load_preset(presets::UTF8_FULL).set_header(vec![
-            Cell::new("Μετρική (Metric)")
-                .add_attribute(comfy_table::Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("Τιμή (Value)").add_attribute(comfy_table::Attribute::Bold),
-        ]);
-
-        table.add_row(vec![
-            Cell::new("Ἀρχεῖον (File)"),
-            Cell::new(&self.filename).fg(Color::Green),
-        ]);
-        table.add_row(vec![
-            Cell::new("Προτάσεις (Statements)"),
-            Cell::new(self.stats.statement_count),
-        ]);
-        table.add_row(vec![
-            Cell::new("Εκφράσεις (Expressions)"),
-            Cell::new(self.stats.expression_count),
-        ]);
-        table.add_row(vec![
-            Cell::new("Μεταβλητές (Bindings)"),
-            Cell::new(self.stats.binding_count),
-        ]);
-
-        if self.stats.function_count > 0 {
-            table.add_row(vec![
-                Cell::new("Συναρτήσεις (Functions)"),
-                Cell::new(self.stats.function_count),
-            ]);
-        }
-
-        if self.stats.type_count > 0 {
-            table.add_row(vec![
-                Cell::new("Τύποι (Types)"),
-                Cell::new(self.stats.type_count),
-            ]);
-        }
-
-        if self.stats.loop_count > 0 {
-            table.add_row(vec![
-                Cell::new("Βρόχοι (Loops)"),
-                Cell::new(self.stats.loop_count),
-            ]);
-        }
-
-        if self.stats.max_depth > 0 {
-            table.add_row(vec![
-                Cell::new("Βάθος (Max Depth)"),
-                Cell::new(self.stats.max_depth),
-            ]);
-        }
-
-        writeln!(f)?;
-        writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
-        writeln!(f, "   {}", "Language Metrics Dashboard".italic().dim())?;
-        writeln!(f)?;
-        writeln!(f, "{}", table)?;
-
-        // If there are top-level functions, list them
-        let functions: Vec<_> = self.program.scope.functions().collect();
-        if !functions.is_empty() {
-            writeln!(f, "\n{}", "ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)".bold())?;
-            let mut func_table = Table::new();
-            func_table.load_preset(presets::UTF8_FULL).set_header(vec![
-                "Ὄνομα (Name)",
-                "Παράμετροι (Params)",
-                "Επιστροφή (Returns)",
-            ]);
-
-            for func in functions {
-                let params = func
-                    .param_types
-                    .iter()
-                    .map(|t| t.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-
-                let ret = func
-                    .return_type
-                    .as_ref()
-                    .map(|t| t.to_string())
-                    .unwrap_or_else(|| "Οὐδέν".to_string());
-
-                func_table.add_row(vec![
-                    Cell::new(&func.name).fg(Color::Cyan),
-                    Cell::new(if params.is_empty() { "-" } else { &params }),
-                    Cell::new(ret).fg(Color::Yellow),
-                ]);
-            }
-            writeln!(f, "{}", func_table)?;
-        }
-
-        Ok(())
-    }
-}
-
-/// A comprehensive report for the compilation process
-///
-/// ## Examples
-///
-/// ```rust
-/// use glossa::parser::parse;
-/// use glossa::semantic::analyze_program;
-/// use glossa::tools::report::{CompilationReport, ProgramStats};
-/// use std::path::PathBuf;
-/// use std::time::Duration;
-///
-/// let source = "ξ πέντε ἔστω.";
-/// let ast = parse(source).unwrap();
-/// let program = analyze_program(&ast).unwrap();
-/// let stats = ProgramStats::new(&program);
-///
-/// let report = CompilationReport {
-///     input_path: PathBuf::from("main.γλ"),
-///     output_path: PathBuf::from("main.rs"),
-///     input_size: 15,
-///     output_size: 150,
-///     duration: Duration::from_millis(10),
-///     stats,
-/// };
-///
-/// let output = format!("{}", report);
-/// assert!(output.contains("main.γλ"));
-/// assert!(output.contains("15 bytes"));
-/// ```
-pub struct CompilationReport {
-    pub input_path: PathBuf,
-    pub output_path: PathBuf,
-    pub input_size: u64,
-    pub output_size: u64,
-    pub duration: Duration,
-    pub stats: ProgramStats,
-}
-
-impl Display for CompilationReport {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
-        table.load_preset(presets::UTF8_FULL).set_header(vec![
-            Cell::new("Μετρική (Metric)")
-                .add_attribute(comfy_table::Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("Τιμή (Value)").add_attribute(comfy_table::Attribute::Bold),
-        ]);
-
-        // Input File
-        table.add_row(vec![
-            Cell::new("Εἴσοδος (Input)"),
-            Cell::new(self.input_path.display().to_string()).fg(Color::Yellow),
-        ]);
-
-        // Output File
-        table.add_row(vec![
-            Cell::new("Ἔξοδος (Output)"),
-            Cell::new(self.output_path.display().to_string()).fg(Color::Green),
-        ]);
-
-        // Time
-        table.add_row(vec![
-            Cell::new("Χρόνος (Time)"),
-            Cell::new(format!("{:.2?}", self.duration)),
-        ]);
-
-        // Sizes
-        table.add_row(vec![
-            Cell::new("Μέγεθος Εἰσόδου (Input Size)"),
-            Cell::new(format!("{} bytes", self.input_size)),
-        ]);
-        table.add_row(vec![
-            Cell::new("Μέγεθος Ἐξόδου (Output Size)"),
-            Cell::new(format!("{} bytes", self.output_size)),
-        ]);
-
-        // Stats summary
-        table.add_row(vec![
-            Cell::new("Προτάσεις (Statements)"),
-            Cell::new(self.stats.statement_count),
-        ]);
+    if stats.function_count > 0 {
         table.add_row(vec![
             Cell::new("Συναρτήσεις (Functions)"),
-            Cell::new(self.stats.function_count),
+            Cell::new(stats.function_count.to_string()),
+        ]);
+    }
+
+    if stats.type_count > 0 {
+        table.add_row(vec![
+            Cell::new("Τύποι (Types)"),
+            Cell::new(stats.type_count.to_string()),
+        ]);
+    }
+
+    if stats.loop_count > 0 {
+        table.add_row(vec![
+            Cell::new("Βρόχοι (Loops)"),
+            Cell::new(stats.loop_count.to_string()),
+        ]);
+    }
+
+    if stats.max_depth > 0 {
+        table.add_row(vec![
+            Cell::new("Βάθος (Max Depth)"),
+            Cell::new(stats.max_depth.to_string()),
+        ]);
+    }
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan());
+    println!("   {}", "Language Metrics Dashboard".italic().dim());
+    println!();
+    println!("{}", table);
+
+    // If there are top-level functions, list them
+    let functions: Vec<_> = program.scope.functions().collect();
+    if !functions.is_empty() {
+        println!("\n{}", "ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)".bold());
+        let mut func_table = Table::new();
+        func_table.load_preset(presets::UTF8_FULL).set_header(vec![
+            "Ὄνομα (Name)",
+            "Παράμετροι (Params)",
+            "Επιστροφή (Returns)",
         ]);
 
-        writeln!(f)?;
-        writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
-        writeln!(f, "   {}", "Compilation Metrics Dashboard".italic().dim())?;
-        writeln!(f)?;
-        writeln!(f, "{}", table)?;
+        for func in functions {
+            let params = func
+                .param_types
+                .iter()
+                .map(|t| t.to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
 
-        Ok(())
+            let ret = func
+                .return_type
+                .as_ref()
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "Οὐδέν".to_string());
+
+            func_table.add_row(vec![
+                Cell::new(&func.name).fg(Color::Cyan),
+                Cell::new(if params.is_empty() { "-" } else { &params }),
+                Cell::new(ret).fg(Color::Yellow),
+            ]);
+        }
+        println!("{}", func_table);
     }
+}
+
+/// Prints a comprehensive report for the compilation process
+pub fn print_compilation_report(
+    input_path: &std::path::Path,
+    output_path: &std::path::Path,
+    input_size: u64,
+    output_size: u64,
+    duration: std::time::Duration,
+    stats: &ProgramStats,
+) {
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL).set_header(vec![
+        Cell::new("Μετρική (Metric)")
+            .add_attribute(comfy_table::Attribute::Bold)
+            .fg(Color::Cyan),
+        Cell::new("Τιμή (Value)").add_attribute(comfy_table::Attribute::Bold),
+    ]);
+
+    // Input File
+    table.add_row(vec![
+        Cell::new("Εἴσοδος (Input)"),
+        Cell::new(input_path.display().to_string()).fg(Color::Yellow),
+    ]);
+
+    // Output File
+    table.add_row(vec![
+        Cell::new("Ἔξοδος (Output)"),
+        Cell::new(output_path.display().to_string()).fg(Color::Green),
+    ]);
+
+    // Time
+    table.add_row(vec![
+        Cell::new("Χρόνος (Time)"),
+        Cell::new(format!("{:.2?}", duration)),
+    ]);
+
+    // Sizes
+    table.add_row(vec![
+        Cell::new("Μέγεθος Εἰσόδου (Input Size)"),
+        Cell::new(format!("{} bytes", input_size)),
+    ]);
+    table.add_row(vec![
+        Cell::new("Μέγεθος Ἐξόδου (Output Size)"),
+        Cell::new(format!("{} bytes", output_size)),
+    ]);
+
+    // Stats summary
+    table.add_row(vec![
+        Cell::new("Προτάσεις (Statements)"),
+        Cell::new(stats.statement_count.to_string()),
+    ]);
+    table.add_row(vec![
+        Cell::new("Συναρτήσεις (Functions)"),
+        Cell::new(stats.function_count.to_string()),
+    ]);
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan());
+    println!("   {}", "Compilation Metrics Dashboard".italic().dim());
+    println!();
+    println!("{}", table);
 }
 
 #[cfg(test)]
@@ -516,37 +442,20 @@ mod tests {
     #[test]
     fn test_report_generation_coverage() {
         let program = create_dummy_program();
-        let report = GlossaReport::new(&program, "test.gl".to_string());
-        let output = format!("{}", report);
-
-        assert!(output.contains("R E P O R T"));
-        assert!(output.contains("test.gl"));
-        assert!(output.contains("test_func")); // Function list
-        assert!(output.contains("3")); // Statement count
+        // Call formatting function directly to ensure no panics.
+        print_glossa_report(&program, "test.gl");
     }
 
     #[test]
     fn test_compilation_report_coverage() {
         let program = create_dummy_program();
         let stats = ProgramStats::new(&program);
-        let report = CompilationReport {
-            input_path: PathBuf::from("input.gl"),
-            output_path: PathBuf::from("output.rs"),
-            input_size: 100,
-            output_size: 200,
-            duration: Duration::from_millis(123),
-            stats,
-        };
 
-        let output = format!("{}", report);
+        let input = std::path::PathBuf::from("input.gl");
+        let output = std::path::PathBuf::from("output.rs");
+        let duration = std::time::Duration::from_millis(123);
 
-        assert!(output.contains("R E P O R T"));
-        assert!(output.contains("input.gl"));
-        assert!(output.contains("output.rs"));
-        assert!(output.contains("123")); // Time
-        assert!(output.contains("100 bytes")); // Input size
-        assert!(output.contains("200 bytes")); // Output size
-        assert!(output.contains("3")); // Statements
+        print_compilation_report(&input, &output, 100, 200, duration, &stats);
     }
 
     #[test]

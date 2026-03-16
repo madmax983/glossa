@@ -4,7 +4,7 @@ use crate::semantic::{AnalyzedProgram, analyze_program};
 use crate::tools::cache::Cache;
 use crate::tools::highlight::highlight;
 use crate::tools::narrator::tell_tale;
-use crate::tools::report::{CompilationReport, GlossaReport, ProgramStats};
+use crate::tools::report::{ProgramStats, print_compilation_report, print_glossa_report};
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
@@ -147,16 +147,14 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     status.success();
 
-    let report = CompilationReport {
-        input_path: input.to_path_buf(),
-        output_path,
+    print_compilation_report(
+        input,
+        &output_path,
         input_size,
         output_size,
         duration,
-        stats,
-    };
-
-    println!("{}", report);
+        &stats,
+    );
 
     Ok(())
 }
@@ -338,10 +336,8 @@ pub fn check_file(input: &Path) -> Result<()> {
         .unwrap_or(input.as_os_str())
         .to_string_lossy()
         .to_string();
-    let report = GlossaReport::new(&analyzed, filename);
-
     status.success();
-    println!("{}", report);
+    print_glossa_report(&analyzed, &filename);
 
     Ok(())
 }

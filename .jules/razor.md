@@ -107,3 +107,8 @@
 **Bloat:** The `StatementAnalyzer` trait was introduced to resolve a circular dependency between `semantic::analyzer`, `semantic::control_flow`, and `semantic::declarations`. However, since these modules all live within the same crate (`semantic`), Rust permits circular module dependencies natively via free functions, rendering the trait abstraction unnecessary. Additionally, `StatementAnalyzer` was a single-implementation trait only implemented by the empty struct `SemanticAnalyzer`.
 **Cut:** Deleted the `StatementAnalyzer` trait and the `SemanticAnalyzer` struct entirely. Replaced trait method dispatch across submodules with direct calls to `crate::semantic::analyzer::analyze_statement`.
 **Saved:** Eliminated trait boilerplate, reduced the number of files by deleting `src/semantic/traits.rs`, and removed empty struct allocations, significantly reducing cognitive overhead by flattening the semantic analysis architecture.
+
+## [Reduction]
+**Bloat:** `CompilationReport` and `GlossaReport` structs in `src/tools/report.rs` served as over-engineered "Layer Lasagna", encapsulating data primarily just for single-use `Display` implementations that wrapped `println!`.
+**Cut:** Deleted the structs and replaced them with straightforward, standalone functions `print_compilation_report` and `print_glossa_report` which consume `ProgramStats` directly.
+**Saved:** Reduced abstraction layers and boilerplate (~60 LOC removed/simplified).
