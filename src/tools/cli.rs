@@ -175,4 +175,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Trace the lifecycle of variables over time (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Timeline {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
