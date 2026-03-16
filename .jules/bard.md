@@ -31,3 +31,15 @@
 ## 2025-03-11 - Constructing Errors Consistently
 **Confusion:** The constructors for `GlossaError` (`parse`, `semantic`, `codegen`, etc.) in `src/errors/mod.rs` were missing rustdoc comments, leading to confusion about when to use which constructor and how they map to the underlying enum variants.
 **Clarification:** I added cohesive rustdoc to all public error constructors. Each block now explains *what* the constructor makes, *why* you would use it (e.g., syntactical invalidity vs logical invalidity vs internal compiler bug), and provides an executable example demonstrating its usage.
+
+## 2025-03-11 - The Ghost Params
+**Confusion:** Tool functions in `runner.rs` lacked `# Arguments` sections, causing confusion over what parameters like `output` represent and whether they are required.
+**Clarification:** Added `# Arguments` sections to explicitly document each parameter in the signature.
+
+## 2025-03-11 - "Returns the" Noise
+**Confusion:** Documentation comments starting with "Returns the..." are redundant since the signature already implies a return value, taking up valuable space without explaining *why* a function exists.
+**Clarification:** Rewrote doc comments in `src/morphology/conjugation.rs` and `src/tools/runner.rs` to explain the internal purpose of each function rather than repeating the type signature.
+
+## 2025-03-11 - The Black Box Runner
+**Confusion:** The `src/tools/runner.rs` file orchestrated the entire pipeline but lacked a module-level doc (`//!`), making it a "Black Box" to readers.
+**Clarification:** Added an overview explaining how `runner.rs` acts as "The Engine Room", abstracting compiler stages from the CLI into cohesive operations.

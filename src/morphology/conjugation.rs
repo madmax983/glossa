@@ -300,7 +300,8 @@ const EIMI_SUBJUNCTIVE: &[(&str, Person, Number)] = &[
 
 /// Try to analyze a word as a verb
 ///
-/// Returns the most likely morphological analysis for the given verb form.
+/// Evaluates a string to determine the most likely morphological analysis for the given verb form.
+/// This exists to allow the parser to identify the role of a verb and its subject agreement features.
 /// This function checks various conjugation patterns including:
 /// - Present Active Indicative (-ω)
 /// - Present Active Imperative (-ε)
@@ -662,7 +663,8 @@ pub fn conjugate(
 
 /// Get the infinitive form of a verb
 ///
-/// Returns the infinitive form of a verb stem given its tense and voice.
+/// Calculates the infinitive form of a verb stem given its tense and voice.
+/// This helps in transforming and matching verb stems during morphological resolution.
 /// Infinitives are used as noun-equivalents or in specific syntactic constructions.
 ///
 /// # Examples

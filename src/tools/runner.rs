@@ -1,3 +1,16 @@
+//! The Engine Room ("Runner")
+//!
+//! This module orchestrates the entire compilation pipeline for ΓΛΩΣΣΑ programs.
+//! It connects the individual phases—parsing, morphological analysis, semantic assembly,
+//! and code generation—into cohesive operations like building, running, or checking files.
+//!
+//! # Purpose
+//!
+//! The Runner abstracts away the complexity of the compiler stages from the CLI.
+//! When a user runs `glossa my_script.γλ`, this module handles the lifecycle: verifying
+//! file limits, caching intermediate artifacts, invoking `rustc`, and finally executing
+//! the resulting binary.
+
 use crate::codegen::generate_rust_file;
 use crate::parser::parse;
 use crate::semantic::{AnalyzedProgram, analyze_program};
@@ -29,7 +42,8 @@ fn analyze_source(source: &str) -> Result<AnalyzedProgram> {
 /// Compile a source string directly to Rust code
 ///
 /// Runs the full pipeline: Parse -> Analyze -> Codegen.
-/// Returns the generated Rust source code as a string.
+/// Yields the transpiled Rust representation as a string.
+/// This serves as the bridge between semantic analysis and final compilation to a native binary.
 fn compile(source: &str) -> Result<String> {
     let analyzed = analyze_source(source)?;
     Ok(generate_rust_file(&analyzed))
@@ -97,6 +111,11 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
 /// 3. **Codegen**: Generates valid Rust code.
 /// 4. **Write**: Saves the Rust code to the output path.
 /// 5. **Report**: Prints a compilation report with statistics.
+///
+/// # Arguments
+///
+/// * `input` - The path to the source `.γλ` file to be compiled.
+/// * `output` - An optional path where the generated `.rs` file should be saved.
 ///
 /// ## Errors
 ///
@@ -176,6 +195,10 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 ///    This inherits Rust's optimizations (set to `-O` level).
 /// 5. **Execution**: Spawns the resulting binary as a child process, inheriting
 ///    stdin/stdout/stderr so it feels like a native script.
+///
+/// # Arguments
+///
+/// * `input` - The path to the source `.γλ` file to run.
 ///
 /// ## Errors
 ///
@@ -305,6 +328,10 @@ pub fn run_file(input: &Path) -> Result<()> {
 /// without generating any output code or binaries. It prints a [`GlossaReport`]
 /// summarizing the program's statistics if successful.
 ///
+/// # Arguments
+///
+/// * `input` - The path to the source `.γλ` file to check.
+///
 /// ## Errors
 ///
 /// Returns an error if the input file does not exist, exceeds the size limit,
@@ -352,6 +379,10 @@ pub fn check_file(input: &Path) -> Result<()> {
 /// and colorize the source code based on grammatical roles (e.g., Subjects are blue,
 /// Objects are red, Verbs are green).
 ///
+/// # Arguments
+///
+/// * `input` - The path to the source `.γλ` file to be highlighted.
+///
 /// ## Errors
 ///
 /// Returns an error if the input file does not exist, exceeds the size limit,
@@ -389,6 +420,10 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 ///
 /// Uses the "Bard" tool to parse, analyze, and translate the semantic
 /// meaning of the program into a readable English narrative ("The Scroll of Logic").
+///
+/// # Arguments
+///
+/// * `input` - The path to the source `.γλ` file to narrate.
 ///
 /// ## Errors
 ///
