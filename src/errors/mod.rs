@@ -321,4 +321,23 @@ mod tests {
         let err = GlossaError::semantic("test");
         assert_eq!(err.category_greek(), "Σημασία");
     }
+
+    #[test]
+    fn test_parse_with_source() {
+        use miette::SourceSpan;
+        let span = SourceSpan::new(5.into(), 1_usize);
+        let err = GlossaError::parse_with_source("invalid variable name", "ἔστω x 5", span);
+        if let GlossaError::ParseError {
+            message,
+            src,
+            span: err_span,
+        } = err
+        {
+            assert_eq!(message, "invalid variable name");
+            assert_eq!(src, "ἔστω x 5");
+            assert_eq!(err_span, Some(span));
+        } else {
+            panic!("Expected ParseError");
+        }
+    }
 }
