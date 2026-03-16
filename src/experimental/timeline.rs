@@ -193,4 +193,63 @@ mod tests {
         assert!(table_str.contains("Mutation"));
         assert!(table_str.contains("Side-Effect"));
     }
+
+    #[test]
+    fn test_timeline_control_flow() {
+        let source = "
+            μετά α [1, 2] ἔστω.
+            εἰ ἀληθές, «ναί» λέγε. εἰ δὲ μή, «οὔ» λέγε.
+            ἕως ψεῦδος, «παῦε» λέγε.
+            διὰ α, β λέγε.
+        ";
+        let ast = parse(source).unwrap();
+        let program = analyze_program(&ast).unwrap();
+
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL);
+        for stmt in &program.statements {
+            add_statement_to_timeline(&mut table, stmt, 0);
+        }
+
+        let table_str = format!("{table}");
+
+        assert!(table_str.contains("Divergence"));
+        assert!(table_str.contains("Control flow diverged."));
+        assert!(table_str.contains("Loop boundary reached."));
+        assert!(table_str.contains("Variable was born via loop."));
+    }
+
+    #[test]
+    fn test_timeline_functions_and_match() {
+        let source = "
+            f ὁρίζειν (x)· «f» λέγε.
+            μετά ξ 1 ἔστω.
+            κατὰ ξ· ἓν ᾖ, «1» λέγε· ἄλλο ᾖ, «ἄλλο» λέγε.
+        ";
+        let ast = parse(source).unwrap();
+        let program = analyze_program(&ast).unwrap();
+
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL);
+        for stmt in &program.statements {
+            add_statement_to_timeline(&mut table, stmt, 0);
+        }
+
+        let table_str = format!("{table}");
+
+        assert!(table_str.contains("Scope Open"));
+        assert!(table_str.contains("Function body defined."));
+        assert!(table_str.contains("Control flow matched."));
+    }
+
+    #[test]
+    fn test_run_timeline_empty_file() {
+        use std::io::Write;
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        temp_file.write_all(b"").unwrap();
+
+        // Ensure it doesn't panic on empty file
+        let result = run_timeline(temp_file.path());
+        assert!(result.is_ok());
+    }
 }
