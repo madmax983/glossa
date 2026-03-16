@@ -346,3 +346,52 @@ fn test_statement_debug() {
     let s5 = format!("{:?}", stmt5);
     assert!(s5.contains("TestDeclaration"));
 }
+
+#[test]
+fn test_expr_debug() {
+    let w = Word::new("λέγε");
+
+    let all_exprs = vec![
+        Expr::StringLiteral("test".to_string()),
+        Expr::NumberLiteral(42),
+        Expr::BooleanLiteral(true),
+        Expr::ArrayLiteral(vec![Expr::NumberLiteral(1)]),
+        Expr::IndexAccess {
+            array: Box::new(Expr::ArrayLiteral(vec![Expr::NumberLiteral(2)])),
+            index: Box::new(Expr::NumberLiteral(0)),
+        },
+        Expr::Word(w.clone()),
+        Expr::Phrase(vec![Expr::NumberLiteral(3)]),
+        Expr::PropertyAccess {
+            owner: Box::new(Expr::Word(w.clone())),
+            property: Box::new(Expr::Word(w.clone())),
+        },
+        Expr::Call {
+            verb: w.clone(),
+            arguments: vec![Expr::NumberLiteral(4)],
+        },
+        Expr::Binding {
+            name: w.clone(),
+            value: Box::new(Expr::NumberLiteral(5)),
+        },
+        Expr::BinOp {
+            left: Box::new(Expr::NumberLiteral(6)),
+            op: BinOperator::Add,
+            right: Box::new(Expr::NumberLiteral(7)),
+        },
+        Expr::UnaryOp {
+            op: UnaryOperator::Not,
+            operand: Box::new(Expr::BooleanLiteral(false)),
+        },
+        Expr::Block(vec![Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        }]),
+    ];
+
+    for expr in &all_exprs {
+        let s = format!("{:?}", expr);
+        assert!(!s.is_empty());
+    }
+}
