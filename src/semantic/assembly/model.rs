@@ -14,7 +14,7 @@ use smol_str::SmolStr;
 /// This struct represents the "final state" of a sentence after parsing.
 /// It contains all the semantic components (subject, verb, object, etc.)
 /// extracted from the input stream.
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer
     pub subject: Option<Constituent>,
@@ -166,4 +166,35 @@ pub enum Literal {
     String(String),
     Number(i64),
     Boolean(bool),
+}
+
+impl std::fmt::Debug for AssembledStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            f.debug_struct("AssembledStatement")
+                .field("subject", &self.subject)
+                .field("nominatives", &self.nominatives)
+                .field("verb", &self.verb)
+                .field("object", &self.object)
+                .field("indirect", &self.indirect)
+                .field("genitives", &self.genitives)
+                .field("adjectives", &self.adjectives)
+                .field("literals", &self.literals)
+                .field("arrays", &self.arrays)
+                .field("index_accesses", &self.index_accesses)
+                .field("property_accesses", &self.property_accesses)
+                .field("operators", &self.operators)
+                .field("blocks", &self.blocks)
+                .field("nested_phrases", &self.nested_phrases)
+                .field("participles", &self.participles)
+                .field("unwraps", &self.unwraps)
+                .field("is_query", &self.is_query)
+                .field("is_propagate", &self.is_propagate)
+                .field("has_mutable_marker", &self.has_mutable_marker)
+                .field("has_containment_preposition", &self.has_containment_preposition)
+                .field("has_delimiter_preposition", &self.has_delimiter_preposition)
+                .field("string_method", &self.string_method)
+                .finish()
+        })
+    }
 }

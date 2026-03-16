@@ -10,7 +10,7 @@ use smol_str::SmolStr;
 ///
 /// Represents a statement after semantic analysis, where names are resolved,
 /// types are inferred, and word order is normalized.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum AnalyzedStatement {
     /// Variable binding
     ///
@@ -195,14 +195,14 @@ pub struct AnalyzedMethod {
 }
 
 /// Analyzed expression with type information
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AnalyzedExpr {
     pub expr: AnalyzedExprKind,
     pub glossa_type: GlossaType,
 }
 
 /// Kind of analyzed expression
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum AnalyzedExprKind {
     /// String literal
     ///
@@ -423,4 +423,69 @@ pub struct TraitDef {
 pub struct TraitImpl {
     pub trait_name: SmolStr,
     pub type_name: SmolStr,
+}
+
+impl std::fmt::Debug for AnalyzedStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            AnalyzedStatement::Binding { name, value, mutable } => f.debug_struct("Binding").field("name", name).field("value", value).field("mutable", mutable).finish(),
+            AnalyzedStatement::Assignment { name, value } => f.debug_struct("Assignment").field("name", name).field("value", value).finish(),
+            AnalyzedStatement::Expression(exprs) => f.debug_tuple("Expression").field(exprs).finish(),
+            AnalyzedStatement::Print(exprs) => f.debug_tuple("Print").field(exprs).finish(),
+            AnalyzedStatement::Query(exprs) => f.debug_tuple("Query").field(exprs).finish(),
+            AnalyzedStatement::If { condition, then_body, else_body } => f.debug_struct("If").field("condition", condition).field("then_body", then_body).field("else_body", else_body).finish(),
+            AnalyzedStatement::While { condition, body } => f.debug_struct("While").field("condition", condition).field("body", body).finish(),
+            AnalyzedStatement::For { variable, iterator, body } => f.debug_struct("For").field("variable", variable).field("iterator", iterator).field("body", body).finish(),
+            AnalyzedStatement::Match { scrutinee, arms } => f.debug_struct("Match").field("scrutinee", scrutinee).field("arms", arms).finish(),
+            AnalyzedStatement::Break => f.debug_tuple("Break").finish(),
+            AnalyzedStatement::Continue => f.debug_tuple("Continue").finish(),
+            AnalyzedStatement::Return { value } => f.debug_struct("Return").field("value", value).finish(),
+            AnalyzedStatement::FunctionDef { name, params, body, return_type } => f.debug_struct("FunctionDef").field("name", name).field("params", params).field("body", body).field("return_type", return_type).finish(),
+            AnalyzedStatement::TypeDefinition { name, fields } => f.debug_struct("TypeDefinition").field("name", name).field("fields", fields).finish(),
+            AnalyzedStatement::TraitDefinition { name, methods } => f.debug_struct("TraitDefinition").field("name", name).field("methods", methods).finish(),
+            AnalyzedStatement::TraitImplementation { trait_name, type_name, methods } => f.debug_struct("TraitImplementation").field("trait_name", trait_name).field("type_name", type_name).field("methods", methods).finish(),
+            AnalyzedStatement::TestDeclaration { name, body } => f.debug_struct("TestDeclaration").field("name", name).field("body", body).finish(),
+        })
+    }
+}
+
+impl std::fmt::Debug for AnalyzedExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AnalyzedExpr")
+            .field("expr", &self.expr)
+            .field("glossa_type", &self.glossa_type)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for AnalyzedExprKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            AnalyzedExprKind::StringLiteral(s) => f.debug_tuple("StringLiteral").field(s).finish(),
+            AnalyzedExprKind::NumberLiteral(n) => f.debug_tuple("NumberLiteral").field(n).finish(),
+            AnalyzedExprKind::BooleanLiteral(b) => f.debug_tuple("BooleanLiteral").field(b).finish(),
+            AnalyzedExprKind::ArrayLiteral(v) => f.debug_tuple("ArrayLiteral").field(v).finish(),
+            AnalyzedExprKind::Variable(w) => f.debug_tuple("Variable").field(w).finish(),
+            AnalyzedExprKind::PropertyAccess { owner, property } => f.debug_struct("PropertyAccess").field("owner", owner).field("property", property).finish(),
+            AnalyzedExprKind::VerbCall { verb, args } => f.debug_struct("VerbCall").field("verb", verb).field("args", args).finish(),
+            AnalyzedExprKind::FunctionCall { func, args } => f.debug_struct("FunctionCall").field("func", func).field("args", args).finish(),
+            AnalyzedExprKind::BinOp { left, op, right } => f.debug_struct("BinOp").field("left", left).field("op", op).field("right", right).finish(),
+            AnalyzedExprKind::UnaryOp { op, operand } => f.debug_struct("UnaryOp").field("op", op).field("operand", operand).finish(),
+            AnalyzedExprKind::Some(e) => f.debug_tuple("Some").field(e).finish(),
+            AnalyzedExprKind::None => f.debug_tuple("None").finish(),
+            AnalyzedExprKind::Ok(e) => f.debug_tuple("Ok").field(e).finish(),
+            AnalyzedExprKind::Err(e) => f.debug_tuple("Err").field(e).finish(),
+            AnalyzedExprKind::Unwrap(e) => f.debug_tuple("Unwrap").field(e).finish(),
+            AnalyzedExprKind::Try(e) => f.debug_tuple("Try").field(e).finish(),
+            AnalyzedExprKind::Range { start, end, inclusive } => f.debug_struct("Range").field("start", start).field("end", end).field("inclusive", inclusive).finish(),
+            AnalyzedExprKind::MethodCall { receiver, method, args } => f.debug_struct("MethodCall").field("receiver", receiver).field("method", method).field("args", args).finish(),
+            AnalyzedExprKind::CollectionNew { collection_type } => f.debug_struct("CollectionNew").field("collection_type", collection_type).finish(),
+            AnalyzedExprKind::IndexAccess { array, index } => f.debug_struct("IndexAccess").field("array", array).field("index", index).finish(),
+            AnalyzedExprKind::StructInstantiation { type_name, fields, args } => f.debug_struct("StructInstantiation").field("type_name", type_name).field("fields", fields).field("args", args).finish(),
+            AnalyzedExprKind::TraitMethodCall { receiver, trait_name, method_name, args } => f.debug_struct("TraitMethodCall").field("receiver", receiver).field("trait_name", trait_name).field("method_name", method_name).field("args", args).finish(),
+            AnalyzedExprKind::Lambda { params, body, capture_mode } => f.debug_struct("Lambda").field("params", params).field("body", body).field("capture_mode", capture_mode).finish(),
+            AnalyzedExprKind::Assert { condition } => f.debug_struct("Assert").field("condition", condition).finish(),
+            AnalyzedExprKind::AssertEq { left, right } => f.debug_struct("AssertEq").field("left", left).field("right", right).finish(),
+        })
+    }
 }
