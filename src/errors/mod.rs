@@ -321,4 +321,43 @@ mod tests {
         let err = GlossaError::semantic("test");
         assert_eq!(err.category_greek(), "Σημασία");
     }
+
+    #[test]
+    fn test_glossa_error_constructors_and_display() {
+        use miette::SourceSpan;
+
+        let err_parse_src = GlossaError::parse_with_source(
+            "missing closing brace",
+            "test src",
+            SourceSpan::new(0.into(), 4),
+        );
+        assert!(matches!(
+            err_parse_src,
+            GlossaError::ParseError { span: Some(_), .. }
+        ));
+        assert!(err_parse_src.to_string().contains("missing closing brace"));
+        assert_eq!(err_parse_src.category_greek(), "Σύνταξις");
+
+        let err_agreement = GlossaError::agreement("gender mismatch");
+        assert!(matches!(err_agreement, GlossaError::AgreementError { .. }));
+        assert!(err_agreement.to_string().contains("gender mismatch"));
+        assert_eq!(err_agreement.category_greek(), "Συμφωνία");
+
+        let err_codegen = GlossaError::codegen("invalid ast");
+        assert!(matches!(err_codegen, GlossaError::CodegenError { .. }));
+        assert!(err_codegen.to_string().contains("invalid ast"));
+        assert_eq!(err_codegen.category_greek(), "Κῶδιξ");
+
+        let err_limit = GlossaError::LimitExceeded {
+            resource: "adjectives".into(),
+            max: 5,
+        };
+        assert!(matches!(err_limit, GlossaError::LimitExceeded { .. }));
+        assert!(err_limit.to_string().contains("adjectives"));
+        assert_eq!(err_limit.category_greek(), "Όριον");
+
+        let err_assembly = GlossaError::AssemblyError(AssemblyError::DoubleSubject);
+        assert!(matches!(err_assembly, GlossaError::AssemblyError(..)));
+        assert_eq!(err_assembly.category_greek(), "Συναρμογή");
+    }
 }

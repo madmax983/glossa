@@ -94,3 +94,93 @@ pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::errors::GlossaError;
+    use crate::parser::parse;
+
+    #[test]
+    fn test_parser_recursion_limit() {
+        let mut code = String::new();
+        for _ in 0..600 {
+            code.push('(');
+        }
+        code.push('1');
+        for _ in 0..600 {
+            code.push(')');
+        }
+
+        let result = parse(&code);
+        assert!(
+            matches!(result.unwrap_err(), GlossaError::ParseError { message, .. } if message.contains("Recursion"))
+        );
+    }
+
+    #[test]
+    fn test_parser_recursion_limit_struct() {
+        let mut code = String::new();
+        for _ in 0..600 {
+            code.push('{');
+        }
+        for _ in 0..600 {
+            code.push('}');
+        }
+
+        let result = parse(&code);
+        assert!(
+            matches!(result.unwrap_err(), GlossaError::ParseError { message, .. } if message.contains("Recursion"))
+        );
+    }
+
+    #[test]
+    fn test_parser_recursion_limit_array() {
+        let mut code = String::new();
+        for _ in 0..600 {
+            code.push('[');
+        }
+        for _ in 0..600 {
+            code.push(']');
+        }
+
+        let result = parse(&code);
+        assert!(
+            matches!(result.unwrap_err(), GlossaError::ParseError { message, .. } if message.contains("Recursion"))
+        );
+    }
+
+    #[test]
+    fn test_parser_recursion_string() {
+        let code = "« (((( )))) »";
+        let _ = parse(code);
+    }
+
+    #[test]
+    fn test_parser_recursion_comment() {
+        let mut code = String::from("// ");
+        for _ in 0..600 {
+            code.push('(');
+        }
+        code.push('\n');
+        code.push_str("1.");
+
+        let result = parse(&code);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parser_recursion_test_decl() {
+        let mut code = String::new();
+        for _ in 0..600 {
+            code.push_str("δοκιμή «foo».");
+        }
+        for _ in 0..600 {
+            code.push_str("τέλος.");
+        }
+
+        let result = parse(&code);
+        assert!(
+            matches!(result.unwrap_err(), GlossaError::ParseError { message, .. } if message.contains("Recursion"))
+        );
+    }
+}

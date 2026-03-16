@@ -79,3 +79,46 @@ pub enum AssemblyError {
     #[diagnostic(code(glossa::assembly::limit_exceeded))]
     LimitExceeded { resource: String, max: usize },
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_assembly_error_display() {
+        let err1 = AssemblyError::DoubleSubject;
+        assert!(err1.to_string().contains("Διπλοῦν ὑποκείμενον"));
+
+        let err2 = AssemblyError::DoubleObject;
+        assert!(err2.to_string().contains("Διπλοῦν ἀντικείμενον"));
+
+        let err3 = AssemblyError::DoubleIndirect;
+        assert!(err3.to_string().contains("Διπλοῦν ἔμμεσον αντικείμενον"));
+
+        let err4 = AssemblyError::DoubleVerb;
+        assert!(err4.to_string().contains("Διπλοῦν ῥῆμα"));
+
+        let err5 = AssemblyError::MissingVerb;
+        assert!(err5.to_string().contains("Ῥῆμα οὐχ εὑρέθη"));
+
+        let err6 = AssemblyError::SubjectVerbDisagreement {
+            subject: (Some(Person::Third), Some(Number::Singular)),
+            verb: (Some(Person::Third), Some(Number::Plural)),
+        };
+        assert!(err6.to_string().contains("Ἀσυμφωνία"));
+
+        let err7 = AssemblyError::GenderMismatch {
+            word1: "word1".into(),
+            gender1: Gender::Masculine,
+            word2: "word2".into(),
+            gender2: Gender::Feminine,
+        };
+        assert!(err7.to_string().contains("Ἀσυμφωνία γένους"));
+
+        let err8 = AssemblyError::LimitExceeded {
+            resource: "foo".into(),
+            max: 42,
+        };
+        assert!(err8.to_string().contains("foo"));
+    }
+}

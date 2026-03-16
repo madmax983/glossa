@@ -183,3 +183,21 @@ mod tests {
         assert_eq!(count, 2);
     }
 }
+
+#[test]
+fn test_match_suffix_early_exit_propagation() {
+    let patterns = vec![("x", 1), ("y", 2)];
+    let mut matches = vec![];
+
+    match_suffix(
+        "abx",
+        &patterns,
+        |p| p.0,
+        |_stem, val| {
+            matches.push(val.1);
+            false
+        },
+    );
+
+    assert_eq!(matches, vec![1]);
+}
