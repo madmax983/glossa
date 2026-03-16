@@ -33,3 +33,7 @@
 **Refactoring God Functions in the Alchemist**
 **Learning:** `transpile_statement` in `src/tools/alchemist.rs` was a classic God Function (over 200 lines) with a deeply nested match statement containing complex string building logic for each AST node. When using `replace_with_git_merge_diff` or python scripting to extract match arms into helper functions (`transpile_if`, `transpile_while`, etc.), it's critical to capture or destructure the enum variables correctly in the helper functions to prevent `unused_variables` warnings from clippy. In this case, I used `AnalyzedStatement::If { .. } => transpile_if(stmt, indent)` in the top-level match and handled destructuring inside `transpile_if` to resolve warnings.
 **Action:** Always verify `cargo clippy --all-targets --all-features -- -D warnings` after extracting match arms. If variables bound in the match arm are no longer used locally because the whole object is passed, use `..` to ignore them.
+
+**Refactoring `#[derive(Debug)]` on deep AST Nodes**
+**Learning:** Automatically derived traits like `#[derive(Debug)]` on deeply recursive AST structures (like `Statement` or `Expr`) can cause fatal SIGABRT stack overflows when formatting errors, bypassing protections implemented in `Clone` or `Drop`.
+**Action:** For recursively nested AST enum variants, always implement `std::fmt::Debug` manually, wrapping the `match` block inside `stacker::maybe_grow` to allocate heap stack segments when the OS stack runs out.

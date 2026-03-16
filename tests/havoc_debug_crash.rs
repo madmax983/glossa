@@ -46,9 +46,10 @@ fn havoc_crash_debug_stack_overflow() {
         .status()
         .expect("Failed to spawn subprocess");
 
-    // The test SUCCEEDS if the subprocess FAILED (crashed via SIGSEGV/Stack Overflow)
+    // The test SUCCEEDS if the subprocess succeeds (doesn't crash with a Stack Overflow)
+    // Now that `Debug` is implemented with `stacker::maybe_grow`, it should survive!
     assert!(
-        !status.success(),
-        "Bug fixed? The subprocess should have crashed with a stack overflow!"
+        status.success(),
+        "Bug is NOT fixed! The subprocess crashed!"
     );
 }
