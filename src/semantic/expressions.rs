@@ -333,7 +333,37 @@ fn analyze_unaryop(
     }
 }
 
-/// Get the first word from a statement for pattern detection
+/// Extracts the first logical word from a statement to facilitate structural pattern matching.
+///
+/// In GLOSSA, control flow constructs (like `εἰ` for "if" or `ἕως` for "while") are uniquely
+/// identified by their leading particle. This function exists to provide a fast, non-allocating
+/// way to peek at the beginning of a statement *before* full semantic assembly is attempted.
+/// If a statement begins with a control flow particle, it bypasses the standard Subject-Object-Verb
+/// assembler entirely and is instead routed to [`crate::semantic::control_flow::analyze_control_flow`].
+///
+/// # Returns
+///
+/// * `Ok(SmolStr)` containing the monotonic, normalized form of the first word.
+/// * `Err(GlossaError)` if the statement is completely empty or starts with a non-word (like a literal).
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Example cannot be run as a doctest because this module is pub(crate)
+/// use glossa::ast::{Statement, Clause, Expr, Word};
+/// use glossa::semantic::expressions::get_first_word;
+///
+/// // Represents the statement: "εἰ ἡλικία 50 μεῖζον ᾖ,"
+/// let stmt = Statement::Regular {
+///     clauses: vec![Clause {
+///         expressions: vec![Expr::Word(Word::new("εἰ"))],
+///     }],
+///     is_query: false,
+///     is_propagate: false,
+/// };
+///
+/// assert_eq!(get_first_word(&stmt).unwrap(), "ει");
+/// ```
 pub fn get_first_word(stmt: &Statement) -> Result<smol_str::SmolStr, GlossaError> {
     if let Some(first_clause) = stmt.clauses().first()
         && let Some(first_expr) = first_clause.expressions.first()
@@ -351,7 +381,34 @@ pub fn get_first_word(stmt: &Statement) -> Result<smol_str::SmolStr, GlossaError
     Err(GlossaError::semantic("Empty statement"))
 }
 
-/// Check if a statement contains the function definition verb (ὁρίζειν)
+/// Determines if a statement is attempting to define a new function by looking for `ὁρίζειν` ("to define").
+///
+/// Function definitions in GLOSSA have an irregular block structure (a type definition block `{ ... }`)
+/// that breaks the standard sentence assembler rules. We must identify function definitions *early* in the
+/// semantic pipeline so they can be processed independently by the [`crate::semantic::analyzer`], preventing
+/// the assembler from choking on their nested clauses and scoping semantics.
+///
+/// This performs a deep search through the entire statement, rather than just checking the verb slot,
+/// because the `ὁρίζειν` verb might be deeply nested inside a phrase before assembly happens.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Example cannot be run as a doctest because this module is pub(crate)
+/// use glossa::ast::{Statement, Clause, Expr, Word};
+/// use glossa::semantic::expressions::contains_function_definition_verb;
+///
+/// // Represents: "f(x) ὁρίζειν { ... }"
+/// let stmt = Statement::Regular {
+///     clauses: vec![Clause {
+///         expressions: vec![Expr::Word(Word::new("ὁρίζειν"))],
+///     }],
+///     is_query: false,
+///     is_propagate: false,
+/// };
+///
+/// assert!(contains_function_definition_verb(&stmt));
+/// ```
 pub fn contains_function_definition_verb(stmt: &Statement) -> bool {
     for clause in stmt.clauses() {
         for expr in &clause.expressions {
@@ -363,7 +420,29 @@ pub fn contains_function_definition_verb(stmt: &Statement) -> bool {
     false
 }
 
-/// Helper to check if an expression contains a specific verb
+/// Recursively searches an expression tree for a specific normalized verb string.
+///
+/// Why not just check `stmt.verb`? Because this function operates on the *raw AST*
+/// (`Expr`) *before* the [`crate::semantic::Assembler`] has run. The assembler hasn't yet
+/// categorized words into subjects, objects, or verbs. To find a specific verb
+/// (like `ὁρίζειν`), we must traverse phrases, blocks, and individual word nodes manually.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Example cannot be run as a doctest because this module is pub(crate)
+/// use glossa::ast::{Expr, Word};
+/// use glossa::semantic::expressions::contains_verb_in_expr;
+///
+/// let expr = Expr::Phrase(vec![
+///     Expr::Word(Word::new("τὸν")),
+///     Expr::Word(Word::new("λόγον")),
+///     Expr::Word(Word::new("λέγει")),
+/// ]);
+///
+/// assert!(contains_verb_in_expr(&expr, "λεγει"));
+/// assert!(!contains_verb_in_expr(&expr, "οριζειν"));
+/// ```
 pub fn contains_verb_in_expr(expr: &Expr, verb: &str) -> bool {
     match expr {
         Expr::Word(word) => word.normalized == verb,

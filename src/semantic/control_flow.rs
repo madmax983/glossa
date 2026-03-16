@@ -18,8 +18,41 @@ use crate::errors::GlossaError;
 use crate::limits::MAX_CONTROL_FLOW_DEPTH;
 use crate::morphology::lexicon;
 
-/// Check if a statement is a control flow construct and analyze it
-/// Returns Some(AnalyzedStatement) if it's control flow, None otherwise
+/// Intercepts and parses control flow constructs (`εἰ`, `ἕως`, `διὰ`) before standard assembly.
+///
+/// In GLOSSA, control flow statements span multiple clauses (e.g., condition, body, else body)
+/// and do not map cleanly to the simple Subject-Object-Verb triples expected by the
+/// [`crate::semantic::Assembler`]. This function acts as a pre-processor: if a statement begins
+/// with a known control flow particle, it bypasses standard assembly entirely and is parsed
+/// directly into an [`AnalyzedStatement`] using structural heuristics.
+///
+/// # Returns
+///
+/// * `Ok(Some(AnalyzedStatement))` if it was successfully parsed as control flow.
+/// * `Ok(None)` if the statement does not start with a control flow particle (should be assembled normally).
+/// * `Err(GlossaError)` if it is malformed control flow (e.g., missing condition).
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Example cannot be run as a doctest because this module is pub(crate)
+/// use glossa::ast::{Statement, Clause, Expr, Word};
+/// use glossa::semantic::resolver::Scope;
+/// use glossa::semantic::control_flow::analyze_control_flow;
+///
+/// // Represents: "ξ 5 ἔστω" (Not control flow)
+/// let mut scope = Scope::new();
+/// let stmt = Statement::Regular {
+///     clauses: vec![Clause {
+///         expressions: vec![Expr::Word(Word::new("ξ"))],
+///     }],
+///     is_query: false,
+///     is_propagate: false,
+/// };
+///
+/// let result = analyze_control_flow(&stmt, &mut scope).unwrap();
+/// assert!(result.is_none());
+/// ```
 pub fn analyze_control_flow(
     stmt: &Statement,
     scope: &mut Scope,
