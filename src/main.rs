@@ -72,6 +72,22 @@ fn main() -> Result<()> {
             glossa::tools::alchemist::run_alchemist(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Timeline { input }) => {
+            glossa::experimental::timeline::run_timeline(&input)?;
+        }
+
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Timeline { .. }) => {
+            use crossterm::style::Stylize;
+            println!(
+                "{}",
+                "⚠️  The 'timeline' tool is experimental and requires the 'nova' feature flag."
+                    .yellow()
+            );
+            println!("Please recompile the compiler with: cargo build --features nova");
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

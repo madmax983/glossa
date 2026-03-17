@@ -175,4 +175,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Run the Timeline static analysis simulator (Requires "nova" feature)
+    Timeline {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
