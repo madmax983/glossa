@@ -111,3 +111,8 @@
 **Bloat:** `src/semantic/assembly/` directory contained `mod.rs` and `model.rs`. `model.rs` contained DTOs tightly coupled to the assembler.
 **Cut:** Merged `model.rs` into `mod.rs` and renamed it to `src/semantic/assembly.rs`, deleting the `assembly/` folder.
 **Saved:** 1 directory, 1 file, reduced module indirection.
+
+## [Reduction]
+**Bloat:** Unnecessary nesting of `model::` for `ParticipleConstituent` in `src/tools/mosaic.rs` test suite (`crate::semantic::assembly::model::ParticipleConstituent`), violating ADR 016 (flat modules).
+**Cut:** Removed `model::` path segment to directly access `crate::semantic::assembly::ParticipleConstituent`.
+**Saved:** 14 characters of path boilerplate and fixed `error[E0433]` compilation failure.
