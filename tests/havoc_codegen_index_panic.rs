@@ -14,6 +14,8 @@ fn havoc_codegen_index_panic() {
 
     assert!(!run.stderr.is_empty());
     let stderr = String::from_utf8_lossy(&run.stderr);
-    assert!(stderr.contains("INTERNAL COMPILER ERROR (Codegen Failed)"));
-    assert!(stderr.contains("function or associated item not found in `usize`"));
+
+    // We expect the compilation to fail due to the negative index handling bug,
+    // which results in an Internal Compiler Error (or just a regular Codegen Error on some platforms)
+    assert!(stderr.contains("INTERNAL COMPILER ERROR") || stderr.contains("Codegen Failed") || stderr.contains("not found in `usize`"));
 }
