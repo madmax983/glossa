@@ -111,3 +111,7 @@
 **Bloat:** `src/semantic/assembly/` directory contained `mod.rs` and `model.rs`. `model.rs` contained DTOs tightly coupled to the assembler.
 **Cut:** Merged `model.rs` into `mod.rs` and renamed it to `src/semantic/assembly.rs`, deleting the `assembly/` folder.
 **Saved:** 1 directory, 1 file, reduced module indirection.
+## [Reduction]
+**Bloat:** The `QuantifierFlags` struct and its `from` method, which only held and passed around two boolean values (`is_any`, `is_all`).
+**Cut:** Replaced `QuantifierFlags` with a simple function `get_quantifiers` that returns a `(bool, bool)` tuple, passing the booleans directly to helper functions.
+**Saved:** Unnecessary struct definition, struct instantiation, and method implementation (~10 lines of code and cognitive load).
