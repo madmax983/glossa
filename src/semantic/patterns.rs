@@ -411,7 +411,8 @@ pub fn detect_iterator_pattern(
     }
 
     // Handle any/all operations with explicit operators (comparatives stored as operators)
-    let is_any_all = process_explicit_quantifiers(asm_stmt, scope, is_any, is_all, &mut current_expr);
+    let is_any_all =
+        process_explicit_quantifiers(asm_stmt, scope, is_any, is_all, &mut current_expr);
     if is_any_all {
         return Ok(Some(current_expr));
     }
