@@ -132,7 +132,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
     Ok(())
 }
 
-fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
+fn format_subject(asm: &AssembledStatement) -> String {
     let subject = asm
         .subject
         .as_ref()
@@ -149,7 +149,8 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
         }
         extra_noms.push_str(&fmt_constituent(nom));
     }
-    let full_subject = if !extra_noms.is_empty() {
+
+    if !extra_noms.is_empty() {
         if !subject.is_empty() {
             format!("{} (+ {})", subject, extra_noms)
         } else {
@@ -157,21 +158,10 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
         }
     } else {
         subject
-    };
+    }
+}
 
-    let verb = asm
-        .verb
-        .as_ref()
-        .map(|v| v.original.to_string())
-        .unwrap_or_default();
-    let object = asm.object.as_ref().map(fmt_constituent).unwrap_or_default();
-    let indirect = asm
-        .indirect
-        .as_ref()
-        .map(fmt_constituent)
-        .unwrap_or_default();
-
-    // Collect other interesting things
+fn format_other_column(asm: &AssembledStatement) -> String {
     let mut other = Vec::new();
 
     // Literals
@@ -284,13 +274,33 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
         other.push(format!("Flags: [{}]", flags.join(", ")));
     }
 
+    other.join("\n")
+}
+
+fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
+    let full_subject = format_subject(asm);
+
+    let verb = asm
+        .verb
+        .as_ref()
+        .map(|v| v.original.to_string())
+        .unwrap_or_default();
+    let object = asm.object.as_ref().map(fmt_constituent).unwrap_or_default();
+    let indirect = asm
+        .indirect
+        .as_ref()
+        .map(fmt_constituent)
+        .unwrap_or_default();
+
+    let other_column = format_other_column(asm);
+
     table.add_row(vec![
         Cell::new(format!("{}", line)),
         Cell::new(full_subject),
         Cell::new(verb),
         Cell::new(object),
         Cell::new(indirect),
-        Cell::new(other.join("\n")).fg(Color::DarkGrey),
+        Cell::new(other_column).fg(Color::DarkGrey),
     ]);
 }
 
@@ -385,7 +395,7 @@ mod tests {
         add_cons(&mut asm.adjectives);
 
         asm.participles
-            .push(crate::semantic::assembly::model::ParticipleConstituent {
+            .push(crate::semantic::assembly::ParticipleConstituent {
                 verb_lemma: "part1".into(),
                 original: "part1".into(),
                 normalized: "part1".into(),
@@ -396,7 +406,7 @@ mod tests {
                 number: Number::Singular,
             });
         asm.participles
-            .push(crate::semantic::assembly::model::ParticipleConstituent {
+            .push(crate::semantic::assembly::ParticipleConstituent {
                 verb_lemma: "part2".into(),
                 original: "part2".into(),
                 normalized: "part2".into(),
