@@ -33,19 +33,23 @@ pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
             // δοκιμή (test): starts with \xCE\xB4 (δ)
             // τέλος (end): starts with \xCF\x84 (τ)
 
-            // Check for "δοκιμή" (test declaration start)
-            if b == 0xCE && source[i..].starts_with("δοκιμή") {
+            // Check for "δοκιμή" or "δοκιμη" (test declaration start)
+            if b == 0xCE && (source[i..].starts_with("δοκιμή") || source[i..].starts_with("δοκιμη"))
+            {
                 depth += 1;
                 if depth > MAX_PARSE_DEPTH {
                     return Err(ParseError::RecursionLimitExceeded(MAX_PARSE_DEPTH));
                 }
+                // Both versions have length 12 bytes
                 i += "δοκιμή".len();
                 continue;
             }
 
-            // Check for "τέλος" (test declaration end)
-            if b == 0xCF && source[i..].starts_with("τέλος") {
+            // Check for "τέλος" or "τελος" (test declaration end)
+            if b == 0xCF && (source[i..].starts_with("τέλος") || source[i..].starts_with("τελος"))
+            {
                 depth = depth.saturating_sub(1);
+                // Both versions have length 10 bytes
                 i += "τέλος".len();
                 continue;
             }
