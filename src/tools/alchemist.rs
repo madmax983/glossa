@@ -15,6 +15,8 @@ use crate::parser::parse;
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, analyze_program,
 };
+use comfy_table::{Attribute, Cell, Color, Table, presets};
+use crossterm::style::Stylize;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
@@ -31,7 +33,24 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
 
     status.success();
 
-    println!("--- Python (The Alchemist) ---\n{}", python_code);
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   A L C H E M I S T".bold().cyan());
+    println!("   {}", "Python Transpilation".italic().dim());
+    println!();
+
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL);
+    table.set_header(vec![
+        Cell::new("Python Script")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Yellow),
+    ]);
+
+    let formatted_code = format!("```python\n{}\n```", python_code.trim());
+    table.add_row(vec![Cell::new(formatted_code)]);
+
+    println!("{table}");
+    println!();
 
     Ok(())
 }
