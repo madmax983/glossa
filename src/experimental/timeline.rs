@@ -1,10 +1,10 @@
-use comfy_table::{presets, Attribute, Cell, Color, Table};
+use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::path::Path;
 
 use crate::parser::parse;
-use crate::semantic::{analyze_program, AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
+use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, analyze_program};
 
 pub fn run_timeline(path: &Path) -> Result<()> {
     let source = std::fs::read_to_string(path).into_diagnostic()?;
@@ -22,7 +22,9 @@ pub fn run_timeline(path: &Path) -> Result<()> {
     let mut table = Table::new();
     table.load_preset(presets::UTF8_FULL);
     table.set_header(vec![
-        Cell::new("Event").add_attribute(Attribute::Bold).fg(Color::Cyan),
+        Cell::new("Event")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
         Cell::new("Target").add_attribute(Attribute::Bold),
         Cell::new("Details").add_attribute(Attribute::Bold),
         Cell::new("Type").add_attribute(Attribute::Bold),
@@ -221,5 +223,174 @@ mod tests {
         assert!(output.contains("Mutation"));
         assert!(output.contains("Value reassigned"));
         assert!(output.contains("Birth")); // Has birth too
+    }
+
+    #[test]
+    fn test_timeline_full_coverage() {
+        // Build AST manually to bypass parser/analyzer complexities for coverage of the formatter logic
+        use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
+        use smol_str::SmolStr;
+
+        let stmts = vec![
+            AnalyzedStatement::Print(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("hello".to_string()),
+                glossa_type: GlossaType::String,
+            }]),
+            AnalyzedStatement::If {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                then_body: vec![AnalyzedStatement::Break],
+                else_body: Some(vec![AnalyzedStatement::Continue]),
+            },
+            AnalyzedStatement::While {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(false),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                body: vec![],
+            },
+            AnalyzedStatement::For {
+                variable: SmolStr::new("x"),
+                iterator: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(SmolStr::new("list")),
+                    glossa_type: GlossaType::Unknown,
+                }),
+                body: vec![],
+            },
+            AnalyzedStatement::FunctionDef {
+                name: SmolStr::new("my_func"),
+                params: vec![(SmolStr::new("a"), Some(GlossaType::Number))],
+                body: vec![],
+                return_type: None,
+            },
+            AnalyzedStatement::TypeDefinition {
+                name: SmolStr::new("Point"),
+                fields: vec![(SmolStr::new("x"), GlossaType::Number)],
+            },
+            AnalyzedStatement::TestDeclaration {
+                name: "my_test".to_string(),
+                body: vec![],
+            },
+        ];
+
+        let mut table = Table::new();
+        traverse_statements(&mut table, &stmts, 0);
+        let output = table.to_string();
+
+        assert!(output.contains("IO Side-Effect")); // print
+        assert!(output.contains("stdout"));
+        assert!(output.contains("Control Flow Divergence"));
+        assert!(output.contains("if"));
+        assert!(output.contains("else"));
+        assert!(output.contains("while"));
+        assert!(output.contains("for"));
+        assert!(output.contains("my_func")); // func def
+        assert!(output.contains("Point")); // type def
+        assert!(output.contains("my_test")); // test def
+    }
+
+    #[test]
+    fn test_tell_expr_coverage() {
+        use crate::morphology::lexicon::BinaryOp;
+        use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
+        use smol_str::SmolStr;
+
+        // StringLiteral
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::StringLiteral("test".to_string()),
+            glossa_type: GlossaType::String,
+        };
+        assert_eq!(tell_expr(&expr), "\"test\"");
+
+        // NumberLiteral
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(42),
+            glossa_type: GlossaType::Number,
+        };
+        assert_eq!(tell_expr(&expr), "42");
+
+        // BooleanLiteral
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
+        };
+        assert_eq!(tell_expr(&expr), "true");
+
+        // Variable
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(SmolStr::new("x")),
+            glossa_type: GlossaType::Number,
+        };
+        assert_eq!(tell_expr(&expr), "`x`");
+
+        // PropertyAccess
+        let owner = Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(SmolStr::new("obj")),
+            glossa_type: GlossaType::Unknown,
+        });
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::PropertyAccess {
+                owner,
+                property: SmolStr::new("prop"),
+            },
+            glossa_type: GlossaType::Unknown,
+        };
+        assert_eq!(tell_expr(&expr), "`obj`.prop");
+
+        // VerbCall
+        let arg = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        };
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::VerbCall {
+                verb: SmolStr::new("func"),
+                args: vec![arg],
+            },
+            glossa_type: GlossaType::Unknown,
+        };
+        assert_eq!(tell_expr(&expr), "func(1)");
+
+        // BinOp
+        let left = Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        });
+        let right = Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(2),
+            glossa_type: GlossaType::Number,
+        });
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::BinOp {
+                left,
+                op: BinaryOp::Add,
+                right,
+            },
+            glossa_type: GlossaType::Number,
+        };
+        assert_eq!(tell_expr(&expr), "(1 Add 2)");
+
+        // Unhandled variant
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: GlossaType::Unknown,
+        };
+        assert_eq!(tell_expr(&expr), "<expr>");
+    }
+
+    #[test]
+    fn test_run_timeline_integration() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_timeline.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            f.write_all("«χαῖρε» λέγε.".as_bytes()).unwrap();
+        }
+
+        let result = run_timeline(&file_path);
+        assert!(result.is_ok());
     }
 }
