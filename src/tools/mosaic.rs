@@ -385,7 +385,7 @@ mod tests {
         add_cons(&mut asm.adjectives);
 
         asm.participles
-            .push(crate::semantic::assembly::model::ParticipleConstituent {
+            .push(crate::semantic::assembly::ParticipleConstituent {
                 verb_lemma: "part1".into(),
                 original: "part1".into(),
                 normalized: "part1".into(),
@@ -396,7 +396,7 @@ mod tests {
                 number: Number::Singular,
             });
         asm.participles
-            .push(crate::semantic::assembly::model::ParticipleConstituent {
+            .push(crate::semantic::assembly::ParticipleConstituent {
                 verb_lemma: "part2".into(),
                 original: "part2".into(),
                 normalized: "part2".into(),
