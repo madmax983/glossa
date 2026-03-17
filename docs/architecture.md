@@ -83,7 +83,7 @@ C4Component
         Component(control_flow, "Control Flow", "src/semantic/control_flow.rs", "Analyzes If, While, Match")
         Component(expressions, "Expressions", "src/semantic/expressions.rs", "Recursively analyzes nested expressions")
         Component(resolver, "Resolver", "src/semantic/resolver.rs", "Manages Scope and Bindings")
-        Component(assembly, "Assembly", "src/semantic/assembly/mod.rs", "Routes words to grammatical slots")
+        Component(assembly, "Assembly", "src/semantic/assembly.rs", "Routes words to grammatical slots")
         Component(conversion, "Conversion", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
