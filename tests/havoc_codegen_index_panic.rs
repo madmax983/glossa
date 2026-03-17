@@ -4,7 +4,7 @@ fn havoc_codegen_index_panic() {
 
     let dir = tempfile::tempdir().unwrap();
     let file_path = dir.path().join("test.glossa");
-    std::fs::write(&file_path, &code).unwrap();
+    std::fs::write(&file_path, code).unwrap();
 
     let run = std::process::Command::new(env!("CARGO_BIN_EXE_glossa"))
         .arg("run")
