@@ -1,7 +1,50 @@
-//! Semantic AST and Data Models
+//! The Semantic Model (τὸ Σημασιολογικὸν Ἔνδυμα)
 //!
-//! This module contains the data structures that represent the analyzed program.
-//! It decouples the data from the logic to prevent circular dependencies.
+//! This module serves as the pure data container for the analyzed program.
+//! It separates the *state* (the Abstract Syntax Tree enriched with type and scope information)
+//! from the *behavior* ([`crate::semantic::analyzer`]) and the *type system* ([`crate::semantic::types`]).
+//!
+//! # Architectural Purpose: The "Atlas" Pattern
+//!
+//! By isolating the data structures here, we prevent circular dependencies between:
+//! * `analyzer.rs` (needs `model.rs` and `types.rs`)
+//! * `types.rs` (needs `model.rs` for function signatures)
+//! * `assembly.rs` (needs `model.rs` to build statements)
+//!
+//! Think of this module as the "dictionary" that all other semantic phases read from and write to.
+//!
+//! # The Journey of a Statement
+//!
+//! 1. Starts as raw text: `«χαῖρε» λέγε.`
+//! 2. Parsed into [`crate::ast::Statement`].
+//! 3. Assembled into [`crate::semantic::assembly::AssembledStatement`].
+//! 4. Finally transformed into an [`AnalyzedStatement`] defined here.
+//!
+//! # Examples
+//!
+//! ```rust
+//! use glossa::semantic::{AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind};
+//! use glossa::semantic::GlossaType;
+//! use smol_str::SmolStr;
+//!
+//! // Creating an analyzed literal: `5`
+//! let five_expr = AnalyzedExpr {
+//!     expr: AnalyzedExprKind::NumberLiteral(5),
+//!     glossa_type: GlossaType::Number,
+//! };
+//!
+//! // Creating an analyzed binding: `ξ 5 ἔστω.` -> `let g_x = 5;`
+//! let binding = AnalyzedStatement::Binding {
+//!     name: SmolStr::new("ξ"),
+//!     value: five_expr,
+//!     mutable: false,
+//! };
+//!
+//! match binding {
+//!     AnalyzedStatement::Binding { name, .. } => assert_eq!(name, "ξ"),
+//!     _ => unreachable!(),
+//! }
+//! ```
 
 use crate::semantic::types::GlossaType;
 use smol_str::SmolStr;

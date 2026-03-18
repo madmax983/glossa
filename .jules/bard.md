@@ -31,3 +31,9 @@
 ## 2025-03-11 - Constructing Errors Consistently
 **Confusion:** The constructors for `GlossaError` (`parse`, `semantic`, `codegen`, etc.) in `src/errors/mod.rs` were missing rustdoc comments, leading to confusion about when to use which constructor and how they map to the underlying enum variants.
 **Clarification:** I added cohesive rustdoc to all public error constructors. Each block now explains *what* the constructor makes, *why* you would use it (e.g., syntactical invalidity vs logical invalidity vs internal compiler bug), and provides an executable example demonstrating its usage.
+## 2026-03-18 - [The Semantic Model]
+**Confusion:** Lack of documentation for the semantic models in  which serves as the core data container.
+**Clarification:** Added comprehensive module-level documentation explaining the Atlas pattern, the separation of logic, types, and state, and included a code example illustrating an analyzed binding statement.
+## 2026-03-18 - [The Semantic Model]
+**Confusion:** Lack of documentation for the semantic models in `src/semantic/model.rs` which serves as the core data container.
+**Clarification:** Added comprehensive module-level documentation explaining the Atlas pattern, the separation of logic, types, and state, and included a code example illustrating an analyzed binding statement.
