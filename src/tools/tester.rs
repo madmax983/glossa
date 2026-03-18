@@ -356,7 +356,8 @@ mod tests {
         // Spawn a new process with an empty environment so rustc cannot be found.
         // This avoids modifying the global PATH in the test runner, which causes race
         // conditions for parallel tests that depend on rustc.
-        let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| "target/debug/glossa".to_string());
+        let bin_path = std::env::var("CARGO_BIN_EXE_glossa")
+            .unwrap_or_else(|_| "target/debug/glossa".to_string());
         let output = std::process::Command::new(&bin_path)
             .arg("test")
             .arg(&input_path)

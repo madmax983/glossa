@@ -610,7 +610,8 @@ mod tests {
         // Instead of mutating the global PATH in the test runner process (which causes UB
         // and race conditions with other parallel tests), we spawn a new process of the CLI
         // executable and wipe its environment completely, forcing rustc to not be found.
-        let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| "target/debug/glossa".to_string());
+        let bin_path = std::env::var("CARGO_BIN_EXE_glossa")
+            .unwrap_or_else(|_| "target/debug/glossa".to_string());
         let output = std::process::Command::new(&bin_path)
             .arg("run")
             .arg(&input_path)
