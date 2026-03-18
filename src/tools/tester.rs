@@ -356,7 +356,10 @@ mod tests {
         std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.").unwrap();
 
         // Spawn a child process so we don't mutate the global PATH/env.
-        let mut cmd = std::process::Command::new(std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| "target/debug/glossa".to_string()));
+        let mut cmd = std::process::Command::new(
+            std::env::var("CARGO_BIN_EXE_glossa")
+                .unwrap_or_else(|_| "target/debug/glossa".to_string()),
+        );
         let output = cmd
             .arg("test")
             .arg(&input_path)

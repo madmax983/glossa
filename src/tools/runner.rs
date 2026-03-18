@@ -485,7 +485,12 @@ mod tests {
         // code, the OS error bubbles up cleanly via miette instead of our custom prefix if open succeeds
         // and read fails (which is OS-dependent on directories). However, if open fails directly, we
         // expect "Failed to open file". We assert on general error presence.
-        assert!(err_msg.contains("Failed to open file") || err_msg.contains("Is a directory") || err_msg.contains("Access is denied") || err_msg.contains("Permission denied"));
+        assert!(
+            err_msg.contains("Failed to open file")
+                || err_msg.contains("Is a directory")
+                || err_msg.contains("Access is denied")
+                || err_msg.contains("Permission denied")
+        );
     }
 
     #[test]
@@ -608,7 +613,10 @@ mod tests {
         // variable without modifying the global state of the concurrent test runner.
         // Even though coverage inside the child won't count towards the Codecov patch score,
         // we've compensated enough elsewhere.
-        let mut cmd = std::process::Command::new(std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| "target/debug/glossa".to_string()));
+        let mut cmd = std::process::Command::new(
+            std::env::var("CARGO_BIN_EXE_glossa")
+                .unwrap_or_else(|_| "target/debug/glossa".to_string()),
+        );
         let output = cmd
             .arg("run")
             .arg(&input_path)
