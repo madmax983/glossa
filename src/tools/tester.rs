@@ -589,4 +589,27 @@ test name with spaces ... ok
         let results = parse_test_output(output);
         assert_eq!(results.len(), 2);
     }
+
+    #[test]
+    fn test_extract_failures_with_empty_output() {
+        let output = "";
+        let failures = extract_failures(output);
+        assert!(failures.is_empty());
+    }
+
+    #[test]
+    fn test_extract_failures_without_actual_failures() {
+        let output = "failures:\n\n\n\n";
+        let failures = extract_failures(output);
+        assert!(failures.is_empty());
+    }
+
+    #[test]
+    fn test_extract_failures_simple_panic() {
+        let output = "failures:\n\n---- test_1 stdout ----\nthread 'test_1' panicked\n\nfailures:\n    test_1\n";
+        let failures = extract_failures(output);
+        assert_eq!(failures.len(), 1);
+        assert_eq!(failures[0].0, "test_1");
+        assert!(failures[0].1.contains("panicked"));
+    }
 }

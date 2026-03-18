@@ -41,3 +41,11 @@
 **2025-03-05 - Avoid unreachable!() in Pattern Matching Fallbacks**
 **Learning:** `unreachable!()` inside complex logic like the `process_participles` pattern matcher in `src/semantic/patterns.rs` acts as a ticking time bomb. Even if the expected conditions are validated elsewhere, unexpected invalid configurations (like `BinaryOp::Sub` in a fold pattern) could sneak in during earlier assembly phases and cause panic instead of graceful failures.
 **Action:** Replace `unreachable!()` with safe negative-match default returns (e.g., `return (false, false);` or `None`), and explicitly construct a failing unit test under `#[cfg(test)] mod tests` to cover this exact structural configuration.
+
+**Testing UI Status that consumes self**
+**Learning:** `Status::success` and `Status::error` take ownership of `self` (`mut self`), which means you cannot call them and then attempt to use the `Status` struct again in the same scope, or even call them twice, because the value is moved. Testing `.update()` on an inactive status must be done by mutating the `active` flag directly if the API doesn't allow re-use after completion.
+**Action:** When testing UI structs that implement consuming builder/completion patterns, either construct fresh instances per test phase or manipulate internal state directly if the goal is to test protective early returns.
+
+**Testing Output Parsers with Edge Case Strings**
+**Learning:** When testing output parsers like `extract_failures` that expect structured text (like `rustc --test` output), using strings that partially match the expected structure but lack content (e.g., just `failures:\n\n\n\n`) is an effective way to trigger and cover edge case bounds checks.
+**Action:** Always include table-driven or isolated tests for text parsers that feed them "almost correct" but structurally empty or invalid data to hit early returns and empty-state branches.
