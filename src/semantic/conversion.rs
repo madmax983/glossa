@@ -382,10 +382,15 @@ fn classify_subjunctive_comparison(
 }
 
 /// Helper: Resolve the target variable name and the effective assembled statement for binding
-fn resolve_binding_target(
-    asm_stmt: &AssembledStatement,
+///
+/// ⚡ Bolt Optimization: Returns a `std::borrow::Cow<'_, AssembledStatement>` instead of
+/// `AssembledStatement` to avoid cloning a large struct on a hot path during semantic analysis.
+/// We only need to clone and mutate the assembled statement if we're swapping subject/object
+/// or fixing false participles. Otherwise, we just return a borrowed reference to the original statement.
+fn resolve_binding_target<'a>(
+    asm_stmt: &'a AssembledStatement,
     scope: &Scope,
-) -> Result<(String, AssembledStatement), GlossaError> {
+) -> Result<(String, std::borrow::Cow<'a, AssembledStatement>), GlossaError> {
     // Check for "false participles" (nouns misclassified as participles)
     let has_false_participle = !asm_stmt.participles.is_empty()
         && morphology::lexicon::lookup(&asm_stmt.participles[0].verb_lemma).is_none();
@@ -394,7 +399,7 @@ fn resolve_binding_target(
         let first_participle = &asm_stmt.participles[0];
         let mut fixed_asm = asm_stmt.clone();
         fixed_asm.participles = asm_stmt.participles[1..].to_vec();
-        return Ok((first_participle.normalized.to_string(), fixed_asm));
+        return Ok((first_participle.normalized.to_string(), std::borrow::Cow::Owned(fixed_asm)));
     }
 
     // Check for Subject/Object swap (if Subject is defined and Object is not, bind to Object)
@@ -406,15 +411,15 @@ fn resolve_binding_target(
             let mut swapped = asm_stmt.clone();
             swapped.subject = Some(object.clone());
             swapped.object = Some(subject.clone());
-            return Ok((object_name.to_string(), swapped));
+            return Ok((object_name.to_string(), std::borrow::Cow::Owned(swapped)));
         } else {
-            return Ok((subject_name.to_string(), asm_stmt.clone()));
+            return Ok((subject_name.to_string(), std::borrow::Cow::Borrowed(asm_stmt)));
         }
     }
 
     // Default case: Bind to Subject
     if let Some(subject) = &asm_stmt.subject {
-        return Ok((subject.normalized.to_string(), asm_stmt.clone()));
+        return Ok((subject.normalized.to_string(), std::borrow::Cow::Borrowed(asm_stmt)));
     }
 
     // Fallback: Bind to first participle (if any remain)
@@ -422,7 +427,7 @@ fn resolve_binding_target(
         let first_participle = &asm_stmt.participles[0];
         let mut fixed_asm = asm_stmt.clone();
         fixed_asm.participles = asm_stmt.participles[1..].to_vec();
-        return Ok((first_participle.normalized.to_string(), fixed_asm));
+        return Ok((first_participle.normalized.to_string(), std::borrow::Cow::Owned(fixed_asm)));
     }
 
     Err(GlossaError::semantic("Binding without subject"))
@@ -442,7 +447,7 @@ fn classify_variable_binding(
     }
 
     let (var_name, actual_asm) = resolve_binding_target(asm_stmt, scope)?;
-    let (value_expr, value_type) = extract_value(&actual_asm, scope)?;
+    let (value_expr, value_type) = extract_value(actual_asm.as_ref(), scope)?;
 
     let final_value_expr = if asm_stmt.is_propagate {
         AnalyzedExpr {
@@ -2445,7 +2450,9 @@ mod tests {
         let scope = Scope::new();
         let result = resolve_binding_target(&asm_stmt, &scope);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().0, "participle");
+        let (name, fixed_asm) = result.unwrap();
+        assert_eq!(name, "participle");
+        assert!(matches!(fixed_asm, std::borrow::Cow::Owned(_)));
     }
 
     #[test]

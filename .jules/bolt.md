@@ -4,3 +4,7 @@
 **[Slice Refactoring over Vec Collection in AST Parsing]**
 **Learning:** Avoid replacing `Vec::new()` with `Vec::with_capacity()` using arbitrary heuristics (e.g., total statement counts). `Vec::new()` is a zero-cost abstraction, whereas eager capacity allocation causes immediate heap allocations, which can lead to performance regressions if the vectors remain empty. Only use `Vec::with_capacity` when the exact required size is known in advance. When parsing or traversing ASTs (e.g., in `semantic/control_flow.rs`), avoid collecting iterator chains into intermediate vectors (e.g., `terms.iter().skip(1).collect::<Vec<_>>()`). Instead, use slice references (e.g., `&terms[1..]`) whenever possible to prevent unnecessary `O(N)` heap allocations.
 **Action:** Identify and replace unnecessary `.collect::<Vec<_>>()` calls with slices, and only use `Vec::with_capacity` with an exact calculated size.
+
+**Cow Optimization for Heavy AST Structs**
+**Learning:** Returning a large parsed AST struct like `AssembledStatement` (which contains multiple internal `Vec`s) by value from helper functions causes expensive clones on hot paths like variable binding.
+**Action:** Use `std::borrow::Cow<'a, AssembledStatement>` to return a borrowed reference for the happy path and only allocate `Cow::Owned` when modification (like swapping subject/object) is strictly necessary.
