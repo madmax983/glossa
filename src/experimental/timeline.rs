@@ -253,12 +253,29 @@ fn analyze_statement_timeline(stmt: &AnalyzedStatement, table: &mut Table, tick:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::tempdir;
 
     #[test]
-    fn test_timeline_output() {
+    fn test_timeline_run_file() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.gl");
+        std::fs::write(&file_path, "ξ 5 ἔστω.").unwrap();
+
+        // Valid file
+        let res = run_timeline(&file_path);
+        assert!(res.is_ok());
+
+        // Invalid file (directory)
+        let res_err = run_timeline(dir.path());
+        assert!(res_err.is_err());
+    }
+
+    #[test]
+    fn test_timeline_basic_output() {
         let source = "
             ξ μετά πέντε ἔστω.
             «χαῖρε» λέγε.
+            ξ?
             ξ 10 γίγνεται.
         ";
         let mut buffer = Vec::new();
@@ -267,8 +284,170 @@ mod tests {
 
         assert!(output.contains("THE TIMELINE"));
         assert!(output.contains("Birth"));
+        assert!(output.contains("Created as Mutable"));
         assert!(output.contains("Mutation"));
         assert!(output.contains("Side Effect"));
+        assert!(output.contains("Prints 1 items"));
+        assert!(output.contains("Queries 1 items"));
         assert!(output.contains("ξ"));
+    }
+
+    #[test]
+    fn test_timeline_control_flow_and_loops() {
+        let source = "
+            ξ 10 ἔστω.
+            εἰ ξ 5 μεῖζον ᾖ,
+                ξ?
+            εἰ δὲ μή,
+                ξ?
+            τέλος.
+
+            ἕως ξ 0 μεῖζον ᾖ,
+                παῦε.
+            τέλος.
+
+            ἀριθμός [1, 2, 3] ἔστω.
+            διὰ ἀριθμοῦ,
+                συνέχιζε.
+            τέλος.
+        ";
+        let mut buffer = Vec::new();
+        run_timeline_inner(source, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        assert!(output.contains("Divergence"));
+        assert!(output.contains("Branching occurs (If)"));
+        assert!(output.contains("Convergence"));
+        assert!(output.contains("Branches merge"));
+
+        assert!(output.contains("Loop Start"));
+        assert!(output.contains("While loop begins"));
+        assert!(output.contains("While loop evaluates condition"));
+        assert!(output.contains("Break from loop"));
+
+        assert!(output.contains("For loop iterates"));
+        assert!(output.contains("Continue loop"));
+        assert!(output.contains("For loop ends"));
+    }
+
+    #[test]
+    fn test_timeline_definitions_and_matching() {
+        let source = "
+            ξ 1 ἔστω.
+        ";
+        // Manual AST construction for Match, Function, Test, etc because parser is tricky to hit without full context
+        let mut buffer = Vec::new();
+        run_timeline_inner(source, &mut buffer).unwrap();
+
+        let mut table = Table::new();
+        let mut tick = 0;
+
+        let struct_def = AnalyzedStatement::TypeDefinition {
+            name: "X".into(),
+            fields: vec![],
+        };
+        analyze_statement_timeline(&struct_def, &mut table, &mut tick);
+
+        let trait_def = AnalyzedStatement::TraitDefinition {
+            name: "T".into(),
+            methods: vec![],
+        };
+        analyze_statement_timeline(&trait_def, &mut table, &mut tick);
+
+        let trait_impl = AnalyzedStatement::TraitImplementation {
+            trait_name: "T".into(),
+            type_name: "X".into(),
+            methods: vec![],
+        };
+        analyze_statement_timeline(&trait_impl, &mut table, &mut tick);
+
+        let match_stmt = AnalyzedStatement::Match {
+            scrutinee: Box::new(crate::semantic::model::AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: crate::semantic::GlossaType::Unknown,
+            }),
+            arms: vec![(
+                crate::semantic::model::AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: crate::semantic::GlossaType::Unknown,
+                },
+                vec![],
+            )],
+        };
+
+        analyze_statement_timeline(&match_stmt, &mut table, &mut tick);
+
+        // Let's add the function definition manually to avoid parser strictness issues in tests
+        let func_stmt = AnalyzedStatement::FunctionDef {
+            name: "g_add".into(),
+            params: vec![],
+            body: vec![],
+            return_type: None,
+        };
+        analyze_statement_timeline(&func_stmt, &mut table, &mut tick);
+
+        // Let's add Test Declaration manually
+        let test_stmt = AnalyzedStatement::TestDeclaration {
+            name: "t".to_string(),
+            body: vec![],
+        };
+        analyze_statement_timeline(&test_stmt, &mut table, &mut tick);
+
+        // Let's add Function Call manually
+        let func_call_stmt =
+            AnalyzedStatement::Expression(vec![crate::semantic::model::AnalyzedExpr {
+                expr: AnalyzedExprKind::FunctionCall {
+                    func: "g_add".into(),
+                    args: vec![],
+                },
+                glossa_type: crate::semantic::GlossaType::Unknown,
+            }]);
+        analyze_statement_timeline(&func_call_stmt, &mut table, &mut tick);
+
+        // Let's add Return manually
+        let ret_stmt = AnalyzedStatement::Return { value: None };
+        analyze_statement_timeline(&ret_stmt, &mut table, &mut tick);
+
+        let output = table.to_string();
+
+        let full_output = String::from_utf8(buffer).unwrap() + &output;
+
+        assert!(full_output.contains("Type (Struct) defined"));
+        assert!(full_output.contains("Trait defined"));
+        assert!(full_output.contains("Trait implemented"));
+        assert!(full_output.contains("Function defined"));
+        assert!(full_output.contains("Test declared"));
+        assert!(full_output.contains("Return from function"));
+        assert!(full_output.contains("Function call"));
+
+        assert!(full_output.contains("Match expression with 1 arms"));
+        assert!(full_output.contains("Match branches merge"));
+    }
+
+    #[test]
+    fn test_timeline_method_call() {
+        // Construct AST manually as it's easier than finding Glossa standard library method
+        // syntax just to hit the 'Method call' expression branch.
+        let mut tick = 0;
+        let mut table = Table::new();
+
+        use crate::semantic::GlossaType;
+        let method_call =
+            AnalyzedStatement::Expression(vec![crate::semantic::model::AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(crate::semantic::model::AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Unknown,
+                    }),
+                    method: "push".into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+            }]);
+
+        analyze_statement_timeline(&method_call, &mut table, &mut tick);
+        let output = table.to_string();
+        assert!(output.contains("Method call"));
+        assert!(output.contains("push"));
     }
 }
