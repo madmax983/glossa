@@ -36,3 +36,7 @@
 **Refactoring `try_parse_trait_method_call` and `feed_expr_recursive`**
 **Learning:** Refactoring deeply nested code using guard clauses correctly preserves readability and avoids "Pyramid of Doom" without altering logic. Similarly, extracting individual large arms of a large match statement into named helper functions directly tackles "God Object" smells and reduces cognitive load, without having to extract with wildcard catch-alls which bypasses exhaustiveness checks.
 **Action:** Continually prioritize replacing nested `if let` blocks with early returns (guard clauses `let Some(x) = y else { return; }`) and decomposing large match statement inner logic into scoped helper functions to flatten nested code and improve readability.
+
+**Refactoring God Functions in CLI Display Utilities**
+**Learning:** Functions that generate complex UI tables (like `add_row` in `src/tools/mosaic.rs`) often become God Functions (~150+ lines) as they aggregate many different data types and conditions into a single string. This creates a "Pyramid of Doom" of data preparation right before UI construction.
+**Action:** Extract the complex column data preparation logic into distinct formatting helper functions (e.g., `format_subject`, `format_other_column`), keeping the main row addition function focused solely on inserting the mapped columns into the table UI.
