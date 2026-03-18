@@ -498,15 +498,18 @@ mod tests {
     fn test_build_file_output_directory_error() {
         let dir = tempfile::tempdir().unwrap();
         let input_path = dir.path().join("test.gl");
-        {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("«test» λέγε.".as_bytes()).unwrap();
-        }
+        // Using fs::write avoids needing std::io::Write in scope
+        std::fs::write(&input_path, "«test» λέγε.").unwrap();
 
         // Try to output the compiled rust file to a directory path instead of a file path
         let result = build_file(&input_path, Some(dir.path()));
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Failed to write to file"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Failed to write to file")
+        );
     }
 
     #[test]
