@@ -348,6 +348,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_run_tests_rustc_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_rustc_missing.gl");
+        std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.").unwrap();
+
+        // Spawn a new process with an empty environment so rustc cannot be found.
+        // This avoids modifying the global PATH in the test runner, which causes race
+        // conditions for parallel tests that depend on rustc.
+        let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| "target/debug/glossa".to_string());
+        let output = std::process::Command::new(&bin_path)
+            .arg("test")
+            .arg(&input_path)
+            .env_clear()
+            .output()
+            .unwrap_or_else(|e| panic!("Failed to execute {}: {}", bin_path, e));
+
+        assert!(!output.status.success());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("Failed to start rustc. Is Rust installed?"));
+    }
+
+    #[test]
     fn test_parse_output_basic() {
         let output = "
 running 2 tests

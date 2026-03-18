@@ -602,6 +602,28 @@ mod tests {
     }
 
     #[test]
+    fn test_run_file_rustc_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("run_rustc_missing.gl");
+        std::fs::write(&input_path, "«test» λέγε.").unwrap();
+
+        // Instead of mutating the global PATH in the test runner process (which causes UB
+        // and race conditions with other parallel tests), we spawn a new process of the CLI
+        // executable and wipe its environment completely, forcing rustc to not be found.
+        let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| "target/debug/glossa".to_string());
+        let output = std::process::Command::new(&bin_path)
+            .arg("run")
+            .arg(&input_path)
+            .env_clear()
+            .output()
+            .unwrap_or_else(|e| panic!("Failed to execute {}: {}", bin_path, e));
+
+        assert!(!output.status.success());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("Failed to start rustc. Is Rust installed?"));
+    }
+
+    #[test]
     fn test_run_file_success() {
         // 1. Create a temporary Glossa file
         let dir = tempfile::tempdir().unwrap();
