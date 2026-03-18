@@ -72,6 +72,18 @@ fn main() -> Result<()> {
             glossa::tools::alchemist::run_alchemist(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Timeline { input }) => {
+            glossa::experimental::timeline::run_timeline(&input)?;
+        }
+
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Timeline { .. }) => {
+            miette::bail!(
+                "The 'timeline' tool is experimental. Compile glossa with --features nova to use it."
+            );
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
