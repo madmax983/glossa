@@ -434,4 +434,245 @@ mod tests {
         assert_eq!(ctx.expected_gender, Some(Gender::Neuter));
         assert_eq!(ctx.expected_number, Some(Number::Plural));
     }
+
+    #[test]
+    fn test_analyze_article_all_forms() {
+        let test_cases = vec![
+            // Masculine
+            (
+                "ὁ",
+                Some(Case::Nominative),
+                Some(Number::Singular),
+                Some(Gender::Masculine),
+            ),
+            (
+                "ο",
+                Some(Case::Nominative),
+                Some(Number::Singular),
+                Some(Gender::Masculine),
+            ),
+            (
+                "τοῦ",
+                Some(Case::Genitive),
+                Some(Number::Singular),
+                Some(Gender::Masculine),
+            ),
+            (
+                "του",
+                Some(Case::Genitive),
+                Some(Number::Singular),
+                Some(Gender::Masculine),
+            ),
+            (
+                "τῷ",
+                Some(Case::Dative),
+                Some(Number::Singular),
+                Some(Gender::Masculine),
+            ),
+            (
+                "τω",
+                Some(Case::Dative),
+                Some(Number::Singular),
+                Some(Gender::Masculine),
+            ),
+            (
+                "τόν",
+                Some(Case::Accusative),
+                Some(Number::Singular),
+                Some(Gender::Masculine),
+            ),
+            (
+                "τὸν",
+                Some(Case::Accusative),
+                Some(Number::Singular),
+                Some(Gender::Masculine),
+            ),
+            (
+                "τον",
+                Some(Case::Accusative),
+                Some(Number::Singular),
+                Some(Gender::Masculine),
+            ),
+            (
+                "οἱ",
+                Some(Case::Nominative),
+                Some(Number::Plural),
+                Some(Gender::Masculine),
+            ),
+            (
+                "οι",
+                Some(Case::Nominative),
+                Some(Number::Plural),
+                Some(Gender::Masculine),
+            ),
+            ("τῶν", Some(Case::Genitive), Some(Number::Plural), None), // Genitive plural is gender-ambiguous
+            ("των", Some(Case::Genitive), Some(Number::Plural), None),
+            (
+                "τοῖς",
+                Some(Case::Dative),
+                Some(Number::Plural),
+                Some(Gender::Masculine),
+            ),
+            (
+                "τοις",
+                Some(Case::Dative),
+                Some(Number::Plural),
+                Some(Gender::Masculine),
+            ),
+            (
+                "τούς",
+                Some(Case::Accusative),
+                Some(Number::Plural),
+                Some(Gender::Masculine),
+            ),
+            (
+                "τοὺς",
+                Some(Case::Accusative),
+                Some(Number::Plural),
+                Some(Gender::Masculine),
+            ),
+            (
+                "τους",
+                Some(Case::Accusative),
+                Some(Number::Plural),
+                Some(Gender::Masculine),
+            ),
+            // Feminine
+            (
+                "ἡ",
+                Some(Case::Nominative),
+                Some(Number::Singular),
+                Some(Gender::Feminine),
+            ),
+            (
+                "τῆς",
+                Some(Case::Genitive),
+                Some(Number::Singular),
+                Some(Gender::Feminine),
+            ),
+            (
+                "της",
+                Some(Case::Genitive),
+                Some(Number::Singular),
+                Some(Gender::Feminine),
+            ),
+            (
+                "τῇ",
+                Some(Case::Dative),
+                Some(Number::Singular),
+                Some(Gender::Feminine),
+            ),
+            (
+                "τη",
+                Some(Case::Dative),
+                Some(Number::Singular),
+                Some(Gender::Feminine),
+            ),
+            (
+                "τήν",
+                Some(Case::Accusative),
+                Some(Number::Singular),
+                Some(Gender::Feminine),
+            ),
+            (
+                "τὴν",
+                Some(Case::Accusative),
+                Some(Number::Singular),
+                Some(Gender::Feminine),
+            ),
+            (
+                "την",
+                Some(Case::Accusative),
+                Some(Number::Singular),
+                Some(Gender::Feminine),
+            ),
+            (
+                "αἱ",
+                Some(Case::Nominative),
+                Some(Number::Plural),
+                Some(Gender::Feminine),
+            ),
+            (
+                "αι",
+                Some(Case::Nominative),
+                Some(Number::Plural),
+                Some(Gender::Feminine),
+            ),
+            (
+                "ταῖς",
+                Some(Case::Dative),
+                Some(Number::Plural),
+                Some(Gender::Feminine),
+            ),
+            (
+                "ταις",
+                Some(Case::Dative),
+                Some(Number::Plural),
+                Some(Gender::Feminine),
+            ),
+            (
+                "τάς",
+                Some(Case::Accusative),
+                Some(Number::Plural),
+                Some(Gender::Feminine),
+            ),
+            (
+                "τὰς",
+                Some(Case::Accusative),
+                Some(Number::Plural),
+                Some(Gender::Feminine),
+            ),
+            (
+                "τας",
+                Some(Case::Accusative),
+                Some(Number::Plural),
+                Some(Gender::Feminine),
+            ),
+            // Neuter
+            ("τό", None, Some(Number::Singular), Some(Gender::Neuter)), // Neuter is case-ambiguous (Nom/Acc)
+            ("τὸ", None, Some(Number::Singular), Some(Gender::Neuter)),
+            ("το", None, Some(Number::Singular), Some(Gender::Neuter)),
+            ("τά", None, Some(Number::Plural), Some(Gender::Neuter)),
+            ("τὰ", None, Some(Number::Plural), Some(Gender::Neuter)),
+            ("τα", None, Some(Number::Plural), Some(Gender::Neuter)),
+            // Invalid
+            ("not_an_article", None, None, None),
+        ];
+
+        for (word, expected_case, expected_number, expected_gender) in test_cases {
+            let ctx_opt = analyze_article(word);
+
+            if expected_case.is_none() && expected_number.is_none() && expected_gender.is_none() {
+                assert!(
+                    ctx_opt.is_none(),
+                    "Expected no context for '{}', but got {:?}",
+                    word,
+                    ctx_opt
+                );
+            } else {
+                let ctx = ctx_opt
+                    .unwrap_or_else(|| panic!("Expected context for '{}', but got None", word));
+                assert_eq!(
+                    ctx.expected_case, expected_case,
+                    "Mismatched case for '{}'",
+                    word
+                );
+                assert_eq!(
+                    ctx.expected_number, expected_number,
+                    "Mismatched number for '{}'",
+                    word
+                );
+                assert_eq!(
+                    ctx.expected_gender, expected_gender,
+                    "Mismatched gender for '{}'",
+                    word
+                );
+                assert_eq!(
+                    ctx.expected_person, None,
+                    "Person should always be None for articles ('{}')",
+                    word
+                );
+            }
+        }
+    }
 }
