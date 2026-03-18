@@ -2485,6 +2485,42 @@ mod tests {
     }
 
     #[test]
+    fn test_resolve_binding_target_subject_object_no_swap() {
+        // Create a scope where NEITHER is defined.
+        // This should skip the swap logic and fall into the 'else' branch,
+        // binding to the subject and returning Cow::Borrowed.
+        let scope = Scope::new();
+
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "subject_var".into(),
+                normalized: "subject_var".into(),
+                original: "subject_var".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: Some(crate::morphology::Number::Singular),
+                person: None,
+            }),
+            object: Some(Constituent {
+                lemma: "object_var".into(),
+                normalized: "object_var".into(),
+                original: "object_var".into(),
+                gender: None,
+                case: crate::morphology::Case::Accusative,
+                number: Some(crate::morphology::Number::Singular),
+                person: None,
+            }),
+            ..Default::default()
+        };
+
+        let result = resolve_binding_target(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        let (name, fixed_asm) = result.unwrap();
+        assert_eq!(name, "subject_var");
+        assert!(matches!(fixed_asm, std::borrow::Cow::Borrowed(_)));
+    }
+
+    #[test]
     fn test_resolve_binding_target_no_subject_has_participle() {
         // This tests the "Fallback: Bind to first participle (if any remain)" case
         // We use a verb_lemma that exists in the lexicon so it's NOT treated as a "false participle"

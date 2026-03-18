@@ -12,3 +12,7 @@
 **Codecov Patch Gate Drops After Formatting**
 **Learning:** Running `cargo fmt` can expand untested, single-line fallback or error branches (like swapping subject/object logic) into multi-line statements. This artificially increases the number of "uncovered" lines in the diff, which can cause the strict `codecov/patch` gate (target 92.94%) to fail even if logic wasn't changed.
 **Action:** Use `cargo llvm-cov --show-missing-lines` locally to identify exactly which new lines lack coverage, and write unit tests to exercise those specific edge cases to restore the coverage percentage before pushing.
+
+**Codecov Patch Gates and Manual AST Construction**
+**Learning:** When trying to test specific logic branches (like `AssembledStatement` fallbacks in `resolve_binding_target`) to satisfy strict >92% Codecov patch gates, it is often simpler and far less brittle to manually construct the required AST/Semantic structs (`Constituent`, `AssembledStatement`, etc.) and pass them directly to the helper function in a unit test, rather than trying to reverse-engineer a raw ancient Greek string that parses and semantically evaluates perfectly into that precise edge case.
+**Action:** For edge-case branch coverage, write targeted unit tests that manually instantiate the data structures needed to trigger the specific `if` statement logic.
