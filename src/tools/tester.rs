@@ -45,7 +45,7 @@ use crate::semantic::analyze_program;
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, CellAlignment, Color, Table, presets};
 use crossterm::style::Stylize;
-use miette::{IntoDiagnostic, Result};
+use miette::Result;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -169,9 +169,10 @@ pub fn run_tests(input: &Path) -> Result<()> {
         .prefix("glossa_test_")
         .suffix(".rs")
         .tempfile()
-        .into_diagnostic()?;
+        .map_err(|e| miette::miette!("Failed to create temporary file for test: {}", e))?;
 
-    write!(temp_file, "{}", rust_code).into_diagnostic()?;
+    write!(temp_file, "{}", rust_code)
+        .map_err(|e| miette::miette!("Failed to write to temporary test file: {}", e))?;
     let temp_path = temp_file.path().to_owned();
 
     // 4. Determine output path for the test binary
@@ -200,7 +201,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
         .arg("-o")
         .arg(&exe_path)
         .output()
-        .into_diagnostic()?;
+        .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
 
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
@@ -213,7 +214,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     let test_output = Command::new(&exe_path)
         .output() // Capture output to display it nicely
-        .into_diagnostic()?;
+        .map_err(|e| miette::miette!("Failed to execute test binary: {}", e))?;
 
     // Cleanup: The temp_file (source) is auto-deleted when dropped.
     // The executable must be deleted manually.

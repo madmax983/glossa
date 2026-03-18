@@ -7,7 +7,7 @@ use crate::tools::narrator::tell_tale;
 use crate::tools::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
-use miette::{IntoDiagnostic, Result};
+use miette::Result;
 use std::fs;
 use std::io::Read;
 use std::path::Path;
@@ -37,7 +37,8 @@ fn compile(source: &str) -> Result<String> {
 
 /// Check file size to prevent DoS
 fn check_file_size(input: &Path) -> Result<()> {
-    let metadata = fs::metadata(input).into_diagnostic()?;
+    let metadata = fs::metadata(input)
+        .map_err(|e| miette::miette!("Failed to read file metadata for {}: {}", input.display(), e))?;
     if metadata.len() > MAX_FILE_SIZE {
         return Err(miette::miette!(
             "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
@@ -67,13 +68,14 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
     }
     check_file_size(input)?;
 
-    let file = fs::File::open(input).into_diagnostic()?;
+    let file = fs::File::open(input)
+        .map_err(|e| miette::miette!("Failed to open file {}: {}", input.display(), e))?;
     let mut content = String::new();
 
     // Use take to limit the read, preventing OOM on infinite streams (e.g. /dev/zero)
     file.take(MAX_FILE_SIZE + 1)
         .read_to_string(&mut content)
-        .into_diagnostic()?;
+        .map_err(|e| miette::miette!("Failed to read file {}: {}", input.display(), e))?;
 
     if content.len() as u64 > MAX_FILE_SIZE {
         return Err(miette::miette!(
@@ -139,9 +141,12 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
         .map(|p| p.to_owned())
         .unwrap_or_else(|| input.with_extension("rs"));
 
-    fs::write(&output_path, &rust_code).into_diagnostic()?;
+    fs::write(&output_path, &rust_code)
+        .map_err(|e| miette::miette!("Failed to write to file {}: {}", output_path.display(), e))?;
 
-    let output_size = fs::metadata(&output_path).into_diagnostic()?.len();
+    let output_size = fs::metadata(&output_path)
+        .map_err(|e| miette::miette!("Failed to read file metadata for {}: {}", output_path.display(), e))?
+        .len();
     let duration = start.elapsed();
     let stats = ProgramStats::new(&analyzed);
 
@@ -208,7 +213,8 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     // Set up cache
     let cache = Cache::new();
-    cache.init().into_diagnostic()?;
+    cache.init()
+        .map_err(|e| miette::miette!("Failed to initialize cache: {}", e))?;
 
     let (cached_rs, cached_exe) = cache.get_paths(input);
 
@@ -218,7 +224,9 @@ pub fn run_file(input: &Path) -> Result<()> {
         println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
 
         // Run cached binary directly
-        let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+        let exit_status = Command::new(&cached_exe)
+            .status()
+            .map_err(|e| miette::miette!("Failed to execute cached program: {}", e))?;
 
         println!("{}", "--- Τέλος (End) ---".dim());
 
@@ -242,7 +250,8 @@ pub fn run_file(input: &Path) -> Result<()> {
     };
 
     // Write Rust source to cache
-    fs::write(&cached_rs, &rust_code).into_diagnostic()?;
+    fs::write(&cached_rs, &rust_code)
+        .map_err(|e| miette::miette!("Failed to write to cache file {}: {}", cached_rs.display(), e))?;
 
     status.update("Οἰκοδόμησις (Building)");
 
@@ -256,7 +265,7 @@ pub fn run_file(input: &Path) -> Result<()> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .into_diagnostic()?;
+        .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
 
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
@@ -288,7 +297,9 @@ pub fn run_file(input: &Path) -> Result<()> {
     println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
 
     // Run the compiled program
-    let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+    let exit_status = Command::new(&cached_exe)
+        .status()
+        .map_err(|e| miette::miette!("Failed to execute compiled program: {}", e))?;
 
     println!("{}", "--- Τέλος (End) ---".dim());
 
