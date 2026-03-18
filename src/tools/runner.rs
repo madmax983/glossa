@@ -484,6 +484,32 @@ mod tests {
     }
 
     #[test]
+    fn test_load_source_directory_error() {
+        let dir = tempfile::tempdir().unwrap();
+        // A directory exists, so it passes the `!input.exists()` check.
+        // But `fs::File::open` or `read_to_string` will fail on a directory.
+        let result = load_source(dir.path());
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Failed to open file") || err_msg.contains("Failed to read file"));
+    }
+
+    #[test]
+    fn test_build_file_output_directory_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«test» λέγε.".as_bytes()).unwrap();
+        }
+
+        // Try to output the compiled rust file to a directory path instead of a file path
+        let result = build_file(&input_path, Some(dir.path()));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Failed to write to file"));
+    }
+
+    #[test]
     fn test_file_size_check_internal() {
         // Create large file
         let dir = tempfile::tempdir().unwrap();
