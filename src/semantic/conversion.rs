@@ -2444,13 +2444,57 @@ mod tests {
     }
 
     #[test]
+    fn test_resolve_binding_target_subject_object_swap() {
+        // Create a scope where 'subject_var' IS defined but 'object_var' is NOT defined.
+        // This should trigger the Subject/Object swap logic.
+        let mut scope = Scope::new();
+        scope.define("subject_var", GlossaType::Number);
+
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "subject_var".into(),
+                normalized: "subject_var".into(),
+                original: "subject_var".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: Some(crate::morphology::Number::Singular),
+                person: None,
+            }),
+            object: Some(Constituent {
+                lemma: "object_var".into(),
+                normalized: "object_var".into(),
+                original: "object_var".into(),
+                gender: None,
+                case: crate::morphology::Case::Accusative,
+                number: Some(crate::morphology::Number::Singular),
+                person: None,
+            }),
+            ..Default::default()
+        };
+
+        let result = resolve_binding_target(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        let (name, fixed_asm) = result.unwrap();
+        // Since 'subject_var' was defined and 'object_var' was not, it should bind to 'object_var'
+        assert_eq!(name, "object_var");
+        assert!(matches!(fixed_asm, std::borrow::Cow::Owned(_)));
+
+        // Ensure they were actually swapped
+        assert_eq!(fixed_asm.subject.as_ref().unwrap().lemma, "object_var");
+        assert_eq!(fixed_asm.object.as_ref().unwrap().lemma, "subject_var");
+    }
+
+    #[test]
     fn test_resolve_binding_target_no_subject_has_participle() {
+        // This tests the "Fallback: Bind to first participle (if any remain)" case
+        // We use a verb_lemma that exists in the lexicon so it's NOT treated as a "false participle"
+        // Let's use "λεγω" which is definitely a verb
         let asm_stmt = AssembledStatement {
             subject: None,
             participles: vec![crate::semantic::assembly::ParticipleConstituent {
-                verb_lemma: "participle".into(),
-                normalized: "participle".into(),
-                original: "participle".into(),
+                verb_lemma: "λεγω".into(),
+                normalized: "λεγων".into(), // Actual participle
+                original: "λέγων".into(),
                 gender: crate::morphology::Gender::Masculine,
                 case: crate::morphology::Case::Nominative,
                 number: crate::morphology::Number::Singular,
@@ -2463,7 +2507,33 @@ mod tests {
         let result = resolve_binding_target(&asm_stmt, &scope);
         assert!(result.is_ok());
         let (name, fixed_asm) = result.unwrap();
-        assert_eq!(name, "participle");
+        assert_eq!(name, "λεγων");
+        assert!(matches!(fixed_asm, std::borrow::Cow::Owned(_)));
+        assert!(fixed_asm.participles.is_empty()); // Should have been consumed
+    }
+
+    #[test]
+    fn test_resolve_binding_target_false_participle() {
+        // This tests the "false participle" check at the very beginning of the function
+        let asm_stmt = AssembledStatement {
+            subject: None,
+            participles: vec![crate::semantic::assembly::ParticipleConstituent {
+                verb_lemma: "not_a_real_verb_lemma".into(), // Will fail lexicon lookup
+                normalized: "false_participle".into(),
+                original: "false_participle".into(),
+                gender: crate::morphology::Gender::Masculine,
+                case: crate::morphology::Case::Nominative,
+                number: crate::morphology::Number::Singular,
+                voice: crate::morphology::Voice::Active,
+                tense: crate::morphology::Tense::Present,
+            }],
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = resolve_binding_target(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        let (name, fixed_asm) = result.unwrap();
+        assert_eq!(name, "false_participle");
         assert!(matches!(fixed_asm, std::borrow::Cow::Owned(_)));
     }
 

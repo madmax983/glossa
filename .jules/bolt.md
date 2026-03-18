@@ -8,3 +8,7 @@
 **Cow Optimization for Heavy AST Structs**
 **Learning:** Returning a large parsed AST struct like `AssembledStatement` (which contains multiple internal `Vec`s) by value from helper functions causes expensive clones on hot paths like variable binding.
 **Action:** Use `std::borrow::Cow<'a, AssembledStatement>` to return a borrowed reference for the happy path and only allocate `Cow::Owned` when modification (like swapping subject/object) is strictly necessary.
+
+**Codecov Patch Gate Drops After Formatting**
+**Learning:** Running `cargo fmt` can expand untested, single-line fallback or error branches (like swapping subject/object logic) into multi-line statements. This artificially increases the number of "uncovered" lines in the diff, which can cause the strict `codecov/patch` gate (target 92.94%) to fail even if logic wasn't changed.
+**Action:** Use `cargo llvm-cov --show-missing-lines` locally to identify exactly which new lines lack coverage, and write unit tests to exercise those specific edge cases to restore the coverage percentage before pushing.
