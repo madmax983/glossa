@@ -1,10 +1,10 @@
-# 🗣️ Echo: Internal Compiler Error leaks raw Rustc details on type mismatch
+# 🗣️ Echo: DX Audit - Type Mismatch Leaks Rust Internal Compiler Errors
 
 🤦 **The Confusion:**
-"I wrote a simple program where I tried to use a number as a map (`ξ 10 ἔστω. «χαῖρε» ξ τίθησι.`). Instead of a helpful error telling me 'ξ is not a map', the compiler crashed with an enormous red box saying `INTERNAL COMPILER ERROR (Codegen Failed)` and spit out a raw Rust error (`error[E0599]: no method named insert found for type i64`)."
+I was trying to build my ancient Greek program and accidentally used a number variable (`ξ`) as if it was a map, trying to insert values into it (`τίθησι`). Instead of a friendly Greek error message like `Ἀσυμφωνία` or telling me that the types don't match, I got bombarded with a massive red block of text screaming about `INTERNAL COMPILER ERROR (Codegen Failed)`. It showed a lot of cryptic internal jargon about `error[E0599]`, `nightly builds`, `-Z macro-backtrace`, and a bizarre suggestion to use `isqrt` instead of `insert`.
 
 🕵️ **The Reality:**
-"The compiler transpiles to Rust, but doesn't check types thoroughly enough before generating the code. So when I write semantically invalid code, it generates invalid Rust code, and then `rustc` fails and yells at me instead of Glossa catching the error."
+Turns out, my code simply had a semantic type mismatch (attempting to use a number as a map). The compiler's semantic validation phase bypassed this issue entirely and sent invalid instructions straight to the code generation phase. This caused `rustc` to panic when trying to compile the generated Rust code, leaking the raw, ugly Rust compiler error to the user.
 
 💡 **The Fix:**
-"Add semantic type checking for operations like map insertion before code generation, and return a clean, helpful Glossa error (e.g., 'Type mismatch') instead of leaking raw `rustc` stack traces."
+The semantic analyzer needs to actually validate type operations before handing them off to the code generator! If I try to call a map insertion method on an `i64`, the Glossa compiler should catch this and emit a proper, localized `GlossaError` during the `Μεταγλώττισις (Compiling)` step, completely preventing the terrifying `E0599` internal error.

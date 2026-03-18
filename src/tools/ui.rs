@@ -253,4 +253,15 @@ mod tests {
             // Should execute Drop (show cursor)
         }
     }
+
+    #[test]
+    fn test_status_update_inactive() {
+        let mut status = Status::start("Test");
+        status.active = false;
+        status.update("New message"); // should not print/update message since it's inactive
+        assert_ne!(status.message, "New message");
+
+        // calling success again or error does nothing if already inactive
+        status.success();
+    }
 }
