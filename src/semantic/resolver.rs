@@ -8,7 +8,7 @@
 //!
 //! The resolver uses a stack-based lexical environment:
 //! * **[`Scope`]**: The entire environment, containing a stack of [`ScopeLevel`]s.
-//! * **[`ScopeLevel`]**: A single dictionary (using `FxHashMap` for speed) mapping names to [`Symbol`]s.
+//! * **[`ScopeLevel`]**: A single dictionary (using `FxHashMap` for speed) mapping names to [`Binding`]s.
 //! * **[`ScopeGuard`]**: An RAII (Resource Acquisition Is Initialization) guard returned by [`Scope::enter_scope`].
 //!   When the guard goes out of scope, it automatically drops the deepest `ScopeLevel`.
 //!
