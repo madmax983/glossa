@@ -1,7 +1,6 @@
-use glossa::ast::Word;
 use glossa::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, CaptureMode, TraitDef,
-    TraitImpl, AssembledStatement, Constituent, VerbConstituent, ParticipleConstituent, Literal
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, AssembledStatement,
+    CaptureMode, Constituent, Literal, ParticipleConstituent, TraitDef, TraitImpl, VerbConstituent,
 };
 use smol_str::SmolStr;
 
@@ -14,6 +13,177 @@ fn test_analyzed_statement_debug() {
     let stmt2 = AnalyzedStatement::Continue;
     let dbg2 = format!("{:?}", stmt2);
     assert!(dbg2.contains("Continue"));
+
+    let stmt3 = AnalyzedStatement::Return { value: None };
+    let dbg3 = format!("{:?}", stmt3);
+    assert!(dbg3.contains("Return"));
+    assert!(dbg3.contains("value"));
+
+    let stmt4 = AnalyzedStatement::If {
+        condition: Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: glossa::semantic::GlossaType::Boolean,
+        }),
+        then_body: vec![],
+        else_body: None,
+    };
+    let dbg4 = format!("{:?}", stmt4);
+    assert!(dbg4.contains("If"));
+    assert!(dbg4.contains("condition"));
+
+    let stmt5 = AnalyzedStatement::TypeDefinition {
+        name: SmolStr::new("Type"),
+        fields: vec![],
+    };
+    let dbg5 = format!("{:?}", stmt5);
+    assert!(dbg5.contains("TypeDefinition"));
+
+    let stmt6 = AnalyzedStatement::TraitDefinition {
+        name: SmolStr::new("Trait"),
+        methods: vec![],
+    };
+    let dbg6 = format!("{:?}", stmt6);
+    assert!(dbg6.contains("TraitDefinition"));
+}
+
+#[test]
+fn test_analyzed_expr_kind_debug_all_variants() {
+    let variants = vec![
+        AnalyzedExprKind::StringLiteral("test".to_string()),
+        AnalyzedExprKind::NumberLiteral(1),
+        AnalyzedExprKind::BooleanLiteral(true),
+        AnalyzedExprKind::Variable(SmolStr::new("x")),
+        AnalyzedExprKind::PropertyAccess {
+            owner: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+            property: SmolStr::new("prop"),
+        },
+        AnalyzedExprKind::VerbCall {
+            verb: SmolStr::new("verb"),
+            args: vec![],
+        },
+        AnalyzedExprKind::BinOp {
+            left: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+            op: glossa::morphology::lexicon::BinaryOp::Add,
+            right: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+        },
+        AnalyzedExprKind::UnaryOp {
+            op: glossa::morphology::lexicon::UnaryOp::Not,
+            operand: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+        },
+        AnalyzedExprKind::Range {
+            start: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+            end: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+            inclusive: false,
+        },
+        AnalyzedExprKind::ArrayLiteral(vec![]),
+        AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: glossa::semantic::GlossaType::Unknown,
+        })),
+        AnalyzedExprKind::None,
+        AnalyzedExprKind::Ok(Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: glossa::semantic::GlossaType::Unknown,
+        })),
+        AnalyzedExprKind::Err(Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: glossa::semantic::GlossaType::Unknown,
+        })),
+        AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: glossa::semantic::GlossaType::Unknown,
+        })),
+        AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: glossa::semantic::GlossaType::Unknown,
+        })),
+        AnalyzedExprKind::IndexAccess {
+            array: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+            index: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+        },
+        AnalyzedExprKind::FunctionCall {
+            func: SmolStr::new("func"),
+            args: vec![],
+        },
+        AnalyzedExprKind::MethodCall {
+            receiver: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+            method: SmolStr::new("method"),
+            args: vec![],
+        },
+        AnalyzedExprKind::TraitMethodCall {
+            receiver: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+            trait_name: SmolStr::new("Trait"),
+            method_name: SmolStr::new("method"),
+            args: vec![],
+        },
+        AnalyzedExprKind::StructInstantiation {
+            type_name: SmolStr::new("Type"),
+            fields: vec![],
+            args: vec![],
+        },
+        AnalyzedExprKind::Lambda {
+            params: vec![],
+            body: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+            capture_mode: CaptureMode::Borrow,
+        },
+        AnalyzedExprKind::CollectionNew {
+            collection_type: "list".to_string(),
+        },
+        AnalyzedExprKind::Assert {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+        },
+        AnalyzedExprKind::AssertEq {
+            left: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+            right: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            }),
+        },
+    ];
+
+    for variant in variants {
+        let dbg = format!("{:?}", variant);
+        assert!(!dbg.is_empty());
+    }
 }
 
 #[test]
