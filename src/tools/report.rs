@@ -38,6 +38,7 @@ pub struct ProgramStats {
     /// Number of user-defined types (structs)
     pub type_count: usize,
     /// Number of trait definitions
+    #[allow(dead_code)]
     pub trait_count: usize,
     /// Number of loops (while, for)
     pub loop_count: usize,

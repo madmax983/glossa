@@ -119,3 +119,8 @@
 ## [Breaking The Leak: Encapsulation via pub(crate)]
 **Tangle:** Internal modules were needlessly exposed via `pub mod` across various modules. This broke clear module boundaries and leaked implementation details.
 **Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all internal modules while keeping `pub mod` only where necessary for public APIs.
+
+## [Breaking The Leak: Encapsulation via pub(crate)]
+**Tangle:** Internal modules were needlessly exposed via `pub mod` across various modules (`errors/mod.rs`, `morphology/mod.rs`, `parser/mod.rs`, `semantic/mod.rs`, `tools/mod.rs`). This broke clear module boundaries and leaked implementation details.
+**Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all internal modules while keeping `pub mod` only where necessary for public APIs (e.g. `highlight` in `tools/mod.rs` and `lexicon` in `morphology/mod.rs`). Fixed tests to import via the newly defined explicit public interfaces and selectively retained `pub mod` when refactoring deeply nested integration test imports was excessively invasive without providing architectural value.
+**Stability:** Enforced high cohesion and low coupling by ensuring strict encapsulation and clean public interfaces.
