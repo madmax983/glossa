@@ -37,8 +37,13 @@ fn compile(source: &str) -> Result<String> {
 
 /// Check file size to prevent DoS
 fn check_file_size(input: &Path) -> Result<()> {
-    let metadata = fs::metadata(input)
-        .map_err(|e| miette::miette!("Failed to read file metadata for {}: {}", input.display(), e))?;
+    let metadata = fs::metadata(input).map_err(|e| {
+        miette::miette!(
+            "Failed to read file metadata for {}: {}",
+            input.display(),
+            e
+        )
+    })?;
     if metadata.len() > MAX_FILE_SIZE {
         return Err(miette::miette!(
             "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
@@ -145,7 +150,13 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
         .map_err(|e| miette::miette!("Failed to write to file {}: {}", output_path.display(), e))?;
 
     let output_size = fs::metadata(&output_path)
-        .map_err(|e| miette::miette!("Failed to read file metadata for {}: {}", output_path.display(), e))?
+        .map_err(|e| {
+            miette::miette!(
+                "Failed to read file metadata for {}: {}",
+                output_path.display(),
+                e
+            )
+        })?
         .len();
     let duration = start.elapsed();
     let stats = ProgramStats::new(&analyzed);
@@ -213,7 +224,8 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     // Set up cache
     let cache = Cache::new();
-    cache.init()
+    cache
+        .init()
         .map_err(|e| miette::miette!("Failed to initialize cache: {}", e))?;
 
     let (cached_rs, cached_exe) = cache.get_paths(input);
@@ -250,8 +262,13 @@ pub fn run_file(input: &Path) -> Result<()> {
     };
 
     // Write Rust source to cache
-    fs::write(&cached_rs, &rust_code)
-        .map_err(|e| miette::miette!("Failed to write to cache file {}: {}", cached_rs.display(), e))?;
+    fs::write(&cached_rs, &rust_code).map_err(|e| {
+        miette::miette!(
+            "Failed to write to cache file {}: {}",
+            cached_rs.display(),
+            e
+        )
+    })?;
 
     status.update("Οἰκοδόμησις (Building)");
 
