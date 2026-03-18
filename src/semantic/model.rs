@@ -651,15 +651,37 @@ pub enum CaptureMode {
 // --- Trait and Type Definitions (moved from types.rs) ---
 
 /// Trait definition for semantic analysis
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TraitDef {
     pub name: SmolStr,
     pub methods: Vec<AnalyzedMethod>,
 }
 
+impl std::fmt::Debug for TraitDef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            f.debug_struct("TraitDef")
+                .field("name", &self.name)
+                .field("methods", &self.methods)
+                .finish()
+        })
+    }
+}
+
 /// Trait implementation for a type
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TraitImpl {
     pub trait_name: SmolStr,
     pub type_name: SmolStr,
+}
+
+impl std::fmt::Debug for TraitImpl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            f.debug_struct("TraitImpl")
+                .field("trait_name", &self.trait_name)
+                .field("type_name", &self.type_name)
+                .finish()
+        })
+    }
 }
