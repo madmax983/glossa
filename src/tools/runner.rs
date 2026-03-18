@@ -4,7 +4,7 @@ use crate::semantic::{AnalyzedProgram, analyze_program};
 use crate::tools::cache::Cache;
 use crate::tools::highlight::highlight;
 use crate::tools::narrator::tell_tale;
-use crate::tools::report::{format_compilation_report, format_glossa_report, ProgramStats};
+use crate::tools::report::{ProgramStats, format_compilation_report, format_glossa_report};
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};

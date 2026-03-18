@@ -17,9 +17,6 @@
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 
-
-
-
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 
 /// Statistics for an analyzed program
@@ -303,8 +300,14 @@ pub fn format_glossa_report(program: &AnalyzedProgram, filename: &str) -> String
 
     let mut output = String::new();
     output.push('\n');
-    output.push_str(&format!("   {}\n", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan()));
-    output.push_str(&format!("   {}\n", "Language Metrics Dashboard".italic().dim()));
+    output.push_str(&format!(
+        "   {}\n",
+        "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan()
+    ));
+    output.push_str(&format!(
+        "   {}\n",
+        "Language Metrics Dashboard".italic().dim()
+    ));
     output.push('\n');
     output.push_str(&format!("{}\n", table));
 
@@ -429,8 +432,14 @@ pub fn format_compilation_report(
 
     let mut output = String::new();
     output.push('\n');
-    output.push_str(&format!("   {}\n", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan()));
-    output.push_str(&format!("   {}\n", "Compilation Metrics Dashboard".italic().dim()));
+    output.push_str(&format!(
+        "   {}\n",
+        "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan()
+    ));
+    output.push_str(&format!(
+        "   {}\n",
+        "Compilation Metrics Dashboard".italic().dim()
+    ));
     output.push('\n');
     output.push_str(&format!("{}\n", table));
 
@@ -497,7 +506,6 @@ mod tests {
         let program = create_dummy_program();
         let output = format_glossa_report(&program, "test.gl");
 
-
         assert!(output.contains("R E P O R T"));
         assert!(output.contains("test.gl"));
         assert!(output.contains("test_func")); // Function list
@@ -516,8 +524,6 @@ mod tests {
             std::time::Duration::from_millis(123),
             &stats,
         );
-
-
 
         assert!(output.contains("R E P O R T"));
         assert!(output.contains("input.gl"));
