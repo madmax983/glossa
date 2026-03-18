@@ -119,3 +119,11 @@
 ## [Breaking The Leak: Encapsulation via pub(crate)]
 **Tangle:** Internal modules were needlessly exposed via `pub mod` across various modules. This broke clear module boundaries and leaked implementation details.
 **Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all internal modules while keeping `pub mod` only where necessary for public APIs.
+
+## [Breaking The Blob: Semantic Conversion Untangled]
+**Tangle:** The `src/semantic/conversion.rs` file was a massive "Blob" (~2600 lines) mixing independent logic components: classifying assembled statements, extracting values, and sharing semantic pattern checks. This caused a loss of cohesion, poor discoverability, and bloated file sizes, creating a weak architectural foundation.
+**Blueprint:**
+1. Converted `src/semantic/conversion.rs` into a structured module directory: `src/semantic/conversion/`.
+2. Created `mod.rs` as the orchestrator and public facade, explicitly exposing `convert_assembled_to_analyzed`.
+3. Separated statement intent classification into `classification.rs` and value extraction logic into `extraction.rs`.
+4. Extracted shared helper functions (e.g., `detect_enum_variant`, `try_parse_genitive_method_call`) into `shared.rs` to break a module-level circular dependency between classification and extraction, enforcing a strict Directed Acyclic Graph (DAG) module architecture.
