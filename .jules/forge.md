@@ -33,3 +33,7 @@
 **Refactoring God Functions in the Alchemist**
 **Learning:** `transpile_statement` in `src/tools/alchemist.rs` was a classic God Function (over 200 lines) with a deeply nested match statement containing complex string building logic for each AST node. When using `replace_with_git_merge_diff` or python scripting to extract match arms into helper functions (`transpile_if`, `transpile_while`, etc.), it's critical to capture or destructure the enum variables correctly in the helper functions to prevent `unused_variables` warnings from clippy. In this case, I used `AnalyzedStatement::If { .. } => transpile_if(stmt, indent)` in the top-level match and handled destructuring inside `transpile_if` to resolve warnings.
 **Action:** Always verify `cargo clippy --all-targets --all-features -- -D warnings` after extracting match arms. If variables bound in the match arm are no longer used locally because the whole object is passed, use `..` to ignore them.
+
+**Refactoring God Functions in CLI Display Utilities**
+**Learning:** Functions that generate complex UI tables (like `add_row` in `src/tools/mosaic.rs`) often become God Functions (~150+ lines) as they aggregate many different data types and conditions into a single string. This creates a "Pyramid of Doom" of data preparation right before UI construction.
+**Action:** Extract the complex column data preparation logic into distinct formatting helper functions (e.g., `format_subject`, `format_other_column`), keeping the main row addition function focused solely on inserting the mapped columns into the table UI.
