@@ -44,6 +44,83 @@ fn test_analyzed_statement_debug() {
     };
     let dbg6 = format!("{:?}", stmt6);
     assert!(dbg6.contains("TraitDefinition"));
+
+    let stmt_binding = AnalyzedStatement::Binding {
+        name: SmolStr::new("name"),
+        value: AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: glossa::semantic::GlossaType::Unknown,
+        },
+        mutable: false,
+    };
+    assert!(format!("{:?}", stmt_binding).contains("Binding"));
+
+    let stmt_assignment = AnalyzedStatement::Assignment {
+        name: SmolStr::new("name"),
+        value: AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: glossa::semantic::GlossaType::Unknown,
+        },
+    };
+    assert!(format!("{:?}", stmt_assignment).contains("Assignment"));
+
+    let stmt_print = AnalyzedStatement::Print(vec![]);
+    assert!(format!("{:?}", stmt_print).contains("Print"));
+
+    let stmt_expr = AnalyzedStatement::Expression(vec![]);
+    assert!(format!("{:?}", stmt_expr).contains("Expression"));
+
+    let stmt_query = AnalyzedStatement::Query(vec![]);
+    assert!(format!("{:?}", stmt_query).contains("Query"));
+
+    let stmt_while = AnalyzedStatement::While {
+        condition: Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: glossa::semantic::GlossaType::Unknown,
+        }),
+        body: vec![],
+    };
+    assert!(format!("{:?}", stmt_while).contains("While"));
+
+    let stmt_for = AnalyzedStatement::For {
+        variable: SmolStr::new("var"),
+        iterator: Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: glossa::semantic::GlossaType::Unknown,
+        }),
+        body: vec![],
+    };
+    assert!(format!("{:?}", stmt_for).contains("For"));
+
+    let stmt_match = AnalyzedStatement::Match {
+        scrutinee: Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: glossa::semantic::GlossaType::Unknown,
+        }),
+        arms: vec![],
+    };
+    assert!(format!("{:?}", stmt_match).contains("Match"));
+
+    let stmt_func = AnalyzedStatement::FunctionDef {
+        name: SmolStr::new("func"),
+        params: vec![],
+        body: vec![],
+        return_type: None,
+    };
+    assert!(format!("{:?}", stmt_func).contains("FunctionDef"));
+
+    let stmt_trait_impl = AnalyzedStatement::TraitImplementation {
+        trait_name: SmolStr::new("trait"),
+        type_name: SmolStr::new("type"),
+        methods: vec![],
+    };
+    assert!(format!("{:?}", stmt_trait_impl).contains("TraitImplementation"));
+
+    let stmt_test = AnalyzedStatement::TestDeclaration {
+        name: "test".to_string(),
+        body: vec![],
+    };
+    assert!(format!("{:?}", stmt_test).contains("TestDeclaration"));
 }
 
 #[test]
