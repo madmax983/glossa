@@ -212,9 +212,7 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     // Set up cache
     let cache = Cache::new();
-    cache
-        .init()
-        .map_err(|e| miette::miette!("Failed to initialize cache: {}", e))?;
+    cache.init().into_diagnostic()?;
 
     let (cached_rs, cached_exe) = cache.get_paths(input);
 
@@ -224,9 +222,7 @@ pub fn run_file(input: &Path) -> Result<()> {
         println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
 
         // Run cached binary directly
-        let exit_status = Command::new(&cached_exe)
-            .status()
-            .map_err(|e| miette::miette!("Failed to execute cached program: {}", e))?;
+        let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
         println!("{}", "--- Τέλος (End) ---".dim());
 
@@ -250,13 +246,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     };
 
     // Write Rust source to cache
-    fs::write(&cached_rs, &rust_code).map_err(|e| {
-        miette::miette!(
-            "Failed to write to cache file {}: {}",
-            cached_rs.display(),
-            e
-        )
-    })?;
+    fs::write(&cached_rs, &rust_code).into_diagnostic()?;
 
     status.update("Οἰκοδόμησις (Building)");
 
@@ -304,9 +294,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
 
     // Run the compiled program
-    let exit_status = Command::new(&cached_exe)
-        .status()
-        .map_err(|e| miette::miette!("Failed to execute compiled program: {}", e))?;
+    let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
     println!("{}", "--- Τέλος (End) ---".dim());
 

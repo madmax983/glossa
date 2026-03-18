@@ -169,7 +169,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
         .prefix("glossa_test_")
         .suffix(".rs")
         .tempfile()
-        .into_diagnostic()?;
+        .map_err(|e| miette::miette!("Failed to create temporary file for test: {}", e))?;
 
     write!(temp_file, "{}", rust_code)
         .map_err(|e| miette::miette!("Failed to write to temporary test file: {}", e))?;
@@ -216,7 +216,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     let test_output = Command::new(&exe_path)
         .output() // Capture output to display it nicely
-        .map_err(|e| miette::miette!("Failed to execute test binary: {}", e))?;
+        .into_diagnostic()?;
 
     // Cleanup: The temp_file (source) is auto-deleted when dropped.
     // The executable must be deleted manually.
