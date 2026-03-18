@@ -115,3 +115,8 @@
 **Bloat:** `GlossaReport` and `CompilationReport` in `src/tools/report.rs` were purely formatting wrappers around data, implementing `Display` just to be printed once ("Layer Lasagna").
 **Cut:** Replaced the structs and trait implementations with straightforward, standalone formatting functions (`format_glossa_report` and `format_compilation_report`).
 **Saved:** Removed 2 structs and 2 trait implementations (~20 lines of boilerplate), simplified call sites in `runner.rs`.
+
+## [Reduction]
+**Bloat:** Unnecessary nesting of `model::` for `ParticipleConstituent` in `src/tools/mosaic.rs` test suite (`crate::semantic::assembly::model::ParticipleConstituent`), violating ADR 016 (flat modules).
+**Cut:** Removed `model::` path segment to directly access `crate::semantic::assembly::ParticipleConstituent`.
+**Saved:** 14 characters of path boilerplate and fixed `error[E0433]` compilation failure.
