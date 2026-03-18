@@ -116,3 +116,8 @@
 **Bloat:** Unnecessary nesting of `model::` for `ParticipleConstituent` in `src/tools/mosaic.rs` test suite (`crate::semantic::assembly::model::ParticipleConstituent`), violating ADR 016 (flat modules).
 **Cut:** Removed `model::` path segment to directly access `crate::semantic::assembly::ParticipleConstituent`.
 **Saved:** 14 characters of path boilerplate and fixed `error[E0433]` compilation failure.
+
+## [Reduction]
+**Bloat:** `src/tools/report.rs` contained "Layer Lasagna" abstractions: `GlossaReport` and `CompilationReport` structs that existed solely to implement the `Display` trait.
+**Cut:** Deleted the structs and their `Display` implementations, replacing them with straightforward standalone formatting functions (`format_glossa_report` and `format_compilation_report`).
+**Saved:** Reduced struct instantiation boilerplate and unnecessary indirection, flattening the reporting architecture.
