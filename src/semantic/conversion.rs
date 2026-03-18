@@ -399,7 +399,10 @@ fn resolve_binding_target<'a>(
         let first_participle = &asm_stmt.participles[0];
         let mut fixed_asm = asm_stmt.clone();
         fixed_asm.participles = asm_stmt.participles[1..].to_vec();
-        return Ok((first_participle.normalized.to_string(), std::borrow::Cow::Owned(fixed_asm)));
+        return Ok((
+            first_participle.normalized.to_string(),
+            std::borrow::Cow::Owned(fixed_asm),
+        ));
     }
 
     // Check for Subject/Object swap (if Subject is defined and Object is not, bind to Object)
@@ -413,13 +416,19 @@ fn resolve_binding_target<'a>(
             swapped.object = Some(subject.clone());
             return Ok((object_name.to_string(), std::borrow::Cow::Owned(swapped)));
         } else {
-            return Ok((subject_name.to_string(), std::borrow::Cow::Borrowed(asm_stmt)));
+            return Ok((
+                subject_name.to_string(),
+                std::borrow::Cow::Borrowed(asm_stmt),
+            ));
         }
     }
 
     // Default case: Bind to Subject
     if let Some(subject) = &asm_stmt.subject {
-        return Ok((subject.normalized.to_string(), std::borrow::Cow::Borrowed(asm_stmt)));
+        return Ok((
+            subject.normalized.to_string(),
+            std::borrow::Cow::Borrowed(asm_stmt),
+        ));
     }
 
     // Fallback: Bind to first participle (if any remain)
@@ -427,7 +436,10 @@ fn resolve_binding_target<'a>(
         let first_participle = &asm_stmt.participles[0];
         let mut fixed_asm = asm_stmt.clone();
         fixed_asm.participles = asm_stmt.participles[1..].to_vec();
-        return Ok((first_participle.normalized.to_string(), std::borrow::Cow::Owned(fixed_asm)));
+        return Ok((
+            first_participle.normalized.to_string(),
+            std::borrow::Cow::Owned(fixed_asm),
+        ));
     }
 
     Err(GlossaError::semantic("Binding without subject"))
