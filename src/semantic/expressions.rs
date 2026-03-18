@@ -493,65 +493,7 @@ fn feed_expr_recursive(
             asm.feed_boolean(*b)?;
         }
         Expr::Word(w) => {
-            // Check if this is an article using ORIGINAL form (preserves diacritics)
-            // This distinguishes ἡ (article) from ἤ (or) - they differ only in breathing/accent
-            let article_check = analyze_article(&w.original);
-            if let Some(article_context) = article_check {
-                *context = article_context;
-                // Articles themselves don't go to assembler slots
-                return Ok(());
-            }
-
-            // Check if this word is a participle (for lambda construction)
-            // BUT: skip participle check if the word is in the lexicon as something else
-            // This prevents comparative adjectives like μείζον from being misidentified as participles
-            let in_lexicon = morphology::lexicon::lookup(&w.normalized).is_some();
-            let is_numeral = morphology::lexicon::numeral_value(&w.normalized).is_some();
-
-            if !in_lexicon && !is_numeral {
-                let participle_check = morphology::analyze_participle(&w.normalized);
-                if let Some(participle_analysis) = participle_check {
-                    asm.feed_participle(&participle_analysis, &w.original)?;
-                    return Ok(());
-                }
-            }
-
-            // Get all possible analyses for the word
-            let analyses = morphology::analyze_all(&w.normalized);
-
-            // Use disambiguation context to prioritize analyses
-            // Returns a list of candidates sorted by likelihood
-            let candidates = disambiguate(analyses, context);
-
-            // Try candidates in order until one works without error (e.g. Agreement mismatch)
-            // This allows us to handle ambiguous cases like Neuter Nominative/Accusative
-            // by backtracking if the first choice causes a conflict.
-            let mut last_error = None;
-            let mut success = false;
-
-            for candidate in candidates {
-                match asm.feed_with_normalized(&candidate, &w.original, &w.normalized) {
-                    Ok(_) => {
-                        success = true;
-                        break;
-                    }
-                    Err(e) => {
-                        // If it's a conflict error (DoubleSubject, DoubleObject, Agreement), try next
-                        last_error = Some(e);
-                    }
-                }
-            }
-
-            if !success {
-                if let Some(e) = last_error {
-                    return Err(GlossaError::from(e));
-                } else {
-                    return Err(GlossaError::semantic("Unknown assembly error"));
-                }
-            }
-
-            // Clear context after use (it was consumed by the following noun)
-            *context = DisambiguationContext::new();
+            feed_word_expr(w, asm, context)?;
         }
         Expr::Phrase(terms) => {
             // Feed each term in the phrase, passing context through
@@ -815,6 +757,74 @@ pub(crate) fn infer_binop_type(op: &crate::morphology::lexicon::BinaryOp) -> Glo
         // Boolean operations return booleans
         BinaryOp::And | BinaryOp::Or => GlossaType::Boolean,
     }
+}
+
+fn feed_word_expr(
+    w: &crate::ast::Word,
+    asm: &mut Assembler,
+    context: &mut DisambiguationContext,
+) -> Result<(), GlossaError> {
+    // Check if this is an article using ORIGINAL form (preserves diacritics)
+    // This distinguishes ἡ (article) from ἤ (or) - they differ only in breathing/accent
+    let article_check = analyze_article(&w.original);
+    if let Some(article_context) = article_check {
+        *context = article_context;
+        // Articles themselves don't go to assembler slots
+        return Ok(());
+    }
+
+    // Check if this word is a participle (for lambda construction)
+    // BUT: skip participle check if the word is in the lexicon as something else
+    // This prevents comparative adjectives like μείζον from being misidentified as participles
+    let in_lexicon = morphology::lexicon::lookup(&w.normalized).is_some();
+    let is_numeral = morphology::lexicon::numeral_value(&w.normalized).is_some();
+
+    if !in_lexicon && !is_numeral {
+        let participle_check = morphology::analyze_participle(&w.normalized);
+        if let Some(participle_analysis) = participle_check {
+            asm.feed_participle(&participle_analysis, &w.original)?;
+            return Ok(());
+        }
+    }
+
+    // Get all possible analyses for the word
+    let analyses = morphology::analyze_all(&w.normalized);
+
+    // Use disambiguation context to prioritize analyses
+    // Returns a list of candidates sorted by likelihood
+    let candidates = disambiguate(analyses, context);
+
+    // Try candidates in order until one works without error (e.g. Agreement mismatch)
+    // This allows us to handle ambiguous cases like Neuter Nominative/Accusative
+    // by backtracking if the first choice causes a conflict.
+    let mut last_error = None;
+    let mut success = false;
+
+    for candidate in candidates {
+        match asm.feed_with_normalized(&candidate, &w.original, &w.normalized) {
+            Ok(_) => {
+                success = true;
+                break;
+            }
+            Err(e) => {
+                // If it's a conflict error (DoubleSubject, DoubleObject, Agreement), try next
+                last_error = Some(e);
+            }
+        }
+    }
+
+    if !success {
+        if let Some(e) = last_error {
+            return Err(GlossaError::from(e));
+        } else {
+            return Err(GlossaError::semantic("Unknown assembly error"));
+        }
+    }
+
+    // Clear context after use (it was consumed by the following noun)
+    *context = DisambiguationContext::new();
+
+    Ok(())
 }
 
 #[cfg(test)]
