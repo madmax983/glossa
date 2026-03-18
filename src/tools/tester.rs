@@ -45,7 +45,7 @@ use crate::semantic::analyze_program;
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, CellAlignment, Color, Table, presets};
 use crossterm::style::Stylize;
-use miette::Result;
+use miette::{IntoDiagnostic, Result};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -169,7 +169,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
         .prefix("glossa_test_")
         .suffix(".rs")
         .tempfile()
-        .map_err(|e| miette::miette!("Failed to create temporary file for test: {}", e))?;
+        .into_diagnostic()?;
 
     write!(temp_file, "{}", rust_code)
         .map_err(|e| miette::miette!("Failed to write to temporary test file: {}", e))?;
@@ -195,7 +195,9 @@ pub fn run_tests(input: &Path) -> Result<()> {
         });
 
     // 5. Compile with rustc --test
-    let rustc_output = Command::new("rustc")
+    let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
+
+    let rustc_output = Command::new(rustc_cmd)
         .arg("--test")
         .arg(&temp_path)
         .arg("-o")
@@ -346,6 +348,26 @@ pub fn run_tests(input: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_run_tests_rustc_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_rustc_missing.gl");
+        std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.").unwrap();
+
+        // Spawn a child process so we don't mutate the global PATH/env.
+        let mut cmd = std::process::Command::new(std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| "target/debug/glossa".to_string()));
+        let output = cmd
+            .arg("test")
+            .arg(&input_path)
+            .env("GLOSSA_RUSTC_CMD", "nonexistent_rustc_binary")
+            .output()
+            .unwrap();
+
+        assert!(!output.status.success());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("Failed to start rustc. Is Rust installed?"));
+    }
 
     #[test]
     fn test_parse_output_basic() {
