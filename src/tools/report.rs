@@ -16,7 +16,7 @@
 
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
-use std::fmt::Display;
+use std::fmt::{Display, Write};
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -337,12 +337,14 @@ impl Display for GlossaReport<'_> {
             ]);
 
             for func in functions {
-                let params = func
-                    .param_types
-                    .iter()
-                    .map(|t| t.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                // ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<_>>()` allocation.
+                let mut params = String::new();
+                for (i, t) in func.param_types.iter().enumerate() {
+                    if i > 0 {
+                        params.push_str(", ");
+                    }
+                    let _ = write!(&mut params, "{}", t);
+                }
 
                 let ret = func
                     .return_type
