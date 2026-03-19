@@ -281,8 +281,6 @@ pub type GlossaResult<T> = Result<T, GlossaError>;
 pub(crate) mod assembly;
 pub use assembly::AssemblyError;
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
