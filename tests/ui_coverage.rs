@@ -1,7 +1,7 @@
-use glossa::tools::runner::{check_file, build_file, highlight_file, bard_file};
+use glossa::tools::runner::{bard_file, build_file, check_file, highlight_file};
 use glossa::tools::tester::run_tests;
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 use tempfile::tempdir;
 
 #[test]
