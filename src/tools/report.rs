@@ -164,7 +164,16 @@ impl ProgramStats {
             AnalyzedStatement::Break | AnalyzedStatement::Continue => {}
             AnalyzedStatement::TypeDefinition { .. } => {} // Already counted in scope
             AnalyzedStatement::TraitDefinition { .. } => {} // Already counted in scope
-            AnalyzedStatement::TraitImplementation { .. } => {} // Not tracking impls yet
+            AnalyzedStatement::TraitImplementation { methods, .. } => {
+                // Visit trait method implementations to get complete expression coverage
+                for method in methods {
+                    if let Some(body) = &method.body {
+                        for s in body {
+                            self.visit_statement(s, depth + 1);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -223,7 +232,12 @@ impl ProgramStats {
                 self.visit_expr(left);
                 self.visit_expr(right);
             }
-            _ => {} // Literals, Variables, etc.
+            AnalyzedExprKind::StringLiteral(_)
+            | AnalyzedExprKind::NumberLiteral(_)
+            | AnalyzedExprKind::BooleanLiteral(_)
+            | AnalyzedExprKind::None
+            | AnalyzedExprKind::CollectionNew { .. }
+            | AnalyzedExprKind::Variable(_) => {} // Leaf nodes
         }
     }
 }
@@ -494,7 +508,10 @@ mod tests {
                 expr: AnalyzedExprKind::StringLiteral("test".into()),
                 glossa_type: GlossaType::String,
             }])],
-            else_body: None,
+            else_body: Some(vec![AnalyzedStatement::Query(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(10),
+                glossa_type: GlossaType::Number,
+            }])]),
         };
         statements.push(if_stmt);
 
@@ -503,27 +520,234 @@ mod tests {
 
     #[test]
     fn test_program_stats_coverage() {
-        let program = create_dummy_program();
+        let mut program = create_dummy_program();
+
+        // Add more statements to hit missed branches
+        program.statements.push(AnalyzedStatement::For {
+            variable: "x".into(),
+            iterator: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Range {
+                    start: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    end: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(10),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    inclusive: false,
+                },
+                glossa_type: GlossaType::Unknown,
+            }),
+            body: vec![],
+        });
+
+        program.statements.push(AnalyzedStatement::While {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: GlossaType::Boolean,
+            }),
+            body: vec![],
+        });
+
+        program.statements.push(AnalyzedStatement::Match {
+            scrutinee: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            }),
+            arms: vec![(
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                vec![AnalyzedStatement::Break],
+            )],
+        });
+
+        program.statements.push(AnalyzedStatement::FunctionDef {
+            name: "inner".into(),
+            params: vec![],
+            body: vec![AnalyzedStatement::Continue],
+            return_type: None,
+        });
+
+        program.statements.push(AnalyzedStatement::TestDeclaration {
+            name: "test".into(),
+            body: vec![],
+        });
+
+        program.statements.push(AnalyzedStatement::Return {
+            value: Some(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            })),
+        });
+
+        program.statements.push(AnalyzedStatement::TypeDefinition {
+            name: "Type".into(),
+            fields: vec![],
+        });
+
+        program.statements.push(AnalyzedStatement::TraitDefinition {
+            name: "Trait".into(),
+            methods: vec![],
+        });
+
+        program
+            .statements
+            .push(AnalyzedStatement::TraitImplementation {
+                trait_name: "Trait".into(),
+                type_name: "Type".into(),
+                methods: vec![crate::semantic::AnalyzedMethod {
+                    name: "method".into(),
+                    params: vec![],
+                    body: Some(vec![AnalyzedStatement::Break]),
+                    return_type: None,
+                }],
+            });
+
+        // Exprs
+        program.statements.push(AnalyzedStatement::Expression(vec![
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::UnaryOp {
+                    op: crate::morphology::lexicon::UnaryOp::Not,
+                    operand: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::BooleanLiteral(true),
+                        glossa_type: GlossaType::Boolean,
+                    }),
+                },
+                glossa_type: GlossaType::Boolean,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(vec![]),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                })),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Ok(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                })),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Err(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                })),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    })),
+                    glossa_type: GlossaType::Unknown,
+                })),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    })),
+                    glossa_type: GlossaType::Unknown,
+                })),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::IndexAccess {
+                    array: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::ArrayLiteral(vec![]),
+                        glossa_type: GlossaType::Unknown,
+                    }),
+                    index: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(0),
+                        glossa_type: GlossaType::Number,
+                    }),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::FunctionCall {
+                    func: "func".into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::StructInstantiation {
+                    type_name: "Type".into(),
+                    fields: vec![],
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    method: "method".into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::TraitMethodCall {
+                    receiver: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    trait_name: "Trait".into(),
+                    method_name: "method".into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+        ]));
+
         let stats = ProgramStats::new(&program);
 
-        assert_eq!(stats.statement_count, 3); // Binding + If + Print
+        assert_eq!(stats.statement_count, 17); // 4 + 9 newly added nodes + 1 Expr node containing multiple elements + 3 loop/match nested statements
         assert_eq!(stats.binding_count, 1);
-        assert_eq!(stats.conditional_count, 1);
+        assert_eq!(stats.conditional_count, 2);
         assert_eq!(stats.function_count, 1);
+        assert_eq!(stats.loop_count, 2);
         assert!(stats.max_depth >= 1);
         assert!(stats.expression_count > 0);
     }
 
     #[test]
     fn test_report_generation_coverage() {
-        let program = create_dummy_program();
+        let mut program = create_dummy_program();
+        // Add another function to test param rendering and return type formatting
+        program.scope.define_function(
+            "complex_func",
+            vec![GlossaType::Number, GlossaType::String],
+            Some(GlossaType::Boolean),
+        );
+
         let report = GlossaReport::new(&program, "test.gl".to_string());
         let output = format!("{}", report);
 
         assert!(output.contains("R E P O R T"));
         assert!(output.contains("test.gl"));
         assert!(output.contains("test_func")); // Function list
-        assert!(output.contains("3")); // Statement count
+        assert!(output.contains("complex_func")); // Function list
+        assert!(output.contains("Οὐδέν")); // None return mapping
+        // Statement count is back to 4 because we didn't add the extra exhaustive coverage nodes
+        // to `test_report_generation_coverage` - we only added them to `test_program_stats_coverage`
+        assert!(output.contains("4"));
     }
 
     #[test]
@@ -547,7 +771,7 @@ mod tests {
         assert!(output.contains("123")); // Time
         assert!(output.contains("100 bytes")); // Input size
         assert!(output.contains("200 bytes")); // Output size
-        assert!(output.contains("3")); // Statements
+        assert!(output.contains("4")); // Statements
     }
 
     #[test]
@@ -623,11 +847,16 @@ mod tests {
                 name: "TestTrait".into(),
                 methods: vec![],
             },
-            // Trait Implementation (coverage for empty branch)
+            // Trait Implementation (coverage for empty branch and methods)
             AnalyzedStatement::TraitImplementation {
                 trait_name: "TestTrait".into(),
                 type_name: "TestType".into(),
-                methods: vec![],
+                methods: vec![crate::semantic::AnalyzedMethod {
+                    name: "test_method".into(),
+                    params: vec![],
+                    body: Some(vec![AnalyzedStatement::Break]),
+                    return_type: None,
+                }],
             },
             // Type Definition (coverage for empty branch)
             AnalyzedStatement::TypeDefinition {
@@ -707,6 +936,23 @@ mod tests {
                         args: vec![],
                     },
                     glossa_type: GlossaType::Unknown,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::CollectionNew {
+                        collection_type: "HashSet".into(),
+                    },
+                    glossa_type: GlossaType::Unknown,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    })),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::None,
+                    glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
                 },
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::MethodCall {
