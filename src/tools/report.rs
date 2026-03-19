@@ -336,13 +336,15 @@ impl Display for GlossaReport<'_> {
                 "Επιστροφή (Returns)",
             ]);
 
+            use std::fmt::Write;
             for func in functions {
-                let params = func
-                    .param_types
-                    .iter()
-                    .map(|t| t.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                let mut params = String::new();
+                for (i, t) in func.param_types.iter().enumerate() {
+                    if i > 0 {
+                        params.push_str(", ");
+                    }
+                    write!(&mut params, "{}", t).unwrap();
+                }
 
                 let ret = match &func.return_type {
                     Some(t) => t.to_string(),
