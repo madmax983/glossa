@@ -341,6 +341,16 @@ mod tests {
     }
 
     #[test]
+    fn test_modulo_by_zero() {
+        let code = "1 0 ὑπόλοιπον λέγε.";
+        let ast = parse(code).expect("Parse error");
+        let program = analyze_program(&ast).expect("Analysis error");
+        let mut interpreter = Interpreter::new();
+        let result = interpreter.run(&program);
+        assert!(matches!(result, Err(EvalError::DivisionByZero)));
+    }
+
+    #[test]
     fn test_default_impl() {
         let interp = Interpreter::default();
         assert_eq!(interp.env.len(), 1);
