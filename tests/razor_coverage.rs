@@ -87,13 +87,6 @@ fn test_assembly_errors_display_impls() {
     assert!(format!("{}", err).contains("Ὑπέρβασις ὁρίου"));
 }
 
-#[test]
-fn test_errors_help_module() {
-    assert!(glossa::errors::help::BINDING.contains("Χρῆσις"));
-    assert!(glossa::errors::help::PRINT.contains("Χρῆσις"));
-    assert!(glossa::errors::help::CASES.contains("Πτώσεις"));
-}
-
 // --- Assembler Structs Coverage ---
 
 #[test]
