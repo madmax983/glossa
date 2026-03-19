@@ -88,6 +88,10 @@ Signed,
 **2025-03-01 - [Stack Overflow in Derived Debug on Recursive Enums]**
 **Threat:** DoS via Stack Overflow. The `Expr`, `Statement`, `Clause`, and `Program` enums in `src/ast.rs` are recursive. While `Drop`, `Clone`, and `PartialEq` used `stacker::maybe_grow`, `Debug` was auto-derived (`#[derive(Debug)]`), meaning printing a deeply nested AST (e.g. during error formatting) bypassed all checks and crashed the thread.
 **Defense:** Removed `#[derive(Debug)]` and manually implemented `std::fmt::Debug` for all recursive AST nodes using `stacker::maybe_grow` to securely handle deep nesting during formatting.
+
+**2026-03-18 - [Stack Overflow in Derived Debug on Recursive Semantic Structs]**
+**Threat:** DoS via Stack Overflow. Similar to the AST, the semantic model structs (`AnalyzedStatement`, `AnalyzedExpr`, `AnalyzedExprKind`, etc.) in `src/semantic/model.rs` and `src/semantic/assembly.rs` were using auto-derived `#[derive(Debug)]`. Printing deeply nested semantic structs during compilation errors could crash the process.
+**Defense:** Removed `#[derive(Debug)]` from `AnalyzedStatement`, `AnalyzedExpr`, `AnalyzedExprKind`, `AnalyzedMethod`, `AssembledStatement`, `Constituent`, `VerbConstituent`, `ParticipleConstituent`, and `Literal`, manually implementing `std::fmt::Debug` using `stacker::maybe_grow` to securely handle deep nesting during formatting.
 **2025-03-05 - [Unaccented Greek Keyword Recursion Limit Bypass]**
 **Threat:** DoS via Stack Overflow. The manual recursion depth scanner (`src/parser/recursion.rs`) checked strictly for accented keywords `δοκιμή` and `τέλος`, but the `pest` grammar allowed unaccented variants (`δοκιμη`, `τελος`). By using unaccented keywords, an attacker could nest test declarations indefinitely, bypassing the `MAX_PARSE_DEPTH` check and crashing the parser thread via a stack overflow.
 **Defense:** Updated `check_recursion_depth` to look for both the accented and unaccented variations (`δοκιμή` || `δοκιμη`, `τέλος` || `τελος`) during the fast byte scan, ensuring parity with the grammatical specification and properly limiting nesting depth for all allowed test declaration forms.
