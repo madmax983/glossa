@@ -126,22 +126,37 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
 /// assert!(output.exists());
 /// ```
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    let source = load_source(input)?;
     let status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🏗️");
     let start = std::time::Instant::now();
-    let source = load_source(input)?;
     let input_size = source.len() as u64;
 
     // Split compile to get stats
-    let analyzed = analyze_source(&source)?;
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
     let rust_code = generate_rust_file(&analyzed);
 
     let output_path = output
         .map(|p| p.to_owned())
         .unwrap_or_else(|| input.with_extension("rs"));
 
-    fs::write(&output_path, &rust_code).into_diagnostic()?;
+    if let Err(e) = fs::write(&output_path, &rust_code).into_diagnostic() {
+        status.error("Σφάλμα (Error)");
+        return Err(e);
+    }
 
-    let output_size = fs::metadata(&output_path).into_diagnostic()?.len();
+    let output_size = match fs::metadata(&output_path).into_diagnostic() {
+        Ok(m) => m.len(),
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
     let duration = start.elapsed();
     let stats = ProgramStats::new(&analyzed);
 
@@ -328,10 +343,16 @@ pub fn run_file(input: &Path) -> Result<()> {
 /// check_file(&input).unwrap();
 /// ```
 pub fn check_file(input: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
     let source = load_source(input)?;
+    let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
 
-    let analyzed = analyze_source(&source)?;
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
 
     let filename = input
         .file_name()
@@ -375,9 +396,15 @@ pub fn check_file(input: &Path) -> Result<()> {
 /// highlight_file(&input).unwrap();
 /// ```
 pub fn highlight_file(input: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
     let source = load_source(input)?;
-    let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
+    let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
+    let highlighted = match highlight(&source).map_err(|e| miette::miette!("{}", e)) {
+        Ok(h) => h,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
 
     status.success();
     println!("{}", highlighted);
@@ -413,9 +440,15 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 /// bard_file(&input).unwrap();
 /// ```
 pub fn bard_file(input: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
     let source = load_source(input)?;
-    let analyzed = analyze_source(&source)?;
+    let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
 
     let tale = tell_tale(&analyzed);
     status.success();

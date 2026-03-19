@@ -156,22 +156,45 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
 /// it compiles it with `rustc --test`. This creates a test harness that runs all functions
 /// marked with `#[test]` (which `codegen` generates for `TestDeclaration` nodes).
 pub fn run_tests(input: &Path) -> Result<()> {
-    let mut status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
-
     // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
     let source = crate::tools::runner::load_source(input)?;
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let mut status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
+
+    let ast = match parse(&source).map_err(|e| miette::miette!("{}", e)) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(e);
+        }
+    };
+
+    let analyzed = match analyze_program(&ast).map_err(|e| miette::miette!("{}", e)) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα σημασιολογίας (Semantic Error)");
+            return Err(e);
+        }
+    };
     let rust_code = generate_rust_file(&analyzed);
 
     // 3. Create temporary file for Rust source
-    let mut temp_file = Builder::new()
+    let mut temp_file = match Builder::new()
         .prefix("glossa_test_")
         .suffix(".rs")
         .tempfile()
-        .into_diagnostic()?;
+        .into_diagnostic()
+    {
+        Ok(f) => f,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
 
-    write!(temp_file, "{}", rust_code).into_diagnostic()?;
+    if let Err(e) = write!(temp_file, "{}", rust_code).into_diagnostic() {
+        status.error("Σφάλμα (Error)");
+        return Err(e);
+    }
     let temp_path = temp_file.path().to_owned();
 
     // 4. Determine output path for the test binary
