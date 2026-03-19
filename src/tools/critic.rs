@@ -5,7 +5,9 @@
 //! (Οσμαὶ Κώδικος) such as deep nesting, god functions, complex conditions, and empty blocks.
 
 use crate::parser::parse;
-use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, analyze_program};
+use crate::semantic::{
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, analyze_program,
+};
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
@@ -38,14 +40,23 @@ pub fn run_critic(input: &Path) -> Result<()> {
     println!();
 
     if critic.smells.is_empty() {
-        println!("   {}", "✨ No code smells detected. The code is pure.".green().bold());
+        println!(
+            "   {}",
+            "✨ No code smells detected. The code is pure."
+                .green()
+                .bold()
+        );
     } else {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
         table.set_header(vec![
-            Cell::new("Type").add_attribute(Attribute::Bold).fg(Color::Yellow),
+            Cell::new("Type")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Yellow),
             Cell::new("Description").add_attribute(Attribute::Bold),
-            Cell::new("Location/Context").add_attribute(Attribute::Bold).fg(Color::DarkGrey),
+            Cell::new("Location/Context")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkGrey),
         ]);
 
         for smell in &critic.smells {
@@ -122,7 +133,10 @@ impl Critic {
                 if op_count > 3 {
                     self.add_smell(
                         "Complex Condition",
-                        &format!("Condition has {} binary operators. Consider extracting to a variable.", op_count),
+                        &format!(
+                            "Condition has {} binary operators. Consider extracting to a variable.",
+                            op_count
+                        ),
                         "If statement",
                     );
                 }
@@ -157,7 +171,10 @@ impl Critic {
                 if op_count > 3 {
                     self.add_smell(
                         "Complex Condition",
-                        &format!("Condition has {} binary operators. Consider extracting to a variable.", op_count),
+                        &format!(
+                            "Condition has {} binary operators. Consider extracting to a variable.",
+                            op_count
+                        ),
                         "While statement",
                     );
                 }
@@ -184,7 +201,7 @@ impl Critic {
                 self.visit_expr(scrutinee);
                 for (pat, body) in arms {
                     if body.is_empty() {
-                         self.add_smell(
+                        self.add_smell(
                             "Empty Block",
                             "A 'match' arm has an empty body.",
                             "Match statement",
@@ -197,23 +214,26 @@ impl Critic {
                 }
             }
             AnalyzedStatement::FunctionDef {
-                name,
-                params,
-                body,
-                ..
+                name, params, body, ..
             } => {
                 // Rule: God Functions
                 if params.len() > 5 {
                     self.add_smell(
                         "God Function",
-                        &format!("Function has {} parameters. Consider grouping into a struct.", params.len()),
+                        &format!(
+                            "Function has {} parameters. Consider grouping into a struct.",
+                            params.len()
+                        ),
                         &format!("Function '{}'", name),
                     );
                 }
                 if body.len() > 20 {
                     self.add_smell(
                         "God Function",
-                        &format!("Function has {} statements. Consider breaking it down.", body.len()),
+                        &format!(
+                            "Function has {} statements. Consider breaking it down.",
+                            body.len()
+                        ),
                         &format!("Function '{}'", name),
                     );
                 }
@@ -222,10 +242,13 @@ impl Critic {
                     self.visit_statement(s, depth + 1);
                 }
             }
-            AnalyzedStatement::Binding { value, .. } | AnalyzedStatement::Assignment { value, .. } => {
+            AnalyzedStatement::Binding { value, .. }
+            | AnalyzedStatement::Assignment { value, .. } => {
                 self.visit_expr(value);
             }
-            AnalyzedStatement::Print(exprs) | AnalyzedStatement::Query(exprs) | AnalyzedStatement::Expression(exprs) => {
+            AnalyzedStatement::Print(exprs)
+            | AnalyzedStatement::Query(exprs)
+            | AnalyzedStatement::Expression(exprs) => {
                 for expr in exprs {
                     self.visit_expr(expr);
                 }
@@ -238,7 +261,10 @@ impl Critic {
                     if method.params.len() > 5 {
                         self.add_smell(
                             "God Function",
-                            &format!("Trait method has {} parameters. Consider grouping into a struct.", method.params.len()),
+                            &format!(
+                                "Trait method has {} parameters. Consider grouping into a struct.",
+                                method.params.len()
+                            ),
                             &format!("Method '{}'", method.name),
                         );
                     }
@@ -246,7 +272,10 @@ impl Critic {
                         if body.len() > 20 {
                             self.add_smell(
                                 "God Function",
-                                &format!("Trait method has {} statements. Consider breaking it down.", body.len()),
+                                &format!(
+                                    "Trait method has {} statements. Consider breaking it down.",
+                                    body.len()
+                                ),
                                 &format!("Method '{}'", method.name),
                             );
                         }
@@ -281,13 +310,16 @@ impl Critic {
             }
             AnalyzedExprKind::UnaryOp { operand, .. } => self.visit_expr(operand),
             AnalyzedExprKind::PropertyAccess { owner, .. } => self.visit_expr(owner),
-            AnalyzedExprKind::MethodCall { receiver, args, .. } | AnalyzedExprKind::TraitMethodCall { receiver, args, .. } => {
+            AnalyzedExprKind::MethodCall { receiver, args, .. }
+            | AnalyzedExprKind::TraitMethodCall { receiver, args, .. } => {
                 self.visit_expr(receiver);
                 for arg in args {
                     self.visit_expr(arg);
                 }
             }
-            AnalyzedExprKind::VerbCall { args, .. } | AnalyzedExprKind::FunctionCall { args, .. } | AnalyzedExprKind::StructInstantiation { args, .. } => {
+            AnalyzedExprKind::VerbCall { args, .. }
+            | AnalyzedExprKind::FunctionCall { args, .. }
+            | AnalyzedExprKind::StructInstantiation { args, .. } => {
                 for arg in args {
                     self.visit_expr(arg);
                 }
@@ -305,7 +337,11 @@ impl Critic {
                 self.visit_expr(array);
                 self.visit_expr(index);
             }
-            AnalyzedExprKind::Some(e) | AnalyzedExprKind::Ok(e) | AnalyzedExprKind::Err(e) | AnalyzedExprKind::Try(e) | AnalyzedExprKind::Unwrap(e) => {
+            AnalyzedExprKind::Some(e)
+            | AnalyzedExprKind::Ok(e)
+            | AnalyzedExprKind::Err(e)
+            | AnalyzedExprKind::Try(e)
+            | AnalyzedExprKind::Unwrap(e) => {
                 self.visit_expr(e);
             }
             AnalyzedExprKind::Lambda { body, .. } => self.visit_expr(body),
@@ -331,15 +367,22 @@ impl Critic {
                 self.count_binary_ops_recursive(left, count);
                 self.count_binary_ops_recursive(right, count);
             }
-            AnalyzedExprKind::UnaryOp { operand, .. } => self.count_binary_ops_recursive(operand, count),
-            AnalyzedExprKind::PropertyAccess { owner, .. } => self.count_binary_ops_recursive(owner, count),
-            AnalyzedExprKind::MethodCall { receiver, args, .. } | AnalyzedExprKind::TraitMethodCall { receiver, args, .. } => {
+            AnalyzedExprKind::UnaryOp { operand, .. } => {
+                self.count_binary_ops_recursive(operand, count)
+            }
+            AnalyzedExprKind::PropertyAccess { owner, .. } => {
+                self.count_binary_ops_recursive(owner, count)
+            }
+            AnalyzedExprKind::MethodCall { receiver, args, .. }
+            | AnalyzedExprKind::TraitMethodCall { receiver, args, .. } => {
                 self.count_binary_ops_recursive(receiver, count);
                 for arg in args {
                     self.count_binary_ops_recursive(arg, count);
                 }
             }
-            AnalyzedExprKind::VerbCall { args, .. } | AnalyzedExprKind::FunctionCall { args, .. } | AnalyzedExprKind::StructInstantiation { args, .. } => {
+            AnalyzedExprKind::VerbCall { args, .. }
+            | AnalyzedExprKind::FunctionCall { args, .. }
+            | AnalyzedExprKind::StructInstantiation { args, .. } => {
                 for arg in args {
                     self.count_binary_ops_recursive(arg, count);
                 }
@@ -357,11 +400,17 @@ impl Critic {
                 self.count_binary_ops_recursive(array, count);
                 self.count_binary_ops_recursive(index, count);
             }
-            AnalyzedExprKind::Some(e) | AnalyzedExprKind::Ok(e) | AnalyzedExprKind::Err(e) | AnalyzedExprKind::Try(e) | AnalyzedExprKind::Unwrap(e) => {
+            AnalyzedExprKind::Some(e)
+            | AnalyzedExprKind::Ok(e)
+            | AnalyzedExprKind::Err(e)
+            | AnalyzedExprKind::Try(e)
+            | AnalyzedExprKind::Unwrap(e) => {
                 self.count_binary_ops_recursive(e, count);
             }
             AnalyzedExprKind::Lambda { body, .. } => self.count_binary_ops_recursive(body, count),
-            AnalyzedExprKind::Assert { condition } => self.count_binary_ops_recursive(condition, count),
+            AnalyzedExprKind::Assert { condition } => {
+                self.count_binary_ops_recursive(condition, count)
+            }
             AnalyzedExprKind::AssertEq { left, right } => {
                 self.count_binary_ops_recursive(left, count);
                 self.count_binary_ops_recursive(right, count);
@@ -374,7 +423,7 @@ impl Critic {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::semantic::{Scope, GlossaType};
+    use crate::semantic::{GlossaType, Scope, AnalyzedMethod};
 
     #[test]
     fn test_deep_nesting() {
@@ -444,7 +493,12 @@ mod tests {
         let mut critic = Critic::new();
         critic.analyze(&program);
 
-        assert!(critic.smells.iter().any(|s| s.kind == "God Function" && s.description.contains("parameters")));
+        assert!(
+            critic
+                .smells
+                .iter()
+                .any(|s| s.kind == "God Function" && s.description.contains("parameters"))
+        );
     }
 
     #[test]
@@ -545,5 +599,257 @@ mod tests {
 
         let result = run_critic(&file_path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_critic_with_smells() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_critic_smells.gl");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            f.write_all("εἰ ἀληθές ἐστι, { }.".as_bytes()).unwrap(); // empty block smell, syntactically valid
+        }
+
+        let result = run_critic(&file_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_critic_coverage() {
+        let stmt1 = AnalyzedStatement::For {
+            variable: "x".into(),
+            iterator: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Range {
+                    start: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    end: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(10),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    inclusive: false,
+                },
+                glossa_type: GlossaType::Unknown,
+            }),
+            body: vec![],
+        };
+
+        let stmt2 = AnalyzedStatement::Match {
+            scrutinee: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            }),
+            arms: vec![(
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                vec![],
+            )],
+        };
+
+        let stmt3 = AnalyzedStatement::TestDeclaration {
+            name: "test".into(),
+            body: vec![],
+        };
+
+        let stmt4 = AnalyzedStatement::TraitImplementation {
+            trait_name: "Trait".into(),
+            type_name: "Type".into(),
+            methods: vec![AnalyzedMethod {
+                name: "method".into(),
+                params: vec![
+                    ("a".into(), GlossaType::Unknown),
+                    ("b".into(), GlossaType::Unknown),
+                    ("c".into(), GlossaType::Unknown),
+                    ("d".into(), GlossaType::Unknown),
+                    ("e".into(), GlossaType::Unknown),
+                    ("f".into(), GlossaType::Unknown),
+                ],
+                body: Some(vec![AnalyzedStatement::Break]),
+                return_type: None,
+            }],
+        };
+
+        let exprs = AnalyzedStatement::Expression(vec![
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::UnaryOp {
+                    op: crate::morphology::lexicon::UnaryOp::Not,
+                    operand: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::BooleanLiteral(true),
+                        glossa_type: GlossaType::Boolean,
+                    }),
+                },
+                glossa_type: GlossaType::Boolean,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::PropertyAccess {
+                    owner: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::StringLiteral("test".into()),
+                        glossa_type: GlossaType::String,
+                    }),
+                    property: "len".into(),
+                },
+                glossa_type: GlossaType::Number,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    method: "method".into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::FunctionCall {
+                    func: "func".into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(vec![]),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::IndexAccess {
+                    array: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::ArrayLiteral(vec![]),
+                        glossa_type: GlossaType::Unknown,
+                    }),
+                    index: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(0),
+                        glossa_type: GlossaType::Number,
+                    }),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                })),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Lambda {
+                    params: vec![],
+                    body: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    capture_mode: crate::semantic::CaptureMode::Borrow,
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Assert {
+                    condition: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::BooleanLiteral(true),
+                        glossa_type: GlossaType::Boolean,
+                    }),
+                },
+                glossa_type: GlossaType::Unit,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::AssertEq {
+                    left: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    right: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                },
+                glossa_type: GlossaType::Unit,
+            },
+        ]);
+
+        let exprs2 = AnalyzedStatement::Expression(vec![
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::TraitMethodCall {
+                    receiver: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(1),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    trait_name: "Trait".into(),
+                    method_name: "method".into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::VerbCall {
+                    verb: "verb".into(),
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::StructInstantiation {
+                    type_name: "Struct".into(),
+                    fields: vec![],
+                    args: vec![],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Ok(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                })),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Err(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                })),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                })),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                })),
+                glossa_type: GlossaType::Unknown,
+            },
+        ]);
+
+        let program = AnalyzedProgram {
+            statements: vec![stmt1, stmt2, stmt3, stmt4, exprs, exprs2],
+            scope: Scope::new(),
+        };
+
+        let mut critic = Critic::new();
+        critic.analyze(&program);
+
+        assert!(critic.smells.iter().any(|s| s.kind == "Empty Block" && s.context == "For loop"));
+        assert!(critic.smells.iter().any(|s| s.kind == "Empty Block" && s.context == "Match statement"));
+        assert!(critic.smells.iter().any(|s| s.kind == "Empty Block" && s.context == "Test declaration"));
+        assert!(critic.smells.iter().any(|s| s.kind == "God Function" && s.context == "Method 'method'"));
+
+        // Trigger count_binary_ops explicitly on nodes to get coverage there as well
+        let mut count = 0;
+        for stmt in &program.statements {
+            if let AnalyzedStatement::Expression(exprs) = stmt {
+                for expr in exprs {
+                    critic.count_binary_ops_recursive(expr, &mut count);
+                }
+            }
+        }
     }
 }
