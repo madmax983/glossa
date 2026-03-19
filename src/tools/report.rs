@@ -346,11 +346,10 @@ impl Display for GlossaReport<'_> {
                     write!(&mut params, "{}", t).unwrap();
                 }
 
-                let ret = func
-                    .return_type
-                    .as_ref()
-                    .map(|t| t.to_string())
-                    .unwrap_or_else(|| "Οὐδέν".to_string());
+                let ret = match &func.return_type {
+                    Some(t) => t.to_string(),
+                    None => "Οὐδέν".to_string(),
+                };
 
                 func_table.add_row(vec![
                     Cell::new(&func.name).fg(Color::Cyan),
