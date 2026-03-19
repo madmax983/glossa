@@ -8,3 +8,7 @@
 **[Optimize string parameter joining in reports]**
 **Learning:** Using `.map(|t| t.to_string()).collect::<Vec<_>>().join(", ")` inside loops causes two performance issues: an unnecessary intermediate `Vec` allocation to store string items, and temporary `String` allocations for each item created by `.to_string()`.
 **Action:** Instead, iterate manually over the items, use a single pre-allocated (or dynamically growing) `String` buffer, and use `write!(&mut string_buf, "{}", item)` from `std::fmt::Write` to format the objects directly into the buffer, thereby avoiding both the vector heap allocation and the intermediate string creations.
+
+**[Optimize string parameter joining and coverage]**
+**Learning:** When replacing `.collect::<Vec<_>>().join(", ")` with manual iteration and `std::fmt::Write`, ensure that test cases actually exercise the multiple-item branches (e.g., `if i > 0`). Otherwise, code coverage gates (like Codecov patch coverage) will fail due to untested conditionals.
+**Action:** Add test data (like a function with multiple parameters) when modifying iteration logic to maintain high code coverage.

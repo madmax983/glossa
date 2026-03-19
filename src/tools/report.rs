@@ -472,6 +472,12 @@ mod tests {
         let mut scope = Scope::new();
         // Add a function to scope
         scope.define_function("test_func", vec![], None);
+        // Add a function with multiple parameters to test comma insertion
+        scope.define_function(
+            "test_func_multi",
+            vec![GlossaType::Number, GlossaType::String],
+            Some(GlossaType::Boolean),
+        );
 
         let mut statements = Vec::new();
 
@@ -511,7 +517,7 @@ mod tests {
         assert_eq!(stats.statement_count, 3); // Binding + If + Print
         assert_eq!(stats.binding_count, 1);
         assert_eq!(stats.conditional_count, 1);
-        assert_eq!(stats.function_count, 1);
+        assert_eq!(stats.function_count, 2);
         assert!(stats.max_depth >= 1);
         assert!(stats.expression_count > 0);
     }
