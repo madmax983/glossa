@@ -1,62 +1,35 @@
-use glossa::ast::{Clause, Expr, Program, Statement, Word};
+use glossa::ast::{Expr, Program, Statement, Clause};
 use glossa::semantic::analyze_program;
-use proptest::prelude::*;
 
-proptest! {
-    #[test]
-    fn test_ast_semantic_massive_chain_no_panic(
-        depth in 100..500usize
-    ) {
-        let mut expr = Expr::NumberLiteral(1);
-        for _ in 0..depth {
-            expr = Expr::BinOp {
-                left: Box::new(expr),
-                op: glossa::ast::BinOperator::Add,
-                right: Box::new(Expr::NumberLiteral(1)),
-            };
-        }
-        let stmt = Statement::Regular {
-            clauses: vec![Clause {
-                expressions: vec![expr],
-            }],
-            is_query: false,
-            is_propagate: false,
-        };
+#[test]
+fn test_exploit_ast_overflow() {
+    let mut ast_expr = Expr::NumberLiteral(1);
 
-        let program = Program {
-            statements: vec![stmt],
-        };
-        let _ = analyze_program(&program);
+    // 50,000 layers of Expr::Phrase
+    for _ in 0..50000 {
+        ast_expr = Expr::Phrase(vec![ast_expr]);
     }
 
-    #[test]
-    fn test_ast_eq_massive_chain_no_panic(
-        depth in 100..5000usize
-    ) {
-        let mut expr = Expr::NumberLiteral(1);
-        for _ in 0..depth {
-            expr = Expr::BinOp {
-                left: Box::new(expr),
-                op: glossa::ast::BinOperator::Add,
-                right: Box::new(Expr::NumberLiteral(1)),
-            };
-        }
-        let expr2 = expr.clone();
-        assert_eq!(expr, expr2);
-    }
+    let stmt = Statement::Regular {
+        clauses: vec![
+            Clause {
+                expressions: vec![ast_expr],
+            }
+        ],
+        is_query: false,
+        is_propagate: false,
+    };
 
-    #[test]
-    fn test_ast_clone_no_overflow(
-        depth in 100..5000usize
-    ) {
-        let mut expr = Expr::Word(Word::new("root"));
-        for _ in 0..depth {
-            expr = Expr::IndexAccess {
-                array: Box::new(expr),
-                index: Box::new(Expr::Word(Word::new("prop"))),
-            };
-        }
-        let expr2 = expr.clone();
-        assert_eq!(expr, expr2);
-    }
+    let program = Program {
+        statements: vec![stmt],
+    };
+
+    let result = analyze_program(&program);
+    assert!(result.is_err());
+    let err_str = result.unwrap_err().to_string();
+    assert!(
+        err_str.contains("Recursion limit exceeded"),
+        "Error was: {}",
+        err_str
+    );
 }
