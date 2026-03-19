@@ -444,9 +444,17 @@ pub fn contains_function_definition_verb(stmt: &Statement) -> bool {
 /// assert!(!contains_verb_in_expr(&expr, "οριζειν"));
 /// ```
 pub fn contains_verb_in_expr(expr: &Expr, verb: &str) -> bool {
+    contains_verb_in_expr_recursive(expr, verb, 0)
+}
+
+fn contains_verb_in_expr_recursive(expr: &Expr, verb: &str, depth: usize) -> bool {
+    if depth > MAX_AST_DEPTH {
+        return false;
+    }
+
     match expr {
         Expr::Word(word) => word.normalized == verb,
-        Expr::Phrase(terms) => terms.iter().any(|t| contains_verb_in_expr(t, verb)),
+        Expr::Phrase(terms) => terms.iter().any(|t| contains_verb_in_expr_recursive(t, verb, depth + 1)),
         _ => false,
     }
 }
