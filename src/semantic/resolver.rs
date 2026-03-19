@@ -50,8 +50,8 @@ struct ScopeLevel {
     types: FxHashMap<SmolStr, GlossaType>,
     /// Traits defined in this scope.
     traits: FxHashMap<SmolStr, crate::semantic::model::TraitDef>,
-    /// Trait implementations in this scope
-    trait_impls: Vec<crate::semantic::model::TraitImpl>,
+    /// Trait implementations in this scope: (type_name, trait_name)
+    trait_impls: Vec<(SmolStr, SmolStr)>,
 }
 
 impl ScopeLevel {
@@ -274,35 +274,21 @@ impl Scope {
     }
 
     /// Register a trait implementation
-    pub fn register_trait_impl(&mut self, impl_def: crate::semantic::model::TraitImpl) {
-        self.current_level().trait_impls.push(impl_def);
-    }
-
-    /// Look up a trait implementation for a given type and trait
-    pub fn lookup_trait_impl(
-        &self,
-        type_name: &str,
-        trait_name: &str,
-    ) -> Option<&crate::semantic::model::TraitImpl> {
-        for level in self.levels.iter().rev() {
-            for impl_def in &level.trait_impls {
-                if impl_def.type_name == type_name && impl_def.trait_name == trait_name {
-                    return Some(impl_def);
-                }
-            }
-        }
-        None
+    pub fn register_trait_impl(&mut self, type_name: SmolStr, trait_name: SmolStr) {
+        self.current_level()
+            .trait_impls
+            .push((type_name, trait_name));
     }
 
     /// Check if a type has a trait method with the given name
     pub fn has_trait_method(&self, type_name: &str, method_name: &str) -> bool {
         for level in self.levels.iter().rev() {
-            for trait_impl in &level.trait_impls {
-                if trait_impl.type_name != type_name {
+            for (impl_type_name, impl_trait_name) in &level.trait_impls {
+                if impl_type_name != type_name {
                     continue;
                 }
                 // Check if the trait has this method
-                if let Some(trait_def) = self.lookup_trait(&trait_impl.trait_name) {
+                if let Some(trait_def) = self.lookup_trait(impl_trait_name) {
                     let has_method = trait_def.methods.iter().any(|m| m.name == method_name);
                     if has_method {
                         return true;

@@ -460,10 +460,3 @@ pub struct TraitDef {
     pub name: SmolStr,
     pub methods: Vec<AnalyzedMethod>,
 }
-
-/// Trait implementation for a type
-#[derive(Debug, Clone)]
-pub struct TraitImpl {
-    pub trait_name: SmolStr,
-    pub type_name: SmolStr,
-}

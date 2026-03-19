@@ -113,6 +113,7 @@
 **Saved:** 1 directory, 1 file, reduced module indirection.
 
 ## [Reduction]
-**Bloat:** Unnecessary nesting of `model::` for `ParticipleConstituent` in `src/tools/mosaic.rs` test suite (`crate::semantic::assembly::model::ParticipleConstituent`), violating ADR 016 (flat modules).
-**Cut:** Removed `model::` path segment to directly access `crate::semantic::assembly::ParticipleConstituent`.
-**Saved:** 14 characters of path boilerplate and fixed `error[E0433]` compilation failure.
+## [Reduction]
+**Bloat:** `src/semantic/model.rs` defined a `TraitImpl` DTO that was only ever used to transport two strings into a `ScopeLevel` vector. Additionally, `src/semantic/resolver.rs` contained a `lookup_trait_impl` method that was dead code (never called).
+**Cut:** Deleted the `TraitImpl` struct entirely, replaced the `ScopeLevel` vector with `Vec<(SmolStr, SmolStr)>`, and deleted the unused `lookup_trait_impl` method.
+**Saved:** Reduced DTO boilerplate, eliminated dead code, and simplified internal state tracking for trait implementations.

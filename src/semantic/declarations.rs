@@ -284,14 +284,8 @@ pub fn analyze_trait_impl(
         }
     }
 
-    // Create the trait implementation
-    let trait_impl_semantic = crate::semantic::model::TraitImpl {
-        trait_name: trait_name.clone(),
-        type_name: type_name.clone(),
-    };
-
     // Register the trait impl in scope
-    scope.register_trait_impl(trait_impl_semantic);
+    scope.register_trait_impl(type_name.clone(), trait_name.clone());
 
     Ok(AnalyzedStatement::TraitImplementation {
         trait_name,
