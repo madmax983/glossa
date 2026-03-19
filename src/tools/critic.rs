@@ -423,7 +423,7 @@ impl Critic {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::semantic::{GlossaType, Scope, AnalyzedMethod};
+    use crate::semantic::{AnalyzedMethod, GlossaType, Scope};
 
     #[test]
     fn test_deep_nesting() {
@@ -829,18 +829,119 @@ mod tests {
             },
         ]);
 
+        let stmt_if = AnalyzedStatement::If {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(false),
+                glossa_type: GlossaType::Boolean,
+            }),
+            then_body: vec![AnalyzedStatement::Break],
+            else_body: Some(vec![AnalyzedStatement::Break]),
+        };
+
+        let stmt_while = AnalyzedStatement::While {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(false),
+                glossa_type: GlossaType::Boolean,
+            }),
+            body: vec![AnalyzedStatement::Break],
+        };
+
+        let stmt_for = AnalyzedStatement::For {
+            variable: "x".into(),
+            iterator: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            }),
+            body: vec![AnalyzedStatement::Break],
+        };
+
+        let stmt_match = AnalyzedStatement::Match {
+            scrutinee: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            }),
+            arms: vec![(
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                vec![AnalyzedStatement::Break],
+            )],
+        };
+
+        let stmt_test = AnalyzedStatement::TestDeclaration {
+            name: "test".into(),
+            body: vec![AnalyzedStatement::Break],
+        };
+
+        let stmt_binding = AnalyzedStatement::Binding {
+            name: "x".into(),
+            value: AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            },
+            mutable: false,
+        };
+
+        let stmt_print = AnalyzedStatement::Print(vec![AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        }]);
+
+        let stmt_return = AnalyzedStatement::Return {
+            value: Some(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            })),
+        };
+
         let program = AnalyzedProgram {
-            statements: vec![stmt1, stmt2, stmt3, stmt4, exprs, exprs2],
+            statements: vec![
+                stmt1,
+                stmt2,
+                stmt3,
+                stmt4,
+                exprs,
+                exprs2,
+                stmt_if,
+                stmt_while,
+                stmt_for,
+                stmt_match,
+                stmt_test,
+                stmt_binding,
+                stmt_print,
+                stmt_return,
+            ],
             scope: Scope::new(),
         };
 
         let mut critic = Critic::new();
         critic.analyze(&program);
 
-        assert!(critic.smells.iter().any(|s| s.kind == "Empty Block" && s.context == "For loop"));
-        assert!(critic.smells.iter().any(|s| s.kind == "Empty Block" && s.context == "Match statement"));
-        assert!(critic.smells.iter().any(|s| s.kind == "Empty Block" && s.context == "Test declaration"));
-        assert!(critic.smells.iter().any(|s| s.kind == "God Function" && s.context == "Method 'method'"));
+        assert!(
+            critic
+                .smells
+                .iter()
+                .any(|s| s.kind == "Empty Block" && s.context == "For loop")
+        );
+        assert!(
+            critic
+                .smells
+                .iter()
+                .any(|s| s.kind == "Empty Block" && s.context == "Match statement")
+        );
+        assert!(
+            critic
+                .smells
+                .iter()
+                .any(|s| s.kind == "Empty Block" && s.context == "Test declaration")
+        );
+        assert!(
+            critic
+                .smells
+                .iter()
+                .any(|s| s.kind == "God Function" && s.context == "Method 'method'")
+        );
 
         // Trigger count_binary_ops explicitly on nodes to get coverage there as well
         let mut count = 0;
