@@ -219,6 +219,14 @@ impl Interpreter {
                     .map(Value::Number)
                     .ok_or(EvalError::ArithmeticOverflow)
             }
+            (BinaryOp::Mod, Value::Number(l), Value::Number(r)) => {
+                if *r == 0 {
+                    return Err(EvalError::DivisionByZero);
+                }
+                l.checked_rem(*r)
+                    .map(Value::Number)
+                    .ok_or(EvalError::ArithmeticOverflow)
+            }
 
             // Comparison
             (BinaryOp::Eq, _, _) => Ok(Value::Boolean(left == right)),
@@ -444,6 +452,14 @@ mod tests {
                 .eval_bin_op(&BinaryOp::Div, Value::Number(12), Value::Number(3))
                 .unwrap(),
             Value::Number(4)
+        );
+
+        // Mod (Success)
+        assert_eq!(
+            interpreter
+                .eval_bin_op(&BinaryOp::Mod, Value::Number(12), Value::Number(5))
+                .unwrap(),
+            Value::Number(2)
         );
 
         // Eq & Ne (Strings, to hit the general case)

@@ -91,3 +91,6 @@ Signed,
 **2025-03-05 - [Unaccented Greek Keyword Recursion Limit Bypass]**
 **Threat:** DoS via Stack Overflow. The manual recursion depth scanner (`src/parser/recursion.rs`) checked strictly for accented keywords `δοκιμή` and `τέλος`, but the `pest` grammar allowed unaccented variants (`δοκιμη`, `τελος`). By using unaccented keywords, an attacker could nest test declarations indefinitely, bypassing the `MAX_PARSE_DEPTH` check and crashing the parser thread via a stack overflow.
 **Defense:** Updated `check_recursion_depth` to look for both the accented and unaccented variations (`δοκιμή` || `δοκιμη`, `τέλος` || `τελος`) during the fast byte scan, ensuring parity with the grammatical specification and properly limiting nesting depth for all allowed test declaration forms.
+**2024-03-12 - [Interpreter Denial of Service (Panic)]**
+**Threat:** [The interpreter's `eval_bin_op` function panicked (DoS) on modulo-by-zero, as `checked_rem` was not properly utilized and zero was not checked for.]
+**Defense:** [Implemented an explicit 0-check and safely evaluated modulo operations via `checked_rem`, mapping the error to an `ArithmeticOverflow` evaluation error.]
