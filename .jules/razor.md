@@ -116,3 +116,13 @@
 **Bloat:** Unnecessary nesting of `model::` for `ParticipleConstituent` in `src/tools/mosaic.rs` test suite (`crate::semantic::assembly::model::ParticipleConstituent`), violating ADR 016 (flat modules).
 **Cut:** Removed `model::` path segment to directly access `crate::semantic::assembly::ParticipleConstituent`.
 **Saved:** 14 characters of path boilerplate and fixed `error[E0433]` compilation failure.
+
+## [Reduction]
+**Bloat:** Unnecessary allocation and joining of parameter strings when generating function type signatures and report parameter lists via `.collect::<Vec<_>>().join(", ")`.
+**Cut:** Eliminated the intermediate  allocations by writing parameters directly to the formatter/string using `write!` and a conditional separator `if i > 0 { ... }`.
+**Saved:** Removed multiple intermediate allocations per function processing, reducing heap memory overhead and enforcing zero-cost abstractions.
+
+## [Reduction]
+**Bloat:** Unnecessary allocation and joining of parameter strings when generating function type signatures and report parameter lists via `.collect::<Vec<_>>().join(", ")`.
+**Cut:** Eliminated the intermediate `Vec` allocations by writing parameters directly to the formatter/string using `write!` and a conditional separator `if i > 0 { ... }`.
+**Saved:** Removed multiple intermediate allocations per function processing, reducing heap memory overhead and enforcing zero-cost abstractions.

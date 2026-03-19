@@ -138,8 +138,14 @@ impl std::fmt::Display for GlossaType {
             GlossaType::Result(ok, err) => write!(f, "Ἀποτέλεσμα<{}, {}>", ok, err),
             GlossaType::Struct { name, .. } => write!(f, "Εἶδος {}", name),
             GlossaType::Function { params, returns } => {
-                let params_str: Vec<String> = params.iter().map(|p| p.to_string()).collect();
-                write!(f, "Ἔργον({}) -> {}", params_str.join(", "), returns)
+                write!(f, "Ἔργον(")?;
+                for (i, param) in params.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", param)?;
+                }
+                write!(f, ") -> {}", returns)
             }
             GlossaType::Unit => write!(f, "Οὐδέν"),
             GlossaType::Unknown => write!(f, "Ἄγνωστον"),
