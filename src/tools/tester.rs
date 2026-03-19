@@ -178,23 +178,13 @@ pub fn run_tests(input: &Path) -> Result<()> {
     let rust_code = generate_rust_file(&analyzed);
 
     // 3. Create temporary file for Rust source
-    let mut temp_file = match Builder::new()
+    let mut temp_file = Builder::new()
         .prefix("glossa_test_")
         .suffix(".rs")
         .tempfile()
-        .into_diagnostic()
-    {
-        Ok(f) => f,
-        Err(e) => {
-            status.error("Σφάλμα (Error)");
-            return Err(e);
-        }
-    };
+        .into_diagnostic()?;
 
-    if let Err(e) = write!(temp_file, "{}", rust_code).into_diagnostic() {
-        status.error("Σφάλμα (Error)");
-        return Err(e);
-    }
+    write!(temp_file, "{}", rust_code).into_diagnostic()?;
     let temp_path = temp_file.path().to_owned();
 
     // 4. Determine output path for the test binary
