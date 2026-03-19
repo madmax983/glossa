@@ -124,6 +124,25 @@ use unicode_normalization::UnicodeNormalization;
 /// This struct represents the "final state" of a sentence after parsing.
 /// It contains all the semantic components (subject, verb, object, etc.)
 /// extracted from the input stream.
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::semantic::{Assembler, AssembledStatement};
+/// use glossa::morphology::{analyze, PartOfSpeech, Case, Number};
+///
+/// let mut asm = Assembler::new();
+///
+/// // Assemble "ὁ ἄνθρωπος τὸν λόγον λέγει" (The man says the word)
+/// asm.feed(&analyze("λέγει"), "λέγει").unwrap();
+/// asm.feed(&analyze("λόγον"), "λόγον").unwrap();
+/// asm.feed(&analyze("ἄνθρωπος"), "ἄνθρωπος").unwrap();
+///
+/// let stmt = asm.finalize().unwrap();
+/// assert!(stmt.subject.is_some());
+/// assert!(stmt.object.is_some());
+/// assert!(stmt.verb.is_some());
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer

@@ -37,3 +37,6 @@
 ## 2026-03-18 - [The Semantic Model]
 **Confusion:** Lack of documentation for the semantic models in `src/semantic/model.rs` which serves as the core data container.
 **Clarification:** Added comprehensive module-level documentation explaining the Atlas pattern, the separation of logic, types, and state, and included a code example illustrating an analyzed binding statement.
+## 2026-03-24 - [The AssembledStatement documentation]
+**Confusion:** The documentation for `AssembledStatement` in `src/semantic/assembly.rs` was missing, including its relationship with the assembler tool.
+**Clarification:** Added an overview rustdoc for `AssembledStatement`, including its purpose and a realistic code example that demonstrates feeding words to `Assembler` to obtain an `AssembledStatement`.
