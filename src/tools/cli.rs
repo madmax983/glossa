@@ -175,4 +175,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Run static analysis on a .γλ file to detect code smells (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Critic {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

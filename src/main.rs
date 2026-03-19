@@ -72,6 +72,11 @@ fn main() -> Result<()> {
             glossa::tools::alchemist::run_alchemist(&input)?;
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Critic { input }) => {
+            glossa::tools::critic::run_critic(&input)?;
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
