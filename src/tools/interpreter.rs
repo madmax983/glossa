@@ -219,6 +219,14 @@ impl Interpreter {
                     .map(Value::Number)
                     .ok_or(EvalError::ArithmeticOverflow)
             }
+            (BinaryOp::Mod, Value::Number(l), Value::Number(r)) => {
+                if *r == 0 {
+                    return Err(EvalError::DivisionByZero);
+                }
+                l.checked_rem(*r)
+                    .map(Value::Number)
+                    .ok_or(EvalError::ArithmeticOverflow)
+            }
 
             // Comparison
             (BinaryOp::Eq, _, _) => Ok(Value::Boolean(left == right)),
@@ -325,6 +333,16 @@ mod tests {
     #[test]
     fn test_division_by_zero() {
         let code = "1 0 μέρος λέγε.";
+        let ast = parse(code).expect("Parse error");
+        let program = analyze_program(&ast).expect("Analysis error");
+        let mut interpreter = Interpreter::new();
+        let result = interpreter.run(&program);
+        assert!(matches!(result, Err(EvalError::DivisionByZero)));
+    }
+
+    #[test]
+    fn test_modulo_by_zero() {
+        let code = "1 0 ὑπόλοιπον λέγε.";
         let ast = parse(code).expect("Parse error");
         let program = analyze_program(&ast).expect("Analysis error");
         let mut interpreter = Interpreter::new();
@@ -444,6 +462,14 @@ mod tests {
                 .eval_bin_op(&BinaryOp::Div, Value::Number(12), Value::Number(3))
                 .unwrap(),
             Value::Number(4)
+        );
+
+        // Mod (Success)
+        assert_eq!(
+            interpreter
+                .eval_bin_op(&BinaryOp::Mod, Value::Number(12), Value::Number(5))
+                .unwrap(),
+            Value::Number(2)
         );
 
         // Eq & Ne (Strings, to hit the general case)
