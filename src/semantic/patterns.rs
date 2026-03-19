@@ -66,53 +66,64 @@ pub fn try_parse_trait_method_call(
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     // Only process Regular statements
-    if let Statement::Regular { clauses, .. } = stmt {
-        // Should have exactly one clause with one expression
-        if clauses.len() != 1 || clauses[0].expressions.len() != 1 {
-            return Ok(None);
-        }
+    let Statement::Regular { clauses, .. } = stmt else {
+        return Ok(None);
+    };
 
-        // Should be a Phrase with exactly 2 words
-        if let Expr::Phrase(terms) = &clauses[0].expressions[0] {
-            if terms.len() != 2 {
-                return Ok(None);
-            }
-
-            // Extract words
-            if let (Expr::Word(method_word), Expr::Word(receiver_word)) = (&terms[0], &terms[1]) {
-                let method_name = &method_word.normalized;
-                let receiver_name = &receiver_word.normalized;
-
-                // Check if receiver is a variable in scope
-                if let Some(receiver_type) = scope.lookup(receiver_name)
-                    && let GlossaType::Struct {
-                        name: type_name, ..
-                    } = receiver_type
-                {
-                    // Check if this type has a trait method with this name
-                    if scope.has_trait_method(type_name, method_name) {
-                        let receiver = AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(receiver_name.clone()),
-                            glossa_type: receiver_type.clone(),
-                        };
-
-                        let method_call = AnalyzedExpr {
-                            expr: AnalyzedExprKind::MethodCall {
-                                receiver: Box::new(receiver),
-                                method: method_name.clone(),
-                                args: vec![],
-                            },
-                            glossa_type: GlossaType::Unit,
-                        };
-
-                        return Ok(Some(AnalyzedStatement::Expression(vec![method_call])));
-                    }
-                }
-            }
-        }
+    // Should have exactly one clause with one expression
+    if clauses.len() != 1 || clauses[0].expressions.len() != 1 {
+        return Ok(None);
     }
 
-    Ok(None)
+    // Should be a Phrase with exactly 2 words
+    let Expr::Phrase(terms) = &clauses[0].expressions[0] else {
+        return Ok(None);
+    };
+
+    if terms.len() != 2 {
+        return Ok(None);
+    }
+
+    // Extract words
+    let (Expr::Word(method_word), Expr::Word(receiver_word)) = (&terms[0], &terms[1]) else {
+        return Ok(None);
+    };
+
+    let method_name = &method_word.normalized;
+    let receiver_name = &receiver_word.normalized;
+
+    // Check if receiver is a variable in scope
+    let Some(receiver_type) = scope.lookup(receiver_name) else {
+        return Ok(None);
+    };
+
+    let GlossaType::Struct {
+        name: type_name, ..
+    } = receiver_type
+    else {
+        return Ok(None);
+    };
+
+    // Check if this type has a trait method with this name
+    if !scope.has_trait_method(type_name, method_name) {
+        return Ok(None);
+    }
+
+    let receiver = AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(receiver_name.clone()),
+        glossa_type: receiver_type.clone(),
+    };
+
+    let method_call = AnalyzedExpr {
+        expr: AnalyzedExprKind::MethodCall {
+            receiver: Box::new(receiver),
+            method: method_name.clone(),
+            args: vec![],
+        },
+        glossa_type: GlossaType::Unit,
+    };
+
+    Ok(Some(AnalyzedStatement::Expression(vec![method_call])))
 }
 
 /// Try to parse a struct instantiation

@@ -124,7 +124,7 @@ use unicode_normalization::UnicodeNormalization;
 /// This struct represents the "final state" of a sentence after parsing.
 /// It contains all the semantic components (subject, verb, object, etc.)
 /// extracted from the input stream.
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer
     pub subject: Option<Constituent>,
@@ -193,8 +193,42 @@ pub struct AssembledStatement {
     pub string_method: Option<(String, String)>,
 }
 
+impl std::fmt::Debug for AssembledStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            f.debug_struct("AssembledStatement")
+                .field("subject", &self.subject)
+                .field("nominatives", &self.nominatives)
+                .field("verb", &self.verb)
+                .field("object", &self.object)
+                .field("indirect", &self.indirect)
+                .field("genitives", &self.genitives)
+                .field("adjectives", &self.adjectives)
+                .field("literals", &self.literals)
+                .field("arrays", &self.arrays)
+                .field("index_accesses", &self.index_accesses)
+                .field("property_accesses", &self.property_accesses)
+                .field("operators", &self.operators)
+                .field("blocks", &self.blocks)
+                .field("nested_phrases", &self.nested_phrases)
+                .field("participles", &self.participles)
+                .field("unwraps", &self.unwraps)
+                .field("is_query", &self.is_query)
+                .field("is_propagate", &self.is_propagate)
+                .field("has_mutable_marker", &self.has_mutable_marker)
+                .field(
+                    "has_containment_preposition",
+                    &self.has_containment_preposition,
+                )
+                .field("has_delimiter_preposition", &self.has_delimiter_preposition)
+                .field("string_method", &self.string_method)
+                .finish()
+        })
+    }
+}
+
 /// A noun/pronoun constituent with its grammatical info
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[allow(dead_code)]
 pub struct Constituent {
     /// The dictionary form
@@ -219,8 +253,24 @@ pub struct Constituent {
     pub person: Option<Person>,
 }
 
+impl std::fmt::Debug for Constituent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            f.debug_struct("Constituent")
+                .field("lemma", &self.lemma)
+                .field("original", &self.original)
+                .field("normalized", &self.normalized)
+                .field("case", &self.case)
+                .field("number", &self.number)
+                .field("gender", &self.gender)
+                .field("person", &self.person)
+                .finish()
+        })
+    }
+}
+
 /// A verb constituent with its grammatical info
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[allow(dead_code)]
 pub struct VerbConstituent {
     /// The dictionary form
@@ -248,8 +298,25 @@ pub struct VerbConstituent {
     pub voice: Option<Voice>,
 }
 
+impl std::fmt::Debug for VerbConstituent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            f.debug_struct("VerbConstituent")
+                .field("lemma", &self.lemma)
+                .field("original", &self.original)
+                .field("normalized", &self.normalized)
+                .field("person", &self.person)
+                .field("number", &self.number)
+                .field("tense", &self.tense)
+                .field("mood", &self.mood)
+                .field("voice", &self.voice)
+                .finish()
+        })
+    }
+}
+
 /// A participle constituent (used for lambdas/closures)
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[allow(dead_code)]
 pub struct ParticipleConstituent {
     /// The verb stem extracted from the participle
@@ -270,12 +337,39 @@ pub struct ParticipleConstituent {
     pub number: Number,
 }
 
+impl std::fmt::Debug for ParticipleConstituent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            f.debug_struct("ParticipleConstituent")
+                .field("verb_lemma", &self.verb_lemma)
+                .field("original", &self.original)
+                .field("normalized", &self.normalized)
+                .field("tense", &self.tense)
+                .field("voice", &self.voice)
+                .field("case", &self.case)
+                .field("gender", &self.gender)
+                .field("number", &self.number)
+                .finish()
+        })
+    }
+}
+
 /// A literal value
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Literal {
     String(String),
     Number(i64),
     Boolean(bool),
+}
+
+impl std::fmt::Debug for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            Literal::String(s) => f.debug_tuple("String").field(s).finish(),
+            Literal::Number(n) => f.debug_tuple("Number").field(n).finish(),
+            Literal::Boolean(b) => f.debug_tuple("Boolean").field(b).finish(),
+        })
+    }
 }
 
 /// The slot-based assembler
