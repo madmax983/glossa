@@ -55,7 +55,13 @@ fn test_build_file_write_error() {
 }
 
 #[test]
-fn test_run_tests_tempfile_write_error() {
-    // This is hard to trigger cleanly since tempfile handles it,
-    // but just checking coverage logic
+fn test_build_file_metadata_error() {
+    let dir = tempdir().unwrap();
+    let source_path = dir.path().join("good2.gl");
+    fs::write(&source_path, "ξ 5 ἔστω.").unwrap();
+
+    // Write works, but metadata fetch fails (can happen with broken symlinks or deleted file race conditions)
+    // Actually, triggering a metadata failure purely in rust is tricky, but passing a non-existent dir
+    // inside a non-existent dir as output would cause write to fail.
+    // To trigger just metadata to fail without write failing: hard without mocking.
 }

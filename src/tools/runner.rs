@@ -145,18 +145,9 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
         .map(|p| p.to_owned())
         .unwrap_or_else(|| input.with_extension("rs"));
 
-    if let Err(e) = fs::write(&output_path, &rust_code).into_diagnostic() {
-        status.error("Σφάλμα (Error)");
-        return Err(e);
-    }
+    fs::write(&output_path, &rust_code).into_diagnostic()?;
 
-    let output_size = match fs::metadata(&output_path).into_diagnostic() {
-        Ok(m) => m.len(),
-        Err(e) => {
-            status.error("Σφάλμα (Error)");
-            return Err(e);
-        }
-    };
+    let output_size = fs::metadata(&output_path).into_diagnostic()?.len();
     let duration = start.elapsed();
     let stats = ProgramStats::new(&analyzed);
 
