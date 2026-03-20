@@ -131,11 +131,23 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🏗️");
     let start = std::time::Instant::now();
-    let source = load_source(input)?;
+    let source = match load_source(input) {
+        Ok(s) => s,
+        Err(e) => {
+            status.error("Σφάλμα ἀναγνώσεως (Read Error)");
+            return Err(e);
+        }
+    };
     let input_size = source.len() as u64;
 
     // Split compile to get stats
-    let analyzed = analyze_source(&source)?;
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα μεταγλωττίσεως");
+            return Err(e);
+        }
+    };
     let rust_code = generate_rust_file(&analyzed);
 
     let output_path = output
@@ -235,7 +247,13 @@ pub fn run_file(input: &Path) -> Result<()> {
     let mut status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🚀");
 
     // Compile source
-    let source = load_source(input)?;
+    let source = match load_source(input) {
+        Ok(s) => s,
+        Err(e) => {
+            status.error("Σφάλμα ἀναγνώσεως (Read Error)");
+            return Err(e);
+        }
+    };
 
     let rust_code = match compile(&source) {
         Ok(code) => code,
@@ -253,7 +271,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     // Compile with rustc (hide output)
     let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
 
-    let rustc_output = Command::new(rustc_cmd)
+    let rustc_output = match Command::new(rustc_cmd)
         .arg(&cached_rs)
         .arg("-o")
         .arg(&cached_exe)
@@ -262,7 +280,16 @@ pub fn run_file(input: &Path) -> Result<()> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
+    {
+        Ok(output) => output,
+        Err(e) => {
+            status.error("Σφάλμα συστήματος (System Error)");
+            return Err(miette::miette!(
+                "Failed to start rustc. Is Rust installed? Detail: {}",
+                e
+            ));
+        }
+    };
 
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
@@ -335,9 +362,21 @@ pub fn run_file(input: &Path) -> Result<()> {
 /// ```
 pub fn check_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
-    let source = load_source(input)?;
+    let source = match load_source(input) {
+        Ok(s) => s,
+        Err(e) => {
+            status.error("Σφάλμα ἀναγνώσεως (Read Error)");
+            return Err(e);
+        }
+    };
 
-    let analyzed = analyze_source(&source)?;
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα ἐλέγχου");
+            return Err(e);
+        }
+    };
 
     let filename = input
         .file_name()
@@ -382,8 +421,20 @@ pub fn check_file(input: &Path) -> Result<()> {
 /// ```
 pub fn highlight_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
-    let source = load_source(input)?;
-    let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
+    let source = match load_source(input) {
+        Ok(s) => s,
+        Err(e) => {
+            status.error("Σφάλμα ἀναγνώσεως (Read Error)");
+            return Err(e);
+        }
+    };
+    let highlighted = match highlight(&source) {
+        Ok(h) => h,
+        Err(e) => {
+            status.error("Σφάλμα χρωματισμοῦ");
+            return Err(miette::miette!("{}", e));
+        }
+    };
 
     status.success();
     println!("{}", highlighted);
@@ -420,8 +471,20 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 /// ```
 pub fn bard_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
-    let source = load_source(input)?;
-    let analyzed = analyze_source(&source)?;
+    let source = match load_source(input) {
+        Ok(s) => s,
+        Err(e) => {
+            status.error("Σφάλμα ἀναγνώσεως (Read Error)");
+            return Err(e);
+        }
+    };
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα ἀφηγήσεως");
+            return Err(e);
+        }
+    };
 
     let tale = tell_tale(&analyzed);
     status.success();
