@@ -19,3 +19,8 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+
+## 🌟 The Arborist (τὸ Δένδρον)
+**Concept:** A CLI tool (`glossa tree`) that visualizes the Abstract Syntax Tree (AST) of parsed Glossa source code in a hierarchical format.
+**Fate:** Merged
+**Lesson:** Visualizing the AST hierarchy before semantic analysis reveals how the grammar structure (like clauses and nested phrases) is built, which is extremely helpful for debugging parser issues and learning the internal representation of the text.

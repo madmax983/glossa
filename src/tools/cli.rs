@@ -175,4 +175,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Visualize the parsed Abstract Syntax Tree
+    Tree {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

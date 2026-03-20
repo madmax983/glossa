@@ -72,6 +72,19 @@ fn main() -> Result<()> {
             glossa::tools::alchemist::run_alchemist(&input)?;
         }
 
+        Some(Commands::Tree { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::tree::run_tree(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input; // Suppress unused variable warning
+                miette::bail!(
+                    "The 'tree' tool is an experimental feature. Please compile with '--features nova' to use it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
