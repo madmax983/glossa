@@ -323,4 +323,125 @@ mod tests {
         assert!(output.contains("Statement::TypeDefinition"));
         assert!(output.contains("Χρήστης"));
     }
+
+    #[test]
+    fn test_tree_trait_def() {
+        let source = "χαρακτήρ Ὄχημα ὁρίζειν { }.";
+        let mut buffer = Vec::new();
+        run_tree_inner(source, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        assert!(output.contains("Statement::TraitDefinition"));
+        assert!(output.contains("Ὄχημα"));
+    }
+
+    #[test]
+    fn test_tree_trait_impl() {
+        let source = "εἶδος Αὐτοκίνητον τῷ Ὄχημα ἐμπίπτειν { }.";
+        let mut buffer = Vec::new();
+        run_tree_inner(source, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        assert!(output.contains("Statement::TraitImpl"));
+        assert!(output.contains("Αὐτοκίνητον"));
+        assert!(output.contains("Ὄχημα"));
+    }
+
+    #[test]
+    fn test_tree_test_decl() {
+        let source = "δοκιμή «τεστ». x 5 ἔστω. τέλος.";
+        let mut buffer = Vec::new();
+        run_tree_inner(source, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        assert!(output.contains("Statement::TestDeclaration"));
+        assert!(output.contains("τεστ"));
+    }
+
+    #[test]
+    fn test_tree_exprs_and_ops() {
+        // Here we test multiple expressions: string, block, call, binop, array, index, property, etc.
+        // using the manual generation since we just want to cover the branches in tree.rs,
+        // or we can test complex phrases directly.
+        use crate::ast::{BinOperator, UnaryOperator, Word};
+
+        let mut output = Vec::new();
+
+        // 1. Array Literal
+        let arr = Expr::ArrayLiteral(vec![Expr::NumberLiteral(1)]);
+        print_expr(&arr, &mut output, "", true);
+
+        // 2. Index Access
+        let idx = Expr::IndexAccess {
+            array: Box::new(Expr::Word(Word::new("x"))),
+            index: Box::new(Expr::NumberLiteral(0)),
+        };
+        print_expr(&idx, &mut output, "", true);
+
+        // 3. Property Access
+        let prop = Expr::PropertyAccess {
+            owner: Box::new(Expr::Word(Word::new("obj"))),
+            property: Box::new(Expr::Word(Word::new("prop"))),
+        };
+        print_expr(&prop, &mut output, "", true);
+
+        // 4. Call
+        let call = Expr::Call {
+            verb: Word::new("λέγε"),
+            arguments: vec![Expr::StringLiteral("test".into())],
+        };
+        print_expr(&call, &mut output, "", true);
+
+        // 5. BinOp
+        let binop = Expr::BinOp {
+            left: Box::new(Expr::NumberLiteral(1)),
+            op: BinOperator::Add,
+            right: Box::new(Expr::NumberLiteral(2)),
+        };
+        print_expr(&binop, &mut output, "", true);
+
+        // 6. UnaryOp
+        let unary = Expr::UnaryOp {
+            op: UnaryOperator::Not,
+            operand: Box::new(Expr::BooleanLiteral(true)),
+        };
+        print_expr(&unary, &mut output, "", true);
+
+        // 7. Block
+        let block = Expr::Block(vec![]);
+        print_expr(&block, &mut output, "", true);
+
+        // 8. Binding (already partially covered, but just explicitly here)
+        let binding = Expr::Binding {
+            name: Word::new("x"),
+            value: Box::new(Expr::NumberLiteral(1)),
+        };
+        print_expr(&binding, &mut output, "", true);
+
+        let out_str = String::from_utf8(output).unwrap();
+        assert!(out_str.contains("ArrayLiteral"));
+        assert!(out_str.contains("IndexAccess"));
+        assert!(out_str.contains("PropertyAccess"));
+        assert!(out_str.contains("Call"));
+        assert!(out_str.contains("BinOp"));
+        assert!(out_str.contains("UnaryOp"));
+        assert!(out_str.contains("Block"));
+        assert!(out_str.contains("Binding"));
+        assert!(out_str.contains("StringLiteral"));
+        assert!(out_str.contains("BooleanLiteral"));
+    }
+
+    #[test]
+    fn test_tree_run_tree_file_io() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("tree_test.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«χαῖρε κόσμε» λέγε.\n".as_bytes()).unwrap();
+        }
+
+        let result = run_tree(&input_path);
+        assert!(result.is_ok());
+    }
 }
