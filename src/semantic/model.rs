@@ -328,11 +328,28 @@ impl std::fmt::Debug for AnalyzedStatement {
 }
 
 /// An analyzed method (used in traits and implementations)
+///
+/// This struct holds the entire structural story of a method, whether it's
+/// merely a required signature in a [`TraitDef`] or a fully fleshed-out behavior
+/// in a [`TraitImpl`]. It provides the bridge between the compiler's type checker
+/// and the final code generation phase.
 #[derive(Clone)]
 pub struct AnalyzedMethod {
+    /// The unique identifier of the method, used for resolution during trait calls.
     pub name: SmolStr,
+    /// The ordered list of parameters the method accepts, pairing their variable names with
+    /// their expected [`GlossaType`] forms. Essential for type-checking arguments at call sites.
     pub params: Vec<(SmolStr, GlossaType)>,
-    pub body: Option<Vec<AnalyzedStatement>>, // Some for default/impl methods, None for required
+    /// The sequence of actions the method performs when executed.
+    ///
+    /// This field is the "soul" of the method. If the method is merely a promise
+    /// (a required method in a trait), the body is `None`. If it has substance
+    /// (a default implementation or a concrete trait implementation), the body is `Some`,
+    /// containing the sequence of [`AnalyzedStatement`]s that define its logic.
+    pub body: Option<Vec<AnalyzedStatement>>,
+    /// The shape of the data this method produces upon completion, if any.
+    /// Crucial for verifying that the method's body actually returns what it promises
+    /// and for allowing the caller to use the result in subsequent expressions.
     pub return_type: Option<GlossaType>,
 }
 
@@ -350,9 +367,20 @@ impl std::fmt::Debug for AnalyzedMethod {
 }
 
 /// Analyzed expression with type information
+///
+/// An expression is a fundamental building block of logic that always evaluates to a value.
+/// This struct pairs the structural "what" of the expression ([`AnalyzedExprKind`])
+/// with its semantic "how" ([`GlossaType`]), ensuring that operations are only
+/// performed on compatible data structures during codegen.
 #[derive(Clone)]
 pub struct AnalyzedExpr {
+    /// The raw structure of the expression itself, describing the action or literal value.
+    /// For instance, a `VerbCall` variant tells us a function is being invoked, while a
+    /// `NumberLiteral` represents a static integer.
     pub expr: AnalyzedExprKind,
+    /// The exact form this expression takes when fully evaluated.
+    /// The semantic analyzer enforces this type to prevent chaotic mismatches
+    /// (like trying to add a string to a boolean), serving as the compiler's source of truth.
     pub glossa_type: GlossaType,
 }
 
@@ -694,9 +722,22 @@ pub enum CaptureMode {
 // --- Trait and Type Definitions (moved from types.rs) ---
 
 /// Trait definition for semantic analysis
+///
+/// A trait defines a shared character or capability (`χαρακτήρ`) that types can embody.
+/// It acts as a contract, ensuring that any type claiming this trait provides specific behaviors.
+///
+/// # Example
+/// ```glossa
+/// χαρακτήρ Show {
+///     print ὁρίζειν ().
+/// }
+/// ```
 #[derive(Clone)]
 pub struct TraitDef {
+    /// The identifier representing the capability being defined, used by types to declare their adherence.
     pub name: SmolStr,
+    /// The collection of behaviors ([`AnalyzedMethod`]) that constitute this trait's contract.
+    /// These can be either rigid requirements (`body` is `None`) or default provided logic (`body` is `Some`).
     pub methods: Vec<AnalyzedMethod>,
 }
 
@@ -712,9 +753,22 @@ impl std::fmt::Debug for TraitDef {
 }
 
 /// Trait implementation for a type
+///
+/// Represents the formal union where a specific type agrees to fulfill the contract
+/// laid out by a trait definition. This is the moment a type "embodies" a character.
+///
+/// # Example
+/// ```glossa
+/// εἶδος User τῷ Show ἐμπίπτειν {
+///     // Implementation details here
+/// }
+/// ```
 #[derive(Clone)]
 pub struct TraitImpl {
+    /// The name of the trait whose contract is being fulfilled (e.g., `Show`).
+    /// This links the implementation back to its defining [`TraitDef`].
     pub trait_name: SmolStr,
+    /// The name of the specific struct (`εἶδος`) that is taking on this new capability (e.g., `User`).
     pub type_name: SmolStr,
 }
 
