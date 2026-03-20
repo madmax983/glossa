@@ -116,3 +116,33 @@ C4Component
 
     Rel(model, types, "Uses")
 ```
+
+## Root API (Facade Pattern)
+
+The root level of the library uses the Facade pattern to restrict access to internal modules and explicitly export the primary public APIs.
+
+```mermaid
+classDiagram
+    class glossa_lib {
+        +tools::highlight
+        +ast::Program
+        +codegen::generate_rust
+        +parser::parse
+        +semantic::AnalyzedProgram
+        +semantic::analyze_program
+    }
+
+    class InternalModules {
+        +ast
+        +codegen
+        +errors
+        +limits
+        +morphology
+        +parser
+        +semantic
+        +text
+        +tools
+    }
+
+    glossa_lib ..> InternalModules : Uses (pub use)
+```
