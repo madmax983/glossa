@@ -2,10 +2,10 @@ use glossa::codegen::generate_rust_file;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
 };
-use tempfile::tempdir;
 use std::fs::File;
 use std::io::Write;
 use std::process::Command;
+use tempfile::tempdir;
 
 #[test]
 fn test_warden_index_tryfrom_in_scope() {
@@ -43,7 +43,8 @@ fn test_warden_index_tryfrom_in_scope() {
     let file_path = dir.path().join("main.rs");
     let mut f = File::create(&file_path).unwrap();
     // generate_rust_file output is not inside a block but top level
-    f.write_all(format!("fn main() {{ {} }}", code).as_bytes()).unwrap();
+    f.write_all(format!("fn main() {{ {} }}", code).as_bytes())
+        .unwrap();
 
     let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or("rustc".to_string());
 
@@ -54,5 +55,9 @@ fn test_warden_index_tryfrom_in_scope() {
         .output()
         .expect("Failed to execute rustc");
 
-    assert!(output.status.success(), "Generated code failed to compile: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "Generated code failed to compile: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
