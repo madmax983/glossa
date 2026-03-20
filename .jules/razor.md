@@ -116,3 +116,8 @@
 **Bloat:** Unnecessary nesting of `model::` for `ParticipleConstituent` in `src/tools/mosaic.rs` test suite (`crate::semantic::assembly::model::ParticipleConstituent`), violating ADR 016 (flat modules).
 **Cut:** Removed `model::` path segment to directly access `crate::semantic::assembly::ParticipleConstituent`.
 **Saved:** 14 characters of path boilerplate and fixed `error[E0433]` compilation failure.
+
+## [Reduction]
+**Bloat:** `AssemblyError` in `src/errors/assembly.rs` contained two variants (`MissingVerb` and `GenderMismatch`) that were defined but completely unused anywhere in the codebase, leading to dead code.
+**Cut:** Deleted the `MissingVerb` and `GenderMismatch` error variants and the unused `Gender` import.
+**Saved:** Removed 13 lines of dead code and simplified the error variant surface area.
