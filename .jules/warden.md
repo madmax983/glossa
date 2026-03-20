@@ -98,3 +98,7 @@ Signed,
 **2024-03-12 - [Interpreter Denial of Service (Panic)]**
 **Threat:** [The interpreter's `eval_bin_op` function panicked (DoS) on modulo-by-zero, as `checked_rem` was not properly utilized and zero was not checked for.]
 **Defense:** [Implemented an explicit 0-check and safely evaluated modulo operations via `checked_rem`, mapping the error to an `ArithmeticOverflow` evaluation error.]
+
+**2025-02-12 - [TryFrom Missing Import Causing ICE]
+**Threat:** A logic bug allowed generated rust code to trigger an Internal Compiler Error (ICE) due to an out of scope `usize::try_from` usage on index accesses, leading to an inability to compile valid program trees with array indexing and rendering the previous DoS bounds checking defense ineffective.
+**Defense:** Explicitly added `#![allow(non_snake_case, unused_imports)]\nuse std::convert::TryFrom;` to `generate_rust_file` in `src/codegen.rs` to ensure the required trait is strictly imported during compilation.
