@@ -131,23 +131,11 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🏗️");
     let start = std::time::Instant::now();
-    let source = match load_source(input) {
-        Ok(s) => s,
-        Err(e) => {
-            status.error("Σφάλμα ἀναγνώσεως (Read Error)");
-            return Err(e);
-        }
-    };
+    let source = load_source(input)?;
     let input_size = source.len() as u64;
 
     // Split compile to get stats
-    let analyzed = match analyze_source(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα μεταγλωττίσεως");
-            return Err(e);
-        }
-    };
+    let analyzed = analyze_source(&source)?;
     let rust_code = generate_rust_file(&analyzed);
 
     let output_path = output
@@ -247,13 +235,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     let mut status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🚀");
 
     // Compile source
-    let source = match load_source(input) {
-        Ok(s) => s,
-        Err(e) => {
-            status.error("Σφάλμα ἀναγνώσεως (Read Error)");
-            return Err(e);
-        }
-    };
+    let source = load_source(input)?;
 
     let rust_code = match compile(&source) {
         Ok(code) => code,
@@ -271,7 +253,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     // Compile with rustc (hide output)
     let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
 
-    let rustc_output = match Command::new(rustc_cmd)
+    let rustc_output = Command::new(rustc_cmd)
         .arg(&cached_rs)
         .arg("-o")
         .arg(&cached_exe)
@@ -280,16 +262,7 @@ pub fn run_file(input: &Path) -> Result<()> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-    {
-        Ok(output) => output,
-        Err(e) => {
-            status.error("Σφάλμα συστήματος (System Error)");
-            return Err(miette::miette!(
-                "Failed to start rustc. Is Rust installed? Detail: {}",
-                e
-            ));
-        }
-    };
+        .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
 
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
@@ -362,21 +335,9 @@ pub fn run_file(input: &Path) -> Result<()> {
 /// ```
 pub fn check_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
-    let source = match load_source(input) {
-        Ok(s) => s,
-        Err(e) => {
-            status.error("Σφάλμα ἀναγνώσεως (Read Error)");
-            return Err(e);
-        }
-    };
+    let source = load_source(input)?;
 
-    let analyzed = match analyze_source(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα ἐλέγχου");
-            return Err(e);
-        }
-    };
+    let analyzed = analyze_source(&source)?;
 
     let filename = input
         .file_name()
@@ -421,20 +382,8 @@ pub fn check_file(input: &Path) -> Result<()> {
 /// ```
 pub fn highlight_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
-    let source = match load_source(input) {
-        Ok(s) => s,
-        Err(e) => {
-            status.error("Σφάλμα ἀναγνώσεως (Read Error)");
-            return Err(e);
-        }
-    };
-    let highlighted = match highlight(&source) {
-        Ok(h) => h,
-        Err(e) => {
-            status.error("Σφάλμα χρωματισμοῦ");
-            return Err(miette::miette!("{}", e));
-        }
-    };
+    let source = load_source(input)?;
+    let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     status.success();
     println!("{}", highlighted);
@@ -471,20 +420,8 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 /// ```
 pub fn bard_file(input: &Path) -> Result<()> {
     let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
-    let source = match load_source(input) {
-        Ok(s) => s,
-        Err(e) => {
-            status.error("Σφάλμα ἀναγνώσεως (Read Error)");
-            return Err(e);
-        }
-    };
-    let analyzed = match analyze_source(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα ἀφηγήσεως");
-            return Err(e);
-        }
-    };
+    let source = load_source(input)?;
+    let analyzed = analyze_source(&source)?;
 
     let tale = tell_tale(&analyzed);
     status.success();
@@ -497,6 +434,7 @@ pub fn bard_file(input: &Path) -> Result<()> {
 mod tests {
     use super::*;
     use std::io::Write;
+    use std::path::PathBuf;
 
     #[test]
     fn test_compile_hello() {
@@ -780,5 +718,50 @@ mod tests {
 
         let result = bard_file(&input_path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_ui_error_cleanup_missing_file() {
+        // By passing a path that doesn't exist, `load_source` fails.
+        // This exercises the `status.error()` branches for all runner tools.
+        let missing_path = PathBuf::from("does_not_exist_ever.γλ");
+
+        let check_res = check_file(&missing_path);
+        assert!(check_res.is_err());
+
+        let build_res = build_file(&missing_path, None);
+        assert!(build_res.is_err());
+
+        let highlight_res = highlight_file(&missing_path);
+        assert!(highlight_res.is_err());
+
+        let bard_res = bard_file(&missing_path);
+        assert!(bard_res.is_err());
+
+        let run_res = run_file(&missing_path);
+        assert!(run_res.is_err());
+    }
+
+    #[test]
+    fn test_ui_error_cleanup_invalid_syntax() {
+        // By passing invalid syntax, `analyze_source` fails.
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("invalid.gl");
+        std::fs::write(&input_path, "not valid greek").unwrap();
+
+        let check_res = check_file(&input_path);
+        assert!(check_res.is_err());
+
+        let build_res = build_file(&input_path, None);
+        assert!(build_res.is_err());
+
+        let highlight_res = highlight_file(&input_path);
+        assert!(highlight_res.is_err());
+
+        let bard_res = bard_file(&input_path);
+        assert!(bard_res.is_err());
+
+        let run_res = run_file(&input_path);
+        assert!(run_res.is_err());
     }
 }
