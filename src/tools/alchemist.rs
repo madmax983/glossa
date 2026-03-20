@@ -81,8 +81,14 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             )
         }
         AnalyzedStatement::Query(exprs) => {
-            let args: Vec<String> = exprs.iter().map(transpile_expr).collect();
-            format!("{}print({})", ind, args.join(", "))
+            let mut args_str = String::with_capacity(exprs.len() * 10);
+            for (i, expr) in exprs.iter().enumerate() {
+                if i > 0 {
+                    args_str.push_str(", ");
+                }
+                args_str.push_str(&transpile_expr(expr));
+            }
+            format!("{}print({})", ind, args_str)
         }
         AnalyzedStatement::Assignment { name, value } => {
             format!(
@@ -113,8 +119,14 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             }
         }
         AnalyzedStatement::Print(exprs) => {
-            let args: Vec<String> = exprs.iter().map(transpile_expr).collect();
-            format!("{}print({})", ind, args.join(", "))
+            let mut args_str = String::with_capacity(exprs.len() * 10);
+            for (i, expr) in exprs.iter().enumerate() {
+                if i > 0 {
+                    args_str.push_str(", ");
+                }
+                args_str.push_str(&transpile_expr(expr));
+            }
+            format!("{}print({})", ind, args_str)
         }
         AnalyzedStatement::Expression(exprs) => {
             let mut out = String::new();
@@ -222,8 +234,12 @@ fn transpile_function_def(
 ) -> String {
     let ind = "    ".repeat(indent);
     let mut out = format!("{}def {}(", ind, sanitize_ident(name));
-    let param_names: Vec<String> = params.iter().map(|(p, _)| sanitize_ident(p)).collect();
-    out.push_str(&param_names.join(", "));
+    for (i, (p, _)) in params.iter().enumerate() {
+        if i > 0 {
+            out.push_str(", ");
+        }
+        out.push_str(&sanitize_ident(p));
+    }
     out.push_str("):\n");
 
     if body.is_empty() {
@@ -329,23 +345,40 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
         }
         AnalyzedExprKind::VerbCall { verb, args } => {
             // Map certain known verbs to Python built-ins if applicable. For now, general function call.
-            let arg_strs: Vec<String> = args.iter().map(transpile_expr).collect();
-            format!("{}({})", sanitize_ident(verb), arg_strs.join(", "))
+            let mut args_str = String::with_capacity(args.len() * 10);
+            for (i, arg) in args.iter().enumerate() {
+                if i > 0 {
+                    args_str.push_str(", ");
+                }
+                args_str.push_str(&transpile_expr(arg));
+            }
+            format!("{}({})", sanitize_ident(verb), args_str)
         }
         AnalyzedExprKind::FunctionCall { func, args } => {
-            let arg_strs: Vec<String> = args.iter().map(transpile_expr).collect();
-            format!("{}({})", sanitize_ident(func), arg_strs.join(", "))
+            let mut args_str = String::with_capacity(args.len() * 10);
+            for (i, arg) in args.iter().enumerate() {
+                if i > 0 {
+                    args_str.push_str(", ");
+                }
+                args_str.push_str(&transpile_expr(arg));
+            }
+            format!("{}({})", sanitize_ident(func), args_str)
         }
         AnalyzedExprKind::StructInstantiation {
             type_name,
             fields,
             args,
         } => {
-            let mut kw_args = Vec::new();
-            for (f, a) in fields.iter().zip(args.iter()) {
-                kw_args.push(format!("{}={}", sanitize_ident(f), transpile_expr(a)));
+            let mut kw_args_str = String::with_capacity(fields.len() * 15);
+            for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
+                if i > 0 {
+                    kw_args_str.push_str(", ");
+                }
+                kw_args_str.push_str(&sanitize_ident(f));
+                kw_args_str.push('=');
+                kw_args_str.push_str(&transpile_expr(a));
             }
-            format!("{}({})", sanitize_ident(type_name), kw_args.join(", "))
+            format!("{}({})", sanitize_ident(type_name), kw_args_str)
         }
         AnalyzedExprKind::Range {
             start,
@@ -361,8 +394,14 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
             }
         }
         AnalyzedExprKind::ArrayLiteral(exprs) => {
-            let elems: Vec<String> = exprs.iter().map(transpile_expr).collect();
-            format!("[{}]", elems.join(", "))
+            let mut elems_str = String::with_capacity(exprs.len() * 10);
+            for (i, expr) in exprs.iter().enumerate() {
+                if i > 0 {
+                    elems_str.push_str(", ");
+                }
+                elems_str.push_str(&transpile_expr(expr));
+            }
+            format!("[{}]", elems_str)
         }
         AnalyzedExprKind::BinOp { left, op, right } => {
             let l = transpile_expr(left);
@@ -412,6 +451,19 @@ mod tests {
         let ast = parse(code).unwrap();
         let program = analyze_program(&ast).unwrap();
         transpile_to_python(&program)
+    }
+
+    #[test]
+    fn test_transpile_multiple_args() {
+        // Let's use a function definition with multiple parameters and a print with multiple elements.
+        let code = "πρόσθεσις ὁρίζειν τῷ α ἀριθμοῦ τῷ β ἀριθμοῦ τῷ γ ἀριθμοῦ · α β καὶ γ λέγε.";
+        let py = transpile_code(code);
+        assert!(py.contains("def g_προσθεσις(g_α, g_β, g_γ):"));
+        assert!(py.contains("print((g_α + g_β), g_γ)") || py.contains("print(g_α, g_β, g_γ)")); // Depending on parsing, but tests separators.
+
+        let struct_code = "εἶδος Σημεῖον { χ ἀριθμοῦ. ψ ἀριθμοῦ. }. 1 2 ὡς Σημεῖον λέγε.";
+        let py_struct = transpile_code(struct_code);
+        assert!(py_struct.contains("g_Σημειον(g_χ=1, g_ψ=2)"));
     }
 
     #[test]

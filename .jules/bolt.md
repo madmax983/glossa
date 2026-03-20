@@ -16,3 +16,6 @@
 **Codecov Patch Gates and Manual AST Construction**
 **Learning:** When trying to test specific logic branches (like `AssembledStatement` fallbacks in `resolve_binding_target`) to satisfy strict >92% Codecov patch gates, it is often simpler and far less brittle to manually construct the required AST/Semantic structs (`Constituent`, `AssembledStatement`, etc.) and pass them directly to the helper function in a unit test, rather than trying to reverse-engineer a raw ancient Greek string that parses and semantically evaluates perfectly into that precise edge case.
 **Action:** For edge-case branch coverage, write targeted unit tests that manually instantiate the data structures needed to trigger the specific `if` statement logic.
+## [Refactored intermediate array allocations]
+**Learning:** Refactoring uses of `.collect::<Vec<_>>().join(", ")` in string formatting to manual loops calling `write!(f, ...)` or `push_str` prevents unnecessary heap allocations when traversing structures like ASTs. While `.join()` is ergonomic, `.with_capacity()` combined with `for i in 0..items.len()` checks is the preferred zero-cost approach.
+**Action:** Replace `.join()` inside formatters entirely.

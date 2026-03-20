@@ -183,8 +183,14 @@ fn add_assignment(table: &mut Table, prefix: &str, name: &str, value: &AnalyzedE
 }
 
 fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-    let script = format!("Proclaim: {}", expr_strs.join(", "));
+    let mut exprs_joined = String::with_capacity(exprs.len() * 10);
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 {
+            exprs_joined.push_str(", ");
+        }
+        exprs_joined.push_str(&tell_expr(expr));
+    }
+    let script = format!("Proclaim: {}", exprs_joined);
     table.add_row(vec![
         Cell::new("PRINT").fg(Color::Green),
         Cell::new(format!("{}{}", prefix, script)),
@@ -193,8 +199,14 @@ fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
 }
 
 fn add_expression(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-    let script = format!("Do: {}", expr_strs.join(", "));
+    let mut exprs_joined = String::with_capacity(exprs.len() * 10);
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 {
+            exprs_joined.push_str(", ");
+        }
+        exprs_joined.push_str(&tell_expr(expr));
+    }
+    let script = format!("Do: {}", exprs_joined);
     table.add_row(vec![
         Cell::new("EXPR").fg(Color::DarkGrey),
         Cell::new(format!("{}{}", prefix, script)),
@@ -203,8 +215,14 @@ fn add_expression(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
 }
 
 fn add_query(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-    let script = format!("Query oracle: {}", expr_strs.join(", "));
+    let mut exprs_joined = String::with_capacity(exprs.len() * 10);
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 {
+            exprs_joined.push_str(", ");
+        }
+        exprs_joined.push_str(&tell_expr(expr));
+    }
+    let script = format!("Query oracle: {}", exprs_joined);
     table.add_row(vec![
         Cell::new("QUERY").fg(Color::Magenta),
         Cell::new(format!("{}{}", prefix, script)),
@@ -356,12 +374,14 @@ fn add_function_def(
         .map(tell_type)
         .unwrap_or("Nothing".to_string());
 
-    let script = format!(
-        "Define `{}` ({}) -> {}:",
-        name,
-        params_str.join(", "),
-        ret_str
-    );
+    let mut params_joined = String::with_capacity(params_str.len() * 15);
+    for (i, p) in params_str.iter().enumerate() {
+        if i > 0 {
+            params_joined.push_str(", ");
+        }
+        params_joined.push_str(p);
+    }
+    let script = format!("Define `{}` ({}) -> {}:", name, params_joined, ret_str);
     table.add_row(vec![
         Cell::new("FUNC").fg(Color::Cyan),
         Cell::new(format!("{}{}", prefix, script)),
@@ -382,7 +402,14 @@ fn add_type_def(
         .iter()
         .map(|(n, t)| format!("{}: {}", n, tell_type(t)))
         .collect();
-    let script = format!("Struct `{}` {{ {} }}", name, fields_str.join(", "));
+    let mut fields_joined = String::with_capacity(fields_str.len() * 15);
+    for (i, f) in fields_str.iter().enumerate() {
+        if i > 0 {
+            fields_joined.push_str(", ");
+        }
+        fields_joined.push_str(f);
+    }
+    let script = format!("Struct `{}` {{ {} }}", name, fields_joined);
     table.add_row(vec![
         Cell::new("TYPE").fg(Color::Blue),
         Cell::new(format!("{}{}", prefix, script)),
@@ -501,28 +528,47 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
 }
 
 fn tell_verb_call(verb: &str, args: &[AnalyzedExpr]) -> String {
-    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-    format!("{}({})", verb, args_str.join(", "))
+    let mut args_joined = String::with_capacity(args.len() * 10);
+    for (i, arg) in args.iter().enumerate() {
+        if i > 0 {
+            args_joined.push_str(", ");
+        }
+        args_joined.push_str(&tell_expr(arg));
+    }
+    format!("{}({})", verb, args_joined)
 }
 
 fn tell_array_literal(exprs: &[AnalyzedExpr]) -> String {
-    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-    format!("[{}]", expr_strs.join(", "))
+    let mut elems_joined = String::with_capacity(exprs.len() * 10);
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 {
+            elems_joined.push_str(", ");
+        }
+        elems_joined.push_str(&tell_expr(expr));
+    }
+    format!("[{}]", elems_joined)
 }
 
 fn tell_function_call(func: &str, args: &[AnalyzedExpr]) -> String {
-    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-    format!("{}({})", func, args_str.join(", "))
+    let mut args_joined = String::with_capacity(args.len() * 10);
+    for (i, arg) in args.iter().enumerate() {
+        if i > 0 {
+            args_joined.push_str(", ");
+        }
+        args_joined.push_str(&tell_expr(arg));
+    }
+    format!("{}({})", func, args_joined)
 }
 
 fn tell_method_call(receiver: &AnalyzedExpr, method: &str, args: &[AnalyzedExpr]) -> String {
-    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-    format!(
-        "{}.{}({})",
-        tell_expr(receiver),
-        method,
-        args_str.join(", ")
-    )
+    let mut args_joined = String::with_capacity(args.len() * 10);
+    for (i, arg) in args.iter().enumerate() {
+        if i > 0 {
+            args_joined.push_str(", ");
+        }
+        args_joined.push_str(&tell_expr(arg));
+    }
+    format!("{}.{}({})", tell_expr(receiver), method, args_joined)
 }
 
 fn tell_trait_method_call(
@@ -531,13 +577,19 @@ fn tell_trait_method_call(
     method_name: &str,
     args: &[AnalyzedExpr],
 ) -> String {
-    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
+    let mut args_joined = String::with_capacity(args.len() * 10);
+    for (i, arg) in args.iter().enumerate() {
+        if i > 0 {
+            args_joined.push_str(", ");
+        }
+        args_joined.push_str(&tell_expr(arg));
+    }
     format!(
         "{} as {}::{}({})",
         tell_expr(receiver),
         trait_name,
         method_name,
-        args_str.join(", ")
+        args_joined
     )
 }
 
@@ -546,14 +598,16 @@ fn tell_struct_instantiation(
     fields: &[smol_str::SmolStr],
     args: &[AnalyzedExpr],
 ) -> String {
-    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-    // Zip fields and args for better display
-    let fields_args: Vec<String> = fields
-        .iter()
-        .zip(args_str.iter())
-        .map(|(f, a)| format!("{}: {}", f, a))
-        .collect();
-    format!("{} {{ {} }}", type_name, fields_args.join(", "))
+    let mut fields_args_joined = String::with_capacity(fields.len() * 15);
+    for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
+        if i > 0 {
+            fields_args_joined.push_str(", ");
+        }
+        fields_args_joined.push_str(f);
+        fields_args_joined.push_str(": ");
+        fields_args_joined.push_str(&tell_expr(a));
+    }
+    format!("{} {{ {} }}", type_name, fields_args_joined)
 }
 
 fn tell_lambda(
@@ -566,7 +620,14 @@ fn tell_lambda(
         CaptureMode::Move => "move ",
         CaptureMode::Memoize => "memo ",
     };
-    format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
+    let mut params_joined = String::with_capacity(params.len() * 5);
+    for (i, p) in params.iter().enumerate() {
+        if i > 0 {
+            params_joined.push_str(", ");
+        }
+        params_joined.push_str(p);
+    }
+    format!("{}|{}| {}", mode, params_joined, tell_expr(body))
 }
 
 /// Converts a semantic type into a familiar Rust-like type signature string.
@@ -587,8 +648,14 @@ fn tell_type(ty: &GlossaType) -> String {
         GlossaType::Result(ok, err) => format!("Result<{}, {}>", tell_type(ok), tell_type(err)),
         GlossaType::Struct { name, .. } => name.to_string(),
         GlossaType::Function { params, returns } => {
-            let params_str: Vec<String> = params.iter().map(tell_type).collect();
-            format!("Fn({}) -> {}", params_str.join(", "), tell_type(returns))
+            let mut params_joined = String::with_capacity(params.len() * 10);
+            for (i, p) in params.iter().enumerate() {
+                if i > 0 {
+                    params_joined.push_str(", ");
+                }
+                params_joined.push_str(&tell_type(p));
+            }
+            format!("Fn({}) -> {}", params_joined, tell_type(returns))
         }
         GlossaType::Unit => "()".to_string(),
         GlossaType::Unknown => "?".to_string(),
@@ -600,6 +667,26 @@ mod tests {
     use super::*;
     use crate::parser::parse;
     use crate::semantic::analyze_program;
+
+    #[test]
+    fn test_tell_tale_multiple_args() {
+        let source = "πρόσθεσις ὁρίζειν τῷ α ἀριθμοῦ τῷ β ἀριθμοῦ τῷ γ ἀριθμοῦ · α β καὶ γ λέγε.";
+        let ast = parse(source).unwrap();
+        let analyzed = analyze_program(&ast).unwrap();
+        let tale = tell_tale(&analyzed);
+
+        assert!(tale.contains("α: Number, β: Number, γ: Number"));
+
+        // Also testing struct instantiation and arrays
+        let source2 = "εἶδος Σημεῖον ὁρίζειν { χ ἀριθμοῦ. ψ ἀριθμοῦ. }. 1 2 ὡς Σημεῖον λέγε.";
+        let ast2 = parse(source2).unwrap();
+        let analyzed2 = analyze_program(&ast2).unwrap();
+        let tale2 = tell_tale(&analyzed2);
+        if !tale2.contains("χ: 1, ψ: 2") {
+            println!("tale2:\n{}", tale2);
+        }
+        assert!(tale2.contains("χ: Number, ψ: Number"));
+    }
 
     #[test]
     fn test_bard_basic() {

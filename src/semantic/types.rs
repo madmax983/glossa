@@ -138,8 +138,14 @@ impl std::fmt::Display for GlossaType {
             GlossaType::Result(ok, err) => write!(f, "Ἀποτέλεσμα<{}, {}>", ok, err),
             GlossaType::Struct { name, .. } => write!(f, "Εἶδος {}", name),
             GlossaType::Function { params, returns } => {
-                let params_str: Vec<String> = params.iter().map(|p| p.to_string()).collect();
-                write!(f, "Ἔργον({}) -> {}", params_str.join(", "), returns)
+                write!(f, "Ἔργον(")?;
+                for (i, p) in params.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", p)?;
+                }
+                write!(f, ") -> {}", returns)
             }
             GlossaType::Unit => write!(f, "Οὐδέν"),
             GlossaType::Unknown => write!(f, "Ἄγνωστον"),
@@ -283,6 +289,17 @@ mod tests {
                 }
             ),
             "Ἔργον(Ἀριθμός, Ὄνομα) -> Ἀληθές/Ψεῦδος"
+        );
+        // Test multiple parameters to hit separator branch coverage
+        assert_eq!(
+            format!(
+                "{}",
+                GlossaType::Function {
+                    params: vec![GlossaType::Number, GlossaType::String, GlossaType::Boolean],
+                    returns: Box::new(GlossaType::Unit)
+                }
+            ),
+            "Ἔργον(Ἀριθμός, Ὄνομα, Ἀληθές/Ψεῦδος) -> Οὐδέν"
         );
         assert_eq!(format!("{}", GlossaType::Unit), "Οὐδέν");
         assert_eq!(format!("{}", GlossaType::Unknown), "Ἄγνωστον");
