@@ -30,7 +30,9 @@ fn main() -> Result<()> {
 
         #[cfg(not(feature = "nova"))]
         Some(Commands::Mentor) => {
-            miette::bail!("This tool requires the 'nova' feature. Run with `cargo run --features nova -- mentor`");
+            miette::bail!(
+                "This tool requires the 'nova' feature. Run with `cargo run --features nova -- mentor`"
+            );
         }
 
         Some(Commands::Build { input, output }) => {
@@ -64,7 +66,9 @@ fn main() -> Result<()> {
 
         #[cfg(not(feature = "nova"))]
         Some(Commands::Mosaic { .. }) => {
-            miette::bail!("This tool requires the 'nova' feature. Run with `cargo run --features nova -- mosaic <FILE>`");
+            miette::bail!(
+                "This tool requires the 'nova' feature. Run with `cargo run --features nova -- mosaic <FILE>`"
+            );
         }
 
         #[cfg(feature = "nova")]
@@ -74,7 +78,9 @@ fn main() -> Result<()> {
 
         #[cfg(not(feature = "nova"))]
         Some(Commands::Map { .. }) => {
-            miette::bail!("This tool requires the 'nova' feature. Run with `cargo run --features nova -- map <FILE>`");
+            miette::bail!(
+                "This tool requires the 'nova' feature. Run with `cargo run --features nova -- map <FILE>`"
+            );
         }
 
         #[cfg(feature = "nova")]
@@ -84,7 +90,9 @@ fn main() -> Result<()> {
 
         #[cfg(not(feature = "nova"))]
         Some(Commands::Weave { .. }) => {
-            miette::bail!("This tool requires the 'nova' feature. Run with `cargo run --features nova -- weave <FILE>`");
+            miette::bail!(
+                "This tool requires the 'nova' feature. Run with `cargo run --features nova -- weave <FILE>`"
+            );
         }
 
         #[cfg(feature = "nova")]
@@ -94,7 +102,9 @@ fn main() -> Result<()> {
 
         #[cfg(not(feature = "nova"))]
         Some(Commands::Alchemist { .. }) => {
-            miette::bail!("This tool requires the 'nova' feature. Run with `cargo run --features nova -- alchemist <FILE>`");
+            miette::bail!(
+                "This tool requires the 'nova' feature. Run with `cargo run --features nova -- alchemist <FILE>`"
+            );
         }
 
         Some(Commands::Repl) | None => {
