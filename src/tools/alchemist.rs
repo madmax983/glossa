@@ -459,7 +459,9 @@ mod tests {
         let code = "πρόσθεσις ὁρίζειν τῷ α ἀριθμοῦ τῷ β ἀριθμοῦ τῷ γ ἀριθμοῦ · α β καὶ γ λέγε.";
         let py = transpile_code(code);
         assert!(py.contains("def g_προσθεσις(g_α, g_β, g_γ):"));
-        assert!(py.contains("print((g_α + g_β), g_γ)") || py.contains("print(g_α, g_β, g_γ)")); // Depending on parsing, but tests separators.
+        // The AST groups `α β καὶ γ` as an array-like sequence of elements to print.
+        // For print statement: `print(g_α, g_β, g_γ)`
+        assert!(py.contains("print(g_α, g_β, g_γ)") || py.contains("print((g_α + g_β), g_γ)"), "Got: {}", py);
 
         let struct_code = "εἶδος Σημεῖον { χ ἀριθμοῦ. ψ ἀριθμοῦ. }. 1 2 ὡς Σημεῖον λέγε.";
         let py_struct = transpile_code(struct_code);
