@@ -63,22 +63,11 @@ fn test_assembly_errors_display_impls() {
     let err = AssemblyError::DoubleVerb;
     assert!(format!("{}", err).contains("Διπλοῦν ῥῆμα"));
 
-    let err = AssemblyError::MissingVerb;
-    assert!(format!("{}", err).contains("Ῥῆμα οὐχ εὑρέθη"));
-
     let err = AssemblyError::SubjectVerbDisagreement {
         subject: (Some(Person::First), Some(Number::Singular)),
         verb: (Some(Person::Third), Some(Number::Singular)),
     };
     assert!(format!("{}", err).contains("Ἀσυμφωνία"));
-
-    let err = AssemblyError::GenderMismatch {
-        word1: "a".into(),
-        gender1: Gender::Masculine,
-        word2: "b".into(),
-        gender2: Gender::Feminine,
-    };
-    assert!(format!("{}", err).contains("Ἀσυμφωνία γένους"));
 
     let err = AssemblyError::LimitExceeded {
         resource: "x".into(),

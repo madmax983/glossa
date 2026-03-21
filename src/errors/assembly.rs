@@ -1,4 +1,4 @@
-use crate::morphology::{Gender, Number, Person};
+use crate::morphology::{Number, Person};
 use miette::Diagnostic;
 use thiserror::Error;
 
@@ -37,16 +37,6 @@ pub enum AssemblyError {
     #[diagnostic(code(glossa::assembly::double_verb))]
     DoubleVerb,
 
-    /// No verb found in the statement
-    ///
-    /// Note: Pure expressions (like `5`) are allowed, but incomplete sentences trigger this.
-    ///
-    /// # Example
-    /// `ὁ ἄνθρωπος τὸν λόγον` (The man the word ... [missing action])
-    #[error("Ῥῆμα οὐχ εὑρέθη! Οὐδὲν ἐγένετο.")]
-    #[diagnostic(code(glossa::assembly::missing_verb))]
-    MissingVerb,
-
     /// Subject and Verb do not agree in number/person
     ///
     /// # Example
@@ -56,19 +46,6 @@ pub enum AssemblyError {
     SubjectVerbDisagreement {
         subject: (Option<Person>, Option<Number>),
         verb: (Option<Person>, Option<Number>),
-    },
-
-    /// Adjective and Noun do not agree in gender
-    ///
-    /// # Example
-    /// `ὁ καλὸς (Masc) γυνή (Fem)`
-    #[error("Ἀσυμφωνία γένους: {word1} ({gender1:?}) πρὸς {word2} ({gender2:?})")]
-    #[diagnostic(code(glossa::assembly::gender_mismatch))]
-    GenderMismatch {
-        word1: String,
-        gender1: Gender,
-        word2: String,
-        gender2: Gender,
     },
 
     /// Resource limit exceeded to prevent denial of service
