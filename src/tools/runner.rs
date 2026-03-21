@@ -434,6 +434,7 @@ pub fn bard_file(input: &Path) -> Result<()> {
 mod tests {
     use super::*;
     use std::io::Write;
+    use std::path::PathBuf;
 
     #[test]
     fn test_compile_hello() {
@@ -717,5 +718,50 @@ mod tests {
 
         let result = bard_file(&input_path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_ui_error_cleanup_missing_file() {
+        // By passing a path that doesn't exist, `load_source` fails.
+        // This exercises the `status.error()` branches for all runner tools.
+        let missing_path = PathBuf::from("does_not_exist_ever.γλ");
+
+        let check_res = check_file(&missing_path);
+        assert!(check_res.is_err());
+
+        let build_res = build_file(&missing_path, None);
+        assert!(build_res.is_err());
+
+        let highlight_res = highlight_file(&missing_path);
+        assert!(highlight_res.is_err());
+
+        let bard_res = bard_file(&missing_path);
+        assert!(bard_res.is_err());
+
+        let run_res = run_file(&missing_path);
+        assert!(run_res.is_err());
+    }
+
+    #[test]
+    fn test_ui_error_cleanup_invalid_syntax() {
+        // By passing invalid syntax, `analyze_source` fails.
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("invalid.gl");
+        std::fs::write(&input_path, "not valid greek").unwrap();
+
+        let check_res = check_file(&input_path);
+        assert!(check_res.is_err());
+
+        let build_res = build_file(&input_path, None);
+        assert!(build_res.is_err());
+
+        let highlight_res = highlight_file(&input_path);
+        assert!(highlight_res.is_err());
+
+        let bard_res = bard_file(&input_path);
+        assert!(bard_res.is_err());
+
+        let run_res = run_file(&input_path);
+        assert!(run_res.is_err());
     }
 }
