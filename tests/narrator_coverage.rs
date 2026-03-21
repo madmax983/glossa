@@ -518,6 +518,13 @@ fn test_bard_types() {
         },
         "Fn(Number) -> Bool",
     );
+    check_type(
+        GlossaType::Function {
+            params: vec![GlossaType::Number, GlossaType::String],
+            returns: Box::new(GlossaType::Boolean),
+        },
+        "Fn(Number, String) -> Bool",
+    );
     check_type(GlossaType::Unit, "()");
     check_type(GlossaType::Unknown, "?");
 }
