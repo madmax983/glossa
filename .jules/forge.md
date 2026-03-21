@@ -40,3 +40,7 @@
 **Refactoring God Functions in CLI Display Utilities**
 **Learning:** Functions that generate complex UI tables (like `add_row` in `src/tools/mosaic.rs`) often become God Functions (~150+ lines) as they aggregate many different data types and conditions into a single string. This creates a "Pyramid of Doom" of data preparation right before UI construction.
 **Action:** Extract the complex column data preparation logic into distinct formatting helper functions (e.g., `format_subject`, `format_other_column`), keeping the main row addition function focused solely on inserting the mapped columns into the table UI.
+
+**Refactoring `classify_query`**
+**Learning:** Functions evaluating containment and standard statements side-by-side often accumulate to 50+ lines due to nested query logic. Using guard clauses to immediately exit if the condition isn't met (`if !asm_stmt.is_query { return Ok(None); }`) removes one level of indentation. Furthermore, extracting dense logical blocks (like the containment condition) into dedicated helpers (`classify_containment_query`) flattens the execution path.
+**Action:** When acting as Forge and encountering Pyramids of Doom, deeply nested logic, or long chained `if let` sequential returns, refactor by inverting the initial `if` statements into early returns (guard clauses) and extract large interior code blocks into highly readable, dedicated helper functions to flatten execution paths.

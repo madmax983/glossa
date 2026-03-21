@@ -1015,77 +1015,91 @@ fn classify_query(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    if asm_stmt.is_query {
-        // Containment pattern
-        if asm_stmt.has_containment_preposition
-            && let Some(ref subj) = asm_stmt.subject
-        {
-            let subj_name = &subj.normalized;
-            let subj_type = scope
-                .lookup(subj_name)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown);
-
-            let collection = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj_name.clone()),
-                glossa_type: subj_type.clone(),
-            };
-
-            let element = if let Some(lit) = asm_stmt.literals.first() {
-                literal_to_analyzed_expr(lit)
-            } else {
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(0),
-                    glossa_type: GlossaType::Number,
-                }
-            };
-
-            let is_map = matches!(subj_type, GlossaType::Map(_, _));
-            let method = if is_map { "contains_key" } else { "contains" };
-
-            // Handle referencing argument if not a string literal
-            let arg_expr = if matches!(element.expr, AnalyzedExprKind::StringLiteral(_)) {
-                element
-            } else {
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::UnaryOp {
-                        op: crate::morphology::lexicon::UnaryOp::Ref,
-                        operand: Box::new(element),
-                    },
-                    glossa_type: GlossaType::Unknown,
-                }
-            };
-
-            let contains_expr = AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(collection),
-                    method: method.into(),
-                    args: vec![arg_expr],
-                },
-                glossa_type: GlossaType::Boolean,
-            };
-
-            return Ok(Some(AnalyzedStatement::Query(vec![contains_expr])));
-        }
-
-        // Regular query
-        let mut exprs = Vec::with_capacity(asm_stmt.literals.len() + 1);
-        for lit in &asm_stmt.literals {
-            exprs.push(literal_to_analyzed_expr(lit));
-        }
-        if let Some(ref subj) = asm_stmt.subject {
-            let var_type = scope
-                .lookup(&subj.lemma)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown);
-            exprs.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type,
-            });
-        }
-        return Ok(Some(AnalyzedStatement::Query(exprs)));
+    if !asm_stmt.is_query {
+        return Ok(None);
     }
-    Ok(None)
+
+    if let Some(analyzed) = classify_containment_query(asm_stmt, scope)? {
+        return Ok(Some(analyzed));
+    }
+
+    // Regular query
+    let mut exprs = Vec::with_capacity(asm_stmt.literals.len() + 1);
+    for lit in &asm_stmt.literals {
+        exprs.push(literal_to_analyzed_expr(lit));
+    }
+    if let Some(ref subj) = asm_stmt.subject {
+        let var_type = scope
+            .lookup(&subj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
+        exprs.push(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+            glossa_type: var_type,
+        });
+    }
+    Ok(Some(AnalyzedStatement::Query(exprs)))
+}
+
+/// Helper: Detect containment queries
+fn classify_containment_query(
+    asm_stmt: &AssembledStatement,
+    scope: &mut Scope,
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if !asm_stmt.has_containment_preposition {
+        return Ok(None);
+    }
+
+    let Some(ref subj) = asm_stmt.subject else {
+        return Ok(None);
+    };
+
+    let subj_name = &subj.normalized;
+    let subj_type = scope
+        .lookup(subj_name)
+        .cloned()
+        .unwrap_or(GlossaType::Unknown);
+
+    let collection = AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(subj_name.clone()),
+        glossa_type: subj_type.clone(),
+    };
+
+    let element = if let Some(lit) = asm_stmt.literals.first() {
+        literal_to_analyzed_expr(lit)
+    } else {
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(0),
+            glossa_type: GlossaType::Number,
+        }
+    };
+
+    let is_map = matches!(subj_type, GlossaType::Map(_, _));
+    let method = if is_map { "contains_key" } else { "contains" };
+
+    // Handle referencing argument if not a string literal
+    let arg_expr = if matches!(element.expr, AnalyzedExprKind::StringLiteral(_)) {
+        element
+    } else {
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::UnaryOp {
+                op: crate::morphology::lexicon::UnaryOp::Ref,
+                operand: Box::new(element),
+            },
+            glossa_type: GlossaType::Unknown,
+        }
+    };
+
+    let contains_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::MethodCall {
+            receiver: Box::new(collection),
+            method: method.into(),
+            args: vec![arg_expr],
+        },
+        glossa_type: GlossaType::Boolean,
+    };
+
+    Ok(Some(AnalyzedStatement::Query(vec![contains_expr])))
 }
 
 /// Helper: Default expression
