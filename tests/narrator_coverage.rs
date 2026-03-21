@@ -380,16 +380,19 @@ fn test_bard_exprs() {
     );
 
     test_expr_tale(AnalyzedExprKind::ArrayLiteral(vec![]), "[]");
-    test_expr_tale(AnalyzedExprKind::ArrayLiteral(vec![
-        AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(1),
-            glossa_type: GlossaType::Number,
-        },
-        AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(2),
-            glossa_type: GlossaType::Number,
-        },
-    ]), "[1, 2]");
+    test_expr_tale(
+        AnalyzedExprKind::ArrayLiteral(vec![
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(2),
+                glossa_type: GlossaType::Number,
+            },
+        ]),
+        "[1, 2]",
+    );
 
     test_expr_tale(
         AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
