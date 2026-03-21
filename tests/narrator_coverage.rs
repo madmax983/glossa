@@ -72,6 +72,23 @@ fn test_bard_expression_stmt() {
     let tale = tell_tale(&program);
     assert!(tale.contains("EXPR"));
     assert!(tale.contains("Do: \"test\""));
+
+    let stmt_multi = AnalyzedStatement::Expression(vec![
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::StringLiteral("test".into()),
+            glossa_type: GlossaType::String,
+        },
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        },
+    ]);
+    let program_multi = glossa::semantic::AnalyzedProgram {
+        statements: vec![stmt_multi],
+        scope: glossa::semantic::Scope::new(),
+    };
+    let tale_multi = tell_tale(&program_multi);
+    assert!(tale_multi.contains("Do: \"test\", 1"));
 }
 
 #[test]
@@ -80,6 +97,52 @@ fn test_bard_query() {
     let tale = compile_and_tell(source);
     assert!(tale.contains("QUERY"));
     assert!(tale.contains("Query oracle: `ξ`"));
+
+    let stmt = AnalyzedStatement::Query(vec![
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable("x".into()),
+            glossa_type: GlossaType::Unknown,
+        },
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable("y".into()),
+            glossa_type: GlossaType::Unknown,
+        },
+    ]);
+    let program = glossa::semantic::AnalyzedProgram {
+        statements: vec![stmt],
+        scope: glossa::semantic::Scope::new(),
+    };
+    let tale_multi = tell_tale(&program);
+    assert!(tale_multi.contains("Query oracle: `x`, `y`"));
+}
+
+#[test]
+fn test_bard_if_else() {
+    let stmt1 = AnalyzedStatement::Expression(vec![AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(1),
+        glossa_type: GlossaType::Number,
+    }]);
+    let stmt2 = AnalyzedStatement::Expression(vec![AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(2),
+        glossa_type: GlossaType::Number,
+    }]);
+
+    let stmt = AnalyzedStatement::If {
+        condition: Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
+        }),
+        then_body: vec![stmt1.clone(), stmt2.clone()],
+        else_body: Some(vec![stmt1.clone(), stmt2.clone()]),
+    };
+
+    let program = glossa::semantic::AnalyzedProgram {
+        statements: vec![stmt],
+        scope: glossa::semantic::Scope::new(),
+    };
+    let tale = tell_tale(&program);
+    assert!(tale.contains("IF"));
+    assert!(tale.contains("ELSE"));
 }
 
 #[test]
@@ -273,6 +336,22 @@ fn test_bard_exprs() {
         },
         "run()",
     );
+    test_expr_tale(
+        AnalyzedExprKind::VerbCall {
+            verb: "run".into(),
+            args: vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(2),
+                    glossa_type: GlossaType::Number,
+                },
+            ],
+        },
+        "run(1, 2)",
+    );
 
     test_expr_tale(
         AnalyzedExprKind::UnaryOp {
@@ -301,6 +380,16 @@ fn test_bard_exprs() {
     );
 
     test_expr_tale(AnalyzedExprKind::ArrayLiteral(vec![]), "[]");
+    test_expr_tale(AnalyzedExprKind::ArrayLiteral(vec![
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        },
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(2),
+            glossa_type: GlossaType::Number,
+        },
+    ]), "[1, 2]");
 
     test_expr_tale(
         AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
@@ -361,6 +450,22 @@ fn test_bard_exprs() {
         },
         "f()",
     );
+    test_expr_tale(
+        AnalyzedExprKind::FunctionCall {
+            func: "f".into(),
+            args: vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(2),
+                    glossa_type: GlossaType::Number,
+                },
+            ],
+        },
+        "f(1, 2)",
+    );
 
     test_expr_tale(
         AnalyzedExprKind::MethodCall {
@@ -372,6 +477,26 @@ fn test_bard_exprs() {
             args: vec![],
         },
         "`obj`.m()",
+    );
+    test_expr_tale(
+        AnalyzedExprKind::MethodCall {
+            receiver: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("obj".into()),
+                glossa_type: GlossaType::Unknown,
+            }),
+            method: "m".into(),
+            args: vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(2),
+                    glossa_type: GlossaType::Number,
+                },
+            ],
+        },
+        "`obj`.m(1, 2)",
     );
 
     test_expr_tale(
@@ -386,6 +511,27 @@ fn test_bard_exprs() {
         },
         "`obj` as T::m()",
     );
+    test_expr_tale(
+        AnalyzedExprKind::TraitMethodCall {
+            receiver: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("obj".into()),
+                glossa_type: GlossaType::Unknown,
+            }),
+            trait_name: "T".into(),
+            method_name: "m".into(),
+            args: vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(2),
+                    glossa_type: GlossaType::Number,
+                },
+            ],
+        },
+        "`obj` as T::m(1, 2)",
+    );
 
     test_expr_tale(
         AnalyzedExprKind::StructInstantiation {
@@ -398,6 +544,23 @@ fn test_bard_exprs() {
         },
         "S { f: 1 }",
     );
+    test_expr_tale(
+        AnalyzedExprKind::StructInstantiation {
+            type_name: "S".into(),
+            fields: vec!["f".into(), "g".into()],
+            args: vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(2),
+                    glossa_type: GlossaType::Number,
+                },
+            ],
+        },
+        "S { f: 1, g: 2 }",
+    );
 
     test_expr_tale(
         AnalyzedExprKind::Lambda {
@@ -409,6 +572,17 @@ fn test_bard_exprs() {
             capture_mode: CaptureMode::Borrow,
         },
         "|p| `p`",
+    );
+    test_expr_tale(
+        AnalyzedExprKind::Lambda {
+            params: vec!["p".into(), "q".into()],
+            body: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("p".into()),
+                glossa_type: GlossaType::Unknown,
+            }),
+            capture_mode: CaptureMode::Borrow,
+        },
+        "|p, q| `p`",
     );
 
     test_expr_tale(
