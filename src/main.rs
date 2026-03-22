@@ -23,9 +23,14 @@ fn main() -> Result<()> {
             run_file(&input)?;
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Mentor) => {
+            #[cfg(feature = "nova")]
             glossa::tools::mentor::run_mentor()?;
+
+            #[cfg(not(feature = "nova"))]
+            miette::bail!(
+                "The 'mentor' command requires the 'nova' feature. Run with --features nova"
+            );
         }
 
         Some(Commands::Build { input, output }) => {
@@ -52,24 +57,56 @@ fn main() -> Result<()> {
             glossa::tools::tester::run_tests(&input)?;
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Mosaic { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::mosaic::run_mosaic(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'mosaic' command requires the 'nova' feature. Run with --features nova"
+                );
+            }
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Map { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::cartographer::run_map(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'map' command requires the 'nova' feature. Run with --features nova"
+                );
+            }
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Weave { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::weave::run_weave(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'weave' command requires the 'nova' feature. Run with --features nova"
+                );
+            }
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Alchemist { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::alchemist::run_alchemist(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'alchemist' command requires the 'nova' feature. Run with --features nova"
+                );
+            }
         }
 
         Some(Commands::Repl) | None => {
