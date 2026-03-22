@@ -19,3 +19,13 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+
+## 🌟 The Chronicler (ὁ Χρονογράφος)
+**Concept:** An Execution Timeline Tracer (`glossa trace`) that runs the analyzed AST and records every state change (binding, assignment, print), building a time-travel timeline table.
+**Fate:** Merged
+**Lesson:** By wrapping the  and using temporary single-statement ASTs with probing (a dummy print statement), we can trace execution state changes without modifying the core Interpreter's private environment.
+
+## 🌟 The Chronicler (ὁ Χρονογράφος)
+**Concept:** An Execution Timeline Tracer (`glossa trace`) that runs the analyzed AST and records every state change (binding, assignment, print), building a time-travel timeline table.
+**Fate:** Merged
+**Lesson:** By wrapping the `Interpreter` and using temporary single-statement ASTs with probing (a dummy print statement), we can trace execution state changes without modifying the core Interpreter's private environment.

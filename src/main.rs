@@ -72,6 +72,20 @@ fn main() -> Result<()> {
             glossa::tools::alchemist::run_alchemist(&input)?;
         }
 
+        Some(Commands::Trace { input }) => {
+            #[cfg(feature = "nova")]
+            {
+                glossa::tools::tracer::run_trace(&input)?;
+            }
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'Trace' command is experimental. Compile with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

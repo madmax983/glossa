@@ -175,4 +175,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Trace the execution timeline of a .γλ file (Requires "nova" feature)
+    Trace {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
