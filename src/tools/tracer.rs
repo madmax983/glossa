@@ -316,4 +316,72 @@ mod tests {
         assert!(!timeline.contains("Binding"));
         assert!(!timeline.contains("Print"));
     }
+
+    #[test]
+    fn test_run_trace_success() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("trace_success.γλ");
+        std::fs::write(&file_path, "ξ 5 ἔστω.").unwrap();
+
+        let result = run_trace(&file_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_trace_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("trace_parse_error.γλ");
+        std::fs::write(&file_path, "invalid syntax").unwrap();
+
+        let result = run_trace(&file_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Parse error"));
+    }
+
+    #[test]
+    fn test_run_trace_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("trace_semantic_error.γλ");
+        // We need an error that triggers during `analyze_program`.
+        // Using `«test» 5 ἄθροισμα ἔστω.` is structurally sound (binding), but semantic analysis fails
+        // because you can't add a string and a number.
+        std::fs::write(&file_path, "«test» 5 ἄθροισμα ἔστω.").unwrap();
+
+        let result = run_trace(&file_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Semantic error"));
+    }
+
+    #[test]
+    fn test_run_trace_runtime_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("trace_runtime_error.γλ");
+        // Div by zero triggers an eval error at runtime
+        std::fs::write(&file_path, "ξ 1 0 μέρος ἔστω.").unwrap();
+
+        let result = run_trace(&file_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Runtime error during trace"));
+    }
+
+    #[test]
+    fn test_print_timeline_coverage() {
+        let mut tracer = TracingInterpreter::new();
+        // Empty events output
+        tracer.print_timeline();
+
+        // With events output
+        tracer.record_event(TraceEventKind::Binding {
+            name: "a".to_string(),
+            value: Value::Number(1),
+        });
+        tracer.record_event(TraceEventKind::Assignment {
+            name: "b".to_string(),
+            value: Value::Number(2),
+        });
+        tracer.record_event(TraceEventKind::Print {
+            output: "hello".to_string(),
+        });
+        tracer.print_timeline();
+    }
 }
