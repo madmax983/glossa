@@ -432,7 +432,7 @@ fn add_test_decl(
 /// into linear, human-readable strings. Unlike a standard `Debug` representation
 /// which outputs nested structs, this formats operations in a pseudo-code style
 /// that is immediately recognizable to developers.
-fn tell_expr(expr: &AnalyzedExpr) -> String {
+pub fn tell_expr(expr: &AnalyzedExpr) -> String {
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => format!("\"{}\"", s),
         AnalyzedExprKind::NumberLiteral(n) => format!("{}", n),
