@@ -56,13 +56,9 @@ pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
 
             match b {
                 // Check for « [0xC2, 0xAB]
-                0xC2 => {
-                    if i + 1 < bytes.len() && bytes[i + 1] == 0xAB {
-                        in_string = true;
-                        i += 2;
-                    } else {
-                        i += 1;
-                    }
+                0xC2 if i + 1 < bytes.len() && bytes[i + 1] == 0xAB => {
+                    in_string = true;
+                    i += 2;
                 }
                 b'(' | b'{' | b'[' => {
                     depth += 1;
@@ -75,19 +71,15 @@ pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
                     depth = depth.saturating_sub(1);
                     i += 1;
                 }
-                b'/' => {
-                    if i + 1 < bytes.len() && bytes[i + 1] == b'/' {
-                        // Skip comment
-                        i += 2;
-                        while i < bytes.len() {
-                            let c = bytes[i];
-                            i += 1;
-                            if c == b'\n' || c == b'\r' {
-                                break;
-                            }
-                        }
-                    } else {
+                b'/' if i + 1 < bytes.len() && bytes[i + 1] == b'/' => {
+                    // Skip comment
+                    i += 2;
+                    while i < bytes.len() {
+                        let c = bytes[i];
                         i += 1;
+                        if c == b'\n' || c == b'\r' {
+                            break;
+                        }
                     }
                 }
                 _ => {

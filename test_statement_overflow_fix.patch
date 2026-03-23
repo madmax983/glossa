@@ -1,0 +1,17 @@
+--- src/ast.rs
++++ src/ast.rs
+@@ -257,6 +257,14 @@
+         }
+     }
+
++    pub fn clauses_mut(&mut self) -> &mut [Clause] {
++        match self {
++            Statement::Regular { clauses, .. } => clauses,
++            Statement::TypeDefinition(_) => &mut [],
++            Statement::TraitDefinition(_) => &mut [],
++            Statement::TraitImpl(_) => &mut [],
++            Statement::TestDeclaration(_) => &mut [],
++        }
++    }
++
+     pub fn is_query(&self) -> bool {

@@ -52,6 +52,20 @@ pub fn analyze_statement(
     stmt: &Statement,
     scope: &mut Scope,
 ) -> Result<Vec<AnalyzedStatement>, GlossaError> {
+    analyze_statement_recursive(stmt, scope, 0)
+}
+
+fn analyze_statement_recursive(
+    stmt: &Statement,
+    scope: &mut Scope,
+    depth: usize,
+) -> Result<Vec<AnalyzedStatement>, GlossaError> {
+    if depth > crate::limits::MAX_AST_DEPTH {
+        return Err(GlossaError::semantic(
+            "Recursion limit exceeded in statement analysis",
+        ));
+    }
+
     // 1. Check for function definitions
     if contains_function_definition_verb(stmt)
         && let Some(func_def) = parse_function_definition(stmt, scope)?
@@ -95,7 +109,7 @@ pub fn analyze_statement(
         // This ensures variables defined inside the block don't leak out
         let mut block_scope = scope.enter_scope();
         for s in block_stmts {
-            analyzed.extend(analyze_statement(s, &mut block_scope)?);
+            analyzed.extend(analyze_statement_recursive(s, &mut block_scope, depth + 1)?);
         }
         return Ok(analyzed);
     }

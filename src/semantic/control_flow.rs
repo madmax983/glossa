@@ -678,11 +678,8 @@ fn parse_conditional(
             };
 
             // Recursively parse as a new conditional (which becomes the else body)
-            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope, depth + 1)? {
-                Some(vec![elif_analyzed])
-            } else {
-                None
-            }
+            parse_conditional(&elif_stmt, scope, depth + 1)?
+                .map(|elif_analyzed| vec![elif_analyzed])
         } else {
             None
         }
