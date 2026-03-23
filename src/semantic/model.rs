@@ -63,8 +63,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `let g_x = 5;`
     Binding {
+        /// The identifier representing the new reality defined by `ἔστω`.
         name: SmolStr,
+        /// The evaluated truth that this identifier now represents.
         value: AnalyzedExpr,
+        /// Indicates if this truth is eternal (`false`) or subject to the whims of time (`true`).
         mutable: bool,
     },
     /// Assignment to existing variable
@@ -74,7 +77,12 @@ pub enum AnalyzedStatement {
     /// ξ δέκα γίγνεται.
     /// ```
     /// -> `g_x = 10;`
-    Assignment { name: SmolStr, value: AnalyzedExpr },
+    Assignment {
+        /// The identifier whose fate is being rewritten (`γίγνεται`).
+        name: SmolStr,
+        /// The new form this variable will take.
+        value: AnalyzedExpr,
+    },
     /// Print statement
     ///
     /// # Example
@@ -106,8 +114,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `if g_x > 5 { ... } else { ... }`
     If {
+        /// The assertion of truth (`εἰ`) that guides the flow of fate.
         condition: Box<AnalyzedExpr>,
+        /// The path taken if the condition holds true.
         then_body: Vec<AnalyzedStatement>,
+        /// The alternative path (`εἰ δὲ μή`) taken when fate decrees otherwise.
         else_body: Option<Vec<AnalyzedStatement>>,
     },
     /// While loop
@@ -118,7 +129,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `while g_x < 10 { ... }`
     While {
+        /// The boundary of the eternal cycle (`ἕως`). The loop persists as long as this holds true.
         condition: Box<AnalyzedExpr>,
+        /// The actions repeated within the cycle.
         body: Vec<AnalyzedStatement>,
     },
     /// For loop
@@ -129,8 +142,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `for b in a { println!("{}", b); }`
     For {
+        /// The vessel holding the current manifestation of the sequence (`διὰ`).
         variable: SmolStr,
+        /// The collection or range whose elements are being traversed.
         iterator: Box<AnalyzedExpr>,
+        /// The actions performed upon each element.
         body: Vec<AnalyzedStatement>,
     },
     /// Match expression
@@ -141,7 +157,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `match g_x { 1 => ... }`
     Match {
+        /// The entity whose true nature is being revealed (`κατά`).
         scrutinee: Box<AnalyzedExpr>,
+        /// The possible forms the entity might take, and the resulting actions for each revelation.
         arms: Vec<(AnalyzedExpr, Vec<AnalyzedStatement>)>,
     },
     /// Break statement
@@ -167,7 +185,10 @@ pub enum AnalyzedStatement {
     /// δός 5.
     /// ```
     /// -> `return 5;`
-    Return { value: Option<Box<AnalyzedExpr>> },
+    Return {
+        /// The final offering (`δός`) given back to the caller.
+        value: Option<Box<AnalyzedExpr>>,
+    },
     /// Function definition
     ///
     /// # Example
@@ -176,9 +197,13 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `fn g_add(a: i64, b: i64) { ... }`
     FunctionDef {
+        /// The name of the action being defined (`ὁρίζειν`).
         name: SmolStr,
+        /// The necessary components the action requires to manifest.
         params: Vec<(SmolStr, Option<GlossaType>)>,
+        /// The sequence of events that constitute the action.
         body: Vec<AnalyzedStatement>,
+        /// The expected shape of the outcome, if it yields one.
         return_type: Option<GlossaType>,
     },
     /// Type definition (struct)
@@ -189,7 +214,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `struct User { ... }`
     TypeDefinition {
+        /// The name of the new form (`εἶδος`) coming into existence.
         name: SmolStr,
+        /// The internal structure defining the essence of this form.
         fields: Vec<(SmolStr, GlossaType)>,
     },
     /// Trait definition
@@ -200,7 +227,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `trait Show { ... }`
     TraitDefinition {
+        /// The name of the ideal character (`χαρακτήρ`) being described.
         name: SmolStr,
+        /// The specific behaviors required to embody this character.
         methods: Vec<AnalyzedMethod>,
     },
     /// Trait implementation
@@ -211,8 +240,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `impl Show for User { ... }`
     TraitImplementation {
+        /// The character (`χαρακτήρ`) that the form is striving to embody.
         trait_name: SmolStr,
+        /// The specific form (`εἶδος`) that is taking on this character.
         type_name: SmolStr,
+        /// The realization of the required behaviors.
         methods: Vec<AnalyzedMethod>,
     },
     /// Test declaration
@@ -223,7 +255,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `#[test] fn test() { ... }`
     TestDeclaration {
+        /// The name of the trial (`δοκιμή`) meant to prove the logic's soundness.
         name: String,
+        /// The sequence of assertions testing the boundaries of the code.
         body: Vec<AnalyzedStatement>,
     },
 }
@@ -427,7 +461,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `user.name` -> `PropertyAccess { owner: user, property: "name" }`
     PropertyAccess {
+        /// The entity possessing the desired attribute.
         owner: Box<AnalyzedExpr>,
+        /// The specific attribute being sought.
         property: SmolStr,
     },
 
@@ -436,7 +472,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `λέγει` (says) -> `VerbCall { verb: "say", args: [] }`
     VerbCall {
+        /// The action invoked, typically represented by a Greek verb.
         verb: SmolStr,
+        /// The entities involved in the action.
         args: Vec<AnalyzedExpr>,
     },
 
@@ -445,8 +483,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `1 + 2` -> `BinOp { left: 1, op: Add, right: 2 }`
     BinOp {
+        /// The first entity in the interaction.
         left: Box<AnalyzedExpr>,
+        /// The nature of the interaction (e.g., addition, comparison).
         op: crate::morphology::lexicon::BinaryOp,
+        /// The second entity in the interaction.
         right: Box<AnalyzedExpr>,
     },
 
@@ -455,7 +496,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `οὐκ x` -> `UnaryOp { op: Not, operand: x }`
     UnaryOp {
+        /// The transformation applied (e.g., negation).
         op: crate::morphology::lexicon::UnaryOp,
+        /// The entity undergoing transformation.
         operand: Box<AnalyzedExpr>,
     },
 
@@ -464,8 +507,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `1..10`
     Range {
+        /// The origin point of the continuum.
         start: Box<AnalyzedExpr>,
+        /// The terminus of the continuum.
         end: Box<AnalyzedExpr>,
+        /// Indicates if the terminus is part of the continuum itself.
         inclusive: bool,
     },
 
@@ -516,7 +562,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `arr[0]`
     IndexAccess {
+        /// The collection holding the desired element.
         array: Box<AnalyzedExpr>,
+        /// The numerical position of the element within the collection.
         index: Box<AnalyzedExpr>,
     },
 
@@ -525,7 +573,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `my_func(arg)`
     FunctionCall {
+        /// The specific named routine being invoked.
         func: SmolStr,
+        /// The required inputs for the routine.
         args: Vec<AnalyzedExpr>,
     },
 
@@ -534,8 +584,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `vec.push(1)`
     MethodCall {
+        /// The entity performing the specialized action.
         receiver: Box<AnalyzedExpr>,
+        /// The specialized action being performed.
         method: SmolStr,
+        /// The inputs required for the action.
         args: Vec<AnalyzedExpr>,
     },
 
@@ -544,9 +597,13 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `user.Show::print()`
     TraitMethodCall {
+        /// The entity demonstrating its learned behavior.
         receiver: Box<AnalyzedExpr>,
+        /// The character (`χαρακτήρ`) that defines this behavior.
         trait_name: SmolStr,
+        /// The specific behavior being enacted.
         method_name: SmolStr,
+        /// The necessary context for the behavior.
         args: Vec<AnalyzedExpr>,
     },
 
@@ -555,8 +612,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `x new User "name" 42`
     StructInstantiation {
+        /// The form (`εἶδος`) being breathed into life.
         type_name: SmolStr,
-        fields: Vec<SmolStr>, // Field names from struct definition
+        /// The specific attributes that make up this form.
+        fields: Vec<SmolStr>,
+        /// The initial values given to these attributes.
         args: Vec<AnalyzedExpr>,
     },
 
@@ -565,20 +625,31 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `|x| x + 1`
     Lambda {
+        /// The entities passed into the ephemeral action.
         params: Vec<SmolStr>,
+        /// The action performed within the closure.
         body: Box<AnalyzedExpr>,
+        /// Determines if the captured memories are borrowed, moved, or preserved (memoized).
         capture_mode: CaptureMode,
     },
 
     /// Collection constructor (HashSet::new(), HashMap::new())
-    CollectionNew { collection_type: String },
+    CollectionNew {
+        /// The specific nature of the empty vessel being formed (e.g., HashSet, HashMap).
+        collection_type: String,
+    },
 
     /// Boolean assertion: δεῖ (condition must be true)
-    Assert { condition: Box<AnalyzedExpr> },
+    Assert {
+        /// The truth that must hold firm, lest the trial (`δοκιμή`) end in failure.
+        condition: Box<AnalyzedExpr>,
+    },
 
     /// Equality assertion: ἰσοῦται (values must be equal)
     AssertEq {
+        /// The first entity in the comparison.
         left: Box<AnalyzedExpr>,
+        /// The second entity that must exactly mirror the first.
         right: Box<AnalyzedExpr>,
     },
 }

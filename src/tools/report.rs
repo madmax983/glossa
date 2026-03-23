@@ -407,11 +407,17 @@ impl Display for GlossaReport<'_> {
 /// assert!(output.contains("15 bytes"));
 /// ```
 pub struct CompilationReport {
+    /// The location of the original ΓΛΩΣΣΑ scroll that was read.
     pub input_path: PathBuf,
+    /// The destination where the newly forged Rust code was inscribed.
     pub output_path: PathBuf,
+    /// The physical weight (in bytes) of the original thoughts.
     pub input_size: u64,
+    /// The resulting weight (in bytes) of the generated machine instructions.
     pub output_size: u64,
+    /// The fleeting moments spent translating human intent into machine action.
     pub duration: Duration,
+    /// A deeper look into the complexity and structure of the logic itself.
     pub stats: ProgramStats,
 }
 
