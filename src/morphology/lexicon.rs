@@ -2392,6 +2392,22 @@ pub fn is_conditional_particle(normalized_word: &str) -> bool {
     matches!(normalized_word, "ει" | "εαν" | "ην" | "αν")
 }
 
+/// The canonical sequence of words defining an 'else' block in ΓΛΩΣΣΑ logic.
+///
+/// This specific sequence of particles and negations ("εἰ", "δὲ", "μή") serves as
+/// the definitive pattern for fallback execution paths when prior conditions fail.
+///
+/// # Why these exact words?
+/// In Classical Greek conditional clauses, "εἰ δὲ μή" (literally "but if not")
+/// elegantly captures the semantics of an 'otherwise' or 'else' branch without
+/// requiring a dedicated keyword.
+///
+/// # Examples
+/// ```
+/// use glossa::morphology::lexicon::ELSE_PATTERN_WORDS;
+///
+/// assert_eq!(ELSE_PATTERN_WORDS, ["ει", "δε", "μη"]);
+/// ```
 pub const ELSE_PATTERN_WORDS: [&str; 3] = ["ει", "δε", "μη"];
 
 /// Check if a sequence is the else pattern (εἰ δὲ μή)

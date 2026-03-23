@@ -33,6 +33,24 @@ pub mod mosaic;
 pub mod narrator;
 pub mod repl;
 pub mod report;
+/// The engine room for executing and building Glossa programs
+///
+/// This module orchestrates the full compilation pipeline from source file to executable binary.
+/// It bridges the gap between parsing, semantic analysis, code generation, and the final
+/// execution via `rustc`.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::runner::run_file;
+/// use std::path::Path;
+///
+/// // Execute a Glossa file directly from its path
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_file(&input) {
+///     eprintln!("Execution failed: {}", e);
+/// }
+/// ```
 pub mod runner;
 pub mod tester;
 pub mod ui;
