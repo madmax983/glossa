@@ -904,4 +904,103 @@ mod tests {
         let expr = Expr::NumberLiteral(42);
         assert!(!super::check_else_pattern_in_expression(&expr));
     }
+
+    #[test]
+    fn test_parse_while_loop_missing_body() {
+        let mut scope = Scope::new();
+
+        // ἕως x == 5
+        let stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Phrase(vec![
+                    Expr::Word(Word::new("εως")),
+                    Expr::Word(Word::new("ξ")),
+                    Expr::Word(Word::new("ισον")),
+                    Expr::NumberLiteral(5),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("While loop needs at least 2 clauses: condition and body")
+        );
+    }
+
+    #[test]
+    fn test_parse_while_loop_success() {
+        let mut scope = Scope::new();
+        // pre-define ξ so the expression analyzer knows it
+        scope.define("ξ".to_string(), GlossaType::Number);
+
+        // ἕως ξ ἴσον 5· «γεια» λέγε
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("εως")),
+                        Expr::Word(Word::new("ξ")),
+                        Expr::Word(Word::new("ισον")),
+                        Expr::NumberLiteral(5),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::StringLiteral("γεια".to_string()),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope);
+        assert!(result.is_ok());
+        let analyzed = result.unwrap().unwrap();
+
+        match analyzed {
+            AnalyzedStatement::While { condition, body } => {
+                // Assert condition
+                assert_eq!(condition.glossa_type, GlossaType::Boolean);
+                // Assert body
+                assert!(!body.is_empty());
+            }
+            _ => panic!("Expected While statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_for_range_missing_body() {
+        let mut scope = Scope::new();
+
+        // ἀπὸ 1 μέχρι 5
+        let stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Phrase(vec![
+                    Expr::Word(Word::new("απο")),
+                    Expr::NumberLiteral(1),
+                    Expr::Word(Word::new("μεχρι")),
+                    Expr::NumberLiteral(5),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("For loop needs at least 2 clauses: range and body")
+        );
+    }
 }
