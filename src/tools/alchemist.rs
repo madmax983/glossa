@@ -393,7 +393,10 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
             }
         }
         // Fallback for unsupported complex expressions like Try, Option variants, etc.
-        e => format!("/* Unimplemented expr {:?} */", e),
+        _ => format!(
+            "/* Unimplemented expr: {} */",
+            crate::tools::narrator::tell_expr(expr)
+        ),
     }
 }
 
