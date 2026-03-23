@@ -21,10 +21,10 @@ use std::path::Path;
 
 /// Run the Alchemist tool on a file
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
+    let source = crate::tools::runner::load_source(input)?;
+
     let status =
         crate::tools::ui::Status::start_with_symbol("Χημεία (Transpiling to Python)", "⚗️");
-
-    let source = crate::tools::runner::load_source(input)?;
 
     let ast = parse(&source).map_err(|e| miette::miette!("Parse error: {}", e))?;
     let program = analyze_program(&ast).map_err(|e| miette::miette!("Semantic error: {}", e))?;

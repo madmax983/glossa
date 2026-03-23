@@ -156,10 +156,11 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
 /// it compiles it with `rustc --test`. This creates a test harness that runs all functions
 /// marked with `#[test]` (which `codegen` generates for `TestDeclaration` nodes).
 pub fn run_tests(input: &Path) -> Result<()> {
-    let mut status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
-
     // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
     let source = crate::tools::runner::load_source(input)?;
+
+    let mut status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
+
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
     let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
     let rust_code = generate_rust_file(&analyzed);

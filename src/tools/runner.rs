@@ -129,9 +129,9 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
 /// assert!(output.exists());
 /// ```
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    let source = load_source(input)?;
     let status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🏗️");
     let start = std::time::Instant::now();
-    let source = load_source(input)?;
     let input_size = source.len() as u64;
 
     // Split compile to get stats
@@ -232,10 +232,10 @@ pub fn run_file(input: &Path) -> Result<()> {
         return Ok(());
     }
 
-    let mut status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🚀");
-
     // Compile source
     let source = load_source(input)?;
+
+    let mut status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🚀");
 
     let rust_code = match compile(&source) {
         Ok(code) => code,
@@ -334,8 +334,8 @@ pub fn run_file(input: &Path) -> Result<()> {
 /// check_file(&input).unwrap();
 /// ```
 pub fn check_file(input: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
     let source = load_source(input)?;
+    let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
 
     let analyzed = analyze_source(&source)?;
 
@@ -381,8 +381,8 @@ pub fn check_file(input: &Path) -> Result<()> {
 /// highlight_file(&input).unwrap();
 /// ```
 pub fn highlight_file(input: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
     let source = load_source(input)?;
+    let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
     let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
 
     status.success();
@@ -419,8 +419,8 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 /// bard_file(&input).unwrap();
 /// ```
 pub fn bard_file(input: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
     let source = load_source(input)?;
+    let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
     let analyzed = analyze_source(&source)?;
 
     let tale = tell_tale(&analyzed);
