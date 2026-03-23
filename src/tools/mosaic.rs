@@ -38,9 +38,9 @@ use std::path::Path;
 ///
 /// Reads the source file, parses it, and prints the semantic assembly table to stdout.
 pub fn run_mosaic(input_path: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Ψηφιδωτόν (Mosaic)", "🧩");
-
     let source = crate::tools::runner::load_source(input_path)?;
+
+    let status = Status::start_with_symbol("Ψηφιδωτόν (Mosaic)", "🧩");
 
     // Create a buffer for the table
     let mut buffer = Vec::new();

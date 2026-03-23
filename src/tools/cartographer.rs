@@ -46,9 +46,10 @@ use std::path::Path;
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
 pub fn run_map(input: &Path) -> Result<()> {
+    let source = crate::tools::runner::load_source(input)?;
+
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
 
-    let source = crate::tools::runner::load_source(input)?;
     let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
     let program = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
 
