@@ -67,6 +67,7 @@ use std::path::PathBuf;
 #[command(about = "ΓΛΩΣΣΑ - Ancient Greek morphology as programming semantics")]
 #[command(version)]
 pub struct Cli {
+    /// The specific action the user wishes the compiler to perform (e.g., compile, run, test).
     #[command(subcommand)]
     pub command: Option<Commands>,
 
