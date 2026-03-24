@@ -355,10 +355,28 @@ impl std::fmt::Debug for ParticipleConstituent {
 }
 
 /// A literal value
+///
+/// Literals are atomic truths inscribed directly by the user. They require no
+/// variables or references to evaluate, possessing their complete essence inherently.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::semantic::assembly::Literal;
+///
+/// // Create a string literal embodying truth
+/// let text = Literal::String("Ἀλήθεια".to_string());
+///
+/// // A perfect number literal
+/// let perfect_number = Literal::Number(6);
+/// ```
 #[derive(Clone)]
 pub enum Literal {
+    /// A quoted string literal containing raw text
     String(String),
+    /// An integer numeric literal or parsed greek numeral
     Number(i64),
+    /// A true/false boolean literal (`ἀληθές` or `ψεῦδος`)
     Boolean(bool),
 }
 
