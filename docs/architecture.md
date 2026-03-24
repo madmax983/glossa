@@ -27,6 +27,15 @@ The compiler is organized as a pipeline of modules, transforming source text int
 C4Container
     title Container Diagram for ΓΛΩΣΣΑ Compiler
 
+    Container_Boundary(api, "Public API (Facade)") {
+        Container(api_ast, "ast::Program", "src/ast.rs", "Abstract Syntax Tree")
+        Container(api_parse, "parser::parse", "src/parser/mod.rs", "Parses source to AST")
+        Container(api_analyzed, "semantic::AnalyzedProgram", "src/semantic/model.rs", "Analyzed Program structure")
+        Container(api_analyze, "semantic::analyze_program", "src/semantic/mod.rs", "Analyzes AST")
+        Container(api_codegen, "codegen::generate_rust", "src/codegen.rs", "Generates Rust source")
+        Container(api_highlight, "tools::highlight", "src/tools/highlight.rs", "Syntax highlighting utility")
+    }
+
     Container(lexer, "Lexer", "src/parser/grammar.rs", "Tokenizes source, handling Unicode normalization")
     Container(parser, "Parser", "src/parser", "Constructs AST, enforcing recursion limits (max depth 500)")
     Container(morphology, "Declension Resolver", "src/morphology", "Analyzes case, gender, number, and resolves agreement")
@@ -67,6 +76,10 @@ C4Container
     Rel(morphology, dictionary, "Lexicon Data")
     Rel(parser, tester, "AST")
     Rel(codegen, tester, "Rust Source")
+
+    Rel(api_parse, parser, "Delegates to")
+    Rel(api_analyze, semantic, "Delegates to")
+    Rel(api_codegen, codegen, "Delegates to")
 ```
 
 ## Semantic Analysis (C4 Component Level)
