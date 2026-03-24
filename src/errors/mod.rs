@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 //! Error handling for ΓΛΩΣΣΑ
 //!
 //! This module implements the "Errors as Dialogue" philosophy. In ΓΛΩΣΣΑ, errors are not

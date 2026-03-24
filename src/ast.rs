@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 //! Abstract Syntax Tree for ΓΛΩΣΣΑ
 //!
 //! The AST captures the semantic structure of a GLOSSA program,

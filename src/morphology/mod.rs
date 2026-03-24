@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 //! Morphological analysis for Ancient Greek
 //!
 //! This module is the heart of ΓΛΩΣΣΑ. It analyzes Greek words to extract:

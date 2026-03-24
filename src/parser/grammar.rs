@@ -71,9 +71,11 @@ use pest_derive::Parser;
 /// let pairs = GlossaParser::parse(Rule::greek_word, "ἄνθρωπος").unwrap();
 /// assert_eq!(pairs.as_str(), "ἄνθρωπος");
 /// ```
+#[allow(missing_docs)]
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]
 #[doc(hidden)]
+#[allow(clippy::missing_docs_in_private_items)]
 pub struct GlossaParser;
 
 /// Parse a ΓΛΩΣΣΑ source string into a pest parse tree (Concrete Syntax Tree)

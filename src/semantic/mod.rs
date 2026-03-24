@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 //! Semantic analysis for ΓΛΩΣΣΑ
 //!
 //! This module implements the semantic analysis pipeline, which transforms the raw AST

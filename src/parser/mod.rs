@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 //! Semantic Parser for ΓΛΩΣΣΑ
 //!
 //! This module bridges the gap between the raw text parsing (Grammar) and the

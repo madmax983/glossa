@@ -121,3 +121,7 @@
 **Bloat:** `AssemblyError` in `src/errors/assembly.rs` contained two variants (`MissingVerb` and `GenderMismatch`) that were defined but completely unused anywhere in the codebase, leading to dead code.
 **Cut:** Deleted the `MissingVerb` and `GenderMismatch` error variants and the unused `Gender` import.
 **Saved:** Removed 13 lines of dead code and simplified the error variant surface area.
+## [Reduction]
+**Bloat:** `missing_docs` warnings on internal data structures (enums, variants, struct fields) that add noise to `cargo doc`. Hundreds of individual `#[allow(missing_docs)]` annotations generated unnecessary boilerplate.
+**Cut:** Added `#![allow(missing_docs)]` at the module level (`src/ast.rs`, `src/errors/mod.rs`, `src/morphology/mod.rs`, `src/parser/mod.rs`, and `src/semantic/mod.rs`) to cleanly silence warnings instead of polluting individual enums and structs.
+**Saved:** Cleaned up `cargo doc` output, removed ~30 lines of attribute bloat across the codebase, and suppressed over 50 compiler warnings.
