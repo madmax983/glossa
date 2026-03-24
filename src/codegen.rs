@@ -1097,8 +1097,13 @@ fn generate_memoized_closure(
 ) -> TokenStream {
     // Warden Security Check: Memoization ignores arguments, so it's only safe for 0-arity closures (thunks).
     // If we allow arguments, we risk caching incorrect results (e.g. f(1) cached, f(2) returns cached f(1)).
+    // Instead of panicking and crashing the compiler, gracefully fallback to a standard non-memoized closure.
     if !params.is_empty() {
-        panic!("Memoization is only supported for 0-argument closures");
+        return quote! {
+            move |#(#params_idents),*| {
+                #body_tokens
+            }
+        };
     }
 
     // Perfect participle: lazy evaluation with caching
