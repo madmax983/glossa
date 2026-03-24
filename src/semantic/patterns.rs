@@ -627,7 +627,7 @@ fn process_participles(
                     let init_value = match bin_op {
                         crate::morphology::lexicon::BinaryOp::Add => 0,
                         crate::morphology::lexicon::BinaryOp::Mul => 1,
-                        _ => unreachable!(),
+                        _ => continue,
                     };
 
                     // Determine capture mode based on participle tense
@@ -1336,5 +1336,43 @@ mod coverage_tests {
         let result = try_parse_struct_instantiation(&stmt, &mut scope);
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
+    }
+}
+
+#[cfg(test)]
+mod fallback_tests {
+    use super::*;
+    use crate::morphology::lexicon::BinaryOp;
+    use crate::morphology::{Tense, Voice};
+    use crate::semantic::assembly::AssembledStatement;
+
+    #[test]
+    fn test_process_participles_invalid_fold_op() {
+        let mut asm_stmt = AssembledStatement::default();
+        asm_stmt
+            .participles
+            .push(crate::semantic::assembly::ParticipleConstituent {
+                original: "συλλεγόμενα".into(),
+                verb_lemma: "συλλέγω".into(),
+                tense: Tense::Present,
+                voice: Voice::Passive,
+                normalized: "συλλεγομενα".into(),
+                gender: crate::morphology::Gender::Neuter,
+                number: crate::morphology::Number::Plural,
+                case: crate::morphology::Case::Nominative,
+            });
+
+        // This simulates a logic bug earlier in the assembly pipeline where
+        // a Sub operator sneaks into a fold pattern which expects Add or Mul
+        asm_stmt.operators.push(BinaryOp::Sub);
+
+        let mut expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(0),
+            glossa_type: crate::semantic::types::GlossaType::Number,
+        };
+
+        // This should safely return (false, false) instead of hitting unreachable!()
+        let result = process_participles(&asm_stmt, &mut expr);
+        assert!(!result.1);
     }
 }

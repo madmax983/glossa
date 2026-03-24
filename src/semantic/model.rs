@@ -42,7 +42,7 @@
 //!
 //! match binding {
 //!     AnalyzedStatement::Binding { name, .. } => assert_eq!(name, "ξ"),
-//!     _ => unreachable!(),
+//!     _ => panic!("Expected Binding"),
 //! }
 //! ```
 

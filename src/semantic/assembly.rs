@@ -937,7 +937,7 @@ impl Assembler {
 
                 let delim = match self.state.literals.pop() {
                     Some(Literal::String(s)) => s,
-                    _ => unreachable!(),
+                    _ => return Ok(false),
                 };
 
                 let normalized_original = normalize_greek(&subj.original);
@@ -2008,5 +2008,34 @@ mod tests {
             "Unknown word should have been captured as object"
         );
         assert_eq!(stmt.object.unwrap().original, "unknown");
+    }
+}
+
+#[cfg(test)]
+mod fallback_tests {
+    use super::*;
+    use crate::semantic::Literal;
+
+    #[test]
+    fn test_try_create_string_method_invalid_literal() {
+        let mut assembler = Assembler::new();
+        assembler.state.has_delimiter_preposition = true;
+
+        assembler.state.subject = Some(Constituent {
+            original: "τὸ".into(),
+            normalized: "το".into(),
+            lemma: "το".into(),
+            case: crate::morphology::Case::Nominative,
+            gender: Some(crate::morphology::Gender::Neuter),
+            number: Some(crate::morphology::Number::Singular),
+            person: Some(crate::morphology::Person::Third),
+        });
+
+        // Push a non-string literal to trigger the fallback path
+        assembler.state.literals.push(Literal::Number(42));
+
+        // This should return Ok(false) instead of unreachable!()
+        let result = assembler.try_create_string_method("split");
+        assert!(!result.unwrap());
     }
 }
