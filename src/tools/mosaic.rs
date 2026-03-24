@@ -161,19 +161,7 @@ fn format_subject(asm: &AssembledStatement) -> String {
     }
 }
 
-fn format_other_column(asm: &AssembledStatement) -> String {
-    let mut other = Vec::new();
-
-    // Literals
-    if !asm.literals.is_empty() {
-        other.push(format!("Literals: {}", asm.literals.len()));
-    }
-
-    // Operators
-    if !asm.operators.is_empty() {
-        other.push(format!("Ops: {:?}", asm.operators));
-    }
-
+fn format_collections(asm: &AssembledStatement, other: &mut Vec<String>) {
     // Genitives
     if !asm.genitives.is_empty() {
         // ⚡ Bolt Optimization: Avoid intermediate `Vec` allocations by constructing
@@ -215,7 +203,9 @@ fn format_other_column(asm: &AssembledStatement) -> String {
         }
         other.push(format!("Participles: [{}]", parts));
     }
+}
 
+fn format_structural_elements(asm: &AssembledStatement, other: &mut Vec<String>) {
     // New Fields (Arrays, Index Accesses, Properties, Blocks, Phrases, Unwraps)
     if !asm.arrays.is_empty() {
         other.push(format!("Arrays: {}", asm.arrays.len()));
@@ -251,7 +241,9 @@ fn format_other_column(asm: &AssembledStatement) -> String {
     if let Some((method, delim)) = &asm.string_method {
         other.push(format!("Method: {}({})", method, delim));
     }
+}
 
+fn format_flags(asm: &AssembledStatement, other: &mut Vec<String>) {
     // Flags
     let mut flags = Vec::new();
     if asm.is_query {
@@ -273,6 +265,24 @@ fn format_other_column(asm: &AssembledStatement) -> String {
     if !flags.is_empty() {
         other.push(format!("Flags: [{}]", flags.join(", ")));
     }
+}
+
+fn format_other_column(asm: &AssembledStatement) -> String {
+    let mut other = Vec::new();
+
+    // Literals
+    if !asm.literals.is_empty() {
+        other.push(format!("Literals: {}", asm.literals.len()));
+    }
+
+    // Operators
+    if !asm.operators.is_empty() {
+        other.push(format!("Ops: {:?}", asm.operators));
+    }
+
+    format_collections(asm, &mut other);
+    format_structural_elements(asm, &mut other);
+    format_flags(asm, &mut other);
 
     other.join("\n")
 }
