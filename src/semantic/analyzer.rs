@@ -16,9 +16,30 @@ use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
 
 /// Analyzed program with resolved names and types
+///
+/// This structure represents the ultimate truth (τέλος) of the user's intent,
+/// having successfully passed through syntax parsing and morphological analysis.
+/// It is completely devoid of ambiguity and is fully prepared for translation
+/// into Rust code (codegen).
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::ast::Program;
+/// use glossa::semantic::analyzer::analyze_program;
+///
+/// // Create an empty program structure
+/// let empty_ast = Program { statements: vec![] };
+///
+/// // The analyzed program will contain an empty scope and no statements
+/// let analyzed = analyze_program(&empty_ast).unwrap();
+/// assert!(analyzed.statements.is_empty());
+/// ```
 #[derive(Debug, Clone)]
 pub struct AnalyzedProgram {
+    /// The linear sequence of semantically valid statements ready for codegen
     pub statements: Vec<AnalyzedStatement>,
+    /// The global execution scope containing known bindings, variables, and type definitions
     pub scope: Scope,
 }
 

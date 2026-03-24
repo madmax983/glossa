@@ -74,6 +74,7 @@ use pest_derive::Parser;
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]
 #[doc(hidden)]
+#[allow(missing_docs)]
 pub struct GlossaParser;
 
 /// Parse a ΓΛΩΣΣΑ source string into a pest parse tree (Concrete Syntax Tree)
