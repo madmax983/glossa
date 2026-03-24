@@ -759,11 +759,11 @@ fn process_participles(
         let verb_stem = normalize_greek(&participle.verb_lemma);
 
         // Check for fold pattern: συλλεγόμενα εἰς [target]
-        if verb_stem.contains("συλλεγ") {
-            if process_fold_participle(participle, asm_stmt, current_expr) {
-                is_fold = true;
-                added = true;
-            }
+        if verb_stem.contains("συλλεγ")
+            && process_fold_participle(participle, asm_stmt, current_expr)
+        {
+            is_fold = true;
+            added = true;
         }
 
         // Skip other participle processing if this was a fold
