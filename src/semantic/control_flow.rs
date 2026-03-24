@@ -148,6 +148,36 @@ fn parse_while_loop(
     }))
 }
 
+fn parse_range_bound(
+    expr: &Expr,
+    scope: &Scope,
+    bound_type: &str,
+) -> Result<AnalyzedExpr, GlossaError> {
+    if let Expr::Word(w) = expr {
+        // Parse as number literal
+        if let Some(val) = lexicon::numeral_value(&w.normalized) {
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(val),
+                glossa_type: GlossaType::Number,
+            })
+        } else {
+            // Try as variable
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(w.normalized.clone()),
+                glossa_type: scope
+                    .lookup(&w.normalized)
+                    .cloned()
+                    .unwrap_or(GlossaType::Number),
+            })
+        }
+    } else {
+        Err(GlossaError::semantic(format!(
+            "Expected word for range {}",
+            bound_type
+        )))
+    }
+}
+
 /// Parse a for loop with range (ἀπὸ ... μέχρι/ἕως ...)
 /// Structure: ἀπὸ start μέχρι/ἕως end, body
 fn parse_for_range_loop(
@@ -183,26 +213,7 @@ fn parse_for_range_loop(
     }
 
     // Extract start (word at index 1)
-    let start_expr = if let Expr::Word(w) = &words[1] {
-        // Parse as number literal
-        if let Some(val) = lexicon::numeral_value(&w.normalized) {
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(val),
-                glossa_type: GlossaType::Number,
-            }
-        } else {
-            // Try as variable
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(w.normalized.clone()),
-                glossa_type: scope
-                    .lookup(&w.normalized)
-                    .cloned()
-                    .unwrap_or(GlossaType::Number),
-            }
-        }
-    } else {
-        return Err(GlossaError::semantic("Expected word for range start"));
-    };
+    let start_expr = parse_range_bound(&words[1], scope, "start")?;
 
     // Check if it's inclusive (ἕως) or exclusive (μέχρι) - word at index 2
     let inclusive = if let Expr::Word(w) = &words[2] {
@@ -212,26 +223,7 @@ fn parse_for_range_loop(
     };
 
     // Extract end (word at index 3)
-    let end_expr = if let Expr::Word(w) = &words[3] {
-        // Parse as number literal
-        if let Some(val) = lexicon::numeral_value(&w.normalized) {
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(val),
-                glossa_type: GlossaType::Number,
-            }
-        } else {
-            // Try as variable
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(w.normalized.clone()),
-                glossa_type: scope
-                    .lookup(&w.normalized)
-                    .cloned()
-                    .unwrap_or(GlossaType::Number),
-            }
-        }
-    } else {
-        return Err(GlossaError::semantic("Expected word for range end"));
-    };
+    let end_expr = parse_range_bound(&words[3], scope, "end")?;
 
     let iterator = AnalyzedExpr {
         expr: AnalyzedExprKind::Range {

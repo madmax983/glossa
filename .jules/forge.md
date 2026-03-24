@@ -44,3 +44,7 @@
 **Refactoring `classify_query`**
 **Learning:** Functions evaluating containment and standard statements side-by-side often accumulate to 50+ lines due to nested query logic. Using guard clauses to immediately exit if the condition isn't met (`if !asm_stmt.is_query { return Ok(None); }`) removes one level of indentation. Furthermore, extracting dense logical blocks (like the containment condition) into dedicated helpers (`classify_containment_query`) flattens the execution path.
 **Action:** When acting as Forge and encountering Pyramids of Doom, deeply nested logic, or long chained `if let` sequential returns, refactor by inverting the initial `if` statements into early returns (guard clauses) and extract large interior code blocks into highly readable, dedicated helper functions to flatten execution paths.
+
+**Refactoring `parse_for_range_loop` and `process_participles`**
+**Learning:** Extracting large, inline, nested logic blocks from `for` and `match` statements directly flattens execution paths and adheres to the 'Grandma Test'. Functions over 150 lines like `process_participles` become much easier to read when their main internal branches are extracted to specifically-named helper functions like `process_fold_participle` and `process_map_participle`.
+**Action:** Continually prioritize replacing nested `if let` blocks with early returns and decomposing large looping constructs or match statement inner logic into scoped helper functions to flatten nested code and improve readability.
