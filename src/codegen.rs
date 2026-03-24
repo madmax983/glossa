@@ -668,18 +668,14 @@ fn generate_fn_def(
         .collect();
 
     // Generate return type
-    if let Some(ret_type) = return_type {
-        let ret_tokens = generate_type_tokens(ret_type);
-        quote! {
-            fn #fn_name(#(#param_tokens),*) -> #ret_tokens {
-                #(#body_stmts)*
-            }
-        }
-    } else {
-        quote! {
-            fn #fn_name(#(#param_tokens),*) {
-                #(#body_stmts)*
-            }
+    let ret_tokens = return_type.as_ref().map(|ty| {
+        let ty_tokens = generate_type_tokens(ty);
+        quote! { -> #ty_tokens }
+    });
+
+    quote! {
+        fn #fn_name(#(#param_tokens),*) #ret_tokens {
+            #(#body_stmts)*
         }
     }
 }
@@ -764,30 +760,18 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
             let parts = generate_trait_method_parts(method);
             let method_name = parts.name;
             let param_tokens = parts.params;
+            let ret_tokens = parts.return_type.map(|ty| quote! { -> #ty });
 
-            if let Some(ret_ty) = parts.return_type {
-                if let Some(body) = &method.body {
-                    let body_stmts = generate_statements(body);
-                    quote! {
-                        fn #method_name(#(#param_tokens),*) -> #ret_ty {
-                            #(#body_stmts)*
-                        }
-                    }
-                } else {
-                    quote! {
-                        fn #method_name(#(#param_tokens),*) -> #ret_ty;
-                    }
-                }
-            } else if let Some(body) = &method.body {
+            if let Some(body) = &method.body {
                 let body_stmts = generate_statements(body);
                 quote! {
-                    fn #method_name(#(#param_tokens),*) {
+                    fn #method_name(#(#param_tokens),*) #ret_tokens {
                         #(#body_stmts)*
                     }
                 }
             } else {
                 quote! {
-                    fn #method_name(#(#param_tokens),*);
+                    fn #method_name(#(#param_tokens),*) #ret_tokens;
                 }
             }
         })
@@ -837,18 +821,11 @@ fn generate_trait_impl(
             } else {
                 Vec::new()
             };
+            let ret_tokens = parts.return_type.map(|ty| quote! { -> #ty });
 
-            if let Some(ret_ty) = parts.return_type {
-                quote! {
-                    fn #method_name(#(#param_tokens),*) -> #ret_ty {
-                        #(#body_stmts)*
-                    }
-                }
-            } else {
-                quote! {
-                    fn #method_name(#(#param_tokens),*) {
-                        #(#body_stmts)*
-                    }
+            quote! {
+                fn #method_name(#(#param_tokens),*) #ret_tokens {
+                    #(#body_stmts)*
                 }
             }
         })

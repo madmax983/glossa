@@ -121,3 +121,7 @@
 **Bloat:** `AssemblyError` in `src/errors/assembly.rs` contained two variants (`MissingVerb` and `GenderMismatch`) that were defined but completely unused anywhere in the codebase, leading to dead code.
 **Cut:** Deleted the `MissingVerb` and `GenderMismatch` error variants and the unused `Gender` import.
 **Saved:** Removed 13 lines of dead code and simplified the error variant surface area.
+## [Reduction]
+**Bloat:** The code generator in `src/codegen.rs` duplicated the `quote!` generation blocks for function definitions, trait definitions, and trait implementations, copying the whole block depending on the presence or absence of a return type.
+**Cut:** Consolidated the return type generation into an `Option<TokenStream>` using `.map`, and inlined `#ret_tokens` into a single, unified `quote!` block for each definition type.
+**Saved:** ~40 lines of code and significant cognitive load.
