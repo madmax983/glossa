@@ -176,4 +176,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Analyze a .γλ file and output metrics (Requires "nova" feature)
+    Metrics {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

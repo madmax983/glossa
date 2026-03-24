@@ -72,6 +72,17 @@ fn main() -> Result<()> {
             glossa::tools::alchemist::run_alchemist(&input)?;
         }
 
+        Some(Commands::Metrics { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::experimental::metrics::run_metrics(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!("Enable the 'nova' feature to use metrics");
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

@@ -107,6 +107,8 @@
 pub mod ast;
 pub mod codegen;
 pub mod errors;
+#[cfg(feature = "nova")]
+pub mod experimental;
 pub mod limits;
 pub mod morphology;
 pub mod parser;
