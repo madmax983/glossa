@@ -93,19 +93,6 @@ pub enum GlossaError {
     #[diagnostic(code(glossa::undefined))]
     UndefinedName { name: String },
 
-    /// **Agreement Error**: Grammatical agreement failed.
-    ///
-    /// In Greek, the Subject must agree with the Verb in Person and Number.
-    /// Adjectives must agree with Nouns in Gender, Number, and Case.
-    ///
-    /// # Example Output
-    /// ```text
-    /// Σφάλμα συμφωνίας: ὑποκείμενον (Singular) ἀλλὰ ῥῆμα (Plural)
-    /// ```
-    #[error("Σφάλμα συμφωνίας: {message}")]
-    #[diagnostic(code(glossa::agreement))]
-    AgreementError { message: String },
-
     /// **Codegen Error**: Failed to generate valid Rust code.
     ///
     /// This is an internal error indicating the transpiler produced invalid output.
@@ -220,26 +207,6 @@ impl GlossaError {
         GlossaError::UndefinedName { name: name.into() }
     }
 
-    /// Creates a new `GlossaError::AgreementError`.
-    ///
-    /// This error occurs when the morphological traits of linked words do not match.
-    /// In Ancient Greek grammar, adjectives must agree with their nouns in gender,
-    /// number, and case; subjects must agree with verbs in person and number.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use glossa::errors::GlossaError;
-    ///
-    /// let error = GlossaError::agreement("Subject is singular but verb is plural");
-    /// assert!(matches!(error, GlossaError::AgreementError { .. }));
-    /// ```
-    pub fn agreement(message: impl Into<String>) -> Self {
-        GlossaError::AgreementError {
-            message: message.into(),
-        }
-    }
-
     /// Creates a new `GlossaError::CodegenError`.
     ///
     /// This error represents an internal failure during the translation from the
@@ -267,7 +234,6 @@ impl GlossaError {
             GlossaError::ParseError { .. } => "Σύνταξις",
             GlossaError::SemanticError { .. } => "Σημασία",
             GlossaError::UndefinedName { .. } => "Ὄνομα",
-            GlossaError::AgreementError { .. } => "Συμφωνία",
             GlossaError::CodegenError { .. } => "Κῶδιξ",
             GlossaError::LimitExceeded { .. } => "Όριον",
             GlossaError::AssemblyError(_) => "Συναρμογή",

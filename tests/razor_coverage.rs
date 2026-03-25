@@ -28,10 +28,6 @@ fn test_errors_display_impls() {
     assert!(format!("{}", err_undefined).contains("Ἄγνωστον ὄνομα"));
     assert_eq!(err_undefined.category_greek(), "Ὄνομα");
 
-    let err_agreement = GlossaError::agreement("test");
-    assert!(format!("{}", err_agreement).contains("Σφάλμα συμφωνίας"));
-    assert_eq!(err_agreement.category_greek(), "Συμφωνία");
-
     let err_codegen = GlossaError::codegen("test");
     assert!(format!("{}", err_codegen).contains("Σφάλμα κώδικος"));
     assert_eq!(err_codegen.category_greek(), "Κῶδιξ");
