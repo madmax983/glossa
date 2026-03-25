@@ -29,7 +29,9 @@ fn main() -> Result<()> {
         }
         #[cfg(not(feature = "nova"))]
         Some(Commands::Mentor) => {
-            miette::bail!("This command requires the experimental `nova` feature.\nTry running with: --features nova");
+            miette::bail!(
+                "This command requires the experimental `nova` feature.\nTry running with: --features nova"
+            );
         }
 
         Some(Commands::Build { input, output }) => {
@@ -63,7 +65,9 @@ fn main() -> Result<()> {
         #[cfg(not(feature = "nova"))]
         Some(Commands::Mosaic { input }) => {
             let _ = input;
-            miette::bail!("This command requires the experimental `nova` feature.\nTry running with: --features nova");
+            miette::bail!(
+                "This command requires the experimental `nova` feature.\nTry running with: --features nova"
+            );
         }
 
         #[cfg(feature = "nova")]
@@ -73,7 +77,9 @@ fn main() -> Result<()> {
         #[cfg(not(feature = "nova"))]
         Some(Commands::Map { input }) => {
             let _ = input;
-            miette::bail!("This command requires the experimental `nova` feature.\nTry running with: --features nova");
+            miette::bail!(
+                "This command requires the experimental `nova` feature.\nTry running with: --features nova"
+            );
         }
 
         #[cfg(feature = "nova")]
@@ -83,7 +89,9 @@ fn main() -> Result<()> {
         #[cfg(not(feature = "nova"))]
         Some(Commands::Weave { input }) => {
             let _ = input;
-            miette::bail!("This command requires the experimental `nova` feature.\nTry running with: --features nova");
+            miette::bail!(
+                "This command requires the experimental `nova` feature.\nTry running with: --features nova"
+            );
         }
 
         #[cfg(feature = "nova")]
@@ -93,7 +101,9 @@ fn main() -> Result<()> {
         #[cfg(not(feature = "nova"))]
         Some(Commands::Alchemist { input }) => {
             let _ = input;
-            miette::bail!("This command requires the experimental `nova` feature.\nTry running with: --features nova");
+            miette::bail!(
+                "This command requires the experimental `nova` feature.\nTry running with: --features nova"
+            );
         }
 
         Some(Commands::Repl) | None => {
