@@ -26,12 +26,14 @@ pub(crate) fn execute_cli(cli: Cli) -> Result<()> {
             {
                 glossa::tools::mentor::run_mentor()?;
             }
+            // coverage:ignore-start
             #[cfg(not(feature = "nova"))]
             {
                 miette::bail!(
                     "The 'mentor' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
                 );
             }
+            // coverage:ignore-end
         }
 
         Some(Commands::Build { input, output }) => {
@@ -63,6 +65,7 @@ pub(crate) fn execute_cli(cli: Cli) -> Result<()> {
             {
                 glossa::tools::mosaic::run_mosaic(&input)?;
             }
+            // coverage:ignore-start
             #[cfg(not(feature = "nova"))]
             {
                 let _ = input;
@@ -70,6 +73,7 @@ pub(crate) fn execute_cli(cli: Cli) -> Result<()> {
                     "The 'mosaic' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
                 );
             }
+            // coverage:ignore-end
         }
 
         Some(Commands::Map { input }) => {
@@ -77,6 +81,7 @@ pub(crate) fn execute_cli(cli: Cli) -> Result<()> {
             {
                 glossa::tools::cartographer::run_map(&input)?;
             }
+            // coverage:ignore-start
             #[cfg(not(feature = "nova"))]
             {
                 let _ = input;
@@ -84,6 +89,7 @@ pub(crate) fn execute_cli(cli: Cli) -> Result<()> {
                     "The 'map' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
                 );
             }
+            // coverage:ignore-end
         }
 
         Some(Commands::Weave { input }) => {
@@ -91,6 +97,7 @@ pub(crate) fn execute_cli(cli: Cli) -> Result<()> {
             {
                 glossa::tools::weave::run_weave(&input)?;
             }
+            // coverage:ignore-start
             #[cfg(not(feature = "nova"))]
             {
                 let _ = input;
@@ -98,6 +105,7 @@ pub(crate) fn execute_cli(cli: Cli) -> Result<()> {
                     "The 'weave' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
                 );
             }
+            // coverage:ignore-end
         }
 
         Some(Commands::Alchemist { input }) => {
@@ -105,6 +113,7 @@ pub(crate) fn execute_cli(cli: Cli) -> Result<()> {
             {
                 glossa::tools::alchemist::run_alchemist(&input)?;
             }
+            // coverage:ignore-start
             #[cfg(not(feature = "nova"))]
             {
                 let _ = input;
@@ -112,6 +121,7 @@ pub(crate) fn execute_cli(cli: Cli) -> Result<()> {
                     "The 'alchemist' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
                 );
             }
+            // coverage:ignore-end
         }
 
         Some(Commands::Repl) | None => {
@@ -134,6 +144,7 @@ mod tests {
     #[allow(unused_imports)]
     use std::path::PathBuf;
 
+    // coverage:ignore-start
     #[test]
     #[cfg(not(feature = "nova"))]
     fn test_experimental_commands_without_nova_feature() {
@@ -187,4 +198,5 @@ mod tests {
             );
         }
     }
+    // coverage:ignore-end
 }
