@@ -60,10 +60,13 @@ pub enum GlossaError {
     #[error("Σφάλμα συντάξεως: {message}")]
     #[diagnostic(code(glossa::parse))]
     ParseError {
+        /// The specific reason the parser failed to understand the code.
         message: String,
+        /// The original source code where the error occurred, used to render helpful diagnostics.
         #[source_code]
         #[allow(dead_code)]
         src: String,
+        /// The precise location (span) of the syntax error within the source code.
         #[label("ἐνταῦθα")]
         #[allow(dead_code)]
         span: Option<SourceSpan>,
@@ -79,7 +82,10 @@ pub enum GlossaError {
     /// ```
     #[error("Σφάλμα σημασίας: {message}")]
     #[diagnostic(code(glossa::semantic))]
-    SemanticError { message: String },
+    SemanticError {
+        /// A descriptive message explaining which semantic rule was broken and why.
+        message: String,
+    },
 
     /// **Undefined Name**: You tried to use a variable or function that doesn't exist.
     ///
@@ -91,7 +97,10 @@ pub enum GlossaError {
     /// ```
     #[error("Ἄγνωστον ὄνομα: {name}")]
     #[diagnostic(code(glossa::undefined))]
-    UndefinedName { name: String },
+    UndefinedName {
+        /// The identifier (variable or function name) that the compiler could not resolve in the current scope.
+        name: String,
+    },
 
     /// **Agreement Error**: Grammatical agreement failed.
     ///
@@ -104,14 +113,20 @@ pub enum GlossaError {
     /// ```
     #[error("Σφάλμα συμφωνίας: {message}")]
     #[diagnostic(code(glossa::agreement))]
-    AgreementError { message: String },
+    AgreementError {
+        /// An explanation of the agreement failure, typically detailing the expected versus actual grammatical forms (e.g., singular vs plural).
+        message: String,
+    },
 
     /// **Codegen Error**: Failed to generate valid Rust code.
     ///
     /// This is an internal error indicating the transpiler produced invalid output.
     #[error("Σφάλμα κώδικος: {message}")]
     #[diagnostic(code(glossa::codegen))]
-    CodegenError { message: String },
+    CodegenError {
+        /// Internal details of why the Rust code generation failed, often pointing to unsupported AST configurations or transpiler bugs.
+        message: String,
+    },
 
     /// **Limit Exceeded**: Resource exhaustion protection.
     ///
@@ -119,7 +134,12 @@ pub enum GlossaError {
     /// we limit the depth of recursion and number of elements.
     #[error("Ὑπέρβασις ὀρίου: {resource} ({max})")]
     #[diagnostic(code(glossa::limit_exceeded))]
-    LimitExceeded { resource: String, max: usize },
+    LimitExceeded {
+        /// The name of the resource or depth constraint that was exceeded (e.g., "AST Depth" or "Too many adjectives").
+        resource: String,
+        /// The maximum allowable threshold for this resource to prevent Denial of Service.
+        max: usize,
+    },
 
     /// **Assembly Error**: The semantic assembler failed to build a valid sentence.
     ///

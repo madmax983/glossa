@@ -50,6 +50,8 @@
 //! }
 //! ```
 
+#![allow(missing_docs)]
+
 use pest::Parser;
 use pest_derive::Parser;
 
