@@ -27,6 +27,10 @@ fn main() -> Result<()> {
         Some(Commands::Mentor) => {
             glossa::tools::mentor::run_mentor()?;
         }
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Mentor) => {
+            miette::bail!("This command requires the experimental `nova` feature.\nTry running with: --features nova");
+        }
 
         Some(Commands::Build { input, output }) => {
             build_file(&input, output.as_deref())?;
@@ -56,20 +60,40 @@ fn main() -> Result<()> {
         Some(Commands::Mosaic { input }) => {
             glossa::tools::mosaic::run_mosaic(&input)?;
         }
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Mosaic { input }) => {
+            let _ = input;
+            miette::bail!("This command requires the experimental `nova` feature.\nTry running with: --features nova");
+        }
 
         #[cfg(feature = "nova")]
         Some(Commands::Map { input }) => {
             glossa::tools::cartographer::run_map(&input)?;
+        }
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Map { input }) => {
+            let _ = input;
+            miette::bail!("This command requires the experimental `nova` feature.\nTry running with: --features nova");
         }
 
         #[cfg(feature = "nova")]
         Some(Commands::Weave { input }) => {
             glossa::tools::weave::run_weave(&input)?;
         }
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Weave { input }) => {
+            let _ = input;
+            miette::bail!("This command requires the experimental `nova` feature.\nTry running with: --features nova");
+        }
 
         #[cfg(feature = "nova")]
         Some(Commands::Alchemist { input }) => {
             glossa::tools::alchemist::run_alchemist(&input)?;
+        }
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Alchemist { input }) => {
+            let _ = input;
+            miette::bail!("This command requires the experimental `nova` feature.\nTry running with: --features nova");
         }
 
         Some(Commands::Repl) | None => {
