@@ -10,9 +10,7 @@ use glossa::tools::dictionary::lookup_word;
 use glossa::tools::repl::run_repl;
 use glossa::tools::runner::{bard_file, build_file, check_file, highlight_file, run_file};
 
-fn main() -> Result<()> {
-    let cli = Cli::parse();
-
+pub(crate) fn execute_cli(cli: Cli) -> Result<()> {
     // If a file is provided without a subcommand, run it
     if let Some(file) = cli.file {
         return run_file(&file);
@@ -122,4 +120,71 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn main() -> Result<()> {
+    let cli = Cli::parse();
+    execute_cli(cli)
+}
+
+#[cfg(test)]
+mod tests {
+    #[allow(unused_imports)]
+    use super::*;
+    #[allow(unused_imports)]
+    use std::path::PathBuf;
+
+    #[test]
+    #[cfg(not(feature = "nova"))]
+    fn test_experimental_commands_without_nova_feature() {
+        let commands = vec![
+            (
+                Commands::Mentor,
+                "The 'mentor' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova",
+            ),
+            (
+                Commands::Mosaic {
+                    input: PathBuf::from("test.γλ"),
+                },
+                "The 'mosaic' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova",
+            ),
+            (
+                Commands::Map {
+                    input: PathBuf::from("test.γλ"),
+                },
+                "The 'map' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova",
+            ),
+            (
+                Commands::Weave {
+                    input: PathBuf::from("test.γλ"),
+                },
+                "The 'weave' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova",
+            ),
+            (
+                Commands::Alchemist {
+                    input: PathBuf::from("test.γλ"),
+                },
+                "The 'alchemist' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova",
+            ),
+        ];
+
+        for (cmd, expected_msg) in commands {
+            let cli = Cli {
+                command: Some(cmd),
+                file: None,
+            };
+            let result = execute_cli(cli);
+            assert!(
+                result.is_err(),
+                "Expected an error for experimental command without nova feature"
+            );
+            let err_msg = result.unwrap_err().to_string();
+            assert!(
+                err_msg.contains(expected_msg),
+                "Expected error message to contain '{}', but got: '{}'",
+                expected_msg,
+                err_msg
+            );
+        }
+    }
 }
