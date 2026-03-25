@@ -116,3 +116,41 @@ C4Component
 
     Rel(model, types, "Uses")
 ```
+
+## Public API (Facade Pattern)
+
+The `glossa` crate implements the Facade pattern in `src/lib.rs` to hide internal compiler complexity and provide a clean, stable interface for programmatic use.
+
+```mermaid
+C4Component
+    title Public API Facade
+
+    Person(developer, "Downstream Developer", "Integrates ΓΛΩΣΣΑ into other Rust applications")
+
+    Container_Boundary(glossa_facade, "glossa crate (Public API)") {
+        Component(parse_fn, "parser::parse", "Function", "Parses source text into an AST")
+        Component(analyze_fn, "semantic::analyze_program", "Function", "Performs semantic analysis and assembly")
+        Component(generate_fn, "codegen::generate_rust", "Function", "Generates Rust source code")
+
+        Component(program_ast, "ast::Program", "Struct", "The raw Abstract Syntax Tree")
+        Component(analyzed_ast, "semantic::AnalyzedProgram", "Struct", "The typed and assembled HIR")
+
+        Component(highlight_fn, "tools::highlight", "Module", "Semantic syntax highlighting utilities")
+    }
+
+    Container(internal_compiler, "Internal Compiler Pipeline", "src/*", "Parser, Semantic, Morphology, CodeGen")
+
+    Rel(developer, parse_fn, "Calls")
+    Rel(developer, analyze_fn, "Calls")
+    Rel(developer, generate_fn, "Calls")
+    Rel(developer, highlight_fn, "Uses")
+
+    Rel(parse_fn, program_ast, "Returns")
+    Rel(analyze_fn, analyzed_ast, "Returns")
+    Rel(analyze_fn, program_ast, "Consumes")
+    Rel(generate_fn, analyzed_ast, "Consumes")
+
+    Rel(parse_fn, internal_compiler, "Delegates to")
+    Rel(analyze_fn, internal_compiler, "Delegates to")
+    Rel(generate_fn, internal_compiler, "Delegates to")
+```
