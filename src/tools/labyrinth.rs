@@ -262,4 +262,75 @@ mod tests {
         let complexity = calculate_complexity(&stmts);
         assert_eq!(complexity, 6);
     }
+
+    #[test]
+    fn test_calculate_complexity_test_declaration() {
+        let stmt = AnalyzedStatement::TestDeclaration {
+            name: "my_test".to_string(),
+            body: vec![AnalyzedStatement::If {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                then_body: vec![],
+                else_body: None,
+            }],
+        };
+        let complexity = calculate_complexity(&[stmt]);
+        assert_eq!(complexity, 2); // 1 base + 1 if
+    }
+
+    #[test]
+    fn test_calculate_complexity_function_def() {
+        let stmt = AnalyzedStatement::FunctionDef {
+            name: "my_func".into(),
+            params: vec![],
+            return_type: None,
+            body: vec![AnalyzedStatement::If {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                then_body: vec![],
+                else_body: None,
+            }],
+        };
+        let complexity = calculate_complexity(&[stmt]);
+        assert_eq!(complexity, 2); // 1 base + 1 if
+    }
+
+    #[test]
+    fn test_run_labyrinth_file_not_found() {
+        let result = run_labyrinth(Path::new("does_not_exist.γλ"));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_run_labyrinth_empty_metrics() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("empty.γλ");
+        std::fs::write(&path, "ξ 1 ἔστω.").unwrap();
+
+        let result = run_labyrinth(&path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_labyrinth_with_metrics() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("metrics.γλ");
+        std::fs::write(
+            &path,
+            "
+            my_func ὁρίζειν ·
+                «1» λέγε.
+            δός.
+        ",
+        )
+        .unwrap();
+
+        let result = run_labyrinth(&path);
+        assert!(result.is_ok());
+    }
 }
