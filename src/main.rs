@@ -23,21 +23,18 @@ fn main() -> Result<()> {
             run_file(&input)?;
         }
 
+        #[cfg(feature = "nova")]
         Some(Commands::Mentor) => {
-            #[cfg(feature = "nova")]
-            {
-                glossa::tools::mentor::run_mentor()?;
-            }
-            // coverage:ignore-start
-            #[cfg(not(feature = "nova"))]
-            {
-                miette::bail!(
-                    "The 'mentor' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
-                );
-            }
-            // coverage:ignore-end
+            glossa::tools::mentor::run_mentor()?;
         }
-
+        // coverage:ignore-start
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Mentor) => {
+            miette::bail!(
+                "The 'mentor' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
+            );
+        }
+        // coverage:ignore-end
         Some(Commands::Build { input, output }) => {
             build_file(&input, output.as_deref())?;
         }
@@ -62,70 +59,54 @@ fn main() -> Result<()> {
             glossa::tools::tester::run_tests(&input)?;
         }
 
+        #[cfg(feature = "nova")]
         Some(Commands::Mosaic { input }) => {
-            #[cfg(feature = "nova")]
-            {
-                glossa::tools::mosaic::run_mosaic(&input)?;
-            }
-            // coverage:ignore-start
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'mosaic' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
-                );
-            }
-            // coverage:ignore-end
+            glossa::tools::mosaic::run_mosaic(&input)?;
         }
-
+        // coverage:ignore-start
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Mosaic { input: _ }) => {
+            miette::bail!(
+                "The 'mosaic' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
+            );
+        }
+        // coverage:ignore-end
+        #[cfg(feature = "nova")]
         Some(Commands::Map { input }) => {
-            #[cfg(feature = "nova")]
-            {
-                glossa::tools::cartographer::run_map(&input)?;
-            }
-            // coverage:ignore-start
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'map' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
-                );
-            }
-            // coverage:ignore-end
+            glossa::tools::cartographer::run_map(&input)?;
         }
-
+        // coverage:ignore-start
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Map { input: _ }) => {
+            miette::bail!(
+                "The 'map' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
+            );
+        }
+        // coverage:ignore-end
+        #[cfg(feature = "nova")]
         Some(Commands::Weave { input }) => {
-            #[cfg(feature = "nova")]
-            {
-                glossa::tools::weave::run_weave(&input)?;
-            }
-            // coverage:ignore-start
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'weave' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
-                );
-            }
-            // coverage:ignore-end
+            glossa::tools::weave::run_weave(&input)?;
         }
-
+        // coverage:ignore-start
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Weave { input: _ }) => {
+            miette::bail!(
+                "The 'weave' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
+            );
+        }
+        // coverage:ignore-end
+        #[cfg(feature = "nova")]
         Some(Commands::Alchemist { input }) => {
-            #[cfg(feature = "nova")]
-            {
-                glossa::tools::alchemist::run_alchemist(&input)?;
-            }
-            // coverage:ignore-start
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'alchemist' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
-                );
-            }
-            // coverage:ignore-end
+            glossa::tools::alchemist::run_alchemist(&input)?;
         }
-
+        // coverage:ignore-start
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Alchemist { input: _ }) => {
+            miette::bail!(
+                "The 'alchemist' command requires the 'nova' experimental feature. Recompile with: cargo build --features nova"
+            );
+        }
+        // coverage:ignore-end
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
