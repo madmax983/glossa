@@ -72,6 +72,20 @@ fn main() -> Result<()> {
             glossa::tools::alchemist::run_alchemist(&input)?;
         }
 
+        Some(Commands::Labyrinth { input }) => {
+            #[cfg(feature = "nova")]
+            {
+                glossa::tools::labyrinth::run_labyrinth(&input)?;
+            }
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The Labyrinth tool requires the 'nova' feature. Run with: cargo run --features nova -- labyrinth <file>"
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

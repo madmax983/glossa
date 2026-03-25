@@ -19,3 +19,8 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+
+## 🌟 The Labyrinth (ὁ Λαβύρινθος)
+**Concept:** A cyclomatic complexity analyzer (`glossa labyrinth`) that visualizes the complexity of logic branches (`If`, `While`, `For`) in functions and trait implementations to warn users of "labyrinthine" logic.
+**Fate:** Merged
+**Lesson:** Visualizing code complexity can help users refactor their code to be simpler. Walking the AST to extract branching decisions is relatively straightforward and allows us to assign a useful risk rating.

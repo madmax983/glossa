@@ -27,6 +27,8 @@ pub mod highlight;
 #[cfg(feature = "nova")]
 pub mod interpreter;
 #[cfg(feature = "nova")]
+pub mod labyrinth;
+#[cfg(feature = "nova")]
 pub mod mentor;
 #[cfg(feature = "nova")]
 pub mod mosaic;

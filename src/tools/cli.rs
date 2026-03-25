@@ -102,6 +102,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Analyze cyclomatic complexity of functions and methods (Requires "nova" feature)
+    Labyrinth {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Start the interactive tutorial (Requires "nova" feature)
     #[cfg(feature = "nova")]
     Mentor,
