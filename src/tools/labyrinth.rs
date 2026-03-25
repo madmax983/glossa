@@ -273,11 +273,49 @@ mod tests {
                     glossa_type: GlossaType::Boolean,
                 }),
                 then_body: vec![],
-                else_body: None,
+                else_body: Some(vec![AnalyzedStatement::For {
+                    variable: "x".into(),
+                    iterator: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::ArrayLiteral(vec![]),
+                        glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
+                    }),
+                    body: vec![],
+                }]),
             }],
         };
         let complexity = calculate_complexity(&[stmt]);
-        assert_eq!(complexity, 2); // 1 base + 1 if
+        assert_eq!(complexity, 3); // 1 base + 1 if + 1 for
+    }
+
+    #[test]
+    fn test_calculate_complexity_trait_implementation() {
+        use crate::semantic::AnalyzedMethod;
+        let stmt = AnalyzedStatement::TraitImplementation {
+            trait_name: "MyTrait".into(),
+            type_name: "MyType".into(),
+            methods: vec![AnalyzedMethod {
+                name: "my_method".into(),
+                params: vec![],
+                return_type: None,
+                body: Some(vec![AnalyzedStatement::If {
+                    condition: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::BooleanLiteral(true),
+                        glossa_type: GlossaType::Boolean,
+                    }),
+                    then_body: vec![],
+                    else_body: None,
+                }]),
+            }],
+        };
+        // The complexity visitor is normally invoked via `run_labyrinth` walking `program.statements`.
+        // So we can just test `run_labyrinth` with a full source that produces this AST
+        // or test the visitor function manually.
+        // `calculate_complexity` doesn't natively handle `TraitImplementation` on the root level unless
+        // it's called from `run_labyrinth`.
+        // Let's just test `visit_statement` on it directly.
+        let mut complexity = 0;
+        complexity += visit_statement(&stmt);
+        assert_eq!(complexity, 0); // visit_statement doesn't handle TraitImplementation directly, it's done in `run_labyrinth` iteration.
     }
 
     #[test]
@@ -326,11 +364,44 @@ mod tests {
             my_func ὁρίζειν ·
                 «1» λέγε.
             δός.
+
+            χαρακτήρ Τ ὁρίζειν {
+                δεῖ f τῷ self.
+            }.
+            εἶδος Χ ὁρίζειν { χ ἀριθμοῦ. }.
+            εἶδος Χ τῷ Τ ἐμπίπτειν {
+                f τῷ self·
+                    εἰ ἀληθές ἐστι, «1» λέγε. εἰ δὲ μή, «2» λέγε.
+            }.
+
+            δοκιμή «my test».
+                εἰ ἀληθές ἐστι, «1» λέγε.
+            τέλος.
         ",
         )
         .unwrap();
 
         let result = run_labyrinth(&path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_labyrinth_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("parse_error.γλ");
+        std::fs::write(&path, "this is invalid code").unwrap();
+
+        let result = run_labyrinth(&path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_labyrinth_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("semantic_error.γλ");
+        std::fs::write(&path, "ω λέγε.").unwrap(); // Undefined variable
+
+        let result = run_labyrinth(&path);
+        assert!(result.is_err());
     }
 }
