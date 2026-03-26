@@ -64,3 +64,13 @@ fn test_cache_key_canonicalization() {
         );
     }
 }
+
+#[test]
+fn test_cache_key_canonicalization_fallback() {
+    // If the file does not exist, canonicalization fails and falls back to stringifying the path itself
+    let cache = Cache::new();
+    let path = Path::new("non_existent_file_for_cache_test.gl");
+
+    let key = cache.key(path);
+    assert_eq!(key.len(), 64);
+}
