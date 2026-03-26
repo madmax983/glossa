@@ -330,7 +330,7 @@ mod tests {
 
     #[test]
     fn test_run_simulator_logic_error() {
-        let code = "invalid code.";
+        let code = "invalid syntax";
         let result = run_simulator_logic(code);
         assert!(result.is_err());
     }

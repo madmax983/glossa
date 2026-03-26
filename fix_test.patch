@@ -1,0 +1,11 @@
+--- src/tools/interpreter.rs
++++ src/tools/interpreter.rs
+@@ -330,7 +330,7 @@
+
+     #[test]
+     fn test_run_simulator_logic_error() {
+-        let code = "invalid code.";
++        let code = "invalid syntax";
+         let result = run_simulator_logic(code);
+         assert!(result.is_err());
+     }
