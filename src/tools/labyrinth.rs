@@ -293,19 +293,27 @@ mod tests {
         let stmt = AnalyzedStatement::TraitImplementation {
             trait_name: "MyTrait".into(),
             type_name: "MyType".into(),
-            methods: vec![AnalyzedMethod {
-                name: "my_method".into(),
-                params: vec![],
-                return_type: None,
-                body: Some(vec![AnalyzedStatement::If {
-                    condition: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::BooleanLiteral(true),
-                        glossa_type: GlossaType::Boolean,
-                    }),
-                    then_body: vec![],
-                    else_body: None,
-                }]),
-            }],
+            methods: vec![
+                AnalyzedMethod {
+                    name: "my_method".into(),
+                    params: vec![],
+                    return_type: None,
+                    body: Some(vec![AnalyzedStatement::If {
+                        condition: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::BooleanLiteral(true),
+                            glossa_type: GlossaType::Boolean,
+                        }),
+                        then_body: vec![],
+                        else_body: None,
+                    }]),
+                },
+                AnalyzedMethod {
+                    name: "no_body_method".into(),
+                    params: vec![],
+                    return_type: None,
+                    body: None,
+                },
+            ],
         };
         // The complexity visitor is normally invoked via `run_labyrinth` walking `program.statements`.
         // So we can just test `run_labyrinth` with a full source that produces this AST
@@ -316,6 +324,13 @@ mod tests {
         let mut complexity = 0;
         complexity += visit_statement(&stmt);
         assert_eq!(complexity, 0); // visit_statement doesn't handle TraitImplementation directly, it's done in `run_labyrinth` iteration.
+    }
+
+    #[test]
+    fn test_visit_statement_other() {
+        // test the `_ => 0` branch of visit_statement
+        let stmt = AnalyzedStatement::Break;
+        assert_eq!(visit_statement(&stmt), 0);
     }
 
     #[test]
