@@ -183,3 +183,19 @@ pub enum Commands {
         input: PathBuf,
     },
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_labyrinth_command() {
+        let args = Cli::parse_from(&["glossa", "labyrinth", "hero.γλ"]);
+        match args.command {
+            Some(Commands::Labyrinth { input }) => {
+                assert_eq!(input.to_str().unwrap(), "hero.γλ");
+            }
+            _ => panic!("Expected Labyrinth command to be parsed"),
+        }
+    }
+}
