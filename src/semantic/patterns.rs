@@ -394,7 +394,7 @@ pub fn detect_iterator_pattern(
     };
 
     // Determine flags for any/all quantification
-    let flags = QuantifierFlags::from(asm_stmt);
+    let (is_any, is_all) = get_quantifier_flags(asm_stmt);
 
     // Start with .iter()
     // chain: collection.iter()
@@ -411,7 +411,7 @@ pub fn detect_iterator_pattern(
     let mut has_ops = false;
 
     // Process adjectives (filter, any, all)
-    if process_adjectives(asm_stmt, scope, &flags, &mut current_expr) {
+    if process_adjectives(asm_stmt, scope, is_any, is_all, &mut current_expr) {
         has_ops = true;
     }
 
@@ -422,7 +422,8 @@ pub fn detect_iterator_pattern(
     }
 
     // Handle any/all operations with explicit operators (comparatives stored as operators)
-    let is_any_all = process_explicit_quantifiers(asm_stmt, scope, &flags, &mut current_expr);
+    let is_any_all =
+        process_explicit_quantifiers(asm_stmt, scope, is_any, is_all, &mut current_expr);
     if is_any_all {
         return Ok(Some(current_expr));
     }
@@ -505,35 +506,28 @@ fn extract_collection(asm_stmt: &AssembledStatement) -> Option<AnalyzedExpr> {
 }
 
 /// Flags to track quantifier presence (any/all)
-struct QuantifierFlags {
-    is_any: bool,
-    is_all: bool,
-}
+fn get_quantifier_flags(asm_stmt: &AssembledStatement) -> (bool, bool) {
+    let mut is_any = false;
+    let mut is_all = false;
 
-impl QuantifierFlags {
-    fn from(asm_stmt: &AssembledStatement) -> Self {
-        let mut is_any = false;
-        let mut is_all = false;
-
-        if let Some(ref subj) = asm_stmt.subject {
-            let subj_lemma = normalize_greek(&subj.lemma);
-            is_any = crate::morphology::lexicon::is_any_quantifier(&subj_lemma);
-            is_all = crate::morphology::lexicon::is_all_quantifier(&subj_lemma);
-        }
-
-        // Also check nominatives for quantifiers
-        for nom in &asm_stmt.nominatives {
-            let nom_lemma = normalize_greek(&nom.lemma);
-            if crate::morphology::lexicon::is_any_quantifier(&nom_lemma) {
-                is_any = true;
-            }
-            if crate::morphology::lexicon::is_all_quantifier(&nom_lemma) {
-                is_all = true;
-            }
-        }
-
-        Self { is_any, is_all }
+    if let Some(ref subj) = asm_stmt.subject {
+        let subj_lemma = normalize_greek(&subj.lemma);
+        is_any = crate::morphology::lexicon::is_any_quantifier(&subj_lemma);
+        is_all = crate::morphology::lexicon::is_all_quantifier(&subj_lemma);
     }
+
+    // Also check nominatives for quantifiers
+    for nom in &asm_stmt.nominatives {
+        let nom_lemma = normalize_greek(&nom.lemma);
+        if crate::morphology::lexicon::is_any_quantifier(&nom_lemma) {
+            is_any = true;
+        }
+        if crate::morphology::lexicon::is_all_quantifier(&nom_lemma) {
+            is_all = true;
+        }
+    }
+
+    (is_any, is_all)
 }
 
 /// Helper: Process adjectives for filter/any/all patterns
@@ -541,7 +535,8 @@ impl QuantifierFlags {
 fn process_adjectives(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
-    flags: &QuantifierFlags,
+    is_any: bool,
+    is_all: bool,
     current_expr: &mut AnalyzedExpr,
 ) -> bool {
     // Check for comparative adjective filter/any/all pattern
@@ -574,9 +569,9 @@ fn process_adjectives(
             let filter_closure = create_comparison_predicate(bin_op, comparison_expr);
 
             // Determine which method to call based on quantifier
-            let method = if flags.is_any {
+            let method = if is_any {
                 "any"
-            } else if flags.is_all {
+            } else if is_all {
                 "all"
             } else {
                 "filter"
@@ -589,7 +584,7 @@ fn process_adjectives(
                     method: method.into(),
                     args: vec![filter_closure],
                 },
-                glossa_type: if flags.is_any || flags.is_all {
+                glossa_type: if is_any || is_all {
                     GlossaType::Boolean
                 } else {
                     GlossaType::Unknown
@@ -783,10 +778,11 @@ fn process_participles(
 fn process_explicit_quantifiers(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
-    flags: &QuantifierFlags,
+    is_any: bool,
+    is_all: bool,
     current_expr: &mut AnalyzedExpr,
 ) -> bool {
-    if (!flags.is_any && !flags.is_all) || asm_stmt.operators.is_empty() {
+    if (!is_any && !is_all) || asm_stmt.operators.is_empty() {
         return false;
     }
 
@@ -799,7 +795,7 @@ fn process_explicit_quantifiers(
             let comparison_expr = extract_comparison_value(asm_stmt, scope);
             let any_all_closure = create_comparison_predicate(bin_op, comparison_expr);
 
-            let method = if flags.is_any { "any" } else { "all" };
+            let method = if is_any { "any" } else { "all" };
 
             let new_expr = AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
@@ -1140,7 +1136,7 @@ mod coverage_tests {
         // "any" quantifier logic is checked via flags, usually checked by lemma of subject
         // But here we manually trigger process_explicit_quantifiers by setting operators and genitives
 
-        // Mock the QuantifierFlags logic by using "τι" (any) as an extra nominative
+        // Mock the quantifier logic by using "τι" (any) as an extra nominative
         // Subject must remain "list" for extract_collection to work (it rejects quantifiers)
         stmt.nominatives.push(Constituent {
             lemma: "τις".into(),

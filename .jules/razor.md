@@ -121,3 +121,8 @@
 **Bloat:** `AssemblyError` in `src/errors/assembly.rs` contained two variants (`MissingVerb` and `GenderMismatch`) that were defined but completely unused anywhere in the codebase, leading to dead code.
 **Cut:** Deleted the `MissingVerb` and `GenderMismatch` error variants and the unused `Gender` import.
 **Saved:** Removed 13 lines of dead code and simplified the error variant surface area.
+
+## [Reduction]
+**Bloat:** `QuantifierFlags` struct in `src/semantic/patterns.rs` was an unnecessary abstraction over two booleans (`is_any`, `is_all`).
+**Cut:** Deleted the struct and its `from` implementation, replacing it with a simple `get_quantifier_flags` function returning a `(bool, bool)` tuple.
+**Saved:** Removed unnecessary struct definition and simplified function signatures across `process_adjectives` and `process_explicit_quantifiers`.
