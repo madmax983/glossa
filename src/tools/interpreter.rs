@@ -336,6 +336,13 @@ mod tests {
     }
 
     #[test]
+    fn test_run_simulator_file_error() {
+        let path = std::path::Path::new("does_not_exist.gl");
+        let result = run_simulator(path);
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn test_eval_literals() {
         let interpreter = run_code("«hello» λέγε.");
         assert_eq!(interpreter.get_output(), "hello");
