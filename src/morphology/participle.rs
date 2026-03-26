@@ -484,7 +484,7 @@ static ALL_PATTERNS: LazyLock<Vec<&'static ParticiplePattern>> = LazyLock::new(|
 
     // Sort by ending length (longest first) for greedy matching
     // This ensures "ομενον" is matched before "ον"
-    patterns.sort_by(|a, b| b.ending.len().cmp(&a.ending.len()));
+    patterns.sort_by_key(|b| std::cmp::Reverse(b.ending.len()));
 
     patterns
 });
