@@ -60,7 +60,7 @@ impl Cache {
     /// let cache = Cache::new();
     /// ```
     pub fn new() -> Self {
-        Self::with_dirs(dirs_next::cache_dir(), || dirs_next::home_dir())
+        Self::with_dirs(dirs_next::cache_dir(), dirs_next::home_dir)
     }
 
     /// Internal constructor that allows dependency injection for tests
