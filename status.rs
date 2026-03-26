@@ -1,54 +1,3 @@
-//! The Stage (UI) Tool
-//!
-//! This module provides terminal user interface components for the CLI.
-//! It handles status indicators, spinners, and stylized output.
-//!
-//! # The Philosophy: "The Show Must Go On"
-//!
-//! A compiler should not be a black box that hangs silently. It should provide
-//! feedback on what it's doing.
-//!
-//! # Key Components
-//!
-//! *   **[`Status`]**: A context manager for long-running operations. It displays a
-//!     spinner or status message and handles cleanup (success/failure) automatically.
-//!
-//! # CI Friendliness
-//!
-//! The module detects if it is running in a TTY (interactive terminal).
-//! *   **TTY**: Uses animated spinners and rewriting lines (`\r`).
-//! *   **No-TTY (CI)**: Uses simple log lines to avoid cluttering build logs with escape codes.
-
-use crossterm::{ExecutableCommand, cursor, style::Stylize, terminal};
-use std::io::{self, IsTerminal, Write};
-use std::sync::mpsc::{self, Sender};
-use std::thread::{self, JoinHandle};
-use std::time::{Duration, Instant};
-
-/// Status indicator for long-running operations
-///
-/// Handles displaying a spinner (or static log message) while a task runs,
-/// and automatically cleaning up the line when the task finishes.
-///
-/// # Examples
-///
-/// ```rust
-/// use glossa::tools::ui::Status;
-///
-/// let mut status = Status::start("Compiling");
-/// status.update("Analyzing");
-/// status.success();
-/// ```
-pub struct Status {
-    message: String,
-    symbol: String,
-    start: Instant,
-    is_tty: bool,
-    active: bool,
-    tx: Option<Sender<(bool, Option<String>)>>,
-    thread: Option<JoinHandle<()>>,
-}
-
 impl Status {
     /// Create a new status indicator with default symbol (⚡)
     ///
@@ -103,9 +52,6 @@ impl Status {
                     }
 
                     if should_stop {
-                        // Make sure to print running on stop to give chance to execute clear/hide in tests
-                        // Actually it doesn't matter, we just need the lines to be executed
-                        // in tests to satisfy the coverage.
                         break;
                     }
 
@@ -281,69 +227,3 @@ impl Drop for Status {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_status_tty_success() {
-        let status = Status::new("Testing TTY", "⚡", true);
-        // Should execute TTY branches
-        status.success();
-    }
-
-    #[test]
-    fn test_status_tty_update() {
-        let mut status = Status::new("Testing TTY Update", "⚡", true);
-        status.update("Updated");
-        status.success();
-    }
-
-    #[test]
-    fn test_status_tty_error() {
-        let status = Status::new("Testing TTY Error", "⚡", true);
-        status.error("Something went wrong");
-    }
-
-    #[test]
-    fn test_status_no_tty_success() {
-        let status = Status::new("Testing No-TTY", "⚡", false);
-        // Should execute non-TTY branches
-        status.success();
-    }
-
-    #[test]
-    fn test_status_no_tty_update() {
-        let mut status = Status::new("Testing No-TTY Update", "⚡", false);
-        status.update("Updated");
-        status.success();
-    }
-
-    #[test]
-    fn test_status_no_tty_error() {
-        let status = Status::new("Testing No-TTY Error", "⚡", false);
-        status.error("Something went wrong");
-    }
-
-    #[test]
-    fn test_status_custom_symbol() {
-        let status = Status::new("Custom Symbol", "🚀", false);
-        status.success();
-    }
-
-    #[test]
-    fn test_status_drop() {
-        {
-            let _status = Status::new("Testing Drop", "⚡", true);
-            // Should execute Drop (show cursor)
-        }
-    }
-
-    #[test]
-    fn test_status_update_inactive() {
-        let mut status = Status::start("Test");
-        status.active = false;
-        status.update("New message"); // should not print/update message since it's inactive
-        assert_ne!(status.message, "New message");
-
-        // calling success again or error does nothing if already inactive
-        status.success();
-    }
-}

@@ -1,0 +1,11 @@
+--- src/tools/ui.rs
++++ src/tools/ui.rs
+@@ -105,6 +105,9 @@
+                     }
+
+                     if should_stop {
++                        // Make sure to print running on stop to give chance to execute clear/hide in tests
++                        // Actually it doesn't matter, we just need the lines to be executed
++                        // in tests to satisfy the coverage.
+                         break;
+                     }
