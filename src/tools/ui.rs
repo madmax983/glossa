@@ -21,7 +21,9 @@
 
 use crossterm::{ExecutableCommand, cursor, style::Stylize, terminal};
 use std::io::{self, IsTerminal, Write};
-use std::time::Instant;
+use std::sync::mpsc::{self, Sender};
+use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant};
 
 /// Status indicator for long-running operations
 ///
@@ -43,6 +45,8 @@ pub struct Status {
     start: Instant,
     is_tty: bool,
     active: bool,
+    tx: Option<Sender<(bool, Option<String>)>>,
+    thread: Option<JoinHandle<()>>,
 }
 
 impl Status {
@@ -75,14 +79,70 @@ impl Status {
 
     /// Internal constructor for testing
     fn new(message: impl Into<String>, symbol: impl Into<String>, is_tty: bool) -> Self {
+        let msg = message.into();
+        let sym = symbol.into();
+        let (tx, thread) = if is_tty {
+            let (tx, rx) = mpsc::channel::<(bool, Option<String>)>();
+            let thread_msg = msg.clone();
+            let thread_sym = sym.clone();
+            let handle = thread::spawn(move || {
+                let frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+                let mut current_msg = thread_msg;
+                let mut i = 0;
+                loop {
+                    // Drain all messages to prevent backlog
+                    let mut should_stop = false;
+                    while let Ok((stop, new_msg)) = rx.try_recv() {
+                        if stop {
+                            should_stop = true;
+                            break;
+                        }
+                        if let Some(m) = new_msg {
+                            current_msg = m;
+                        }
+                    }
+
+                    if should_stop {
+                        break;
+                    }
+
+                    let frame = frames[i % frames.len()];
+                    let symbol_colored = thread_sym.as_str().yellow();
+                    let msg_bold = format!("{}...", current_msg.as_str().bold());
+
+                    let mut stderr = io::stderr();
+                    eprint!("\r");
+                    let _ = stderr.execute(terminal::Clear(terminal::ClearType::UntilNewLine));
+                    let _ = stderr.execute(cursor::Hide);
+                    eprint!(
+                        "{} {} {}",
+                        symbol_colored,
+                        frame.to_string().cyan(),
+                        msg_bold
+                    );
+                    let _ = stderr.flush();
+
+                    i += 1;
+                    thread::sleep(Duration::from_millis(80));
+                }
+            });
+            (Some(tx), Some(handle))
+        } else {
+            (None, None)
+        };
+
         let status = Self {
-            message: message.into(),
-            symbol: symbol.into(),
+            message: msg,
+            symbol: sym,
             start: Instant::now(),
             is_tty,
             active: true,
+            tx,
+            thread,
         };
-        status.print_running(false);
+        if !is_tty {
+            status.print_running(false);
+        }
         status
     }
 
@@ -104,7 +164,22 @@ impl Status {
             return;
         }
         self.message = message.into();
-        self.print_running(true);
+        if self.is_tty {
+            if let Some(tx) = &self.tx {
+                let _ = tx.send((false, Some(self.message.clone())));
+            }
+        } else {
+            self.print_running(true);
+        }
+    }
+
+    fn stop_thread(&mut self) {
+        if let Some(tx) = self.tx.take() {
+            let _ = tx.send((true, None));
+        }
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
     }
 
     /// Mark the operation as complete success
@@ -123,6 +198,7 @@ impl Status {
         if !self.active {
             return;
         }
+        self.stop_thread();
 
         let duration = self.start.elapsed();
         let time_str = format!("({:.2?})", duration).dim();
@@ -148,6 +224,7 @@ impl Status {
         if !self.active {
             return;
         }
+        self.stop_thread();
 
         let msg = self.message.as_str().bold().to_string();
         self.print_done("✕".red(), &msg);
@@ -168,6 +245,7 @@ impl Status {
             } else {
                 let _ = stderr.execute(cursor::Hide);
             }
+            // For TTY, the thread handles the printing. But we might call this before thread starts.
             eprint!("{} {}", symbol, msg);
             let _ = io::stderr().flush();
         } else {
@@ -190,6 +268,7 @@ impl Status {
 
 impl Drop for Status {
     fn drop(&mut self) {
+        self.stop_thread();
         if self.active && self.is_tty {
             let _ = io::stderr().execute(cursor::Show);
         }
