@@ -19,3 +19,8 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+
+## 🌟 The Simulator (ὁ Ὑποκριτής)
+**Concept:** A direct AST tree-walk interpreter (`glossa simulate`) allowing users to execute code without compiling to Rust. This provides instant feedback for experimentation and REPL environments.
+**Fate:** Merged
+**Lesson:** Executing the semantic AST directly validates that our assembly process is completely self-sufficient. It decouples execution from Rust codegen, paving the way for browser-based (WASM) compiler playgrounds.

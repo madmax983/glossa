@@ -171,4 +171,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Run a .γλ file using the tree-walk Interpreter (Requires "nova" feature)
+    Simulate {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
