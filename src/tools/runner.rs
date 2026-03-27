@@ -530,7 +530,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn test_file_size_check_internal() {
         // Create large file

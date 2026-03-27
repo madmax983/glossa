@@ -486,5 +486,4 @@ mod tests {
         let result = run_mosaic(&file_path);
         assert!(result.is_err());
     }
-
 }

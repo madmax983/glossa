@@ -214,6 +214,11 @@ mod tests {
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
         // A generic file/IO error assertion that works across platforms
-        assert!(err_msg.contains("Failed to write") || err_msg.contains("directory") || err_msg.contains("denied") || err_msg.contains("Permission"));
+        assert!(
+            err_msg.contains("Failed to write")
+                || err_msg.contains("directory")
+                || err_msg.contains("denied")
+                || err_msg.contains("Permission")
+        );
     }
 }
