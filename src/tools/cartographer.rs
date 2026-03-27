@@ -50,8 +50,20 @@ pub fn run_map(input: &Path) -> Result<()> {
 
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
 
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let program = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
+    let program = match analyze_program(&ast) {
+        Ok(p) => p,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
 
     let map = generate_map(&program);
 

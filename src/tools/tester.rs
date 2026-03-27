@@ -161,8 +161,20 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     let mut status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
 
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
+    let analyzed = match analyze_program(&ast) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
     let rust_code = generate_rust_file(&analyzed);
 
     // 3. Create temporary file for Rust source

@@ -27,8 +27,20 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let status =
         crate::tools::ui::Status::start_with_symbol("Χημεία (Transpiling to Python)", "⚗️");
 
-    let ast = parse(&source).map_err(|e| miette::miette!("Parse error: {}", e))?;
-    let program = analyze_program(&ast).map_err(|e| miette::miette!("Semantic error: {}", e))?;
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("Parse error: {}", e));
+        }
+    };
+    let program = match analyze_program(&ast) {
+        Ok(p) => p,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("Semantic error: {}", e));
+        }
+    };
 
     let python_code = transpile_to_python(&program);
 

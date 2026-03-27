@@ -44,8 +44,17 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
 
     // Create a buffer for the table
     let mut buffer = Vec::new();
-    run_mosaic_inner(&source, &mut buffer)?;
-    let output = String::from_utf8(buffer).into_diagnostic()?;
+    if let Err(e) = run_mosaic_inner(&source, &mut buffer) {
+        status.error("Σφάλμα (Error)");
+        return Err(e);
+    }
+    let output = match String::from_utf8(buffer).into_diagnostic() {
+        Ok(o) => o,
+        Err(e) => {
+            status.error("Σφάλμα κώδικος (Encoding Error)");
+            return Err(e);
+        }
+    };
 
     status.success();
 

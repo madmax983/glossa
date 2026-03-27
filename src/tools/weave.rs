@@ -31,19 +31,46 @@ pub fn run_weave(input: &Path) -> Result<()> {
 
     let status = Status::start_with_symbol("Ὕφανσις (Weaving)", "🕸️");
 
-    let source = load_source(input)?;
+    let source = match load_source(input) {
+        Ok(s) => s,
+        Err(e) => {
+            status.error("Σφάλμα ἀρχείου (File Error)");
+            return Err(e);
+        }
+    };
 
     // 1. Parse & Analyze
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let program = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
+    let program = match analyze_program(&ast) {
+        Ok(p) => p,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
 
     // 2. Generate Rust Code
     let rust_code = generate_rust_file(&program);
 
     // 3. Generate Mosaic Table
     let mut mosaic_buffer = Vec::new();
-    run_mosaic_inner(&source, &mut mosaic_buffer)?;
-    let mosaic_output = String::from_utf8(mosaic_buffer).into_diagnostic()?;
+    if let Err(e) = run_mosaic_inner(&source, &mut mosaic_buffer) {
+        status.error("Σφάλμα (Error)");
+        return Err(e);
+    }
+    let mosaic_output = match String::from_utf8(mosaic_buffer).into_diagnostic() {
+        Ok(o) => o,
+        Err(e) => {
+            status.error("Σφάλμα κώδικος (Encoding Error)");
+            return Err(e);
+        }
+    };
 
     // 4. Format Markdown
     let mut md = String::new();
@@ -75,7 +102,10 @@ pub fn run_weave(input: &Path) -> Result<()> {
 
     // 5. Write to file or print
     let output_path = input.with_extension("md");
-    fs::write(&output_path, &md).into_diagnostic()?;
+    if let Err(e) = fs::write(&output_path, &md).into_diagnostic() {
+        status.error("Σφάλμα ἀρχείου (File Error)");
+        return Err(e);
+    }
 
     status.success();
 
