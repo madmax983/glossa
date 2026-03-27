@@ -178,18 +178,7 @@ pub struct TraitImplDef {
     /// The established interface or contract being fulfilled.
     pub trait_name: Word,
     /// The concrete actions outlining exactly how this archetype satisfies the trait's requirements.
-    pub methods: Vec<ImplMethodDef>,
-}
-
-/// A method implementation in a trait impl
-#[derive(Debug, Clone, PartialEq)]
-pub struct ImplMethodDef {
-    /// The behavior from the trait that is being explicitly defined.
-    pub name: Word,
-    /// The runtime values provided during execution to carry out the action.
-    pub params: Vec<FieldDecl>,
-    /// The sequence of operations required to fulfill the method's purpose.
-    pub body: Vec<Statement>,
+    pub methods: Vec<TraitMethodDecl>,
 }
 
 /// A test declaration (δοκιμή)

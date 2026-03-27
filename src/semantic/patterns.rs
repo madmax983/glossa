@@ -105,9 +105,9 @@ pub fn try_parse_trait_method_call(
     };
 
     // Check if this type has a trait method with this name
-    if !scope.has_trait_method(type_name, method_name) {
+    let Some(trait_name) = scope.has_trait_method(type_name, method_name) else {
         return Ok(None);
-    }
+    };
 
     let receiver = AnalyzedExpr {
         expr: AnalyzedExprKind::Variable(receiver_name.clone()),
@@ -115,9 +115,10 @@ pub fn try_parse_trait_method_call(
     };
 
     let method_call = AnalyzedExpr {
-        expr: AnalyzedExprKind::MethodCall {
+        expr: AnalyzedExprKind::TraitMethodCall {
             receiver: Box::new(receiver),
-            method: method_name.clone(),
+            trait_name,
+            method_name: method_name.clone(),
             args: vec![],
         },
         glossa_type: GlossaType::Unit,

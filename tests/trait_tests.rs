@@ -197,7 +197,7 @@ fn test_parse_trait_impl_with_method() {
 
             let method = &trait_impl.methods[0];
             assert_eq!(method.name.original, "show");
-            assert!(!method.body.is_empty());
+            assert!(method.body.is_some());
         }
         _ => panic!("Expected TraitImpl, got {:?}", ast.statements[0]),
     }

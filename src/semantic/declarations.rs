@@ -247,7 +247,11 @@ pub fn analyze_trait_impl(
         }
 
         // Create a child scope for the method body with self bound
-        let mut analyzed_body = Vec::with_capacity(method.body.len());
+        let mut analyzed_body = if let Some(body) = &method.body {
+            Vec::with_capacity(body.len())
+        } else {
+            Vec::new()
+        };
         {
             let mut scope = scope.enter_scope();
             scope.define("self".to_string(), struct_type.clone());
@@ -258,8 +262,10 @@ pub fn analyze_trait_impl(
             }
 
             // Analyze the method body using unified helper
-            for body_stmt in &method.body {
-                analyzed_body.extend(analyze_statement(body_stmt, &mut scope)?);
+            if let Some(body) = &method.body {
+                for body_stmt in body {
+                    analyzed_body.extend(analyze_statement(body_stmt, &mut scope)?);
+                }
             }
         }
 

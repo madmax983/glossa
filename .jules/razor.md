@@ -126,3 +126,12 @@
 **Bloat:** `QuantifierFlags` struct in `src/semantic/patterns.rs` was an unnecessary abstraction over two booleans (`is_any`, `is_all`).
 **Cut:** Deleted the struct and its `from` implementation, replacing it with a simple `get_quantifier_flags` function returning a `(bool, bool)` tuple.
 **Saved:** Removed unnecessary struct definition and simplified function signatures across `process_adjectives` and `process_explicit_quantifiers`.
+## [Reduction]
+**Bloat:** `ImplMethodDef` struct was essentially duplicating `TraitMethodDecl` but without the `is_default` flag and with `body: Vec<Statement>` instead of `body: Option<Vec<Statement>>`.
+**Cut:** Deleted `ImplMethodDef` entirely and modified `TraitImplDef` to reuse `TraitMethodDecl`. Updated parser logic to output `TraitMethodDecl` with `is_default: false` and `body: Some(statements)`.
+**Saved:** Removed 1 redundant struct (`ImplMethodDef`) and simplified AST.
+
+## [Reduction]
+**Bloat:** `AnalyzedExprKind::MethodCall` and `AnalyzedExprKind::TraitMethodCall` had overlapping purposes. The only difference was that `TraitMethodCall` held an extra `trait_name` string.
+**Cut:** Modified `has_trait_method` to return `Option<SmolStr>` to propagate the `trait_name` back.
+**Saved:** Cleaned up analyzer code by passing the specific `trait_name` during AST generation.

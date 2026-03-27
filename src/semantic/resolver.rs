@@ -327,10 +327,10 @@ impl Scope {
     /// };
     /// scope.register_trait_impl(trait_impl);
     ///
-    /// assert!(scope.has_trait_method("Human", "speak"));
-    /// assert!(!scope.has_trait_method("Dog", "speak"));
+    /// assert!(scope.has_trait_method("Human", "speak").is_some());
+    /// assert!(scope.has_trait_method("Dog", "speak").is_none());
     /// ```
-    pub fn has_trait_method(&self, type_name: &str, method_name: &str) -> bool {
+    pub fn has_trait_method(&self, type_name: &str, method_name: &str) -> Option<SmolStr> {
         for level in self.levels.iter().rev() {
             for trait_impl in &level.trait_impls {
                 if trait_impl.type_name != type_name {
@@ -340,12 +340,12 @@ impl Scope {
                 if let Some(trait_def) = self.lookup_trait(&trait_impl.trait_name) {
                     let has_method = trait_def.methods.iter().any(|m| m.name == method_name);
                     if has_method {
-                        return true;
+                        return Some(trait_impl.trait_name.clone());
                     }
                 }
             }
         }
-        false
+        None
     }
 
     /// Define a new binding in this scope
