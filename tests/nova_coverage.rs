@@ -222,7 +222,8 @@ fn test_run_simulate_command_not_nova_actually() {
     let input_path = dir.path().join("main_simulate_fail.gl");
     std::fs::write(&input_path, "«success» λέγε.").unwrap();
 
-    let mut build_cmd = std::process::Command::new(std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string()));
+    let mut build_cmd =
+        std::process::Command::new(std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string()));
     build_cmd.arg("build").arg("--no-default-features");
     let _ = build_cmd.output();
 
