@@ -144,3 +144,15 @@ fn test_run_tests_rustc_error() {
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("Rustc Error"));
 }
+
+#[test]
+fn test_run_simulate_command_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let input_path = dir.path().join("simulate_error.gl");
+
+    // Write valid file but simulate will fail due to semantic error (invalid division)
+    std::fs::write(&input_path, "1 0 μέρος λέγε.").unwrap();
+
+    let result = glossa::tools::interpreter::run_simulator(&input_path);
+    assert!(result.is_err());
+}
