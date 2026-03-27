@@ -64,13 +64,7 @@ pub fn run_weave(input: &Path) -> Result<()> {
         status.error("Σφάλμα (Error)");
         return Err(e);
     }
-    let mosaic_output = match String::from_utf8(mosaic_buffer).into_diagnostic() {
-        Ok(o) => o,
-        Err(e) => {
-            status.error("Σφάλμα κώδικος (Encoding Error)");
-            return Err(e);
-        }
-    };
+    let mosaic_output = String::from_utf8(mosaic_buffer).expect("comfy-table outputs valid UTF-8");
 
     // 4. Format Markdown
     let mut md = String::new();
@@ -204,5 +198,22 @@ mod tests {
 
         let result = run_weave(&input_path);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_weave_file_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("file_error.γλ");
+        std::fs::write(&input_path, "ξ 10 ἔστω.").unwrap();
+
+        // Create a directory at the expected output path so that fs::write fails
+        let output_path = input_path.with_extension("md");
+        std::fs::create_dir(&output_path).unwrap();
+
+        let result = run_weave(&input_path);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        // A generic file/IO error assertion that works across platforms
+        assert!(err_msg.contains("Failed to write") || err_msg.contains("directory") || err_msg.contains("denied") || err_msg.contains("Permission"));
     }
 }
