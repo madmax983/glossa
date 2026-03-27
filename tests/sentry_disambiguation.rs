@@ -1,6 +1,6 @@
 use glossa::morphology::{
-    disambiguate, resolve_best, Case, DisambiguationContext, Gender, MorphAnalysis, Number,
-    PartOfSpeech, Person,
+    Case, DisambiguationContext, Gender, MorphAnalysis, Number, PartOfSpeech, Person, disambiguate,
+    resolve_best,
 };
 
 #[test]
