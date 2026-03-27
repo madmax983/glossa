@@ -63,7 +63,10 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                return glossa::tools::runner::run_fallback_error("mosaic", input);
+                let _ = input;
+                miette::bail!(
+                    "The 'mosaic' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
             }
         }
 
@@ -73,7 +76,10 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                return glossa::tools::runner::run_fallback_error("map", input);
+                let _ = input;
+                miette::bail!(
+                    "The 'map' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
             }
         }
 
@@ -83,7 +89,10 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                return glossa::tools::runner::run_fallback_error("weave", input);
+                let _ = input;
+                miette::bail!(
+                    "The 'weave' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
             }
         }
 

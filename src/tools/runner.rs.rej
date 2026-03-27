@@ -1,0 +1,17 @@
+--- runner.rs
++++ runner.rs
+@@ -16,6 +16,14 @@
+
+ const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB limit
+
++#[cfg(not(feature = "nova"))]
++pub fn run_fallback_error(cmd: &str, input: std::path::PathBuf) -> Result<()> {
++    let _ = input;
++    miette::bail!(
++        "The '{}' command is experimental. Recompile glossa with '--features nova' to enable it.", cmd
++    );
++}
++
+ /// Check if a file exists and is within the size limit
+ fn check_file_size(path: &Path) -> Result<()> {
+     let metadata = fs::metadata(path)

@@ -1,0 +1,25 @@
+--- src/main.rs
++++ src/main.rs
+@@ -78,10 +69,7 @@
+
+             #[cfg(not(feature = "nova"))]
+             {
+-                let _ = input;
+-                miette::bail!(
+-                    "The 'alchemist' command is experimental. Recompile glossa with '--features nova' to enable it."
+-                );
++                return glossa::tools::runner::run_fallback_error("alchemist", input);
+             }
+         }
+
+@@ -91,10 +79,7 @@
+
+             #[cfg(not(feature = "nova"))]
+             {
+-                let _ = input;
+-                miette::bail!(
+-                    "The 'simulate' command is experimental. Recompile glossa with '--features nova' to enable it."
+-                );
++                return glossa::tools::runner::run_fallback_error("simulate", input);
+             }
+         }

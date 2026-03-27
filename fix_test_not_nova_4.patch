@@ -1,0 +1,79 @@
+--- src/main.rs
++++ src/main.rs
+@@ -48,10 +48,7 @@
+
+             #[cfg(not(feature = "nova"))]
+             {
+-                let _ = input;
+-                miette::bail!(
+-                    "The 'mosaic' command is experimental. Recompile glossa with '--features nova' to enable it."
+-                );
++                return glossa::tools::runner::run_fallback_error("mosaic", input);
+             }
+         }
+
+@@ -61,10 +58,7 @@
+
+             #[cfg(not(feature = "nova"))]
+             {
+-                let _ = input;
+-                miette::bail!(
+-                    "The 'map' command is experimental. Recompile glossa with '--features nova' to enable it."
+-                );
++                return glossa::tools::runner::run_fallback_error("map", input);
+             }
+         }
+
+@@ -74,10 +68,7 @@
+
+             #[cfg(not(feature = "nova"))]
+             {
+-                let _ = input;
+-                miette::bail!(
+-                    "The 'weave' command is experimental. Recompile glossa with '--features nova' to enable it."
+-                );
++                return glossa::tools::runner::run_fallback_error("weave", input);
+             }
+         }
+
+@@ -87,10 +78,7 @@
+
+             #[cfg(not(feature = "nova"))]
+             {
+-                let _ = input;
+-                miette::bail!(
+-                    "The 'alchemist' command is experimental. Recompile glossa with '--features nova' to enable it."
+-                );
++                return glossa::tools::runner::run_fallback_error("alchemist", input);
+             }
+         }
+
+@@ -100,10 +88,7 @@
+
+             #[cfg(not(feature = "nova"))]
+             {
+-                let _ = input;
+-                miette::bail!(
+-                    "The 'simulate' command is experimental. Recompile glossa with '--features nova' to enable it."
+-                );
++                return glossa::tools::runner::run_fallback_error("simulate", input);
+             }
+         }
+
+--- src/tools/runner.rs
++++ src/tools/runner.rs
+@@ -16,6 +16,14 @@
+
+ const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB limit
+
++#[cfg(not(feature = "nova"))]
++pub fn run_fallback_error(cmd: &str, input: std::path::PathBuf) -> Result<()> {
++    let _ = input;
++    miette::bail!(
++        "The '{}' command is experimental. Recompile glossa with '--features nova' to enable it.", cmd
++    )
++}
++
+ /// Check if a file exists and is within the size limit
+ fn check_file_size(path: &Path) -> Result<()> {
+     let metadata = fs::metadata(path)

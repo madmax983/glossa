@@ -16,14 +16,6 @@ use std::process::{Command, Stdio};
 /// Maximum source file size (1MB) to prevent memory exhaustion
 const MAX_FILE_SIZE: u64 = 1024 * 1024;
 
-#[cfg(not(feature = "nova"))]
-pub fn run_fallback_error(cmd: &str, input: std::path::PathBuf) -> Result<()> {
-    let _ = input;
-    miette::bail!(
-        "The '{}' command is experimental. Recompile glossa with '--features nova' to enable it.", cmd
-    );
-}
-
 /// Parse and semantically analyze a source string
 ///
 /// This helper runs the first two phases of the compiler pipeline:

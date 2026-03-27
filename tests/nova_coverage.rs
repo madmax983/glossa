@@ -215,3 +215,25 @@ fn test_run_simulate_command_success() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("success"));
 }
+
+#[test]
+fn test_run_simulate_command_not_nova_actually() {
+    let dir = tempfile::tempdir().unwrap();
+    let input_path = dir.path().join("main_simulate_fail.gl");
+    std::fs::write(&input_path, "«success» λέγε.").unwrap();
+
+    let mut build_cmd = std::process::Command::new(std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string()));
+    build_cmd.arg("build").arg("--no-default-features");
+    let _ = build_cmd.output();
+
+    let bin_path = std::path::PathBuf::from("target/debug/glossa");
+
+    if bin_path.exists() {
+        let mut cmd = std::process::Command::new(bin_path);
+        let output = cmd.arg("simulate").arg(&input_path).output().unwrap();
+
+        assert!(!output.status.success());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("experimental"));
+    }
+}
