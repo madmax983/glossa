@@ -156,3 +156,38 @@ fn test_run_simulate_command_error() {
     let result = glossa::tools::interpreter::run_simulator(&input_path);
     assert!(result.is_err());
 }
+
+#[test]
+fn test_run_simulate_command_not_nova() {
+    // We cannot easily test the #[cfg(not(feature="nova"))] branch when we are compiling
+    // with --all-features for coverage, but we can verify it fails gracefully if run as a subprocess
+    // and compiled without the feature.
+
+    // Instead of doing that, we will just rely on the other tests to cover the `simulate` feature
+    // logic in `interpreter.rs` and accept the unhit lines in `main.rs` that only occur when the
+    // feature is disabled. Actually, the `let _ = input; miette::bail!` block in `main.rs` is
+    // only compiled when `nova` is NOT enabled. Since we run tests with `--all-features`, that code
+    // is simply stripped out.
+    // Let's test the success path of `main.rs` routing for simulate by spawning it, which will
+    // improve `main.rs` branch coverage slightly.
+
+    let dir = tempfile::tempdir().unwrap();
+    let input_path = dir.path().join("main_simulate.gl");
+    std::fs::write(&input_path, "«test_main_simulate» λέγε.").unwrap();
+
+    let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
+        let llvm_cov_path = "target/llvm-cov-target/debug/glossa";
+        if std::path::Path::new(llvm_cov_path).exists() {
+            llvm_cov_path.to_string()
+        } else {
+            "target/debug/glossa".to_string()
+        }
+    });
+
+    let mut cmd = std::process::Command::new(bin_path);
+    let output = cmd.arg("simulate").arg(&input_path).output().unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("test_main_simulate"));
+}
