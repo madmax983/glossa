@@ -191,3 +191,27 @@ fn test_run_simulate_command_not_nova() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("test_main_simulate"));
 }
+
+#[test]
+fn test_run_simulate_command_success() {
+    let dir = tempfile::tempdir().unwrap();
+    let input_path = dir.path().join("simulate_success.gl");
+
+    std::fs::write(&input_path, "«success» λέγε.").unwrap();
+
+    let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
+        let llvm_cov_path = "target/llvm-cov-target/debug/glossa";
+        if std::path::Path::new(llvm_cov_path).exists() {
+            llvm_cov_path.to_string()
+        } else {
+            "target/debug/glossa".to_string()
+        }
+    });
+
+    let mut cmd = std::process::Command::new(bin_path);
+    let output = cmd.arg("simulate").arg(&input_path).output().unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("success"));
+}
