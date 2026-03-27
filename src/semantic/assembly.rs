@@ -105,7 +105,7 @@
 //! ```
 
 use crate::ast::{Expr, Word};
-pub use crate::errors::AssemblyError;
+use crate::errors::AssemblyError;
 pub(crate) use crate::limits::{
     MAX_ADJECTIVES, MAX_ARRAYS, MAX_BLOCKS, MAX_GENITIVES, MAX_INDEX_ACCESSES, MAX_LITERALS,
     MAX_NESTED_PHRASES, MAX_NOMINATIVES, MAX_OPERATORS, MAX_PARTICIPLES, MAX_PROPERTY_ACCESSES,

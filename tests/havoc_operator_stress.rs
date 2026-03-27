@@ -32,7 +32,7 @@ fn test_stack_overflow_in_drop() {
             println!("Analysis FAILED (expected): {:?}", e);
             match e {
                 glossa::errors::GlossaError::AssemblyError(
-                    glossa::semantic::AssemblyError::LimitExceeded { resource, max },
+                    glossa::errors::AssemblyError::LimitExceeded { resource, max },
                 ) => {
                     assert_eq!(resource, "Operators");
                     assert_eq!(*max, 256);

@@ -60,7 +60,7 @@ pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate
 pub use analyzer::{AnalyzedProgram, analyze_program};
 pub use assembly::Assembler;
 pub use assembly::{
-    AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,
+    AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
 pub use model::*;
 pub use resolver::*;

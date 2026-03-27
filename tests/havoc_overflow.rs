@@ -35,7 +35,7 @@ fn test_stack_overflow_mitigation() {
             println!("Caught expected error: {:?}", e);
             match e {
                 GlossaError::LimitExceeded { .. } => {}
-                GlossaError::AssemblyError(glossa::semantic::AssemblyError::LimitExceeded {
+                GlossaError::AssemblyError(glossa::errors::AssemblyError::LimitExceeded {
                     ..
                 }) => {}
                 _ => panic!(
