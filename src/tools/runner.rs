@@ -218,18 +218,7 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     // Check if we can use cached binary
     if cache.is_valid(input, &cached_exe) && cached_exe.exists() {
-        println!();
-        println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
-
-        // Run cached binary directly
-        let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
-
-        println!("{}", "--- Τέλος (End) ---".dim());
-
-        if !exit_status.success() {
-            std::process::exit(exit_status.code().unwrap_or(1));
-        }
-        return Ok(());
+        return execute_binary(&cached_exe);
     }
 
     // Compile source
@@ -250,13 +239,24 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     status.update("Οἰκοδόμησις (Building)");
 
+    if let Err(e) = compile_rust_binary(&cached_rs, &cached_exe) {
+        status.error("Σφάλμα κώδικος (Codegen Error)");
+        return Err(e);
+    }
+
+    status.success();
+
+    execute_binary(&cached_exe)
+}
+
+fn compile_rust_binary(cached_rs: &Path, cached_exe: &Path) -> Result<()> {
     // Compile with rustc (hide output)
     let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
 
     let rustc_output = Command::new(rustc_cmd)
-        .arg(&cached_rs)
+        .arg(cached_rs)
         .arg("-o")
-        .arg(&cached_exe)
+        .arg(cached_exe)
         .arg("-O") // Optimize for speed
         .arg("--color=always")
         .stdout(Stdio::piped())
@@ -266,7 +266,6 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
-        status.error("Σφάλμα κώδικος (Codegen Error)");
 
         // Format the error nicely
         let error_msg = format!(
@@ -288,13 +287,15 @@ pub fn run_file(input: &Path) -> Result<()> {
         return Err(miette::miette!("{}\n{}\n\n{}", error_msg, help_msg, stderr));
     }
 
-    status.success();
+    Ok(())
+}
 
+fn execute_binary(cached_exe: &Path) -> Result<()> {
     println!();
     println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
 
     // Run the compiled program
-    let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+    let exit_status = Command::new(cached_exe).status().into_diagnostic()?;
 
     println!("{}", "--- Τέλος (End) ---".dim());
 
