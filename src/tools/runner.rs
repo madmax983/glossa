@@ -150,7 +150,11 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 
     if let Err(e) = fs::write(&output_path, &rust_code) {
         status.error("Σφάλμα ἀρχείου (File Error)");
-        return Err(miette::miette!("Failed to write to file {}: {}", output_path.display(), e));
+        return Err(miette::miette!(
+            "Failed to write to file {}: {}",
+            output_path.display(),
+            e
+        ));
     }
 
     let output_size = match fs::metadata(&output_path).into_diagnostic() {

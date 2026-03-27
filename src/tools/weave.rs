@@ -185,4 +185,24 @@ mod tests {
                 .contains("Ἀρχεῖον λίαν μέγα")
         );
     }
+
+    #[test]
+    fn test_run_weave_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("parse_error.γλ");
+        std::fs::write(&input_path, b"invalid syntax").unwrap();
+
+        let result = run_weave(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_weave_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("semantic_error.γλ");
+        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
+
+        let result = run_weave(&input_path);
+        assert!(result.is_err());
+    }
 }

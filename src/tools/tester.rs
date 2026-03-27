@@ -656,4 +656,27 @@ test name with spaces ... ok
         assert_eq!(failures[0].0, "test_1");
         assert!(failures[0].1.contains("panicked"));
     }
+
+    #[test]
+    fn test_run_tests_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("parse_error.gl");
+        std::fs::write(&input_path, b"invalid syntax").unwrap();
+
+        let result = run_tests(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα συντάξεως"));
+    }
+
+    #[test]
+    fn test_run_tests_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("semantic_error.gl");
+        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
+
+        let result = run_tests(&input_path);
+        assert!(result.is_err());
+        // miette display outputs the Greek error string directly
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα σημασίας"));
+    }
 }

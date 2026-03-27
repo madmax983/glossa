@@ -502,4 +502,25 @@ mod tests {
         let result = run_map(&input_path);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_run_map_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_map_parse_error.γλ");
+        std::fs::write(&input_path, b"invalid syntax").unwrap();
+
+        let result = run_map(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_map_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_map_semantic_error.γλ");
+        // Valid syntax, semantic error (reassigning undefined variable)
+        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
+
+        let result = run_map(&input_path);
+        assert!(result.is_err());
+    }
 }

@@ -477,4 +477,19 @@ mod tests {
         let result = run_mosaic(&file_path);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_run_mosaic_error() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_error.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            // Invalid syntax to trigger early return
+            f.write_all(b"not valid syntax").unwrap();
+        }
+
+        let result = run_mosaic(&file_path);
+        assert!(result.is_err());
+    }
 }

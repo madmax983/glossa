@@ -518,4 +518,33 @@ mod tests {
                 .contains("Ἀρχεῖον λίαν μέγα")
         );
     }
+
+    #[test]
+    fn test_run_alchemist_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("parse_error.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all(b"not valid syntax").unwrap();
+        }
+        let result = run_alchemist(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Parse error"));
+    }
+
+    #[test]
+    fn test_run_alchemist_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("semantic_error.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // Valid syntax, invalid semantics (reassigning undefined var)
+            f.write_all("ψ πέντε γίγνεται.".as_bytes()).unwrap();
+        }
+        let result = run_alchemist(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Semantic error"));
+    }
 }
