@@ -13,9 +13,12 @@ use crate::morphology::models::{Case, Gender, MorphAnalysis, Number, PartOfSpeec
 /// Declension pattern
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Declension {
-    First,  // -η/-α (feminine)
-    Second, // -ος/-ον (masculine/neuter)
-    Third,  // consonant stems, -μα
+    /// Nouns ending in -η or pure -α, typically feminine (e.g., τιμή, χώρα).
+    First,
+    /// Nouns ending in -ος or -ον, representing the most common masculine and neuter patterns (e.g., λόγος, δῶρον).
+    Second,
+    /// Consonant stems and -μα nouns, often complex neuter or masculine forms (e.g., ὄνομα, σῶμα).
+    Third,
 }
 
 /// Second declension endings (masculine -ος type)
