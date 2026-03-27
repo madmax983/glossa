@@ -63,8 +63,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
-                return glossa::tools::runner::run_fallback_error("mosaic");
+                return glossa::tools::runner::run_fallback_error("mosaic", input);
             }
         }
 
@@ -74,8 +73,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
-                return glossa::tools::runner::run_fallback_error("map");
+                return glossa::tools::runner::run_fallback_error("map", input);
             }
         }
 
@@ -85,8 +83,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
-                return glossa::tools::runner::run_fallback_error("weave");
+                return glossa::tools::runner::run_fallback_error("weave", input);
             }
         }
 
@@ -96,8 +93,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
-                return glossa::tools::runner::run_fallback_error("alchemist");
+                return glossa::tools::runner::run_fallback_error("alchemist", input);
             }
         }
 
@@ -107,8 +103,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
-                return glossa::tools::runner::run_fallback_error("simulate");
+                return glossa::tools::runner::run_fallback_error("simulate", input);
             }
         }
 

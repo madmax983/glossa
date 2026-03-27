@@ -1,0 +1,62 @@
+--- src/main.rs
++++ src/main.rs
+@@ -62,7 +62,10 @@
+             glossa::tools::mosaic::run_mosaic(&input)?;
+
+             #[cfg(not(feature = "nova"))]
+-            return glossa::tools::runner::run_fallback_error("mosaic", input);
++            {
++                let _ = input;
++                return glossa::tools::runner::run_fallback_error("mosaic");
++            }
+         }
+
+         Some(Commands::Map { input }) => {
+@@ -70,7 +73,10 @@
+             glossa::tools::cartographer::run_map(&input)?;
+
+             #[cfg(not(feature = "nova"))]
+-            return glossa::tools::runner::run_fallback_error("map", input);
++            {
++                let _ = input;
++                return glossa::tools::runner::run_fallback_error("map");
++            }
+         }
+
+         Some(Commands::Weave { input }) => {
+@@ -78,7 +84,10 @@
+             glossa::tools::weave::run_weave(&input)?;
+
+             #[cfg(not(feature = "nova"))]
+-            return glossa::tools::runner::run_fallback_error("weave", input);
++            {
++                let _ = input;
++                return glossa::tools::runner::run_fallback_error("weave");
++            }
+         }
+
+         Some(Commands::Alchemist { input }) => {
+@@ -86,7 +95,10 @@
+             glossa::tools::alchemist::run_alchemist(&input)?;
+
+             #[cfg(not(feature = "nova"))]
+-            return glossa::tools::runner::run_fallback_error("alchemist", input);
++            {
++                let _ = input;
++                return glossa::tools::runner::run_fallback_error("alchemist");
++            }
+         }
+
+         Some(Commands::Simulate { input }) => {
+@@ -94,7 +106,10 @@
+             glossa::tools::interpreter::run_simulator(&input)?;
+
+             #[cfg(not(feature = "nova"))]
+-            return glossa::tools::runner::run_fallback_error("simulate", input);
++            {
++                let _ = input;
++                return glossa::tools::runner::run_fallback_error("simulate");
++            }
+         }
+
+         Some(Commands::Repl) | None => {

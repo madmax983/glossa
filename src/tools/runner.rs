@@ -17,8 +17,7 @@ use std::process::{Command, Stdio};
 const MAX_FILE_SIZE: u64 = 1024 * 1024;
 
 #[cfg(not(feature = "nova"))]
-pub fn run_fallback_error(cmd: &str, input: std::path::PathBuf) -> Result<()> {
-    let _ = input;
+pub fn run_fallback_error(cmd: &str) -> Result<()> {
     miette::bail!(
         "The '{}' command is experimental. Recompile glossa with '--features nova' to enable it.",
         cmd
