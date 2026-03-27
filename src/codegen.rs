@@ -514,13 +514,11 @@ fn generate_statement_assignment(name: &str, value: &AnalyzedExpr) -> TokenStrea
 }
 
 fn generate_statement_expression(exprs: &[AnalyzedExpr]) -> TokenStream {
-    let expr_tokens: Vec<TokenStream> = exprs
-        .iter()
-        .map(|e| {
-            let tokens = generate_expr(e);
-            quote! { #tokens; }
-        })
-        .collect();
+    // ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<_>>()` allocation.
+    let expr_tokens = exprs.iter().map(|e| {
+        let tokens = generate_expr(e);
+        quote! { #tokens; }
+    });
     quote! { #(#expr_tokens)* }
 }
 
@@ -559,7 +557,8 @@ fn generate_print(args: &[AnalyzedExpr]) -> TokenStream {
             format_str.push_str("{}");
         }
 
-        let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+        // ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<_>>()` allocation.
+        let arg_tokens = args.iter().map(generate_expr);
         quote! { println!(#format_str, #(#arg_tokens),*); }
     }
 }
@@ -1268,7 +1267,8 @@ fn generate_range(start: &AnalyzedExpr, end: &AnalyzedExpr, inclusive: bool) -> 
 // ==================================================================================
 
 fn generate_collection_array(elements: &[AnalyzedExpr]) -> TokenStream {
-    let elem_tokens: Vec<TokenStream> = elements.iter().map(generate_expr).collect();
+    // ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<_>>()` allocation.
+    let elem_tokens = elements.iter().map(generate_expr);
     quote! { vec![#(#elem_tokens),*] }
 }
 
@@ -1310,7 +1310,8 @@ fn generate_method_call(
         sanitize_ident(method)
     };
 
-    let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+    // ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<_>>()` allocation.
+    let arg_tokens = args.iter().map(generate_expr);
     quote! { #recv.#method_ident(#(#arg_tokens),*) }
 }
 
@@ -1322,13 +1323,15 @@ fn generate_trait_method_call(
     // Treat as regular method call
     let recv = generate_expr(receiver);
     let method_ident = sanitize_ident(method_name);
-    let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+    // ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<_>>()` allocation.
+    let arg_tokens = args.iter().map(generate_expr);
     quote! { #recv.#method_ident(#(#arg_tokens),*) }
 }
 
 fn generate_function_call(verb: &str, args: &[AnalyzedExpr]) -> TokenStream {
     let func_ident = sanitize_ident(verb);
-    let arg_tokens: Vec<TokenStream> = args.iter().map(generate_expr).collect();
+    // ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<_>>()` allocation.
+    let arg_tokens = args.iter().map(generate_expr);
     quote! { #func_ident(#(#arg_tokens),*) }
 }
 
