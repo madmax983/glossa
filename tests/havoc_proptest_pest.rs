@@ -1,4 +1,4 @@
-use glossa::parser::grammar::parse;
+use glossa::parser::parse;
 use proptest::prelude::*;
 
 proptest! {

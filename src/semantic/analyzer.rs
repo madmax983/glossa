@@ -26,7 +26,7 @@ use crate::errors::GlossaError;
 ///
 /// ```rust
 /// use glossa::ast::Program;
-/// use glossa::semantic::analyzer::analyze_program;
+/// use glossa::semantic::analyze_program;
 ///
 /// // Create an empty program structure
 /// let empty_ast = Program { statements: vec![] };

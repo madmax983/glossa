@@ -1,5 +1,5 @@
 use glossa::codegen::generate_rust;
-use glossa::morphology::lexicon::UnaryOp;
+use glossa::morphology::UnaryOp;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
 };

@@ -1,5 +1,5 @@
 use glossa::morphology::{Case, MorphAnalysis, Number, PartOfSpeech};
-use glossa::semantic::assembly::Assembler;
+use glossa::semantic::Assembler;
 use proptest as prop;
 use proptest::prelude::*;
 use std::borrow::Cow;

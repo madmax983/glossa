@@ -98,43 +98,43 @@ fn test_optative_aorist_passive() {
 
 #[test]
 fn test_ouden_is_none() {
-    use glossa::morphology::lexicon;
 
-    let entry = lexicon::lookup("ουδεν");
+
+    let entry = glossa::morphology::lookup("ουδεν");
     assert!(entry.is_some());
     assert_eq!(entry.unwrap().rust_equiv, Some("None"));
 }
 
 #[test]
 fn test_ti_is_some() {
-    use glossa::morphology::lexicon;
 
-    let entry = lexicon::lookup("τι");
+
+    let entry = glossa::morphology::lookup("τι");
     assert!(entry.is_some());
     assert_eq!(entry.unwrap().rust_equiv, Some("Some"));
 }
 
 #[test]
 fn test_epitychia_is_ok() {
-    use glossa::morphology::lexicon;
 
-    let entry = lexicon::lookup("επιτυχια");
+
+    let entry = glossa::morphology::lookup("επιτυχια");
     assert!(entry.is_some());
     assert_eq!(entry.unwrap().rust_equiv, Some("Ok"));
 }
 
 #[test]
 fn test_sphalma_is_err() {
-    use glossa::morphology::lexicon;
 
-    let entry = lexicon::lookup("σφαλμα");
+
+    let entry = glossa::morphology::lookup("σφαλμα");
     assert!(entry.is_some());
     assert_eq!(entry.unwrap().rust_equiv, Some("Err"));
 }
 
 #[test]
 fn test_is_none_word_helper() {
-    use glossa::morphology::lexicon::is_none_word;
+    use glossa::morphology::is_none_word;
 
     assert!(is_none_word("ουδεν"));
     assert!(!is_none_word("τι"));
@@ -142,7 +142,7 @@ fn test_is_none_word_helper() {
 
 #[test]
 fn test_is_some_word_helper() {
-    use glossa::morphology::lexicon::is_some_word;
+    use glossa::morphology::is_some_word;
 
     assert!(is_some_word("τι"));
     assert!(!is_some_word("ουδεν"));
@@ -150,7 +150,7 @@ fn test_is_some_word_helper() {
 
 #[test]
 fn test_is_ok_word_helper() {
-    use glossa::morphology::lexicon::is_ok_word;
+    use glossa::morphology::is_ok_word;
 
     assert!(is_ok_word("επιτυχια"));
     assert!(!is_ok_word("σφαλμα"));
@@ -158,7 +158,7 @@ fn test_is_ok_word_helper() {
 
 #[test]
 fn test_is_err_word_helper() {
-    use glossa::morphology::lexicon::is_err_word;
+    use glossa::morphology::is_err_word;
 
     assert!(is_err_word("σφαλμα"));
     assert!(!is_err_word("επιτυχια"));
