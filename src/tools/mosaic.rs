@@ -460,7 +460,9 @@ mod tests {
 
         // Manually hit the operators branch
         let mut asm_ops = AssembledStatement::default();
-        asm_ops.operators.push(crate::morphology::lexicon::BinaryOp::Add);
+        asm_ops
+            .operators
+            .push(crate::morphology::lexicon::BinaryOp::Add);
         let mut table_ops = Table::new();
         add_row(&mut table_ops, 1, &asm_ops);
         assert!(table_ops.to_string().contains("Ops:"));
