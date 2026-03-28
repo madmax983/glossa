@@ -116,7 +116,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
                     crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
                     crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
-                    crate::ast::Statement::Regular { .. } => "", // This is naturally unreachable, keep coverage simple without panic code
+                    crate::ast::Statement::Regular { .. } => unreachable!(),
                 };
                 table.add_row(vec![
                     Cell::new(format!("{}", i + 1)),
@@ -452,22 +452,6 @@ mod tests {
             output.contains("\u{3a3}\u{3c6}\u{3ac}\u{3bb}\u{3bc}\u{3b1} (Error): "),
             "Output should contain localized Error string"
         );
-
-        // Manually trigger the unknown statement branches
-        let mut table = Table::new();
-        let stmt = crate::ast::Statement::Regular {
-            clauses: vec![],
-            is_query: false,
-            is_propagate: false,
-        };
-        let type_name = match &stmt {
-            crate::ast::Statement::TypeDefinition(_) => "Type Definition",
-            crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
-            crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
-            crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
-            crate::ast::Statement::Regular { .. } => "", // Hit the naturally unreachable arm
-        };
-        table.add_row(vec![Cell::new("1"), Cell::new(type_name)]);
 
         // Force hitting the TestDeclaration branch inside run_mosaic_inner directly
         let source_test = "δοκιμή «test» . 1 1 ἰσοῦται. τέλος.";
