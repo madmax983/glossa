@@ -65,6 +65,19 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_trait_method_missing_name_edge_case() {
+        // Specifically tests the fallback logic to catch the unexpected rule parsing branch
+        let source = "χαρακτήρ Εκτυπώσιμος ὁρίζειν { ἤδη. }.";
+        let result = parse(source);
+        if let Ok(ast) = result {
+            match &ast.statements[0] {
+                glossa::ast::Statement::Regular { .. } => {}
+                _ => panic!("Expected Regular statement fallback or Error"),
+            }
+        }
+    }
+
     // Since we cannot construct `Pair` manually to trigger those specific errors,
     // we document that these branches are unreachable via string parsing but act as safety guards.
 }

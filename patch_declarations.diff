@@ -1,0 +1,13 @@
+<<<<<<< SEARCH
+    if words.is_empty() {
+        return Err(ParseError::UnexpectedRule(
+            "Impl method needs at least a name".to_string(),
+        ));
+    }
+=======
+    if words.is_empty() {
+        return Err(ParseError::UnexpectedRule(
+            "Impl method needs at least a name".to_string(),
+        ));
+    }
+>>>>>>> REPLACE
