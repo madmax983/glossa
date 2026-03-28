@@ -200,18 +200,9 @@ fn test_lexicon_conditional_particles() {
     use glossa::morphology::*;
 
     // These should be recognized as control flow particles
-    assert!(
-        is_conditional_particle("ει"),
-        "εἰ should be conditional"
-    );
-    assert!(
-        is_conditional_particle("εαν"),
-        "ἐάν should be conditional"
-    );
-    assert!(
-        is_conditional_particle("ην"),
-        "ἤν should be conditional"
-    );
+    assert!(is_conditional_particle("ει"), "εἰ should be conditional");
+    assert!(is_conditional_particle("εαν"), "ἐάν should be conditional");
+    assert!(is_conditional_particle("ην"), "ἤν should be conditional");
 }
 
 #[test]
@@ -219,10 +210,7 @@ fn test_lexicon_else_particle() {
     use glossa::morphology::*;
 
     // "εἰ δὲ μή" is the else pattern
-    assert!(
-        is_else_pattern("ει δε μη"),
-        "εἰ δὲ μή should be else"
-    );
+    assert!(is_else_pattern("ει δε μη"), "εἰ δὲ μή should be else");
 }
 
 #[test]
@@ -233,14 +221,8 @@ fn test_lexicon_loop_particles() {
         is_loop_particle("εως"),
         "ἕως should be loop particle (while)"
     );
-    assert!(
-        is_loop_particle("δια"),
-        "διά should be loop particle (for)"
-    );
-    assert!(
-        is_range_particle("απο"),
-        "ἀπό should be range start"
-    );
+    assert!(is_loop_particle("δια"), "διά should be loop particle (for)");
+    assert!(is_range_particle("απο"), "ἀπό should be range start");
     assert!(
         is_range_particle("μεχρι"),
         "μέχρι should be range end (exclusive)"
@@ -252,20 +234,14 @@ fn test_lexicon_loop_control() {
     use glossa::morphology::*;
 
     assert!(is_break_verb("παυε"), "παῦε should be break");
-    assert!(
-        is_continue_verb("συνεχιζε"),
-        "συνέχιζε should be continue"
-    );
+    assert!(is_continue_verb("συνεχιζε"), "συνέχιζε should be continue");
 }
 
 #[test]
 fn test_lexicon_match_particle() {
     use glossa::morphology::*;
 
-    assert!(
-        is_match_particle("κατα"),
-        "κατά should be match particle"
-    );
+    assert!(is_match_particle("κατα"), "κατά should be match particle");
 }
 
 #[test]

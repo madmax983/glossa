@@ -98,8 +98,6 @@ fn test_optative_aorist_passive() {
 
 #[test]
 fn test_ouden_is_none() {
-
-
     let entry = glossa::morphology::lookup("ουδεν");
     assert!(entry.is_some());
     assert_eq!(entry.unwrap().rust_equiv, Some("None"));
@@ -107,8 +105,6 @@ fn test_ouden_is_none() {
 
 #[test]
 fn test_ti_is_some() {
-
-
     let entry = glossa::morphology::lookup("τι");
     assert!(entry.is_some());
     assert_eq!(entry.unwrap().rust_equiv, Some("Some"));
@@ -116,8 +112,6 @@ fn test_ti_is_some() {
 
 #[test]
 fn test_epitychia_is_ok() {
-
-
     let entry = glossa::morphology::lookup("επιτυχια");
     assert!(entry.is_some());
     assert_eq!(entry.unwrap().rust_equiv, Some("Ok"));
@@ -125,8 +119,6 @@ fn test_epitychia_is_ok() {
 
 #[test]
 fn test_sphalma_is_err() {
-
-
     let entry = glossa::morphology::lookup("σφαλμα");
     assert!(entry.is_some());
     assert_eq!(entry.unwrap().rust_equiv, Some("Err"));

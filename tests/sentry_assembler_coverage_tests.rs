@@ -1,5 +1,5 @@
-use glossa::morphology::analyze;
 use glossa::morphology::BinaryOp;
+use glossa::morphology::analyze;
 use glossa::semantic::Assembler;
 use glossa::semantic::Literal;
 
