@@ -90,27 +90,25 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
     for (i, stmt) in program.statements.iter().enumerate() {
         // Only assemble regular statements (others like TypeDef don't go through Assembler in the same way)
         match stmt {
-            crate::ast::Statement::Regular { .. } => {
-                match assemble_statement(stmt) {
-                    Ok(assembled) => {
-                        add_row(&mut table, i + 1, &assembled);
-                    }
-                    Err(e) => {
-                        table.add_row(vec![
-                            Cell::new(format!("{}", i + 1)),
-                            Cell::new(format!(
-                                "\u{3a3}\u{3c6}\u{3ac}\u{3bb}\u{3bc}\u{3b1} (Error): {}",
-                                e
-                            ))
-                            .fg(Color::Red),
-                            Cell::new(""),
-                            Cell::new(""),
-                            Cell::new(""),
-                            Cell::new(""),
-                        ]);
-                    }
+            crate::ast::Statement::Regular { .. } => match assemble_statement(stmt) {
+                Ok(assembled) => {
+                    add_row(&mut table, i + 1, &assembled);
                 }
-            }
+                Err(e) => {
+                    table.add_row(vec![
+                        Cell::new(format!("{}", i + 1)),
+                        Cell::new(format!(
+                            "\u{3a3}\u{3c6}\u{3ac}\u{3bb}\u{3bc}\u{3b1} (Error): {}",
+                            e
+                        ))
+                        .fg(Color::Red),
+                        Cell::new(""),
+                        Cell::new(""),
+                        Cell::new(""),
+                        Cell::new(""),
+                    ]);
+                }
+            },
             stmt_other => {
                 // For non-regular statements, just print the type
                 let type_name = match stmt_other {
