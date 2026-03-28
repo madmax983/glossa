@@ -171,4 +171,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Simulate a .γλ file (Requires "nova" feature)
+    Simulator {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

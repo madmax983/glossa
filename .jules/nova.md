@@ -19,3 +19,7 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+## The Simulator (ὁ Προσομοιωτής)
+**Concept:** A specialized execution mode (`glossa simulator`) that tracks variable state changes over time and produces a simulation timeline of the program execution. It uses the `Interpreter` iteratively on the single statements while probing values.
+**Fate:** Merged
+**Lesson:** Adding a visual simulator to track variable changes step-by-step is an excellent tool for understanding code execution and debugging logic visually instead of inserting println statements manually.

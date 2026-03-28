@@ -157,6 +157,13 @@ Translate your code into an English narrative (available without `nova`).
 cargo run --release -- bard examples/quickstart.γλ
 ```
 
+### 5. The Simulator (Time-Traveling Execution Engine)
+Track variable state changes over time without print statements.
+
+```bash
+cargo run --release --features nova -- simulator examples/quickstart.γλ
+```
+
 ## Features
 
 - **Greek Syntax**: Write code using authentic Ancient Greek grammatical constructs

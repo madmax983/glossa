@@ -109,6 +109,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Simulator { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::experimental::simulator::run_simulation_from_file(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'simulator' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
