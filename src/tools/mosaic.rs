@@ -98,7 +98,11 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                 Err(e) => {
                     table.add_row(vec![
                         Cell::new(format!("{}", i + 1)),
-                        Cell::new(format!("Error: {}", e)).fg(Color::Red),
+                        Cell::new(format!(
+                            "\u{3a3}\u{3c6}\u{3ac}\u{3bb}\u{3bc}\u{3b1} (Error): {}",
+                            e
+                        ))
+                        .fg(Color::Red),
                         Cell::new(""),
                         Cell::new(""),
                         Cell::new(""),
@@ -444,7 +448,7 @@ mod tests {
         let _ = run_mosaic_inner(source, &mut buffer);
         let output = String::from_utf8(buffer).unwrap();
 
-        if output.contains("Error: ") {
+        if output.contains("\u{3a3}\u{3c6}\u{3ac}\u{3bb}\u{3bc}\u{3b1} (Error): ") {
             // Successfully hit the Err path
         }
 
