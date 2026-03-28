@@ -453,7 +453,7 @@ mod tests {
             "Output should contain localized Error string"
         );
 
-        // Manually trigger the unknown statement branch by using an empty string fallback mapping
+        // Manually trigger the unknown statement branches
         let mut table = Table::new();
         let stmt = crate::ast::Statement::Regular {
             clauses: vec![],
@@ -467,10 +467,7 @@ mod tests {
             crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
             crate::ast::Statement::Regular { .. } => "", // Hit the naturally unreachable arm
         };
-        table.add_row(vec![
-            Cell::new("1"),
-            Cell::new(type_name)
-        ]);
+        table.add_row(vec![Cell::new("1"), Cell::new(type_name)]);
 
         // Manually hit the operators branch
         let mut asm_ops = AssembledStatement::default();
