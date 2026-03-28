@@ -24,6 +24,27 @@ use smol_str::SmolStr;
 ///
 /// Types are checked for compatibility using [`GlossaType::is_compatible`].
 /// `GlossaType::Unknown` acts as a wildcard that matches any type (useful during inference).
+///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::GlossaType;
+///
+/// // Create simple types
+/// let num_type = GlossaType::Number;
+/// let str_type = GlossaType::String;
+///
+/// // Create complex nested types
+/// let list_of_numbers = GlossaType::List(Box::new(GlossaType::Number));
+///
+/// // Check type compatibility
+/// assert!(num_type.is_compatible(&GlossaType::Number));
+/// assert!(!num_type.is_compatible(&str_type));
+///
+/// // The Unknown type acts as a wildcard, compatible with anything
+/// assert!(GlossaType::Unknown.is_compatible(&str_type));
+/// assert!(num_type.is_compatible(&GlossaType::Unknown));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GlossaType {
     /// **ἀριθμός** (Number) - 64-bit signed integer (`i64`)
