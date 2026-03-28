@@ -469,18 +469,12 @@ mod tests {
         };
         table.add_row(vec![Cell::new("1"), Cell::new(type_name)]);
 
-        let stmt_test = crate::ast::Statement::TestDeclaration(crate::ast::TestDecl {
-            name: "test".into(),
-            body: vec![],
-        });
-        let type_name_test = match &stmt_test {
-            crate::ast::Statement::TypeDefinition(_) => "Type Definition",
-            crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
-            crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
-            crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
-            crate::ast::Statement::Regular { .. } => "",
-        };
-        table.add_row(vec![Cell::new("2"), Cell::new(type_name_test)]);
+        // Force hitting the TestDeclaration branch inside run_mosaic_inner directly
+        let source_test = "δοκιμή «test» . 1 1 ἰσοῦται. τέλος.";
+        let mut buffer_test = Vec::new();
+        run_mosaic_inner(source_test, &mut buffer_test).unwrap();
+        let output_test = String::from_utf8(buffer_test).unwrap();
+        assert!(output_test.contains("Test Declaration"));
 
         // Manually hit the operators branch
         let mut asm_ops = AssembledStatement::default();
