@@ -1,26 +1,15 @@
 <<<<<<< SEARCH
-    #[test]
-    fn test_trait_impl_missing_type_or_trait() {
-        // Triggers the "Trait impl needs type and trait names" error
-        let source = "εἶδος τῷ Εκτυπώσιμος ἐμπίπτειν {}.";
-        let result = parse(source);
-        assert!(result.is_err());
-    }
+        is_default: false,
+        body: Some(if let Some(stmt) = body {
+            vec![stmt]
+        } else {
+            vec![]
+        }),
 =======
-    #[test]
-    fn test_trait_impl_missing_type_or_trait() {
-        // Triggers the "Trait impl needs type and trait names" error
-        let source = "εἶδος τῷ Εκτυπώσιμος ἐμπίπτειν {}.";
-        let result = parse(source);
-        // Sometimes PEG grammar successfully parses this as a Regular statement instead of TraitImpl
-        // If it returns Ok, the parser fallback swallowed it.
-        // It's acceptable for it to be Ok or Err, but we should assert the actual outcome.
-        if let Ok(ast) = result {
-            // It fell back to a regular statement
-            match &ast.statements[0] {
-                glossa::ast::Statement::Regular { .. } => {}
-                _ => panic!("Expected Regular statement fallback or Error"),
-            }
-        }
-    }
+        is_default: false,
+        body: Some(if let Some(stmt) = body {
+            vec![stmt]
+        } else {
+            vec![]
+        }),
 >>>>>>> REPLACE
