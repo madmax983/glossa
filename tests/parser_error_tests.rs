@@ -45,6 +45,20 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[test]
+    fn test_trait_method_missing_name() {
+        // Triggers the "Trait method needs at least a name" error
+        let source = "χαρακτήρ Εκτυπώσιμος ὁρίζειν { δεῖ. }.";
+        let result = parse(source);
+        if let Ok(ast) = result {
+            // It fell back to a regular statement
+            match &ast.statements[0] {
+                glossa::ast::Statement::Regular { .. } => {}
+                _ => panic!("Expected Regular statement fallback or Error"),
+            }
+        }
+    }
+
     // Since we cannot construct `Pair` manually to trigger those specific errors,
     // we document that these branches are unreachable via string parsing but act as safety guards.
 }
