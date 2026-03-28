@@ -278,7 +278,6 @@ impl Scope {
         self.current_level().trait_impls.push(impl_def);
     }
 
-
     /// Proves whether a specific form has learned to embody a particular behavior of a character.
     ///
     /// It seeks a `TraitImpl` that binds the type to the trait's name, and checks if
