@@ -278,21 +278,6 @@ impl Scope {
         self.current_level().trait_impls.push(impl_def);
     }
 
-    /// Look up a trait implementation for a given type and trait
-    pub fn lookup_trait_impl(
-        &self,
-        type_name: &str,
-        trait_name: &str,
-    ) -> Option<&crate::semantic::model::TraitImpl> {
-        for level in self.levels.iter().rev() {
-            for impl_def in &level.trait_impls {
-                if impl_def.type_name == type_name && impl_def.trait_name == trait_name {
-                    return Some(impl_def);
-                }
-            }
-        }
-        None
-    }
 
     /// Proves whether a specific form has learned to embody a particular behavior of a character.
     ///
