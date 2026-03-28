@@ -329,10 +329,10 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseError
         name: method_name,
         params,
         is_default: false,
-        body: if let Some(stmt) = body {
-            Some(vec![stmt])
+        body: Some(if let Some(stmt) = body {
+            vec![stmt]
         } else {
-            None
-        },
+            vec![]
+        }),
     })
 }
