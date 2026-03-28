@@ -14,14 +14,6 @@
         // Or fails parsing entirely, both are safe.
         let source = "εἶδος Χρήστης τῷ Εκτυπώσιμος ἐμπίπτειν { { λέγε. } }.";
         let result = parse(source);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_trait_method_missing_name() {
-        // Triggers the "Trait method needs at least a name" error
-        let source = "χαρακτήρ Εκτυπώσιμος ὁρίζειν { δεῖ. }.";
-        let result = parse(source);
         if let Ok(ast) = result {
             // It fell back to a regular statement
             match &ast.statements[0] {

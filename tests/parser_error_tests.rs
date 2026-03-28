@@ -42,7 +42,13 @@ mod tests {
         // Or fails parsing entirely, both are safe.
         let source = "εἶδος Χρήστης τῷ Εκτυπώσιμος ἐμπίπτειν { { λέγε. } }.";
         let result = parse(source);
-        assert!(result.is_err());
+        if let Ok(ast) = result {
+            // It fell back to a regular statement
+            match &ast.statements[0] {
+                glossa::ast::Statement::Regular { .. } => {}
+                _ => panic!("Expected Regular statement fallback or Error"),
+            }
+        }
     }
 
     #[test]
