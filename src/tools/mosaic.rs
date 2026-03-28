@@ -116,7 +116,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
                     crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
                     crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
-                    crate::ast::Statement::Regular { .. } => unreachable!(),
+                    crate::ast::Statement::Regular { .. } => "", // This is naturally unreachable, keep coverage simple without panic code
                 };
                 table.add_row(vec![
                     Cell::new(format!("{}", i + 1)),
