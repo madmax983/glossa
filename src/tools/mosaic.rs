@@ -443,14 +443,15 @@ mod tests {
         // To directly hit `Err(e)` in line 98, we use `assemble_statement` on a syntax that passes
         // parser but fails in semantic logic. For example, assigning to a literal.
         // Let's create an invalid assembled statement error inside `run_mosaic_inner`
-        let source = "πέντε πέντε ἔστω."; // Left side of assignment must be a word.
+        let source = "ὁ ἄνθρωπος λέγει γράφει."; // Double verb triggers an AssemblyError directly
         let mut buffer = Vec::new();
         let _ = run_mosaic_inner(source, &mut buffer);
         let output = String::from_utf8(buffer).unwrap();
 
-        if output.contains("\u{3a3}\u{3c6}\u{3ac}\u{3bb}\u{3bc}\u{3b1} (Error): ") {
-            // Successfully hit the Err path
-        }
+        assert!(
+            output.contains("\u{3a3}\u{3c6}\u{3ac}\u{3bb}\u{3bc}\u{3b1} (Error): "),
+            "Output should contain localized Error string"
+        );
 
         // Let's directly hit the `Unknown` fallback branch by making a Statement that is parsed
         // and iterating over it directly. Since `run_mosaic_inner` only accepts a string,
