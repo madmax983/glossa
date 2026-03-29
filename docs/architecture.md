@@ -79,11 +79,12 @@ C4Component
 
     Container_Boundary(semantic, "Semantic Analysis") {
         Component(orchestrator, "Orchestrator", "src/semantic/mod.rs", "Coordinates analysis pipeline")
+        Component(analyzer, "Analyzer", "src/semantic/analyzer.rs", "Analyzes statements and orchestrates logic")
         Component(declarations, "Declarations", "src/semantic/declarations.rs", "Analyzes Types, Traits, Functions")
         Component(control_flow, "Control Flow", "src/semantic/control_flow.rs", "Analyzes If, While, Match")
         Component(expressions, "Expressions", "src/semantic/expressions.rs", "Recursively analyzes nested expressions")
         Component(resolver, "Resolver", "src/semantic/resolver.rs", "Manages Scope and Bindings")
-        Component(assembly, "Assembly", "src/semantic/assembly/mod.rs", "Routes words to grammatical slots")
+        Component(assembly, "Assembly", "src/semantic/assembly.rs", "Routes words to grammatical slots")
         Component(conversion, "Conversion", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
@@ -92,9 +93,10 @@ C4Component
 
     Container(morphology, "Morphology", "src/morphology", "Provides Case/Gender/Number analysis")
 
-    Rel(orchestrator, declarations, "Delegates to")
-    Rel(orchestrator, control_flow, "Delegates to")
-    Rel(orchestrator, conversion, "Delegates to")
+    Rel(orchestrator, analyzer, "Delegates to")
+    Rel(analyzer, declarations, "Delegates to")
+    Rel(analyzer, control_flow, "Delegates to")
+    Rel(analyzer, conversion, "Delegates to")
 
     Rel(declarations, resolver, "Defines Symbols")
     Rel(declarations, types, "Uses")
