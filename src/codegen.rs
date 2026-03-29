@@ -1115,7 +1115,7 @@ fn generate_memoized_closure(
                 if cache_ref.is_none() {
                     *cache_ref = Some(#body_tokens);
                 }
-                cache_ref.clone().unwrap()
+                cache_ref.clone().expect("memoized value must be present")
             }
         }
     }
@@ -1626,7 +1626,8 @@ mod tests {
             assert!(code.contains("new"));
             assert!(code.contains("None"));
             assert!(code.contains("borrow_mut"));
-            assert!(code.contains("unwrap"));
+            assert!(code.contains("expect"));
+            assert!(code.contains("memoized value must be present"));
         }
 
         #[test]
