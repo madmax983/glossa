@@ -36,7 +36,7 @@ fn test_simulator_dummy_print_error() {
     ξ λέγε.
     ";
     let ast = parse(source).unwrap();
-    let program = analyze_program(&ast).unwrap();
+    let _program = analyze_program(&ast).unwrap();
 
     // We somehow want the interpreter to fail ONLY on the dummy probe print
     // Or we just accept that error coverage is good enough.
