@@ -245,6 +245,16 @@ pub fn run_tests(input: &Path) -> Result<()> {
         status.error("Ἀποτυχία (Failure)");
     }
 
+    print_test_results(&test_output, &stdout, &results);
+
+    if !test_output.status.success() {
+        return Err(miette::miette!("Tests failed"));
+    }
+
+    Ok(())
+}
+
+fn print_test_results(test_output: &std::process::Output, stdout: &str, results: &[TestResult]) {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
     println!("   {}", "Unit Test Results".italic().dim());
@@ -281,7 +291,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
             Cell::new("Status").add_attribute(Attribute::Bold),
         ]);
 
-        for result in &results {
+        for result in results {
             let status_cell = match result.status {
                 TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
                 TestStatus::Failed => Cell::new("FAILED")
@@ -319,7 +329,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
         println!();
         println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
 
-        let failures = extract_failures(&stdout);
+        let failures = extract_failures(stdout);
 
         if !failures.is_empty() {
             for (name, msg) in failures {
@@ -350,12 +360,6 @@ pub fn run_tests(input: &Path) -> Result<()> {
             }
         }
     }
-
-    if !test_output.status.success() {
-        return Err(miette::miette!("Tests failed"));
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
