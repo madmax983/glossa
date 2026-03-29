@@ -171,6 +171,52 @@ impl Interpreter {
                     self.eval_expr(expr)?;
                 }
             }
+            AnalyzedStatement::If {
+                condition,
+                then_body,
+                else_body,
+            } => {
+                let cond_val = self.eval_expr(condition)?;
+                match cond_val {
+                    Value::Boolean(true) => {
+                        for then_stmt in then_body {
+                            self.eval_statement(then_stmt)?;
+                        }
+                    }
+                    Value::Boolean(false) => {
+                        if let Some(else_stmts) = else_body {
+                            for else_stmt in else_stmts {
+                                self.eval_statement(else_stmt)?;
+                            }
+                        }
+                    }
+                    _ => {
+                        return Err(EvalError::TypeMismatch {
+                            expected: "boolean".to_string(),
+                            got: cond_val.to_string(),
+                        });
+                    }
+                }
+            }
+            AnalyzedStatement::While { condition, body } => {
+                loop {
+                    let cond_val = self.eval_expr(condition)?;
+                    match cond_val {
+                        Value::Boolean(true) => {
+                            for stmt in body {
+                                self.eval_statement(stmt)?;
+                            }
+                        }
+                        Value::Boolean(false) => break,
+                        _ => {
+                            return Err(EvalError::TypeMismatch {
+                                expected: "boolean".to_string(),
+                                got: cond_val.to_string(),
+                            });
+                        }
+                    }
+                }
+            }
             _ => return Err(EvalError::NotImplemented(format!("{:?}", stmt))),
         }
         Ok(())
@@ -322,6 +368,113 @@ mod tests {
         // ξ starts as 5, then becomes 10. Must use 'μετά' (mutable marker) for reassignment to be valid.
         let interpreter = run_code("μετά ξ πέντε ἔστω. ξ δέκα γίγνεται. ξ λέγε.");
         assert_eq!(interpreter.get_output(), "10");
+    }
+
+    #[test]
+    fn test_if_statement() {
+        let stmt_true = AnalyzedStatement::If {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: crate::semantic::GlossaType::Boolean,
+            }),
+            then_body: vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("yes".to_string()),
+                glossa_type: crate::semantic::GlossaType::String,
+            }])],
+            else_body: Some(vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("no".to_string()),
+                glossa_type: crate::semantic::GlossaType::String,
+            }])]),
+        };
+
+        let stmt_false = AnalyzedStatement::If {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(false),
+                glossa_type: crate::semantic::GlossaType::Boolean,
+            }),
+            then_body: vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("yes".to_string()),
+                glossa_type: crate::semantic::GlossaType::String,
+            }])],
+            else_body: Some(vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("no".to_string()),
+                glossa_type: crate::semantic::GlossaType::String,
+            }])]),
+        };
+
+        let program = AnalyzedProgram {
+            statements: vec![stmt_true, stmt_false],
+            scope: crate::semantic::Scope::new(),
+        };
+
+        let mut interpreter = Interpreter::new();
+        interpreter.run(&program).unwrap();
+        assert_eq!(interpreter.get_output(), "yes\nno");
+    }
+
+    #[test]
+    fn test_while_statement() {
+        // A simple program that loops 3 times.
+        // let mut i = 0; while i < 3 { i = i + 1; println!("{}", i); }
+        let mut scope = crate::semantic::Scope::new();
+        scope.define("i", crate::semantic::GlossaType::Number, true).unwrap();
+
+        let program = AnalyzedProgram {
+            statements: vec![
+                AnalyzedStatement::Binding {
+                    name: "i".into(),
+                    value: AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(0),
+                        glossa_type: crate::semantic::GlossaType::Number,
+                    },
+                    mutable: true,
+                },
+                AnalyzedStatement::While {
+                    condition: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::BinOp {
+                            left: Box::new(AnalyzedExpr {
+                                expr: AnalyzedExprKind::Variable("i".into()),
+                                glossa_type: crate::semantic::GlossaType::Number,
+                            }),
+                            op: BinaryOp::Lt,
+                            right: Box::new(AnalyzedExpr {
+                                expr: AnalyzedExprKind::NumberLiteral(3),
+                                glossa_type: crate::semantic::GlossaType::Number,
+                            }),
+                        },
+                        glossa_type: crate::semantic::GlossaType::Boolean,
+                    }),
+                    body: vec![
+                        AnalyzedStatement::Assignment {
+                            name: "i".into(),
+                            value: AnalyzedExpr {
+                                expr: AnalyzedExprKind::BinOp {
+                                    left: Box::new(AnalyzedExpr {
+                                        expr: AnalyzedExprKind::Variable("i".into()),
+                                        glossa_type: crate::semantic::GlossaType::Number,
+                                    }),
+                                    op: BinaryOp::Add,
+                                    right: Box::new(AnalyzedExpr {
+                                        expr: AnalyzedExprKind::NumberLiteral(1),
+                                        glossa_type: crate::semantic::GlossaType::Number,
+                                    }),
+                                },
+                                glossa_type: crate::semantic::GlossaType::Number,
+                            },
+                        },
+                        AnalyzedStatement::Print(vec![AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable("i".into()),
+                            glossa_type: crate::semantic::GlossaType::Number,
+                        }]),
+                    ],
+                },
+            ],
+            scope,
+        };
+
+        let mut interpreter = Interpreter::new();
+        interpreter.run(&program).unwrap();
+        assert_eq!(interpreter.get_output(), "1\n2\n3");
     }
 
     #[test]
