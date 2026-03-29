@@ -161,8 +161,20 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     let mut status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
 
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let analyzed = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
+    let analyzed = match analyze_program(&ast) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
     let rust_code = generate_rust_file(&analyzed);
 
     // 3. Create temporary file for Rust source
@@ -643,5 +655,30 @@ test name with spaces ... ok
         assert_eq!(failures.len(), 1);
         assert_eq!(failures[0].0, "test_1");
         assert!(failures[0].1.contains("panicked"));
+    }
+
+    #[test]
+    fn test_run_tests_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("parse_error.gl");
+        std::fs::write(&input_path, b"invalid syntax").unwrap();
+
+        let result = run_tests(&input_path);
+        assert!(result.is_err());
+        // The underlying error bubbles up. We just need to know it failed.
+        assert!(result.unwrap_err().to_string().contains("Parse error"));
+    }
+
+    #[test]
+    fn test_run_tests_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("semantic_error.gl");
+        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
+
+        let result = run_tests(&input_path);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        // The underlying error bubbles up.
+        assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
     }
 }

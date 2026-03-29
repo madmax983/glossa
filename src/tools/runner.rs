@@ -135,17 +135,29 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     let input_size = source.len() as u64;
 
     // Split compile to get stats
-    let analyzed = analyze_source(&source)?;
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα μεταγλωττίσεως (Compilation Error)");
+            return Err(e);
+        }
+    };
     let rust_code = generate_rust_file(&analyzed);
 
     let output_path = output
         .map(|p| p.to_owned())
         .unwrap_or_else(|| input.with_extension("rs"));
 
-    fs::write(&output_path, &rust_code)
-        .map_err(|e| miette::miette!("Failed to write to file {}: {}", output_path.display(), e))?;
+    if let Err(e) = fs::write(&output_path, &rust_code) {
+        status.error("Σφάλμα ἀρχείου (File Error)");
+        return Err(miette::miette!(
+            "Failed to write to file {}: {}",
+            output_path.display(),
+            e
+        ));
+    }
 
-    let output_size = fs::metadata(&output_path).into_diagnostic()?.len();
+    let output_size = fs::metadata(&output_path).map(|m| m.len()).unwrap_or(0);
     let duration = start.elapsed();
     let stats = ProgramStats::new(&analyzed);
 
@@ -337,7 +349,13 @@ pub fn check_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
     let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
 
-    let analyzed = analyze_source(&source)?;
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
 
     let filename = input
         .file_name()
@@ -383,7 +401,13 @@ pub fn check_file(input: &Path) -> Result<()> {
 pub fn highlight_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
     let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
-    let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
+    let highlighted = match highlight(&source) {
+        Ok(h) => h,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
 
     status.success();
     println!("{}", highlighted);
@@ -421,7 +445,13 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 pub fn bard_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
     let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
-    let analyzed = analyze_source(&source)?;
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
 
     let tale = tell_tale(&analyzed);
     status.success();

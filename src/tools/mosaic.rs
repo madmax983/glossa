@@ -44,8 +44,11 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
 
     // Create a buffer for the table
     let mut buffer = Vec::new();
-    run_mosaic_inner(&source, &mut buffer)?;
-    let output = String::from_utf8(buffer).into_diagnostic()?;
+    if let Err(e) = run_mosaic_inner(&source, &mut buffer) {
+        status.error("Σφάλμα (Error)");
+        return Err(e);
+    }
+    let output = String::from_utf8(buffer).expect("comfy-table outputs valid UTF-8");
 
     status.success();
 
@@ -467,5 +470,20 @@ mod tests {
 
         let result = run_mosaic(&file_path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_mosaic_error() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_error.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            // Invalid syntax to trigger early return
+            f.write_all(b"not valid syntax").unwrap();
+        }
+
+        let result = run_mosaic(&file_path);
+        assert!(result.is_err());
     }
 }

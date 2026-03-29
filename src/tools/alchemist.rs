@@ -27,8 +27,20 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let status =
         crate::tools::ui::Status::start_with_symbol("Χημεία (Transpiling to Python)", "⚗️");
 
-    let ast = parse(&source).map_err(|e| miette::miette!("Parse error: {}", e))?;
-    let program = analyze_program(&ast).map_err(|e| miette::miette!("Semantic error: {}", e))?;
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("Parse error: {}", e));
+        }
+    };
+    let program = match analyze_program(&ast) {
+        Ok(p) => p,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("Semantic error: {}", e));
+        }
+    };
 
     let python_code = transpile_to_python(&program);
 
@@ -505,5 +517,34 @@ mod tests {
                 .to_string()
                 .contains("Ἀρχεῖον λίαν μέγα")
         );
+    }
+
+    #[test]
+    fn test_run_alchemist_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("parse_error.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all(b"not valid syntax").unwrap();
+        }
+        let result = run_alchemist(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Parse error"));
+    }
+
+    #[test]
+    fn test_run_alchemist_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("semantic_error.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // Valid syntax, invalid semantics (reassigning undefined var)
+            f.write_all("ψ πέντε γίγνεται.".as_bytes()).unwrap();
+        }
+        let result = run_alchemist(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Semantic error"));
     }
 }

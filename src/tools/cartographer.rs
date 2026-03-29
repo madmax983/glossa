@@ -50,8 +50,20 @@ pub fn run_map(input: &Path) -> Result<()> {
 
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
 
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let program = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
+    let program = match analyze_program(&ast) {
+        Ok(p) => p,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
 
     let map = generate_map(&program);
 
@@ -489,5 +501,26 @@ mod tests {
         // Run the command to ensure the empty logic is hit without panicking
         let result = run_map(&input_path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_map_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_map_parse_error.γλ");
+        std::fs::write(&input_path, b"invalid syntax").unwrap();
+
+        let result = run_map(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_map_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_map_semantic_error.γλ");
+        // Valid syntax, semantic error (reassigning undefined variable)
+        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
+
+        let result = run_map(&input_path);
+        assert!(result.is_err());
     }
 }
