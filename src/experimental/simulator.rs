@@ -89,7 +89,7 @@ pub fn run_simulation(program: &AnalyzedProgram) -> Result<()> {
                     _ => "Ok".to_string(),
                 }
             }
-            Err(e) => format!("Error: {:?}", e),
+            Err(e) => format!("Error: {}", e),
         };
 
         table.add_row(vec![
