@@ -351,12 +351,15 @@ impl Display for GlossaReport<'_> {
             ]);
 
             for func in functions {
-                let params = func
-                    .param_types
-                    .iter()
-                    .map(|t| t.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                // ⚡ Bolt Optimization: Build the formatted string directly to avoid the O(n) heap allocation
+                // of the intermediate Vec<_> created by .collect::<Vec<_>>().join(", ").
+                let mut params = String::with_capacity(func.param_types.len() * 8);
+                for (i, t) in func.param_types.iter().enumerate() {
+                    if i > 0 {
+                        params.push_str(", ");
+                    }
+                    params.push_str(&t.to_string());
+                }
 
                 let ret = func
                     .return_type
