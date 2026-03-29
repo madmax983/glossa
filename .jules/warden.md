@@ -105,3 +105,7 @@ Signed,
 **2024-05-18 - [Fix Indexing Panic in array codegen]
 **Threat:** Use of native Rust slice indexing `[u_idx]` in code generation bypassed translation layers and relied on default panics. Negative array indexes emitted panic messages lacking prefix translation markers.
 **Defense:** Replaced bracket indexing with `.get(u_idx).cloned().expect("index out of bounds: index too large")` and prefixed the negative index panic with "index out of bounds:". This guarantees safe `try_from` behavior, captures bounds failures deterministically, and integrates with the custom UI error wrapper.
+
+**YYYY-MM-DD - [codegen unwrap vulnerability]
+**Threat:** [The `Unwrap` expression kind generated an unchecked `.unwrap()` call, which maps to a raw Rust panic that bypassing the translation layer and leaking English panics to end users.]
+**Defense:** [Replaced `.unwrap()` with `.expect("attempted to unwrap an empty value")` to safely panic with an explicit message that the runtime intercepts and translates.]

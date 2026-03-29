@@ -921,7 +921,7 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
 
         AnalyzedExprKind::Unwrap(inner) => {
             let inner_tokens = generate_expr(inner);
-            quote! { #inner_tokens.unwrap() }
+            quote! { #inner_tokens.expect("attempted to unwrap an empty value") }
         }
 
         AnalyzedExprKind::IndexAccess { array, index } => generate_collection_index(array, index),
@@ -1574,7 +1574,8 @@ mod tests {
         };
 
         let code = generate_expr(&expr).to_string();
-        assert!(code.contains("unwrap"));
+        assert!(code.contains("expect"));
+        assert!(code.contains("attempted to unwrap an empty value"));
         assert!(code.contains("42"));
     }
 
