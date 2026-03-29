@@ -32,7 +32,9 @@ fn test_simulator_error_coverage() {
 #[test]
 fn test_simulator_control_flow_coverage() {
     let source = "
-    εἰ ἀληθές, «ναι» λέγε.
+    // Flow
+    εἰ ἀληθές ἐστι, «ναι» λέγε.
+
     ";
     let ast = parse(source).unwrap();
     let program = analyze_program(&ast).unwrap();
