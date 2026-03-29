@@ -21,6 +21,23 @@ use std::fmt::Write;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::tools::alchemist::run_alchemist;
+/// use std::fs;
+/// use std::path::PathBuf;
+/// use tempfile::tempdir;
+///
+/// let dir = tempdir().unwrap();
+/// let input = dir.path().join("main.γλ");
+///
+/// fs::write(&input, "ξ 5 ἔστω.").unwrap();
+///
+/// // Transpiles the file to Python and prints to stdout
+/// run_alchemist(&input).unwrap();
+/// ```
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
@@ -70,6 +87,21 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
 }
 
 /// Transpile an AnalyzedProgram to Python source code
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::tools::alchemist::transpile_to_python;
+///
+/// let source = "ξ πέντε ἔστω.";
+/// let ast = parse(source).unwrap();
+/// let program = analyze_program(&ast).unwrap();
+///
+/// let python_code = transpile_to_python(&program);
+/// assert!(python_code.contains("ξ = 5"));
+/// ```
 pub fn transpile_to_python(program: &AnalyzedProgram) -> String {
     let mut out = String::new();
     out.push_str("from typing import Any\n");

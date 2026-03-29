@@ -45,6 +45,23 @@ use std::path::Path;
 /// Run the Cartographer tool on a file
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::tools::cartographer::run_map;
+/// use std::fs;
+/// use std::path::PathBuf;
+/// use tempfile::tempdir;
+///
+/// let dir = tempdir().unwrap();
+/// let input = dir.path().join("main.γλ");
+///
+/// fs::write(&input, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.").unwrap();
+///
+/// // Generates the Mermaid class diagram and prints it
+/// run_map(&input).unwrap();
+/// ```
 pub fn run_map(input: &Path) -> Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
@@ -117,6 +134,22 @@ pub fn run_map(input: &Path) -> Result<()> {
 }
 
 /// Generate a Mermaid class diagram from an analyzed program
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::tools::cartographer::generate_map;
+///
+/// let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.";
+/// let ast = parse(source).unwrap();
+/// let program = analyze_program(&ast).unwrap();
+///
+/// let map = generate_map(&program);
+/// assert!(map.contains("classDiagram"));
+/// assert!(map.contains("class χρηστης") || map.contains("class Χρήστης"));
+/// ```
 pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut map = String::from("classDiagram\n");
     let mut dependencies = HashSet::new();
@@ -219,6 +252,23 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
 }
 
 /// Helper to recursively extract struct names from a type
+///
+/// ## Examples
+///
+/// ```rust,ignore
+/// use glossa::semantic::GlossaType;
+/// use glossa::morphology::Gender;
+///
+/// // Create a nested type: Option<User>
+/// let user_type = GlossaType::Struct {
+///     name: "User".into(),
+///     gender: Gender::Masculine,
+///     fields: vec![],
+/// };
+/// let option_type = GlossaType::Option(Box::new(user_type));
+///
+/// assert_eq!(extract_dependencies(&option_type), vec!["User"]);
+/// ```
 fn extract_dependencies(ty: &GlossaType) -> Vec<String> {
     match ty {
         GlossaType::Struct { name, .. } => vec![name.to_string()],

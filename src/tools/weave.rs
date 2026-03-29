@@ -24,6 +24,26 @@ use std::path::Path;
 /// Run the Weave tool on a file
 ///
 /// Reads the source file, compiles it, generates the mosaic, and writes out a Markdown file.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::tools::weave::run_weave;
+/// use std::fs;
+/// use std::path::PathBuf;
+/// use tempfile::tempdir;
+///
+/// let dir = tempdir().unwrap();
+/// let input = dir.path().join("main.γλ");
+/// let output = dir.path().join("main.md");
+///
+/// fs::write(&input, "ξ 5 ἔστω.").unwrap();
+///
+/// // Generates a Rosetta Stone markdown file
+/// run_weave(&input).unwrap();
+///
+/// assert!(output.exists());
+/// ```
 pub fn run_weave(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
