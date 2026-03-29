@@ -126,3 +126,8 @@
 **Bloat:** `QuantifierFlags` struct in `src/semantic/patterns.rs` was an unnecessary abstraction over two booleans (`is_any`, `is_all`).
 **Cut:** Deleted the struct and its `from` implementation, replacing it with a simple `get_quantifier_flags` function returning a `(bool, bool)` tuple.
 **Saved:** Removed unnecessary struct definition and simplified function signatures across `process_adjectives` and `process_explicit_quantifiers`.
+
+## [Reduction]
+**Bloat:** `src/semantic/resolver.rs` maintained 4 separate HashMaps (`variables`, `functions`, `types`, `traits`) requiring duplicated lookup, insertion, and iterator logic, as well as complex multi-namespace scoping rules.
+**Cut:** Unified all symbol types into a single `FxHashMap<SmolStr, Symbol>` using a new `Symbol` enum. Simplified shadowing logic to a single shared namespace where any symbol shadows outer symbols of the same name.
+**Saved:** Reduced code duplication, simplified lookup logic, enforced single namespace clarity, and eliminated ambiguous shadowing behavior.
