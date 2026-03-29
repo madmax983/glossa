@@ -41,6 +41,17 @@ pub fn run_simulation(program: &AnalyzedProgram) -> Result<()> {
             AnalyzedStatement::Assignment { name, .. } => format!("Mutate `{}`", name),
             AnalyzedStatement::Expression(_) => "Evaluate Expression".to_string(),
             AnalyzedStatement::Print(_) => "Print".to_string(),
+            AnalyzedStatement::If { .. } => "If Condition".to_string(),
+            AnalyzedStatement::While { .. } => "While Loop".to_string(),
+            AnalyzedStatement::For { .. } => "For Loop".to_string(),
+            AnalyzedStatement::FunctionDef { .. } => "Define Function".to_string(),
+            AnalyzedStatement::Return { .. } => "Return".to_string(),
+            AnalyzedStatement::TypeDefinition { .. } => "Define Type".to_string(),
+            AnalyzedStatement::TraitDefinition { .. } => "Define Trait".to_string(),
+            AnalyzedStatement::TraitImplementation { .. } => "Implement Trait".to_string(),
+            AnalyzedStatement::TestDeclaration { .. } => "Declare Test".to_string(),
+            AnalyzedStatement::Break => "Break".to_string(),
+            AnalyzedStatement::Continue => "Continue".to_string(),
             _ => "Execute Statement".to_string(),
         };
 
