@@ -225,4 +225,23 @@ mod tests {
         let result = check_expr_depth(&expr, 0);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_return_statement_depth_limit() {
+        let stmt = crate::semantic::model::AnalyzedStatement::Return {
+            value: Some(Box::new(crate::semantic::model::AnalyzedExpr {
+                expr: crate::semantic::model::AnalyzedExprKind::None,
+                glossa_type: crate::semantic::GlossaType::Unknown,
+            })),
+        };
+        let result = check_statement_depth(&stmt, MAX_EXPRESSION_DEPTH);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            crate::errors::GlossaError::LimitExceeded { resource, max } => {
+                assert_eq!(resource, "expression depth");
+                assert_eq!(max, MAX_EXPRESSION_DEPTH);
+            }
+            _ => panic!("Expected LimitExceeded error"),
+        }
+    }
 }
