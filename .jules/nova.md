@@ -19,3 +19,8 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+
+## 🌟 The River (ὁ Ῥοῦς)
+**Concept:** A control flow visualizer (`glossa flow`) that generates Mermaid.js flowcharts mapping the execution paths of a Glossa program.
+**Fate:** Merged
+**Lesson:** Visualizing algorithms embraces Heraclitus' "Everything flows". It perfectly complements the Mosaic (grammar mapping) and Map (architecture mapping) tools, providing a complete suite of visual documentation for Ancient Greek programs.

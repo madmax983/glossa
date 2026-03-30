@@ -176,4 +176,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate a Mermaid flowchart of the control flow (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Flow {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

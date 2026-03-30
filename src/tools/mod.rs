@@ -33,6 +33,8 @@ pub mod mosaic;
 pub mod narrator;
 pub mod repl;
 pub mod report;
+#[cfg(feature = "nova")]
+pub mod river;
 /// The engine room for executing and building Glossa programs
 ///
 /// This module orchestrates the full compilation pipeline from source file to executable binary.
