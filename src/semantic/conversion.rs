@@ -1109,30 +1109,8 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
     // If we have operators but couldn't build a full expression from literals alone (usually implies literals < 2),
     // we should look for Subject/Object to complete the binary expression.
     if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2 {
-        let op = asm_stmt.operators[0];
-
-        let left = asm_stmt.subject.as_ref().map(|subj| AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-            glossa_type: GlossaType::Unknown,
-        });
-
-        // Try to get right operand from exprs (literal) or object or nominatives
-        let right = if let Some(lit_expr) = exprs.first() {
-            Some(lit_expr.clone())
-        } else if let Some(ref obj) = asm_stmt.object {
-            Some(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            })
-        } else {
-            asm_stmt.nominatives.first().map(|nom| AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            })
-        };
-
-        if let (Some(l), Some(r)) = (left, right) {
-            let bin_expr = build_binary_expr(l, op, r);
+        #[allow(clippy::collapsible_if)]
+        if let Some(bin_expr) = build_fallback_binary_expr(asm_stmt, &exprs) {
             exprs = vec![bin_expr];
         }
     }
@@ -1164,6 +1142,36 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
     }
 
     Ok(AnalyzedStatement::Expression(exprs))
+}
+
+/// Helper: Build a fallback binary expression when literals alone are insufficient
+fn build_fallback_binary_expr(
+    asm_stmt: &AssembledStatement,
+    exprs: &[AnalyzedExpr],
+) -> Option<AnalyzedExpr> {
+    let op = asm_stmt.operators[0];
+
+    let left = asm_stmt.subject.as_ref().map(|subj| AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+        glossa_type: GlossaType::Unknown,
+    })?;
+
+    // Try to get right operand from exprs (literal) or object or nominatives
+    let right = if let Some(lit_expr) = exprs.first() {
+        Some(lit_expr.clone())
+    } else if let Some(ref obj) = asm_stmt.object {
+        Some(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+            glossa_type: GlossaType::Unknown,
+        })
+    } else {
+        asm_stmt.nominatives.first().map(|nom| AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+            glossa_type: GlossaType::Unknown,
+        })
+    }?;
+
+    Some(build_binary_expr(left, op, right))
 }
 
 /// Helper: Common logic for genitive method call parsing
@@ -1582,32 +1590,36 @@ fn extract_object_fallback(
 ///     _ => panic!("Expected NumberLiteral"),
 /// }
 /// ```
+fn extract_complex_expression(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
+    if let Some(terms) = asm_stmt.nested_phrases.first() {
+        // Handle nested phrases (parenthesized expressions) which act as values
+        let phrase_expr = Expr::Phrase(terms.clone());
+        let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
+        let ty = analyzed.glossa_type.clone();
+        return Ok(Some((analyzed, ty)));
+    }
+
+    if let Some(stmts) = asm_stmt.blocks.first() {
+        // Handle blocks (braced expressions) which act as values
+        // Note: analyze_argument_expr will call analyze_block, which enforces single-statement logic
+        let block_expr = Expr::Block(stmts.clone());
+        let analyzed = analyze_argument_expr(&block_expr, scope)?;
+        let ty = analyzed.glossa_type.clone();
+        return Ok(Some((analyzed, ty)));
+    }
+
+    Ok(None)
+}
+
 pub fn extract_value(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<(AnalyzedExpr, GlossaType), GlossaError> {
-    if !asm_stmt.nested_phrases.is_empty() {
-        // Handle nested phrases (parenthesized expressions) which act as values
-        // Usually there is only one for a value expression
-        if let Some(terms) = asm_stmt.nested_phrases.first() {
-            let phrase_expr = Expr::Phrase(terms.clone());
-            // Analyze with recursion depth check reset (as it's a new analysis root)
-            let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
-            let ty = analyzed.glossa_type.clone();
-            return Ok((analyzed, ty));
-        }
-    }
-
-    if !asm_stmt.blocks.is_empty() {
-        // Handle blocks (braced expressions) which act as values
-        if let Some(stmts) = asm_stmt.blocks.first() {
-            let block_expr = Expr::Block(stmts.clone());
-            // Analyze with recursion depth check reset (as it's a new analysis root)
-            // Note: analyze_argument_expr will call analyze_block, which now enforces single-statement logic
-            let analyzed = analyze_argument_expr(&block_expr, scope)?;
-            let ty = analyzed.glossa_type.clone();
-            return Ok((analyzed, ty));
-        }
+    if let Some(res) = extract_complex_expression(asm_stmt, scope)? {
+        return Ok(res);
     }
 
     if let Some(res) = extract_unwrap(asm_stmt, scope)? {

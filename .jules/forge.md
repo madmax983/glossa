@@ -40,3 +40,6 @@
 **Refactoring God Functions in CLI Display Utilities**
 **Learning:** Functions that generate complex UI tables (like `add_row` in `src/tools/mosaic.rs`) often become God Functions (~150+ lines) as they aggregate many different data types and conditions into a single string. This creates a "Pyramid of Doom" of data preparation right before UI construction.
 **Action:** Extract the complex column data preparation logic into distinct formatting helper functions (e.g., `format_subject`, `format_other_column`), keeping the main row addition function focused solely on inserting the mapped columns into the table UI.
+**Iterator Chains vs Allocations**
+**Learning:** While replacing `.iter().map().collect::<Vec<_>>().join(", ")` with manual loops and `std::fmt::Write` reduces heap allocations and is a valid performance optimization (Bolt's domain), it directly contradicts Forge's strict principles which strongly favor concise iterator chains and the DRY principle. Over-optimizing at the cost of clarity and duplication is an anti-pattern for this persona.
+**Action:** Always prioritize clear, idiomatic iterator chains over manual `for` loops unless the specific persona directives explicitly demand zero-cost abstractions over readability.
