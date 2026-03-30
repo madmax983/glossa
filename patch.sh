@@ -1,0 +1,2 @@
+#!/bin/bash
+sed -i '/fn classify_expression/a\    if asm_stmt.verb.is_none() \&\& !asm_stmt.is_query \&\& !asm_stmt.is_propagate {\n        let has_content = asm_stmt.subject.is_some() || asm_stmt.object.is_some() || !asm_stmt.literals.is_empty();\n        if has_content \&\& asm_stmt.nominatives.is_empty() {\n            return Err(crate::errors::AssemblyError::MissingVerb.into());\n        }\n    }' src/semantic/conversion.rs

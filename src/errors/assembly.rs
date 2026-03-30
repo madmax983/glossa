@@ -62,4 +62,7 @@ pub enum AssemblyError {
         /// The hard limit for this resource type, enforced to prevent runaway complexity.
         max: usize,
     },
+    #[error("Ῥῆμα οὐχ εὑρέθη! Πᾶσα πρᾶξις δεῖται ῥήματος.")]
+    #[diagnostic(code(glossa::assembly::missing_verb))]
+    MissingVerb,
 }
