@@ -19,3 +19,8 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+
+## 🌟 The Arena (ἡ Ἀρένα)
+**Concept:** A Terminal User Interface (TUI) tool (`glossa arena`) built with `ratatui` that allows users to interactively view the syntax-highlighted source code, the generated Rust code, and the semantic "Mosaic" side-by-side.
+**Fate:** Merged
+**Lesson:** Adding a TUI makes visualizing the compiler's intermediate representations much more immersive. `ratatui` integrates nicely but requires managing terminal state properly (raw mode, alternate screens) to avoid messing up the user's terminal.

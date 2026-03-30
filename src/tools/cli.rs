@@ -175,4 +175,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Start the interactive TUI environment for a file (Requires "nova" feature)
+    Arena {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

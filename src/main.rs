@@ -72,6 +72,19 @@ fn main() -> Result<()> {
             glossa::tools::alchemist::run_alchemist(&input)?;
         }
 
+        Some(Commands::Arena { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::arena::run_arena(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'arena' tool requires the 'nova' feature flag. Compile with --features nova."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
