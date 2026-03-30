@@ -121,3 +121,8 @@
 **Bloat:** `AssemblyError` in `src/errors/assembly.rs` contained two variants (`MissingVerb` and `GenderMismatch`) that were defined but completely unused anywhere in the codebase, leading to dead code.
 **Cut:** Deleted the `MissingVerb` and `GenderMismatch` error variants and the unused `Gender` import.
 **Saved:** Removed 13 lines of dead code and simplified the error variant surface area.
+
+## [Reduction]
+**Bloat:** 11 sequential, single-use `extract_*` helper functions (`extract_unwrap`, `extract_literal`, etc.) in `src/semantic/conversion.rs` used exclusively inside `extract_value()`. This abstraction obfuscated the extraction order and forced readers to jump around the file.
+**Cut:** Inlined the logic of all 11 helpers directly into `extract_value()` and deleted the dead helper functions and their single-use tests.
+**Saved:** 288 lines of indirection and boilerplate code.
