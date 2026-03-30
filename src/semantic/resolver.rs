@@ -499,10 +499,12 @@ impl Scope {
     /// assert!(!scope.is_defined("chance"));
     /// ```
     pub fn is_defined(&self, name: &str) -> bool {
-        self.lookup_variable(name).is_some()
-            || self.lookup_function(name).is_some()
-            || self.lookup_type(name).is_some()
-            || self.lookup_trait(name).is_some()
+        for level in self.levels.iter().rev() {
+            if level.symbols.contains_key(name) {
+                return true;
+            }
+        }
+        false
     }
 
     /// Summons every known entity and its story ([`Binding`]) into the light.
@@ -860,5 +862,156 @@ mod tests {
 
         // Ensure lookup_symbol covers Type branch
         assert!(scope.is_defined(type_name));
+    }
+}
+
+#[cfg(test)]
+mod missing_coverage {
+    use super::*;
+
+    #[test]
+    fn test_symbol_shadowing_mismatch() {
+        let mut scope = Scope::new();
+        // Define a Type
+        scope.define_type("alpha", GlossaType::Number);
+        // It's not a Function or Variable or Trait
+        assert!(scope.lookup_function("alpha").is_none());
+        assert!(scope.lookup_variable("alpha").is_none());
+        assert!(scope.lookup_trait("alpha").is_none());
+
+        // Define a Variable
+        scope.define("beta".to_string(), GlossaType::Number);
+        // It's not a Type or Function or Trait
+        assert!(scope.lookup_type("beta").is_none());
+        assert!(scope.lookup_function("beta").is_none());
+        assert!(scope.lookup_trait("beta").is_none());
+
+        // Define a Function
+        scope.define_function("gamma".to_string(), vec![], None);
+        // It's not a Type or Variable or Trait
+        assert!(scope.lookup_type("gamma").is_none());
+        assert!(scope.lookup_variable("gamma").is_none());
+        assert!(scope.lookup_trait("gamma").is_none());
+
+        // Define a Trait
+        scope.define_trait("delta".to_string(), crate::semantic::model::TraitDef {
+            name: "delta".into(),
+            methods: vec![],
+        });
+        // It's not a Type or Variable or Function
+        assert!(scope.lookup_type("delta").is_none());
+        assert!(scope.lookup_variable("delta").is_none());
+        assert!(scope.lookup_function("delta").is_none());
+    }
+
+    #[test]
+    fn test_unused_bindings() {
+        let mut scope = Scope::new();
+        scope.define("unused_var", GlossaType::Number);
+
+        // Define other things to ensure they are ignored
+        scope.define_type("unused_type", GlossaType::Number);
+        scope.define_function("unused_func", vec![], None);
+
+        let unused = scope.unused_bindings();
+        assert_eq!(unused.len(), 1);
+        assert_eq!(unused[0].name, "unused_var");
+    }
+}
+
+#[cfg(test)]
+mod missing_coverage2 {
+    use super::*;
+
+    #[test]
+    fn test_bindings_iterators_coverage() {
+        let mut scope = Scope::new();
+        scope.define("var".to_string(), GlossaType::Number);
+        scope.define_type("type".to_string(), GlossaType::Number);
+
+        let all_bindings: Vec<_> = scope.bindings().collect();
+        assert_eq!(all_bindings.len(), 1);
+        assert_eq!(all_bindings[0].0, "var");
+    }
+}
+
+#[cfg(test)]
+mod missing_coverage3 {
+    use super::*;
+
+    #[test]
+    fn test_types_iterators_coverage() {
+        let mut scope = Scope::new();
+        scope.define_type("type".to_string(), GlossaType::Number);
+        scope.define("var".to_string(), GlossaType::Number);
+
+        let all_types: Vec<_> = scope.types().collect();
+        assert_eq!(all_types.len(), 1);
+        assert_eq!(all_types[0].0, "type");
+    }
+
+    #[test]
+    fn test_traits_iterators_coverage() {
+        let mut scope = Scope::new();
+        scope.define_trait("trait".to_string(), crate::semantic::model::TraitDef { name: "trait".into(), methods: vec![] });
+        scope.define("var".to_string(), GlossaType::Number);
+
+        let all_traits: Vec<_> = scope.traits().collect();
+        assert_eq!(all_traits.len(), 1);
+        assert_eq!(all_traits[0].0, "trait");
+    }
+
+    #[test]
+    fn test_functions_iterators_coverage() {
+        let mut scope = Scope::new();
+        scope.define_function("func".to_string(), vec![], None);
+        scope.define("var".to_string(), GlossaType::Number);
+
+        let all_functions: Vec<_> = scope.functions().collect();
+        assert_eq!(all_functions.len(), 1);
+        assert_eq!(all_functions[0].name, "func");
+    }
+}
+
+#[cfg(test)]
+mod missing_coverage4 {
+    use super::*;
+
+    #[test]
+    fn test_symbol_debug() {
+        let binding = Binding {
+            name: "test".into(),
+            glossa_type: GlossaType::Number,
+            mutable: false,
+            used: false,
+        };
+        let sym = Symbol::Variable(binding);
+        let debug_str = format!("{:?}", sym);
+        assert!(debug_str.contains("Variable"));
+    }
+}
+
+#[cfg(test)]
+mod missing_coverage5 {
+    use super::*;
+
+    #[test]
+    fn test_symbol_shadowing_mismatch_mut() {
+        let mut scope = Scope::new();
+        scope.define_type("alpha", GlossaType::Number);
+        scope.define("beta".to_string(), GlossaType::Number);
+
+        // We check lookup mut shadowing
+        assert!(scope.lookup("alpha").is_none());
+        assert!(scope.lookup_binding("alpha").is_none());
+    }
+
+    #[test]
+    fn test_is_defined_locally() {
+        let mut scope = Scope::new();
+        scope.define("a".to_string(), GlossaType::Number);
+
+        let inner = scope.enter_scope();
+        assert!(!inner.is_defined_locally("a"));
     }
 }
