@@ -59,8 +59,8 @@ use std::path::PathBuf;
 /// use clap::Parser;
 ///
 /// // You can parse arguments from an iterator, which is useful for testing!
-/// let args = Cli::parse_from(&["glossa", "run", "hero.γλ"]);
-/// assert!(args.command.is_some());
+/// let args = Cli::parse_from(&["glossa", "hero.γλ"]);
+/// assert!(args.file.is_some());
 /// ```
 #[derive(Parser)]
 #[command(name = "glossa")]
@@ -87,19 +87,16 @@ pub struct Cli {
 /// use glossa::tools::cli::Commands;
 /// use std::path::PathBuf;
 ///
-/// let run_cmd = Commands::Run { input: PathBuf::from("main.γλ") };
+/// let run_cmd = Commands::Run;
 /// match run_cmd {
-///     Commands::Run { input } => assert_eq!(input.to_str().unwrap(), "main.γλ"),
+///     Commands::Run => {},
 ///     _ => panic!("Expected Run command"),
 /// }
 /// ```
 #[derive(Subcommand)]
 pub enum Commands {
     /// Run a .γλ file (default)
-    Run {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
+    Run,
 
     /// Start the interactive tutorial (Requires "nova" feature)
     #[cfg(feature = "nova")]
@@ -107,34 +104,22 @@ pub enum Commands {
 
     /// Compile a .γλ file to Rust source
     Build {
-        /// Input file (.γλ)
-        input: PathBuf,
-
         /// Output file (.rs)
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
 
     /// Check a .γλ file without running
-    Check {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
+    Check,
 
     /// Highlight a .γλ file with semantic colors
-    Highlight {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
+    Highlight,
 
     /// Start the interactive REPL
     Repl,
 
     /// Translate a .γλ file to English logic (Experimental)
-    Bard {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
+    Bard,
 
     /// Lookup a word in the built-in lexicon
     Lookup {
@@ -143,36 +128,21 @@ pub enum Commands {
     },
 
     /// Run tests defined in a .γλ file
-    Test {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
+    Test,
 
     /// Visualize the assembled sentence structure (Requires "nova" feature)
     #[cfg(feature = "nova")]
-    Mosaic {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
+    Mosaic,
 
     /// Visualize the program architecture as a map (Requires "nova" feature)
     #[cfg(feature = "nova")]
-    Map {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
+    Map,
 
     /// Generate a Markdown Rosetta Stone (Requires "nova" feature)
     #[cfg(feature = "nova")]
-    Weave {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
+    Weave,
 
     /// Transpile a .γλ file to Python (Requires "nova" feature)
     #[cfg(feature = "nova")]
-    Alchemist {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
+    Alchemist,
 }

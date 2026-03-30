@@ -21,8 +21,8 @@ fn test_file_size_limit_cli() {
         .arg("run")
         .arg("--quiet")
         .arg("--")
-        .arg("check")
         .arg(&file_path)
+        .arg("check")
         .output()
         .expect("failed to run glossa");
 

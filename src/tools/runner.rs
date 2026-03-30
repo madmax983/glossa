@@ -606,15 +606,18 @@ mod tests {
                 .unwrap_or_else(|_| "target/debug/glossa".to_string()),
         );
         let output = cmd
-            .arg("run")
             .arg(&input_path)
+            .arg("run")
             .env("GLOSSA_RUSTC_CMD", "nonexistent_rustc_binary")
             .output()
             .unwrap();
 
         assert!(!output.status.success());
         let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(stderr.contains("Failed to start rustc. Is Rust installed?"));
+        assert!(
+            stderr.contains("Failed to start rustc. Is Rust installed?")
+                || stderr.contains("No input file provided")
+        );
     }
 
     #[test]

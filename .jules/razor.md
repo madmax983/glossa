@@ -116,3 +116,11 @@
 **Bloat:** Unnecessary nesting of `model::` for `ParticipleConstituent` in `src/tools/mosaic.rs` test suite (`crate::semantic::assembly::model::ParticipleConstituent`), violating ADR 016 (flat modules).
 **Cut:** Removed `model::` path segment to directly access `crate::semantic::assembly::ParticipleConstituent`.
 **Saved:** 14 characters of path boilerplate and fixed `error[E0433]` compilation failure.
+## [Reduction]
+**Bloat:** The `Commands` enum variants in `src/tools/cli.rs` redundantly defined an `input: PathBuf` field across almost all subcommands.
+**Cut:** Moved the file argument to the root `Cli` struct and stripped it from the `Commands` enum variants, checking for it manually in `src/main.rs`.
+**Saved:** Removed duplicated struct field definitions across 10+ enum variants, simplifying the CLI structure.
+## [Reduction]
+**Bloat:** `AssemblyError` was an 8-variant enum exclusively nested inside `GlossaError::AssemblyError`, creating unnecessary abstraction layers and matching overhead across the compiler.
+**Cut:** Flattened all 8 variants of `AssemblyError` directly into `GlossaError`, deleted `src/errors/assembly.rs`, and removed the `#[from]` trait wrapper.
+**Saved:** 1 file, reduced error indirection by one layer across the semantic module.
