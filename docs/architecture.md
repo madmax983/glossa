@@ -33,6 +33,7 @@ C4Container
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
 
     Container_Boundary(tools, "Developer Experience (Nova)") {
+        Container(alchemist, "The Alchemist", "src/tools/alchemist.rs", "Transpiles AST to Python")
         Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
         Container(cartographer, "Cartographer", "src/tools/cartographer.rs", "Generates Mermaid Class Diagrams")
         Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
@@ -47,6 +48,7 @@ C4Container
         Container(runner, "Runner", "src/tools/runner.rs", "Orchestrates the compilation pipeline")
         Container(tester, "The Judge", "src/tools/tester.rs", "Verifies Correctness (Test Runner)")
         Container(ui, "The Stage", "src/tools/ui.rs", "Presentation Layer & UI Helpers")
+        Container(weave, "Weave", "src/tools/weave.rs", "Generates Rosetta Stone Markdown")
     }
 
     Container(codegen, "Code Generator", "src/codegen.rs", "Generates Rust source code")
@@ -55,6 +57,7 @@ C4Container
     Rel(parser, morphology, "AST (Unresolved)")
     Rel(parser, highlight, "AST (Unresolved)")
     Rel(morphology, semantic, "AST (Resolved Morphology)")
+    Rel(semantic, alchemist, "Analyzed Program")
     Rel(semantic, report, "Analyzed Program")
     Rel(semantic, narrator, "Analyzed Program")
     Rel(semantic, cartographer, "Analyzed Program")
@@ -62,6 +65,7 @@ C4Container
     Rel(semantic, mosaic, "Analyzed Program")
     Rel(semantic, tester, "Analyzed Program")
     Rel(semantic, interpreter, "Analyzed Program")
+    Rel(semantic, weave, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 
     Rel(morphology, dictionary, "Lexicon Data")
