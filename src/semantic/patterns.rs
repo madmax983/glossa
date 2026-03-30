@@ -46,7 +46,7 @@ use crate::errors::GlossaError;
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
 
-/// Try to parse a trait method call: `method_name receiver`
+/// Try to parse a standalone method call: `method_name receiver`
 ///
 /// This looks for a specific phrase pattern where a method name is immediately
 /// followed by its receiver (the object it acts upon).
@@ -60,8 +60,8 @@ use smol_str::SmolStr;
 /// λέγε ζῷον.
 /// ```
 ///
-/// Returns `Some(analyzed_statement)` if this is a trait method call, `None` otherwise.
-pub fn try_parse_trait_method_call(
+/// Returns `Some(analyzed_statement)` if this is a method call, `None` otherwise.
+pub fn try_parse_method_call(
     stmt: &Statement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {

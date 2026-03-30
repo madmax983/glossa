@@ -62,29 +62,6 @@ fn test_generate_method_call_optimization() {
     assert!(code.contains("g_abs (10i64)"));
 }
 
-#[test]
-fn test_generate_trait_method_call_optimization() {
-    let receiver = Box::new(AnalyzedExpr {
-        expr: AnalyzedExprKind::NumberLiteral(5),
-        glossa_type: GlossaType::Number,
-    });
-    let args = vec![AnalyzedExpr {
-        expr: AnalyzedExprKind::NumberLiteral(10),
-        glossa_type: GlossaType::Number,
-    }];
-    let expr = AnalyzedExprKind::TraitMethodCall {
-        receiver,
-        trait_name: "Num".to_string().into(),
-        method_name: "add".to_string().into(),
-        args,
-    };
-    let stmt = AnalyzedStatement::Expression(vec![AnalyzedExpr {
-        expr,
-        glossa_type: GlossaType::Number,
-    }]);
-    let code = glossa::codegen::generate_statement_code(&stmt);
-    assert!(code.contains("g_add (10i64)"));
-}
 
 #[test]
 fn test_generate_function_call_optimization() {

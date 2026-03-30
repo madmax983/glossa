@@ -217,8 +217,7 @@ impl ProgramStats {
                     self.visit_expr(arg);
                 }
             }
-            AnalyzedExprKind::MethodCall { receiver, args, .. }
-            | AnalyzedExprKind::TraitMethodCall { receiver, args, .. } => {
+            AnalyzedExprKind::MethodCall { receiver, args, .. } => {
                 self.visit_expr(receiver);
                 for arg in args {
                     self.visit_expr(arg);
@@ -711,18 +710,6 @@ mod tests {
                 },
                 glossa_type: GlossaType::Unknown,
             },
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::TraitMethodCall {
-                    receiver: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(1),
-                        glossa_type: GlossaType::Number,
-                    }),
-                    trait_name: "Trait".into(),
-                    method_name: "method".into(),
-                    args: vec![],
-                },
-                glossa_type: GlossaType::Unknown,
-            },
         ]));
 
         let stats = ProgramStats::new(&program);
@@ -970,18 +957,6 @@ mod tests {
                             glossa_type: GlossaType::Number,
                         }),
                         method: "abs".into(),
-                        args: vec![],
-                    },
-                    glossa_type: GlossaType::Number,
-                },
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::TraitMethodCall {
-                        receiver: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::NumberLiteral(1),
-                            glossa_type: GlossaType::Number,
-                        }),
-                        trait_name: "Num".into(),
-                        method_name: "abs".into(),
                         args: vec![],
                     },
                     glossa_type: GlossaType::Number,

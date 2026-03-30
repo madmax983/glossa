@@ -214,15 +214,6 @@ fn test_analyzed_expr_kind_debug_all_variants() {
             method: SmolStr::new("method"),
             args: vec![],
         },
-        AnalyzedExprKind::TraitMethodCall {
-            receiver: Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::None,
-                glossa_type: glossa::semantic::GlossaType::Unknown,
-            }),
-            trait_name: SmolStr::new("Trait"),
-            method_name: SmolStr::new("method"),
-            args: vec![],
-        },
         AnalyzedExprKind::StructInstantiation {
             type_name: SmolStr::new("Type"),
             fields: vec![],

@@ -10,7 +10,7 @@ use super::declarations::{
     analyze_type_definition, parse_function_definition,
 };
 use super::expressions::contains_function_definition_verb;
-use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
+use super::patterns::{try_parse_method_call, try_parse_struct_instantiation};
 use super::{AnalyzedStatement, GlossaType, Scope, assemble_statement};
 use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
@@ -118,8 +118,8 @@ fn analyze_statement_recursive(
         return Ok(vec![struct_inst]);
     }
 
-    // 4. Check for trait method call pattern
-    if let Some(method_call) = try_parse_trait_method_call(stmt, scope)? {
+    // 4. Check for standalone method call pattern
+    if let Some(method_call) = try_parse_method_call(stmt, scope)? {
         return Ok(vec![method_call]);
     }
 

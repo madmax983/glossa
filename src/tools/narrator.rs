@@ -492,12 +492,6 @@ pub(crate) fn tell_expr(expr: &AnalyzedExpr) -> String {
             method,
             args,
         } => tell_method_call(receiver, method, args),
-        AnalyzedExprKind::TraitMethodCall {
-            receiver,
-            trait_name,
-            method_name,
-            args,
-        } => tell_trait_method_call(receiver, trait_name, method_name, args),
         AnalyzedExprKind::StructInstantiation {
             type_name,
             fields,
@@ -534,21 +528,6 @@ fn tell_function_call(func: &str, args: &[AnalyzedExpr]) -> String {
 
 fn tell_method_call(receiver: &AnalyzedExpr, method: &str, args: &[AnalyzedExpr]) -> String {
     format!("{}.{}({})", tell_expr(receiver), method, format_exprs(args))
-}
-
-fn tell_trait_method_call(
-    receiver: &AnalyzedExpr,
-    trait_name: &str,
-    method_name: &str,
-    args: &[AnalyzedExpr],
-) -> String {
-    format!(
-        "{} as {}::{}({})",
-        tell_expr(receiver),
-        trait_name,
-        method_name,
-        format_exprs(args)
-    )
 }
 
 fn tell_struct_instantiation(

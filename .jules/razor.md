@@ -126,3 +126,8 @@
 **Bloat:** `QuantifierFlags` struct in `src/semantic/patterns.rs` was an unnecessary abstraction over two booleans (`is_any`, `is_all`).
 **Cut:** Deleted the struct and its `from` implementation, replacing it with a simple `get_quantifier_flags` function returning a `(bool, bool)` tuple.
 **Saved:** Removed unnecessary struct definition and simplified function signatures across `process_adjectives` and `process_explicit_quantifiers`.
+
+## [Reduction]
+**Bloat:** `AnalyzedExprKind::TraitMethodCall` was an unused enum variant. Trait method calls were actually parsed as regular `MethodCall`s in `try_parse_trait_method_call`, rendering `TraitMethodCall` speculative generality and dead code that unnecessarily bloated downstream pattern matching.
+**Cut:** Deleted the `TraitMethodCall` variant and all corresponding handler logic, tests, and formatting across 5 files (`model.rs`, `validation.rs`, `codegen.rs`, `narrator.rs`, `report.rs`).
+**Saved:** Removed unused dead code and reduced complexity (~60 lines saved).
