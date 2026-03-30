@@ -1,3 +1,37 @@
+//! The Compiler Orchestrator (Ὁ Χορηγός)
+//!
+//! This module acts as the "Choirmaster" (Χορηγός) of the ΓΛΩΣΣΑ compiler.
+//! Rather than forcing users to manually invoke the parser, semantic analyzer,
+//! code generator, and `rustc` sequentially, the runner orchestrates the entire
+//! lifecycle of a program from source to execution.
+//!
+//! # Why it exists
+//!
+//! A compiler is fundamentally a pipeline. Raw Ancient Greek text enters one end,
+//! and executable machine code exits the other. The runner exists to abstract away
+//! this complexity, providing a single, clean API for compiling, checking, and
+//! running ΓΛΩΣΣΑ files. It also implements crucial performance optimizations like
+//! caching (skipping the pipeline if the source hash hasn't changed) and security
+//! measures like file size limits to prevent Denial of Service (DoS) attacks.
+//!
+//! # Examples
+//!
+//! ```
+//! use glossa::tools::runner::check_file;
+//! use std::path::PathBuf;
+//! use std::fs;
+//! use tempfile::tempdir;
+//!
+//! let dir = tempdir().unwrap();
+//! let input = dir.path().join("main.γλ");
+//!
+//! // Create a simple ΓΛΩΣΣΑ program
+//! fs::write(&input, "ξ 5 ἔστω.").unwrap();
+//!
+//! // The runner verifies syntax and semantics without building a binary
+//! assert!(check_file(&input).is_ok());
+//! ```
+
 use crate::codegen::generate_rust_file;
 use crate::parser::parse;
 use crate::semantic::{AnalyzedProgram, analyze_program};

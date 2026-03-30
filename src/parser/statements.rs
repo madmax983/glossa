@@ -1,3 +1,23 @@
+//! The Logic Builder (Ὁ Δομήτωρ Λόγου)
+//!
+//! This module acts as the "Builder" (Δομήτωρ) of the abstract syntax tree's logical spine.
+//! While `expressions.rs` focuses on extracting values and terms, this module
+//! focuses on assembling those terms into complete sentences (statements) that command
+//! the program's execution flow.
+//!
+//! # Why it exists
+//!
+//! In ΓΛΩΣΣΑ, statements are not just lines of code separated by semicolons; they are
+//! grammatically structured Greek sentences ending in periods (`.`), question marks (`?`),
+//! or propagation markers (`:`). This module exists to convert the generic nested structures
+//! produced by the Pest parser (`pest::iterators::Pair`) into strongly-typed `Statement` enums
+//! (like `Regular`, `If`, `While`, `For`, etc.), preserving the intricate clause structure
+//! and identifying control-flow tokens like `εἰ` (if) or `ἕως` (while).
+//!
+//! # Note
+//!
+//! These functions are primarily internal to the `parser` crate, invoked by [`crate::parser::parse`].
+
 use crate::ast::*;
 use crate::parser::common::ParseError;
 use crate::parser::expressions::build_expression;
