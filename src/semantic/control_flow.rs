@@ -820,12 +820,9 @@ mod tests {
 
         let result = analyze_control_flow(&stmt, &mut scope);
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Expected word for collection")
-        );
+        if let Err(e) = result {
+            assert!(e.to_string().contains("Expected word for collection"));
+        }
     }
 
     #[test]
@@ -850,12 +847,9 @@ mod tests {
 
         let result = analyze_control_flow(&stmt, &mut scope);
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("For iteration needs: διὰ collection")
-        );
+        if let Err(e) = result {
+            assert!(e.to_string().contains("For iteration needs: διὰ collection"));
+        }
     }
 
     #[test]
@@ -883,12 +877,9 @@ mod tests {
 
         let result = parse_for_iteration_loop(&stmt, &mut scope);
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Expected phrase in for iteration")
-        );
+        if let Err(e) = result {
+            assert!(e.to_string().contains("Expected phrase in for iteration"));
+        }
     }
 
     #[test]
@@ -917,12 +908,9 @@ mod tests {
 
         let result = analyze_control_flow(&stmt, &mut scope);
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("While loop needs at least 2 clauses: condition and body")
-        );
+        if let Err(e) = result {
+            assert!(e.to_string().contains("While loop needs at least 2 clauses: condition and body"));
+        }
     }
 
     #[test]
@@ -988,11 +976,8 @@ mod tests {
 
         let result = analyze_control_flow(&stmt, &mut scope);
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("For loop needs at least 2 clauses: range and body")
-        );
+        if let Err(e) = result {
+            assert!(e.to_string().contains("For loop needs at least 2 clauses: range and body"));
+        }
     }
 }
