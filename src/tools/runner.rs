@@ -110,7 +110,7 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
 /// ## Examples
 ///
 /// ```
-/// use glossa::tools::runner::build_file;
+/// use glossa::tools::build_file;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;
@@ -190,7 +190,7 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 /// ## Examples
 ///
 /// ```
-/// use glossa::tools::runner::run_file;
+/// use glossa::tools::run_file;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;
@@ -319,7 +319,7 @@ pub fn run_file(input: &Path) -> Result<()> {
 /// ## Examples
 ///
 /// ```
-/// use glossa::tools::runner::check_file;
+/// use glossa::tools::check_file;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;
@@ -366,7 +366,7 @@ pub fn check_file(input: &Path) -> Result<()> {
 /// ## Examples
 ///
 /// ```
-/// use glossa::tools::runner::highlight_file;
+/// use glossa::tools::highlight_file;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;
@@ -404,7 +404,7 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 /// ## Examples
 ///
 /// ```
-/// use glossa::tools::runner::bard_file;
+/// use glossa::tools::bard_file;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;

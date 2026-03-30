@@ -1,7 +1,7 @@
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
-use glossa::tools::highlight::highlight;
-use glossa::tools::narrator::tell_tale;
+use glossa::tools::highlight;
+use glossa::tools::tell_tale;
 use proptest::prelude::*;
 
 proptest! {

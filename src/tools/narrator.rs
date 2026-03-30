@@ -36,7 +36,7 @@ use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 /// ```
 /// use glossa::parser::parse;
 /// use glossa::semantic::analyze_program;
-/// use glossa::tools::narrator::tell_tale;
+/// use glossa::tools::tell_tale;
 ///
 /// let source = "ξ 5 ἔστω.";
 /// let ast = parse(source).unwrap();

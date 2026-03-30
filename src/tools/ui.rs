@@ -31,7 +31,7 @@ use std::time::Instant;
 /// # Examples
 ///
 /// ```rust
-/// use glossa::tools::ui::Status;
+/// use glossa::tools::Status;
 ///
 /// let mut status = Status::start("Compiling");
 /// status.update("Analyzing");
@@ -51,7 +51,7 @@ impl Status {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::ui::Status;
+    /// use glossa::tools::Status;
     /// let status = Status::start("Compiling...");
     /// status.success();
     /// ```
@@ -64,7 +64,7 @@ impl Status {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::ui::Status;
+    /// use glossa::tools::Status;
     /// let status = Status::start_with_symbol("Testing", "🧪");
     /// status.success();
     /// ```
@@ -93,7 +93,7 @@ impl Status {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::ui::Status;
+    /// use glossa::tools::Status;
     /// let mut status = Status::start("Running Phase 1");
     /// // ... work ...
     /// status.update("Running Phase 2");
@@ -114,7 +114,7 @@ impl Status {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::ui::Status;
+    /// use glossa::tools::Status;
     /// let status = Status::start("Connecting");
     /// // ... work ...
     /// status.success(); // Prints "✓ Connecting (0.01s)"
@@ -139,7 +139,7 @@ impl Status {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::ui::Status;
+    /// use glossa::tools::Status;
     /// let status = Status::start("Downloading");
     /// // ... fail ...
     /// status.error("Connection Refused"); // Prints "✕ Downloading" and then the error

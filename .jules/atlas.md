@@ -131,3 +131,6 @@
 **[Title]** Enforcing the Facade Pattern in src/lib.rs
 **Tangle:** The `glossa` crate previously exposed all its internal modules (`ast`, `codegen`, `limits`, `morphology`, `parser`, `semantic`, `text`) as fully public (`pub mod`). This leaked implementation details and created a sprawling public API, violating the principle of encapsulation and making it difficult for downstream users to know which functions to use.
 **Blueprint:** Refactored `src/lib.rs` to change these modules to `pub(crate) mod` (or kept `pub mod` only where explicitly needed by the `glossa` binary or integration tests) and added explicit `pub use` statements for the true public API: `ast::Program`, `codegen::generate_rust`, `parser::parse`, `semantic::{AnalyzedProgram, analyze_program}`. This creates a clean "Facade" that hides messy internal sub-modules while exposing only what the user needs.
+**[Tools Module Facade]
+**Tangle:** The `src/tools` submodules were fully exposed via `pub mod`, leaking private implementations to external consumers (like tests and main.rs) and violating encapsulation.
+**Blueprint:** Converted `pub mod` declarations in `src/tools/mod.rs` to `pub(crate) mod` and implemented a Facade using `pub use` to explicitly export only the required public API. Updated all integration and doctests to consume this flat, unified API.

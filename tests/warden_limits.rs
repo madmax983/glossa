@@ -1,4 +1,4 @@
-use glossa::tools::runner::run_file;
+use glossa::tools::run_file;
 use std::fs::File;
 use std::io::Write;
 use tempfile::tempdir;

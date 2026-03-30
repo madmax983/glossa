@@ -1,4 +1,4 @@
-use glossa::tools::cache::Cache;
+use glossa::tools::Cache;
 use std::path::Path;
 
 #[test]

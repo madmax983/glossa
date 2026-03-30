@@ -56,7 +56,7 @@ impl ProgramStats {
     /// ```rust
     /// use glossa::parser::parse;
     /// use glossa::semantic::analyze_program;
-    /// use glossa::tools::report::ProgramStats;
+    /// use glossa::tools::ProgramStats;
     ///
     /// let source = "ξ πέντε ἔστω.";
     /// let ast = parse(source).unwrap();
@@ -257,7 +257,7 @@ impl<'a> GlossaReport<'a> {
     /// ```rust
     /// use glossa::parser::parse;
     /// use glossa::semantic::analyze_program;
-    /// use glossa::tools::report::GlossaReport;
+    /// use glossa::tools::GlossaReport;
     ///
     /// let source = "ξ πέντε ἔστω.";
     /// let ast = parse(source).unwrap();
@@ -384,7 +384,7 @@ impl Display for GlossaReport<'_> {
 /// ```rust
 /// use glossa::parser::parse;
 /// use glossa::semantic::analyze_program;
-/// use glossa::tools::report::{CompilationReport, ProgramStats};
+/// use glossa::tools::{CompilationReport, ProgramStats};
 /// use std::path::PathBuf;
 /// use std::time::Duration;
 ///
