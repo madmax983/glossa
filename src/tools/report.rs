@@ -37,9 +37,6 @@ pub struct ProgramStats {
     pub function_count: usize,
     /// Number of user-defined types (structs)
     pub type_count: usize,
-    /// Number of trait definitions
-    #[allow(dead_code)]
-    pub trait_count: usize,
     /// Number of loops (while, for)
     pub loop_count: usize,
     /// Number of conditional branches (if, match) - a proxy for complexity
@@ -70,7 +67,6 @@ impl ProgramStats {
         let mut stats = ProgramStats {
             function_count: program.scope.functions().count(),
             type_count: program.scope.types().count(),
-            trait_count: program.scope.traits().count(),
             ..ProgramStats::default()
         };
 
