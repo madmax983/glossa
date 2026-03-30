@@ -400,3 +400,32 @@ fn test_statement_methods() {
     assert_eq!(stmt.clauses().len(), 0);
     assert_eq!(stmt.expressions().count(), 0);
 }
+
+#[test]
+fn test_statement_expressions_iterator_coverage() {
+    let expr1 = Expr::NumberLiteral(1);
+    let expr2 = Expr::NumberLiteral(2);
+
+    let stmt = Statement::Regular {
+        clauses: vec![
+            Clause {
+                expressions: vec![expr1.clone()],
+            },
+            Clause {
+                expressions: vec![expr2.clone()],
+            },
+        ],
+        is_query: false,
+        is_propagate: false,
+    };
+
+    let exprs: Vec<&Expr> = stmt.expressions().collect();
+    assert_eq!(exprs.len(), 2);
+}
+
+#[test]
+fn test_expr_drop_unmatched_trivial_variant_word_coverage() {
+    let mut expr = Expr::BooleanLiteral(true);
+    let _ = std::mem::replace(&mut expr, Expr::NumberLiteral(10));
+    drop(expr);
+}
