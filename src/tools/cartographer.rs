@@ -150,16 +150,23 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut traits: Vec<_> = program.scope.traits().collect();
     traits.sort_by(|a, b| a.0.cmp(b.0));
 
+    use std::fmt::Write;
     for (_key, trait_def) in traits {
         let name = &trait_def.name;
         map.push_str(&format!("    class {} {{\n", name));
         map.push_str("        <<interface>>\n");
         for method in &trait_def.methods {
-            let params_str: Vec<String> = method
-                .params
-                .iter()
-                .map(|(n, t)| format!("{}: {}", n, t))
-                .collect();
+            // ⚡ Bolt Optimization: Replace `.collect::<Vec<String>>().join(", ")` with
+            // iterative formatting directly into a `String` buffer to avoid
+            // intermediate heap allocations for the Vec and the individual parameter strings.
+            let mut params_str = String::new();
+            for (i, (n, t)) in method.params.iter().enumerate() {
+                if i > 0 {
+                    params_str.push_str(", ");
+                }
+                write!(&mut params_str, "{}: {}", n, t).unwrap();
+            }
+
             let ret_str = method
                 .return_type
                 .as_ref()
@@ -167,9 +174,7 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
                 .unwrap_or_default();
             map.push_str(&format!(
                 "        +{}({}){}\n",
-                method.name,
-                params_str.join(", "),
-                ret_str
+                method.name, params_str, ret_str
             ));
         }
         map.push_str("    }\n");

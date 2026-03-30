@@ -16,3 +16,6 @@
 **Codecov Patch Gates and Manual AST Construction**
 **Learning:** When trying to test specific logic branches (like `AssembledStatement` fallbacks in `resolve_binding_target`) to satisfy strict >92% Codecov patch gates, it is often simpler and far less brittle to manually construct the required AST/Semantic structs (`Constituent`, `AssembledStatement`, etc.) and pass them directly to the helper function in a unit test, rather than trying to reverse-engineer a raw ancient Greek string that parses and semantically evaluates perfectly into that precise edge case.
 **Action:** For edge-case branch coverage, write targeted unit tests that manually instantiate the data structures needed to trigger the specific `if` statement logic.
+**[String Formatting Optimization in Cartographer]**
+**Learning:** Using `.collect::<Vec<String>>().join(", ")` inside loops creates unnecessary intermediate heap allocations for the `Vec` and the intermediate formatted strings.
+**Action:** Replace `.collect::<Vec<String>>().join(", ")` with iterative formatting directly into a `String` buffer using `std::fmt::Write`, applying `.push_str(", ")` between elements to achieve zero intermediate allocations.
