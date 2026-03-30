@@ -38,7 +38,6 @@ pub struct ProgramStats {
     /// Number of user-defined types (structs)
     pub type_count: usize,
     /// Number of trait definitions
-    #[allow(dead_code)]
     pub trait_count: usize,
     /// Number of loops (while, for)
     pub loop_count: usize,
@@ -316,6 +315,13 @@ impl Display for GlossaReport<'_> {
             table.add_row(vec![
                 Cell::new("Τύποι (Types)"),
                 Cell::new(self.stats.type_count),
+            ]);
+        }
+
+        if self.stats.trait_count > 0 {
+            table.add_row(vec![
+                Cell::new("Χαρακτῆρες (Traits)"),
+                Cell::new(self.stats.trait_count),
             ]);
         }
 

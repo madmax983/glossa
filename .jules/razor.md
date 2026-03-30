@@ -121,3 +121,8 @@
 **Bloat:** `AssemblyError` in `src/errors/assembly.rs` contained two variants (`MissingVerb` and `GenderMismatch`) that were defined but completely unused anywhere in the codebase, leading to dead code.
 **Cut:** Deleted the `MissingVerb` and `GenderMismatch` error variants and the unused `Gender` import.
 **Saved:** Removed 13 lines of dead code and simplified the error variant surface area.
+
+## Trait Count Output Fix
+**Bloat:** `#[allow(dead_code)]` attribute hiding unused field reporting in `src/tools/report.rs`
+**Cut:** Removed the attribute and added the `trait_count` to the report terminal UI to make the data actionable.
+**Saved:** 1 line of boilerplate, improving feature visibility and reducing dead code.
