@@ -1,3 +1,4 @@
+#![deny(unsafe_code)]
 //! ΓΛΩΣΣΑ Compiler CLI
 //!
 //! A compiler for ΓΛΩΣΣΑ - where Ancient Greek morphology encodes programming semantics.
