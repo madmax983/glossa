@@ -28,7 +28,10 @@ fn test_analyzed_expr_clone_overflow() {
         .unwrap();
 
     let res = handle.join();
-    assert!(res.is_err(), "Thread should have panicked due to stack overflow");
+    assert!(
+        res.is_err(),
+        "Thread should have panicked due to stack overflow"
+    );
 }
 
 #[test]
@@ -55,5 +58,8 @@ fn test_analyzed_expr_drop_overflow() {
         .unwrap();
 
     let res = handle.join();
-    assert!(res.is_err(), "Thread should have panicked due to stack overflow");
+    assert!(
+        res.is_err(),
+        "Thread should have panicked due to stack overflow"
+    );
 }
