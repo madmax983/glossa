@@ -1,0 +1,68 @@
+So we can implement `glossa trace` (`src/tools/tracer.rs`), which executes statements one by one using the interpreter and "traces" state changes.
+Wait, "The Interface: Add a TUI to a CLI tool using ratatui" but we use `comfy-table` and `crossterm`.
+The tracker loops over `AnalyzedProgram.statements`. For each, it executes it using the `Interpreter`.
+Then it finds all variables currently in scope (how? `Interpreter::env` is private).
+Memory says: "To trace execution state changes (bindings, assignments, prints) in Glossa without modifying the core `Interpreter`'s private environment, wrap the `Interpreter` and execute temporary single-statement ASTs, using probing (like a dummy print statement) to extract internal state."
+So the Tracer will keep a `HashSet<SmolStr>` of known variables by scanning `AnalyzedStatement` for `Binding` and `Assignment`.
+After executing a statement, for each known variable `v`, it creates an AST `Query(vec![AnalyzedExpr { expr: AnalyzedExprKind::Variable(v.clone()), glossa_type: GlossaType::Number }])` and executes it using `interpreter.eval_statement(&query)`.
+Wait, `Query` in Interpreter:
+```rust
+AnalyzedStatement::Query(exprs) => {
+    let mut parts = Vec::new();
+    for expr in exprs {
+        parts.push(self.eval_expr(expr)?.to_string());
+    }
+    let line = parts.join(" ");
+    println!("{}", line);
+    self.output.push(line);
+}
+```
+Yes! It pushes to `output`. Then we can just pop from `output` to get the variable's value!
+Wait, `Interpreter`'s `eval_statement` expects `&AnalyzedStatement`. We can run it, then look at `interpreter.get_output()`, clear it (wait, can we clear `output`? `Interpreter::output` is private, but maybe we can just read the last line?)
+Let's see if we can clear `output`. If not, we can read the last N lines added.
+This is exactly what the memory suggests! "using probing (like a dummy print statement) to extract internal state."
+
+Wait, what if `trace` prints a TUI? It clears the screen, shows the current statement, its tale (from Narrator), and a table of Variables with their current values! And waits for the user to press Enter to continue!
+
+"The Guide (ὁ Ὁδηγός) - Interactive Execution Tracer"
+Command: `glossa step <file>`
+It steps through the program!
+
+Let's look at `cli.rs` and add `Step { input: PathBuf }`.
+
+```rust
+    /// Step through a .γλ file interactively (Requires "nova" feature)
+    Step {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+```
+
+Wait, what does the user prompt suggest?
+"Your mission is to analyze the existing codebase capabilities and propose/implement ONE new, interesting feature that fits the project's theme but expands its potential."
+"The Hook: Your PR description must sell the feature. Why is this cool? What does it enable?"
+"Isolation: Implement your feature in a new module (`src/experimental/`) or behind a `#[cfg(feature = "nova")]` flag so it doesn't break core logic."
+
+This exactly fits!
+Feature Name: **The Guide (ὁ Ὁδηγός) - Interactive Stepper**
+Concept: Connects the `Interpreter` and `Narrator` into a TUI stepper that steps through your code line by line, explaining what it does, and probing the `Interpreter` for variable states.
+It's an interactive debugger.
+
+Let's verify how to read the last output line.
+```rust
+let output_before = interpreter.get_output().len();
+interpreter.eval_statement(&probe)?;
+let output_after_str = interpreter.get_output();
+// wait, get_output() returns a string joined by "\n".
+```
+Wait, let's look at `Interpreter::get_output`.
+```rust
+    pub fn get_output(&self) -> String {
+        self.output.join("\n")
+    }
+```
+We can count how many lines it had before, and then get the new lines.
+
+Let's check if there is an `experimental` dir, or just use `src/tools/stepper.rs` and `#[cfg(feature = "nova")]`. The instructions say `src/experimental/` or behind a `#[cfg(feature = "nova")]`. The other tools are in `src/tools/` behind `#[cfg(feature = "nova")]` (like `mosaic.rs`, `mentor.rs`, `cartographer.rs`). So `src/tools/stepper.rs` behind `#[cfg(feature = "nova")]` is perfect.
+
+Let's create the execution plan!
