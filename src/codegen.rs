@@ -1285,9 +1285,6 @@ fn generate_collection_index(array: &AnalyzedExpr, index: &AnalyzedExpr) -> Toke
     quote! {
         {
             let idx = #index_tokens;
-            if idx < 0 {
-                panic!("index out of bounds: negative index {}", idx);
-            }
             let u_idx = usize::try_from(idx).expect("index out of bounds: too large");
             #array_tokens.get(u_idx).cloned().expect("index out of bounds: index too large")
         }
