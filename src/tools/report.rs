@@ -351,12 +351,15 @@ impl Display for GlossaReport<'_> {
             ]);
 
             for func in functions {
-                let params = func
-                    .param_types
-                    .iter()
-                    .map(|t| t.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                // ⚡ Bolt Optimization: Avoids intermediate heap allocation (`.collect::<Vec<_>>().join(", ")`)
+                let mut params = String::with_capacity(func.param_types.len() * 10);
+                for (i, t) in func.param_types.iter().enumerate() {
+                    if i > 0 {
+                        params.push_str(", ");
+                    }
+                    use std::fmt::Write;
+                    let _ = write!(&mut params, "{}", t);
+                }
 
                 let ret = func
                     .return_type

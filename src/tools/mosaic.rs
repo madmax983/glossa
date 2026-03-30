@@ -271,10 +271,26 @@ fn format_other_column(asm: &AssembledStatement) -> String {
     }
 
     if !flags.is_empty() {
-        other.push(format!("Flags: [{}]", flags.join(", ")));
+        // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.join(", ")`)
+        let mut flags_str = String::with_capacity(flags.len() * 10);
+        for (i, flag) in flags.iter().enumerate() {
+            if i > 0 {
+                flags_str.push_str(", ");
+            }
+            flags_str.push_str(flag);
+        }
+        other.push(format!("Flags: [{}]", flags_str));
     }
 
-    other.join("\n")
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.join("\n")`)
+    let mut other_str = String::with_capacity(other.len() * 20);
+    for (i, o) in other.iter().enumerate() {
+        if i > 0 {
+            other_str.push('\n');
+        }
+        other_str.push_str(o);
+    }
+    other_str
 }
 
 fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {

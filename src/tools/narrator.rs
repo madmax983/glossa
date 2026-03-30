@@ -183,8 +183,16 @@ fn add_assignment(table: &mut Table, prefix: &str, name: &str, value: &AnalyzedE
 }
 
 fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-    let script = format!("Proclaim: {}", expr_strs.join(", "));
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut script = String::with_capacity(10 + exprs.len() * 10);
+    script.push_str("Proclaim: ");
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 {
+            script.push_str(", ");
+        }
+        use std::fmt::Write;
+        let _ = write!(&mut script, "{}", tell_expr(expr));
+    }
     table.add_row(vec![
         Cell::new("PRINT").fg(Color::Green),
         Cell::new(format!("{}{}", prefix, script)),
@@ -193,8 +201,16 @@ fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
 }
 
 fn add_expression(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-    let script = format!("Do: {}", expr_strs.join(", "));
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut script = String::with_capacity(4 + exprs.len() * 10);
+    script.push_str("Do: ");
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 {
+            script.push_str(", ");
+        }
+        use std::fmt::Write;
+        let _ = write!(&mut script, "{}", tell_expr(expr));
+    }
     table.add_row(vec![
         Cell::new("EXPR").fg(Color::DarkGrey),
         Cell::new(format!("{}{}", prefix, script)),
@@ -203,8 +219,16 @@ fn add_expression(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
 }
 
 fn add_query(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-    let script = format!("Query oracle: {}", expr_strs.join(", "));
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut script = String::with_capacity(14 + exprs.len() * 10);
+    script.push_str("Query oracle: ");
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 {
+            script.push_str(", ");
+        }
+        use std::fmt::Write;
+        let _ = write!(&mut script, "{}", tell_expr(expr));
+    }
     table.add_row(vec![
         Cell::new("QUERY").fg(Color::Magenta),
         Cell::new(format!("{}{}", prefix, script)),
@@ -344,24 +368,22 @@ fn add_function_def(
     body: &[AnalyzedStatement],
     return_type: &Option<GlossaType>,
 ) {
-    let params_str: Vec<String> = params
-        .iter()
-        .map(|(n, t)| {
-            let type_str = t.as_ref().map(tell_type).unwrap_or("unknown".to_string());
-            format!("{}: {}", n, type_str)
-        })
-        .collect();
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut params_str = String::with_capacity(params.len() * 15);
+    for (i, (n, t)) in params.iter().enumerate() {
+        if i > 0 {
+            params_str.push_str(", ");
+        }
+        let type_str = t.as_ref().map(tell_type).unwrap_or("unknown".to_string());
+        use std::fmt::Write;
+        let _ = write!(&mut params_str, "{}: {}", n, type_str);
+    }
     let ret_str = return_type
         .as_ref()
         .map(tell_type)
         .unwrap_or("Nothing".to_string());
 
-    let script = format!(
-        "Define `{}` ({}) -> {}:",
-        name,
-        params_str.join(", "),
-        ret_str
-    );
+    let script = format!("Define `{}` ({}) -> {}:", name, params_str, ret_str);
     table.add_row(vec![
         Cell::new("FUNC").fg(Color::Cyan),
         Cell::new(format!("{}{}", prefix, script)),
@@ -378,11 +400,16 @@ fn add_type_def(
     name: &str,
     fields: &[(smol_str::SmolStr, GlossaType)],
 ) {
-    let fields_str: Vec<String> = fields
-        .iter()
-        .map(|(n, t)| format!("{}: {}", n, tell_type(t)))
-        .collect();
-    let script = format!("Struct `{}` {{ {} }}", name, fields_str.join(", "));
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut fields_str = String::with_capacity(fields.len() * 15);
+    for (i, (n, t)) in fields.iter().enumerate() {
+        if i > 0 {
+            fields_str.push_str(", ");
+        }
+        use std::fmt::Write;
+        let _ = write!(&mut fields_str, "{}: {}", n, tell_type(t));
+    }
+    let script = format!("Struct `{}` {{ {} }}", name, fields_str);
     table.add_row(vec![
         Cell::new("TYPE").fg(Color::Blue),
         Cell::new(format!("{}{}", prefix, script)),
@@ -501,28 +528,51 @@ fn tell_expr(expr: &AnalyzedExpr) -> String {
 }
 
 fn tell_verb_call(verb: &str, args: &[AnalyzedExpr]) -> String {
-    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-    format!("{}({})", verb, args_str.join(", "))
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut args_str = String::with_capacity(args.len() * 10);
+    for (i, arg) in args.iter().enumerate() {
+        if i > 0 {
+            args_str.push_str(", ");
+        }
+        args_str.push_str(&tell_expr(arg));
+    }
+    format!("{}({})", verb, args_str)
 }
 
 fn tell_array_literal(exprs: &[AnalyzedExpr]) -> String {
-    let expr_strs: Vec<String> = exprs.iter().map(tell_expr).collect();
-    format!("[{}]", expr_strs.join(", "))
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut expr_strs = String::with_capacity(exprs.len() * 10);
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 {
+            expr_strs.push_str(", ");
+        }
+        expr_strs.push_str(&tell_expr(expr));
+    }
+    format!("[{}]", expr_strs)
 }
 
 fn tell_function_call(func: &str, args: &[AnalyzedExpr]) -> String {
-    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-    format!("{}({})", func, args_str.join(", "))
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut args_str = String::with_capacity(args.len() * 10);
+    for (i, arg) in args.iter().enumerate() {
+        if i > 0 {
+            args_str.push_str(", ");
+        }
+        args_str.push_str(&tell_expr(arg));
+    }
+    format!("{}({})", func, args_str)
 }
 
 fn tell_method_call(receiver: &AnalyzedExpr, method: &str, args: &[AnalyzedExpr]) -> String {
-    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-    format!(
-        "{}.{}({})",
-        tell_expr(receiver),
-        method,
-        args_str.join(", ")
-    )
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut args_str = String::with_capacity(args.len() * 10);
+    for (i, arg) in args.iter().enumerate() {
+        if i > 0 {
+            args_str.push_str(", ");
+        }
+        args_str.push_str(&tell_expr(arg));
+    }
+    format!("{}.{}({})", tell_expr(receiver), method, args_str)
 }
 
 fn tell_trait_method_call(
@@ -531,13 +581,20 @@ fn tell_trait_method_call(
     method_name: &str,
     args: &[AnalyzedExpr],
 ) -> String {
-    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut args_str = String::with_capacity(args.len() * 10);
+    for (i, arg) in args.iter().enumerate() {
+        if i > 0 {
+            args_str.push_str(", ");
+        }
+        args_str.push_str(&tell_expr(arg));
+    }
     format!(
         "{} as {}::{}({})",
         tell_expr(receiver),
         trait_name,
         method_name,
-        args_str.join(", ")
+        args_str
     )
 }
 
@@ -546,14 +603,16 @@ fn tell_struct_instantiation(
     fields: &[smol_str::SmolStr],
     args: &[AnalyzedExpr],
 ) -> String {
-    let args_str: Vec<String> = args.iter().map(tell_expr).collect();
-    // Zip fields and args for better display
-    let fields_args: Vec<String> = fields
-        .iter()
-        .zip(args_str.iter())
-        .map(|(f, a)| format!("{}: {}", f, a))
-        .collect();
-    format!("{} {{ {} }}", type_name, fields_args.join(", "))
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+    let mut fields_args = String::with_capacity(fields.len() * 15);
+    for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
+        if i > 0 {
+            fields_args.push_str(", ");
+        }
+        use std::fmt::Write;
+        let _ = write!(&mut fields_args, "{}: {}", f, tell_expr(a));
+    }
+    format!("{} {{ {} }}", type_name, fields_args)
 }
 
 fn tell_lambda(
@@ -566,7 +625,15 @@ fn tell_lambda(
         CaptureMode::Move => "move ",
         CaptureMode::Memoize => "memo ",
     };
-    format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
+    // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.join(", ")`)
+    let mut params_str = String::with_capacity(params.len() * 10);
+    for (i, p) in params.iter().enumerate() {
+        if i > 0 {
+            params_str.push_str(", ");
+        }
+        params_str.push_str(p);
+    }
+    format!("{}|{}| {}", mode, params_str, tell_expr(body))
 }
 
 /// Converts a semantic type into a familiar Rust-like type signature string.
@@ -587,8 +654,15 @@ fn tell_type(ty: &GlossaType) -> String {
         GlossaType::Result(ok, err) => format!("Result<{}, {}>", tell_type(ok), tell_type(err)),
         GlossaType::Struct { name, .. } => name.to_string(),
         GlossaType::Function { params, returns } => {
-            let params_str: Vec<String> = params.iter().map(tell_type).collect();
-            format!("Fn({}) -> {}", params_str.join(", "), tell_type(returns))
+            // ⚡ Bolt Optimization: Avoid intermediate heap allocations (`.collect::<Vec<_>>().join(", ")`)
+            let mut params_str = String::with_capacity(params.len() * 10);
+            for (i, p) in params.iter().enumerate() {
+                if i > 0 {
+                    params_str.push_str(", ");
+                }
+                params_str.push_str(&tell_type(p));
+            }
+            format!("Fn({}) -> {}", params_str, tell_type(returns))
         }
         GlossaType::Unit => "()".to_string(),
         GlossaType::Unknown => "?".to_string(),
