@@ -604,6 +604,154 @@ fn process_adjectives(
 
 /// Helper: Process participles for map/fold patterns
 /// Returns (bool, bool) -> (added_ops, is_fold_result)
+fn process_fold_participle(
+    asm_stmt: &AssembledStatement,
+    participle: &crate::semantic::assembly::ParticipleConstituent,
+    current_expr: &mut AnalyzedExpr,
+) -> bool {
+    let mut is_fold = false;
+
+    // Look for target operator (Add for sum, Mul for product)
+    for &bin_op in &asm_stmt.operators {
+        if matches!(
+            bin_op,
+            crate::morphology::lexicon::BinaryOp::Add | crate::morphology::lexicon::BinaryOp::Mul
+        ) {
+            // Determine initial value based on operation
+            let init_value = match bin_op {
+                crate::morphology::lexicon::BinaryOp::Add => 0,
+                crate::morphology::lexicon::BinaryOp::Mul => 1,
+                _ => unreachable!(),
+            };
+
+            // Determine capture mode based on participle tense
+            let capture_mode = match participle.tense {
+                crate::morphology::Tense::Aorist => CaptureMode::Move,
+                // Iterator closures always take arguments, so Memoize is unsafe.
+                crate::morphology::Tense::Perfect => CaptureMode::Borrow,
+                _ => CaptureMode::Borrow,
+            };
+
+            // Create fold closure: |acc, x| acc + x (or acc * x)
+            let fold_body = AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    op: bin_op,
+                    left: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable("acc".into()),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    right: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable("x".into()),
+                        glossa_type: GlossaType::Number,
+                    }),
+                },
+                glossa_type: GlossaType::Number,
+            };
+
+            let fold_closure = AnalyzedExpr {
+                expr: AnalyzedExprKind::Lambda {
+                    params: vec!["acc".into(), "x".into()],
+                    body: Box::new(fold_body),
+                    capture_mode,
+                },
+                glossa_type: GlossaType::Function {
+                    params: vec![GlossaType::Number, GlossaType::Number],
+                    returns: Box::new(GlossaType::Number),
+                },
+            };
+
+            let init_expr = AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(init_value),
+                glossa_type: GlossaType::Number,
+            };
+
+            let new_expr = AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(current_expr.clone()),
+                    method: "fold".into(),
+                    args: vec![init_expr, fold_closure],
+                },
+                glossa_type: GlossaType::Number,
+            };
+            *current_expr = new_expr;
+
+            is_fold = true;
+            break; // Exit operators loop
+        }
+    }
+    is_fold
+}
+
+fn process_map_participle(
+    verb_stem: &str,
+    participle: &crate::semantic::assembly::ParticipleConstituent,
+    current_expr: &mut AnalyzedExpr,
+) -> bool {
+    // Map Middle and Passive participles to .map()
+    // Passive voice ("being written") is semantically valid for transformation chains
+    if participle.voice == crate::morphology::Voice::Middle
+        || participle.voice == crate::morphology::Voice::Passive
+    {
+        // Create a simple lambda based on the verb
+        let closure_body = if verb_stem.contains("διπλασιαζ") {
+            // διπλασιαζω = "to double"
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    op: crate::morphology::lexicon::BinaryOp::Mul,
+                    left: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable("x".into()),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    right: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(2),
+                        glossa_type: GlossaType::Number,
+                    }),
+                },
+                glossa_type: GlossaType::Number,
+            }
+        } else {
+            // Default: just return x
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("x".into()),
+                glossa_type: GlossaType::Unknown,
+            }
+        };
+
+        let capture_mode = match participle.tense {
+            crate::morphology::Tense::Aorist => CaptureMode::Move,
+            // Iterator closures always take arguments, so Memoize is unsafe.
+            // Downgrade Perfect tense to Borrow for these operations.
+            crate::morphology::Tense::Perfect => CaptureMode::Borrow,
+            _ => CaptureMode::Borrow,
+        };
+
+        let closure = AnalyzedExpr {
+            expr: AnalyzedExprKind::Lambda {
+                params: vec!["x".into()],
+                body: Box::new(closure_body),
+                capture_mode,
+            },
+            glossa_type: GlossaType::Function {
+                params: vec![GlossaType::Number],
+                returns: Box::new(GlossaType::Number),
+            },
+        };
+
+        let new_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(current_expr.clone()),
+                method: "map".into(),
+                args: vec![closure],
+            },
+            glossa_type: GlossaType::Unknown,
+        };
+        *current_expr = new_expr;
+        true
+    } else {
+        false
+    }
+}
+
 fn process_participles(
     asm_stmt: &AssembledStatement,
     current_expr: &mut AnalyzedExpr,
@@ -616,75 +764,9 @@ fn process_participles(
 
         // Check for fold pattern: συλλεγόμενα εἰς [target]
         if verb_stem.contains("συλλεγ") {
-            // Look for target operator (Add for sum, Mul for product)
-            for &bin_op in &asm_stmt.operators {
-                if matches!(
-                    bin_op,
-                    crate::morphology::lexicon::BinaryOp::Add
-                        | crate::morphology::lexicon::BinaryOp::Mul
-                ) {
-                    // Determine initial value based on operation
-                    let init_value = match bin_op {
-                        crate::morphology::lexicon::BinaryOp::Add => 0,
-                        crate::morphology::lexicon::BinaryOp::Mul => 1,
-                        _ => unreachable!(),
-                    };
-
-                    // Determine capture mode based on participle tense
-                    let capture_mode = match participle.tense {
-                        crate::morphology::Tense::Aorist => CaptureMode::Move,
-                        // Iterator closures always take arguments, so Memoize is unsafe.
-                        crate::morphology::Tense::Perfect => CaptureMode::Borrow,
-                        _ => CaptureMode::Borrow,
-                    };
-
-                    // Create fold closure: |acc, x| acc + x (or acc * x)
-                    let fold_body = AnalyzedExpr {
-                        expr: AnalyzedExprKind::BinOp {
-                            op: bin_op,
-                            left: Box::new(AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable("acc".into()),
-                                glossa_type: GlossaType::Number,
-                            }),
-                            right: Box::new(AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable("x".into()),
-                                glossa_type: GlossaType::Number,
-                            }),
-                        },
-                        glossa_type: GlossaType::Number,
-                    };
-
-                    let fold_closure = AnalyzedExpr {
-                        expr: AnalyzedExprKind::Lambda {
-                            params: vec!["acc".into(), "x".into()],
-                            body: Box::new(fold_body),
-                            capture_mode,
-                        },
-                        glossa_type: GlossaType::Function {
-                            params: vec![GlossaType::Number, GlossaType::Number],
-                            returns: Box::new(GlossaType::Number),
-                        },
-                    };
-
-                    let init_expr = AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(init_value),
-                        glossa_type: GlossaType::Number,
-                    };
-
-                    let new_expr = AnalyzedExpr {
-                        expr: AnalyzedExprKind::MethodCall {
-                            receiver: Box::new(current_expr.clone()),
-                            method: "fold".into(),
-                            args: vec![init_expr, fold_closure],
-                        },
-                        glossa_type: GlossaType::Number,
-                    };
-                    *current_expr = new_expr;
-
-                    is_fold = true;
-                    added = true;
-                    break; // Exit operators loop
-                }
+            is_fold = process_fold_participle(asm_stmt, participle, current_expr);
+            if is_fold {
+                added = true;
             }
         }
 
@@ -693,65 +775,7 @@ fn process_participles(
             continue;
         }
 
-        // Map Middle and Passive participles to .map()
-        // Passive voice ("being written") is semantically valid for transformation chains
-        if participle.voice == crate::morphology::Voice::Middle
-            || participle.voice == crate::morphology::Voice::Passive
-        {
-            // Create a simple lambda based on the verb
-            let closure_body = if verb_stem.contains("διπλασιαζ") {
-                // διπλασιαζω = "to double"
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::BinOp {
-                        op: crate::morphology::lexicon::BinaryOp::Mul,
-                        left: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable("x".into()),
-                            glossa_type: GlossaType::Number,
-                        }),
-                        right: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::NumberLiteral(2),
-                            glossa_type: GlossaType::Number,
-                        }),
-                    },
-                    glossa_type: GlossaType::Number,
-                }
-            } else {
-                // Default: just return x
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable("x".into()),
-                    glossa_type: GlossaType::Unknown,
-                }
-            };
-
-            let capture_mode = match participle.tense {
-                crate::morphology::Tense::Aorist => CaptureMode::Move,
-                // Iterator closures always take arguments, so Memoize is unsafe.
-                // Downgrade Perfect tense to Borrow for these operations.
-                crate::morphology::Tense::Perfect => CaptureMode::Borrow,
-                _ => CaptureMode::Borrow,
-            };
-
-            let closure = AnalyzedExpr {
-                expr: AnalyzedExprKind::Lambda {
-                    params: vec!["x".into()],
-                    body: Box::new(closure_body),
-                    capture_mode,
-                },
-                glossa_type: GlossaType::Function {
-                    params: vec![GlossaType::Number],
-                    returns: Box::new(GlossaType::Number),
-                },
-            };
-
-            let new_expr = AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(current_expr.clone()),
-                    method: "map".into(),
-                    args: vec![closure],
-                },
-                glossa_type: GlossaType::Unknown,
-            };
-            *current_expr = new_expr;
+        if process_map_participle(&verb_stem, participle, current_expr) {
             added = true;
         }
     }
