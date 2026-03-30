@@ -1,10 +1,14 @@
+#![no_main]
+
+use libfuzzer_sys::fuzz_target;
 use glossa::ast::{Expr, Statement, Clause, Word};
 use glossa::semantic::analyzer::analyze_program;
 use glossa::ast::Program;
 
-#[test]
-fn test_stack_overflow_blocks() {
+fuzz_target!(|data: &[u8]| {
+    // Generate a deeply nested AST to test stack overflow protection
     let depth = 50000;
+    if data.len() < 10 { return; }
 
     let mut stmt = Statement::Regular {
         clauses: vec![Clause {
@@ -29,4 +33,4 @@ fn test_stack_overflow_blocks() {
     };
 
     let _ = analyze_program(&program);
-}
+});
