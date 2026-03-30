@@ -25,6 +25,7 @@ pub enum Value {
     Number(i64),
     String(String),
     Boolean(bool),
+    #[allow(dead_code)]
     Unit,
     // Future: List(Vec<Value>), Struct(HashMap<String, Value>), etc.
 }

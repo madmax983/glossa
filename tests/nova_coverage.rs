@@ -16,7 +16,7 @@ fn test_run_weave_success() {
     let source = "«χαῖρε κόσμε» λέγε.";
     write!(temp_file, "{}", source).expect("Failed to write to temp file");
 
-    let result = glossa::tools::weave::run_weave(temp_file.path());
+    let result = glossa::tools::run_weave(temp_file.path());
     assert!(result.is_ok(), "Weave failed: {:?}", result.err());
 
     let output_path = temp_file.path().with_extension("md");

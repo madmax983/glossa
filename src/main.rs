@@ -25,7 +25,7 @@ fn main() -> Result<()> {
 
         #[cfg(feature = "nova")]
         Some(Commands::Mentor) => {
-            glossa::tools::mentor::run_mentor()?;
+            glossa::tools::run_mentor()?;
         }
 
         Some(Commands::Build { input, output }) => {
@@ -54,22 +54,22 @@ fn main() -> Result<()> {
 
         #[cfg(feature = "nova")]
         Some(Commands::Mosaic { input }) => {
-            glossa::tools::mosaic::run_mosaic(&input)?;
+            glossa::tools::run_mosaic(&input)?;
         }
 
         #[cfg(feature = "nova")]
         Some(Commands::Map { input }) => {
-            glossa::tools::cartographer::run_map(&input)?;
+            glossa::tools::run_map(&input)?;
         }
 
         #[cfg(feature = "nova")]
         Some(Commands::Weave { input }) => {
-            glossa::tools::weave::run_weave(&input)?;
+            glossa::tools::run_weave(&input)?;
         }
 
         #[cfg(feature = "nova")]
         Some(Commands::Alchemist { input }) => {
-            glossa::tools::alchemist::run_alchemist(&input)?;
+            glossa::tools::run_alchemist(&input)?;
         }
 
         Some(Commands::Repl) | None => {

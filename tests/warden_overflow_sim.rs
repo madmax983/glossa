@@ -3,7 +3,7 @@ use glossa::morphology::lexicon::{BinaryOp, UnaryOp};
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
 };
-use glossa::tools::interpreter::Interpreter;
+use glossa::tools::Interpreter;
 
 #[test]
 fn test_warden_overflow_sim_defense() {

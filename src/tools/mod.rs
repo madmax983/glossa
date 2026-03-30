@@ -17,24 +17,37 @@
 //! * [`ui`]: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
 #[cfg(feature = "nova")]
-pub mod alchemist;
+pub(crate) mod alchemist;
 pub mod cache;
 #[cfg(feature = "nova")]
-pub mod cartographer;
+pub(crate) mod cartographer;
 pub mod cli;
 pub mod dictionary;
 pub mod highlight;
 #[cfg(feature = "nova")]
-pub mod interpreter;
+pub(crate) mod interpreter;
 #[cfg(feature = "nova")]
-pub mod mentor;
+pub(crate) mod mentor;
 #[cfg(feature = "nova")]
-pub mod mosaic;
+pub(crate) mod mosaic;
 pub mod narrator;
 pub mod repl;
-pub mod report;
+pub(crate) mod report;
 pub mod runner;
 pub mod tester;
-pub mod ui;
+pub(crate) mod ui;
 #[cfg(feature = "nova")]
-pub mod weave;
+pub(crate) mod weave;
+
+#[cfg(feature = "nova")]
+pub use alchemist::{run_alchemist, transpile_to_python};
+#[cfg(feature = "nova")]
+pub use cartographer::run_map;
+#[cfg(feature = "nova")]
+pub use interpreter::Interpreter;
+#[cfg(feature = "nova")]
+pub use mentor::run_mentor;
+#[cfg(feature = "nova")]
+pub use mosaic::{run_mosaic, run_mosaic_inner};
+#[cfg(feature = "nova")]
+pub use weave::run_weave;

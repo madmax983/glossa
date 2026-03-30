@@ -107,7 +107,7 @@
 pub mod ast;
 pub mod codegen;
 pub mod errors;
-pub mod limits;
+pub(crate) mod limits;
 pub mod morphology;
 pub mod parser;
 pub mod semantic;

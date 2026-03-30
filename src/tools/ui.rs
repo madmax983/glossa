@@ -55,6 +55,7 @@ impl Status {
     /// let status = Status::start("Compiling...");
     /// status.success();
     /// ```
+    #[allow(dead_code)]
     pub fn start(message: impl Into<String>) -> Self {
         Self::start_with_symbol(message, "⚡")
     }
