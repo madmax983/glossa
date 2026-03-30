@@ -159,7 +159,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
     // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
     let source = crate::tools::runner::load_source(input)?;
 
-    let mut status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
+    let status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
 
     let ast = match parse(&source) {
         Ok(a) => a,
@@ -207,33 +207,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
             exe_name
         });
 
-    // 5. Compile with rustc --test
-    let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
-
-    let rustc_output = Command::new(rustc_cmd)
-        .arg("--test")
-        .arg(&temp_path)
-        .arg("-o")
-        .arg(&exe_path)
-        .output()
-        .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
-
-    if !rustc_output.status.success() {
-        let stderr = String::from_utf8_lossy(&rustc_output.stderr);
-        status.error("Σφάλμα μεταγλωττίσεως δοκιμῶν (Test Compilation Error)");
-        return Err(miette::miette!("{}\n{}", "Rustc Error:".red(), stderr));
-    }
-
-    // 6. Run the test binary
-    status.update("Ἐκτέλεσις (Running)");
-
-    let test_output = Command::new(&exe_path)
-        .output() // Capture output to display it nicely
-        .into_diagnostic()?;
-
-    // Cleanup: The temp_file (source) is auto-deleted when dropped.
-    // The executable must be deleted manually.
-    let _ = fs::remove_file(&exe_path);
+    let (test_output, status) = compile_and_run_test_binary(&temp_path, &exe_path, status)?;
 
     // 7. Parse and Report results
     let stdout = String::from_utf8_lossy(&test_output.stdout);
@@ -245,12 +219,60 @@ pub fn run_tests(input: &Path) -> Result<()> {
         status.error("Ἀποτυχία (Failure)");
     }
 
+    print_test_summary(test_output.status.success(), &results);
+
+    // If there were failures, try to extract and print them nicely
+    if !test_output.status.success() {
+        print_test_failures(&test_output, &stdout);
+        return Err(miette::miette!("Tests failed"));
+    }
+
+    Ok(())
+}
+
+fn print_test_failures(test_output: &std::process::Output, stdout: &str) {
+    println!();
+    println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+
+    let failures = extract_failures(stdout);
+
+    if !failures.is_empty() {
+        for (name, msg) in failures {
+            println!(
+                "{} {}",
+                "FAILED:".red().bold(),
+                name.cyan().bold().underlined()
+            );
+            // Create a box for the error message
+            let border_top =
+                "╭───────────────────────────────────────────────────────────────────╮".red();
+            let border_bottom =
+                "╰───────────────────────────────────────────────────────────────────╯".red();
+
+            println!("{}", border_top);
+            for line in msg.lines() {
+                // Wrap extremely long lines if needed, but for now simple print
+                println!("{} {}", "│".red(), line);
+            }
+            println!("{}", border_bottom);
+            println!();
+        }
+    } else {
+        // Fallback to raw output if extraction failed but tests failed
+        println!("{}", stdout);
+        if !test_output.stderr.is_empty() {
+            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+        }
+    }
+}
+
+fn print_test_summary(success: bool, results: &[TestResult]) {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
     println!("   {}", "Unit Test Results".italic().dim());
     println!();
 
-    if test_output.status.success() {
+    if success {
         if !results.is_empty() {
             println!(
                 "   {}",
@@ -281,7 +303,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
             Cell::new("Status").add_attribute(Attribute::Bold),
         ]);
 
-        for result in &results {
+        for result in results {
             let status_cell = match result.status {
                 TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
                 TestStatus::Failed => Cell::new("FAILED")
@@ -313,49 +335,42 @@ pub fn run_tests(input: &Path) -> Result<()> {
         ]);
         println!("{empty_table}");
     }
+}
 
-    // If there were failures, try to extract and print them nicely
-    if !test_output.status.success() {
-        println!();
-        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+fn compile_and_run_test_binary(
+    temp_path: &Path,
+    exe_path: &Path,
+    mut status: Status,
+) -> Result<(std::process::Output, Status)> {
+    // 5. Compile with rustc --test
+    let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
 
-        let failures = extract_failures(&stdout);
+    let rustc_output = Command::new(rustc_cmd)
+        .arg("--test")
+        .arg(temp_path)
+        .arg("-o")
+        .arg(exe_path)
+        .output()
+        .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
 
-        if !failures.is_empty() {
-            for (name, msg) in failures {
-                println!(
-                    "{} {}",
-                    "FAILED:".red().bold(),
-                    name.cyan().bold().underlined()
-                );
-                // Create a box for the error message
-                let border_top =
-                    "╭───────────────────────────────────────────────────────────────────╮".red();
-                let border_bottom =
-                    "╰───────────────────────────────────────────────────────────────────╯".red();
-
-                println!("{}", border_top);
-                for line in msg.lines() {
-                    // Wrap extremely long lines if needed, but for now simple print
-                    println!("{} {}", "│".red(), line);
-                }
-                println!("{}", border_bottom);
-                println!();
-            }
-        } else {
-            // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
-            if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
-            }
-        }
+    if !rustc_output.status.success() {
+        let stderr = String::from_utf8_lossy(&rustc_output.stderr);
+        status.error("Σφάλμα μεταγλωττίσεως δοκιμῶν (Test Compilation Error)");
+        return Err(miette::miette!("{}\n{}", "Rustc Error:".red(), stderr));
     }
 
-    if !test_output.status.success() {
-        return Err(miette::miette!("Tests failed"));
-    }
+    // 6. Run the test binary
+    status.update("Ἐκτέλεσις (Running)");
 
-    Ok(())
+    let test_output = Command::new(exe_path)
+        .output() // Capture output to display it nicely
+        .into_diagnostic()?;
+
+    // Cleanup: The temp_file (source) is auto-deleted when dropped.
+    // The executable must be deleted manually.
+    let _ = fs::remove_file(exe_path);
+
+    Ok((test_output, status))
 }
 
 #[cfg(test)]
