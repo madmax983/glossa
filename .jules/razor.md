@@ -126,3 +126,8 @@
 **Bloat:** `QuantifierFlags` struct in `src/semantic/patterns.rs` was an unnecessary abstraction over two booleans (`is_any`, `is_all`).
 **Cut:** Deleted the struct and its `from` implementation, replacing it with a simple `get_quantifier_flags` function returning a `(bool, bool)` tuple.
 **Saved:** Removed unnecessary struct definition and simplified function signatures across `process_adjectives` and `process_explicit_quantifiers`.
+
+## [Reduction]
+**Bloat:** `TraitMethodParts` struct in `src/codegen.rs` was an unnecessary abstraction over a tuple.
+**Cut:** Deleted the `TraitMethodParts` struct and updated `generate_trait_method_parts` to return a `(Ident, Vec<TokenStream>, Option<TokenStream>)` tuple directly.
+**Saved:** Removed unnecessary struct definition and simplified function returns.
