@@ -48,3 +48,8 @@
 **Refactoring `parse_for_range_loop` and `process_participles`**
 **Learning:** Extracting large, inline, nested logic blocks from `for` and `match` statements directly flattens execution paths and adheres to the 'Grandma Test'. Functions over 150 lines like `process_participles` become much easier to read when their main internal branches are extracted to specifically-named helper functions like `process_fold_participle` and `process_map_participle`.
 **Action:** Continually prioritize replacing nested `if let` blocks with early returns and decomposing large looping constructs or match statement inner logic into scoped helper functions to flatten nested code and improve readability.
+
+
+**[Flattening God Functions in tester.rs and conjugation.rs]**
+**Learning:** Large functions like `run_tests` and `analyze_verb` were getting unwieldy and doing too many things. In Rust, flattening logic into small, dedicated helpers and utilizing guard clauses dramatically improves clarity.
+**Action:** Refactor God Functions into discrete helper methods and use early returns (guard clauses) to flatten Pyramids of Doom.
