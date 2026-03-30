@@ -66,35 +66,31 @@ struct TestResult {
 }
 
 fn parse_test_output(output: &str) -> Vec<TestResult> {
-    let mut results = Vec::new();
-    for line in output.lines() {
-        // Standard rustc test output line format: "test test_name ... status"
-        if line.starts_with("test ")
-            && (line.ends_with(" ... ok")
-                || line.ends_with(" ... FAILED")
-                || line.ends_with(" ... ignored"))
-        {
+    output
+        .lines()
+        .filter(|line| {
+            line.starts_with("test ")
+                && (line.ends_with(" ... ok")
+                    || line.ends_with(" ... FAILED")
+                    || line.ends_with(" ... ignored"))
+        })
+        .filter_map(|line| {
             let parts: Vec<&str> = line.split_whitespace().collect();
-            // Expected parts: ["test", "test_name", "...", "status"]
-            // Sometimes there might be extra info, but name is usually at index 1
-            if parts.len() >= 4 {
-                #[allow(clippy::collapsible_if)]
-                if let [_, name, .., status_str] = parts.as_slice() {
-                    let status = match *status_str {
-                        "ok" => TestStatus::Ok,
-                        "FAILED" => TestStatus::Failed,
-                        "ignored" => TestStatus::Ignored,
-                        _ => continue,
-                    };
-                    results.push(TestResult {
-                        name: name.to_string(),
-                        status,
-                    });
-                }
+            if parts.len() >= 4 && let [_, name, .., status_str] = parts.as_slice() {
+                let status = match *status_str {
+                    "ok" => TestStatus::Ok,
+                    "FAILED" => TestStatus::Failed,
+                    "ignored" => TestStatus::Ignored,
+                    _ => return None,
+                };
+                return Some(TestResult {
+                    name: name.to_string(),
+                    status,
+                });
             }
-        }
-    }
-    results
+            None
+        })
+        .collect()
 }
 
 /// Extracts failed tests and their output from `rustc --test` output.
@@ -104,20 +100,13 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
 /// allocations when test outputs are large.
 fn extract_failures(output: &str) -> Vec<(String, String)> {
     let mut failures = Vec::new();
-    let mut lines = output.lines().peekable();
-
-    // Skip until "failures:"
-    for line in lines.by_ref() {
-        if line.trim() == "failures:" {
-            break;
-        }
-    }
+    let mut lines = output.lines().skip_while(|&l| l.trim() != "failures:").skip(1).peekable();
 
     // Scan for "---- <name> stdout ----"
     while let Some(line) = lines.next() {
-        if line.trim().starts_with("----") && line.trim().ends_with("stdout ----") {
+        let trimmed = line.trim();
+        if trimmed.starts_with("----") && trimmed.ends_with("stdout ----") {
             // Extract name: "---- test_name stdout ----"
-            let trimmed = line.trim();
             let name_part = trimmed
                 .trim_start_matches("---- ")
                 .trim_end_matches(" stdout ----");
@@ -131,12 +120,8 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
             // Capture output until next "----" or empty line followed by "failures:"
             let mut message = String::new();
             while let Some(current) = lines.peek() {
-                if current.trim().starts_with("----") && current.trim().ends_with("stdout ----") {
-                    // Start of next failure
-                    break;
-                }
-                if current.trim() == "failures:" {
-                    // End of details section
+                let curr_trim = current.trim();
+                if (curr_trim.starts_with("----") && curr_trim.ends_with("stdout ----")) || curr_trim == "failures:" {
                     break;
                 }
                 message.push_str(current);

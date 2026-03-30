@@ -126,3 +126,7 @@
 **Bloat:** `QuantifierFlags` struct in `src/semantic/patterns.rs` was an unnecessary abstraction over two booleans (`is_any`, `is_all`).
 **Cut:** Deleted the struct and its `from` implementation, replacing it with a simple `get_quantifier_flags` function returning a `(bool, bool)` tuple.
 **Saved:** Removed unnecessary struct definition and simplified function signatures across `process_adjectives` and `process_explicit_quantifiers`.
+## [Reduction]
+**Bloat:** Iterative parsing with deep nested structures, intermediate vectors, and `allow(clippy::collapsible_if)` suppression.
+**Cut:** Functional refactor using declarative `.filter_map` iterators and compound `&& let` bindings to flatten AST test output parsing and failure extraction logic.
+**Saved:** ~30 lines of code, simplified nested conditional branches, and reduced cognitive load.
