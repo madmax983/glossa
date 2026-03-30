@@ -18,10 +18,10 @@ pub(crate) fn validate_program(program: &AnalyzedProgram) -> Result<(), GlossaEr
 
 fn check_statement_depth(stmt: &AnalyzedStatement, depth: usize) -> Result<(), GlossaError> {
     if depth > MAX_EXPRESSION_DEPTH {
-        return Err(GlossaError::LimitExceeded {
+        return Err(GlossaError::AssemblyError(crate::errors::AssemblyError::LimitExceeded {
             resource: "statement depth".into(),
             max: MAX_EXPRESSION_DEPTH,
-        });
+        }));
     }
 
     match stmt {
@@ -93,10 +93,10 @@ fn check_statement_depth(stmt: &AnalyzedStatement, depth: usize) -> Result<(), G
 
 fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> Result<(), GlossaError> {
     if depth > MAX_EXPRESSION_DEPTH {
-        return Err(GlossaError::LimitExceeded {
+        return Err(GlossaError::AssemblyError(crate::errors::AssemblyError::LimitExceeded {
             resource: "expression depth".into(),
             max: MAX_EXPRESSION_DEPTH,
-        });
+        }));
     }
 
     match &expr.expr {
@@ -169,7 +169,7 @@ mod tests {
         let result = check_statement_depth(&stmt, MAX_EXPRESSION_DEPTH + 1);
         assert!(result.is_err());
         match result.unwrap_err() {
-            GlossaError::LimitExceeded { resource, max } => {
+            GlossaError::AssemblyError(crate::errors::AssemblyError::LimitExceeded { resource, max }) => {
                 assert_eq!(resource, "statement depth");
                 assert_eq!(max, MAX_EXPRESSION_DEPTH);
             }
@@ -186,7 +186,7 @@ mod tests {
         let result = check_expr_depth(&expr, MAX_EXPRESSION_DEPTH + 1);
         assert!(result.is_err());
         match result.unwrap_err() {
-            GlossaError::LimitExceeded { resource, max } => {
+            GlossaError::AssemblyError(crate::errors::AssemblyError::LimitExceeded { resource, max }) => {
                 assert_eq!(resource, "expression depth");
                 assert_eq!(max, MAX_EXPRESSION_DEPTH);
             }

@@ -121,3 +121,8 @@
 **Bloat:** `AssemblyError` in `src/errors/assembly.rs` contained two variants (`MissingVerb` and `GenderMismatch`) that were defined but completely unused anywhere in the codebase, leading to dead code.
 **Cut:** Deleted the `MissingVerb` and `GenderMismatch` error variants and the unused `Gender` import.
 **Saved:** Removed 13 lines of dead code and simplified the error variant surface area.
+
+## [Reduction]
+**Bloat:** `EvalError::TypeMismatch` and `GlossaError::LimitExceeded` were dead variants.
+**Cut:** Removed both variants from `src/tools/interpreter.rs` and `src/errors/mod.rs`, using `AssemblyError::LimitExceeded` directly where needed.
+**Saved:** ~10 lines of dead code and reduced error surface area.

@@ -36,12 +36,6 @@ fn test_errors_display_impls() {
     assert!(format!("{}", err_codegen).contains("Σφάλμα κώδικος"));
     assert_eq!(err_codegen.category_greek(), "Κῶδιξ");
 
-    let err_limit = GlossaError::LimitExceeded {
-        resource: "test".into(),
-        max: 10,
-    };
-    assert!(format!("{}", err_limit).contains("Ὑπέρβασις ὀρίου"));
-    assert_eq!(err_limit.category_greek(), "Όριον");
 
     let err_assembly: GlossaError = AssemblyError::DoubleSubject.into();
     assert!(format!("{}", err_assembly).contains("Διπλοῦν ὑποκείμενον"));

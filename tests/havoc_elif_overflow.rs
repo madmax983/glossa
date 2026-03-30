@@ -42,7 +42,7 @@ fn test_elif_chain_stack_overflow() {
         Err(e) => {
             println!("Got expected error: {:?}", e);
             match e {
-                glossa::errors::GlossaError::LimitExceeded { resource, max } => {
+                glossa::errors::GlossaError::AssemblyError(glossa::errors::AssemblyError::LimitExceeded { resource, max }) => {
                     assert_eq!(resource, "Control flow depth");
                     assert_eq!(max, 100);
                 }

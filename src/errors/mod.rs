@@ -113,14 +113,6 @@ pub enum GlossaError {
     #[diagnostic(code(glossa::codegen))]
     CodegenError { message: String },
 
-    /// **Limit Exceeded**: Resource exhaustion protection.
-    ///
-    /// To prevent Denial of Service (DoS) attacks or infinite loops during compilation,
-    /// we limit the depth of recursion and number of elements.
-    #[error("Ὑπέρβασις ὀρίου: {resource} ({max})")]
-    #[diagnostic(code(glossa::limit_exceeded))]
-    LimitExceeded { resource: String, max: usize },
-
     /// **Assembly Error**: The semantic assembler failed to build a valid sentence.
     ///
     /// This includes "Double Subject", "Missing Verb", and other sentence-structure errors.
@@ -269,7 +261,6 @@ impl GlossaError {
             GlossaError::UndefinedName { .. } => "Ὄνομα",
             GlossaError::AgreementError { .. } => "Συμφωνία",
             GlossaError::CodegenError { .. } => "Κῶδιξ",
-            GlossaError::LimitExceeded { .. } => "Όριον",
             GlossaError::AssemblyError(_) => "Συναρμογή",
         }
     }

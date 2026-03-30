@@ -46,9 +46,6 @@ pub enum EvalError {
     #[error("μεταβλητὴ οὐχ εὑρέθη (Variable not found): {0}")]
     VariableNotFound(String),
 
-    #[error("τύποι ἀσύμβατοι (Type mismatch): expected {expected}, got {got}")]
-    TypeMismatch { expected: String, got: String },
-
     #[error("πρᾶξις ἄκυρος (Invalid operation): {op} on {left} and {right}")]
     InvalidOperation {
         op: String,

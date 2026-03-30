@@ -604,10 +604,10 @@ fn parse_conditional(
     depth: usize,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
     if depth > MAX_CONTROL_FLOW_DEPTH {
-        return Err(GlossaError::LimitExceeded {
+        return Err(GlossaError::AssemblyError(crate::errors::AssemblyError::LimitExceeded {
             resource: "Control flow depth".into(),
             max: MAX_CONTROL_FLOW_DEPTH,
-        });
+        }));
     }
 
     if stmt.clauses().len() < 2 {
