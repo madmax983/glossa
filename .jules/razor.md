@@ -121,3 +121,7 @@
 **Bloat:** `AssemblyError` in `src/errors/assembly.rs` contained two variants (`MissingVerb` and `GenderMismatch`) that were defined but completely unused anywhere in the codebase, leading to dead code.
 **Cut:** Deleted the `MissingVerb` and `GenderMismatch` error variants and the unused `Gender` import.
 **Saved:** Removed 13 lines of dead code and simplified the error variant surface area.
+## Reduction: Removed dead code `Statement::expressions`
+**Bloat:** Unused `pub fn expressions(&self) -> Box<dyn Iterator<Item = &Expr> + '_>` in `src/ast.rs` that needlessly allocated a Box for a dynamic iterator.
+**Cut:** Deleted the method entirely and removed its associated assertions in the test suite.
+**Saved:** ~15 lines of code and eliminated an unnecessary heap allocation.
