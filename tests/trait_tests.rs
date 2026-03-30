@@ -170,7 +170,7 @@ fn test_parse_empty_trait_impl() {
 
     assert_eq!(ast.statements.len(), 1);
     match &ast.statements[0] {
-        Statement::TraitImpl(trait_impl) => {
+        Statement::TraitImplementation(trait_impl) => {
             assert_eq!(trait_impl.type_name.original, "Point");
             assert_eq!(trait_impl.trait_name.original, "Showable");
             assert_eq!(trait_impl.methods.len(), 0);
@@ -190,7 +190,7 @@ fn test_parse_trait_impl_with_method() {
 
     assert_eq!(ast.statements.len(), 1);
     match &ast.statements[0] {
-        Statement::TraitImpl(trait_impl) => {
+        Statement::TraitImplementation(trait_impl) => {
             assert_eq!(trait_impl.type_name.original, "Point");
             assert_eq!(trait_impl.trait_name.original, "Showable");
             assert_eq!(trait_impl.methods.len(), 1);
@@ -215,7 +215,7 @@ fn test_parse_impl_multiple_methods() {
 
     assert_eq!(ast.statements.len(), 1);
     match &ast.statements[0] {
-        Statement::TraitImpl(trait_impl) => {
+        Statement::TraitImplementation(trait_impl) => {
             assert_eq!(trait_impl.type_name.original, "Number");
             assert_eq!(trait_impl.trait_name.original, "Math");
             assert_eq!(trait_impl.methods.len(), 2);

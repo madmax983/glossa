@@ -111,7 +111,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
             let type_name = match stmt {
                 crate::ast::Statement::TypeDefinition(_) => "Type Definition",
                 crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
-                crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
+                crate::ast::Statement::TraitImplementation(_) => "Trait Implementation",
                 crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
                 _ => "Unknown",
             };

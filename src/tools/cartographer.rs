@@ -414,7 +414,7 @@ mod tests {
 
     #[test]
     fn test_cartographer_complex_methods() {
-        use crate::semantic::{AnalyzedMethod, Scope, TraitDef};
+        use crate::semantic::{AnalyzedMethod, Scope, TraitDefinition};
 
         let mut scope = Scope::new();
 
@@ -429,7 +429,7 @@ mod tests {
             return_type: Some(GlossaType::Boolean),
         };
 
-        let trait_def = TraitDef {
+        let trait_def = TraitDefinition {
             name: "ComplexTrait".into(),
             methods: vec![method],
         };

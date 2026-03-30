@@ -311,11 +311,11 @@ fn test_statement_debug_formatting() {
             name: Word::new("Type"),
             fields: vec![],
         }),
-        Statement::TraitDefinition(TraitDef {
+        Statement::TraitDefinition(TraitDefinition {
             name: Word::new("Trait"),
             methods: vec![],
         }),
-        Statement::TraitImpl(TraitImplDef {
+        Statement::TraitImplementation(TraitImplementation {
             type_name: Word::new("Type"),
             trait_name: Word::new("Trait"),
             methods: vec![],
@@ -381,7 +381,7 @@ fn test_statement_methods() {
     assert_eq!(stmt.clauses().len(), 0);
     assert_eq!(stmt.expressions().count(), 0);
 
-    let stmt = Statement::TraitDefinition(TraitDef {
+    let stmt = Statement::TraitDefinition(TraitDefinition {
         name: Word::new("t"),
         methods: vec![],
     });
@@ -390,7 +390,7 @@ fn test_statement_methods() {
     assert_eq!(stmt.clauses().len(), 0);
     assert_eq!(stmt.expressions().count(), 0);
 
-    let stmt = Statement::TraitImpl(TraitImplDef {
+    let stmt = Statement::TraitImplementation(TraitImplementation {
         type_name: Word::new("t"),
         trait_name: Word::new("tr"),
         methods: vec![],

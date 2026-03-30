@@ -98,7 +98,7 @@ pub enum Statement {
     ///     τύπωσις(εαυτός).
     /// }.
     /// ```
-    TraitDefinition(TraitDef),
+    TraitDefinition(TraitDefinition),
     /// A trait implementation statement
     ///
     /// Implements a trait for a specific type.
@@ -112,7 +112,7 @@ pub enum Statement {
     ///     }
     /// }.
     /// ```
-    TraitImpl(TraitImplDef),
+    TraitImplementation(TraitImplementation),
     /// A test declaration
     ///
     /// Defines a unit test.
@@ -143,7 +143,7 @@ pub struct FieldDecl {
 
 /// A trait definition
 #[derive(Debug, Clone, PartialEq)]
-pub struct TraitDef {
+pub struct TraitDefinition {
     pub name: Word,
     pub methods: Vec<TraitMethodDecl>,
 }
@@ -159,7 +159,7 @@ pub struct TraitMethodDecl {
 
 /// A trait implementation
 #[derive(Debug, Clone, PartialEq)]
-pub struct TraitImplDef {
+pub struct TraitImplementation {
     pub type_name: Word,
     pub trait_name: Word,
     pub methods: Vec<ImplMethodDef>,
@@ -214,7 +214,7 @@ impl std::fmt::Debug for Statement {
                 .finish(),
             Statement::TypeDefinition(td) => f.debug_tuple("TypeDefinition").field(td).finish(),
             Statement::TraitDefinition(td) => f.debug_tuple("TraitDefinition").field(td).finish(),
-            Statement::TraitImpl(ti) => f.debug_tuple("TraitImpl").field(ti).finish(),
+            Statement::TraitImplementation(ti) => f.debug_tuple("TraitImplementation").field(ti).finish(),
             Statement::TestDeclaration(td) => f.debug_tuple("TestDeclaration").field(td).finish(),
         })
     }
@@ -229,7 +229,7 @@ impl Statement {
             }
             Statement::TypeDefinition(_) => Box::new(std::iter::empty()),
             Statement::TraitDefinition(_) => Box::new(std::iter::empty()),
-            Statement::TraitImpl(_) => Box::new(std::iter::empty()),
+            Statement::TraitImplementation(_) => Box::new(std::iter::empty()),
             Statement::TestDeclaration(_) => Box::new(std::iter::empty()),
         }
     }
@@ -240,7 +240,7 @@ impl Statement {
             Statement::Regular { is_query, .. } => *is_query,
             Statement::TypeDefinition(_) => false,
             Statement::TraitDefinition(_) => false,
-            Statement::TraitImpl(_) => false,
+            Statement::TraitImplementation(_) => false,
             Statement::TestDeclaration(_) => false,
         }
     }
@@ -251,7 +251,7 @@ impl Statement {
             Statement::Regular { is_propagate, .. } => *is_propagate,
             Statement::TypeDefinition(_) => false,
             Statement::TraitDefinition(_) => false,
-            Statement::TraitImpl(_) => false,
+            Statement::TraitImplementation(_) => false,
             Statement::TestDeclaration(_) => false,
         }
     }
@@ -262,7 +262,7 @@ impl Statement {
             Statement::Regular { clauses, .. } => clauses,
             Statement::TypeDefinition(_) => &[],
             Statement::TraitDefinition(_) => &[],
-            Statement::TraitImpl(_) => &[],
+            Statement::TraitImplementation(_) => &[],
             Statement::TestDeclaration(_) => &[],
         }
     }

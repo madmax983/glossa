@@ -1,6 +1,7 @@
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, AssembledStatement,
-    CaptureMode, Constituent, Literal, ParticipleConstituent, TraitDef, TraitImpl, VerbConstituent,
+    CaptureMode, Constituent, Literal, ParticipleConstituent, TraitDefinition, TraitImpl,
+    VerbConstituent,
 };
 use smol_str::SmolStr;
 
@@ -297,12 +298,12 @@ fn test_analyzed_method_debug() {
 
 #[test]
 fn test_trait_def_debug() {
-    let def = TraitDef {
+    let def = TraitDefinition {
         name: SmolStr::new("Trait"),
         methods: vec![],
     };
     let dbg = format!("{:?}", def);
-    assert!(dbg.contains("TraitDef"));
+    assert!(dbg.contains("TraitDefinition"));
 }
 
 #[test]

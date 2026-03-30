@@ -35,8 +35,8 @@ use crossterm::style::Stylize;
 use std::fmt::Write;
 
 use crate::ast::{
-    BinOperator, Clause, Expr, Program, Statement, TestDecl, TraitDef, TraitImplDef, TypeDef,
-    UnaryOperator, Word,
+    BinOperator, Clause, Expr, Program, Statement, TestDecl, TraitDefinition, TraitImplementation,
+    TypeDef, UnaryOperator, Word,
 };
 use crate::errors::GlossaError;
 use crate::morphology::{
@@ -108,7 +108,7 @@ impl Highlighter {
             }
             Statement::TypeDefinition(def) => self.highlight_type_def(def)?,
             Statement::TraitDefinition(def) => self.highlight_trait_def(def)?,
-            Statement::TraitImpl(def) => self.highlight_trait_impl(def)?,
+            Statement::TraitImplementation(def) => self.highlight_trait_impl(def)?,
             Statement::TestDeclaration(decl) => self.highlight_test_decl(decl)?,
         }
         Ok(())
@@ -306,7 +306,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_trait_def(&mut self, def: &TraitDef) -> std::fmt::Result {
+    fn highlight_trait_def(&mut self, def: &TraitDefinition) -> std::fmt::Result {
         write!(
             self.output,
             "{} {} {} {{ ... }}",
@@ -317,7 +317,7 @@ impl Highlighter {
         Ok(())
     }
 
-    fn highlight_trait_impl(&mut self, def: &TraitImplDef) -> std::fmt::Result {
+    fn highlight_trait_impl(&mut self, def: &TraitImplementation) -> std::fmt::Result {
         write!(
             self.output,
             "{} {} {} {} {{ ... }}",

@@ -330,7 +330,7 @@ impl std::fmt::Debug for AnalyzedStatement {
 /// An analyzed method (used in traits and implementations)
 ///
 /// This struct holds the entire structural story of a method, whether it's
-/// merely a required signature in a [`TraitDef`] or a fully fleshed-out behavior
+/// merely a required signature in a [`TraitDefinition`] or a fully fleshed-out behavior
 /// in a [`TraitImpl`]. It provides the bridge between the compiler's type checker
 /// and the final code generation phase.
 #[derive(Clone)]
@@ -733,7 +733,7 @@ pub enum CaptureMode {
 /// }
 /// ```
 #[derive(Clone)]
-pub struct TraitDef {
+pub struct TraitDefinition {
     /// The identifier representing the capability being defined, used by types to declare their adherence.
     pub name: SmolStr,
     /// The collection of behaviors ([`AnalyzedMethod`]) that constitute this trait's contract.
@@ -741,10 +741,10 @@ pub struct TraitDef {
     pub methods: Vec<AnalyzedMethod>,
 }
 
-impl std::fmt::Debug for TraitDef {
+impl std::fmt::Debug for TraitDefinition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
-            f.debug_struct("TraitDef")
+            f.debug_struct("TraitDefinition")
                 .field("name", &self.name)
                 .field("methods", &self.methods)
                 .finish()
@@ -766,7 +766,7 @@ impl std::fmt::Debug for TraitDef {
 #[derive(Clone)]
 pub struct TraitImpl {
     /// The name of the trait whose contract is being fulfilled (e.g., `Show`).
-    /// This links the implementation back to its defining [`TraitDef`].
+    /// This links the implementation back to its defining [`TraitDefinition`].
     pub trait_name: SmolStr,
     /// The name of the specific struct (`εἶδος`) that is taking on this new capability (e.g., `User`).
     pub type_name: SmolStr,

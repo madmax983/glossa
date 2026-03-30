@@ -112,7 +112,7 @@ fn check_recursive_type(target_name: &str, ty: &GlossaType) -> bool {
 /// }.
 /// ```
 pub fn analyze_trait_definition(
-    trait_def: &crate::ast::TraitDef,
+    trait_def: &crate::ast::TraitDefinition,
     scope: &mut Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
     // Extract trait name
@@ -185,7 +185,7 @@ pub fn analyze_trait_definition(
     }
 
     // Create the trait definition
-    let trait_def_semantic = crate::semantic::model::TraitDef {
+    let trait_def_semantic = crate::semantic::model::TraitDefinition {
         name: trait_name.clone(),
         methods: analyzed_methods.clone(),
     };
@@ -212,7 +212,7 @@ pub fn analyze_trait_definition(
 /// }.
 /// ```
 pub fn analyze_trait_impl(
-    trait_impl: &crate::ast::TraitImplDef,
+    trait_impl: &crate::ast::TraitImplementation,
     scope: &mut Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
     // Extract type and trait names

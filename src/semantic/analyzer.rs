@@ -140,7 +140,7 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
         }
 
         // Handle trait implementations
-        if let Statement::TraitImpl(trait_impl) = stmt {
+        if let Statement::TraitImplementation(trait_impl) = stmt {
             analyzed_statements.push(analyze_trait_impl(trait_impl, &mut scope)?);
             continue;
         }

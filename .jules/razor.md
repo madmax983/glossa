@@ -121,3 +121,7 @@
 **Bloat:** `AssemblyError` in `src/errors/assembly.rs` contained two variants (`MissingVerb` and `GenderMismatch`) that were defined but completely unused anywhere in the codebase, leading to dead code.
 **Cut:** Deleted the `MissingVerb` and `GenderMismatch` error variants and the unused `Gender` import.
 **Saved:** Removed 13 lines of dead code and simplified the error variant surface area.
+## [Reduction]
+**Bloat:** Inconsistent and abbreviated naming conventions in the AST and Semantic Models (`TraitDef` vs `TypeDefinition`, `TraitImplDef` vs `TraitImplementation`).
+**Cut:** Renamed `TraitDef` to `TraitDefinition` and `TraitImplDef` to `TraitImplementation` everywhere (including enum variants like `Statement::TraitImpl` -> `Statement::TraitImplementation`) to enforce consistent, explicit terminology and remove "Enterprise FizzBuzz" abbreviations.
+**Saved:** Reduced cognitive load by standardizing node naming across the parser, AST, semantic analyzer, and codegen layers.

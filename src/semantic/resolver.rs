@@ -49,7 +49,7 @@ struct ScopeLevel {
     /// Types defined in this scope.
     types: FxHashMap<SmolStr, GlossaType>,
     /// Traits defined in this scope.
-    traits: FxHashMap<SmolStr, crate::semantic::model::TraitDef>,
+    traits: FxHashMap<SmolStr, crate::semantic::model::TraitDefinition>,
     /// Trait implementations in this scope
     trait_impls: Vec<crate::semantic::model::TraitImpl>,
 }
@@ -258,13 +258,13 @@ impl Scope {
     pub fn define_trait(
         &mut self,
         name: impl Into<SmolStr>,
-        trait_def: crate::semantic::model::TraitDef,
+        trait_def: crate::semantic::model::TraitDefinition,
     ) {
         self.current_level().traits.insert(name.into(), trait_def);
     }
 
     /// Look up a trait by name
-    pub fn lookup_trait(&self, name: &str) -> Option<&crate::semantic::model::TraitDef> {
+    pub fn lookup_trait(&self, name: &str) -> Option<&crate::semantic::model::TraitDefinition> {
         for level in self.levels.iter().rev() {
             if let Some(def) = level.traits.get(name) {
                 return Some(def);
@@ -419,7 +419,9 @@ impl Scope {
     }
 
     /// Get all traits defined in this scope
-    pub fn traits(&self) -> impl Iterator<Item = (&SmolStr, &crate::semantic::model::TraitDef)> {
+    pub fn traits(
+        &self,
+    ) -> impl Iterator<Item = (&SmolStr, &crate::semantic::model::TraitDefinition)> {
         self.levels.iter().flat_map(|l| l.traits.iter())
     }
 }
@@ -608,10 +610,10 @@ mod tests {
 
     #[test]
     fn test_scope_trait_coverage() {
-        use crate::semantic::model::TraitDef;
+        use crate::semantic::model::TraitDefinition;
         let mut scope = Scope::new();
         let trait_name = "Δεικτόν";
-        let trait_def = TraitDef {
+        let trait_def = TraitDefinition {
             name: trait_name.into(),
             methods: vec![],
         };

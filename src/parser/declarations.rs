@@ -82,7 +82,7 @@ fn build_field_declaration(pair: Pair<'_, Rule>) -> Result<FieldDecl, ParseError
 
 /// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
 /// This prevents intermediate heap reallocations when building trait definitions.
-pub(crate) fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, ParseError> {
+pub(crate) fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDefinition, ParseError> {
     let mut trait_name = None;
     let inner_pairs = pair.into_inner();
     let mut methods = Vec::with_capacity(inner_pairs.len());
@@ -113,7 +113,7 @@ pub(crate) fn build_trait_definition(pair: Pair<'_, Rule>) -> Result<TraitDef, P
         ));
     };
 
-    Ok(TraitDef { name, methods })
+    Ok(TraitDefinition { name, methods })
 }
 
 /// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the slice length.
@@ -196,7 +196,7 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseErro
 
 /// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
 /// This prevents intermediate heap reallocations when building trait implementations.
-pub(crate) fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, ParseError> {
+pub(crate) fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplementation, ParseError> {
     let mut type_name = None;
     let mut trait_name = None;
     let inner_pairs = pair.into_inner();
@@ -235,7 +235,7 @@ pub(crate) fn build_trait_impl(pair: Pair<'_, Rule>) -> Result<TraitImplDef, Par
         ));
     };
 
-    Ok(TraitImplDef {
+    Ok(TraitImplementation {
         type_name: type_n,
         trait_name: trait_n,
         methods,

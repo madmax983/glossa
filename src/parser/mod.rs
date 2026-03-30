@@ -113,7 +113,9 @@ pub(crate) fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseEr
         Rule::trait_impl => {
             // Consume statement_end
             let _ = pairs.next();
-            Ok(Statement::TraitImpl(declarations::build_trait_impl(first)?))
+            Ok(Statement::TraitImplementation(
+                declarations::build_trait_impl(first)?,
+            ))
         }
         Rule::clause_list => statements::build_regular_statement(first, pairs),
         _ => Err(ParseError::UnexpectedRule(format!(
@@ -133,7 +135,7 @@ mod tests {
             Statement::Regular { clauses, .. } => &clauses[0].expressions[0],
             Statement::TypeDefinition(_) => panic!("Cannot get first_expr from TypeDefinition"),
             Statement::TraitDefinition(_) => panic!("Cannot get first_expr from TraitDefinition"),
-            Statement::TraitImpl(_) => panic!("Cannot get first_expr from TraitImpl"),
+            Statement::TraitImplementation(_) => panic!("Cannot get first_expr from TraitImpl"),
             Statement::TestDeclaration(_) => panic!("Cannot get first_expr from TestDeclaration"),
         }
     }
