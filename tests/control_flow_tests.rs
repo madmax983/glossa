@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::codegen::generate_rust;
 /// Phase 2: Control Flow Tests
 /// TDD RED phase - these tests define the expected behavior

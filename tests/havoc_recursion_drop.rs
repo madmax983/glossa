@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::ast::{BinOperator, Clause, Expr, Statement, UnaryOperator, Word};
 
 #[test]

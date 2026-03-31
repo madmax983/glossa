@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::codegen::generate_rust;
 use glossa::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, Scope};
 use smol_str::SmolStr;

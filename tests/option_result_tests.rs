@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 /// Integration tests for Option<T> and Result<T,E> types in GLOSSA
 ///
 /// Tests the Ancient Greek morphology mapping:

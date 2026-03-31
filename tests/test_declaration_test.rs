@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Test that δοκιμή test declarations are parsed correctly
 
 use glossa::ast::Statement;

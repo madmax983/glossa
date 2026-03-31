@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Lambda tests - participles as closures
 //!
 //! These tests verify that Greek participles are correctly analyzed

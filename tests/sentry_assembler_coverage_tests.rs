@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::morphology::analyze;
 use glossa::morphology::lexicon::BinaryOp;
 use glossa::semantic::Assembler;

@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Integration tests for δεῖ and ἰσοῦται assertion transpilation
 
 use glossa::codegen::generate_rust;

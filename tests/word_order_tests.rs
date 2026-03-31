@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Word-order independence tests for ΓΛΩΣΣΑ
 //!
 //! These tests verify that the slot-based assembler correctly handles

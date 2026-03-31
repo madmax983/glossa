@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::codegen::generate_rust;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, CaptureMode, GlossaType,

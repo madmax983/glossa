@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::ast::{Clause, Expr, Statement, Word};
 use glossa::semantic::analyzer::analyze_statement;
 use glossa::semantic::{GlossaType, Scope};

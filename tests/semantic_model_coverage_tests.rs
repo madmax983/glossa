@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, AssembledStatement,
     CaptureMode, Constituent, Literal, ParticipleConstituent, TraitDef, TraitImpl, VerbConstituent,

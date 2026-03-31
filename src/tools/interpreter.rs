@@ -19,12 +19,39 @@ use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedS
 use std::collections::HashMap;
 use std::fmt;
 
-/// Runtime Value
+/// The fundamental unit of data in the Simulator's runtime environment.
+///
+/// In a statically typed system, variables have types known at compile time.
+/// However, during the interpretation phase (or simulation), we need a dynamic container
+/// to hold the actual runtime data. The [`Value`] enum acts as this universal container,
+/// allowing the simulator to safely pass data between variables, functions, and operations
+/// without relying on Rust's type system to manage the simulated user's memory.
+///
+/// Every [`Value`] can be displayed natively as text, which powers the simulator's output.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::tools::interpreter::Value;
+///
+/// // Create a numerical truth
+/// let count = Value::Number(42);
+///
+/// // Create a boolean truth
+/// let is_valid = Value::Boolean(true);
+///
+/// assert_eq!(count.to_string(), "42");
+/// assert_eq!(is_valid.to_string(), "true");
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
+    /// A signed 64-bit integer.
     Number(i64),
+    /// A UTF-8 string dynamically allocated on the heap.
     String(String),
+    /// A simple boolean truth state (`true` or `false`).
     Boolean(bool),
+    /// An empty vessel signifying the absence of meaningful data.
     Unit,
     // Future: List(Vec<Value>), Struct(HashMap<String, Value>), etc.
 }
@@ -40,28 +67,58 @@ impl fmt::Display for Value {
     }
 }
 
-/// Evaluation Error
+/// Represents the inevitable failures of a simulated runtime environment.
+///
+/// Unlike compiler errors (which happen when analyzing the AST and typing code),
+/// [`EvalError`] exists to catch dynamic failures that only manifest during program execution.
+/// A user's code might type-check perfectly, but attempting to mutate a nonexistent variable,
+/// divide by zero, or push numeric limits at runtime will trigger these failures.
+///
+/// Because the simulator mimics the compiler, these errors also speak Ancient Greek natively.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::tools::interpreter::EvalError;
+///
+/// let missing_var = EvalError::VariableNotFound("x".into());
+/// assert!(missing_var.to_string().contains("μεταβλητὴ"));
+/// ```
 #[derive(Debug, thiserror::Error)]
 pub enum EvalError {
+    /// Raised when a variable is referenced before it is defined via `ἔστω`.
     #[error("μεταβλητὴ οὐχ εὑρέθη (Variable not found): {0}")]
     VariableNotFound(String),
 
+    /// Raised when a dynamic type assertion fails.
     #[error("τύποι ἀσύμβατοι (Type mismatch): expected {expected}, got {got}")]
-    TypeMismatch { expected: String, got: String },
+    TypeMismatch {
+        /// The expected underlying representation.
+        expected: String,
+        /// The actual provided representation.
+        got: String,
+    },
 
+    /// Triggered when an operator receives two incompatible [`Value`]s (like adding a `String` to a `Boolean`).
     #[error("πρᾶξις ἄκυρος (Invalid operation): {op} on {left} and {right}")]
     InvalidOperation {
+        /// The mathematical or logical operator that failed.
         op: String,
+        /// The left-hand side of the broken equation.
         left: String,
+        /// The right-hand side of the broken equation.
         right: String,
     },
 
+    /// Triggered to prevent a panic when a simulated division operation meets zero.
     #[error("διαίρεσις διὰ μηδενός (Division by zero)")]
     DivisionByZero,
 
+    /// Triggered when mathematical operations exceed the bounds of `i64`.
     #[error("ἀριθμητικὴ ὑπερχείλισις (Arithmetic overflow)")]
     ArithmeticOverflow,
 
+    /// A fallback state indicating the simulation engine does not yet support a specific AST node.
     #[error("μὴ ὑλοποιημένον (Not implemented): {0}")]
     NotImplemented(String),
 }
