@@ -410,6 +410,11 @@ pub fn highlight_file(input: &Path) -> Result<()> {
     };
 
     status.success();
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   H I G H L I G H T".bold().cyan());
+    println!("   {}", "Semantic Source Colors".italic().dim());
+    println!();
     println!("{}", highlighted);
 
     Ok(())
@@ -455,6 +460,11 @@ pub fn bard_file(input: &Path) -> Result<()> {
 
     let tale = tell_tale(&analyzed);
     status.success();
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   B A R D".bold().cyan());
+    println!("   {}", "The Scroll of Logic".italic().dim());
+    println!();
     println!("{}", tale);
 
     Ok(())
