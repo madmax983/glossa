@@ -592,21 +592,6 @@ pub enum AnalyzedExprKind {
         args: Vec<AnalyzedExpr>,
     },
 
-    /// Trait method call `receiver.<TraitName>::method(args)` (from trait impl)
-    ///
-    /// # Example
-    /// `user.Show::print()`
-    TraitMethodCall {
-        /// The entity demonstrating its learned behavior.
-        receiver: Box<AnalyzedExpr>,
-        /// The character (`χαρακτήρ`) that defines this behavior.
-        trait_name: SmolStr,
-        /// The specific behavior being enacted.
-        method_name: SmolStr,
-        /// The necessary context for the behavior.
-        args: Vec<AnalyzedExpr>,
-    },
-
     /// Struct instantiation: `variable νέον type_name args... ἔστω`
     ///
     /// # Example
@@ -719,18 +704,6 @@ impl std::fmt::Debug for AnalyzedExprKind {
                 .debug_struct("MethodCall")
                 .field("receiver", receiver)
                 .field("method", method)
-                .field("args", args)
-                .finish(),
-            AnalyzedExprKind::TraitMethodCall {
-                receiver,
-                trait_name,
-                method_name,
-                args,
-            } => f
-                .debug_struct("TraitMethodCall")
-                .field("receiver", receiver)
-                .field("trait_name", trait_name)
-                .field("method_name", method_name)
                 .field("args", args)
                 .finish(),
             AnalyzedExprKind::StructInstantiation {

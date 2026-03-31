@@ -73,10 +73,9 @@ fn test_generate_trait_method_call_optimization() {
         expr: AnalyzedExprKind::NumberLiteral(10),
         glossa_type: GlossaType::Number,
     }];
-    let expr = AnalyzedExprKind::TraitMethodCall {
+    let expr = AnalyzedExprKind::MethodCall {
         receiver,
-        trait_name: "Num".to_string().into(),
-        method_name: "add".to_string().into(),
+        method: "add".to_string().into(),
         args,
     };
     let stmt = AnalyzedStatement::Expression(vec![AnalyzedExpr {
