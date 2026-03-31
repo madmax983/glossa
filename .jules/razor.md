@@ -126,3 +126,8 @@
 **Bloat:** `QuantifierFlags` struct in `src/semantic/patterns.rs` was an unnecessary abstraction over two booleans (`is_any`, `is_all`).
 **Cut:** Deleted the struct and its `from` implementation, replacing it with a simple `get_quantifier_flags` function returning a `(bool, bool)` tuple.
 **Saved:** Removed unnecessary struct definition and simplified function signatures across `process_adjectives` and `process_explicit_quantifiers`.
+
+## [Reduction]
+**Bloat:** The `trait_count` field in `ProgramStats` was calculated and stored but never displayed or used.
+**Cut:** Deleted the field and its initialization logic.
+**Saved:** Unnecessary iterations and 2 lines of dead code.
