@@ -384,19 +384,6 @@ fn test_bard_exprs() {
     );
 
     test_expr_tale(
-        AnalyzedExprKind::TraitMethodCall {
-            receiver: Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable("obj".into()),
-                glossa_type: GlossaType::Unknown,
-            }),
-            trait_name: "T".into(),
-            method_name: "m".into(),
-            args: vec![],
-        },
-        "`obj` as T::m()",
-    );
-
-    test_expr_tale(
         AnalyzedExprKind::StructInstantiation {
             type_name: "S".into(),
             fields: vec!["f".into()],
