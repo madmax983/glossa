@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::morphology::{Case, Gender, Number, Tense, Voice, participle::analyze_participle};
 
 #[test]

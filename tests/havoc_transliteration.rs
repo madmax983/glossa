@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::tools::runner::run_file;
 use std::fs::File;
 use std::io::Write;

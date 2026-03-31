@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::tools::tester::run_tests;
 use std::fs;
 

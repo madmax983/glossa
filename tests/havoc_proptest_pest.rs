@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::parser::grammar::parse;
 use proptest::prelude::*;
 

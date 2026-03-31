@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 #[cfg(test)]
 mod tests {
     use glossa::morphology::{Mood, Tense, Voice, analyze_verb};

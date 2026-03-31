@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 #![cfg(feature = "nova")]
 
 use glossa::morphology::lexicon::{BinaryOp, UnaryOp};

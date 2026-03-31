@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::parser::numerals::parse_greek_numeral;
 use glossa::parser::parse;
 use proptest::prelude::*;

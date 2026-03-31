@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::morphology::models::*;
 
 #[test]

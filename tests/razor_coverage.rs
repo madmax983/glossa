@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Coverage tests for refactored modules (errors.rs and merged assembler.rs)
 //!
 //! This file aims to exercise the code paths that were moved during refactoring

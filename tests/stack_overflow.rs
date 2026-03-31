@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
 use std::thread;
 

@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::semantic::AnalyzedStatement;
 use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
 

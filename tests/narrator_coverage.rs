@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::parser::parse;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, CaptureMode, GlossaType, analyze_program,

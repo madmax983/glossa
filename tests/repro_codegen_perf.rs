@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::codegen::{generate_type_tokens, sanitize_name, to_rust_type};
 use glossa::morphology::Gender;
 use glossa::semantic::GlossaType;

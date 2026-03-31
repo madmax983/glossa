@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::ast::{BinOperator, Clause, Expr, Program, Statement, UnaryOperator, Word};
 use glossa::semantic::analyze_program;
 

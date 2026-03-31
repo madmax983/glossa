@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::morphology::{Case, MorphAnalysis, Number, PartOfSpeech};
 use glossa::semantic::assembly::Assembler;
 use proptest as prop;
