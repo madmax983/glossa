@@ -567,6 +567,25 @@ fn test_codegen_full_example() {
     assert!(code.contains("fn main"), "Missing main function: {}", code);
 }
 
+#[test]
+fn test_standalone_method_call() {
+    // Test that standalone method calls (method_name receiver) work
+    let source = r#"
+        χαρακτήρ Showable ὁρίζειν { δεῖ show τῷ self. }.
+        εἶδος Point ὁρίζειν { ξ ἀριθμοῦ. }.
+        εἶδος Point τῷ Showable ἐμπίπτειν {
+            show τῷ self· selfου ξ λέγε.
+        }.
+        π νέον Point πέντε ἔστω.
+        show π.
+    "#;
+
+    let code = compile(source);
+
+    // Should contain the method call
+    // π -> g__u3c0_
+    assert!(code.contains("g__u3c0_ . g_show") || code.contains("g__u3c0_.g_show"));
+}
 
 // ============================================================================
 // CYCLE 7: Advanced Features

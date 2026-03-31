@@ -4,5 +4,5 @@
 **Saved:** Dozens of lines of repeated boilerplate matching rules across parsing, codegen, reporting, and narrative tools. Simplifies the AST and standardizes behavior.
 ## [Reduction]
 **Bloat:** `try_parse_trait_method_call` function in `src/semantic/patterns.rs`. The logic was overly specialized for traits, leading to "Speculative Generality", as regular object methods and trait methods share the identical AST representation and compilation behavior.
-**Cut:** Removed `try_parse_trait_method_call` entirely from `src/semantic/patterns.rs` and removed its invocation in `src/semantic/analyzer.rs`.
-**Saved:** 76 lines of code. Simplifies the AST analysis and avoids duplicating method parsing logic.
+**Cut:** Refactored `try_parse_trait_method_call` to `try_parse_method_call` in `src/semantic/patterns.rs`, removing the trait-specific checks (`scope.has_trait_method`) to apply parsing broadly for any standalone method call.
+**Saved:** Unnecessary trait method logic constraints. Avoids duplicating method parsing logic by generalizing the single abstract rule to a single concrete parsing rule.

@@ -327,10 +327,12 @@ impl Scope {
     /// };
     /// scope.register_trait_impl(trait_impl);
     ///
-    /// assert!(scope.has_trait_method("Human", "speak"));
-    /// assert!(!scope.has_trait_method("Dog", "speak"));
+    /// assert!(scope.has_method("Human", "speak"));
+    /// assert!(!scope.has_method("Dog", "speak"));
     /// ```
-    pub fn has_trait_method(&self, type_name: &str, method_name: &str) -> bool {
+    pub fn has_method(&self, type_name: &str, method_name: &str) -> bool {
+        // Currently we only have trait methods, but this genericizes the lookup
+        // for when inherent methods are introduced to the semantic model.
         for level in self.levels.iter().rev() {
             for trait_impl in &level.trait_impls {
                 if trait_impl.type_name != type_name {
