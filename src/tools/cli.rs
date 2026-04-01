@@ -171,4 +171,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Analyze a .γλ file for semantic warnings (Requires "nova" feature)
+    Augur {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

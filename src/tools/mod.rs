@@ -18,6 +18,8 @@
 
 #[cfg(feature = "nova")]
 pub mod alchemist;
+#[cfg(feature = "nova")]
+pub mod augur;
 pub mod cache;
 #[cfg(feature = "nova")]
 pub mod cartographer;

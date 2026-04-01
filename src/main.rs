@@ -110,6 +110,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Augur { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::augur::run_augur(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'augur' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

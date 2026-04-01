@@ -19,3 +19,8 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+
+## The Augur (ὁ Οἰωνιστής)
+**Concept:** A static analyzer (`glossa augur`) that inspects the semantic AST to find code smells, such as unused variables and unreachable code, offering proactive guidance to developers.
+**Fate:** Proposed
+**Lesson:** The semantic analyzer `AnalyzedProgram` is easy to iterate over using a tree walker, giving us great tooling for static analysis directly on the typed representations.
