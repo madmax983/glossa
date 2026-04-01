@@ -57,3 +57,11 @@
 **Sentry Unit Tests Added for Control Flow Branches**
 **Learning:** Found coverage gaps in `src/semantic/control_flow.rs` for `parse_conditional`, `check_else_pattern_in_expression`, and `check_conditional_start`. Realized that coverage unit tests for internal modules `pub(crate)` cannot be placed in the `tests/` directory as integration tests because they will trigger an `E0603: module is private` compilation error.
 **Action:** Always embed unit tests for private modules directly within the target file under `#[cfg(test)] mod tests` block to ensure they compile and increase coverage successfully without violating module visibility rules.
+
+**[Semantic Control Flow Panics]
+**Learning:** Destructuring deeply nested `AnalyzedStatement` types in integration/unit tests using `if let` with an `else { panic!(...) }` fallback introduces uncovered terminal branches, causing false-positive coverage gaps.
+**Action:** Replace `if let` with `let else` patterns or `assert_matches!` to assert structure safely without introducing uncoverable execution branches.
+
+**[Parser Unexpected Rule Defensive Checks]
+**Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
+**Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
