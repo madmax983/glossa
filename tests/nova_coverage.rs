@@ -136,7 +136,7 @@ fn test_run_tests_rustc_error() {
 
     // This creates valid Glossa code that produces invalid Rust code (redefining String)
     // "εἶδος String ὁρίζειν { }." -> "struct String { }" -> conflicts with std::string::String
-    let source = "εἶδος String ὁρίζειν { }. τέλος.";
+    let source = "ξ 1 καί «2» ἔστω.";
     write!(temp_file, "{}", source).expect("Failed to write");
 
     let result = run_tests(temp_file.path());
