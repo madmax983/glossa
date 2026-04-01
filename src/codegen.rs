@@ -622,20 +622,18 @@ fn generate_match(
     arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
 ) -> TokenStream {
     let scrut = generate_expr(scrutinee);
-    let arm_tokens: Vec<TokenStream> = arms
-        .iter()
-        .map(|(pattern, body)| {
-            // Check if pattern is wildcard (represented as BooleanLiteral(true))
-            let pat = if matches!(pattern.expr, AnalyzedExprKind::BooleanLiteral(true)) {
-                // Generate wildcard pattern
-                quote! { _ }
-            } else {
-                generate_expr(pattern)
-            };
-            let body_stmts = generate_statements(body);
-            quote! { #pat => { #(#body_stmts)* } }
-        })
-        .collect();
+    let arm_tokens = arms.iter().map(|(pattern, body)| {
+        // Check if pattern is wildcard (represented as BooleanLiteral(true))
+        let pat = if matches!(pattern.expr, AnalyzedExprKind::BooleanLiteral(true)) {
+            // Generate wildcard pattern
+            quote! { _ }
+        } else {
+            generate_expr(pattern)
+        };
+        let body_stmts = generate_statements(body);
+        quote! { #pat => { #(#body_stmts)* } }
+    });
+
     quote! {
         match #scrut {
             #(#arm_tokens),*
@@ -653,18 +651,15 @@ fn generate_fn_def(
     let body_stmts = generate_statements(body);
 
     // Generate parameter list
-    let param_tokens: Vec<TokenStream> = params
-        .iter()
-        .map(|(param_name, param_type)| {
-            let param_ident = sanitize_ident(param_name);
-            if let Some(ty) = param_type {
-                let ty_tokens = generate_type_tokens(ty);
-                quote! { #param_ident: #ty_tokens }
-            } else {
-                quote! { #param_ident }
-            }
-        })
-        .collect();
+    let param_tokens = params.iter().map(|(param_name, param_type)| {
+        let param_ident = sanitize_ident(param_name);
+        if let Some(ty) = param_type {
+            let ty_tokens = generate_type_tokens(ty);
+            quote! { #param_ident: #ty_tokens }
+        } else {
+            quote! { #param_ident }
+        }
+    });
 
     // Generate return type
     if let Some(ret_type) = return_type {
@@ -695,14 +690,11 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
     );
 
     // Generate field list
-    let field_tokens: Vec<TokenStream> = fields
-        .iter()
-        .map(|(field_name, field_type)| {
-            let field_ident = sanitize_ident(field_name);
-            let type_tokens = generate_type_tokens(field_type);
-            quote! { #field_ident: #type_tokens }
-        })
-        .collect();
+    let field_tokens = fields.iter().map(|(field_name, field_type)| {
+        let field_ident = sanitize_ident(field_name);
+        let type_tokens = generate_type_tokens(field_type);
+        quote! { #field_ident: #type_tokens }
+    });
 
     quote! {
         #[derive(Debug, Clone)]
@@ -721,7 +713,7 @@ struct TraitMethodParts {
 fn generate_trait_method_parts(method: &AnalyzedMethod) -> TraitMethodParts {
     let method_name = sanitize_ident(&method.name);
 
-    let param_tokens: Vec<TokenStream> = method
+    let param_tokens = method
         .params
         .iter()
         .enumerate()
@@ -733,14 +725,13 @@ fn generate_trait_method_parts(method: &AnalyzedMethod) -> TraitMethodParts {
                 let type_tokens = generate_type_tokens(param_type);
                 quote! { #param_ident: #type_tokens }
             }
-        })
-        .collect();
+        });
 
     let ret_tokens = method.return_type.as_ref().map(generate_type_tokens);
 
     TraitMethodParts {
         name: method_name,
-        params: param_tokens,
+        params: param_tokens.collect(),
         return_type: ret_tokens,
     }
 }
@@ -757,40 +748,37 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
     );
 
     // Generate method signatures
-    let method_tokens: Vec<TokenStream> = methods
-        .iter()
-        .map(|method| {
-            let parts = generate_trait_method_parts(method);
-            let method_name = parts.name;
-            let param_tokens = parts.params;
+    let method_tokens = methods.iter().map(|method| {
+        let parts = generate_trait_method_parts(method);
+        let method_name = parts.name;
+        let param_tokens = parts.params;
 
-            if let Some(ret_ty) = parts.return_type {
-                if let Some(body) = &method.body {
-                    let body_stmts = generate_statements(body);
-                    quote! {
-                        fn #method_name(#(#param_tokens),*) -> #ret_ty {
-                            #(#body_stmts)*
-                        }
-                    }
-                } else {
-                    quote! {
-                        fn #method_name(#(#param_tokens),*) -> #ret_ty;
-                    }
-                }
-            } else if let Some(body) = &method.body {
+        if let Some(ret_ty) = parts.return_type {
+            if let Some(body) = &method.body {
                 let body_stmts = generate_statements(body);
                 quote! {
-                    fn #method_name(#(#param_tokens),*) {
+                    fn #method_name(#(#param_tokens),*) -> #ret_ty {
                         #(#body_stmts)*
                     }
                 }
             } else {
                 quote! {
-                    fn #method_name(#(#param_tokens),*);
+                    fn #method_name(#(#param_tokens),*) -> #ret_ty;
                 }
             }
-        })
-        .collect();
+        } else if let Some(body) = &method.body {
+            let body_stmts = generate_statements(body);
+            quote! {
+                fn #method_name(#(#param_tokens),*) {
+                    #(#body_stmts)*
+                }
+            }
+        } else {
+            quote! {
+                fn #method_name(#(#param_tokens),*);
+            }
+        }
+    });
 
     quote! {
         trait #trait_name {
@@ -823,35 +811,32 @@ fn generate_trait_impl(
     );
 
     // Generate method implementations
-    let method_tokens: Vec<TokenStream> = methods
-        .iter()
-        .map(|method| {
-            let parts = generate_trait_method_parts(method);
-            let method_name = parts.name;
-            let param_tokens = parts.params;
+    let method_tokens = methods.iter().map(|method| {
+        let parts = generate_trait_method_parts(method);
+        let method_name = parts.name;
+        let param_tokens = parts.params;
 
-            // Generate method body
-            let body_stmts: Vec<TokenStream> = if let Some(body) = &method.body {
-                generate_statements(body)
-            } else {
-                Vec::new()
-            };
+        // Generate method body
+        let body_stmts: Vec<TokenStream> = if let Some(body) = &method.body {
+            generate_statements(body)
+        } else {
+            Vec::new()
+        };
 
-            if let Some(ret_ty) = parts.return_type {
-                quote! {
-                    fn #method_name(#(#param_tokens),*) -> #ret_ty {
-                        #(#body_stmts)*
-                    }
-                }
-            } else {
-                quote! {
-                    fn #method_name(#(#param_tokens),*) {
-                        #(#body_stmts)*
-                    }
+        if let Some(ret_ty) = parts.return_type {
+            quote! {
+                fn #method_name(#(#param_tokens),*) -> #ret_ty {
+                    #(#body_stmts)*
                 }
             }
-        })
-        .collect();
+        } else {
+            quote! {
+                fn #method_name(#(#param_tokens),*) {
+                    #(#body_stmts)*
+                }
+            }
+        }
+    });
 
     quote! {
         impl #trait_ident for #type_ident {
@@ -1076,15 +1061,11 @@ fn generate_struct_lit(
     );
 
     // Generate field: value pairs using actual field names
-    let field_assignments: Vec<TokenStream> = fields
-        .iter()
-        .zip(args.iter())
-        .map(|(field_name, arg)| {
-            let field_ident = sanitize_ident(field_name);
-            let arg_token = generate_expr(arg);
-            quote! { #field_ident: #arg_token }
-        })
-        .collect();
+    let field_assignments = fields.iter().zip(args.iter()).map(|(field_name, arg)| {
+        let field_ident = sanitize_ident(field_name);
+        let arg_token = generate_expr(arg);
+        quote! { #field_ident: #arg_token }
+    });
 
     quote! { #struct_name { #(#field_assignments),* } }
 }
