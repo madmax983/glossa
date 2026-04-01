@@ -674,8 +674,7 @@ mod tests {
             let mut f = std::fs::File::create(&input_path).unwrap();
             // This is valid Glossa but invalid Rust (redefining String)
             // Injecting invalid rust
-            f.write_all("ξ 1 καί «2» ἔστω.".as_bytes())
-                .unwrap();
+            f.write_all("ξ 1 καί «2» ἔστω.".as_bytes()).unwrap();
         }
 
         let result = run_file(&input_path);
