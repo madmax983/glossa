@@ -91,7 +91,11 @@ impl Augur {
                     self.visit_statement(stmt);
                 }
             }
-            AnalyzedStatement::For { iterator, variable, body } => {
+            AnalyzedStatement::For {
+                iterator,
+                variable,
+                body,
+            } => {
                 self.defined_vars.insert(variable.clone());
                 self.visit_expr(iterator);
                 for stmt in body {
@@ -113,10 +117,8 @@ impl Augur {
                     }
                 }
             }
-            AnalyzedStatement::Return { value } => {
-                if let Some(v) = value {
-                    self.visit_expr(v);
-                }
+            AnalyzedStatement::Return { value: Some(v) } => {
+                self.visit_expr(v);
             }
             // Add remaining matches as needed
             _ => {}
@@ -135,7 +137,8 @@ impl Augur {
             AnalyzedExprKind::UnaryOp { operand, .. } => {
                 self.visit_expr(operand);
             }
-            AnalyzedExprKind::FunctionCall { args, .. } | AnalyzedExprKind::VerbCall { args, .. } => {
+            AnalyzedExprKind::FunctionCall { args, .. }
+            | AnalyzedExprKind::VerbCall { args, .. } => {
                 for arg in args {
                     self.visit_expr(arg);
                 }
@@ -163,7 +166,11 @@ impl Augur {
                     self.visit_expr(arg);
                 }
             }
-            AnalyzedExprKind::Try(e) | AnalyzedExprKind::Unwrap(e) | AnalyzedExprKind::Some(e) | AnalyzedExprKind::Ok(e) | AnalyzedExprKind::Err(e) => {
+            AnalyzedExprKind::Try(e)
+            | AnalyzedExprKind::Unwrap(e)
+            | AnalyzedExprKind::Some(e)
+            | AnalyzedExprKind::Ok(e)
+            | AnalyzedExprKind::Err(e) => {
                 self.visit_expr(e);
             }
             AnalyzedExprKind::Assert { condition } => {
@@ -274,49 +281,72 @@ mod tests {
     #[test]
     fn test_augur_used_variable_in_binop() {
         // Construct AST manually for reliability
-        use crate::semantic::{AnalyzedProgram, AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType, Scope};
         use crate::morphology::lexicon::BinaryOp;
+        use crate::semantic::{
+            AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
+        };
         use smol_str::SmolStr;
 
         let statements = vec![
             AnalyzedStatement::Binding {
                 name: SmolStr::new("ξ"),
-                value: AnalyzedExpr { expr: AnalyzedExprKind::NumberLiteral(5), glossa_type: GlossaType::Number },
+                value: AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(5),
+                    glossa_type: GlossaType::Number,
+                },
                 mutable: false,
             },
             AnalyzedStatement::Binding {
                 name: SmolStr::new("ψ"),
                 value: AnalyzedExpr {
                     expr: AnalyzedExprKind::BinOp {
-                        left: Box::new(AnalyzedExpr { expr: AnalyzedExprKind::Variable(SmolStr::new("ξ")), glossa_type: GlossaType::Number }),
+                        left: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(SmolStr::new("ξ")),
+                            glossa_type: GlossaType::Number,
+                        }),
                         op: BinaryOp::Add,
-                        right: Box::new(AnalyzedExpr { expr: AnalyzedExprKind::NumberLiteral(2), glossa_type: GlossaType::Number }),
+                        right: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(2),
+                            glossa_type: GlossaType::Number,
+                        }),
                     },
                     glossa_type: GlossaType::Number,
                 },
                 mutable: false,
             },
         ];
-        let program = AnalyzedProgram { statements, scope: Scope::new() };
+        let program = AnalyzedProgram {
+            statements,
+            scope: Scope::new(),
+        };
         let mut augur = Augur::new();
         let findings = augur.analyze(&program);
 
-        let has_psi = findings.iter().any(|f| matches!(f, AugurFinding::UnusedVariable(name) if name == "ψ"));
-        let has_xi = findings.iter().any(|f| matches!(f, AugurFinding::UnusedVariable(name) if name == "ξ"));
+        let has_psi = findings
+            .iter()
+            .any(|f| matches!(f, AugurFinding::UnusedVariable(name) if name == "ψ"));
+        let has_xi = findings
+            .iter()
+            .any(|f| matches!(f, AugurFinding::UnusedVariable(name) if name == "ξ"));
         assert!(!has_xi, "ξ should be marked as used");
         assert!(has_psi, "ψ should be marked as unused");
     }
 
     #[test]
     fn test_augur_used_variable_in_unaryop() {
-        use crate::semantic::{AnalyzedProgram, AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType, Scope};
         use crate::morphology::lexicon::UnaryOp;
+        use crate::semantic::{
+            AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
+        };
         use smol_str::SmolStr;
 
         let statements = vec![
             AnalyzedStatement::Binding {
                 name: SmolStr::new("ξ"),
-                value: AnalyzedExpr { expr: AnalyzedExprKind::BooleanLiteral(true), glossa_type: GlossaType::Boolean },
+                value: AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                },
                 mutable: false,
             },
             AnalyzedStatement::Binding {
@@ -324,19 +354,29 @@ mod tests {
                 value: AnalyzedExpr {
                     expr: AnalyzedExprKind::UnaryOp {
                         op: UnaryOp::Not,
-                        operand: Box::new(AnalyzedExpr { expr: AnalyzedExprKind::Variable(SmolStr::new("ξ")), glossa_type: GlossaType::Boolean }),
+                        operand: Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(SmolStr::new("ξ")),
+                            glossa_type: GlossaType::Boolean,
+                        }),
                     },
                     glossa_type: GlossaType::Boolean,
                 },
                 mutable: false,
             },
         ];
-        let program = AnalyzedProgram { statements, scope: Scope::new() };
+        let program = AnalyzedProgram {
+            statements,
+            scope: Scope::new(),
+        };
         let mut augur = Augur::new();
         let findings = augur.analyze(&program);
 
-        let has_psi = findings.iter().any(|f| matches!(f, AugurFinding::UnusedVariable(name) if name == "ψ"));
-        let has_xi = findings.iter().any(|f| matches!(f, AugurFinding::UnusedVariable(name) if name == "ξ"));
+        let has_psi = findings
+            .iter()
+            .any(|f| matches!(f, AugurFinding::UnusedVariable(name) if name == "ψ"));
+        let has_xi = findings
+            .iter()
+            .any(|f| matches!(f, AugurFinding::UnusedVariable(name) if name == "ξ"));
         assert!(!has_xi, "ξ should be marked as used");
         assert!(has_psi, "ψ should be marked as unused");
     }
@@ -372,7 +412,8 @@ mod tests {
         // we can just directly test that printing UnreachableCode works
         // We'll write a manual AST analyzer that returns UnreachableCode to test the println.
 
-        let status = crate::tools::ui::Status::start_with_symbol("Οἰωνός (Analyzing semantics)", "🦅");
+        let status =
+            crate::tools::ui::Status::start_with_symbol("Οἰωνός (Analyzing semantics)", "🦅");
         let findings = vec![AugurFinding::UnreachableCode];
         status.success();
 
@@ -384,7 +425,11 @@ mod tests {
         for finding in findings {
             match finding {
                 AugurFinding::UnusedVariable(name) => {
-                    println!("   {} Variable `{}` is defined but never used.", "⚠️".yellow(), name.yellow());
+                    println!(
+                        "   {} Variable `{}` is defined but never used.",
+                        "⚠️".yellow(),
+                        name.yellow()
+                    );
                 }
                 AugurFinding::UnreachableCode => {
                     println!("   {} Unreachable code detected.", "⚠️".yellow());
