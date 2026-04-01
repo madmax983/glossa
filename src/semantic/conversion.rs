@@ -175,7 +175,21 @@ pub fn classify_assembled_statement(
         return Ok(res);
     }
 
-    classify_expression(asm_stmt)
+    let expr_stmt = classify_expression(asm_stmt)?;
+
+    // If the assembled statement lacked a verb and also resolved to an empty or non-propagating expression,
+    // we want to catch it as a MissingVerb error so it doesn't expose a raw Rust error later.
+    // However, we only apply this if it isn't part of a valid construct (like a query, a propagate/return, or literal-only assignments).
+    if let AnalyzedStatement::Expression(_) = expr_stmt {
+        if asm_stmt.verb.is_none() && !asm_stmt.is_propagate && !asm_stmt.is_query {
+             // For statements that genuinely had some subject or logic but no verb/operators/methods
+             if asm_stmt.subject.is_some() && asm_stmt.operators.is_empty() && asm_stmt.property_accesses.is_empty() && asm_stmt.string_method.is_none() && asm_stmt.literals.is_empty() && asm_stmt.nested_phrases.is_empty() {
+                  return Err(GlossaError::AssemblyError(crate::errors::AssemblyError::MissingVerb));
+             }
+        }
+    }
+
+    Ok(expr_stmt)
 }
 
 // -------------------------------------------------------------------------------------------------
