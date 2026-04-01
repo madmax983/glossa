@@ -53,6 +53,24 @@ use smol_str::SmolStr;
 ///
 /// Represents a statement after semantic analysis, where names are resolved,
 /// types are inferred, and word order is normalized.
+///
+/// ## Examples
+///
+/// Creating a representation of `ξ πέντε ἔστω.` (Let x be 5):
+///
+/// ```rust
+/// use glossa::semantic::{AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType};
+/// use smol_str::SmolStr;
+///
+/// let binding = AnalyzedStatement::Binding {
+///     name: SmolStr::new("ξ"),
+///     value: AnalyzedExpr {
+///         expr: AnalyzedExprKind::NumberLiteral(5),
+///         glossa_type: GlossaType::Number,
+///     },
+///     mutable: false, // `ἔστω` makes it immutable
+/// };
+/// ```
 #[derive(Clone)]
 pub enum AnalyzedStatement {
     /// Variable binding
@@ -367,6 +385,23 @@ impl std::fmt::Debug for AnalyzedStatement {
 /// merely a required signature in a [`TraitDef`] or a fully fleshed-out behavior
 /// in a [`TraitImpl`]. It provides the bridge between the compiler's type checker
 /// and the final code generation phase.
+///
+/// ## Examples
+///
+/// A trait method that requires an implementation but provides no default body:
+///
+/// ```rust
+/// use glossa::semantic::{AnalyzedMethod, GlossaType};
+/// use smol_str::SmolStr;
+///
+/// // Represents `print ὁρίζειν ().` inside a trait definition
+/// let required_method = AnalyzedMethod {
+///     name: SmolStr::new("print"),
+///     params: vec![],
+///     body: None, // No default implementation provided
+///     return_type: Some(GlossaType::Unit),
+/// };
+/// ```
 #[derive(Clone)]
 pub struct AnalyzedMethod {
     /// The unique identifier of the method, used for resolution during trait calls.
@@ -406,6 +441,21 @@ impl std::fmt::Debug for AnalyzedMethod {
 /// This struct pairs the structural "what" of the expression ([`AnalyzedExprKind`])
 /// with its semantic "how" ([`GlossaType`]), ensuring that operations are only
 /// performed on compatible data structures during codegen.
+///
+/// ## Examples
+///
+/// By pairing the pure syntax with its semantic type, the compiler can guarantee
+/// safety before code generation:
+///
+/// ```rust
+/// use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
+///
+/// // The abstract concept of the number 42, explicitly typed as a Number
+/// let answer = AnalyzedExpr {
+///     expr: AnalyzedExprKind::NumberLiteral(42),
+///     glossa_type: GlossaType::Number,
+/// };
+/// ```
 #[derive(Clone)]
 pub struct AnalyzedExpr {
     /// The raw structure of the expression itself, describing the action or literal value.
@@ -430,6 +480,27 @@ impl std::fmt::Debug for AnalyzedExpr {
 }
 
 /// Kind of analyzed expression
+///
+/// ## Examples
+///
+/// Expressing a binary operation (e.g., `5 + 3`):
+///
+/// ```rust
+/// use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
+/// use glossa::morphology::lexicon::BinaryOp;
+///
+/// let addition = AnalyzedExprKind::BinOp {
+///     left: Box::new(AnalyzedExpr {
+///         expr: AnalyzedExprKind::NumberLiteral(5),
+///         glossa_type: GlossaType::Number,
+///     }),
+///     op: BinaryOp::Add,
+///     right: Box::new(AnalyzedExpr {
+///         expr: AnalyzedExprKind::NumberLiteral(3),
+///         glossa_type: GlossaType::Number,
+///     }),
+/// };
+/// ```
 #[derive(Clone)]
 pub enum AnalyzedExprKind {
     /// String literal
@@ -744,6 +815,20 @@ impl std::fmt::Debug for AnalyzedExprKind {
 }
 
 /// Capture mode for closures
+///
+/// ## Examples
+///
+/// Modes dictate the lifespan and ownership of a lambda's environment:
+///
+/// ```rust
+/// use glossa::semantic::CaptureMode;
+///
+/// // Standard iteration (e.g., `map` or `filter`) borrows variables.
+/// let iteration = CaptureMode::Borrow;
+///
+/// // Returning a closure requires taking ownership of the context.
+/// let escaping = CaptureMode::Move;
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CaptureMode {
     /// Borrow captured variables (default for present participles)
