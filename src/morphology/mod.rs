@@ -19,13 +19,13 @@
 //! Disambiguation uses syntactic context (article agreement, verb agreement) in the
 //! semantic analysis phase.
 
-pub mod conjugation;
-pub mod declension;
-pub mod disambiguation;
+pub(crate) mod conjugation;
+pub(crate) mod declension;
+pub(crate) mod disambiguation;
 pub mod lexicon;
 pub(crate) mod matcher;
 pub mod models;
-pub mod participle;
+pub(crate) mod participle;
 
 pub use conjugation::*;
 pub use declension::*;

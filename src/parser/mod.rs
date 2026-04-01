@@ -25,7 +25,7 @@
 pub(crate) mod common;
 pub(crate) mod declarations;
 pub(crate) mod expressions;
-pub mod grammar;
+pub(crate) mod grammar;
 pub mod numerals;
 pub(crate) mod recursion;
 pub(crate) mod statements;

@@ -17,22 +17,22 @@
 //! * [`ui`]: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
 #[cfg(feature = "nova")]
-pub mod alchemist;
-pub mod cache;
+pub(crate) mod alchemist;
+pub(crate) mod cache;
 #[cfg(feature = "nova")]
-pub mod cartographer;
+pub(crate) mod cartographer;
 pub mod cli;
-pub mod dictionary;
+pub(crate) mod dictionary;
 pub mod highlight;
 #[cfg(feature = "nova")]
-pub mod interpreter;
+pub(crate) mod interpreter;
 #[cfg(feature = "nova")]
-pub mod mentor;
+pub(crate) mod mentor;
 #[cfg(feature = "nova")]
-pub mod mosaic;
-pub mod narrator;
-pub mod repl;
-pub mod report;
+pub(crate) mod mosaic;
+pub(crate) mod narrator;
+pub(crate) mod repl;
+pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
 ///
 /// This module orchestrates the full compilation pipeline from source file to executable binary.
@@ -52,7 +52,7 @@ pub mod report;
 /// }
 /// ```
 pub mod runner;
-pub mod tester;
-pub mod ui;
+pub(crate) mod tester;
+pub(crate) mod ui;
 #[cfg(feature = "nova")]
-pub mod weave;
+pub(crate) mod weave;
