@@ -424,18 +424,6 @@ fn test_bard_exprs() {
     );
 
     test_expr_tale(
-        AnalyzedExprKind::Lambda {
-            params: vec![],
-            body: Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::None,
-                glossa_type: GlossaType::Unit,
-            }),
-            capture_mode: CaptureMode::Memoize,
-        },
-        "memo || None",
-    );
-
-    test_expr_tale(
         AnalyzedExprKind::CollectionNew {
             collection_type: "HashSet".into(),
         },

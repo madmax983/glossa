@@ -564,7 +564,6 @@ fn tell_lambda(
     let mode = match capture_mode {
         CaptureMode::Borrow => "",
         CaptureMode::Move => "move ",
-        CaptureMode::Memoize => "memo ",
     };
     format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
 }

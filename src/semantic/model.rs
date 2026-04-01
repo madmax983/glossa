@@ -711,12 +711,6 @@ pub enum CaptureMode {
     ///
     /// Used when the lambda might outlive the current scope or needs ownership.
     Move,
-
-    /// Memoize result (for perfect participles)
-    ///
-    /// Used to cache the result of the lambda for identical inputs.
-    /// This turns the closure into a lazy, memoized value.
-    Memoize,
 }
 
 // --- Trait and Type Definitions (moved from types.rs) ---

@@ -121,3 +121,8 @@
 **Bloat:** `AssemblyError` in `src/errors/assembly.rs` contained two variants (`MissingVerb` and `GenderMismatch`) that were defined but completely unused anywhere in the codebase, leading to dead code.
 **Cut:** Deleted the `MissingVerb` and `GenderMismatch` error variants and the unused `Gender` import.
 **Saved:** Removed 13 lines of dead code and simplified the error variant surface area.
+
+## [Reduction]
+**Bloat:** `CaptureMode::Memoize` enum variant for "perfect participles" and its associated codegen logic (`generate_memoized_closure`). The logic was speculative, partially-implemented (panicking if arguments were provided), and unused by the parser or semantic analyzer, representing unnecessary "Enterprise FizzBuzz" over-abstraction.
+**Cut:** Deleted the `CaptureMode::Memoize` variant from `src/semantic/model.rs`, removed its match arms in `src/codegen.rs` and `src/tools/narrator.rs`, and deleted the unused `generate_memoized_closure` helper function entirely.
+**Saved:** ~35 lines of dead, speculative compiler code, reducing cognitive load on lambda capture semantics.

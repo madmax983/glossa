@@ -1090,33 +1090,6 @@ fn generate_struct_lit(
     quote! { #struct_name { #(#field_assignments),* } }
 }
 
-fn generate_memoized_closure(
-    params: &[smol_str::SmolStr],
-    body_tokens: TokenStream,
-    params_idents: &[Ident],
-) -> TokenStream {
-    // Warden Security Check: Memoization ignores arguments, so it's only safe for 0-arity closures (thunks).
-    // If we allow arguments, we risk caching incorrect results (e.g. f(1) cached, f(2) returns cached f(1)).
-    if !params.is_empty() {
-        panic!("Memoization is only supported for 0-argument closures");
-    }
-
-    // Perfect participle: lazy evaluation with caching
-    quote! {
-        {
-            use std::cell::RefCell;
-            let cache = RefCell::new(None);
-            move |#(#params_idents),*| {
-                let mut cache_ref = cache.borrow_mut();
-                if cache_ref.is_none() {
-                    *cache_ref = Some(#body_tokens);
-                }
-                cache_ref.clone().unwrap()
-            }
-        }
-    }
-}
-
 fn generate_closure(
     params: &[smol_str::SmolStr],
     body: &AnalyzedExpr,
@@ -1132,7 +1105,6 @@ fn generate_closure(
         CaptureMode::Borrow => {
             quote! { |#(#params_idents),*| #body_tokens }
         }
-        CaptureMode::Memoize => generate_memoized_closure(params, body_tokens, &params_idents),
     }
 }
 
@@ -1597,28 +1569,7 @@ mod tests {
 
     mod refactor_tests {
         use super::*;
-        use crate::semantic::CaptureMode;
         use smol_str::SmolStr;
-
-        #[test]
-        fn test_generate_memoized_closure() {
-            // Manual construction of a memoized closure expression
-            let body = AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(42),
-                glossa_type: GlossaType::Number,
-            };
-
-            let params: Vec<SmolStr> = vec![];
-            let tokens = generate_closure(&params, &body, &CaptureMode::Memoize);
-            let code = tokens.to_string();
-
-            // Verify structure
-            assert!(code.contains("RefCell"));
-            assert!(code.contains("new"));
-            assert!(code.contains("None"));
-            assert!(code.contains("borrow_mut"));
-            assert!(code.contains("unwrap"));
-        }
 
         #[test]
         fn test_generate_trait_parts_manual() {
