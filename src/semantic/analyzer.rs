@@ -157,6 +157,8 @@ fn extract_block_statements(stmt: &Statement) -> Option<&Vec<Statement>> {
 ///
 /// This is the entry point for semantic analysis.
 pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError> {
+    crate::semantic::validation::check_program_depth(program)?;
+
     let mut scope = Scope::new();
     // ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the program statements length to prevent reallocation.
     let mut analyzed_statements = Vec::with_capacity(program.statements.len());

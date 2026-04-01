@@ -5,8 +5,96 @@
 //! DoS attacks like stack overflows from deeply nested expressions.
 
 use super::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
+use crate::ast::{Clause, Expr, Program, Statement};
 use crate::errors::GlossaError;
-use crate::limits::MAX_EXPRESSION_DEPTH;
+use crate::limits::{MAX_AST_DEPTH, MAX_EXPRESSION_DEPTH};
+
+/// Validates the raw AST program depth before semantic analysis begins.
+pub(crate) fn check_program_depth(program: &Program) -> Result<(), GlossaError> {
+    for stmt in &program.statements {
+        check_ast_statement_depth(stmt, 0)?;
+    }
+    Ok(())
+}
+
+fn check_ast_statement_depth(stmt: &Statement, depth: usize) -> Result<(), GlossaError> {
+    if depth > MAX_AST_DEPTH {
+        return Err(GlossaError::semantic(
+            "Recursion limit exceeded in statement analysis",
+        ));
+    }
+
+    match stmt {
+        Statement::Regular { clauses, .. } => {
+            for clause in clauses {
+                check_ast_clause_depth(clause, depth + 1)?;
+            }
+        }
+        Statement::TypeDefinition(_)
+        | Statement::TraitDefinition(_)
+        | Statement::TraitImpl(_)
+        | Statement::TestDeclaration(_) => {}
+    }
+    Ok(())
+}
+
+fn check_ast_clause_depth(clause: &Clause, depth: usize) -> Result<(), GlossaError> {
+    if depth > MAX_AST_DEPTH {
+        return Err(GlossaError::semantic(
+            "Recursion limit exceeded in clause analysis",
+        ));
+    }
+
+    for expr in &clause.expressions {
+        check_ast_expr_depth(expr, depth + 1)?;
+    }
+    Ok(())
+}
+
+fn check_ast_expr_depth(expr: &Expr, depth: usize) -> Result<(), GlossaError> {
+    if depth > MAX_AST_DEPTH {
+        return Err(GlossaError::semantic(
+            "Recursion limit exceeded in expression analysis",
+        ));
+    }
+
+    match expr {
+        Expr::Phrase(terms) | Expr::ArrayLiteral(terms) => {
+            for term in terms {
+                check_ast_expr_depth(term, depth + 1)?;
+            }
+        }
+        Expr::PropertyAccess { owner, property } => {
+            check_ast_expr_depth(owner, depth + 1)?;
+            check_ast_expr_depth(property, depth + 1)?;
+        }
+        Expr::IndexAccess { array, index } => {
+            check_ast_expr_depth(array, depth + 1)?;
+            check_ast_expr_depth(index, depth + 1)?;
+        }
+        Expr::Call { arguments, .. } => {
+            for arg in arguments {
+                check_ast_expr_depth(arg, depth + 1)?;
+            }
+        }
+        Expr::Binding { value, .. } => check_ast_expr_depth(value, depth + 1)?,
+        Expr::BinOp { left, right, .. } => {
+            check_ast_expr_depth(left, depth + 1)?;
+            check_ast_expr_depth(right, depth + 1)?;
+        }
+        Expr::UnaryOp { operand, .. } => check_ast_expr_depth(operand, depth + 1)?,
+        Expr::Block(statements) => {
+            for stmt in statements {
+                check_ast_statement_depth(stmt, depth + 1)?;
+            }
+        }
+        Expr::StringLiteral(_)
+        | Expr::NumberLiteral(_)
+        | Expr::BooleanLiteral(_)
+        | Expr::Word(_) => {}
+    }
+    Ok(())
+}
 
 /// Validates the analyzed program to ensure it meets all semantic rules and limits.
 pub(crate) fn validate_program(program: &AnalyzedProgram) -> Result<(), GlossaError> {
