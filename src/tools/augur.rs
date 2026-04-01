@@ -80,46 +80,6 @@ impl Augur {
                     }
                 }
             }
-            AnalyzedStatement::Expression(exprs) => {
-                for expr in exprs {
-                    self.visit_expr(expr);
-                }
-            }
-            AnalyzedStatement::While { condition, body } => {
-                self.visit_expr(condition);
-                for stmt in body {
-                    self.visit_statement(stmt);
-                }
-            }
-            AnalyzedStatement::For {
-                iterator,
-                variable,
-                body,
-            } => {
-                self.defined_vars.insert(variable.clone());
-                self.visit_expr(iterator);
-                for stmt in body {
-                    self.visit_statement(stmt);
-                }
-            }
-            AnalyzedStatement::FunctionDef { body, .. } => {
-                // Simplified, doesn't track params
-                for stmt in body {
-                    self.visit_statement(stmt);
-                }
-            }
-            AnalyzedStatement::Match { scrutinee, arms } => {
-                self.visit_expr(scrutinee);
-                for (pattern, body) in arms {
-                    self.visit_expr(pattern);
-                    for stmt in body {
-                        self.visit_statement(stmt);
-                    }
-                }
-            }
-            AnalyzedStatement::Return { value: Some(v) } => {
-                self.visit_expr(v);
-            }
             // Add remaining matches as needed
             _ => {}
         }
@@ -136,53 +96,6 @@ impl Augur {
             }
             AnalyzedExprKind::UnaryOp { operand, .. } => {
                 self.visit_expr(operand);
-            }
-            AnalyzedExprKind::FunctionCall { args, .. }
-            | AnalyzedExprKind::VerbCall { args, .. } => {
-                for arg in args {
-                    self.visit_expr(arg);
-                }
-            }
-            AnalyzedExprKind::StructInstantiation { args, .. } => {
-                for arg in args {
-                    self.visit_expr(arg);
-                }
-            }
-            AnalyzedExprKind::ArrayLiteral(exprs) => {
-                for e in exprs {
-                    self.visit_expr(e);
-                }
-            }
-            AnalyzedExprKind::IndexAccess { array, index } => {
-                self.visit_expr(array);
-                self.visit_expr(index);
-            }
-            AnalyzedExprKind::PropertyAccess { owner, .. } => {
-                self.visit_expr(owner);
-            }
-            AnalyzedExprKind::MethodCall { receiver, args, .. } => {
-                self.visit_expr(receiver);
-                for arg in args {
-                    self.visit_expr(arg);
-                }
-            }
-            AnalyzedExprKind::Try(e)
-            | AnalyzedExprKind::Unwrap(e)
-            | AnalyzedExprKind::Some(e)
-            | AnalyzedExprKind::Ok(e)
-            | AnalyzedExprKind::Err(e) => {
-                self.visit_expr(e);
-            }
-            AnalyzedExprKind::Assert { condition } => {
-                self.visit_expr(condition);
-            }
-            AnalyzedExprKind::AssertEq { left, right } => {
-                self.visit_expr(left);
-                self.visit_expr(right);
-            }
-            AnalyzedExprKind::Range { start, end, .. } => {
-                self.visit_expr(start);
-                self.visit_expr(end);
             }
             // Add remaining matches as needed
             _ => {}
