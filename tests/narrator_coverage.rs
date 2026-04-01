@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::parser::parse;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, CaptureMode, GlossaType, analyze_program,
@@ -269,9 +270,18 @@ fn test_bard_exprs() {
     test_expr_tale(
         AnalyzedExprKind::VerbCall {
             verb: "run".into(),
-            args: vec![],
+            args: vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                },
+            ],
         },
-        "run()",
+        "run(1, true)",
     );
 
     test_expr_tale(
@@ -372,19 +382,6 @@ fn test_bard_exprs() {
             args: vec![],
         },
         "`obj`.m()",
-    );
-
-    test_expr_tale(
-        AnalyzedExprKind::TraitMethodCall {
-            receiver: Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable("obj".into()),
-                glossa_type: GlossaType::Unknown,
-            }),
-            trait_name: "T".into(),
-            method_name: "m".into(),
-            args: vec![],
-        },
-        "`obj` as T::m()",
     );
 
     test_expr_tale(
@@ -513,10 +510,10 @@ fn test_bard_types() {
     );
     check_type(
         GlossaType::Function {
-            params: vec![GlossaType::Number],
+            params: vec![GlossaType::Number, GlossaType::String, GlossaType::Boolean],
             returns: Box::new(GlossaType::Boolean),
         },
-        "Fn(Number) -> Bool",
+        "Fn(Number, String, Bool) -> Bool",
     );
     check_type(GlossaType::Unit, "()");
     check_type(GlossaType::Unknown, "?");

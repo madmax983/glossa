@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::morphology::conjugation::analyze_verb;
 use glossa::morphology::declension::analyze_noun;
 use glossa::morphology::participle::analyze_participle;

@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::codegen::generate_rust;
 use glossa::morphology::lexicon::UnaryOp;
 use glossa::semantic::{

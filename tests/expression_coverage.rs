@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Coverage tests for expression classification paths
 //!
 //! These tests target specific branches in `src/semantic/conversion.rs`

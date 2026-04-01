@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Collection tests for ΓΛΩΣΣΑ Phase 3
 //!
 //! Tests array literals, indexing, and collection operations.

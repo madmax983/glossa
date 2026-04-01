@@ -24,6 +24,27 @@ use smol_str::SmolStr;
 ///
 /// Types are checked for compatibility using [`GlossaType::is_compatible`].
 /// `GlossaType::Unknown` acts as a wildcard that matches any type (useful during inference).
+///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::GlossaType;
+///
+/// // Create simple types
+/// let num_type = GlossaType::Number;
+/// let str_type = GlossaType::String;
+///
+/// // Create complex nested types
+/// let list_of_numbers = GlossaType::List(Box::new(GlossaType::Number));
+///
+/// // Check type compatibility
+/// assert!(num_type.is_compatible(&GlossaType::Number));
+/// assert!(!num_type.is_compatible(&str_type));
+///
+/// // The Unknown type acts as a wildcard, compatible with anything
+/// assert!(GlossaType::Unknown.is_compatible(&str_type));
+/// assert!(num_type.is_compatible(&GlossaType::Unknown));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GlossaType {
     /// **ἀριθμός** (Number) - 64-bit signed integer (`i64`)
@@ -87,8 +108,11 @@ pub enum GlossaType {
     ///
     /// Named types defined by the user (e.g., `εἶδος Χρήστης`).
     Struct {
+        /// The name (`ὄνομα`) given to this specific form of data.
         name: SmolStr,
+        /// The grammatical gender dictating how this type interacts with adjectives and articles.
         gender: Gender,
+        /// The internal composition that defines what it means to be this type.
         fields: Vec<(SmolStr, GlossaType)>,
     },
 
@@ -96,7 +120,9 @@ pub enum GlossaType {
     ///
     /// Represents the type of a function, including parameter and return types.
     Function {
+        /// The required offerings (inputs) needed to invoke this action.
         params: Vec<GlossaType>,
+        /// The ultimate outcome (`ἀποτέλεσμα`) produced by the action.
         returns: Box<GlossaType>,
     },
 
@@ -138,8 +164,14 @@ impl std::fmt::Display for GlossaType {
             GlossaType::Result(ok, err) => write!(f, "Ἀποτέλεσμα<{}, {}>", ok, err),
             GlossaType::Struct { name, .. } => write!(f, "Εἶδος {}", name),
             GlossaType::Function { params, returns } => {
-                let params_str: Vec<String> = params.iter().map(|p| p.to_string()).collect();
-                write!(f, "Ἔργον({}) -> {}", params_str.join(", "), returns)
+                write!(f, "Ἔργον(")?;
+                for (i, param) in params.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", param)?;
+                }
+                write!(f, ") -> {}", returns)
             }
             GlossaType::Unit => write!(f, "Οὐδέν"),
             GlossaType::Unknown => write!(f, "Ἄγνωστον"),
@@ -214,9 +246,62 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_type_to_greek() {
+    fn test_type_to_greek_full() {
         assert_eq!(GlossaType::Number.to_greek(), "ἀριθμός");
         assert_eq!(GlossaType::String.to_greek(), "ὄνομα");
+        assert_eq!(GlossaType::Boolean.to_greek(), "ἀληθές");
+        assert_eq!(
+            GlossaType::List(Box::new(GlossaType::Number)).to_greek(),
+            "λίστη"
+        );
+        assert_eq!(
+            GlossaType::Set(Box::new(GlossaType::Number)).to_greek(),
+            "σύνολον"
+        );
+        assert_eq!(
+            GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number)).to_greek(),
+            "χάρτης"
+        );
+        assert_eq!(
+            GlossaType::Option(Box::new(GlossaType::Number)).to_greek(),
+            "εὑρεθείη"
+        );
+        assert_eq!(
+            GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String))
+                .to_greek(),
+            "ἀποτέλεσμα"
+        );
+        assert_eq!(GlossaType::Unit.to_greek(), "οὐδέν");
+        assert_eq!(
+            GlossaType::Struct {
+                name: "test".into(),
+                gender: crate::morphology::Gender::Neuter,
+                fields: vec![]
+            }
+            .to_greek(),
+            "εἶδος"
+        );
+        assert_eq!(
+            GlossaType::Function {
+                params: vec![],
+                returns: Box::new(GlossaType::Unit)
+            }
+            .to_greek(),
+            "ἔργον"
+        );
+        assert_eq!(GlossaType::Unknown.to_greek(), "ἄγνωστον");
+    }
+
+    #[test]
+    fn test_format_function_type_multiple_params() {
+        let func = GlossaType::Function {
+            params: vec![GlossaType::Number, GlossaType::String],
+            returns: Box::new(GlossaType::Boolean),
+        };
+        assert_eq!(
+            format!("{}", func),
+            "Ἔργον(Ἀριθμός, Ὄνομα) -> Ἀληθές/Ψεῦδος"
+        );
     }
 
     #[test]
@@ -224,13 +309,80 @@ mod tests {
         assert!(GlossaType::Number.is_compatible(&GlossaType::Number));
         assert!(!GlossaType::Number.is_compatible(&GlossaType::String));
         assert!(GlossaType::Unknown.is_compatible(&GlossaType::Number));
+        assert!(GlossaType::Number.is_compatible(&GlossaType::Unknown));
+
+        assert!(
+            GlossaType::List(Box::new(GlossaType::Number))
+                .is_compatible(&GlossaType::List(Box::new(GlossaType::Number)))
+        );
+        assert!(
+            !GlossaType::List(Box::new(GlossaType::Number))
+                .is_compatible(&GlossaType::List(Box::new(GlossaType::String)))
+        );
+
+        assert!(
+            GlossaType::Set(Box::new(GlossaType::Number))
+                .is_compatible(&GlossaType::Set(Box::new(GlossaType::Number)))
+        );
+        assert!(
+            !GlossaType::Set(Box::new(GlossaType::Number))
+                .is_compatible(&GlossaType::Set(Box::new(GlossaType::String)))
+        );
+
+        assert!(
+            GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number))
+                .is_compatible(&GlossaType::Map(
+                    Box::new(GlossaType::String),
+                    Box::new(GlossaType::Number)
+                ))
+        );
+        assert!(
+            !GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number))
+                .is_compatible(&GlossaType::Map(
+                    Box::new(GlossaType::Number),
+                    Box::new(GlossaType::String)
+                ))
+        );
+
+        assert!(
+            GlossaType::Option(Box::new(GlossaType::Number))
+                .is_compatible(&GlossaType::Option(Box::new(GlossaType::Number)))
+        );
+        assert!(
+            !GlossaType::Option(Box::new(GlossaType::Number))
+                .is_compatible(&GlossaType::Option(Box::new(GlossaType::String)))
+        );
+
+        assert!(
+            GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String))
+                .is_compatible(&GlossaType::Result(
+                    Box::new(GlossaType::Number),
+                    Box::new(GlossaType::String)
+                ))
+        );
+        assert!(
+            !GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String))
+                .is_compatible(&GlossaType::Result(
+                    Box::new(GlossaType::String),
+                    Box::new(GlossaType::Number)
+                ))
+        );
     }
 
     #[test]
-    fn test_detect_collection_type() {
+    fn test_detect_collection_type_full() {
         assert!(detect_collection_type("συνολον").is_some());
         assert!(detect_collection_type("χαρτης").is_some());
         assert!(detect_collection_type("other").is_none());
+
+        let result = detect_collection_type("συνολον");
+        assert_eq!(result.unwrap().0, "HashSet");
+
+        let result = detect_collection_type("χαρτης");
+        assert_eq!(result.unwrap().0, "HashMap");
+
+        let result = detect_collection_type("Invalid");
+        assert!(result.is_none());
     }
 
     #[test]

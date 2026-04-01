@@ -237,12 +237,18 @@ fn print_env<W: Write>(context: &ReplContext, w: &mut W) -> Result<()> {
 pub enum ReplOutput {
     /// A new variable binding
     Binding {
+        /// The identifier the user has chosen to represent this piece of reality.
         name: String,
+        /// The philosophical form (`εἶδος`) that governs what this identifier can do.
         type_: GlossaType,
+        /// Indicates if the user allows this reality to change (`true`) or demands it remain constant (`false`).
         mutable: bool,
     },
     /// Code execution (compilation)
-    Statement { code: String },
+    Statement {
+        /// The translated Rust syntax ready to be executed by the underlying machine.
+        code: String,
+    },
     /// No output (e.g. empty line)
     None,
 }

@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 #![cfg(feature = "nova")]
 
 use glossa::morphology::lexicon::{BinaryOp, UnaryOp};
@@ -122,7 +123,16 @@ fn test_alchemist_coverage() {
         },
         AnalyzedStatement::TestDeclaration {
             name: "test_empty".into(),
-            body: vec![],
+            body: vec![AnalyzedStatement::Print(vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::StringLiteral("arg1".into()),
+                    glossa_type: GlossaType::String,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::StringLiteral("arg2".into()),
+                    glossa_type: GlossaType::String,
+                },
+            ])],
         },
         // Match Statement
         AnalyzedStatement::Match {

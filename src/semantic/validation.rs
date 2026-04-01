@@ -129,8 +129,7 @@ fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> Result<(), GlossaError
             check_expr_depth(array, depth + 1)?;
             check_expr_depth(index, depth + 1)?;
         }
-        AnalyzedExprKind::MethodCall { receiver, args, .. }
-        | AnalyzedExprKind::TraitMethodCall { receiver, args, .. } => {
+        AnalyzedExprKind::MethodCall { receiver, args, .. } => {
             check_expr_depth(receiver, depth + 1)?;
             for arg in args {
                 check_expr_depth(arg, depth + 1)?;
@@ -161,7 +160,6 @@ fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> Result<(), GlossaError
 mod tests {
     use super::*;
     use crate::semantic::GlossaType;
-    use smol_str::SmolStr;
 
     #[test]
     fn test_statement_depth_limit() {
@@ -204,25 +202,6 @@ mod tests {
             value: Some(Box::new(expr)),
         };
         let result = check_statement_depth(&stmt, 0);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_trait_method_call_depth() {
-        let receiver = AnalyzedExpr {
-            expr: AnalyzedExprKind::None,
-            glossa_type: GlossaType::Unknown,
-        };
-        let expr = AnalyzedExpr {
-            expr: AnalyzedExprKind::TraitMethodCall {
-                receiver: Box::new(receiver),
-                method_name: SmolStr::new("test_method"),
-                trait_name: SmolStr::new("test_trait"),
-                args: vec![],
-            },
-            glossa_type: GlossaType::Unknown,
-        };
-        let result = check_expr_depth(&expr, 0);
         assert!(result.is_ok());
     }
 }

@@ -38,14 +38,17 @@ use std::path::Path;
 ///
 /// Reads the source file, parses it, and prints the semantic assembly table to stdout.
 pub fn run_mosaic(input_path: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Ψηφιδωτόν (Mosaic)", "🧩");
-
     let source = crate::tools::runner::load_source(input_path)?;
+
+    let status = Status::start_with_symbol("Ψηφιδωτόν (Mosaic)", "🧩");
 
     // Create a buffer for the table
     let mut buffer = Vec::new();
-    run_mosaic_inner(&source, &mut buffer)?;
-    let output = String::from_utf8(buffer).into_diagnostic()?;
+    if let Err(e) = run_mosaic_inner(&source, &mut buffer) {
+        status.error("Σφάλμα (Error)");
+        return Err(e);
+    }
+    let output = String::from_utf8(buffer).expect("comfy-table outputs valid UTF-8");
 
     status.success();
 
@@ -161,19 +164,7 @@ fn format_subject(asm: &AssembledStatement) -> String {
     }
 }
 
-fn format_other_column(asm: &AssembledStatement) -> String {
-    let mut other = Vec::new();
-
-    // Literals
-    if !asm.literals.is_empty() {
-        other.push(format!("Literals: {}", asm.literals.len()));
-    }
-
-    // Operators
-    if !asm.operators.is_empty() {
-        other.push(format!("Ops: {:?}", asm.operators));
-    }
-
+fn format_collections(asm: &AssembledStatement, other: &mut Vec<String>) {
     // Genitives
     if !asm.genitives.is_empty() {
         // ⚡ Bolt Optimization: Avoid intermediate `Vec` allocations by constructing
@@ -215,7 +206,9 @@ fn format_other_column(asm: &AssembledStatement) -> String {
         }
         other.push(format!("Participles: [{}]", parts));
     }
+}
 
+fn format_structural_elements(asm: &AssembledStatement, other: &mut Vec<String>) {
     // New Fields (Arrays, Index Accesses, Properties, Blocks, Phrases, Unwraps)
     if !asm.arrays.is_empty() {
         other.push(format!("Arrays: {}", asm.arrays.len()));
@@ -251,7 +244,9 @@ fn format_other_column(asm: &AssembledStatement) -> String {
     if let Some((method, delim)) = &asm.string_method {
         other.push(format!("Method: {}({})", method, delim));
     }
+}
 
+fn format_flags(asm: &AssembledStatement, other: &mut Vec<String>) {
     // Flags
     let mut flags = Vec::new();
     if asm.is_query {
@@ -273,6 +268,24 @@ fn format_other_column(asm: &AssembledStatement) -> String {
     if !flags.is_empty() {
         other.push(format!("Flags: [{}]", flags.join(", ")));
     }
+}
+
+fn format_other_column(asm: &AssembledStatement) -> String {
+    let mut other = Vec::new();
+
+    // Literals
+    if !asm.literals.is_empty() {
+        other.push(format!("Literals: {}", asm.literals.len()));
+    }
+
+    // Operators
+    if !asm.operators.is_empty() {
+        other.push(format!("Ops: {:?}", asm.operators));
+    }
+
+    format_collections(asm, &mut other);
+    format_structural_elements(asm, &mut other);
+    format_flags(asm, &mut other);
 
     other.join("\n")
 }
@@ -457,5 +470,20 @@ mod tests {
 
         let result = run_mosaic(&file_path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_mosaic_error() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_error.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            // Invalid syntax to trigger early return
+            f.write_all(b"not valid syntax").unwrap();
+        }
+
+        let result = run_mosaic(&file_path);
+        assert!(result.is_err());
     }
 }

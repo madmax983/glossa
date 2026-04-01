@@ -67,6 +67,7 @@ use std::path::PathBuf;
 #[command(about = "ΓΛΩΣΣΑ - Ancient Greek morphology as programming semantics")]
 #[command(version)]
 pub struct Cli {
+    /// The specific action the user wishes the compiler to perform (e.g., compile, run, test).
     #[command(subcommand)]
     pub command: Option<Commands>,
 
@@ -102,7 +103,6 @@ pub enum Commands {
     },
 
     /// Start the interactive tutorial (Requires "nova" feature)
-    #[cfg(feature = "nova")]
     Mentor,
 
     /// Compile a .γλ file to Rust source
@@ -149,28 +149,24 @@ pub enum Commands {
     },
 
     /// Visualize the assembled sentence structure (Requires "nova" feature)
-    #[cfg(feature = "nova")]
     Mosaic {
         /// Input file (.γλ)
         input: PathBuf,
     },
 
     /// Visualize the program architecture as a map (Requires "nova" feature)
-    #[cfg(feature = "nova")]
     Map {
         /// Input file (.γλ)
         input: PathBuf,
     },
 
     /// Generate a Markdown Rosetta Stone (Requires "nova" feature)
-    #[cfg(feature = "nova")]
     Weave {
         /// Input file (.γλ)
         input: PathBuf,
     },
 
     /// Transpile a .γλ file to Python (Requires "nova" feature)
-    #[cfg(feature = "nova")]
     Alchemist {
         /// Input file (.γλ)
         input: PathBuf,

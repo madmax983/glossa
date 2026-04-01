@@ -46,11 +46,24 @@ use std::path::Path;
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
 pub fn run_map(input: &Path) -> Result<()> {
+    let source = crate::tools::runner::load_source(input)?;
+
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
 
-    let source = crate::tools::runner::load_source(input)?;
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let program = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
+    let program = match analyze_program(&ast) {
+        Ok(p) => p,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
 
     let map = generate_map(&program);
 
@@ -137,16 +150,23 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut traits: Vec<_> = program.scope.traits().collect();
     traits.sort_by(|a, b| a.0.cmp(b.0));
 
+    use std::fmt::Write;
     for (_key, trait_def) in traits {
         let name = &trait_def.name;
         map.push_str(&format!("    class {} {{\n", name));
         map.push_str("        <<interface>>\n");
         for method in &trait_def.methods {
-            let params_str: Vec<String> = method
-                .params
-                .iter()
-                .map(|(n, t)| format!("{}: {}", n, t))
-                .collect();
+            // ⚡ Bolt Optimization: Replace `.collect::<Vec<String>>().join(", ")` with
+            // iterative formatting directly into a `String` buffer to avoid
+            // intermediate heap allocations for the Vec and the individual parameter strings.
+            let mut params_str = String::new();
+            for (i, (n, t)) in method.params.iter().enumerate() {
+                if i > 0 {
+                    params_str.push_str(", ");
+                }
+                write!(&mut params_str, "{}: {}", n, t).unwrap();
+            }
+
             let ret_str = method
                 .return_type
                 .as_ref()
@@ -154,9 +174,7 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
                 .unwrap_or_default();
             map.push_str(&format!(
                 "        +{}({}){}\n",
-                method.name,
-                params_str.join(", "),
-                ret_str
+                method.name, params_str, ret_str
             ));
         }
         map.push_str("    }\n");
@@ -488,5 +506,26 @@ mod tests {
         // Run the command to ensure the empty logic is hit without panicking
         let result = run_map(&input_path);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_map_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_map_parse_error.γλ");
+        std::fs::write(&input_path, b"invalid syntax").unwrap();
+
+        let result = run_map(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_map_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_map_semantic_error.γλ");
+        // Valid syntax, semantic error (reassigning undefined variable)
+        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
+
+        let result = run_map(&input_path);
+        assert!(result.is_err());
     }
 }

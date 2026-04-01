@@ -129,23 +129,35 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
 /// assert!(output.exists());
 /// ```
 pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
+    let source = load_source(input)?;
     let status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🏗️");
     let start = std::time::Instant::now();
-    let source = load_source(input)?;
     let input_size = source.len() as u64;
 
     // Split compile to get stats
-    let analyzed = analyze_source(&source)?;
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα μεταγλωττίσεως (Compilation Error)");
+            return Err(e);
+        }
+    };
     let rust_code = generate_rust_file(&analyzed);
 
     let output_path = output
         .map(|p| p.to_owned())
         .unwrap_or_else(|| input.with_extension("rs"));
 
-    fs::write(&output_path, &rust_code)
-        .map_err(|e| miette::miette!("Failed to write to file {}: {}", output_path.display(), e))?;
+    if let Err(e) = fs::write(&output_path, &rust_code) {
+        status.error("Σφάλμα ἀρχείου (File Error)");
+        return Err(miette::miette!(
+            "Failed to write to file {}: {}",
+            output_path.display(),
+            e
+        ));
+    }
 
-    let output_size = fs::metadata(&output_path).into_diagnostic()?.len();
+    let output_size = fs::metadata(&output_path).map(|m| m.len()).unwrap_or(0);
     let duration = start.elapsed();
     let stats = ProgramStats::new(&analyzed);
 
@@ -219,12 +231,15 @@ pub fn run_file(input: &Path) -> Result<()> {
     // Check if we can use cached binary
     if cache.is_valid(input, &cached_exe) && cached_exe.exists() {
         println!();
-        println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
+        println!("   {}", "Γ Λ Ω Σ Σ Α   R U N".bold().cyan());
+        println!("   {}", "Ἐκτέλεσις (Execution)".italic().dim());
+        println!();
 
         // Run cached binary directly
         let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
-        println!("{}", "--- Τέλος (End) ---".dim());
+        println!();
+        println!("   {}", "--- Τέλος (End) ---".dim());
 
         if !exit_status.success() {
             std::process::exit(exit_status.code().unwrap_or(1));
@@ -232,10 +247,10 @@ pub fn run_file(input: &Path) -> Result<()> {
         return Ok(());
     }
 
-    let mut status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🚀");
-
     // Compile source
     let source = load_source(input)?;
+
+    let mut status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🚀");
 
     let rust_code = match compile(&source) {
         Ok(code) => code,
@@ -291,12 +306,15 @@ pub fn run_file(input: &Path) -> Result<()> {
     status.success();
 
     println!();
-    println!("{}", "--- Ἐκτέλεσις (Execution) ---".dim());
+    println!("   {}", "Γ Λ Ω Σ Σ Α   R U N".bold().cyan());
+    println!("   {}", "Ἐκτέλεσις (Execution)".italic().dim());
+    println!();
 
     // Run the compiled program
     let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
 
-    println!("{}", "--- Τέλος (End) ---".dim());
+    println!();
+    println!("   {}", "--- Τέλος (End) ---".dim());
 
     if !exit_status.success() {
         std::process::exit(exit_status.code().unwrap_or(1));
@@ -334,10 +352,16 @@ pub fn run_file(input: &Path) -> Result<()> {
 /// check_file(&input).unwrap();
 /// ```
 pub fn check_file(input: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
     let source = load_source(input)?;
+    let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
 
-    let analyzed = analyze_source(&source)?;
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
 
     let filename = input
         .file_name()
@@ -381,11 +405,22 @@ pub fn check_file(input: &Path) -> Result<()> {
 /// highlight_file(&input).unwrap();
 /// ```
 pub fn highlight_file(input: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
     let source = load_source(input)?;
-    let highlighted = highlight(&source).map_err(|e| miette::miette!("{}", e))?;
+    let status = Status::start_with_symbol("Χρωματισμός (Highlighting)", "🎨");
+    let highlighted = match highlight(&source) {
+        Ok(h) => h,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
 
     status.success();
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   H I G H L I G H T".bold().cyan());
+    println!("   {}", "Semantic Source Colors".italic().dim());
+    println!();
     println!("{}", highlighted);
 
     Ok(())
@@ -419,12 +454,23 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 /// bard_file(&input).unwrap();
 /// ```
 pub fn bard_file(input: &Path) -> Result<()> {
-    let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
     let source = load_source(input)?;
-    let analyzed = analyze_source(&source)?;
+    let status = Status::start_with_symbol("Ἀφήγησις (Narrating)", "📜");
+    let analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
 
     let tale = tell_tale(&analyzed);
     status.success();
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   B A R D".bold().cyan());
+    println!("   {}", "The Scroll of Logic".italic().dim());
+    println!();
     println!("{}", tale);
 
     Ok(())

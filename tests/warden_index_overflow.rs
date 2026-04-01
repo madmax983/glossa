@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Warden Exploit Test: Index Truncation
 //!
 //! This test demonstrates the vulnerability where large `i64` indices are truncated

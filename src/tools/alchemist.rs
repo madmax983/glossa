@@ -17,17 +17,30 @@ use crate::semantic::{
 };
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
+use std::fmt::Write;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
+    let source = crate::tools::runner::load_source(input)?;
+
     let status =
         crate::tools::ui::Status::start_with_symbol("Χημεία (Transpiling to Python)", "⚗️");
 
-    let source = crate::tools::runner::load_source(input)?;
-
-    let ast = parse(&source).map_err(|e| miette::miette!("Parse error: {}", e))?;
-    let program = analyze_program(&ast).map_err(|e| miette::miette!("Semantic error: {}", e))?;
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("Parse error: {}", e));
+        }
+    };
+    let program = match analyze_program(&ast) {
+        Ok(p) => p,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("Semantic error: {}", e));
+        }
+    };
 
     let python_code = transpile_to_python(&program);
 
@@ -68,6 +81,17 @@ pub fn transpile_to_python(program: &AnalyzedProgram) -> String {
     out
 }
 
+fn format_transpiled_exprs(exprs: &[AnalyzedExpr]) -> String {
+    let mut buf = String::with_capacity(exprs.len() * 16);
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 {
+            buf.push_str(", ");
+        }
+        buf.push_str(&transpile_expr(expr));
+    }
+    buf
+}
+
 fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
     let ind = "    ".repeat(indent);
     match stmt {
@@ -81,8 +105,7 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             )
         }
         AnalyzedStatement::Query(exprs) => {
-            let args: Vec<String> = exprs.iter().map(transpile_expr).collect();
-            format!("{}print({})", ind, args.join(", "))
+            format!("{}print({})", ind, format_transpiled_exprs(exprs))
         }
         AnalyzedStatement::Assignment { name, value } => {
             format!(
@@ -113,8 +136,7 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             }
         }
         AnalyzedStatement::Print(exprs) => {
-            let args: Vec<String> = exprs.iter().map(transpile_expr).collect();
-            format!("{}print({})", ind, args.join(", "))
+            format!("{}print({})", ind, format_transpiled_exprs(exprs))
         }
         AnalyzedStatement::Expression(exprs) => {
             let mut out = String::new();
@@ -222,8 +244,12 @@ fn transpile_function_def(
 ) -> String {
     let ind = "    ".repeat(indent);
     let mut out = format!("{}def {}(", ind, sanitize_ident(name));
-    let param_names: Vec<String> = params.iter().map(|(p, _)| sanitize_ident(p)).collect();
-    out.push_str(&param_names.join(", "));
+    for (i, (p, _)) in params.iter().enumerate() {
+        if i > 0 {
+            out.push_str(", ");
+        }
+        out.push_str(&sanitize_ident(p));
+    }
     out.push_str("):\n");
 
     if body.is_empty() {
@@ -329,23 +355,37 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
         }
         AnalyzedExprKind::VerbCall { verb, args } => {
             // Map certain known verbs to Python built-ins if applicable. For now, general function call.
-            let arg_strs: Vec<String> = args.iter().map(transpile_expr).collect();
-            format!("{}({})", sanitize_ident(verb), arg_strs.join(", "))
+            format!(
+                "{}({})",
+                sanitize_ident(verb),
+                format_transpiled_exprs(args)
+            )
         }
         AnalyzedExprKind::FunctionCall { func, args } => {
-            let arg_strs: Vec<String> = args.iter().map(transpile_expr).collect();
-            format!("{}({})", sanitize_ident(func), arg_strs.join(", "))
+            format!(
+                "{}({})",
+                sanitize_ident(func),
+                format_transpiled_exprs(args)
+            )
         }
         AnalyzedExprKind::StructInstantiation {
             type_name,
             fields,
             args,
         } => {
-            let mut kw_args = Vec::new();
-            for (f, a) in fields.iter().zip(args.iter()) {
-                kw_args.push(format!("{}={}", sanitize_ident(f), transpile_expr(a)));
+            let mut kw_args_buf = String::with_capacity(fields.len() * 16);
+            for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
+                if i > 0 {
+                    kw_args_buf.push_str(", ");
+                }
+                let _ = write!(
+                    &mut kw_args_buf,
+                    "{}={}",
+                    sanitize_ident(f),
+                    transpile_expr(a)
+                );
             }
-            format!("{}({})", sanitize_ident(type_name), kw_args.join(", "))
+            format!("{}({})", sanitize_ident(type_name), kw_args_buf)
         }
         AnalyzedExprKind::Range {
             start,
@@ -361,8 +401,7 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
             }
         }
         AnalyzedExprKind::ArrayLiteral(exprs) => {
-            let elems: Vec<String> = exprs.iter().map(transpile_expr).collect();
-            format!("[{}]", elems.join(", "))
+            format!("[{}]", format_transpiled_exprs(exprs))
         }
         AnalyzedExprKind::BinOp { left, op, right } => {
             let l = transpile_expr(left);
@@ -478,5 +517,34 @@ mod tests {
                 .to_string()
                 .contains("Ἀρχεῖον λίαν μέγα")
         );
+    }
+
+    #[test]
+    fn test_run_alchemist_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("parse_error.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all(b"not valid syntax").unwrap();
+        }
+        let result = run_alchemist(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Parse error"));
+    }
+
+    #[test]
+    fn test_run_alchemist_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("semantic_error.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // Valid syntax, invalid semantics (reassigning undefined var)
+            f.write_all("ψ πέντε γίγνεται.".as_bytes()).unwrap();
+        }
+        let result = run_alchemist(&input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Semantic error"));
     }
 }

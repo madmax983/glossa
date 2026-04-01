@@ -21,11 +21,38 @@ use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::io::{BufRead, Write};
 
-/// A single lesson in the tutorial
+/// A self-contained chapter in the interactive ΓΛΩΣΣΑ tutorial.
+///
+/// While static documentation helps readers understand the language's theory,
+/// the mentor tool provides an interactive REPL where users must actively write
+/// correct programs to progress. A [`Lesson`] structure encapsulates the narrative
+/// context (the *what* and *why*), the specific challenge (the *how*), and an embedded
+/// verification function.
+///
+/// This specific structure exists so the system can seamlessly transition between teaching a concept
+/// and evaluating the user's comprehension of that concept without leaving the terminal.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::tools::mentor::Lesson;
+/// use glossa::semantic::AnalyzedProgram;
+///
+/// let first_lesson = Lesson {
+///     title: "1. The Beginning",
+///     description: "Variables are defined with ἔστω.",
+///     challenge: "Bind 'x' to 10.",
+///     verify: |prog| prog.scope.is_defined_locally("x"),
+/// };
+/// ```
 pub struct Lesson {
+    /// The primary header displayed to the user.
     pub title: &'static str,
+    /// The story and mechanics the user must learn.
     pub description: &'static str,
+    /// The specific prompt requiring user code input.
     pub challenge: &'static str,
+    /// A closure that introspects the parsed [`AnalyzedProgram`] to ensure the user actually satisfied the challenge.
     pub verify: fn(&AnalyzedProgram) -> bool,
 }
 

@@ -37,9 +37,6 @@ pub struct ProgramStats {
     pub function_count: usize,
     /// Number of user-defined types (structs)
     pub type_count: usize,
-    /// Number of trait definitions
-    #[allow(dead_code)]
-    pub trait_count: usize,
     /// Number of loops (while, for)
     pub loop_count: usize,
     /// Number of conditional branches (if, match) - a proxy for complexity
@@ -70,7 +67,6 @@ impl ProgramStats {
         let mut stats = ProgramStats {
             function_count: program.scope.functions().count(),
             type_count: program.scope.types().count(),
-            trait_count: program.scope.traits().count(),
             ..ProgramStats::default()
         };
 
@@ -217,8 +213,7 @@ impl ProgramStats {
                     self.visit_expr(arg);
                 }
             }
-            AnalyzedExprKind::MethodCall { receiver, args, .. }
-            | AnalyzedExprKind::TraitMethodCall { receiver, args, .. } => {
+            AnalyzedExprKind::MethodCall { receiver, args, .. } => {
                 self.visit_expr(receiver);
                 for arg in args {
                     self.visit_expr(arg);
@@ -351,12 +346,15 @@ impl Display for GlossaReport<'_> {
             ]);
 
             for func in functions {
-                let params = func
-                    .param_types
-                    .iter()
-                    .map(|t| t.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                // ⚡ Bolt Optimization: Build the formatted string directly to avoid the O(n) heap allocation
+                // of the intermediate Vec<_> created by .collect::<Vec<_>>().join(", ").
+                let mut params = String::with_capacity(func.param_types.len() * 8);
+                for (i, t) in func.param_types.iter().enumerate() {
+                    if i > 0 {
+                        params.push_str(", ");
+                    }
+                    params.push_str(&t.to_string());
+                }
 
                 let ret = func
                     .return_type
@@ -407,11 +405,17 @@ impl Display for GlossaReport<'_> {
 /// assert!(output.contains("15 bytes"));
 /// ```
 pub struct CompilationReport {
+    /// The location of the original ΓΛΩΣΣΑ scroll that was read.
     pub input_path: PathBuf,
+    /// The destination where the newly forged Rust code was inscribed.
     pub output_path: PathBuf,
+    /// The physical weight (in bytes) of the original thoughts.
     pub input_size: u64,
+    /// The resulting weight (in bytes) of the generated machine instructions.
     pub output_size: u64,
+    /// The fleeting moments spent translating human intent into machine action.
     pub duration: Duration,
+    /// A deeper look into the complexity and structure of the logic itself.
     pub stats: ProgramStats,
 }
 
@@ -703,13 +707,12 @@ mod tests {
                 glossa_type: GlossaType::Unknown,
             },
             AnalyzedExpr {
-                expr: AnalyzedExprKind::TraitMethodCall {
+                expr: AnalyzedExprKind::MethodCall {
                     receiver: Box::new(AnalyzedExpr {
                         expr: AnalyzedExprKind::NumberLiteral(1),
                         glossa_type: GlossaType::Number,
                     }),
-                    trait_name: "Trait".into(),
-                    method_name: "method".into(),
+                    method: "method".into(),
                     args: vec![],
                 },
                 glossa_type: GlossaType::Unknown,
@@ -966,13 +969,12 @@ mod tests {
                     glossa_type: GlossaType::Number,
                 },
                 AnalyzedExpr {
-                    expr: AnalyzedExprKind::TraitMethodCall {
+                    expr: AnalyzedExprKind::MethodCall {
                         receiver: Box::new(AnalyzedExpr {
                             expr: AnalyzedExprKind::NumberLiteral(1),
                             glossa_type: GlossaType::Number,
                         }),
-                        trait_name: "Num".into(),
-                        method_name: "abs".into(),
+                        method: "abs".into(),
                         args: vec![],
                     },
                     glossa_type: GlossaType::Number,

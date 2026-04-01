@@ -1,3 +1,4 @@
+#![deny(unsafe_code)]
 //! ΓΛΩΣΣΑ Compiler CLI
 //!
 //! A compiler for ΓΛΩΣΣΑ - where Ancient Greek morphology encodes programming semantics.
@@ -23,9 +24,14 @@ fn main() -> Result<()> {
             run_file(&input)?;
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Mentor) => {
+            #[cfg(feature = "nova")]
             glossa::tools::mentor::run_mentor()?;
+
+            #[cfg(not(feature = "nova"))]
+            miette::bail!(
+                "The 'mentor' command is experimental. Recompile glossa with '--features nova' to enable it."
+            );
         }
 
         Some(Commands::Build { input, output }) => {
@@ -52,24 +58,56 @@ fn main() -> Result<()> {
             glossa::tools::tester::run_tests(&input)?;
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Mosaic { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::mosaic::run_mosaic(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'mosaic' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Map { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::cartographer::run_map(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'map' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Weave { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::weave::run_weave(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'weave' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
-        #[cfg(feature = "nova")]
         Some(Commands::Alchemist { input }) => {
+            #[cfg(feature = "nova")]
             glossa::tools::alchemist::run_alchemist(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'alchemist' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
         Some(Commands::Repl) | None => {

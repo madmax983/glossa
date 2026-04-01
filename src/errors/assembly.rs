@@ -44,7 +44,9 @@ pub enum AssemblyError {
     #[error("Ἀσυμφωνία: ὑποκείμενον {subject:?} ἀλλὰ ῥῆμα {verb:?}")]
     #[diagnostic(code(glossa::assembly::subject_verb_disagreement))]
     SubjectVerbDisagreement {
+        /// The extracted morphological traits (Person and Number) of the subject in the sentence.
         subject: (Option<Person>, Option<Number>),
+        /// The extracted morphological traits (Person and Number) of the verb that failed to agree with the subject.
         verb: (Option<Person>, Option<Number>),
     },
 
@@ -54,5 +56,10 @@ pub enum AssemblyError {
     /// Too many adjectives in a single sentence
     #[error("Ὑπέρβασις ὁρίου: {resource} > {max}. Μηδὲν ἄγαν!")]
     #[diagnostic(code(glossa::assembly::limit_exceeded))]
-    LimitExceeded { resource: String, max: usize },
+    LimitExceeded {
+        /// The specific grammatical element (like adjectives) whose count exceeded the allowed threshold.
+        resource: String,
+        /// The hard limit for this resource type, enforced to prevent runaway complexity.
+        max: usize,
+    },
 }

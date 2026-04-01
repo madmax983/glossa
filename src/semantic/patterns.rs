@@ -46,7 +46,7 @@ use crate::errors::GlossaError;
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
 
-/// Try to parse a trait method call: `method_name receiver`
+/// Try to parse a standalone method call: `method_name receiver`
 ///
 /// This looks for a specific phrase pattern where a method name is immediately
 /// followed by its receiver (the object it acts upon).
@@ -60,8 +60,8 @@ use smol_str::SmolStr;
 /// λέγε ζῷον.
 /// ```
 ///
-/// Returns `Some(analyzed_statement)` if this is a trait method call, `None` otherwise.
-pub fn try_parse_trait_method_call(
+/// Returns `Some(analyzed_statement)` if this is a standalone method call, `None` otherwise.
+pub fn try_parse_method_call(
     stmt: &Statement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
@@ -104,8 +104,9 @@ pub fn try_parse_trait_method_call(
         return Ok(None);
     };
 
-    // Check if this type has a trait method with this name
-    if !scope.has_trait_method(type_name, method_name) {
+    // Since we're parsing standalone method calls, we must verify the method exists
+    // to disambiguate from other two-word combinations (like a function call followed by a variable).
+    if !scope.has_method(type_name, method_name) {
         return Ok(None);
     }
 
@@ -394,7 +395,7 @@ pub fn detect_iterator_pattern(
     };
 
     // Determine flags for any/all quantification
-    let flags = QuantifierFlags::from(asm_stmt);
+    let (is_any, is_all) = get_quantifier_flags(asm_stmt);
 
     // Start with .iter()
     // chain: collection.iter()
@@ -411,7 +412,7 @@ pub fn detect_iterator_pattern(
     let mut has_ops = false;
 
     // Process adjectives (filter, any, all)
-    if process_adjectives(asm_stmt, scope, &flags, &mut current_expr) {
+    if process_adjectives(asm_stmt, scope, is_any, is_all, &mut current_expr) {
         has_ops = true;
     }
 
@@ -422,7 +423,8 @@ pub fn detect_iterator_pattern(
     }
 
     // Handle any/all operations with explicit operators (comparatives stored as operators)
-    let is_any_all = process_explicit_quantifiers(asm_stmt, scope, &flags, &mut current_expr);
+    let is_any_all =
+        process_explicit_quantifiers(asm_stmt, scope, is_any, is_all, &mut current_expr);
     if is_any_all {
         return Ok(Some(current_expr));
     }
@@ -505,35 +507,28 @@ fn extract_collection(asm_stmt: &AssembledStatement) -> Option<AnalyzedExpr> {
 }
 
 /// Flags to track quantifier presence (any/all)
-struct QuantifierFlags {
-    is_any: bool,
-    is_all: bool,
-}
+fn get_quantifier_flags(asm_stmt: &AssembledStatement) -> (bool, bool) {
+    let mut is_any = false;
+    let mut is_all = false;
 
-impl QuantifierFlags {
-    fn from(asm_stmt: &AssembledStatement) -> Self {
-        let mut is_any = false;
-        let mut is_all = false;
-
-        if let Some(ref subj) = asm_stmt.subject {
-            let subj_lemma = normalize_greek(&subj.lemma);
-            is_any = crate::morphology::lexicon::is_any_quantifier(&subj_lemma);
-            is_all = crate::morphology::lexicon::is_all_quantifier(&subj_lemma);
-        }
-
-        // Also check nominatives for quantifiers
-        for nom in &asm_stmt.nominatives {
-            let nom_lemma = normalize_greek(&nom.lemma);
-            if crate::morphology::lexicon::is_any_quantifier(&nom_lemma) {
-                is_any = true;
-            }
-            if crate::morphology::lexicon::is_all_quantifier(&nom_lemma) {
-                is_all = true;
-            }
-        }
-
-        Self { is_any, is_all }
+    if let Some(ref subj) = asm_stmt.subject {
+        let subj_lemma = normalize_greek(&subj.lemma);
+        is_any = crate::morphology::lexicon::is_any_quantifier(&subj_lemma);
+        is_all = crate::morphology::lexicon::is_all_quantifier(&subj_lemma);
     }
+
+    // Also check nominatives for quantifiers
+    for nom in &asm_stmt.nominatives {
+        let nom_lemma = normalize_greek(&nom.lemma);
+        if crate::morphology::lexicon::is_any_quantifier(&nom_lemma) {
+            is_any = true;
+        }
+        if crate::morphology::lexicon::is_all_quantifier(&nom_lemma) {
+            is_all = true;
+        }
+    }
+
+    (is_any, is_all)
 }
 
 /// Helper: Process adjectives for filter/any/all patterns
@@ -541,7 +536,8 @@ impl QuantifierFlags {
 fn process_adjectives(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
-    flags: &QuantifierFlags,
+    is_any: bool,
+    is_all: bool,
     current_expr: &mut AnalyzedExpr,
 ) -> bool {
     // Check for comparative adjective filter/any/all pattern
@@ -574,9 +570,9 @@ fn process_adjectives(
             let filter_closure = create_comparison_predicate(bin_op, comparison_expr);
 
             // Determine which method to call based on quantifier
-            let method = if flags.is_any {
+            let method = if is_any {
                 "any"
-            } else if flags.is_all {
+            } else if is_all {
                 "all"
             } else {
                 "filter"
@@ -589,7 +585,7 @@ fn process_adjectives(
                     method: method.into(),
                     args: vec![filter_closure],
                 },
-                glossa_type: if flags.is_any || flags.is_all {
+                glossa_type: if is_any || is_all {
                     GlossaType::Boolean
                 } else {
                     GlossaType::Unknown
@@ -600,6 +596,150 @@ fn process_adjectives(
         }
     }
     added
+}
+
+fn process_fold_participle(
+    participle: &crate::semantic::assembly::ParticipleConstituent,
+    asm_stmt: &AssembledStatement,
+    current_expr: &mut AnalyzedExpr,
+) -> bool {
+    // Look for target operator (Add for sum, Mul for product)
+    for &bin_op in &asm_stmt.operators {
+        if matches!(
+            bin_op,
+            crate::morphology::lexicon::BinaryOp::Add | crate::morphology::lexicon::BinaryOp::Mul
+        ) {
+            // Determine initial value based on operation
+            let init_value = match bin_op {
+                crate::morphology::lexicon::BinaryOp::Add => 0,
+                crate::morphology::lexicon::BinaryOp::Mul => 1,
+                _ => unreachable!(),
+            };
+
+            // Determine capture mode based on participle tense
+            let capture_mode = match participle.tense {
+                crate::morphology::Tense::Aorist => CaptureMode::Move,
+                // Iterator closures always take arguments, so Memoize is unsafe.
+                crate::morphology::Tense::Perfect => CaptureMode::Borrow,
+                _ => CaptureMode::Borrow,
+            };
+
+            // Create fold closure: |acc, x| acc + x (or acc * x)
+            let fold_body = AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    op: bin_op,
+                    left: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable("acc".into()),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    right: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable("x".into()),
+                        glossa_type: GlossaType::Number,
+                    }),
+                },
+                glossa_type: GlossaType::Number,
+            };
+
+            let fold_closure = AnalyzedExpr {
+                expr: AnalyzedExprKind::Lambda {
+                    params: vec!["acc".into(), "x".into()],
+                    body: Box::new(fold_body),
+                    capture_mode,
+                },
+                glossa_type: GlossaType::Function {
+                    params: vec![GlossaType::Number, GlossaType::Number],
+                    returns: Box::new(GlossaType::Number),
+                },
+            };
+
+            let init_expr = AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(init_value),
+                glossa_type: GlossaType::Number,
+            };
+
+            let new_expr = AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(current_expr.clone()),
+                    method: "fold".into(),
+                    args: vec![init_expr, fold_closure],
+                },
+                glossa_type: GlossaType::Number,
+            };
+            *current_expr = new_expr;
+
+            return true;
+        }
+    }
+    false
+}
+
+fn process_map_participle(
+    participle: &crate::semantic::assembly::ParticipleConstituent,
+    verb_stem: &str,
+    current_expr: &mut AnalyzedExpr,
+) -> bool {
+    // Map Middle and Passive participles to .map()
+    // Passive voice ("being written") is semantically valid for transformation chains
+    if participle.voice == crate::morphology::Voice::Middle
+        || participle.voice == crate::morphology::Voice::Passive
+    {
+        // Create a simple lambda based on the verb
+        let closure_body = if verb_stem.contains("διπλασιαζ") {
+            // διπλασιαζω = "to double"
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    op: crate::morphology::lexicon::BinaryOp::Mul,
+                    left: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable("x".into()),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    right: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(2),
+                        glossa_type: GlossaType::Number,
+                    }),
+                },
+                glossa_type: GlossaType::Number,
+            }
+        } else {
+            // Default: just return x
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("x".into()),
+                glossa_type: GlossaType::Unknown,
+            }
+        };
+
+        let capture_mode = match participle.tense {
+            crate::morphology::Tense::Aorist => CaptureMode::Move,
+            // Iterator closures always take arguments, so Memoize is unsafe.
+            // Downgrade Perfect tense to Borrow for these operations.
+            crate::morphology::Tense::Perfect => CaptureMode::Borrow,
+            _ => CaptureMode::Borrow,
+        };
+
+        let closure = AnalyzedExpr {
+            expr: AnalyzedExprKind::Lambda {
+                params: vec!["x".into()],
+                body: Box::new(closure_body),
+                capture_mode,
+            },
+            glossa_type: GlossaType::Function {
+                params: vec![GlossaType::Number],
+                returns: Box::new(GlossaType::Number),
+            },
+        };
+
+        let new_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(current_expr.clone()),
+                method: "map".into(),
+                args: vec![closure],
+            },
+            glossa_type: GlossaType::Unknown,
+        };
+        *current_expr = new_expr;
+        return true;
+    }
+    false
 }
 
 /// Helper: Process participles for map/fold patterns
@@ -615,77 +755,11 @@ fn process_participles(
         let verb_stem = normalize_greek(&participle.verb_lemma);
 
         // Check for fold pattern: συλλεγόμενα εἰς [target]
-        if verb_stem.contains("συλλεγ") {
-            // Look for target operator (Add for sum, Mul for product)
-            for &bin_op in &asm_stmt.operators {
-                if matches!(
-                    bin_op,
-                    crate::morphology::lexicon::BinaryOp::Add
-                        | crate::morphology::lexicon::BinaryOp::Mul
-                ) {
-                    // Determine initial value based on operation
-                    let init_value = match bin_op {
-                        crate::morphology::lexicon::BinaryOp::Add => 0,
-                        crate::morphology::lexicon::BinaryOp::Mul => 1,
-                        _ => unreachable!(),
-                    };
-
-                    // Determine capture mode based on participle tense
-                    let capture_mode = match participle.tense {
-                        crate::morphology::Tense::Aorist => CaptureMode::Move,
-                        // Iterator closures always take arguments, so Memoize is unsafe.
-                        crate::morphology::Tense::Perfect => CaptureMode::Borrow,
-                        _ => CaptureMode::Borrow,
-                    };
-
-                    // Create fold closure: |acc, x| acc + x (or acc * x)
-                    let fold_body = AnalyzedExpr {
-                        expr: AnalyzedExprKind::BinOp {
-                            op: bin_op,
-                            left: Box::new(AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable("acc".into()),
-                                glossa_type: GlossaType::Number,
-                            }),
-                            right: Box::new(AnalyzedExpr {
-                                expr: AnalyzedExprKind::Variable("x".into()),
-                                glossa_type: GlossaType::Number,
-                            }),
-                        },
-                        glossa_type: GlossaType::Number,
-                    };
-
-                    let fold_closure = AnalyzedExpr {
-                        expr: AnalyzedExprKind::Lambda {
-                            params: vec!["acc".into(), "x".into()],
-                            body: Box::new(fold_body),
-                            capture_mode,
-                        },
-                        glossa_type: GlossaType::Function {
-                            params: vec![GlossaType::Number, GlossaType::Number],
-                            returns: Box::new(GlossaType::Number),
-                        },
-                    };
-
-                    let init_expr = AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(init_value),
-                        glossa_type: GlossaType::Number,
-                    };
-
-                    let new_expr = AnalyzedExpr {
-                        expr: AnalyzedExprKind::MethodCall {
-                            receiver: Box::new(current_expr.clone()),
-                            method: "fold".into(),
-                            args: vec![init_expr, fold_closure],
-                        },
-                        glossa_type: GlossaType::Number,
-                    };
-                    *current_expr = new_expr;
-
-                    is_fold = true;
-                    added = true;
-                    break; // Exit operators loop
-                }
-            }
+        if verb_stem.contains("συλλεγ")
+            && process_fold_participle(participle, asm_stmt, current_expr)
+        {
+            is_fold = true;
+            added = true;
         }
 
         // Skip other participle processing if this was a fold
@@ -693,65 +767,7 @@ fn process_participles(
             continue;
         }
 
-        // Map Middle and Passive participles to .map()
-        // Passive voice ("being written") is semantically valid for transformation chains
-        if participle.voice == crate::morphology::Voice::Middle
-            || participle.voice == crate::morphology::Voice::Passive
-        {
-            // Create a simple lambda based on the verb
-            let closure_body = if verb_stem.contains("διπλασιαζ") {
-                // διπλασιαζω = "to double"
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::BinOp {
-                        op: crate::morphology::lexicon::BinaryOp::Mul,
-                        left: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable("x".into()),
-                            glossa_type: GlossaType::Number,
-                        }),
-                        right: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::NumberLiteral(2),
-                            glossa_type: GlossaType::Number,
-                        }),
-                    },
-                    glossa_type: GlossaType::Number,
-                }
-            } else {
-                // Default: just return x
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable("x".into()),
-                    glossa_type: GlossaType::Unknown,
-                }
-            };
-
-            let capture_mode = match participle.tense {
-                crate::morphology::Tense::Aorist => CaptureMode::Move,
-                // Iterator closures always take arguments, so Memoize is unsafe.
-                // Downgrade Perfect tense to Borrow for these operations.
-                crate::morphology::Tense::Perfect => CaptureMode::Borrow,
-                _ => CaptureMode::Borrow,
-            };
-
-            let closure = AnalyzedExpr {
-                expr: AnalyzedExprKind::Lambda {
-                    params: vec!["x".into()],
-                    body: Box::new(closure_body),
-                    capture_mode,
-                },
-                glossa_type: GlossaType::Function {
-                    params: vec![GlossaType::Number],
-                    returns: Box::new(GlossaType::Number),
-                },
-            };
-
-            let new_expr = AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(current_expr.clone()),
-                    method: "map".into(),
-                    args: vec![closure],
-                },
-                glossa_type: GlossaType::Unknown,
-            };
-            *current_expr = new_expr;
+        if process_map_participle(participle, &verb_stem, current_expr) {
             added = true;
         }
     }
@@ -763,10 +779,11 @@ fn process_participles(
 fn process_explicit_quantifiers(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
-    flags: &QuantifierFlags,
+    is_any: bool,
+    is_all: bool,
     current_expr: &mut AnalyzedExpr,
 ) -> bool {
-    if (!flags.is_any && !flags.is_all) || asm_stmt.operators.is_empty() {
+    if (!is_any && !is_all) || asm_stmt.operators.is_empty() {
         return false;
     }
 
@@ -779,7 +796,7 @@ fn process_explicit_quantifiers(
             let comparison_expr = extract_comparison_value(asm_stmt, scope);
             let any_all_closure = create_comparison_predicate(bin_op, comparison_expr);
 
-            let method = if flags.is_any { "any" } else { "all" };
+            let method = if is_any { "any" } else { "all" };
 
             let new_expr = AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
@@ -1120,7 +1137,7 @@ mod coverage_tests {
         // "any" quantifier logic is checked via flags, usually checked by lemma of subject
         // But here we manually trigger process_explicit_quantifiers by setting operators and genitives
 
-        // Mock the QuantifierFlags logic by using "τι" (any) as an extra nominative
+        // Mock the quantifier logic by using "τι" (any) as an extra nominative
         // Subject must remain "list" for extract_collection to work (it rejects quantifiers)
         stmt.nominatives.push(Constituent {
             lemma: "τις".into(),

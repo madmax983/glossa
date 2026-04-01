@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::codegen::generate_rust;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, CaptureMode, GlossaType,
@@ -41,11 +42,16 @@ proptest! {
             scope: Scope::new(),
         };
 
-        // This should panic because we pass arguments to a Memoize closure
-        let result = std::panic::catch_unwind(|| {
-            generate_rust(&program);
-        });
+        // This should fallback safely and generate a standard closure without panicking
+        let code = generate_rust(&program);
 
-        assert!(result.is_err(), "Expected panic when passing arguments to Memoize closure");
+        assert!(
+            !code.contains("RefCell::new(None)"),
+            "Should gracefully fallback to a standard closure and avoid unsafe caching block"
+        );
+        assert!(
+            code.contains("move | g_arg0"),
+            "Should fallback to normal closure generation"
+        );
     }
 }

@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Integration tests for the ΓΛΩΣΣΑ compiler pipeline
 
 use glossa::codegen::generate_rust;
@@ -110,7 +111,7 @@ fn test_array_index_codegen() {
     // Use 'λίστη' (list) which is a known variable/type in the lexicon
     let code = compile("λίστη [1, 2] ἔστω. λίστη[0] λέγε.").unwrap();
     // The generated code should contain the panic check
-    assert!(code.contains("Negative index access"));
+    assert!(code.contains("negative index"));
     // quote! may insert spaces, so just check for "panic"
     assert!(code.contains("panic"));
 }

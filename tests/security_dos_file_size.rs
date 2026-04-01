@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use std::fs::File;
 use std::io::Write;
 use std::process::Command;

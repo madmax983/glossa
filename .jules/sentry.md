@@ -53,3 +53,7 @@
 **Sentry Unit Tests Added for Control Flow Branches**
 **Learning:** Found coverage gaps in `src/semantic/control_flow.rs` for `ἕως` and `ἀπὸ` parsing logic. Realized that to properly test CLI integrations under `cargo llvm-cov`, the binary path resolution fallback logic must explicitly check the `target/llvm-cov-target/debug/` directory as `cargo test --lib` does not provide `CARGO_BIN_EXE_glossa`.
 **Action:** Wrote specific manual AST-driven unit tests for control flow parsing, and updated `CARGO_BIN_EXE_glossa` fallback paths in `tools/runner.rs` and `tools/tester.rs` to support both standard testing and code coverage collection without crashing.
+
+**Sentry Unit Tests Added for Control Flow Branches**
+**Learning:** Found coverage gaps in `src/semantic/control_flow.rs` for `parse_conditional`, `check_else_pattern_in_expression`, and `check_conditional_start`. Realized that coverage unit tests for internal modules `pub(crate)` cannot be placed in the `tests/` directory as integration tests because they will trigger an `E0603: module is private` compilation error.
+**Action:** Always embed unit tests for private modules directly within the target file under `#[cfg(test)] mod tests` block to ensure they compile and increase coverage successfully without violating module visibility rules.

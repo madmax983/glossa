@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Operator integration tests for ΓΛΩΣΣΑ
 //!
 //! Tests for arithmetic, comparison, and boolean operators.

@@ -53,6 +53,24 @@ use smol_str::SmolStr;
 ///
 /// Represents a statement after semantic analysis, where names are resolved,
 /// types are inferred, and word order is normalized.
+///
+/// ## Examples
+///
+/// Creating a representation of `ξ πέντε ἔστω.` (Let x be 5):
+///
+/// ```rust
+/// use glossa::semantic::{AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType};
+/// use smol_str::SmolStr;
+///
+/// let binding = AnalyzedStatement::Binding {
+///     name: SmolStr::new("ξ"),
+///     value: AnalyzedExpr {
+///         expr: AnalyzedExprKind::NumberLiteral(5),
+///         glossa_type: GlossaType::Number,
+///     },
+///     mutable: false, // `ἔστω` makes it immutable
+/// };
+/// ```
 #[derive(Clone)]
 pub enum AnalyzedStatement {
     /// Variable binding
@@ -63,8 +81,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `let g_x = 5;`
     Binding {
+        /// The identifier representing the new reality defined by `ἔστω`.
         name: SmolStr,
+        /// The evaluated truth that this identifier now represents.
         value: AnalyzedExpr,
+        /// Indicates if this truth is eternal (`false`) or subject to the whims of time (`true`).
         mutable: bool,
     },
     /// Assignment to existing variable
@@ -74,7 +95,12 @@ pub enum AnalyzedStatement {
     /// ξ δέκα γίγνεται.
     /// ```
     /// -> `g_x = 10;`
-    Assignment { name: SmolStr, value: AnalyzedExpr },
+    Assignment {
+        /// The identifier whose fate is being rewritten (`γίγνεται`).
+        name: SmolStr,
+        /// The new form this variable will take.
+        value: AnalyzedExpr,
+    },
     /// Print statement
     ///
     /// # Example
@@ -106,8 +132,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `if g_x > 5 { ... } else { ... }`
     If {
+        /// The assertion of truth (`εἰ`) that guides the flow of fate.
         condition: Box<AnalyzedExpr>,
+        /// The path taken if the condition holds true.
         then_body: Vec<AnalyzedStatement>,
+        /// The alternative path (`εἰ δὲ μή`) taken when fate decrees otherwise.
         else_body: Option<Vec<AnalyzedStatement>>,
     },
     /// While loop
@@ -118,7 +147,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `while g_x < 10 { ... }`
     While {
+        /// The boundary of the eternal cycle (`ἕως`). The loop persists as long as this holds true.
         condition: Box<AnalyzedExpr>,
+        /// The actions repeated within the cycle.
         body: Vec<AnalyzedStatement>,
     },
     /// For loop
@@ -129,8 +160,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `for b in a { println!("{}", b); }`
     For {
+        /// The vessel holding the current manifestation of the sequence (`διὰ`).
         variable: SmolStr,
+        /// The collection or range whose elements are being traversed.
         iterator: Box<AnalyzedExpr>,
+        /// The actions performed upon each element.
         body: Vec<AnalyzedStatement>,
     },
     /// Match expression
@@ -141,7 +175,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `match g_x { 1 => ... }`
     Match {
+        /// The entity whose true nature is being revealed (`κατά`).
         scrutinee: Box<AnalyzedExpr>,
+        /// The possible forms the entity might take, and the resulting actions for each revelation.
         arms: Vec<(AnalyzedExpr, Vec<AnalyzedStatement>)>,
     },
     /// Break statement
@@ -167,7 +203,10 @@ pub enum AnalyzedStatement {
     /// δός 5.
     /// ```
     /// -> `return 5;`
-    Return { value: Option<Box<AnalyzedExpr>> },
+    Return {
+        /// The final offering (`δός`) given back to the caller.
+        value: Option<Box<AnalyzedExpr>>,
+    },
     /// Function definition
     ///
     /// # Example
@@ -176,9 +215,13 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `fn g_add(a: i64, b: i64) { ... }`
     FunctionDef {
+        /// The name of the action being defined (`ὁρίζειν`).
         name: SmolStr,
+        /// The necessary components the action requires to manifest.
         params: Vec<(SmolStr, Option<GlossaType>)>,
+        /// The sequence of events that constitute the action.
         body: Vec<AnalyzedStatement>,
+        /// The expected shape of the outcome, if it yields one.
         return_type: Option<GlossaType>,
     },
     /// Type definition (struct)
@@ -189,7 +232,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `struct User { ... }`
     TypeDefinition {
+        /// The name of the new form (`εἶδος`) coming into existence.
         name: SmolStr,
+        /// The internal structure defining the essence of this form.
         fields: Vec<(SmolStr, GlossaType)>,
     },
     /// Trait definition
@@ -200,7 +245,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `trait Show { ... }`
     TraitDefinition {
+        /// The name of the ideal character (`χαρακτήρ`) being described.
         name: SmolStr,
+        /// The specific behaviors required to embody this character.
         methods: Vec<AnalyzedMethod>,
     },
     /// Trait implementation
@@ -211,8 +258,11 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `impl Show for User { ... }`
     TraitImplementation {
+        /// The character (`χαρακτήρ`) that the form is striving to embody.
         trait_name: SmolStr,
+        /// The specific form (`εἶδος`) that is taking on this character.
         type_name: SmolStr,
+        /// The realization of the required behaviors.
         methods: Vec<AnalyzedMethod>,
     },
     /// Test declaration
@@ -223,7 +273,9 @@ pub enum AnalyzedStatement {
     /// ```
     /// -> `#[test] fn test() { ... }`
     TestDeclaration {
+        /// The name of the trial (`δοκιμή`) meant to prove the logic's soundness.
         name: String,
+        /// The sequence of assertions testing the boundaries of the code.
         body: Vec<AnalyzedStatement>,
     },
 }
@@ -333,6 +385,23 @@ impl std::fmt::Debug for AnalyzedStatement {
 /// merely a required signature in a [`TraitDef`] or a fully fleshed-out behavior
 /// in a [`TraitImpl`]. It provides the bridge between the compiler's type checker
 /// and the final code generation phase.
+///
+/// ## Examples
+///
+/// A trait method that requires an implementation but provides no default body:
+///
+/// ```rust
+/// use glossa::semantic::{AnalyzedMethod, GlossaType};
+/// use smol_str::SmolStr;
+///
+/// // Represents `print ὁρίζειν ().` inside a trait definition
+/// let required_method = AnalyzedMethod {
+///     name: SmolStr::new("print"),
+///     params: vec![],
+///     body: None, // No default implementation provided
+///     return_type: Some(GlossaType::Unit),
+/// };
+/// ```
 #[derive(Clone)]
 pub struct AnalyzedMethod {
     /// The unique identifier of the method, used for resolution during trait calls.
@@ -372,6 +441,21 @@ impl std::fmt::Debug for AnalyzedMethod {
 /// This struct pairs the structural "what" of the expression ([`AnalyzedExprKind`])
 /// with its semantic "how" ([`GlossaType`]), ensuring that operations are only
 /// performed on compatible data structures during codegen.
+///
+/// ## Examples
+///
+/// By pairing the pure syntax with its semantic type, the compiler can guarantee
+/// safety before code generation:
+///
+/// ```rust
+/// use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
+///
+/// // The abstract concept of the number 42, explicitly typed as a Number
+/// let answer = AnalyzedExpr {
+///     expr: AnalyzedExprKind::NumberLiteral(42),
+///     glossa_type: GlossaType::Number,
+/// };
+/// ```
 #[derive(Clone)]
 pub struct AnalyzedExpr {
     /// The raw structure of the expression itself, describing the action or literal value.
@@ -396,6 +480,27 @@ impl std::fmt::Debug for AnalyzedExpr {
 }
 
 /// Kind of analyzed expression
+///
+/// ## Examples
+///
+/// Expressing a binary operation (e.g., `5 + 3`):
+///
+/// ```rust
+/// use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
+/// use glossa::morphology::lexicon::BinaryOp;
+///
+/// let addition = AnalyzedExprKind::BinOp {
+///     left: Box::new(AnalyzedExpr {
+///         expr: AnalyzedExprKind::NumberLiteral(5),
+///         glossa_type: GlossaType::Number,
+///     }),
+///     op: BinaryOp::Add,
+///     right: Box::new(AnalyzedExpr {
+///         expr: AnalyzedExprKind::NumberLiteral(3),
+///         glossa_type: GlossaType::Number,
+///     }),
+/// };
+/// ```
 #[derive(Clone)]
 pub enum AnalyzedExprKind {
     /// String literal
@@ -427,7 +532,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `user.name` -> `PropertyAccess { owner: user, property: "name" }`
     PropertyAccess {
+        /// The entity possessing the desired attribute.
         owner: Box<AnalyzedExpr>,
+        /// The specific attribute being sought.
         property: SmolStr,
     },
 
@@ -436,7 +543,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `λέγει` (says) -> `VerbCall { verb: "say", args: [] }`
     VerbCall {
+        /// The action invoked, typically represented by a Greek verb.
         verb: SmolStr,
+        /// The entities involved in the action.
         args: Vec<AnalyzedExpr>,
     },
 
@@ -445,8 +554,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `1 + 2` -> `BinOp { left: 1, op: Add, right: 2 }`
     BinOp {
+        /// The first entity in the interaction.
         left: Box<AnalyzedExpr>,
+        /// The nature of the interaction (e.g., addition, comparison).
         op: crate::morphology::lexicon::BinaryOp,
+        /// The second entity in the interaction.
         right: Box<AnalyzedExpr>,
     },
 
@@ -455,7 +567,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `οὐκ x` -> `UnaryOp { op: Not, operand: x }`
     UnaryOp {
+        /// The transformation applied (e.g., negation).
         op: crate::morphology::lexicon::UnaryOp,
+        /// The entity undergoing transformation.
         operand: Box<AnalyzedExpr>,
     },
 
@@ -464,8 +578,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `1..10`
     Range {
+        /// The origin point of the continuum.
         start: Box<AnalyzedExpr>,
+        /// The terminus of the continuum.
         end: Box<AnalyzedExpr>,
+        /// Indicates if the terminus is part of the continuum itself.
         inclusive: bool,
     },
 
@@ -516,7 +633,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `arr[0]`
     IndexAccess {
+        /// The collection holding the desired element.
         array: Box<AnalyzedExpr>,
+        /// The numerical position of the element within the collection.
         index: Box<AnalyzedExpr>,
     },
 
@@ -525,7 +644,9 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `my_func(arg)`
     FunctionCall {
+        /// The specific named routine being invoked.
         func: SmolStr,
+        /// The required inputs for the routine.
         args: Vec<AnalyzedExpr>,
     },
 
@@ -534,19 +655,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `vec.push(1)`
     MethodCall {
+        /// The entity performing the specialized action.
         receiver: Box<AnalyzedExpr>,
+        /// The specialized action being performed.
         method: SmolStr,
-        args: Vec<AnalyzedExpr>,
-    },
-
-    /// Trait method call `receiver.<TraitName>::method(args)` (from trait impl)
-    ///
-    /// # Example
-    /// `user.Show::print()`
-    TraitMethodCall {
-        receiver: Box<AnalyzedExpr>,
-        trait_name: SmolStr,
-        method_name: SmolStr,
+        /// The inputs required for the action.
         args: Vec<AnalyzedExpr>,
     },
 
@@ -555,8 +668,11 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `x new User "name" 42`
     StructInstantiation {
+        /// The form (`εἶδος`) being breathed into life.
         type_name: SmolStr,
-        fields: Vec<SmolStr>, // Field names from struct definition
+        /// The specific attributes that make up this form.
+        fields: Vec<SmolStr>,
+        /// The initial values given to these attributes.
         args: Vec<AnalyzedExpr>,
     },
 
@@ -565,20 +681,31 @@ pub enum AnalyzedExprKind {
     /// # Example
     /// `|x| x + 1`
     Lambda {
+        /// The entities passed into the ephemeral action.
         params: Vec<SmolStr>,
+        /// The action performed within the closure.
         body: Box<AnalyzedExpr>,
+        /// Determines if the captured memories are borrowed, moved, or preserved (memoized).
         capture_mode: CaptureMode,
     },
 
     /// Collection constructor (HashSet::new(), HashMap::new())
-    CollectionNew { collection_type: String },
+    CollectionNew {
+        /// The specific nature of the empty vessel being formed (e.g., HashSet, HashMap).
+        collection_type: String,
+    },
 
     /// Boolean assertion: δεῖ (condition must be true)
-    Assert { condition: Box<AnalyzedExpr> },
+    Assert {
+        /// The truth that must hold firm, lest the trial (`δοκιμή`) end in failure.
+        condition: Box<AnalyzedExpr>,
+    },
 
     /// Equality assertion: ἰσοῦται (values must be equal)
     AssertEq {
+        /// The first entity in the comparison.
         left: Box<AnalyzedExpr>,
+        /// The second entity that must exactly mirror the first.
         right: Box<AnalyzedExpr>,
     },
 }
@@ -650,18 +777,6 @@ impl std::fmt::Debug for AnalyzedExprKind {
                 .field("method", method)
                 .field("args", args)
                 .finish(),
-            AnalyzedExprKind::TraitMethodCall {
-                receiver,
-                trait_name,
-                method_name,
-                args,
-            } => f
-                .debug_struct("TraitMethodCall")
-                .field("receiver", receiver)
-                .field("trait_name", trait_name)
-                .field("method_name", method_name)
-                .field("args", args)
-                .finish(),
             AnalyzedExprKind::StructInstantiation {
                 type_name,
                 fields,
@@ -700,6 +815,20 @@ impl std::fmt::Debug for AnalyzedExprKind {
 }
 
 /// Capture mode for closures
+///
+/// ## Examples
+///
+/// Modes dictate the lifespan and ownership of a lambda's environment:
+///
+/// ```rust
+/// use glossa::semantic::CaptureMode;
+///
+/// // Standard iteration (e.g., `map` or `filter`) borrows variables.
+/// let iteration = CaptureMode::Borrow;
+///
+/// // Returning a closure requires taking ownership of the context.
+/// let escaping = CaptureMode::Move;
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CaptureMode {
     /// Borrow captured variables (default for present participles)

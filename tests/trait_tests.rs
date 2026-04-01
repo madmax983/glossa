@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::ast::Statement;
 use glossa::codegen::generate_rust;
 use glossa::parser::parse;

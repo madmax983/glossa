@@ -10,15 +10,36 @@ use super::declarations::{
     analyze_type_definition, parse_function_definition,
 };
 use super::expressions::contains_function_definition_verb;
-use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_call};
+use super::patterns::{try_parse_method_call, try_parse_struct_instantiation};
 use super::{AnalyzedStatement, GlossaType, Scope, assemble_statement};
 use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
 
 /// Analyzed program with resolved names and types
+///
+/// This structure represents the ultimate truth (τέλος) of the user's intent,
+/// having successfully passed through syntax parsing and morphological analysis.
+/// It is completely devoid of ambiguity and is fully prepared for translation
+/// into Rust code (codegen).
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::ast::Program;
+/// use glossa::semantic::analyzer::analyze_program;
+///
+/// // Create an empty program structure
+/// let empty_ast = Program { statements: vec![] };
+///
+/// // The analyzed program will contain an empty scope and no statements
+/// let analyzed = analyze_program(&empty_ast).unwrap();
+/// assert!(analyzed.statements.is_empty());
+/// ```
 #[derive(Debug, Clone)]
 pub struct AnalyzedProgram {
+    /// The linear sequence of semantically valid statements ready for codegen
     pub statements: Vec<AnalyzedStatement>,
+    /// The global execution scope containing known bindings, variables, and type definitions
     pub scope: Scope,
 }
 
@@ -52,6 +73,20 @@ pub fn analyze_statement(
     stmt: &Statement,
     scope: &mut Scope,
 ) -> Result<Vec<AnalyzedStatement>, GlossaError> {
+    analyze_statement_recursive(stmt, scope, 0)
+}
+
+fn analyze_statement_recursive(
+    stmt: &Statement,
+    scope: &mut Scope,
+    depth: usize,
+) -> Result<Vec<AnalyzedStatement>, GlossaError> {
+    if depth > crate::limits::MAX_AST_DEPTH {
+        return Err(GlossaError::semantic(
+            "Recursion limit exceeded in statement analysis",
+        ));
+    }
+
     // 1. Check for function definitions
     if contains_function_definition_verb(stmt)
         && let Some(func_def) = parse_function_definition(stmt, scope)?
@@ -83,8 +118,8 @@ pub fn analyze_statement(
         return Ok(vec![struct_inst]);
     }
 
-    // 4. Check for trait method call pattern
-    if let Some(method_call) = try_parse_trait_method_call(stmt, scope)? {
+    // 4. Check for standalone method call pattern
+    if let Some(method_call) = try_parse_method_call(stmt, scope)? {
         return Ok(vec![method_call]);
     }
 
@@ -95,7 +130,7 @@ pub fn analyze_statement(
         // This ensures variables defined inside the block don't leak out
         let mut block_scope = scope.enter_scope();
         for s in block_stmts {
-            analyzed.extend(analyze_statement(s, &mut block_scope)?);
+            analyzed.extend(analyze_statement_recursive(s, &mut block_scope, depth + 1)?);
         }
         return Ok(analyzed);
     }

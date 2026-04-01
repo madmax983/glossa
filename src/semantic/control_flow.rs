@@ -148,6 +148,36 @@ fn parse_while_loop(
     }))
 }
 
+fn parse_range_bound(
+    expr: &Expr,
+    scope: &Scope,
+    bound_type: &str,
+) -> Result<AnalyzedExpr, GlossaError> {
+    if let Expr::Word(w) = expr {
+        // Parse as number literal
+        if let Some(val) = lexicon::numeral_value(&w.normalized) {
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(val),
+                glossa_type: GlossaType::Number,
+            })
+        } else {
+            // Try as variable
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(w.normalized.clone()),
+                glossa_type: scope
+                    .lookup(&w.normalized)
+                    .cloned()
+                    .unwrap_or(GlossaType::Number),
+            })
+        }
+    } else {
+        Err(GlossaError::semantic(format!(
+            "Expected word for range {}",
+            bound_type
+        )))
+    }
+}
+
 /// Parse a for loop with range (ἀπὸ ... μέχρι/ἕως ...)
 /// Structure: ἀπὸ start μέχρι/ἕως end, body
 fn parse_for_range_loop(
@@ -183,26 +213,7 @@ fn parse_for_range_loop(
     }
 
     // Extract start (word at index 1)
-    let start_expr = if let Expr::Word(w) = &words[1] {
-        // Parse as number literal
-        if let Some(val) = lexicon::numeral_value(&w.normalized) {
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(val),
-                glossa_type: GlossaType::Number,
-            }
-        } else {
-            // Try as variable
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(w.normalized.clone()),
-                glossa_type: scope
-                    .lookup(&w.normalized)
-                    .cloned()
-                    .unwrap_or(GlossaType::Number),
-            }
-        }
-    } else {
-        return Err(GlossaError::semantic("Expected word for range start"));
-    };
+    let start_expr = parse_range_bound(&words[1], scope, "start")?;
 
     // Check if it's inclusive (ἕως) or exclusive (μέχρι) - word at index 2
     let inclusive = if let Expr::Word(w) = &words[2] {
@@ -212,26 +223,7 @@ fn parse_for_range_loop(
     };
 
     // Extract end (word at index 3)
-    let end_expr = if let Expr::Word(w) = &words[3] {
-        // Parse as number literal
-        if let Some(val) = lexicon::numeral_value(&w.normalized) {
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(val),
-                glossa_type: GlossaType::Number,
-            }
-        } else {
-            // Try as variable
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(w.normalized.clone()),
-                glossa_type: scope
-                    .lookup(&w.normalized)
-                    .cloned()
-                    .unwrap_or(GlossaType::Number),
-            }
-        }
-    } else {
-        return Err(GlossaError::semantic("Expected word for range end"));
-    };
+    let end_expr = parse_range_bound(&words[3], scope, "end")?;
 
     let iterator = AnalyzedExpr {
         expr: AnalyzedExprKind::Range {
@@ -678,11 +670,8 @@ fn parse_conditional(
             };
 
             // Recursively parse as a new conditional (which becomes the else body)
-            if let Some(elif_analyzed) = parse_conditional(&elif_stmt, scope, depth + 1)? {
-                Some(vec![elif_analyzed])
-            } else {
-                None
-            }
+            parse_conditional(&elif_stmt, scope, depth + 1)?
+                .map(|elif_analyzed| vec![elif_analyzed])
         } else {
             None
         }
@@ -1002,5 +991,205 @@ mod tests {
                 .to_string()
                 .contains("For loop needs at least 2 clauses: range and body")
         );
+    }
+
+    #[test]
+    fn test_parse_conditional_max_depth() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("εαν")),
+                        Expr::NumberLiteral(1),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::NumberLiteral(2)],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result =
+            parse_conditional(&stmt, &mut scope, crate::limits::MAX_CONTROL_FLOW_DEPTH + 1);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Control flow depth")
+        );
+    }
+
+    #[test]
+    fn test_parse_conditional_else_branch() {
+        let mut scope = Scope::new();
+        // εαν 1, λεγε "γεια"
+        // ει δε μη, λεγε "αντιο"
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("εαν")),
+                        Expr::NumberLiteral(1),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![
+                        Expr::Phrase(vec![
+                            Expr::StringLiteral("γεια".to_string()),
+                            Expr::Word(Word::new("λεγε")),
+                        ]),
+                        Expr::Phrase(vec![
+                            Expr::Word(Word::new("ει")),
+                            Expr::Word(Word::new("δε")),
+                            Expr::Word(Word::new("μη")),
+                        ]),
+                    ],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::StringLiteral("αντιο".to_string()),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_conditional(&stmt, &mut scope, 0);
+        assert!(result.is_ok());
+        let stmt = result.unwrap().unwrap();
+        if let AnalyzedStatement::If {
+            condition: _,
+            then_body: _,
+            else_body,
+        } = stmt
+        {
+            assert!(else_body.is_some());
+        } else {
+            panic!("Expected If statement");
+        }
+    }
+
+    #[test]
+    fn test_parse_conditional_elif_branch() {
+        let mut scope = Scope::new();
+        // εαν 1, λεγε "1"
+        // εαν 2, λεγε "2"
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("εαν")),
+                        Expr::NumberLiteral(1),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![
+                        Expr::Phrase(vec![
+                            Expr::StringLiteral("1".to_string()),
+                            Expr::Word(Word::new("λεγε")),
+                        ]),
+                        Expr::Phrase(vec![Expr::Word(Word::new("εαν")), Expr::NumberLiteral(2)]),
+                    ],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::StringLiteral("2".to_string()),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_conditional(&stmt, &mut scope, 0);
+        assert!(result.is_ok());
+        let stmt = result.unwrap().unwrap();
+        if let AnalyzedStatement::If {
+            condition: _,
+            then_body: _,
+            else_body,
+        } = stmt
+        {
+            assert!(else_body.is_some());
+        } else {
+            panic!("Expected If statement");
+        }
+    }
+
+    #[test]
+    fn test_parse_conditional_binding_condition() {
+        let mut scope = Scope::new();
+        scope.define("χ".to_string(), GlossaType::Number);
+
+        // εαν χ ισον 5, λεγε "γεια"
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("εαν")),
+                        Expr::Word(Word::new("χ")),
+                        Expr::Word(Word::new("ισον")),
+                        Expr::NumberLiteral(5),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::StringLiteral("γεια".to_string()),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_conditional(&stmt, &mut scope, 0);
+        assert!(result.is_ok());
+        let stmt = result.unwrap().unwrap();
+        if let AnalyzedStatement::If {
+            condition,
+            then_body: _,
+            else_body: _,
+        } = stmt
+        {
+            // Expected condition to be binop ==
+            if let AnalyzedExprKind::BinOp { op, .. } = condition.expr {
+                assert_eq!(op, crate::morphology::lexicon::BinaryOp::Eq);
+            } else {
+                panic!("Expected condition to be BinOp");
+            }
+        } else {
+            panic!("Expected If statement");
+        }
+    }
+
+    #[test]
+    fn test_check_else_pattern_in_expression_true() {
+        let expr = Expr::Phrase(vec![
+            Expr::Word(Word::new("ει")),
+            Expr::Word(Word::new("δε")),
+            Expr::Word(Word::new("μη")),
+            Expr::Word(Word::new("λεγε")),
+        ]);
+        assert!(check_else_pattern_in_expression(&expr));
+    }
+
+    #[test]
+    fn test_check_conditional_start_true_phrase() {
+        let expr = Expr::Phrase(vec![
+            Expr::Word(Word::new("ει")),
+            Expr::Word(Word::new("λεγε")),
+        ]);
+        assert!(check_conditional_start(&expr));
+    }
+
+    #[test]
+    fn test_check_conditional_start_true_word() {
+        let expr = Expr::Word(Word::new("εαν"));
+        assert!(check_conditional_start(&expr));
     }
 }

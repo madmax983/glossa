@@ -71,8 +71,11 @@ pub enum Statement {
     /// «χαῖρε» λέγε.
     /// ```
     Regular {
+        /// The constituent phrases separated by commas, representing distinct actions or subjects in the sentence.
         clauses: Vec<Clause>,
+        /// Indicates if the user appended a question mark (`?`), signifying an inquiry about the program state rather than a command.
         is_query: bool,
+        /// Indicates if the statement concludes with a semicolon (`;`), dictating that errors or absence of values should bubble up the call stack.
         is_propagate: bool,
     },
     /// A type definition statement
@@ -130,46 +133,62 @@ pub enum Statement {
 /// A type definition (struct)
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeDef {
+    /// The overarching identifier assigned to this new user-defined archetype.
     pub name: Word,
+    /// The structured properties and attributes that instances of this archetype will carry in memory.
     pub fields: Vec<FieldDecl>,
 }
 
 /// A field declaration in a type
 #[derive(Debug, Clone, PartialEq)]
 pub struct FieldDecl {
+    /// The identifier by which this specific property is accessed.
     pub name: Word,
+    /// The archetype dictating the shape and constraints of the data stored within this property.
     pub type_name: Word,
 }
 
 /// A trait definition
 #[derive(Debug, Clone, PartialEq)]
 pub struct TraitDef {
+    /// The shared identifier for this collection of required behaviors or capabilities.
     pub name: Word,
+    /// The list of required actions that any adhering archetype must know how to perform.
     pub methods: Vec<TraitMethodDecl>,
 }
 
 /// A method declaration in a trait
 #[derive(Debug, Clone, PartialEq)]
 pub struct TraitMethodDecl {
+    /// The identifier for the specific behavior expected by the trait.
     pub name: Word,
+    /// The inputs required to perform the action, bound to specific archetypes.
     pub params: Vec<FieldDecl>,
+    /// Indicates whether a fallback behavior has been provided for archetypes that do not define their own.
     pub is_default: bool,
+    /// The fallback logic provided when `is_default` is enabled, saving the implementor from rewriting standard behavior.
     pub body: Option<Vec<Statement>>,
 }
 
 /// A trait implementation
 #[derive(Debug, Clone, PartialEq)]
 pub struct TraitImplDef {
+    /// The specific archetype choosing to adopt these new behaviors.
     pub type_name: Word,
+    /// The established interface or contract being fulfilled.
     pub trait_name: Word,
+    /// The concrete actions outlining exactly how this archetype satisfies the trait's requirements.
     pub methods: Vec<ImplMethodDef>,
 }
 
 /// A method implementation in a trait impl
 #[derive(Debug, Clone, PartialEq)]
 pub struct ImplMethodDef {
+    /// The behavior from the trait that is being explicitly defined.
     pub name: Word,
+    /// The runtime values provided during execution to carry out the action.
     pub params: Vec<FieldDecl>,
+    /// The sequence of operations required to fulfill the method's purpose.
     pub body: Vec<Statement>,
 }
 
@@ -288,7 +307,12 @@ pub enum Expr {
     ///
     /// # Example
     /// `πίναξ[0]`
-    IndexAccess { array: Box<Expr>, index: Box<Expr> },
+    IndexAccess {
+        /// The contiguous sequence of elements stored in memory from which an item is being retrieved.
+        array: Box<Expr>,
+        /// The numerical offset used to locate a specific element within the sequence.
+        index: Box<Expr>,
+    },
 
     /// A single Greek word with morphological information
     ///
@@ -313,7 +337,9 @@ pub enum Expr {
     /// # Example
     /// `χρήστου ὄνομα` (the user's name)
     PropertyAccess {
+        /// The complex structure from which a specific attribute is being extracted.
         owner: Box<Expr>,
+        /// The specific named attribute being requested from the owning structure.
         property: Box<Expr>,
     },
 
@@ -321,21 +347,34 @@ pub enum Expr {
     ///
     /// # Example
     /// `λέγε(«χαῖρε»)` (Explicit call syntax)
-    Call { verb: Word, arguments: Vec<Expr> },
+    Call {
+        /// The action to perform, tied to an executable block of logic in the compiled program.
+        verb: Word,
+        /// The inputs supplied to fuel the execution of the requested action.
+        arguments: Vec<Expr>,
+    },
 
     /// Variable binding (ἔστω construction)
     ///
     /// # Example
     /// `ξ πέντε ἔστω` -> `Binding { name: "ξ", value: 5 }`
-    Binding { name: Word, value: Box<Expr> },
+    Binding {
+        /// The identifier introduced into the current lexical environment to refer to the stored data.
+        name: Word,
+        /// The computed result that is assigned to the newly introduced identifier.
+        value: Box<Expr>,
+    },
 
     /// Binary operation (arithmetic, comparison, boolean)
     ///
     /// # Example
     /// `x μεῖζον y` -> `x > y`
     BinOp {
+        /// The first value partaking in the binary evaluation.
         left: Box<Expr>,
+        /// The mathematical or logical comparison to execute between the two operands.
         op: BinOperator,
+        /// The second value partaking in the binary evaluation.
         right: Box<Expr>,
     },
 
@@ -344,7 +383,9 @@ pub enum Expr {
     /// # Example
     /// `οὐκ x` -> `!x`
     UnaryOp {
+        /// The logical inversion or singular operation to perform.
         op: UnaryOperator,
+        /// The single value undergoing the operation.
         operand: Box<Expr>,
     },
 

@@ -31,19 +31,40 @@ pub fn run_weave(input: &Path) -> Result<()> {
 
     let status = Status::start_with_symbol("Ὕφανσις (Weaving)", "🕸️");
 
-    let source = load_source(input)?;
+    let source = match load_source(input) {
+        Ok(s) => s,
+        Err(e) => {
+            status.error("Σφάλμα ἀρχείου (File Error)");
+            return Err(e);
+        }
+    };
 
     // 1. Parse & Analyze
-    let ast = parse(&source).map_err(|e| miette::miette!("{}", e))?;
-    let program = analyze_program(&ast).map_err(|e| miette::miette!("{}", e))?;
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
+    let program = match analyze_program(&ast) {
+        Ok(p) => p,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
 
     // 2. Generate Rust Code
     let rust_code = generate_rust_file(&program);
 
     // 3. Generate Mosaic Table
     let mut mosaic_buffer = Vec::new();
-    run_mosaic_inner(&source, &mut mosaic_buffer)?;
-    let mosaic_output = String::from_utf8(mosaic_buffer).into_diagnostic()?;
+    if let Err(e) = run_mosaic_inner(&source, &mut mosaic_buffer) {
+        status.error("Σφάλμα (Error)");
+        return Err(e);
+    }
+    let mosaic_output = String::from_utf8(mosaic_buffer).expect("comfy-table outputs valid UTF-8");
 
     // 4. Format Markdown
     let mut md = String::new();
@@ -75,7 +96,10 @@ pub fn run_weave(input: &Path) -> Result<()> {
 
     // 5. Write to file or print
     let output_path = input.with_extension("md");
-    fs::write(&output_path, &md).into_diagnostic()?;
+    if let Err(e) = fs::write(&output_path, &md).into_diagnostic() {
+        status.error("Σφάλμα ἀρχείου (File Error)");
+        return Err(e);
+    }
 
     status.success();
 
@@ -153,6 +177,48 @@ mod tests {
                 .unwrap_err()
                 .to_string()
                 .contains("Ἀρχεῖον λίαν μέγα")
+        );
+    }
+
+    #[test]
+    fn test_run_weave_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("parse_error.γλ");
+        std::fs::write(&input_path, b"invalid syntax").unwrap();
+
+        let result = run_weave(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_weave_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("semantic_error.γλ");
+        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
+
+        let result = run_weave(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_weave_file_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("file_error.γλ");
+        std::fs::write(&input_path, "ξ 10 ἔστω.").unwrap();
+
+        // Create a directory at the expected output path so that fs::write fails
+        let output_path = input_path.with_extension("md");
+        std::fs::create_dir(&output_path).unwrap();
+
+        let result = run_weave(&input_path);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        // A generic file/IO error assertion that works across platforms
+        assert!(
+            err_msg.contains("Failed to write")
+                || err_msg.contains("directory")
+                || err_msg.contains("denied")
+                || err_msg.contains("Permission")
         );
     }
 }
