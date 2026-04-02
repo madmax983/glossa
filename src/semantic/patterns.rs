@@ -613,7 +613,7 @@ fn process_fold_participle(
             let init_value = match bin_op {
                 crate::morphology::lexicon::BinaryOp::Add => 0,
                 crate::morphology::lexicon::BinaryOp::Mul => 1,
-                _ => unreachable!(),
+                _ => return false,
             };
 
             // Determine capture mode based on participle tense
@@ -1000,6 +1000,36 @@ mod tests {
     use super::*;
     use crate::morphology::analyze;
     use crate::semantic::{AnalyzedExprKind, Constituent};
+
+    #[test]
+    fn test_process_fold_participle_unsupported_op_fallback() {
+        let participle = crate::semantic::assembly::ParticipleConstituent {
+            verb_lemma: "dummy".into(),
+            original: "dummy".into(),
+            normalized: "dummy".into(),
+            case: crate::morphology::Case::Nominative,
+            number: crate::morphology::Number::Singular,
+            gender: crate::morphology::Gender::Masculine,
+            tense: crate::morphology::Tense::Present,
+            voice: crate::morphology::Voice::Active,
+        };
+
+        let mut asm_stmt = AssembledStatement::default();
+        asm_stmt
+            .operators
+            .push(crate::morphology::lexicon::BinaryOp::Sub);
+
+        let mut current_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+
+        let result = process_fold_participle(&participle, &asm_stmt, &mut current_expr);
+        assert!(
+            !result,
+            "process_fold_participle should safely return false on unsupported operator"
+        );
+    }
 
     #[test]
     fn test_extract_comparison_value_lemma() {
