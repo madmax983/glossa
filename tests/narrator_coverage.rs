@@ -286,7 +286,7 @@ fn test_bard_exprs() {
 
     test_expr_tale(
         AnalyzedExprKind::UnaryOp {
-            op: glossa::morphology::lexicon::UnaryOp::Not,
+            op: glossa::morphology::UnaryOp::Not,
             operand: Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::BooleanLiteral(true),
                 glossa_type: GlossaType::Boolean,

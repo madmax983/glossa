@@ -31,10 +31,10 @@
 //! This allows for authentic Greek syntax where emphasis is conveyed through word order
 //! without changing the semantic meaning.
 
-pub mod analyzer;
+pub(crate) mod analyzer;
 #[cfg(test)]
 mod assembler_tests;
-pub mod assembly;
+pub(crate) mod assembly;
 #[cfg(test)]
 mod classification_tests;
 pub(crate) mod control_flow;
@@ -57,7 +57,7 @@ mod types;
 pub(crate) mod validation;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
-pub use analyzer::{AnalyzedProgram, analyze_program};
+pub use analyzer::{AnalyzedProgram, analyze_program, analyze_statement};
 pub use assembly::Assembler;
 pub use assembly::{
     AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,

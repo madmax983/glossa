@@ -26,7 +26,7 @@ use crate::errors::GlossaError;
 ///
 /// ```rust
 /// use glossa::ast::Program;
-/// use glossa::semantic::analyzer::analyze_program;
+/// use glossa::semantic::analyze_program;
 ///
 /// // Create an empty program structure
 /// let empty_ast = Program { statements: vec![] };
@@ -59,7 +59,7 @@ pub struct AnalyzedProgram {
 ///
 /// ```rust
 /// use glossa::parser::parse;
-/// use glossa::semantic::{Scope, analyzer::analyze_statement};
+/// use glossa::semantic::{Scope, analyze_statement};
 ///
 /// let mut scope = Scope::new();
 /// let ast = parse("ξ πέντε ἔστω.").unwrap(); // "Let ξ be 5."

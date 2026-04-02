@@ -16,7 +16,7 @@
 //! ## Examples
 //!
 //! ```
-//! use glossa::morphology::participle::analyze_participle;
+//! use glossa::morphology::analyze_participle;
 //! use glossa::morphology::Tense;
 //!
 //! let p = analyze_participle("γραφων").unwrap();
@@ -53,7 +53,7 @@ impl ParticipleAnalysis {
     /// # Examples
     ///
     /// ```
-    /// use glossa::morphology::participle::analyze_participle;
+    /// use glossa::morphology::analyze_participle;
     ///
     /// let p = analyze_participle("γραφων").unwrap();
     /// assert_eq!(p.verb_lemma(), "γραφω");
@@ -498,7 +498,7 @@ static ALL_PATTERNS: LazyLock<Vec<&'static ParticiplePattern>> = LazyLock::new(|
 /// # Examples
 ///
 /// ```
-/// use glossa::morphology::participle::analyze_participle;
+/// use glossa::morphology::analyze_participle;
 /// use glossa::morphology::Tense;
 ///
 /// let p = analyze_participle("γραφων").unwrap();

@@ -147,14 +147,14 @@ fn test_analyzed_expr_kind_debug_all_variants() {
                 expr: AnalyzedExprKind::None,
                 glossa_type: glossa::semantic::GlossaType::Unknown,
             }),
-            op: glossa::morphology::lexicon::BinaryOp::Add,
+            op: glossa::morphology::BinaryOp::Add,
             right: Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::None,
                 glossa_type: glossa::semantic::GlossaType::Unknown,
             }),
         },
         AnalyzedExprKind::UnaryOp {
-            op: glossa::morphology::lexicon::UnaryOp::Not,
+            op: glossa::morphology::UnaryOp::Not,
             operand: Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::None,
                 glossa_type: glossa::semantic::GlossaType::Unknown,

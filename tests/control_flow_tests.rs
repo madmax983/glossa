@@ -198,73 +198,66 @@ fn test_continue() {
 
 #[test]
 fn test_lexicon_conditional_particles() {
-    use glossa::morphology::lexicon;
-
     // These should be recognized as control flow particles
     assert!(
-        lexicon::is_conditional_particle("ει"),
+        glossa::morphology::is_conditional_particle("ει"),
         "εἰ should be conditional"
     );
     assert!(
-        lexicon::is_conditional_particle("εαν"),
+        glossa::morphology::is_conditional_particle("εαν"),
         "ἐάν should be conditional"
     );
     assert!(
-        lexicon::is_conditional_particle("ην"),
+        glossa::morphology::is_conditional_particle("ην"),
         "ἤν should be conditional"
     );
 }
 
 #[test]
 fn test_lexicon_else_particle() {
-    use glossa::morphology::lexicon;
-
     // "εἰ δὲ μή" is the else pattern
     assert!(
-        lexicon::is_else_pattern("ει δε μη"),
+        glossa::morphology::is_else_pattern("ει δε μη"),
         "εἰ δὲ μή should be else"
     );
 }
 
 #[test]
 fn test_lexicon_loop_particles() {
-    use glossa::morphology::lexicon;
-
     assert!(
-        lexicon::is_loop_particle("εως"),
+        glossa::morphology::is_loop_particle("εως"),
         "ἕως should be loop particle (while)"
     );
     assert!(
-        lexicon::is_loop_particle("δια"),
+        glossa::morphology::is_loop_particle("δια"),
         "διά should be loop particle (for)"
     );
     assert!(
-        lexicon::is_range_particle("απο"),
+        glossa::morphology::is_range_particle("απο"),
         "ἀπό should be range start"
     );
     assert!(
-        lexicon::is_range_particle("μεχρι"),
+        glossa::morphology::is_range_particle("μεχρι"),
         "μέχρι should be range end (exclusive)"
     );
 }
 
 #[test]
 fn test_lexicon_loop_control() {
-    use glossa::morphology::lexicon;
-
-    assert!(lexicon::is_break_verb("παυε"), "παῦε should be break");
     assert!(
-        lexicon::is_continue_verb("συνεχιζε"),
+        glossa::morphology::is_break_verb("παυε"),
+        "παῦε should be break"
+    );
+    assert!(
+        glossa::morphology::is_continue_verb("συνεχιζε"),
         "συνέχιζε should be continue"
     );
 }
 
 #[test]
 fn test_lexicon_match_particle() {
-    use glossa::morphology::lexicon;
-
     assert!(
-        lexicon::is_match_particle("κατα"),
+        glossa::morphology::is_match_particle("κατα"),
         "κατά should be match particle"
     );
 }

@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-use glossa::morphology::models::*;
+use glossa::morphology::*;
 
 #[test]
 fn test_morph_analysis_creation() {
