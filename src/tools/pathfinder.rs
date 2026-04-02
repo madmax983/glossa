@@ -405,4 +405,77 @@ mod tests {
         assert!(graph.contains("-- \"Yes\" -->"));
         assert!(graph.contains("-- \"No\" -->"));
     }
+
+    #[test]
+    fn test_generate_cfg_all_variants_coverage() {
+        use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
+
+        // Construct dummy AnalyzedExpr
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
+        };
+
+        // Construct a program with all remaining statement variants manually
+        let program = AnalyzedProgram {
+            statements: vec![
+                AnalyzedStatement::Assignment { name: "x".into(), value: dummy_expr.clone() },
+                AnalyzedStatement::Expression(vec![dummy_expr.clone()]),
+                AnalyzedStatement::Query(vec![dummy_expr.clone()]),
+                AnalyzedStatement::For {
+                    variable: "i".into(),
+                    iterator: Box::new(dummy_expr.clone()),
+                    body: vec![],
+                },
+                AnalyzedStatement::Match {
+                    scrutinee: Box::new(dummy_expr.clone()),
+                    arms: vec![(dummy_expr.clone(), vec![])],
+                },
+                AnalyzedStatement::Break,
+                AnalyzedStatement::Continue,
+                AnalyzedStatement::Return { value: Some(Box::new(dummy_expr.clone())) },
+                AnalyzedStatement::FunctionDef {
+                    name: "func".into(),
+                    params: vec![],
+                    body: vec![],
+                    return_type: None,
+                },
+                AnalyzedStatement::TypeDefinition {
+                    name: "Type".into(),
+                    fields: vec![],
+                },
+                AnalyzedStatement::TraitDefinition {
+                    name: "Trait".into(),
+                    methods: vec![],
+                },
+                AnalyzedStatement::TraitImplementation {
+                    trait_name: "Trait".into(),
+                    type_name: "Type".into(),
+                    methods: vec![],
+                },
+                AnalyzedStatement::TestDeclaration {
+                    name: "test".into(),
+                    body: vec![],
+                },
+            ],
+            scope: crate::semantic::Scope::new(),
+        };
+
+        let graph = generate_cfg(&program);
+
+        assert!(graph.contains("Assign x = ..."));
+        assert!(graph.contains("Expression"));
+        assert!(graph.contains("Query"));
+        assert!(graph.contains("For i in ..."));
+        assert!(graph.contains("Match"));
+        assert!(graph.contains("Arm 0"));
+        assert!(graph.contains("Break"));
+        assert!(graph.contains("Continue"));
+        assert!(graph.contains("Return"));
+        assert!(graph.contains("Fn func"));
+        assert!(graph.contains("Type Type"));
+        assert!(graph.contains("Trait Trait"));
+        assert!(graph.contains("Impl Trait for Type"));
+        assert!(graph.contains("Test test"));
+    }
 }
