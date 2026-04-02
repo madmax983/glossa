@@ -104,6 +104,12 @@ impl Augur {
             AnalyzedExprKind::UnaryOp { operand, .. } => {
                 self.visit_expr(operand);
             }
+            AnalyzedExprKind::FunctionCall { args, .. }
+            | AnalyzedExprKind::VerbCall { args, .. } => {
+                for arg in args {
+                    self.visit_expr(arg);
+                }
+            }
             // Add remaining matches as needed
             _ => {}
         }
