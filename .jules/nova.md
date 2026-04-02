@@ -19,3 +19,8 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+
+## 🌟 The Labyrinth (ὁ Λαβύρινθος)
+**Concept:** A tool (`glossa path`) that generates a Mermaid.js control flow graph from the `AnalyzedProgram`, visualizing execution paths and logic branches.
+**Fate:** Proposed
+**Lesson:** Translating an AST to a CFG reveals branching logic clearly. I must be careful not to generate unconditional parent-to-child edges inside block visits to avoid duplicate edges, handling branching explicitly.

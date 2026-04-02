@@ -171,4 +171,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate a Mermaid control flow graph (Requires "nova" feature)
+    Path {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
