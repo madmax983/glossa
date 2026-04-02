@@ -108,7 +108,7 @@ impl Augur {
                     self.visit_expr(arg);
                 }
             }
-            AnalyzedExprKind::Try(e) => {
+            AnalyzedExprKind::Try(e) | AnalyzedExprKind::Unwrap(e) => {
                 self.visit_expr(e);
             }
             // Add remaining matches as needed
@@ -214,46 +214,8 @@ mod tests {
 
     #[test]
     fn test_augur_used_variable_in_binop() {
-        use crate::morphology::lexicon::BinaryOp;
-        use crate::semantic::{
-            AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
-        };
-        use smol_str::SmolStr;
-
-        let statements = vec![
-            AnalyzedStatement::Binding {
-                name: SmolStr::new("ξ"),
-                value: AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(5),
-                    glossa_type: GlossaType::Number,
-                },
-                mutable: false,
-            },
-            AnalyzedStatement::Binding {
-                name: SmolStr::new("ψ"),
-                value: AnalyzedExpr {
-                    expr: AnalyzedExprKind::BinOp {
-                        left: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(SmolStr::new("ξ")),
-                            glossa_type: GlossaType::Number,
-                        }),
-                        op: BinaryOp::Add,
-                        right: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::NumberLiteral(2),
-                            glossa_type: GlossaType::Number,
-                        }),
-                    },
-                    glossa_type: GlossaType::Number,
-                },
-                mutable: false,
-            },
-        ];
-        let program = AnalyzedProgram {
-            statements,
-            scope: Scope::new(),
-        };
-        let mut augur = Augur::new();
-        let findings = augur.analyze(&program);
+        let code = "ξ πέντε ἔστω. ψ 2 ἔστω. ζ τοῦ ξ τοῦ ψ ἄθροισμα ἔστω.";
+        let findings = analyze_code(code);
 
         let has_psi = findings
             .iter()
@@ -261,48 +223,19 @@ mod tests {
         let has_xi = findings
             .iter()
             .any(|f| matches!(f, AugurFinding::UnusedVariable(name) if name == "ξ"));
+        let has_zeta = findings
+            .iter()
+            .any(|f| matches!(f, AugurFinding::UnusedVariable(name) if name == "ζ"));
+
         assert!(!has_xi, "ξ should be marked as used");
-        assert!(has_psi, "ψ should be marked as unused");
+        assert!(!has_psi, "ψ should be marked as used");
+        assert!(has_zeta, "ζ should be marked as unused");
     }
 
     #[test]
     fn test_augur_used_variable_in_unaryop() {
-        use crate::morphology::lexicon::UnaryOp;
-        use crate::semantic::{
-            AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
-        };
-        use smol_str::SmolStr;
-
-        let statements = vec![
-            AnalyzedStatement::Binding {
-                name: SmolStr::new("ξ"),
-                value: AnalyzedExpr {
-                    expr: AnalyzedExprKind::BooleanLiteral(true),
-                    glossa_type: GlossaType::Boolean,
-                },
-                mutable: false,
-            },
-            AnalyzedStatement::Binding {
-                name: SmolStr::new("ψ"),
-                value: AnalyzedExpr {
-                    expr: AnalyzedExprKind::UnaryOp {
-                        op: UnaryOp::Not,
-                        operand: Box::new(AnalyzedExpr {
-                            expr: AnalyzedExprKind::Variable(SmolStr::new("ξ")),
-                            glossa_type: GlossaType::Boolean,
-                        }),
-                    },
-                    glossa_type: GlossaType::Boolean,
-                },
-                mutable: false,
-            },
-        ];
-        let program = AnalyzedProgram {
-            statements,
-            scope: Scope::new(),
-        };
-        let mut augur = Augur::new();
-        let findings = augur.analyze(&program);
+        let code = "ξ ἀληθές ἔστω. ψ ξ! ἔστω.";
+        let findings = analyze_code(code);
 
         let has_psi = findings
             .iter()
