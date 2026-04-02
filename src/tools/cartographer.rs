@@ -134,7 +134,9 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
                 map.push_str(&format!("        +{}: {}\n", field_name, field_type));
 
                 // Extract dependencies (associations)
-                for dep in extract_dependencies(field_type) {
+                let mut deps = Vec::new();
+                extract_dependencies(field_type, &mut deps);
+                for dep in deps {
                     if dep != *name {
                         // Avoid self-reference arrows if desired (or keep them?)
                         // We only want arrows to other defined structs
@@ -224,26 +226,23 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
 }
 
 /// Helper to recursively extract struct names from a type
-fn extract_dependencies(ty: &GlossaType) -> Vec<String> {
+fn extract_dependencies(ty: &GlossaType, buffer: &mut Vec<String>) {
     match ty {
-        GlossaType::Struct { name, .. } => vec![name.to_string()],
+        GlossaType::Struct { name, .. } => buffer.push(name.to_string()),
         GlossaType::List(inner) | GlossaType::Set(inner) | GlossaType::Option(inner) => {
-            extract_dependencies(inner)
+            extract_dependencies(inner, buffer);
         }
         GlossaType::Map(k, v) | GlossaType::Result(k, v) => {
-            let mut deps = extract_dependencies(k);
-            deps.extend(extract_dependencies(v));
-            deps
+            extract_dependencies(k, buffer);
+            extract_dependencies(v, buffer);
         }
         GlossaType::Function { params, returns } => {
-            let mut deps = vec![];
             for p in params {
-                deps.extend(extract_dependencies(p));
+                extract_dependencies(p, buffer);
             }
-            deps.extend(extract_dependencies(returns));
-            deps
+            extract_dependencies(returns, buffer);
         }
-        _ => vec![],
+        _ => {}
     }
 }
 
