@@ -185,6 +185,27 @@ mod tests {
     }
 
     #[test]
+    fn test_augur_used_variable_in_query() {
+        use crate::semantic::{AnalyzedProgram, AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType, Scope};
+        use smol_str::SmolStr;
+
+        let statements = vec![
+            AnalyzedStatement::Binding {
+                name: SmolStr::new("ξ"),
+                value: AnalyzedExpr { expr: AnalyzedExprKind::NumberLiteral(5), glossa_type: GlossaType::Number },
+                mutable: false,
+            },
+            AnalyzedStatement::Query(vec![
+                AnalyzedExpr { expr: AnalyzedExprKind::Variable(SmolStr::new("ξ")), glossa_type: GlossaType::Number }
+            ]),
+        ];
+        let program = AnalyzedProgram { statements, scope: Scope::new() };
+        let mut augur = Augur::new();
+        let findings = augur.analyze(&program);
+        assert_eq!(findings.len(), 0);
+    }
+
+    #[test]
     fn test_augur_used_variable_in_assignment() {
         let code = "μετά ξ πέντε ἔστω. ξ δέκα γίγνεται.";
         let findings = analyze_code(code);
@@ -303,8 +324,24 @@ mod tests {
 
     #[test]
     fn test_augur_if_else_statement() {
-        let code = "ξ ἀληθές ἔστω. ψ πέντε ἔστω. εἰ ξ ἐστι, «ναι» λέγε. εἰ δὲ μή, ψ λέγε.";
-        let findings = analyze_code(code);
+        use crate::semantic::{AnalyzedProgram, AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType, Scope};
+        use smol_str::SmolStr;
+
+        let statements = vec![
+            AnalyzedStatement::Binding {
+                name: SmolStr::new("ξ"),
+                value: AnalyzedExpr { expr: AnalyzedExprKind::BooleanLiteral(true), glossa_type: GlossaType::Boolean },
+                mutable: false,
+            },
+            AnalyzedStatement::If {
+                condition: Box::new(AnalyzedExpr { expr: AnalyzedExprKind::Variable(SmolStr::new("ξ")), glossa_type: GlossaType::Boolean }),
+                then_body: vec![AnalyzedStatement::Print(vec![AnalyzedExpr { expr: AnalyzedExprKind::StringLiteral("ναι".into()), glossa_type: GlossaType::String }])],
+                else_body: Some(vec![AnalyzedStatement::Print(vec![AnalyzedExpr { expr: AnalyzedExprKind::Variable(SmolStr::new("ξ")), glossa_type: GlossaType::Boolean }])]),
+            }
+        ];
+        let program = AnalyzedProgram { statements, scope: Scope::new() };
+        let mut augur = Augur::new();
+        let findings = augur.analyze(&program);
         assert_eq!(findings.len(), 0);
     }
 
