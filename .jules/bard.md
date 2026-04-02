@@ -32,8 +32,13 @@
 **Confusion:** The constructors for `GlossaError` (`parse`, `semantic`, `codegen`, etc.) in `src/errors/mod.rs` were missing rustdoc comments, leading to confusion about when to use which constructor and how they map to the underlying enum variants.
 **Clarification:** I added cohesive rustdoc to all public error constructors. Each block now explains *what* the constructor makes, *why* you would use it (e.g., syntactical invalidity vs logical invalidity vs internal compiler bug), and provides an executable example demonstrating its usage.
 ## 2026-03-18 - [The Semantic Model]
-**Confusion:** Lack of documentation for the semantic models in  which serves as the core data container.
-**Clarification:** Added comprehensive module-level documentation explaining the Atlas pattern, the separation of logic, types, and state, and included a code example illustrating an analyzed binding statement.
-## 2026-03-18 - [The Semantic Model]
 **Confusion:** Lack of documentation for the semantic models in `src/semantic/model.rs` which serves as the core data container.
 **Clarification:** Added comprehensive module-level documentation explaining the Atlas pattern, the separation of logic, types, and state, and included a code example illustrating an analyzed binding statement.
+
+## 2026-03-19 - Integration Tests in Rustdoc
+**Confusion:** I added a doc test to `run_tests` that wrote to a temporary file and invoked `rustc`. It worked when run, but was fragile and depended on the `tempfile` crate and `rustc` being in the environment, causing a `tempfile` dependency issue when run with `cargo test --doc`.
+**Clarification:** I changed the `run_tests` doc test to use the `no_run` attribute. Integration-level tasks involving file I/O and child processes in `rustdoc` examples should be marked with `no_run` so they display accurately to the user without risking test suite breakage.
+
+## 2026-03-20 - `no_run` vs `ignore` in Rustdoc
+**Confusion:** I used `no_run` on a doc test to prevent integration testing issues with `tempfile`, assuming it completely disabled the test. However, `cargo test --doc` still failed with a compilation error because `no_run` only skips execution; it still compiles the code to verify type safety and syntax.
+**Clarification:** To completely bypass compilation (e.g. when a doc-test relies on an external crate not available in the doc-test environment, or pseudocode), you must use the `ignore` attribute instead of `no_run`.

@@ -52,7 +52,40 @@ use miette::Result;
 use crate::morphology::{analyze_all, lexicon};
 use crate::text::normalize_greek;
 
-/// Lookup a word in the dictionary
+/// This function acts as the entry point for the "Lexicon" tool. It exists to provide
+/// developers with an interactive, rich terminal UI to understand the morphology of Ancient Greek
+/// words and how the compiler interprets them. By combining static, definitive dictionary lookups
+/// with dynamic, probabilistic morphological analysis, it bridges the gap between raw text and
+/// semantic meaning.
+///
+/// # Arguments
+///
+/// * `word` - The Greek word to analyze. It will automatically be normalized (polytonic to monotonic).
+///
+/// ## Examples
+///
+/// ```
+/// use glossa::tools::dictionary::lookup_word;
+///
+/// // Look up a valid Ancient Greek word (e.g., "λόγον" - accusative for "word")
+/// // This will print the formatted table to stdout.
+/// let result = lookup_word("λόγον");
+///
+/// // The lookup should succeed without errors
+/// assert!(result.is_ok());
+/// ```
+///
+/// ## Errors
+///
+/// Returns a `miette::Result` if formatting or writing to the output stream fails.
+/// Normal "not found" cases do not yield an error, but instead print an informative message
+/// to the user.
+///
+/// ## Panics
+///
+/// This function is designed to be panic-safe and returns a `miette::Result`.
+/// It will not panic during normal operation, even when presented with invalid or
+/// unknown Greek text, gracefully falling back to reporting no analysis found.
 pub fn lookup_word(word: &str) -> Result<()> {
     let normalized = normalize_greek(word);
 

@@ -150,11 +150,51 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
     failures
 }
 
-/// Run tests defined in a Glossa file
+/// This function is the entry point for the "Judge" test runner. It allows developers to verify
+/// the correctness of their ΓΛΩΣΣΑ programs by translating native `δοκιμή` (test) blocks into
+/// standard Rust `#[test]` functions. It bridges the gap between ΓΛΩΣΣΑ's grammatical assertions
+/// and Rust's robust test execution framework.
 ///
-/// This tool compiles the Glossa source to Rust, but instead of building a regular binary,
-/// it compiles it with `rustc --test`. This creates a test harness that runs all functions
-/// marked with `#[test]` (which `codegen` generates for `TestDeclaration` nodes).
+/// By generating a temporary Rust source file and invoking `rustc --test`, it creates an
+/// isolated test harness without polluting the developer's workspace.
+///
+/// # Arguments
+///
+/// * `input` - The filesystem path to the `ΓΛΩΣΣΑ` source file containing the tests to execute.
+///
+/// ## Examples
+///
+/// ```ignore
+/// use glossa::tools::tester::run_tests;
+/// use std::fs;
+/// use tempfile::tempdir;
+///
+/// let dir = tempdir().unwrap();
+/// let input_path = dir.path().join("my_tests.γλ");
+///
+/// // Create a temporary Glossa test file
+/// fs::write(&input_path, "δοκιμή «math» { ξ 5 ἔστω. ξ 5 ἰσοῦται. }.").unwrap();
+///
+/// // The Judge evaluates the tests
+/// let result = run_tests(&input_path);
+///
+/// // The tests should pass successfully
+/// assert!(result.is_ok());
+/// ```
+///
+/// ## Errors
+///
+/// Returns a `miette::Result` describing the failure condition:
+/// * Syntax or semantic errors in the `ΓΛΩΣΣΑ` source code.
+/// * Inability to spawn the `rustc` process or test binary.
+/// * Failures during test execution itself (test assertion failures).
+///
+/// ## Panics
+///
+/// This function is designed to return `miette::Result` errors instead of panicking,
+/// allowing the CLI to gracefully display formatted error messages. However, it relies on
+/// temporary file creation and child process spawning, which might fail on environments
+/// with heavily restricted permissions or if `rustc` is entirely inaccessible.
 pub fn run_tests(input: &Path) -> Result<()> {
     // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
     let source = crate::tools::runner::load_source(input)?;
