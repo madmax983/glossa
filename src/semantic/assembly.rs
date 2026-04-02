@@ -943,9 +943,7 @@ impl Assembler {
     /// Helper to create a string method call if conditions are met
     #[allow(clippy::collapsible_if)]
     fn try_create_string_method(&mut self, method_name: &str) -> Result<bool, AssemblyError> {
-        if self.state.has_delimiter_preposition
-            && matches!(self.state.literals.last(), Some(Literal::String(_)))
-        {
+        if self.state.has_delimiter_preposition {
             if let Some(ref subj) = self.state.subject {
                 Self::check_limit(
                     self.state.property_accesses.len(),
