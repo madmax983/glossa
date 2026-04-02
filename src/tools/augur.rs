@@ -10,7 +10,6 @@ use std::path::Path;
 #[derive(Debug, PartialEq)]
 pub enum AugurFinding {
     UnusedVariable(SmolStr),
-    UnreachableCode,
 }
 
 /// The Augur static analyzer.
@@ -159,9 +158,6 @@ pub fn run_augur(input: &Path) -> miette::Result<()> {
                         name.yellow()
                     );
                 }
-                AugurFinding::UnreachableCode => {
-                    println!("   {} Unreachable code detected.", "⚠️".yellow());
-                }
             }
         }
     }
@@ -269,40 +265,6 @@ mod tests {
 
         let result = run_augur(&input_path);
         assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_run_augur_findings_unreachable() {
-        // Just directly call run_augur with an AST that produces UnreachableCode,
-        // but since we haven't implemented UnreachableCode detection yet,
-        // we can just directly test that printing UnreachableCode works
-        // We'll write a manual AST analyzer that returns UnreachableCode to test the println.
-
-        let status =
-            crate::tools::ui::Status::start_with_symbol("Οἰωνός (Analyzing semantics)", "🦅");
-        let findings = vec![AugurFinding::UnreachableCode];
-        status.success();
-
-        println!();
-        println!("   {}", "Γ Λ Ω Σ Σ Α   A U G U R".bold().cyan());
-        println!("   {}", "Semantic Analysis Report".italic().dim());
-        println!();
-
-        for finding in findings {
-            match finding {
-                AugurFinding::UnusedVariable(name) => {
-                    println!(
-                        "   {} Variable `{}` is defined but never used.",
-                        "⚠️".yellow(),
-                        name.yellow()
-                    );
-                }
-                AugurFinding::UnreachableCode => {
-                    println!("   {} Unreachable code detected.", "⚠️".yellow());
-                }
-            }
-        }
-        println!();
     }
 
     #[test]
