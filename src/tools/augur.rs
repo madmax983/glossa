@@ -98,17 +98,11 @@ impl Augur {
                 self.visit_expr(left);
                 self.visit_expr(right);
             }
-            AnalyzedExprKind::UnaryOp { operand, .. } => {
-                self.visit_expr(operand);
-            }
-            AnalyzedExprKind::FunctionCall { args, .. }
-            | AnalyzedExprKind::VerbCall { args, .. } => {
-                for arg in args {
-                    self.visit_expr(arg);
-                }
-            }
             AnalyzedExprKind::Try(e) | AnalyzedExprKind::Unwrap(e) => {
                 self.visit_expr(e);
+            }
+            AnalyzedExprKind::UnaryOp { operand, .. } => {
+                self.visit_expr(operand);
             }
             // Add remaining matches as needed
             _ => {}
@@ -196,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_augur_used_variable_in_query() {
-        let code = "ξ πέντε ἔστω. ξ;";
+        let code = "ξ πέντε ἔστω. ξ λέγε?";
         let findings = analyze_code(code);
         assert_eq!(findings.len(), 0);
     }
@@ -262,6 +256,16 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let input_path = dir.path().join("augur_test.γλ");
         std::fs::write(&input_path, "ξ πέντε ἔστω. ξ λέγε.").unwrap();
+
+        let result = run_augur(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_augur_unused() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("augur_unused.γλ");
+        std::fs::write(&input_path, "ξ πέντε ἔστω.").unwrap();
 
         let result = run_augur(&input_path);
         assert!(result.is_ok());
