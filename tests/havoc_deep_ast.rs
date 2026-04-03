@@ -26,5 +26,5 @@ fn test_deep_ast_overflow_analyzer() {
     };
 
     // 💥 DETONATE: This will cause a fatal stack overflow (SIGABRT)
-    let _res = glossa::semantic::analyzer::analyze_program(&prog);
+    let _res = glossa::semantic::analyze_program(&prog);
 }

@@ -25,8 +25,8 @@
 pub(crate) mod common;
 pub(crate) mod declarations;
 pub(crate) mod expressions;
-pub mod grammar;
-pub mod numerals;
+pub(crate) mod grammar;
+pub(crate) mod numerals;
 pub(crate) mod recursion;
 pub(crate) mod statements;
 
@@ -36,6 +36,8 @@ use crate::errors::GlossaError;
 use pest::iterators::Pair;
 
 pub use common::ParseError;
+pub use grammar::parse as grammar_parse_public;
+pub use numerals::parse_greek_numeral;
 
 impl From<ParseError> for GlossaError {
     fn from(err: ParseError) -> Self {

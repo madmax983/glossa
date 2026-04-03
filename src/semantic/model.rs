@@ -487,7 +487,7 @@ impl std::fmt::Debug for AnalyzedExpr {
 ///
 /// ```rust
 /// use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
-/// use glossa::morphology::lexicon::BinaryOp;
+/// use glossa::morphology::BinaryOp;
 ///
 /// let addition = AnalyzedExprKind::BinOp {
 ///     left: Box::new(AnalyzedExpr {

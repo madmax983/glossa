@@ -6,7 +6,7 @@
 
 #[cfg(test)]
 mod cycle1_participle_morphology {
-    use glossa::morphology::participle::*;
+    use glossa::morphology::*;
     use glossa::morphology::{Case, Gender, Number, Tense, Voice};
 
     #[test]

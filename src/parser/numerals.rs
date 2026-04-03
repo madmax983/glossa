@@ -24,7 +24,7 @@ use unicode_normalization::UnicodeNormalization;
 /// # Examples
 ///
 /// ```
-/// use glossa::parser::numerals::parse_greek_numeral;
+/// use glossa::parser::parse_greek_numeral;
 ///
 /// assert_eq!(parse_greek_numeral("αʹ").unwrap(), 1);
 /// assert_eq!(parse_greek_numeral("βʹ").unwrap(), 2);

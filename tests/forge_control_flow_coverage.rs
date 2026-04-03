@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 use glossa::ast::{Clause, Expr, Statement, Word};
-use glossa::semantic::analyzer::analyze_statement;
+use glossa::semantic::analyze_statement;
 use glossa::semantic::{GlossaType, Scope};
 use smol_str::SmolStr;
 

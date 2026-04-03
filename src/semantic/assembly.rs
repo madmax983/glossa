@@ -362,7 +362,7 @@ impl std::fmt::Debug for ParticipleConstituent {
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::semantic::assembly::Literal;
+/// use glossa::semantic::Literal;
 ///
 /// // Create a string literal embodying truth
 /// let text = Literal::String("Ἀλήθεια".to_string());
@@ -539,7 +539,7 @@ impl Assembler {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::semantic::assembly::Assembler;
+    /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
     /// asm.feed_number(42).unwrap();
@@ -555,7 +555,7 @@ impl Assembler {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::semantic::assembly::Assembler;
+    /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
     /// asm.feed_boolean(true).unwrap();

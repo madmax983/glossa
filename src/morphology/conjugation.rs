@@ -625,7 +625,7 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
 /// # Examples
 ///
 /// ```rust
-/// use glossa::morphology::{conjugation::conjugate, Tense, Mood, Voice, Person, Number};
+/// use glossa::morphology::{conjugate, Tense, Mood, Voice, Person, Number};
 ///
 /// // Conjugate "λεγ" (to say) in Present Active Indicative, 1st Person Singular
 /// let result = conjugate("λεγ", Tense::Present, Mood::Indicative, Voice::Active, Person::First, Number::Singular);
@@ -668,7 +668,7 @@ pub fn conjugate(
 /// # Examples
 ///
 /// ```rust
-/// use glossa::morphology::{conjugation::infinitive, Tense, Voice};
+/// use glossa::morphology::{infinitive, Tense, Voice};
 ///
 /// // Present Active Infinitive of "λεγ" (to say)
 /// let result = infinitive("λεγ", Tense::Present, Voice::Active);

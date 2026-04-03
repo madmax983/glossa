@@ -38,7 +38,8 @@
 //! # Example
 //!
 //! ```
-//! use glossa::parser::grammar::parse;
+//! use glossa::parser::{grammar_parse_public as parse};
+
 //!
 //! let source = "«χαῖρε» λέγε.";
 //! let pairs = parse(source).unwrap();
@@ -67,11 +68,10 @@ use pest_derive::Parser;
 /// # Examples
 ///
 /// ```
-/// use glossa::parser::grammar::{GlossaParser, Rule};
-/// use pest::Parser;
+/// use glossa::parser::grammar_parse_public as parse;
 ///
-/// let pairs = GlossaParser::parse(Rule::greek_word, "ἄνθρωπος").unwrap();
-/// assert_eq!(pairs.as_str(), "ἄνθρωπος");
+/// let pairs = parse("«χαῖρε» λέγε.");
+/// assert!(pairs.is_ok());
 /// ```
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]
@@ -96,7 +96,7 @@ pub struct GlossaParser;
 /// # Examples
 ///
 /// ```
-/// use glossa::parser::grammar::parse;
+/// use glossa::parser::grammar_parse_public as parse;
 ///
 /// // The `parse` function expects the source code to be a complete valid program
 /// let pairs = parse("«χαῖρε» λέγε.").expect("Failed to parse");
@@ -108,7 +108,7 @@ pub struct GlossaParser;
 ///
 /// ```rust
 /// // Invalid syntax returns an error, it doesn't panic
-/// use glossa::parser::grammar::parse;
+/// use glossa::parser::grammar_parse_public as parse;
 ///
 /// let result = parse("this is not greek");
 /// assert!(result.is_err());

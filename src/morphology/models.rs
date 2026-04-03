@@ -14,7 +14,7 @@ use std::borrow::Cow;
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::morphology::models::{MorphAnalysis, PartOfSpeech, Case, Number};
+/// use glossa::morphology::{MorphAnalysis, PartOfSpeech, Case, Number};
 ///
 /// // Create a manual analysis for the word "λόγος" (word/reason)
 /// let mut analysis = MorphAnalysis::new("λογος".to_string(), PartOfSpeech::Noun);
@@ -135,7 +135,7 @@ pub enum Case {
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::morphology::models::Number;
+/// use glossa::morphology::Number;
 ///
 /// let one = Number::Singular;
 /// let many = Number::Plural;
@@ -159,7 +159,7 @@ pub enum Number {
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::morphology::models::Gender;
+/// use glossa::morphology::Gender;
 ///
 /// // 'ἀριθμός' (number) takes masculine modifiers
 /// let num_gender = Gender::Masculine;
@@ -289,7 +289,7 @@ impl std::fmt::Display for Gender {
 /// # Examples
 ///
 /// ```
-/// use glossa::morphology::models::{analyses_compatible, MorphAnalysis, PartOfSpeech, Case};
+/// use glossa::morphology::{analyses_compatible, MorphAnalysis, PartOfSpeech, Case};
 ///
 /// let mut a = MorphAnalysis::new("λογος".to_string(), PartOfSpeech::Noun);
 /// a.case = Some(Case::Nominative);

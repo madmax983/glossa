@@ -30,7 +30,7 @@ use std::time::SystemTime;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use glossa::tools::cache::Cache;
+/// use glossa::tools::Cache;
 /// use std::path::Path;
 ///
 /// let cache = Cache::new();
@@ -56,7 +56,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::cache::Cache;
+    /// use glossa::tools::Cache;
     /// let cache = Cache::new();
     /// ```
     pub fn new() -> Self {
@@ -84,7 +84,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use glossa::tools::cache::Cache;
+    /// use glossa::tools::Cache;
     /// let cache = Cache::new();
     /// cache.init().unwrap(); // Creates ~/.cache/.glossa/cache
     /// ```
@@ -114,7 +114,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::cache::Cache;
+    /// use glossa::tools::Cache;
     /// use std::path::Path;
     ///
     /// let cache = Cache::new();
@@ -147,7 +147,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::cache::Cache;
+    /// use glossa::tools::Cache;
     /// use std::path::Path;
     ///
     /// let cache = Cache::new();
@@ -185,7 +185,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::cache::Cache;
+    /// use glossa::tools::Cache;
     /// use std::path::Path;
     ///
     /// let cache = Cache::new();
