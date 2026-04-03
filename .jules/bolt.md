@@ -19,3 +19,6 @@
 **[String Formatting Optimization in Cartographer]**
 **Learning:** Using `.collect::<Vec<String>>().join(", ")` inside loops creates unnecessary intermediate heap allocations for the `Vec` and the intermediate formatted strings.
 **Action:** Replace `.collect::<Vec<String>>().join(", ")` with iterative formatting directly into a `String` buffer using `std::fmt::Write`, applying `.push_str(", ")` between elements to achieve zero intermediate allocations.
+**[Extract Dependencies Buffer Optimization]**
+**Learning:** Recursively creating and extending `Vec<String>` allocations for dependency extraction is inefficient.
+**Action:** Refactored `extract_dependencies` to pass a `&mut Vec<String>` buffer down the recursive call tree to eliminate all intermediate collections.
