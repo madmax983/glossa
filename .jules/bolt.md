@@ -22,3 +22,4 @@
 **[Extract Dependencies Buffer Optimization]**
 **Learning:** Recursively creating and extending `Vec<String>` allocations for dependency extraction is inefficient.
 **Action:** Refactored `extract_dependencies` to pass a `&mut Vec<String>` buffer down the recursive call tree to eliminate all intermediate collections.
+**[Zero-allocation String formatting in tell_lambda]**\n**Learning:** To genuinely eliminate intermediate heap allocations when refactoring `format!("... {} ...", slice.join(", "))` in Rust, do not replace `.join()` with an intermediate `String` buffer passed to `format!` (which still results in multiple allocations). Instead, pre-allocate a single final `String` buffer using `String::with_capacity()` and iteratively `push_str` all components into it.\n**Action:** Replaced `params.join(", ")` inside `format!` with a single, pre-allocated `String` buffer that pushes elements directly.

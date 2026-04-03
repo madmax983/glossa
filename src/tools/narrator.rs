@@ -555,7 +555,21 @@ fn tell_lambda(
         CaptureMode::Move => "move ",
         CaptureMode::Memoize => "memo ",
     };
-    format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
+
+    // ⚡ Bolt Optimization: Construct output string directly without intermediate
+    // `params.join(", ")` allocation or multiple format! buffer allocations.
+    let mut out = String::with_capacity(mode.len() + params.len() * 8 + 10);
+    out.push_str(mode);
+    out.push('|');
+    for (i, p) in params.iter().enumerate() {
+        if i > 0 {
+            out.push_str(", ");
+        }
+        out.push_str(p);
+    }
+    out.push_str("| ");
+    out.push_str(&tell_expr(body));
+    out
 }
 
 /// Converts a semantic type into a familiar Rust-like type signature string.
