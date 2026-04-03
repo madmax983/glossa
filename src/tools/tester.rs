@@ -155,66 +155,14 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
 /// This tool compiles the Glossa source to Rust, but instead of building a regular binary,
 /// it compiles it with `rustc --test`. This creates a test harness that runs all functions
 /// marked with `#[test]` (which `codegen` generates for `TestDeclaration` nodes).
-pub fn run_tests(input: &Path) -> Result<()> {
-    // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
-    let source = crate::tools::runner::load_source(input)?;
-
-    let mut status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
-
-    let ast = match parse(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("{}", e));
-        }
-    };
-    let analyzed = match analyze_program(&ast) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("{}", e));
-        }
-    };
-    let rust_code = generate_rust_file(&analyzed);
-
-    // 3. Create temporary file for Rust source
-    let mut temp_file = Builder::new()
-        .prefix("glossa_test_")
-        .suffix(".rs")
-        .tempfile()
-        .map_err(|e| miette::miette!("Failed to create temporary file for test: {}", e))?;
-
-    write!(temp_file, "{}", rust_code)
-        .map_err(|e| miette::miette!("Failed to write to temporary test file: {}", e))?;
-    let temp_path = temp_file.path().to_owned();
-
-    // 4. Determine output path for the test binary
-    // We use the temp directory to avoid polluting the user's workspace
-    // Use the temp file name to ensure uniqueness
-    let exe_name = temp_path
-        .file_stem()
-        .ok_or_else(|| miette::miette!("Σφάλμα: Could not extract file stem from temp path"))?
-        .to_string_lossy()
-        .into_owned();
-    let exe_path = temp_path
-        .parent()
-        .ok_or_else(|| {
-            miette::miette!("Σφάλμα: Could not extract parent directory from temp path")
-        })?
-        .join(if cfg!(windows) {
-            format!("{}.exe", exe_name)
-        } else {
-            exe_name
-        });
-
-    // 5. Compile with rustc --test
+fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Result<Status> {
     let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
 
     let rustc_output = Command::new(rustc_cmd)
         .arg("--test")
-        .arg(&temp_path)
+        .arg(temp_path)
         .arg("-o")
-        .arg(&exe_path)
+        .arg(exe_path)
         .output()
         .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
 
@@ -224,27 +172,23 @@ pub fn run_tests(input: &Path) -> Result<()> {
         return Err(miette::miette!("{}\n{}", "Rustc Error:".red(), stderr));
     }
 
-    // 6. Run the test binary
+    Ok(status)
+}
+
+fn execute_test_binary(exe_path: &Path, status: &mut Status) -> Result<std::process::Output> {
     status.update("Ἐκτέλεσις (Running)");
 
-    let test_output = Command::new(&exe_path)
+    let test_output = Command::new(exe_path)
         .output() // Capture output to display it nicely
         .into_diagnostic()?;
 
-    // Cleanup: The temp_file (source) is auto-deleted when dropped.
-    // The executable must be deleted manually.
-    let _ = fs::remove_file(&exe_path);
+    // Cleanup: The executable must be deleted manually.
+    let _ = fs::remove_file(exe_path);
 
-    // 7. Parse and Report results
-    let stdout = String::from_utf8_lossy(&test_output.stdout);
-    let results = parse_test_output(&stdout);
+    Ok(test_output)
+}
 
-    if test_output.status.success() {
-        status.success();
-    } else {
-        status.error("Ἀποτυχία (Failure)");
-    }
-
+fn print_test_results(results: &[TestResult], test_output: &std::process::Output, stdout: &str) {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
     println!("   {}", "Unit Test Results".italic().dim());
@@ -281,7 +225,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
             Cell::new("Status").add_attribute(Attribute::Bold),
         ]);
 
-        for result in &results {
+        for result in results {
             let status_cell = match result.status {
                 TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
                 TestStatus::Failed => Cell::new("FAILED")
@@ -319,7 +263,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
         println!();
         println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
 
-        let failures = extract_failures(&stdout);
+        let failures = extract_failures(stdout);
 
         if !failures.is_empty() {
             for (name, msg) in failures {
@@ -350,6 +294,75 @@ pub fn run_tests(input: &Path) -> Result<()> {
             }
         }
     }
+}
+
+pub fn run_tests(input: &Path) -> Result<()> {
+    // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
+    let source = crate::tools::runner::load_source(input)?;
+
+    let status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
+
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
+    let analyzed = match analyze_program(&ast) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("{}", e));
+        }
+    };
+    let rust_code = generate_rust_file(&analyzed);
+
+    // 3. Create temporary file for Rust source
+    let mut temp_file = Builder::new()
+        .prefix("glossa_test_")
+        .suffix(".rs")
+        .tempfile()
+        .map_err(|e| miette::miette!("Failed to create temporary file for test: {}", e))?;
+
+    write!(temp_file, "{}", rust_code)
+        .map_err(|e| miette::miette!("Failed to write to temporary test file: {}", e))?;
+    let temp_path = temp_file.path().to_owned();
+
+    // 4. Determine output path for the test binary
+    let exe_name = temp_path
+        .file_stem()
+        .ok_or_else(|| miette::miette!("Σφάλμα: Could not extract file stem from temp path"))?
+        .to_string_lossy()
+        .into_owned();
+    let exe_path = temp_path
+        .parent()
+        .ok_or_else(|| {
+            miette::miette!("Σφάλμα: Could not extract parent directory from temp path")
+        })?
+        .join(if cfg!(windows) {
+            format!("{}.exe", exe_name)
+        } else {
+            exe_name
+        });
+
+    // 5. Compile with rustc --test
+    let mut status = compile_test_harness(&temp_path, &exe_path, status)?;
+
+    // 6. Run the test binary
+    let test_output = execute_test_binary(&exe_path, &mut status)?;
+
+    // 7. Parse and Report results
+    let stdout = String::from_utf8_lossy(&test_output.stdout);
+    let results = parse_test_output(&stdout);
+
+    if test_output.status.success() {
+        status.success();
+    } else {
+        status.error("Ἀποτυχία (Failure)");
+    }
+
+    print_test_results(&results, &test_output, &stdout);
 
     if !test_output.status.success() {
         return Err(miette::miette!("Tests failed"));
