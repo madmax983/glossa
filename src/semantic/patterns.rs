@@ -605,70 +605,65 @@ fn process_fold_participle(
 ) -> bool {
     // Look for target operator (Add for sum, Mul for product)
     for &bin_op in &asm_stmt.operators {
-        if matches!(
-            bin_op,
-            crate::morphology::lexicon::BinaryOp::Add | crate::morphology::lexicon::BinaryOp::Mul
-        ) {
-            // Determine initial value based on operation
-            let init_value = match bin_op {
-                crate::morphology::lexicon::BinaryOp::Add => 0,
-                crate::morphology::lexicon::BinaryOp::Mul => 1,
-                _ => unreachable!(),
-            };
+        // Determine initial value based on operation
+        let init_value = match bin_op {
+            crate::morphology::lexicon::BinaryOp::Add => 0,
+            crate::morphology::lexicon::BinaryOp::Mul => 1,
+            _ => continue, // Unsupported operators are ignored as fold targets
+        };
 
-            // Determine capture mode based on participle tense
-            let capture_mode = match participle.tense {
-                crate::morphology::Tense::Aorist => CaptureMode::Move,
-                // Iterator closures always take arguments, so Memoize is unsafe.
-                crate::morphology::Tense::Perfect => CaptureMode::Borrow,
-                _ => CaptureMode::Borrow,
-            };
+        // Determine capture mode based on participle tense
+        let capture_mode = match participle.tense {
+            crate::morphology::Tense::Aorist => CaptureMode::Move,
+            // Iterator closures always take arguments, so Memoize is unsafe.
+            crate::morphology::Tense::Perfect => CaptureMode::Borrow,
+            _ => CaptureMode::Borrow,
+        };
 
-            // Create fold closure: |acc, x| acc + x (or acc * x)
-            let fold_body = AnalyzedExpr {
-                expr: AnalyzedExprKind::BinOp {
-                    op: bin_op,
-                    left: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable("acc".into()),
-                        glossa_type: GlossaType::Number,
-                    }),
-                    right: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable("x".into()),
-                        glossa_type: GlossaType::Number,
-                    }),
-                },
-                glossa_type: GlossaType::Number,
-            };
+        // Create fold closure: |acc, x| acc + x (or acc * x)
+        let fold_body = AnalyzedExpr {
+            expr: AnalyzedExprKind::BinOp {
+                op: bin_op,
+                left: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("acc".into()),
+                    glossa_type: GlossaType::Number,
+                }),
+                right: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".into()),
+                    glossa_type: GlossaType::Number,
+                }),
+            },
+            glossa_type: GlossaType::Number,
+        };
 
-            let fold_closure = AnalyzedExpr {
-                expr: AnalyzedExprKind::Lambda {
-                    params: vec!["acc".into(), "x".into()],
-                    body: Box::new(fold_body),
-                    capture_mode,
-                },
-                glossa_type: GlossaType::Function {
-                    params: vec![GlossaType::Number, GlossaType::Number],
-                    returns: Box::new(GlossaType::Number),
-                },
-            };
+        let fold_closure = AnalyzedExpr {
+            expr: AnalyzedExprKind::Lambda {
+                params: vec!["acc".into(), "x".into()],
+                body: Box::new(fold_body),
+                capture_mode,
+            },
+            glossa_type: GlossaType::Function {
+                params: vec![GlossaType::Number, GlossaType::Number],
+                returns: Box::new(GlossaType::Number),
+            },
+        };
 
-            let init_expr = AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(init_value),
-                glossa_type: GlossaType::Number,
-            };
+        let init_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(init_value),
+            glossa_type: GlossaType::Number,
+        };
 
-            let new_expr = AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(current_expr.clone()),
-                    method: "fold".into(),
-                    args: vec![init_expr, fold_closure],
-                },
-                glossa_type: GlossaType::Number,
-            };
-            *current_expr = new_expr;
+        let new_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(current_expr.clone()),
+                method: "fold".into(),
+                args: vec![init_expr, fold_closure],
+            },
+            glossa_type: GlossaType::Number,
+        };
+        *current_expr = new_expr;
 
-            return true;
-        }
+        return true;
     }
     false
 }
@@ -1000,6 +995,36 @@ mod tests {
     use super::*;
     use crate::morphology::analyze;
     use crate::semantic::{AnalyzedExprKind, Constituent};
+
+    #[test]
+    fn test_process_fold_participle_unsupported_op_fallback() {
+        let participle = crate::semantic::assembly::ParticipleConstituent {
+            verb_lemma: "dummy".into(),
+            original: "dummy".into(),
+            normalized: "dummy".into(),
+            case: crate::morphology::Case::Nominative,
+            number: crate::morphology::Number::Singular,
+            gender: crate::morphology::Gender::Masculine,
+            tense: crate::morphology::Tense::Present,
+            voice: crate::morphology::Voice::Active,
+        };
+
+        let mut asm_stmt = AssembledStatement::default();
+        asm_stmt
+            .operators
+            .push(crate::morphology::lexicon::BinaryOp::Sub);
+
+        let mut current_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+
+        let result = process_fold_participle(&participle, &asm_stmt, &mut current_expr);
+        assert!(
+            !result,
+            "process_fold_participle should safely return false on unsupported operator"
+        );
+    }
 
     #[test]
     fn test_extract_comparison_value_lemma() {

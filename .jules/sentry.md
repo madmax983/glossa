@@ -65,3 +65,6 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+**[Panic Safety in Assembly and Patterns]
+**Learning:** Using unreachable!() in fallback match arms acts as a ticking time bomb for structural panics if prior validation assumes impossible conditions.
+**Action:** Replace unreachable!() with safe negative-match default returns (e.g., return false; or Ok(false)) and explicitly construct failing unit tests to cover these fallback paths.
