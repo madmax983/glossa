@@ -1027,6 +1027,62 @@ mod tests {
     }
 
     #[test]
+    fn test_process_fold_participle_tense_capture_modes() {
+        let mut asm_stmt = AssembledStatement::default();
+        asm_stmt
+            .operators
+            .push(crate::morphology::lexicon::BinaryOp::Add);
+
+        // Test Perfect Tense -> Borrow Capture Mode (Fallback from Memoize)
+        let participle_perfect = crate::semantic::assembly::ParticipleConstituent {
+            verb_lemma: "dummy".into(),
+            original: "dummy".into(),
+            normalized: "dummy".into(),
+            case: crate::morphology::Case::Nominative,
+            number: crate::morphology::Number::Singular,
+            gender: crate::morphology::Gender::Masculine,
+            tense: crate::morphology::Tense::Perfect,
+            voice: crate::morphology::Voice::Active,
+        };
+        let mut current_expr_perfect = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+        assert!(process_fold_participle(&participle_perfect, &asm_stmt, &mut current_expr_perfect));
+
+        if let AnalyzedExprKind::MethodCall { args, .. } = &current_expr_perfect.expr {
+            if let AnalyzedExprKind::Lambda { capture_mode, .. } = &args[1].expr {
+                assert_eq!(*capture_mode, CaptureMode::Borrow, "Perfect tense should degrade to Borrow for fold closures");
+            } else {
+                panic!("Expected lambda argument");
+            }
+        } else {
+            panic!("Expected method call");
+        }
+
+        // Test Aorist Tense -> Move Capture Mode
+        let participle_aorist = crate::semantic::assembly::ParticipleConstituent {
+            tense: crate::morphology::Tense::Aorist,
+            ..participle_perfect.clone()
+        };
+        let mut current_expr_aorist = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+        assert!(process_fold_participle(&participle_aorist, &asm_stmt, &mut current_expr_aorist));
+
+        if let AnalyzedExprKind::MethodCall { args, .. } = &current_expr_aorist.expr {
+            if let AnalyzedExprKind::Lambda { capture_mode, .. } = &args[1].expr {
+                assert_eq!(*capture_mode, CaptureMode::Move, "Aorist tense should use Move for fold closures");
+            } else {
+                panic!("Expected lambda argument");
+            }
+        } else {
+            panic!("Expected method call");
+        }
+    }
+
+    #[test]
     fn test_extract_comparison_value_lemma() {
         let mut scope = Scope::new();
         scope.define("ονομα", GlossaType::String);
