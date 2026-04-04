@@ -904,6 +904,7 @@ mod tests {
                 expressions: vec![Expr::Phrase(vec![
                     Expr::Word(Word::new("εως")),
                     Expr::Word(Word::new("ξ")),
+                    Expr::Word(Word::new("εστι")),
                     Expr::Word(Word::new("ισον")),
                     Expr::NumberLiteral(5),
                 ])],
@@ -935,6 +936,7 @@ mod tests {
                     expressions: vec![Expr::Phrase(vec![
                         Expr::Word(Word::new("εως")),
                         Expr::Word(Word::new("ξ")),
+                        Expr::Word(Word::new("εστι")),
                         Expr::Word(Word::new("ισον")),
                         Expr::NumberLiteral(5),
                     ])],
@@ -1133,6 +1135,7 @@ mod tests {
                     expressions: vec![Expr::Phrase(vec![
                         Expr::Word(Word::new("εαν")),
                         Expr::Word(Word::new("χ")),
+                        Expr::Word(Word::new("εστι")),
                         Expr::Word(Word::new("ισον")),
                         Expr::NumberLiteral(5),
                     ])],
