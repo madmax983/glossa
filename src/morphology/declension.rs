@@ -230,13 +230,12 @@ fn add_matched_noun_analysis(
     let confidence = (decl.base_confidence + length_bonus).min(0.99);
 
     // Optimization: Avoid format! for canonical forms
-    let lemma = if word.len() == stem.len() + decl.nom_ending.len()
-        && word.ends_with(decl.nom_ending)
-    {
-        Cow::Owned(word.to_string())
-    } else {
-        Cow::Owned(format!("{}{}", stem, decl.nom_ending))
-    };
+    let lemma =
+        if word.len() == stem.len() + decl.nom_ending.len() && word.ends_with(decl.nom_ending) {
+            Cow::Owned(word.to_string())
+        } else {
+            Cow::Owned(format!("{}{}", stem, decl.nom_ending))
+        };
 
     analyses.push(MorphAnalysis {
         lemma,
@@ -792,5 +791,17 @@ mod tests {
         );
 
         assert_eq!(result, stem);
+    }
+}
+
+#[cfg(test)]
+mod tests_forge {
+    use super::*;
+
+    #[test]
+    fn test_noun_sort_and_dedup_coverage() {
+        // Generate an ambiguous noun to trigger analyze_noun_all sorting and deduplication
+        let analyses = analyze_noun_all("σωμα");
+        assert!(analyses.len() >= 3);
     }
 }

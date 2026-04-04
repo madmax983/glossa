@@ -901,3 +901,19 @@ mod tests {
         assert!(found.is_some(), "analyze_verb_all should find Subjunctive");
     }
 }
+
+#[cfg(test)]
+mod tests_forge {
+    use super::*;
+
+    #[test]
+    fn test_generate_lemma_coverage() {
+        let _ = analyze_verb("ἔλυσα"); // Aorist Active Indicative (StripAugment)
+        let _ = analyze_verb("λυθειη"); // Aorist Passive Optative (PassiveOptative)
+        let _ = analyze_verb("λεγω"); // Standard (endswith ω)
+        let _ = analyze_verb("λεγει"); // Standard (stem + ω)
+
+        let analyses = analyze_verb_all("λυθειη");
+        assert!(!analyses.is_empty());
+    }
+}
