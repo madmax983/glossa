@@ -120,9 +120,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)"
                 }
                 crate::ast::Statement::TestDeclaration(_) => "🧪 Δοκιμασία (Test Declaration)",
-                // Provide a safe default for future statements
-                #[allow(unreachable_patterns)]
-                _ => "❓ Ἄγνωστον (Unknown)",
+                crate::ast::Statement::Regular { .. } => unreachable!(),
             };
             table.add_row(vec![
                 Cell::new(format!("{}", i + 1)),
@@ -380,29 +378,6 @@ mod tests {
         assert!(output.contains("Trait Definition"));
         assert!(output.contains("Trait Implementation"));
         assert!(output.contains("Test Declaration"));
-    }
-
-    #[test]
-    fn test_mosaic_unknown_stmt() {
-        let mut table = Table::new();
-        table.load_preset(UTF8_FULL);
-
-        let type_name = "❓ Ἄγνωστον (Unknown)";
-
-        table.add_row(vec![
-            Cell::new(format!("{}", 1)),
-            Cell::new(type_name)
-                .fg(Color::Cyan)
-                .add_attribute(Attribute::Bold)
-                .add_attribute(Attribute::Italic),
-            Cell::new(""),
-            Cell::new(""),
-            Cell::new(""),
-            Cell::new(""),
-        ]);
-
-        let output = table.to_string();
-        assert!(output.contains("Unknown"));
     }
 
     #[test]
