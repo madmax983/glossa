@@ -60,3 +60,7 @@
 **Refactoring transpile_expr in src/tools/alchemist.rs**
 **Learning:** A massive `match` statement for formatting different expression types (like `AnalyzedExprKind`) can become a "God Function". Extracting the formatting logic for complex variants (like `BinOp`, `StructInstantiation`, `Range`, `UnaryOp`) into specific helper functions drastically simplifies the main `match` dispatcher.
 **Action:** Extract large inner blocks of complex `match` arms into dedicated `transpile_*` or similar helper functions to keep the central dispatch function concise and flat.
+
+**Refactoring transpile_expr in src/tools/alchemist.rs (Coverage)**
+**Learning:** Extracting functions doesn't guarantee their branch coverage remains intact if the original test suite was implicitly hitting those branches via the God Function instead of explicit unit tests. In `transpile_expr`, the extracted helper functions required explicit targeted tests to restore coverage levels.
+**Action:** Whenever extracting complex `match` arms into new private functions, always include targeted unit tests for the newly isolated functionality inside `#[cfg(test)] mod tests_forge { ... }` blocks to ensure branch coverage doesn't drop.

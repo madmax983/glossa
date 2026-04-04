@@ -560,3 +560,84 @@ mod tests {
         assert!(result.unwrap_err().to_string().contains("Semantic error"));
     }
 }
+
+#[cfg(test)]
+mod tests_forge {
+    use super::*;
+    use crate::morphology::lexicon::BinaryOp;
+    use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
+
+    #[test]
+    fn test_transpile_bin_op_coverage() {
+        let left = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable("x".into()),
+            glossa_type: GlossaType::Number,
+        };
+        let right = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Add, &right), "(g_x + 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Sub, &right), "(g_x - 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Mul, &right), "(g_x * 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Div, &right), "(g_x // 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Mod, &right), "(g_x % 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Eq, &right), "(g_x == 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Ne, &right), "(g_x != 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Lt, &right), "(g_x < 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Le, &right), "(g_x <= 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Gt, &right), "(g_x > 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Ge, &right), "(g_x >= 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::And, &right), "(g_x and 5)");
+        assert_eq!(transpile_bin_op(&left, &BinaryOp::Or, &right), "(g_x or 5)");
+    }
+
+    #[test]
+    fn test_transpile_struct_instantiation_coverage() {
+        let args = vec![
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(10),
+                glossa_type: GlossaType::Number,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(20),
+                glossa_type: GlossaType::Number,
+            },
+        ];
+        let fields = vec!["x".into(), "y".into()];
+
+        let out = transpile_struct_instantiation("Point", &fields, &args);
+        assert_eq!(out, "g_Point(g_x=10, g_y=20)");
+
+        let out_empty = transpile_struct_instantiation("Empty", &[], &[]);
+        assert_eq!(out_empty, "g_Empty()");
+    }
+
+    #[test]
+    fn test_transpile_range_coverage() {
+        let start = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        };
+        let end = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(10),
+            glossa_type: GlossaType::Number,
+        };
+
+        assert_eq!(transpile_range(&start, &end, false), "range(1, 10)");
+        assert_eq!(transpile_range(&start, &end, true), "range(1, 10 + 1)");
+    }
+
+    #[test]
+    fn test_transpile_unary_op_coverage() {
+        let operand = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable("flag".into()),
+            glossa_type: GlossaType::Boolean,
+        };
+
+        assert_eq!(transpile_unary_op(&UnaryOp::Not, &operand), "not g_flag");
+        assert_eq!(transpile_unary_op(&UnaryOp::Neg, &operand), "-g_flag");
+        assert_eq!(transpile_unary_op(&UnaryOp::Ref, &operand), "g_flag");
+    }
+}
