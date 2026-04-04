@@ -120,6 +120,8 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)"
                 }
                 crate::ast::Statement::TestDeclaration(_) => "🧪 Δοκιμασία (Test Declaration)",
+                // We map Regular here defensively, even though the if block guards against it,
+                // so we don't need a `_ =>` arm that creates unreachable code.
                 crate::ast::Statement::Regular { .. } => "❓ Ἄγνωστον (Unknown)",
             };
             table.add_row(vec![
