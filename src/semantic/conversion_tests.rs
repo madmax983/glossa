@@ -384,7 +384,7 @@ fn test_extract_value_nominative_fallback() {
         lemma: "test_nom".into(),
         normalized: "test_nom".into(),
         original: "test_nom".into(),
-        case: crate::morphology::Case::Nominative,
+        case: crate::morphology::models::Case::Nominative,
         number: None,
         gender: None,
         person: None,
@@ -400,6 +400,74 @@ fn test_extract_value_nominative_fallback() {
     }
 
     assert_eq!(glossa_type, GlossaType::Unknown);
+}
+
+#[test]
+fn test_classify_expression_double_subject() {
+    // Subject + Nominative, no verb, no ops -> DoubleSubject
+    let mut asm_stmt = AssembledStatement::default();
+    asm_stmt.subject = Some(crate::semantic::Constituent {
+        lemma: "subj".into(),
+        normalized: "subj".into(),
+        original: "subj".into(),
+        case: crate::morphology::models::Case::Nominative,
+        number: None,
+        gender: None,
+        person: None,
+    });
+    asm_stmt.nominatives.push(crate::semantic::Constituent {
+        lemma: "nom".into(),
+        normalized: "nom".into(),
+        original: "nom".into(),
+        case: crate::morphology::models::Case::Nominative,
+        number: None,
+        gender: None,
+        person: None,
+    });
+
+    let scope = Scope::new();
+    let result = crate::semantic::conversion::classify_assembled_statement(&asm_stmt, &mut scope.clone());
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Διπλοῦν ὑποκείμενον"));
+}
+
+#[test]
+fn test_classify_expression_func_def_verb_skips_double_subject() {
+    // Subject + Nominative, BUT with func def verb
+    let mut asm_stmt = AssembledStatement::default();
+    asm_stmt.subject = Some(crate::semantic::Constituent {
+        lemma: "subj".into(),
+        normalized: "subj".into(),
+        original: "subj".into(),
+        case: crate::morphology::models::Case::Nominative,
+        number: None,
+        gender: None,
+        person: None,
+    });
+    asm_stmt.nominatives.push(crate::semantic::Constituent {
+        lemma: "nom".into(),
+        normalized: "nom".into(),
+        original: "nom".into(),
+        case: crate::morphology::models::Case::Nominative,
+        number: None,
+        gender: None,
+        person: None,
+    });
+    asm_stmt.verb = Some(crate::semantic::assembly::VerbConstituent {
+        lemma: "οριζω".into(),
+        normalized: "οριζω".into(),
+        original: "οριζω".into(),
+        person: None,
+        number: None,
+        tense: None,
+        mood: None,
+        voice: None,
+    });
+
+    let scope = Scope::new();
+    let result = crate::semantic::conversion::classify_assembled_statement(&asm_stmt, &mut scope.clone());
+    // In this case, we expect an Ok with an expression (since it's just fallback)
+    assert!(result.is_ok());
 }
 
 #[test]
