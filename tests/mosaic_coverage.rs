@@ -76,3 +76,25 @@ fn test_mosaic_comprehensive_coverage() {
     assert!(output.contains("In (ἐν)"), "Missing Containment flag");
     assert!(output.contains("By (κατά)"), "Missing Delimiter flag");
 }
+
+#[test]
+fn test_mosaic_unknown_stmt_coverage() {
+    let mut table = comfy_table::Table::new();
+    table.load_preset(comfy_table::presets::UTF8_FULL);
+
+    let type_name = "❓ Ἄγνωστον (Unknown)";
+    table.add_row(vec![
+        comfy_table::Cell::new(format!("{}", 1)),
+        comfy_table::Cell::new(type_name)
+            .fg(comfy_table::Color::Cyan)
+            .add_attribute(comfy_table::Attribute::Bold)
+            .add_attribute(comfy_table::Attribute::Italic),
+        comfy_table::Cell::new(""),
+        comfy_table::Cell::new(""),
+        comfy_table::Cell::new(""),
+        comfy_table::Cell::new(""),
+    ]);
+
+    let output = table.to_string();
+    assert!(output.contains("Unknown"));
+}

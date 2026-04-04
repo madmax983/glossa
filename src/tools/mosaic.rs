@@ -120,11 +120,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)"
                 }
                 crate::ast::Statement::TestDeclaration(_) => "🧪 Δοκιμασία (Test Declaration)",
-                // Unreachable because `if let Statement::Regular` catches the only other variant,
-                // but needed for defensive programming and to satisfy the `match` compiler check
-                // when parsing generic statements.
-                #[allow(unreachable_patterns)]
-                crate::ast::Statement::Regular { .. } => unreachable!(),
+                _ => "❓ Ἄγνωστον (Unknown)",
             };
             table.add_row(vec![
                 Cell::new(format!("{}", i + 1)),
