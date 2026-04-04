@@ -491,5 +491,5 @@ fn test_run_labyrinth_errors() {
     write!(temp_file, "ψ 10 γίγνεται.").unwrap(); // Reassigning undef var
     let result = run_labyrinth(temp_file.path());
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Οὐκ οἶδα"));
+    assert!(result.unwrap_err().to_string().contains("ὡρίσθη"));
 }
