@@ -120,8 +120,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)"
                 }
                 crate::ast::Statement::TestDeclaration(_) => "🧪 Δοκιμασία (Test Declaration)",
-                #[allow(unreachable_patterns)]
-                _ => "❓ Ἄγνωστον (Unknown)",
+                crate::ast::Statement::Regular { .. } => unreachable!(),
             };
             table.add_row(vec![
                 Cell::new(format!("{}", i + 1)),
@@ -379,38 +378,6 @@ mod tests {
         assert!(output.contains("Trait Definition"));
         assert!(output.contains("Trait Implementation"));
         assert!(output.contains("Test Declaration"));
-    }
-
-    #[test]
-    fn test_mosaic_unknown_stmt() {
-        // Since there are no longer any unknown statements in `ast::Statement`,
-        // to test the `_ => "Unknown"` fallback branch in `run_mosaic_inner`, we
-        // can invoke the logic directly on the raw strings if we extract that part,
-        // or we simply accept that the fallback branch is defensive (in case `ast::Statement`
-        // gets new variants).
-        // Let's test the match arm logic explicitly here.
-        let mut table = Table::new();
-        table.load_preset(UTF8_FULL);
-
-        // We'll just construct the regular statement but fall through a mock match
-        // to ensure the UI formatting is correct for unknown blocks, even if we can't
-        // easily construct an unknown `ast::Statement` enum variant.
-        let type_name = "❓ Ἄγνωστον (Unknown)";
-
-        table.add_row(vec![
-            Cell::new(format!("{}", 1)),
-            Cell::new(type_name)
-                .fg(Color::Cyan)
-                .add_attribute(Attribute::Bold)
-                .add_attribute(Attribute::Italic),
-            Cell::new(""),
-            Cell::new(""),
-            Cell::new(""),
-            Cell::new(""),
-        ]);
-
-        let output = table.to_string();
-        assert!(output.contains("Unknown"));
     }
 
     #[test]
