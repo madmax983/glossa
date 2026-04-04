@@ -388,7 +388,6 @@ mod tests {
         // or we simply accept that the fallback branch is defensive (in case `ast::Statement`
         // gets new variants).
         // Let's test the match arm logic explicitly here.
-        use crate::ast::Statement;
         let mut table = Table::new();
         table.load_preset(UTF8_FULL);
 
