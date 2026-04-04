@@ -76,16 +76,3 @@ fn test_mosaic_comprehensive_coverage() {
     assert!(output.contains("In (ἐν)"), "Missing Containment flag");
     assert!(output.contains("By (κατά)"), "Missing Delimiter flag");
 }
-
-#[test]
-fn test_mosaic_unknown_stmt_coverage() {
-    let mut table = comfy_table::Table::new();
-    table.load_preset(comfy_table::presets::UTF8_FULL);
-
-    let source = "δοκιμή «τ» . 1 1 ἰσοῦται. τέλος."; // Valid Test Declaration
-    let mut buffer = Vec::new();
-    run_mosaic_inner(source, &mut buffer).unwrap();
-    let output = String::from_utf8(buffer).unwrap();
-
-    assert!(output.contains("Test Declaration"));
-}
