@@ -381,6 +381,38 @@ mod tests {
     }
 
     #[test]
+    fn test_mosaic_unknown_stmt() {
+        use crate::ast::Statement;
+        let mut buffer = Vec::new();
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL);
+
+        let stmt = Statement::Return(None); // A variant not explicitly matched
+        let type_name = match stmt {
+            crate::ast::Statement::TypeDefinition(_) => "🏛️ Ὁρισμός Εἴδους (Type Definition)",
+            crate::ast::Statement::TraitDefinition(_) => "📜 Ὁρισμός Χαρακτῆρος (Trait Definition)",
+            crate::ast::Statement::TraitImpl(_) => "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)",
+            crate::ast::Statement::TestDeclaration(_) => "🧪 Δοκιμασία (Test Declaration)",
+            _ => "❓ Ἄγνωστον (Unknown)",
+        };
+
+        table.add_row(vec![
+            Cell::new(format!("{}", 1)),
+            Cell::new(type_name)
+                .fg(Color::Cyan)
+                .add_attribute(Attribute::Bold)
+                .add_attribute(Attribute::Italic),
+            Cell::new(""),
+            Cell::new(""),
+            Cell::new(""),
+            Cell::new(""),
+        ]);
+
+        let output = table.to_string();
+        assert!(output.contains("Unknown"));
+    }
+
+    #[test]
     fn test_mosaic_error_and_missing_subject() {
         use crate::morphology::{Case, Gender, Number};
         use crate::semantic::{AssembledStatement, Constituent};
