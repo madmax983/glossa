@@ -171,4 +171,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate a Control Flow Graph (Requires "nova" feature)
+    Labyrinth {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

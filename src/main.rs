@@ -110,6 +110,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Labyrinth { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::labyrinth::run_labyrinth(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'labyrinth' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
