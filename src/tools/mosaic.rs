@@ -112,16 +112,21 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
         } else {
             // For non-regular statements, just print the type
             let type_name = match stmt {
-                crate::ast::Statement::TypeDefinition(_) => "Type Definition",
-                crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
-                crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
-                crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
-                _ => "Unknown",
+                crate::ast::Statement::TypeDefinition(_) => "🏛️ Ὁρισμός Εἴδους (Type Definition)",
+                crate::ast::Statement::TraitDefinition(_) => {
+                    "📜 Ὁρισμός Χαρακτῆρος (Trait Definition)"
+                }
+                crate::ast::Statement::TraitImpl(_) => {
+                    "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)"
+                }
+                crate::ast::Statement::TestDeclaration(_) => "🧪 Δοκιμασία (Test Declaration)",
+                _ => "❓ Ἄγνωστον (Unknown)",
             };
             table.add_row(vec![
                 Cell::new(format!("{}", i + 1)),
                 Cell::new(type_name)
-                    .fg(Color::Blue)
+                    .fg(Color::Cyan)
+                    .add_attribute(Attribute::Bold)
                     .add_attribute(Attribute::Italic),
                 Cell::new(""),
                 Cell::new(""),
