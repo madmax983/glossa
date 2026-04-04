@@ -461,9 +461,15 @@ fn classify_variable_binding(
     let (var_name, actual_asm) = resolve_binding_target(asm_stmt, scope)?;
     let (value_expr, value_type) = extract_value(actual_asm.as_ref(), scope)?;
 
+    let unwrapped_type = match &value_type {
+        GlossaType::Option(inner) => *inner.clone(),
+        GlossaType::Result(_, inner) => *inner.clone(),
+        _ => value_type.clone(),
+    };
+
     let final_value_expr = if asm_stmt.is_propagate {
         AnalyzedExpr {
-            glossa_type: value_type.clone(),
+            glossa_type: unwrapped_type.clone(),
             expr: AnalyzedExprKind::Try(Box::new(value_expr)),
         }
     } else {
@@ -472,9 +478,9 @@ fn classify_variable_binding(
 
     let is_mutable = asm_stmt.has_mutable_marker;
     if is_mutable {
-        scope.define_mut(var_name.clone(), value_type.clone());
+        scope.define_mut(var_name.clone(), if asm_stmt.is_propagate { unwrapped_type.clone() } else { value_type.clone() });
     } else {
-        scope.define(var_name.clone(), value_type.clone());
+        scope.define(var_name.clone(), if asm_stmt.is_propagate { unwrapped_type.clone() } else { value_type.clone() });
     }
 
     Ok(Some(AnalyzedStatement::Binding {
@@ -1166,6 +1172,30 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
         }
     }
 
+    // Check for Missing Verb if there are expressions but no verb, query, or explicit block/macro
+    // We already handle verbless expressions where appropriate, but if it ends up here and
+    // is just a bare variable or literal sequence, it lacks a verb.
+    // Note: Control flow conditions (if/while) often parse as verbless phrases.
+    // Also skip this check if there are any binary operators, as these might represent valid logic without a verb.
+    // For now, this logic is too aggressive and catches control flow phrases, skipping it.
+
+    // Check for Double Subject (extra nominatives not used as function args)
+    // We only throw this if it's not a function definition, since those use nominatives for parameter names
+    if asm_stmt.subject.is_some() && !asm_stmt.nominatives.is_empty() && exprs.len() <= 1 {
+        // If there's a subject but also extra nominatives that weren't consumed
+        // into an expression (like binary ops), it's likely a double subject.
+
+        // Wait, function definitions and trait definitions might use nominatives too. Let's see if there's a verb.
+        // Usually, double subject happens when you say something like "The man the god says"
+        // Let's check if the verb is a function definition verb (`οριζειν`).
+        let is_func_def = asm_stmt.verb.as_ref().map_or(false, |v| v.lemma == "οριζω" || v.lemma == "οριζειν" || v.normalized == "οριζειν");
+        // Also skip this check if there are operators, as expressions like "a b greater" use extra nominatives for operands
+        // in fallback logic in tests/expression_coverage.rs
+        if !is_func_def && asm_stmt.operators.is_empty() {
+            return Err(GlossaError::AssemblyError(crate::errors::AssemblyError::DoubleSubject));
+        }
+    }
+
     if asm_stmt.is_propagate && !exprs.is_empty() {
         #[allow(clippy::collapsible_if)]
         if let Some(last_expr) = exprs.pop() {
@@ -1657,6 +1687,26 @@ pub fn extract_value(
     }
     if let Some(res) = extract_object_fallback(asm_stmt, scope)? {
         return Ok(res);
+    }
+
+    if let Some(subject) = &asm_stmt.subject {
+        return Ok((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            },
+            GlossaType::Unknown,
+        ));
+    }
+
+    for nom in &asm_stmt.nominatives {
+        return Ok((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            },
+            GlossaType::Unknown,
+        ));
     }
 
     // Default

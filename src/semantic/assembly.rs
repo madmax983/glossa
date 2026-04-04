@@ -753,7 +753,6 @@ impl Assembler {
         }
 
         if self.state.subject.is_some() {
-            // Additional nominatives stored separately for function call patterns
             Self::check_limit(self.state.nominatives.len(), MAX_NOMINATIVES, "Nominatives")?;
             self.state.nominatives.push(constituent);
         } else {
@@ -894,11 +893,6 @@ impl Assembler {
         let has_content = self.state.subject.is_some()
             || self.state.object.is_some()
             || !self.state.literals.is_empty();
-
-        if self.state.verb.is_none() && has_content && !self.state.is_query {
-            // Allow verbless statements for queries and pure literal expressions
-            // But for now, let's be lenient
-        }
 
         // Check subject-verb agreement if both present
         if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {

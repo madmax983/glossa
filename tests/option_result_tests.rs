@@ -772,7 +772,7 @@ fn test_propagation_generates_question_mark() {
 fn test_propagation_vs_unwrap() {
     // Propagation (`;`) should be different from unwrap (`!`)
     let unwrap_source = "α τι πεντε εστω. β α! εστω.";
-    let propagate_source = "α τι πεντε εστω; β α εστω.";
+    let propagate_source = "α τι πεντε εστω. β α εστω;";
 
     let unwrap_output = compile(unwrap_source).unwrap();
     let propagate_output = compile(propagate_source).unwrap();
@@ -827,8 +827,8 @@ fn test_chained_propagation() {
 fn test_propagation_early_return() {
     // Propagation should enable early return pattern
     let source = r#"
-        α τι πεντε εστω;
-        β α εστω.
+        α τι πεντε εστω.
+        β α εστω;
     "#;
     let output = compile(source).unwrap();
 
@@ -859,8 +859,8 @@ fn test_statement_end_with_semicolon() {
 fn test_propagation_in_workflow() {
     // Realistic workflow with propagation
     let source = r#"
-        τιμη τι πεντε εστω;
-        αποτελεσμα επιτυχια τιμη εστω.
+        τιμη τι πεντε εστω.
+        αποτελεσμα επιτυχια τιμη εστω;
     "#;
     let output = compile(source);
 

@@ -643,8 +643,11 @@ fn parse_conditional(
 
         // Check if it's "εἰ δὲ μή" (else)
         if check_else_pattern_in_expression(second_expr) {
+            // Include all remaining clauses for the else block
+            let mut else_clauses = Vec::with_capacity(stmt.clauses().len() - 2);
+            else_clauses.extend_from_slice(&stmt.clauses()[2..]);
             let stmt = Statement::Regular {
-                clauses: vec![stmt.clauses()[2].clone()],
+                clauses: else_clauses,
                 is_query: false,
                 is_propagate: false,
             };
@@ -1060,8 +1063,11 @@ mod tests {
             is_propagate: false,
         };
         let result = parse_conditional(&stmt, &mut scope, 0);
-        assert!(result.is_ok());
-        let stmt = result.unwrap().unwrap();
+        let stmt = match result {
+            Ok(Some(s)) => s,
+            Err(e) => panic!("Failed to parse conditional else branch: {}", e),
+            _ => panic!("Expected Some"),
+        };
         if let AnalyzedStatement::If {
             condition: _,
             then_body: _,
@@ -1107,8 +1113,11 @@ mod tests {
             is_propagate: false,
         };
         let result = parse_conditional(&stmt, &mut scope, 0);
-        assert!(result.is_ok());
-        let stmt = result.unwrap().unwrap();
+        let stmt = match result {
+            Ok(Some(s)) => s,
+            Err(e) => panic!("Failed to parse conditional elif branch: {}", e),
+            _ => panic!("Expected Some"),
+        };
         if let AnalyzedStatement::If {
             condition: _,
             then_body: _,
