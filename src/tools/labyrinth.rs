@@ -372,7 +372,7 @@ fn build_statements(
                 for (pattern, body) in arms {
                     let arm_label = tell_expr(pattern);
                     let _arm_last =
-                        build_statements(body, buffer, next_id, Some(&arm_label), last_node);
+                        build_statements(body, buffer, next_id, Some(arm_label.as_str()), last_node);
                 }
             }
         }
@@ -387,10 +387,11 @@ mod tests {
     use smol_str::SmolStr;
 
     #[test]
-    fn test_labyrinth_generate_cfg() {
+    fn test_labyrinth_generate_cfg_all_statements() {
         let scope = Scope::new();
         let program = AnalyzedProgram {
             statements: vec![
+                // Binding
                 AnalyzedStatement::Binding {
                     name: SmolStr::new("x"),
                     value: AnalyzedExpr {
@@ -399,31 +400,197 @@ mod tests {
                     },
                     mutable: true,
                 },
+                // Assignment
+                AnalyzedStatement::Assignment {
+                    name: SmolStr::new("x"),
+                    value: AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(2),
+                        glossa_type: GlossaType::Number,
+                    },
+                },
+                // Print
+                AnalyzedStatement::Print(vec![AnalyzedExpr {
+                    expr: AnalyzedExprKind::StringLiteral("Hello".into()),
+                    glossa_type: GlossaType::String,
+                }]),
+                // Expression
+                AnalyzedStatement::Expression(vec![AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(42),
+                    glossa_type: GlossaType::Number,
+                }]),
+                // Query
+                AnalyzedStatement::Query(vec![AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(SmolStr::new("x")),
+                    glossa_type: GlossaType::Number,
+                }]),
+                // If with else
                 AnalyzedStatement::If {
                     condition: Box::new(AnalyzedExpr {
                         expr: AnalyzedExprKind::BooleanLiteral(true),
                         glossa_type: GlossaType::Boolean,
                     }),
-                    then_body: vec![AnalyzedStatement::Expression(vec![AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(2),
-                        glossa_type: GlossaType::Number,
-                    }])],
-                    else_body: Some(vec![AnalyzedStatement::Expression(vec![AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(3),
-                        glossa_type: GlossaType::Number,
-                    }])]),
+                    then_body: vec![AnalyzedStatement::Break],
+                    else_body: Some(vec![AnalyzedStatement::Continue]),
                 },
+                // While
+                AnalyzedStatement::While {
+                    condition: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::BooleanLiteral(false),
+                        glossa_type: GlossaType::Boolean,
+                    }),
+                    body: vec![AnalyzedStatement::Return { value: None }],
+                },
+                // For
+                AnalyzedStatement::For {
+                    variable: SmolStr::new("i"),
+                    iterator: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(SmolStr::new("list")),
+                        glossa_type: GlossaType::Unknown,
+                    }),
+                    body: vec![AnalyzedStatement::Return {
+                        value: Some(Box::new(AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(0),
+                            glossa_type: GlossaType::Number,
+                        }))
+                    }],
+                },
+                // FunctionDef
+                AnalyzedStatement::FunctionDef {
+                    name: SmolStr::new("my_func"),
+                    params: vec![],
+                    body: vec![],
+                    return_type: None,
+                },
+                // TypeDefinition
+                AnalyzedStatement::TypeDefinition {
+                    name: SmolStr::new("MyType"),
+                    fields: vec![],
+                },
+                // TraitDefinition
+                AnalyzedStatement::TraitDefinition {
+                    name: SmolStr::new("MyTrait"),
+                    methods: vec![],
+                },
+                // TraitImplementation
+                AnalyzedStatement::TraitImplementation {
+                    type_name: SmolStr::new("MyType"),
+                    trait_name: SmolStr::new("MyTrait"),
+                    methods: vec![],
+                },
+                // TestDeclaration
+                AnalyzedStatement::TestDeclaration {
+                    name: "my_test".to_string(),
+                    body: vec![],
+                },
+                // Match
+                AnalyzedStatement::Match {
+                    scrutinee: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(SmolStr::new("x")),
+                        glossa_type: GlossaType::Number,
+                    }),
+                    arms: vec![
+                        (
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::NumberLiteral(1),
+                                glossa_type: GlossaType::Number,
+                            },
+                            vec![AnalyzedStatement::Break],
+                        ),
+                    ],
+                }
             ],
             scope,
         };
 
         let cfg = generate_cfg(&program);
+        println!("CFG: \n{}", cfg);
 
         assert!(cfg.contains("graph TD"));
-        assert!(cfg.contains("N0[\"Let `x` be 1\"]"));
-        assert!(cfg.contains("N1{\"if true\"}"));
-        assert!(cfg.contains("N0 --> N1"));
-        assert!(cfg.contains("N1 -- \"Yes\" --> N2"));
-        assert!(cfg.contains("N1 -- \"No\" --> N3"));
+        assert!(cfg.contains("[\"Let `x` be 1\"]"));
+        assert!(cfg.contains("[\"`x` becomes 2\"]"));
+        assert!(cfg.contains("[\"Print \"Hello\"\"]"));
+        assert!(cfg.contains("[\"Expression: 42\"]"));
+        assert!(cfg.contains("[\"Query: `x`\"]"));
+        assert!(cfg.contains("{\"if true\"}"));
+        assert!(cfg.contains("[\"Break\"]"));
+        assert!(cfg.contains("[\"Continue\"]"));
+        assert!(cfg.contains("{\"while false\"}"));
+        assert!(cfg.contains("[\"Return nothing\"]"));
+        assert!(cfg.contains("{\"for i in `list`\"}"));
+        assert!(cfg.contains("[\"Return 0\"]"));
+        assert!(cfg.contains("[\"Function my_func\"]"));
+        assert!(cfg.contains("[\"Type MyType\"]"));
+        assert!(cfg.contains("[\"Trait MyTrait\"]"));
+        assert!(cfg.contains("[\"Impl MyTrait for MyType\"]"));
+        assert!(cfg.contains("[\"Test my_test\"]"));
+        assert!(cfg.contains("{\"match `x`\"}"));
+    }
+
+    #[test]
+    fn test_labyrinth_if_without_else() {
+        let scope = Scope::new();
+        let program = AnalyzedProgram {
+            statements: vec![
+                AnalyzedStatement::If {
+                    condition: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::BooleanLiteral(true),
+                        glossa_type: GlossaType::Boolean,
+                    }),
+                    then_body: vec![AnalyzedStatement::Break],
+                    else_body: None,
+                },
+            ],
+            scope,
+        };
+        let cfg = generate_cfg(&program);
+        assert!(cfg.contains("{\"if true\"}"));
+    }
+
+    #[test]
+    fn test_run_labyrinth_success() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_cfg.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«χαῖρε» λέγε.\n".as_bytes()).unwrap();
+        }
+
+        let result = run_labyrinth(&input_path);
+        assert!(result.is_ok());
+
+        let output_path = input_path.with_extension("cfg.md");
+        assert!(output_path.exists());
+        let md = std::fs::read_to_string(output_path).unwrap();
+        assert!(md.contains("graph TD"));
+        assert!(md.contains("[\"Print \"χαῖρε\"\"]"));
+    }
+
+    #[test]
+    fn test_run_labyrinth_file_not_found() {
+        let path = std::path::PathBuf::from("non_existent_file.γλ");
+        let result = run_labyrinth(&path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_run_labyrinth_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("parse_error.γλ");
+        std::fs::write(&input_path, b"invalid syntax").unwrap();
+
+        let result = run_labyrinth(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_labyrinth_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("semantic_error.γλ");
+        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
+
+        let result = run_labyrinth(&input_path);
+        assert!(result.is_err());
     }
 }
