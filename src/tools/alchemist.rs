@@ -344,6 +344,66 @@ fn transpile_match(
     out.trim_end().to_string()
 }
 
+fn transpile_bin_op(left: &AnalyzedExpr, op: &BinaryOp, right: &AnalyzedExpr) -> String {
+    let l = transpile_expr(left);
+    let r = transpile_expr(right);
+    let op_str = match op {
+        BinaryOp::Add => "+",
+        BinaryOp::Sub => "-",
+        BinaryOp::Mul => "*",
+        BinaryOp::Div => "//", // Integer division in Python
+        BinaryOp::Mod => "%",
+        BinaryOp::Eq => "==",
+        BinaryOp::Ne => "!=",
+        BinaryOp::Lt => "<",
+        BinaryOp::Le => "<=",
+        BinaryOp::Gt => ">",
+        BinaryOp::Ge => ">=",
+        BinaryOp::And => "and",
+        BinaryOp::Or => "or",
+    };
+    format!("({} {} {})", l, op_str, r)
+}
+
+fn transpile_struct_instantiation(
+    type_name: &str,
+    fields: &[smol_str::SmolStr],
+    args: &[AnalyzedExpr],
+) -> String {
+    let mut kw_args_buf = String::with_capacity(fields.len() * 16);
+    for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
+        if i > 0 {
+            kw_args_buf.push_str(", ");
+        }
+        let _ = write!(
+            &mut kw_args_buf,
+            "{}={}",
+            sanitize_ident(f),
+            transpile_expr(a)
+        );
+    }
+    format!("{}({})", sanitize_ident(type_name), kw_args_buf)
+}
+
+fn transpile_range(start: &AnalyzedExpr, end: &AnalyzedExpr, inclusive: bool) -> String {
+    let s = transpile_expr(start);
+    let e = transpile_expr(end);
+    if inclusive {
+        format!("range({}, {} + 1)", s, e)
+    } else {
+        format!("range({}, {})", s, e)
+    }
+}
+
+fn transpile_unary_op(op: &UnaryOp, operand: &AnalyzedExpr) -> String {
+    let o = transpile_expr(operand);
+    match op {
+        UnaryOp::Neg => format!("-{}", o),
+        UnaryOp::Not => format!("not {}", o),
+        UnaryOp::Ref => o, // Python does not have explicit references
+    }
+}
+
 fn transpile_expr(expr: &AnalyzedExpr) -> String {
     match &expr.expr {
         AnalyzedExprKind::NumberLiteral(n) => n.to_string(),
@@ -372,65 +432,17 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
             type_name,
             fields,
             args,
-        } => {
-            let mut kw_args_buf = String::with_capacity(fields.len() * 16);
-            for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
-                if i > 0 {
-                    kw_args_buf.push_str(", ");
-                }
-                let _ = write!(
-                    &mut kw_args_buf,
-                    "{}={}",
-                    sanitize_ident(f),
-                    transpile_expr(a)
-                );
-            }
-            format!("{}({})", sanitize_ident(type_name), kw_args_buf)
-        }
+        } => transpile_struct_instantiation(type_name, fields, args),
         AnalyzedExprKind::Range {
             start,
             end,
             inclusive,
-        } => {
-            let s = transpile_expr(start);
-            let e = transpile_expr(end);
-            if *inclusive {
-                format!("range({}, {} + 1)", s, e)
-            } else {
-                format!("range({}, {})", s, e)
-            }
-        }
+        } => transpile_range(start, end, *inclusive),
         AnalyzedExprKind::ArrayLiteral(exprs) => {
             format!("[{}]", format_transpiled_exprs(exprs))
         }
-        AnalyzedExprKind::BinOp { left, op, right } => {
-            let l = transpile_expr(left);
-            let r = transpile_expr(right);
-            let op_str = match op {
-                BinaryOp::Add => "+",
-                BinaryOp::Sub => "-",
-                BinaryOp::Mul => "*",
-                BinaryOp::Div => "//", // Integer division in Python
-                BinaryOp::Mod => "%",
-                BinaryOp::Eq => "==",
-                BinaryOp::Ne => "!=",
-                BinaryOp::Lt => "<",
-                BinaryOp::Le => "<=",
-                BinaryOp::Gt => ">",
-                BinaryOp::Ge => ">=",
-                BinaryOp::And => "and",
-                BinaryOp::Or => "or",
-            };
-            format!("({} {} {})", l, op_str, r)
-        }
-        AnalyzedExprKind::UnaryOp { op, operand } => {
-            let o = transpile_expr(operand);
-            match op {
-                UnaryOp::Neg => format!("-{}", o),
-                UnaryOp::Not => format!("not {}", o),
-                UnaryOp::Ref => o, // Python does not have explicit references
-            }
-        }
+        AnalyzedExprKind::BinOp { left, op, right } => transpile_bin_op(left, op, right),
+        AnalyzedExprKind::UnaryOp { op, operand } => transpile_unary_op(op, operand),
         // Fallback for unsupported complex expressions like Try, Option variants, etc.
         _ => format!(
             "/* Unimplemented expr: {} */",

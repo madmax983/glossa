@@ -298,6 +298,30 @@ const EIMI_SUBJUNCTIVE: &[(&str, Person, Number)] = &[
     ("ωσιν", Person::Third, Number::Plural),  // with movable nu
 ];
 
+/// Generate a verb lemma based on the matched stem, original word, and strategy.
+fn generate_lemma(word: &str, stem: &str, strategy: LemmaStrategy) -> Cow<'static, str> {
+    match strategy {
+        LemmaStrategy::Standard => {
+            // Optimization: If ending is "ω", then lemma == word (e.g. λέγω)
+            if word.ends_with('ω') && word.len() == stem.len() + "ω".len() {
+                Cow::Owned(word.to_string())
+            } else {
+                Cow::Owned(format!("{}ω", stem))
+            }
+        }
+        LemmaStrategy::StripAugment => {
+            let true_stem = strip_augment(stem);
+            Cow::Owned(format!("{}ω", true_stem))
+        }
+        LemmaStrategy::PassiveOptative => {
+            // Strip the θη passive marker (if present) to get base stem, then add -ω for lemma
+            // Use strip_suffix instead of trim_end_matches to avoid over-stripping root characters
+            let base_stem = stem.strip_suffix('θ').unwrap_or(stem);
+            Cow::Owned(format!("{}ω", base_stem))
+        }
+    }
+}
+
 /// Try to analyze a word as a verb
 ///
 /// Returns the most likely morphological analysis for the given verb form.
@@ -355,27 +379,7 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     // Try conjugation patterns in order
     for pattern in CONJUGATION_PATTERNS {
         if let Some((stem, person, number)) = match_verb_endings(word, pattern.endings) {
-            let lemma = match pattern.lemma_strategy {
-                LemmaStrategy::Standard => {
-                    // Optimization: If ending is "ω", then lemma == word (e.g. λέγω)
-                    if word.ends_with('ω') && word.len() == stem.len() + "ω".len() {
-                        Cow::Owned(word.to_string())
-                    } else {
-                        Cow::Owned(format!("{}ω", stem))
-                    }
-                }
-                LemmaStrategy::StripAugment => {
-                    let true_stem = strip_augment(stem);
-                    Cow::Owned(format!("{}ω", true_stem))
-                }
-                LemmaStrategy::PassiveOptative => {
-                    // Strip the θη passive marker (if present) to get base stem, then add -ω for lemma
-                    // Use strip_suffix instead of trim_end_matches to avoid over-stripping root characters
-                    let base_stem = stem.strip_suffix('θ').unwrap_or(stem);
-                    Cow::Owned(format!("{}ω", base_stem))
-                }
-            };
-
+            let lemma = generate_lemma(word, stem, pattern.lemma_strategy);
             return Some(MorphAnalysis {
                 lemma,
                 part_of_speech: PartOfSpeech::Verb,
@@ -482,6 +486,36 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
     analyses
 }
 
+/// Helper for adding verb analyses from match patterns to the accumulator
+fn add_matched_verb_analysis(
+    word: &str,
+    stem: &str,
+    person: Person,
+    number: Number,
+    pattern: &ConjugationPattern,
+    analyses: &mut Vec<MorphAnalysis>,
+) {
+    let lemma = generate_lemma(word, stem, pattern.lemma_strategy);
+
+    // Calculate confidence
+    let ending_len = word.len() - stem.len();
+    let length_bonus = (ending_len as f32 - 1.0) * 0.03;
+    let confidence = (pattern.base_confidence + length_bonus).min(0.95);
+
+    analyses.push(MorphAnalysis {
+        lemma,
+        part_of_speech: PartOfSpeech::Verb,
+        case: None,
+        number: Some(number),
+        gender: None,
+        person: Some(person),
+        tense: Some(pattern.tense),
+        mood: Some(pattern.mood),
+        voice: Some(pattern.voice),
+        confidence,
+    });
+}
+
 /// Analyze a word as a verb, pushing results into an existing vector
 ///
 /// Zero-allocation version of `analyze_verb_all`.
@@ -509,42 +543,7 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
 
     for pattern in CONJUGATION_PATTERNS {
         match_verb_endings_all(word, pattern.endings, |stem, person, number| {
-            // Handle lemma generation
-            let lemma_stem: Cow<str> = match pattern.lemma_strategy {
-                LemmaStrategy::Standard => Cow::Borrowed(stem),
-                LemmaStrategy::StripAugment => strip_augment(stem),
-                LemmaStrategy::PassiveOptative => {
-                    Cow::Borrowed(stem.strip_suffix('θ').unwrap_or(stem))
-                }
-            };
-
-            // Calculate confidence
-            let ending_len = word.len() - stem.len();
-            let length_bonus = (ending_len as f32 - 1.0) * 0.03;
-            let confidence = (pattern.base_confidence + length_bonus).min(0.95);
-
-            // Optimization: If lemma_stem is just stem (Standard strategy), and ending is "ω", then lemma == word
-            let lemma = if matches!(pattern.lemma_strategy, LemmaStrategy::Standard)
-                && word.ends_with('ω')
-                && word.len() == stem.len() + "ω".len()
-            {
-                Cow::Owned(word.to_string())
-            } else {
-                Cow::Owned(format!("{}ω", lemma_stem))
-            };
-
-            analyses.push(MorphAnalysis {
-                lemma,
-                part_of_speech: PartOfSpeech::Verb,
-                case: None,
-                number: Some(number),
-                gender: None,
-                person: Some(person),
-                tense: Some(pattern.tense),
-                mood: Some(pattern.mood),
-                voice: Some(pattern.voice),
-                confidence,
-            });
+            add_matched_verb_analysis(word, stem, person, number, pattern, analyses);
         });
     }
 

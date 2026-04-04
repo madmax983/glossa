@@ -48,3 +48,15 @@
 **Refactoring `parse_for_range_loop` and `process_participles`**
 **Learning:** Extracting large, inline, nested logic blocks from `for` and `match` statements directly flattens execution paths and adheres to the 'Grandma Test'. Functions over 150 lines like `process_participles` become much easier to read when their main internal branches are extracted to specifically-named helper functions like `process_fold_participle` and `process_map_participle`.
 **Action:** Continually prioritize replacing nested `if let` blocks with early returns and decomposing large looping constructs or match statement inner logic into scoped helper functions to flatten nested code and improve readability.
+
+**Refactoring analyze_verb and analyze_verb_all_into in src/morphology/conjugation.rs**
+**Learning:** Extracting lemma generation into a `generate_lemma` helper function, and extracting matched verb analysis addition into an `add_matched_verb_analysis` helper function directly reduces nesting, duplication, and makes the core analytical flow much cleaner and easier to read.
+**Action:** Decompose large match patterns (like `LemmaStrategy`) and large accumulating closures into named, scoped helper functions to clarify intent and flatten code.
+
+**Refactoring analyze_noun_all_into in src/morphology/declension.rs**
+**Learning:** Extracting the logic for adding a matched noun analysis into `add_matched_noun_analysis`, and pulling out the trailing sort-and-deduplicate block into `sort_and_deduplicate_tail` clarifies the distinct phases of semantic evaluation (matching vs post-processing) and reduces the cognitive load of `analyze_noun_all_into`.
+**Action:** Identify distinct processing phases in large functions (like accumulation vs post-processing/deduplication) and separate them into clear, sequenced helper function calls.
+
+**Refactoring transpile_expr in src/tools/alchemist.rs**
+**Learning:** A massive `match` statement for formatting different expression types (like `AnalyzedExprKind`) can become a "God Function". Extracting the formatting logic for complex variants (like `BinOp`, `StructInstantiation`, `Range`, `UnaryOp`) into specific helper functions drastically simplifies the main `match` dispatcher.
+**Action:** Extract large inner blocks of complex `match` arms into dedicated `transpile_*` or similar helper functions to keep the central dispatch function concise and flat.

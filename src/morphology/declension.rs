@@ -209,49 +209,51 @@ pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
     analyses
 }
 
-/// Analyze a word as a noun, pushing results into an existing vector
-///
-/// Zero-allocation version of `analyze_noun_all`.
-pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
-    let start_len = analyses.len();
+/// Helper for adding matched noun analyses
+fn add_matched_noun_analysis(
+    word: &str,
+    stem: &str,
+    case: Case,
+    number: Number,
+    decl: &DeclensionPattern,
+    analyses: &mut Vec<MorphAnalysis>,
+) {
+    // Calculate confidence based on ending length and distinctiveness
+    let ending_len = word.len() - stem.len();
+    let length_bonus = (ending_len as f32 - 1.0) * 0.05; // Longer = better
 
-    for decl in DECLENSION_PATTERNS {
-        match_endings_all(word, decl.endings, |stem, case, number| {
-            // Calculate confidence based on ending length and distinctiveness
-            let ending_len = word.len() - stem.len();
-            let length_bonus = (ending_len as f32 - 1.0) * 0.05; // Longer = better
+    // Adjust base confidence if needed to match original behavior
+    // Original analyze_noun_all used 0.7 for neuter/alpha, but analyze_noun uses 0.75.
+    // We standardized on 0.75 in the struct.
+    // Increased cap from 0.95 to 0.99 to allow highly distinctive endings (like -ματος)
+    // to outscore less distinctive ones (like -ος) even when both have high base confidence.
+    let confidence = (decl.base_confidence + length_bonus).min(0.99);
 
-            // Adjust base confidence if needed to match original behavior
-            // Original analyze_noun_all used 0.7 for neuter/alpha, but analyze_noun uses 0.75.
-            // We standardized on 0.75 in the struct.
-            // Increased cap from 0.95 to 0.99 to allow highly distinctive endings (like -ματος)
-            // to outscore less distinctive ones (like -ος) even when both have high base confidence.
-            let confidence = (decl.base_confidence + length_bonus).min(0.99);
+    // Optimization: Avoid format! for canonical forms
+    let lemma = if word.len() == stem.len() + decl.nom_ending.len()
+        && word.ends_with(decl.nom_ending)
+    {
+        Cow::Owned(word.to_string())
+    } else {
+        Cow::Owned(format!("{}{}", stem, decl.nom_ending))
+    };
 
-            // Optimization: Avoid format! for canonical forms
-            let lemma = if word.len() == stem.len() + decl.nom_ending.len()
-                && word.ends_with(decl.nom_ending)
-            {
-                Cow::Owned(word.to_string())
-            } else {
-                Cow::Owned(format!("{}{}", stem, decl.nom_ending))
-            };
+    analyses.push(MorphAnalysis {
+        lemma,
+        part_of_speech: PartOfSpeech::Noun,
+        case: Some(case),
+        number: Some(number),
+        gender: Some(decl.gender),
+        person: Some(crate::morphology::Person::Third),
+        tense: None,
+        mood: None,
+        voice: None,
+        confidence,
+    });
+}
 
-            analyses.push(MorphAnalysis {
-                lemma,
-                part_of_speech: PartOfSpeech::Noun,
-                case: Some(case),
-                number: Some(number),
-                gender: Some(decl.gender),
-                person: Some(crate::morphology::Person::Third),
-                tense: None,
-                mood: None,
-                voice: None,
-                confidence,
-            });
-        });
-    }
-
+/// Helper to sort and deduplicate the tail of a morphological analysis vector
+fn sort_and_deduplicate_tail(analyses: &mut Vec<MorphAnalysis>, start_len: usize) {
     // Sort the newly added analyses (the tail)
     analyses[start_len..].sort_by(|a, b| {
         let key_a = (a.case, a.number, a.gender, &a.lemma);
@@ -282,6 +284,21 @@ pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
         }
         analyses.truncate(w);
     }
+}
+
+/// Analyze a word as a noun, pushing results into an existing vector
+///
+/// Zero-allocation version of `analyze_noun_all`.
+pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
+    let start_len = analyses.len();
+
+    for decl in DECLENSION_PATTERNS {
+        match_endings_all(word, decl.endings, |stem, case, number| {
+            add_matched_noun_analysis(word, stem, case, number, decl, analyses);
+        });
+    }
+
+    sort_and_deduplicate_tail(analyses, start_len);
 }
 
 /// Extract stem from a word given its nominative form and declension
