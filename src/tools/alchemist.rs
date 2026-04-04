@@ -581,7 +581,10 @@ mod tests_forge {
         assert_eq!(transpile_bin_op(&left, &BinaryOp::Add, &right), "(g_x + 5)");
         assert_eq!(transpile_bin_op(&left, &BinaryOp::Sub, &right), "(g_x - 5)");
         assert_eq!(transpile_bin_op(&left, &BinaryOp::Mul, &right), "(g_x * 5)");
-        assert_eq!(transpile_bin_op(&left, &BinaryOp::Div, &right), "(g_x // 5)");
+        assert_eq!(
+            transpile_bin_op(&left, &BinaryOp::Div, &right),
+            "(g_x // 5)"
+        );
         assert_eq!(transpile_bin_op(&left, &BinaryOp::Mod, &right), "(g_x % 5)");
         assert_eq!(transpile_bin_op(&left, &BinaryOp::Eq, &right), "(g_x == 5)");
         assert_eq!(transpile_bin_op(&left, &BinaryOp::Ne, &right), "(g_x != 5)");
@@ -589,7 +592,10 @@ mod tests_forge {
         assert_eq!(transpile_bin_op(&left, &BinaryOp::Le, &right), "(g_x <= 5)");
         assert_eq!(transpile_bin_op(&left, &BinaryOp::Gt, &right), "(g_x > 5)");
         assert_eq!(transpile_bin_op(&left, &BinaryOp::Ge, &right), "(g_x >= 5)");
-        assert_eq!(transpile_bin_op(&left, &BinaryOp::And, &right), "(g_x and 5)");
+        assert_eq!(
+            transpile_bin_op(&left, &BinaryOp::And, &right),
+            "(g_x and 5)"
+        );
         assert_eq!(transpile_bin_op(&left, &BinaryOp::Or, &right), "(g_x or 5)");
     }
 
