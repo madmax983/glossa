@@ -120,7 +120,6 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)"
                 }
                 crate::ast::Statement::TestDeclaration(_) => "🧪 Δοκιμασία (Test Declaration)",
-                crate::ast::Statement::Regular { .. } => unreachable!(),
                 _ => "❓ Ἄγνωστον (Unknown)",
             };
             table.add_row(vec![
