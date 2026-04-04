@@ -475,3 +475,21 @@ mod tests {
         assert!(cfg.contains("Test: my_test"));
     }
 }
+
+#[test]
+fn test_run_labyrinth_errors() {
+    use std::io::Write;
+    // Test parsing error
+    let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+    write!(temp_file, "invalid syntax").unwrap();
+    let result = run_labyrinth(temp_file.path());
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Parse"));
+
+    // Test semantic error (valid parse, invalid semantics like undef var)
+    let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+    write!(temp_file, "ἄγνωστος λέγε.").unwrap(); // "unknown say"
+    let result = run_labyrinth(temp_file.path());
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("undefined"));
+}
