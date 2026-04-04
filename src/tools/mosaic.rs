@@ -381,6 +381,29 @@ mod tests {
     }
 
     #[test]
+    fn test_mosaic_unknown_stmt() {
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL);
+
+        let type_name = "❓ Ἄγνωστον (Unknown)";
+
+        table.add_row(vec![
+            Cell::new(format!("{}", 1)),
+            Cell::new(type_name)
+                .fg(Color::Cyan)
+                .add_attribute(Attribute::Bold)
+                .add_attribute(Attribute::Italic),
+            Cell::new(""),
+            Cell::new(""),
+            Cell::new(""),
+            Cell::new(""),
+        ]);
+
+        let output = table.to_string();
+        assert!(output.contains("Unknown"));
+    }
+
+    #[test]
     fn test_mosaic_error_and_missing_subject() {
         use crate::morphology::{Case, Gender, Number};
         use crate::semantic::{AssembledStatement, Constituent};
