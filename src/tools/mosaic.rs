@@ -120,7 +120,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)"
                 }
                 crate::ast::Statement::TestDeclaration(_) => "🧪 Δοκιμασία (Test Declaration)",
-                crate::ast::Statement::Regular { .. } => unreachable!(),
+                _ => "❓ Ἄγνωστον (Unknown)",
             };
             table.add_row(vec![
                 Cell::new(format!("{}", i + 1)),
@@ -379,7 +379,6 @@ mod tests {
         assert!(output.contains("Trait Implementation"));
         assert!(output.contains("Test Declaration"));
     }
-
 
     #[test]
     fn test_mosaic_error_and_missing_subject() {
