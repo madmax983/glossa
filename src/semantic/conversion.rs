@@ -478,9 +478,23 @@ fn classify_variable_binding(
 
     let is_mutable = asm_stmt.has_mutable_marker;
     if is_mutable {
-        scope.define_mut(var_name.clone(), if asm_stmt.is_propagate { unwrapped_type.clone() } else { value_type.clone() });
+        scope.define_mut(
+            var_name.clone(),
+            if asm_stmt.is_propagate {
+                unwrapped_type.clone()
+            } else {
+                value_type.clone()
+            },
+        );
     } else {
-        scope.define(var_name.clone(), if asm_stmt.is_propagate { unwrapped_type.clone() } else { value_type.clone() });
+        scope.define(
+            var_name.clone(),
+            if asm_stmt.is_propagate {
+                unwrapped_type.clone()
+            } else {
+                value_type.clone()
+            },
+        );
     }
 
     Ok(Some(AnalyzedStatement::Binding {
@@ -1188,11 +1202,15 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
         // Wait, function definitions and trait definitions might use nominatives too. Let's see if there's a verb.
         // Usually, double subject happens when you say something like "The man the god says"
         // Let's check if the verb is a function definition verb (`οριζειν`).
-        let is_func_def = asm_stmt.verb.as_ref().map_or(false, |v| v.lemma == "οριζω" || v.lemma == "οριζειν" || v.normalized == "οριζειν");
+        let is_func_def = asm_stmt.verb.as_ref().is_some_and(|v| {
+            v.lemma == "οριζω" || v.lemma == "οριζειν" || v.normalized == "οριζειν"
+        });
         // Also skip this check if there are operators, as expressions like "a b greater" use extra nominatives for operands
         // in fallback logic in tests/expression_coverage.rs
         if !is_func_def && asm_stmt.operators.is_empty() {
-            return Err(GlossaError::AssemblyError(crate::errors::AssemblyError::DoubleSubject));
+            return Err(GlossaError::AssemblyError(
+                crate::errors::AssemblyError::DoubleSubject,
+            ));
         }
     }
 
@@ -1699,7 +1717,7 @@ pub fn extract_value(
         ));
     }
 
-    for nom in &asm_stmt.nominatives {
+    if let Some(nom) = asm_stmt.nominatives.first() {
         return Ok((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(nom.lemma.clone()),

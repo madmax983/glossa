@@ -889,11 +889,6 @@ impl Assembler {
     /// - Subject and verb disagree in number (`SubjectVerbDisagreement`)
     /// - Grammatical gender mismatch occurs
     pub fn finalize(&mut self) -> Result<AssembledStatement, AssemblyError> {
-        // Check for required verb (unless it's a query or has only literals)
-        let has_content = self.state.subject.is_some()
-            || self.state.object.is_some()
-            || !self.state.literals.is_empty();
-
         // Check subject-verb agreement if both present
         if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {
             self.check_agreement(subject, verb)?;

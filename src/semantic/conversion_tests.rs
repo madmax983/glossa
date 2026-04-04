@@ -375,6 +375,34 @@ fn test_extract_literal() {
 }
 
 #[test]
+fn test_extract_value_nominative_fallback() {
+    let scope = Scope::new();
+    let mut asm_stmt = AssembledStatement::default();
+
+    // Set a nominative but NO subject to hit the nominatives fallback
+    asm_stmt.nominatives.push(crate::semantic::Constituent {
+        lemma: "test_nom".into(),
+        normalized: "test_nom".into(),
+        original: "test_nom".into(),
+        case: crate::morphology::Case::Nominative,
+        number: None,
+        gender: None,
+        person: None,
+    });
+
+    let (analyzed, glossa_type) =
+        extract_value(&asm_stmt, &scope).expect("Should extract nominative fallback");
+
+    if let AnalyzedExprKind::Variable(name) = analyzed.expr {
+        assert_eq!(name, "test_nom");
+    } else {
+        panic!("Expected Variable from nominative fallback");
+    }
+
+    assert_eq!(glossa_type, GlossaType::Unknown);
+}
+
+#[test]
 fn test_extract_binary_op_nominative_and_nominative() {
     let mut scope = Scope::new();
     scope.define("a", GlossaType::Number);
