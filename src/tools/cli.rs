@@ -102,6 +102,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Visualize the control flow graph as a map (Requires "nova" feature)
+    Labyrinth {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Start the interactive tutorial (Requires "nova" feature)
     Mentor,
 
