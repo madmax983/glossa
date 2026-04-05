@@ -1,0 +1,10 @@
+--- src/semantic/patterns.rs
++++ src/semantic/patterns.rs
+@@ -231,7 +231,6 @@
+
+     // Extract fields from struct type
+     let GlossaType::Struct { fields, .. } = &struct_type else {
+-        println!("Hit else branch!");
+         return Ok(None);
+     };
+     let fields_info = fields.as_slice();
