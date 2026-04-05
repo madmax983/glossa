@@ -92,9 +92,8 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
 
     for (i, stmt) in program.statements.iter().enumerate() {
         // Only assemble regular statements (others like TypeDef don't go through Assembler in the same way)
-        // Check if it's a regular statement
-        if let crate::ast::Statement::Regular { .. } = stmt {
-            match assemble_statement(stmt) {
+        match stmt {
+            crate::ast::Statement::Regular { .. } => match assemble_statement(stmt) {
                 Ok(assembled) => {
                     add_row(&mut table, i + 1, &assembled);
                 }
@@ -108,33 +107,63 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                         Cell::new(""),
                     ]);
                 }
+            },
+            crate::ast::Statement::TypeDefinition(_) => {
+                let type_name = "🏛️ Ὁρισμός Εἴδους (Type Definition)";
+                table.add_row(vec![
+                    Cell::new(format!("{}", i + 1)),
+                    Cell::new(type_name)
+                        .fg(Color::Cyan)
+                        .add_attribute(Attribute::Bold)
+                        .add_attribute(Attribute::Italic),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                ]);
             }
-        } else {
-            // For non-regular statements, just print the type
-            let type_name = match stmt {
-                crate::ast::Statement::TypeDefinition(_) => "🏛️ Ὁρισμός Εἴδους (Type Definition)",
-                crate::ast::Statement::TraitDefinition(_) => {
-                    "📜 Ὁρισμός Χαρακτῆρος (Trait Definition)"
-                }
-                crate::ast::Statement::TraitImpl(_) => {
-                    "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)"
-                }
-                crate::ast::Statement::TestDeclaration(_) => "🧪 Δοκιμασία (Test Declaration)",
-                // Unreachable because `if let Statement::Regular` catches the only other variant.
-                #[cfg(not(tarpaulin_include))]
-                crate::ast::Statement::Regular { .. } => unreachable!(),
-            };
-            table.add_row(vec![
-                Cell::new(format!("{}", i + 1)),
-                Cell::new(type_name)
-                    .fg(Color::Cyan)
-                    .add_attribute(Attribute::Bold)
-                    .add_attribute(Attribute::Italic),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-            ]);
+            crate::ast::Statement::TraitDefinition(_) => {
+                let type_name = "📜 Ὁρισμός Χαρακτῆρος (Trait Definition)";
+                table.add_row(vec![
+                    Cell::new(format!("{}", i + 1)),
+                    Cell::new(type_name)
+                        .fg(Color::Cyan)
+                        .add_attribute(Attribute::Bold)
+                        .add_attribute(Attribute::Italic),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                ]);
+            }
+            crate::ast::Statement::TraitImpl(_) => {
+                let type_name = "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)";
+                table.add_row(vec![
+                    Cell::new(format!("{}", i + 1)),
+                    Cell::new(type_name)
+                        .fg(Color::Cyan)
+                        .add_attribute(Attribute::Bold)
+                        .add_attribute(Attribute::Italic),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                ]);
+            }
+            crate::ast::Statement::TestDeclaration(_) => {
+                let type_name = "🧪 Δοκιμασία (Test Declaration)";
+                table.add_row(vec![
+                    Cell::new(format!("{}", i + 1)),
+                    Cell::new(type_name)
+                        .fg(Color::Cyan)
+                        .add_attribute(Attribute::Bold)
+                        .add_attribute(Attribute::Italic),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                ]);
+            }
         }
     }
 
@@ -285,7 +314,8 @@ fn format_other_column(asm: &AssembledStatement) -> String {
         other.push(format!("Literals: {}", asm.literals.len()));
     }
 
-    // Operators
+    // Operators (for future proofing, assembler doesn't currently emit raw operators to mosaic output,
+    // they are resolved during statement conversion, but the field exists on the struct)
     if !asm.operators.is_empty() {
         other.push(format!("Ops: {:?}", asm.operators));
     }
@@ -481,10 +511,17 @@ mod tests {
             // Successfully hit the Err path
         }
 
-        // Let's directly hit the `Unknown` fallback branch by making a Statement that is parsed
-        // and iterating over it directly. Since `run_mosaic_inner` only accepts a string,
-        // we can't do it inside without a dummy statement variant.
-        // It's covered enough by now.
+        // Let's create an error that bypasses the relaxed validation but still triggers assembly errors.
+        // Actually, we can just use `assemble_statement` directly through a mocked AST if needed,
+        // but it's simpler to just make a parser error wrapper if we want to hit the line.
+        // Or wait, assembly error happens if we have two verbs without conjunction:
+        // `ὁ ἄνθρωπος λέγει λέγει.`
+        let source_err = "ὁ ἄνθρωπος λέγει λέγει.";
+        let mut buffer_err = Vec::new();
+        let _ = run_mosaic_inner(source_err, &mut buffer_err);
+        let output_err = String::from_utf8(buffer_err).unwrap();
+        assert!(output_err.contains("Error: "));
+
     }
 
     #[test]
