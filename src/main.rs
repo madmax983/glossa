@@ -19,7 +19,11 @@ fn main() -> Result<()> {
         return run_file(&file);
     }
 
-    match cli.command {
+    execute_command(cli.command)
+}
+
+fn execute_command(command: Option<Commands>) -> Result<()> {
+    match command {
         Some(Commands::Run { input }) => {
             run_file(&input)?;
         }

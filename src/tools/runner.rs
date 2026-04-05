@@ -228,25 +228,14 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     let (cached_rs, cached_exe) = cache.get_paths(input);
 
-    // Check if we can use cached binary
-    if cache.is_valid(input, &cached_exe) && cached_exe.exists() {
-        println!();
-        println!("   {}", "Γ Λ Ω Σ Σ Α   R U N".bold().cyan());
-        println!("   {}", "Ἐκτέλεσις (Execution)".italic().dim());
-        println!();
-
-        // Run cached binary directly
-        let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
-
-        println!();
-        println!("   {}", "--- Τέλος (End) ---".dim());
-
-        if !exit_status.success() {
-            std::process::exit(exit_status.code().unwrap_or(1));
-        }
+    if try_run_cached(&cache, input, &cached_exe)? {
         return Ok(());
     }
 
+    compile_build_and_execute(input, &cached_rs, &cached_exe)
+}
+
+fn compile_build_and_execute(input: &Path, cached_rs: &Path, cached_exe: &Path) -> Result<()> {
     // Compile source
     let source = load_source(input)?;
 
@@ -261,7 +250,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     };
 
     // Write Rust source to cache
-    fs::write(&cached_rs, &rust_code).into_diagnostic()?;
+    fs::write(cached_rs, &rust_code).into_diagnostic()?;
 
     status.update("Οἰκοδόμησις (Building)");
 
@@ -269,9 +258,9 @@ pub fn run_file(input: &Path) -> Result<()> {
     let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
 
     let rustc_output = Command::new(rustc_cmd)
-        .arg(&cached_rs)
+        .arg(cached_rs)
         .arg("-o")
-        .arg(&cached_exe)
+        .arg(cached_exe)
         .arg("-O") // Optimize for speed
         .arg("--color=always")
         .stdout(Stdio::piped())
@@ -311,7 +300,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     println!();
 
     // Run the compiled program
-    let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+    let exit_status = Command::new(cached_exe).status().into_diagnostic()?;
 
     println!();
     println!("   {}", "--- Τέλος (End) ---".dim());
@@ -321,6 +310,27 @@ pub fn run_file(input: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn try_run_cached(cache: &Cache, input: &Path, cached_exe: &Path) -> Result<bool> {
+    if cache.is_valid(input, cached_exe) && cached_exe.exists() {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   R U N".bold().cyan());
+        println!("   {}", "Ἐκτέλεσις (Execution)".italic().dim());
+        println!();
+
+        // Run cached binary directly
+        let exit_status = Command::new(cached_exe).status().into_diagnostic()?;
+
+        println!();
+        println!("   {}", "--- Τέλος (End) ---".dim());
+
+        if !exit_status.success() {
+            std::process::exit(exit_status.code().unwrap_or(1));
+        }
+        return Ok(true);
+    }
+    Ok(false)
 }
 
 /// Verifies the syntax and semantics of a ΓΛΩΣΣΑ file.

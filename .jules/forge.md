@@ -48,3 +48,7 @@
 **Refactoring `parse_for_range_loop` and `process_participles`**
 **Learning:** Extracting large, inline, nested logic blocks from `for` and `match` statements directly flattens execution paths and adheres to the 'Grandma Test'. Functions over 150 lines like `process_participles` become much easier to read when their main internal branches are extracted to specifically-named helper functions like `process_fold_participle` and `process_map_participle`.
 **Action:** Continually prioritize replacing nested `if let` blocks with early returns and decomposing large looping constructs or match statement inner logic into scoped helper functions to flatten nested code and improve readability.
+
+**Refactoring God Functions in tools & CLI utilities**
+**Learning:** Functions like `main`, `run_file`, and `print_test_results` quickly become God Functions because they handle complex parsing, caching, compilation execution, and UI rendering logic linearly. The cognitive load required to read a 100+ line function doing IO/Formatting/Error handling makes them brittle.
+**Action:** Extract discrete, bounded logic (e.g. `try_run_cached`, `compile_build_and_execute`, `print_summary_table`) into dedicated helper functions. This ensures the main function reads like an orchestrator rather than a flat script.
