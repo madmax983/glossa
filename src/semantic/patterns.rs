@@ -1382,8 +1382,8 @@ mod coverage_tests {
     #[test]
     fn test_try_parse_struct_instantiation_not_struct() {
         let mut scope = Scope::new();
-        // Define a valid type that is explicitly NOT a struct
-        scope.define_type("NotAStruct", GlossaType::Number);
+        // The word parsed by glossa will normalize "NotAStruct" to "notastruct" implicitly
+        scope.define_type("notastruct", GlossaType::Number);
 
         let stmt = crate::ast::Statement::Regular {
             clauses: vec![crate::ast::Clause {
@@ -1399,9 +1399,8 @@ mod coverage_tests {
             is_propagate: false,
         };
 
-        // Assert that parsing returns Ok(None) because the type is not a Struct
-        // effectively hitting the `let GlossaType::Struct { fields, .. } = &struct_type else { return Ok(None) }`
         let result = try_parse_struct_instantiation(&stmt, &mut scope);
-        assert!(result.is_err() || matches!(result, Ok(None)));
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
     }
 }

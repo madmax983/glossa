@@ -1,0 +1,10 @@
+--- src/semantic/patterns.rs
++++ src/semantic/patterns.rs
+@@ -1400,6 +1400,7 @@
+         };
+
+         let result = try_parse_struct_instantiation(&stmt, &mut scope);
++        println!("Result: {:?}", result);
+         assert!(matches!(result, Ok(None)));
+     }
+ }
