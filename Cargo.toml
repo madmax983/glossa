@@ -32,4 +32,4 @@ pretty_assertions = "1"
 proptest = "1.9.0"
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }
+unexpected_cfgs = { level = "warn" }

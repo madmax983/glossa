@@ -164,13 +164,6 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     Cell::new(""),
                 ]);
             }
-            // `cargo-tarpaulin` occasionally flags implicit, compiler-generated
-            // catch-all branches in exhaustive `match` blocks as uncovered code.
-            // This explicit, unreachable branch bypassed with `tarpaulin_include`
-            // prevents artificial drops in `codecov` patch metrics during CI.
-            #[allow(unreachable_patterns)]
-            #[cfg(not(tarpaulin_include))]
-            crate::ast::Statement::Regular { .. } => unreachable!(),
         }
     }
 
