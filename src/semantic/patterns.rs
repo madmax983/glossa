@@ -1404,5 +1404,4 @@ mod coverage_tests {
         let result = try_parse_struct_instantiation(&stmt, &mut scope);
         assert!(result.is_err() || matches!(result, Ok(None)));
     }
-
 }
