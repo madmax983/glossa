@@ -120,7 +120,9 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     "⚙️ Ἐφαρμογὴ Χαρακτῆρος (Trait Implementation)"
                 }
                 crate::ast::Statement::TestDeclaration(_) => "🧪 Δοκιμασία (Test Declaration)",
-                _ => "❓ Ἄγνωστον (Unknown)",
+                // Unreachable because `if let Statement::Regular` catches the only other variant.
+                #[cfg(not(tarpaulin_include))]
+                crate::ast::Statement::Regular { .. } => unreachable!(),
             };
             table.add_row(vec![
                 Cell::new(format!("{}", i + 1)),
