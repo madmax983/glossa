@@ -22,7 +22,6 @@ fn main() -> Result<()> {
     execute_command(cli.command)
 }
 
-
 #[cfg(not(tarpaulin_include))]
 fn execute_command(command: Option<Commands>) -> Result<()> {
     match command {

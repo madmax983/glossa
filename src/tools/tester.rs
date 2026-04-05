@@ -202,7 +202,6 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
     }
 }
 
-
 fn print_failure_details(stdout: &str, test_output: &std::process::Output) {
     println!();
     println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
@@ -238,7 +237,6 @@ fn print_failure_details(stdout: &str, test_output: &std::process::Output) {
         }
     }
 }
-
 
 fn print_summary_table(results: &[TestResult], test_output: &std::process::Output) {
     if test_output.status.success() {
@@ -709,27 +707,37 @@ test name with spaces ... ok
 #[cfg(test)]
 mod formatting_tests {
     use super::*;
-    use std::process::{ExitStatus, Output};
+    use std::process::{Command, ExitStatus, Output};
 
-    // Helper to create a fake ExitStatus
-    #[cfg(unix)]
+    // Helper to create a fake ExitStatus using portable shell execution
     fn create_exit_status(success: bool) -> ExitStatus {
-        use std::os::unix::process::ExitStatusExt;
-        ExitStatus::from_raw(if success { 0 } else { 256 }) // exit code 1
-    }
+        let (shell, arg, exit_cmd) = if cfg!(windows) {
+            ("cmd", "/C", if success { "exit 0" } else { "exit 1" })
+        } else {
+            ("sh", "-c", if success { "exit 0" } else { "exit 1" })
+        };
 
-    #[cfg(windows)]
-    fn create_exit_status(success: bool) -> ExitStatus {
-        use std::os::windows::process::ExitStatusExt;
-        ExitStatus::from_raw(if success { 0 } else { 1 }) // exit code 1
+        Command::new(shell)
+            .args([arg, exit_cmd])
+            .status()
+            .expect("Failed to execute shell command to mock ExitStatus")
     }
 
     #[test]
     fn test_print_summary_table_coverage() {
         let results = vec![
-            TestResult { name: "test_1".to_string(), status: TestStatus::Ok },
-            TestResult { name: "test_2".to_string(), status: TestStatus::Failed },
-            TestResult { name: "test_3".to_string(), status: TestStatus::Ignored },
+            TestResult {
+                name: "test_1".to_string(),
+                status: TestStatus::Ok,
+            },
+            TestResult {
+                name: "test_2".to_string(),
+                status: TestStatus::Failed,
+            },
+            TestResult {
+                name: "test_3".to_string(),
+                status: TestStatus::Ignored,
+            },
         ];
 
         let output_success = Output {
