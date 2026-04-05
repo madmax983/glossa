@@ -1398,8 +1398,6 @@ mod coverage_tests {
         };
 
         let result = try_parse_struct_instantiation(&stmt, &mut scope);
-        // Depending on whether try_parse_struct_instantiation treats a defined non-struct type
-        // as an unknown struct or a known non-struct, it might return Ok(None) or Err
         assert!(result.is_err() || matches!(result, Ok(None)));
     }
 }

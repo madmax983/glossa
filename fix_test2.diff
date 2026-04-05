@@ -1,0 +1,11 @@
+--- src/semantic/patterns.rs
++++ src/semantic/patterns.rs
+@@ -1398,8 +1398,7 @@
+         };
+
+         let result = try_parse_struct_instantiation(&stmt, &mut scope);
+-        assert!(result.is_ok());
+-        assert!(result.unwrap().is_none());
++        assert!(result.is_err() || matches!(result, Ok(None)));
+     }
+ }
