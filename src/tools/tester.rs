@@ -709,12 +709,19 @@ test name with spaces ... ok
 #[cfg(test)]
 mod formatting_tests {
     use super::*;
-    use std::os::unix::process::ExitStatusExt;
     use std::process::{ExitStatus, Output};
 
     // Helper to create a fake ExitStatus
+    #[cfg(unix)]
     fn create_exit_status(success: bool) -> ExitStatus {
+        use std::os::unix::process::ExitStatusExt;
         ExitStatus::from_raw(if success { 0 } else { 256 }) // exit code 1
+    }
+
+    #[cfg(windows)]
+    fn create_exit_status(success: bool) -> ExitStatus {
+        use std::os::windows::process::ExitStatusExt;
+        ExitStatus::from_raw(if success { 0 } else { 1 }) // exit code 1
     }
 
     #[test]
