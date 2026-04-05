@@ -371,8 +371,13 @@ fn build_statements(
 
                 for (pattern, body) in arms {
                     let arm_label = tell_expr(pattern);
-                    let _arm_last =
-                        build_statements(body, buffer, next_id, Some(arm_label.as_str()), last_node);
+                    let _arm_last = build_statements(
+                        body,
+                        buffer,
+                        next_id,
+                        Some(arm_label.as_str()),
+                        last_node,
+                    );
                 }
             }
         }
@@ -451,7 +456,7 @@ mod tests {
                         value: Some(Box::new(AnalyzedExpr {
                             expr: AnalyzedExprKind::NumberLiteral(0),
                             glossa_type: GlossaType::Number,
-                        }))
+                        })),
                     }],
                 },
                 // FunctionDef
@@ -488,16 +493,14 @@ mod tests {
                         expr: AnalyzedExprKind::Variable(SmolStr::new("x")),
                         glossa_type: GlossaType::Number,
                     }),
-                    arms: vec![
-                        (
-                            AnalyzedExpr {
-                                expr: AnalyzedExprKind::NumberLiteral(1),
-                                glossa_type: GlossaType::Number,
-                            },
-                            vec![AnalyzedStatement::Break],
-                        ),
-                    ],
-                }
+                    arms: vec![(
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::NumberLiteral(1),
+                            glossa_type: GlossaType::Number,
+                        },
+                        vec![AnalyzedStatement::Break],
+                    )],
+                },
             ],
             scope,
         };
@@ -527,7 +530,7 @@ mod tests {
     }
 
     #[test]
-    fn test_labyrinth_if_without_else() {
+    fn test_labyrinth_all_branches() {
         let scope = Scope::new();
         let program = AnalyzedProgram {
             statements: vec![
@@ -537,13 +540,63 @@ mod tests {
                         glossa_type: GlossaType::Boolean,
                     }),
                     then_body: vec![AnalyzedStatement::Break],
-                    else_body: None,
+                    else_body: Some(vec![AnalyzedStatement::Continue]),
+                },
+                AnalyzedStatement::While {
+                    condition: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::BooleanLiteral(true),
+                        glossa_type: GlossaType::Boolean,
+                    }),
+                    body: vec![AnalyzedStatement::Break],
+                },
+                AnalyzedStatement::For {
+                    variable: SmolStr::new("x"),
+                    iterator: Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(SmolStr::new("list")),
+                        glossa_type: GlossaType::Unknown,
+                    }),
+                    body: vec![AnalyzedStatement::Break],
                 },
             ],
             scope,
         };
         let cfg = generate_cfg(&program);
         assert!(cfg.contains("{\"if true\"}"));
+        assert!(cfg.contains("{\"while true\"}"));
+        assert!(cfg.contains("{\"for x in `list`\"}"));
+    }
+
+    #[test]
+    fn test_labyrinth_if_without_else() {
+        let scope = Scope::new();
+        let program = AnalyzedProgram {
+            statements: vec![AnalyzedStatement::If {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                }),
+                then_body: vec![AnalyzedStatement::Break],
+                else_body: None,
+            }],
+            scope,
+        };
+        let cfg = generate_cfg(&program);
+        assert!(cfg.contains("{\"if true\"}"));
+    }
+
+    #[test]
+    fn test_labyrinth_nested_no_parent() {
+        let mut buffer = Vec::new();
+        let mut next_id = 0;
+
+        let stmts = vec![
+            AnalyzedStatement::Break,
+        ];
+
+        // Simulates passing None parent into a single statement to trigger no-edge logic.
+        build_statements(&stmts, &mut buffer, &mut next_id, None, None);
+        assert!(buffer[0].contains("Break"));
+        assert_eq!(buffer.len(), 1); // No edge connection pushed
     }
 
     #[test]
