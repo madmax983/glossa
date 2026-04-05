@@ -231,10 +231,12 @@ pub fn try_parse_struct_instantiation(
     };
 
     // Extract fields from struct type
-    let GlossaType::Struct { fields, .. } = &struct_type else {
-        return Ok(None);
-    };
-    let fields_info = fields.as_slice();
+    let fields_info: &[(SmolStr, GlossaType)] =
+        if let GlossaType::Struct { fields, .. } = &struct_type {
+            fields.as_slice()
+        } else {
+            &[]
+        };
 
     let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
 
