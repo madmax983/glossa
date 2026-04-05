@@ -474,7 +474,7 @@ mod tests {
 
         // Add an operator to cover line 289
         asm.operators
-            .push(crate::morphology::lexicon::BinaryOp::Add.into());
+            .push(crate::morphology::lexicon::BinaryOp::Add);
 
         let mut table = Table::new();
         add_row(&mut table, 1, &asm);
