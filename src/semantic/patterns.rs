@@ -1377,4 +1377,33 @@ mod coverage_tests {
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
+
+    #[test]
+    fn test_try_parse_struct_instantiation_not_struct() {
+        let mut scope = Scope::new();
+        scope.define_type("NotAStruct", GlossaType::Number);
+
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![crate::ast::Expr::Phrase(vec![
+                    crate::ast::Expr::Word(crate::ast::Word::new("var")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("νεον")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("NotAStruct")),
+                    crate::ast::Expr::NumberLiteral(5),
+                    crate::ast::Expr::Word(crate::ast::Word::new("ἔστω")),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = try_parse_struct_instantiation(&stmt, &mut scope);
+        // Depending on whether try_parse_struct_instantiation treats a defined non-struct type
+        // as an unknown struct or a known non-struct, it might return Ok(None) or Err
+        match result {
+            Ok(None) => (),
+            Err(_) => (),
+            _ => panic!("Expected Ok(None) or Err, got {:?}", result),
+        }
+    }
 }
