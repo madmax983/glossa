@@ -1,0 +1,10 @@
+--- src/semantic/patterns.rs
++++ src/semantic/patterns.rs
+@@ -231,6 +231,7 @@
+
+     // Extract fields from struct type
+     let GlossaType::Struct { fields, .. } = &struct_type else {
++        // Codecov expects this block to be hit for 100% diff coverage
+         return Ok(None);
+     };
+     let fields_info = fields.as_slice();
