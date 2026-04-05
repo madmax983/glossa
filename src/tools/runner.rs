@@ -235,7 +235,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     compile_build_and_execute(input, &cached_rs, &cached_exe)
 }
 
-#[cfg(not(tarpaulin_include))]
+
 fn compile_build_and_execute(input: &Path, cached_rs: &Path, cached_exe: &Path) -> Result<()> {
     // Compile source
     let source = load_source(input)?;
@@ -313,7 +313,7 @@ fn compile_build_and_execute(input: &Path, cached_rs: &Path, cached_exe: &Path) 
     Ok(())
 }
 
-#[cfg(not(tarpaulin_include))]
+
 fn try_run_cached(cache: &Cache, input: &Path, cached_exe: &Path) -> Result<bool> {
     if cache.is_valid(input, cached_exe) && cached_exe.exists() {
         println!();
@@ -826,5 +826,28 @@ mod tests {
 
         let run_res = run_file(&input_path);
         assert!(run_res.is_err());
+    }
+}
+
+#[cfg(test)]
+mod cache_fastpath_tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_try_run_cached_miss() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("miss.gl");
+        let cached_exe = dir.path().join("miss_exe");
+
+        // Create empty input file to pass is_valid check (exe won't exist though)
+        fs::write(&input_path, "").unwrap();
+
+        let cache = Cache::with_dirs(Some(dir.path().to_path_buf()), || None);
+
+        // Exe doesn't exist, should be a miss
+        let result = try_run_cached(&cache, &input_path, &cached_exe).unwrap();
+        assert!(!result);
     }
 }

@@ -202,7 +202,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
     }
 }
 
-#[cfg(not(tarpaulin_include))]
+
 fn print_failure_details(stdout: &str, test_output: &std::process::Output) {
     println!();
     println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
@@ -239,7 +239,7 @@ fn print_failure_details(stdout: &str, test_output: &std::process::Output) {
     }
 }
 
-#[cfg(not(tarpaulin_include))]
+
 fn print_summary_table(results: &[TestResult], test_output: &std::process::Output) {
     if test_output.status.success() {
         if !results.is_empty() {
@@ -703,5 +703,71 @@ test name with spaces ... ok
         let err_msg = result.unwrap_err().to_string();
         // The underlying error bubbles up.
         assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
+    }
+}
+
+#[cfg(test)]
+mod formatting_tests {
+    use super::*;
+    use std::os::unix::process::ExitStatusExt;
+    use std::process::{ExitStatus, Output};
+
+    // Helper to create a fake ExitStatus
+    fn create_exit_status(success: bool) -> ExitStatus {
+        ExitStatus::from_raw(if success { 0 } else { 256 }) // exit code 1
+    }
+
+    #[test]
+    fn test_print_summary_table_coverage() {
+        let results = vec![
+            TestResult { name: "test_1".to_string(), status: TestStatus::Ok },
+            TestResult { name: "test_2".to_string(), status: TestStatus::Failed },
+            TestResult { name: "test_3".to_string(), status: TestStatus::Ignored },
+        ];
+
+        let output_success = Output {
+            status: create_exit_status(true),
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+        };
+
+        // Run with success and populated results
+        print_summary_table(&results, &output_success);
+
+        // Run with failure and populated results
+        let output_failure = Output {
+            status: create_exit_status(false),
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+        };
+        print_summary_table(&results, &output_failure);
+
+        // Run with empty results
+        print_summary_table(&[], &output_success);
+    }
+
+    #[test]
+    fn test_print_failure_details_coverage() {
+        let output_failure = Output {
+            status: create_exit_status(false),
+            stdout: Vec::new(),
+            stderr: b"Some stderr error".to_vec(),
+        };
+
+        // Run with failures
+        let stdout_with_failures = "
+failures:
+
+---- test_1 stdout ----
+A failure occurred!
+
+failures:
+    test_1
+";
+        print_failure_details(stdout_with_failures, &output_failure);
+
+        // Run without extracted failures but with stderr fallback
+        let stdout_without_failures = "Some raw stdout here";
+        print_failure_details(stdout_without_failures, &output_failure);
     }
 }
