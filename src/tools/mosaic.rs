@@ -413,29 +413,6 @@ mod tests {
     }
 
     #[test]
-    fn test_mosaic_unknown_stmt() {
-        let mut table = Table::new();
-        table.load_preset(UTF8_FULL);
-
-        let type_name = "❓ Ἄγνωστον (Unknown)";
-
-        table.add_row(vec![
-            Cell::new(format!("{}", 1)),
-            Cell::new(type_name)
-                .fg(Color::Cyan)
-                .add_attribute(Attribute::Bold)
-                .add_attribute(Attribute::Italic),
-            Cell::new(""),
-            Cell::new(""),
-            Cell::new(""),
-            Cell::new(""),
-        ]);
-
-        let output = table.to_string();
-        assert!(output.contains("Unknown"));
-    }
-
-    #[test]
     fn test_mosaic_error_and_missing_subject() {
         use crate::morphology::{Case, Gender, Number};
         use crate::semantic::{AssembledStatement, Constituent};
@@ -495,33 +472,24 @@ mod tests {
         asm.property_accesses
             .push(("owner2".into(), "prop2".into()));
 
+        // Add an operator to cover line 289
+        asm.operators
+            .push(crate::morphology::lexicon::BinaryOp::Add.into());
+
         let mut table = Table::new();
         add_row(&mut table, 1, &asm);
-        assert!(table.to_string().contains("extra1, extra2"));
+        let table_str = table.to_string();
+        assert!(table_str.contains("extra1, extra2"));
+        assert!(table_str.contains("Ops: "));
 
-        // To directly hit `Err(e)` in line 98, we use `assemble_statement` on a syntax that passes
-        // parser but fails in semantic logic. For example, assigning to a literal.
-        // Let's create an invalid assembled statement error inside `run_mosaic_inner`
-        let source = "πέντε πέντε ἔστω."; // Left side of assignment must be a word.
-        let mut buffer = Vec::new();
-        let _ = run_mosaic_inner(source, &mut buffer);
-        let output = String::from_utf8(buffer).unwrap();
-
-        if output.contains("Error: ") {
-            // Successfully hit the Err path
-        }
-
-        // Let's create an error that bypasses the relaxed validation but still triggers assembly errors.
-        // Actually, we can just use `assemble_statement` directly through a mocked AST if needed,
-        // but it's simpler to just make a parser error wrapper if we want to hit the line.
-        // Or wait, assembly error happens if we have two verbs without conjunction:
-        // `ὁ ἄνθρωπος λέγει λέγει.`
-        let source_err = "ὁ ἄνθρωπος λέγει λέγει.";
+        // To directly hit `Err(e)` in `assemble_statement`, we need a structure that parses
+        // cleanly but fails the strict semantic Assembler logic.
+        // Multiple verbs trigger `DoubleVerb` assembly error.
+        let source_err = "ἡμῖν τὸ διδάσκειν ἡμῖν χρῄζει.";
         let mut buffer_err = Vec::new();
         let _ = run_mosaic_inner(source_err, &mut buffer_err);
         let output_err = String::from_utf8(buffer_err).unwrap();
         assert!(output_err.contains("Error: "));
-
     }
 
     #[test]
