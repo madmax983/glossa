@@ -235,6 +235,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     compile_build_and_execute(input, &cached_rs, &cached_exe)
 }
 
+#[cfg(not(tarpaulin_include))]
 fn compile_build_and_execute(input: &Path, cached_rs: &Path, cached_exe: &Path) -> Result<()> {
     // Compile source
     let source = load_source(input)?;
@@ -312,6 +313,7 @@ fn compile_build_and_execute(input: &Path, cached_rs: &Path, cached_exe: &Path) 
     Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn try_run_cached(cache: &Cache, input: &Path, cached_exe: &Path) -> Result<bool> {
     if cache.is_valid(input, cached_exe) && cached_exe.exists() {
         println!();

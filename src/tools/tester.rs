@@ -202,6 +202,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
     }
 }
 
+#[cfg(not(tarpaulin_include))]
 fn print_failure_details(stdout: &str, test_output: &std::process::Output) {
     println!();
     println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
@@ -238,6 +239,7 @@ fn print_failure_details(stdout: &str, test_output: &std::process::Output) {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
 fn print_summary_table(results: &[TestResult], test_output: &std::process::Output) {
     if test_output.status.success() {
         if !results.is_empty() {

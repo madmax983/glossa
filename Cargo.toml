@@ -7,6 +7,9 @@ description = "ΓΛΩΣΣΑ - A compiler where Ancient Greek morphology encodes 
 [features]
 nova = []
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }
+
 [dependencies]
 crossterm = "0.29"
 dirs-next = "2"
