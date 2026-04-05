@@ -589,9 +589,7 @@ mod tests {
         let mut buffer = Vec::new();
         let mut next_id = 0;
 
-        let stmts = vec![
-            AnalyzedStatement::Break,
-        ];
+        let stmts = vec![AnalyzedStatement::Break];
 
         // Simulates passing None parent into a single statement to trigger no-edge logic.
         build_statements(&stmts, &mut buffer, &mut next_id, None, None);
