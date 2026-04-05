@@ -1402,8 +1402,8 @@ mod coverage_tests {
         // as an unknown struct or a known non-struct, it might return Ok(None) or Err
         match result {
             Ok(None) => (),
+            Ok(Some(_)) => panic!("Should not be Some since type is not a Struct"),
             Err(_) => (),
-            _ => panic!("Expected Ok(None) or Err, got {:?}", result),
         }
     }
 }
