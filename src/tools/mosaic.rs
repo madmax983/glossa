@@ -164,9 +164,6 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     Cell::new(""),
                 ]);
             }
-            #[allow(unreachable_patterns)]
-            #[cfg(not(tarpaulin_include))]
-            crate::ast::Statement::Regular { .. } => unreachable!(),
         }
     }
 
