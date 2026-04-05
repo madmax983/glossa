@@ -116,3 +116,38 @@ C4Component
 
     Rel(model, types, "Uses")
 ```
+
+## Public API (Facade Pattern)
+
+The `glossa` crate implements a Facade Pattern at its root (`src/lib.rs`). This pattern hides the complex internal hierarchy of the compiler modules and exposes a clean, high-level API for external consumers (like the CLI or language server).
+
+```mermaid
+classDiagram
+    title Glossa Crate Facade Pattern
+
+    class GlossaFacade {
+        <<Facade>>
+        +parse(source) Program
+        +analyze_program(ast) AnalyzedProgram
+        +generate_rust(analyzed_program) String
+    }
+
+    class Parser {
+        <<Internal>>
+        +parse(source) Result~Program, Error~
+    }
+
+    class SemanticAnalyzer {
+        <<Internal>>
+        +analyze_program(ast) Result~AnalyzedProgram, Error~
+    }
+
+    class CodeGenerator {
+        <<Internal>>
+        +generate_rust(hir) String
+    }
+
+    GlossaFacade ..> Parser : Delegates parse
+    GlossaFacade ..> SemanticAnalyzer : Delegates analyze_program
+    GlossaFacade ..> CodeGenerator : Delegates generate_rust
+```
