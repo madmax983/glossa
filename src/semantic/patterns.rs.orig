@@ -1381,7 +1381,7 @@ mod coverage_tests {
     #[test]
     fn test_try_parse_struct_instantiation_not_struct() {
         let mut scope = Scope::new();
-        scope.define_type("NotAStruct", GlossaType::Number);
+        scope.define_type(smol_str::SmolStr::new("NotAStruct"), GlossaType::Number);
 
         let stmt = crate::ast::Statement::Regular {
             clauses: vec![crate::ast::Clause {
@@ -1402,8 +1402,8 @@ mod coverage_tests {
         // as an unknown struct or a known non-struct, it might return Ok(None) or Err
         match result {
             Ok(None) => (),
+            Ok(Some(_)) => panic!("Should not be Some since type is not a Struct"),
             Err(_) => (),
-            _ => panic!("Expected Ok(None) or Err, got {:?}", result),
         }
     }
 }
