@@ -1,9 +1,6 @@
 --- src/semantic/patterns.rs
 +++ src/semantic/patterns.rs
-@@ -1373,6 +1373,33 @@
-             is_propagate: false,
-         };
-
+@@ -1400,4 +1400,31 @@
          let result = try_parse_struct_instantiation(&stmt, &mut scope);
          assert!(result.is_ok());
          assert!(result.unwrap().is_none());
@@ -12,7 +9,7 @@
 +    #[test]
 +    fn test_try_parse_struct_instantiation_not_struct() {
 +        let mut scope = Scope::new();
-+        scope.define_type(smol_str::SmolStr::new("NotAStruct"), GlossaType::Number);
++        scope.define_type("NotAStruct", GlossaType::Number);
 +
 +        let stmt = crate::ast::Statement::Regular {
 +            clauses: vec![crate::ast::Clause {
