@@ -231,17 +231,17 @@ pub fn try_parse_struct_instantiation(
     };
 
     // Extract fields from struct type
-    let fields_info: Vec<(SmolStr, GlossaType)> =
+    let fields_info: &[(SmolStr, GlossaType)] =
         if let GlossaType::Struct { fields, .. } = &struct_type {
-            fields.clone()
+            fields.as_slice()
         } else {
-            vec![]
+            &[]
         };
 
     let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
 
     // Collect constructor arguments (everything between type_name and ἔστω)
-    let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], &fields_info, scope) else {
+    let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], fields_info, scope) else {
         return Ok(None);
     };
 
