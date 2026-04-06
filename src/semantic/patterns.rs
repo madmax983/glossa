@@ -230,7 +230,8 @@ pub fn try_parse_struct_instantiation(
         return Err(GlossaError::undefined(type_name.to_string()));
     };
 
-    // Extract fields from struct type
+    // ⚡ Bolt Optimization: Use `as_slice()` instead of `.clone()` on struct fields
+    // to prevent unnecessary heap allocation and deep copying during pattern matching.
     let fields_info: &[(SmolStr, GlossaType)] =
         if let GlossaType::Struct { fields, .. } = &struct_type {
             fields.as_slice()
