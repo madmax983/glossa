@@ -116,3 +116,14 @@ C4Component
 
     Rel(model, types, "Uses")
 ```
+
+## Storage Decoupling
+
+The following diagram illustrates the newly decoupled `Storage` module boundaries.
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+```
