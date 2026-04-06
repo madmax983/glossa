@@ -1,6 +1,6 @@
 --- src/semantic/patterns.rs
 +++ src/semantic/patterns.rs
-@@ -936,4 +936,25 @@
+@@ -1018,4 +1018,25 @@
          assert!(result.is_ok());
          assert!(result.unwrap().is_none());
      }
