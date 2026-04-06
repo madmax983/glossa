@@ -230,29 +230,22 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     // Check if we can use cached binary
     if cache.is_valid(input, &cached_exe) && cached_exe.exists() {
-        println!();
-        println!("   {}", "Γ Λ Ω Σ Σ Α   R U N".bold().cyan());
-        println!("   {}", "Ἐκτέλεσις (Execution)".italic().dim());
-        println!();
-
-        // Run cached binary directly
-        let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
-
-        println!();
-        println!("   {}", "--- Τέλος (End) ---".dim());
-
-        if !exit_status.success() {
-            std::process::exit(exit_status.code().unwrap_or(1));
-        }
-        return Ok(());
+        return execute_binary(&cached_exe);
     }
 
     // Compile source
     let source = load_source(input)?;
+    compile_and_build(&source, &cached_rs, &cached_exe)?;
 
+    // Run the compiled program
+    execute_binary(&cached_exe)
+}
+
+/// Helper to compile Glossa source and build it with rustc
+fn compile_and_build(source: &str, cached_rs: &Path, cached_exe: &Path) -> Result<()> {
     let mut status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🚀");
 
-    let rust_code = match compile(&source) {
+    let rust_code = match compile(source) {
         Ok(code) => code,
         Err(e) => {
             status.error("Σφάλμα μεταγλωττίσεως");
@@ -261,7 +254,7 @@ pub fn run_file(input: &Path) -> Result<()> {
     };
 
     // Write Rust source to cache
-    fs::write(&cached_rs, &rust_code).into_diagnostic()?;
+    fs::write(cached_rs, &rust_code).into_diagnostic()?;
 
     status.update("Οἰκοδόμησις (Building)");
 
@@ -269,9 +262,9 @@ pub fn run_file(input: &Path) -> Result<()> {
     let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
 
     let rustc_output = Command::new(rustc_cmd)
-        .arg(&cached_rs)
+        .arg(cached_rs)
         .arg("-o")
-        .arg(&cached_exe)
+        .arg(cached_exe)
         .arg("-O") // Optimize for speed
         .arg("--color=always")
         .stdout(Stdio::piped())
@@ -304,14 +297,17 @@ pub fn run_file(input: &Path) -> Result<()> {
     }
 
     status.success();
+    Ok(())
+}
 
+/// Helper to execute a compiled binary
+fn execute_binary(executable: &Path) -> Result<()> {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   R U N".bold().cyan());
     println!("   {}", "Ἐκτέλεσις (Execution)".italic().dim());
     println!();
 
-    // Run the compiled program
-    let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+    let exit_status = Command::new(executable).status().into_diagnostic()?;
 
     println!();
     println!("   {}", "--- Τέλος (End) ---".dim());
