@@ -24,3 +24,8 @@
 **Concept:** A CLI tool (`glossa labyrinth`) that visualizes the control flow graph of a Glossa program as a Mermaid.js diagram. This expands the "Architectural Transparency" feature set by tracing logic branching instead of just structural relations.
 **Fate:** Merged
 **Lesson:** Iterating over the complex nested variants in `AnalyzedStatement` proves the semantic AST is stable enough for deep structural introspection. Representing implicit logic branches explicitly via node/edge graph generators reinforces the language's determinism.
+
+## 🌟 The Simulator (ὁ Ὑποκριτής)
+**Concept:** A CLI tool (`glossa simulate`) that allows executing ΓΛΩΣΣΑ programs directly via the internal tree-walk interpreter without compiling to Rust or invoking `rustc`.
+**Fate:** Merged
+**Lesson:** Interpreting the semantic AST directly provides immediate execution feedback and skips `rustc` compilation overhead, improving the prototyping loop dramatically. It proves the value of the `Interpreter` module beyond just internal testing.

@@ -177,4 +177,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Execute a .γλ file directly via interpretation without compiling (Requires "nova" feature)
+    Simulate {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

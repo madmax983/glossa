@@ -1,0 +1,8 @@
+1. Read `.jules/nova.md` to ensure no conflicting ideas.
+2. Create `src/tools/simulator.rs` implementing `run_simulator`.
+3. Add `pub mod simulator;` in `src/tools/mod.rs` inside the `nova` feature flag block.
+4. Add `Simulate { input: PathBuf }` to `Commands` in `src/tools/cli.rs`.
+5. Hook up `Commands::Simulate` in `src/main.rs`.
+6. Add an entry to `.jules/nova.md` for `The Simulator (ὁ Ὑποκριτής)`.
+7. Run `cargo fmt`, `cargo clippy`, and `cargo test` to verify.
+8. Commit the code and submit.
