@@ -169,7 +169,29 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
         status.error("Σφάλμα μεταγλωττίσεως δοκιμῶν (Test Compilation Error)");
-        return Err(miette::miette!("{}\n{}", "Rustc Error:".red(), stderr));
+
+        let mut err_table = comfy_table::Table::new();
+        err_table
+            .load_preset(comfy_table::presets::UTF8_FULL)
+            .add_row(vec![
+                comfy_table::Cell::new("INTERNAL COMPILER ERROR (Test Codegen Failed)")
+                    .fg(comfy_table::Color::Red)
+                    .add_attribute(comfy_table::Attribute::Bold),
+            ]);
+
+        let help_msg = format!(
+            "{}\n{}",
+            "This indicates a bug in the Glossa compiler's code generation for tests.",
+            "Please report this issue with the following details:"
+        )
+        .yellow();
+
+        return Err(miette::miette!(
+            "\n{}\n{}\n\n{}",
+            err_table,
+            help_msg,
+            stderr
+        ));
     }
 
     Ok(status)
@@ -276,9 +298,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                 let mut err_table = Table::new();
                 err_table
                     .load_preset(presets::UTF8_FULL)
-                    .add_row(vec![
-                        Cell::new(msg).fg(Color::Red)
-                    ]);
+                    .add_row(vec![Cell::new(msg).fg(Color::Red)]);
                 println!("{}", err_table);
                 println!();
             }

@@ -290,7 +290,7 @@ pub fn run_file(input: &Path) -> Result<()> {
             .add_row(vec![
                 comfy_table::Cell::new("INTERNAL COMPILER ERROR (Codegen Failed)")
                     .fg(comfy_table::Color::Red)
-                    .add_attribute(comfy_table::Attribute::Bold)
+                    .add_attribute(comfy_table::Attribute::Bold),
             ]);
 
         let help_msg = format!(
@@ -300,7 +300,12 @@ pub fn run_file(input: &Path) -> Result<()> {
         )
         .yellow();
 
-        return Err(miette::miette!("\n{}\n{}\n\n{}", err_table, help_msg, stderr));
+        return Err(miette::miette!(
+            "\n{}\n{}\n\n{}",
+            err_table,
+            help_msg,
+            stderr
+        ));
     }
 
     status.success();
