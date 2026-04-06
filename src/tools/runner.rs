@@ -283,15 +283,15 @@ pub fn run_file(input: &Path) -> Result<()> {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
         status.error("Σφάλμα κώδικος (Codegen Error)");
 
-        // Format the error nicely
-        let error_msg = format!(
-            "\n{}\n{}\n{}\n",
-            "╔══════════════════════════════════════════════════════════════╗".red(),
-            "║  INTERNAL COMPILER ERROR (Codegen Failed)                    ║"
-                .red()
-                .bold(),
-            "╚══════════════════════════════════════════════════════════════╝".red()
-        );
+        // Format the error nicely using comfy_table
+        let mut err_table = comfy_table::Table::new();
+        err_table
+            .load_preset(comfy_table::presets::UTF8_FULL)
+            .add_row(vec![
+                comfy_table::Cell::new("INTERNAL COMPILER ERROR (Codegen Failed)")
+                    .fg(comfy_table::Color::Red)
+                    .add_attribute(comfy_table::Attribute::Bold)
+            ]);
 
         let help_msg = format!(
             "{}\n{}",
@@ -300,7 +300,7 @@ pub fn run_file(input: &Path) -> Result<()> {
         )
         .yellow();
 
-        return Err(miette::miette!("{}\n{}\n\n{}", error_msg, help_msg, stderr));
+        return Err(miette::miette!("\n{}\n{}\n\n{}", err_table, help_msg, stderr));
     }
 
     status.success();
