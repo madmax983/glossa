@@ -124,6 +124,8 @@ mod tests {
 
     #[test]
     fn test_run_weave_success() {
+        use std::io::Read;
+
         let dir = tempfile::tempdir().unwrap();
         let input_path = dir.path().join("weave_test.γλ");
         {
@@ -137,7 +139,11 @@ mod tests {
         let output_path = input_path.with_extension("md");
         assert!(output_path.exists());
 
-        let md = fs::read_to_string(&output_path).unwrap();
+        let mut f = std::fs::File::open(&output_path).unwrap();
+        let mut md = String::new();
+        std::io::Read::take(&mut f, 1024 * 1024 + 1)
+            .read_to_string(&mut md)
+            .unwrap();
 
         // Assertions for expected content
         assert!(md.contains("# Rosetta Stone"));
