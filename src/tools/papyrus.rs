@@ -88,8 +88,21 @@ mod tests {
         assert_eq!(glossa_type_to_sql(&GlossaType::String), "TEXT NOT NULL");
         assert_eq!(glossa_type_to_sql(&GlossaType::Boolean), "BOOLEAN NOT NULL");
         assert_eq!(
+            glossa_type_to_sql(&GlossaType::List(Box::new(GlossaType::Number))),
+            "JSONB NOT NULL"
+        );
+        assert_eq!(
+            glossa_type_to_sql(&GlossaType::Set(Box::new(GlossaType::Number))),
+            "JSONB NOT NULL"
+        );
+        assert_eq!(
+            glossa_type_to_sql(&GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number))),
+            "JSONB NOT NULL"
+        );
+        assert_eq!(
             glossa_type_to_sql(&GlossaType::Option(Box::new(GlossaType::Number))),
             "BIGINT"
         );
+        assert_eq!(glossa_type_to_sql(&GlossaType::Unknown), "JSONB");
     }
 }

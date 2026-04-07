@@ -40,7 +40,7 @@ fn test_run_papyrus_success() {
         .tempfile()
         .expect("Failed to create temp file");
 
-    let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }.";
+    let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }. ξ 5 ἔστω.";
     write!(temp_file, "{}", source).expect("Failed to write to temp file");
 
     let result = glossa::tools::papyrus::run_papyrus(temp_file.path());
@@ -58,6 +58,24 @@ fn test_run_papyrus_file_not_found() {
             .to_string()
             .contains("Ἀρχεῖον οὐχ εὑρέθη")
     );
+}
+
+#[test]
+fn test_run_papyrus_file_too_large() {
+    let dir = Builder::new().prefix("papyrus_large").tempdir().unwrap();
+    let input_path = dir.path().join("too_large.γλ");
+
+    let max_size = 1024 * 1024;
+    {
+        use std::io::Write;
+        let mut f = std::fs::File::create(&input_path).unwrap();
+        let data = vec![0u8; max_size + 1];
+        f.write_all(&data).unwrap();
+    }
+
+    let result = glossa::tools::papyrus::run_papyrus(&input_path);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον λίαν μέγα"));
 }
 
 #[test]
