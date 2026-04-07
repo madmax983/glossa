@@ -258,6 +258,17 @@ fn compile_and_build(source: &str, cached_rs: &Path, cached_exe: &Path) -> Resul
 
     status.update("Οἰκοδόμησις (Building)");
 
+    if let Err(e) = invoke_rustc(cached_rs, cached_exe) {
+        status.error("Σφάλμα κώδικος (Codegen Error)");
+        return Err(e);
+    }
+
+    status.success();
+    Ok(())
+}
+
+/// Helper to invoke rustc and format internal compiler errors
+fn invoke_rustc(cached_rs: &Path, cached_exe: &Path) -> Result<()> {
     // Compile with rustc (hide output)
     let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
 
@@ -274,7 +285,6 @@ fn compile_and_build(source: &str, cached_rs: &Path, cached_exe: &Path) -> Resul
 
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
-        status.error("Σφάλμα κώδικος (Codegen Error)");
 
         // Format the error nicely
         let error_msg = format!(
@@ -296,7 +306,6 @@ fn compile_and_build(source: &str, cached_rs: &Path, cached_exe: &Path) -> Resul
         return Err(miette::miette!("{}\n{}\n\n{}", error_msg, help_msg, stderr));
     }
 
-    status.success();
     Ok(())
 }
 
