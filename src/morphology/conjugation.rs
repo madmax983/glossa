@@ -558,6 +558,21 @@ fn try_analyze_infinitive(
     }
 }
 
+/// Analyzes a word as a verb, appending all possible morphological analyses into the provided vector.
+///
+/// This is a zero-allocation version of `analyze_verb_all` designed for performance-critical
+/// loops where allocating a new `Vec` for every word would be expensive. It attempts to match
+/// the word against all known conjugation patterns and adds any matches to `analyses`.
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::morphology::{analyze_verb_all_into, MorphAnalysis};
+///
+/// let mut analyses = Vec::new();
+/// analyze_verb_all_into("λέγε", &mut analyses);
+/// assert!(!analyses.is_empty());
+/// ```
 pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
     let start_len = analyses.len();
 

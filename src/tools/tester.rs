@@ -296,6 +296,23 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
     }
 }
 
+/// Compiles and runs the tests defined within a ΓΛΩΣΣΑ source file.
+///
+/// This function converts ΓΛΩΣΣΑ `δοκιμή` declarations into Rust `#[test]`
+/// functions, compiles the resulting code using `rustc --test`, executes the
+/// test binary, and reports the results back to the user.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::tester::run_tests;
+/// use std::path::Path;
+///
+/// let source_path = Path::new("main.γλ");
+/// if let Err(e) = run_tests(source_path) {
+///     eprintln!("Failed to run tests: {}", e);
+/// }
+/// ```
 pub fn run_tests(input: &Path) -> Result<()> {
     // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
     let source = crate::tools::runner::load_source(input)?;
