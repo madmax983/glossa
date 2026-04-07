@@ -40,6 +40,7 @@ C4Container
         Container(dictionary, "The Lexicon", "src/tools/dictionary.rs", "The Source of Truth for Words (Dictionary)")
         Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
         Container(interpreter, "Interpreter", "src/tools/interpreter.rs", "In-memory tree-walk simulator")
+        Container(labyrinth, "Labyrinth", "src/tools/labyrinth.rs", "Visualizes the control flow graph as a Mermaid flowchart")
         Container(mentor, "Mentor", "src/tools/mentor.rs", "Interactive Tutorial Mode")
         Container(mosaic, "Mosaic", "src/tools/mosaic.rs", "Visualizes Semantic Assembly")
         Container(narrator, "The Bard", "src/tools/narrator.rs", "Generates English narrative ('Scroll of Logic') from AST")
@@ -65,6 +66,7 @@ C4Container
     Rel(semantic, tester, "Analyzed Program")
     Rel(semantic, interpreter, "Analyzed Program")
     Rel(semantic, alchemist, "Analyzed Program")
+    Rel(semantic, labyrinth, "Analyzed Program")
     Rel(semantic, weave, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 
