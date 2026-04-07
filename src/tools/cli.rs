@@ -177,4 +177,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Transpile a .γλ file to SQL CREATE TABLE schema (Requires "nova" feature)
+    Papyrus {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

@@ -34,6 +34,8 @@ pub mod mentor;
 #[cfg(feature = "nova")]
 pub mod mosaic;
 pub mod narrator;
+#[cfg(feature = "nova")]
+pub mod papyrus;
 pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
