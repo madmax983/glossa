@@ -96,7 +96,10 @@ mod tests {
             "JSONB NOT NULL"
         );
         assert_eq!(
-            glossa_type_to_sql(&GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number))),
+            glossa_type_to_sql(&GlossaType::Map(
+                Box::new(GlossaType::String),
+                Box::new(GlossaType::Number)
+            )),
             "JSONB NOT NULL"
         );
         assert_eq!(

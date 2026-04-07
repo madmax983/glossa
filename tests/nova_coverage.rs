@@ -75,7 +75,12 @@ fn test_run_papyrus_file_too_large() {
 
     let result = glossa::tools::papyrus::run_papyrus(&input_path);
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον λίαν μέγα"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Ἀρχεῖον λίαν μέγα")
+    );
 }
 
 #[test]
