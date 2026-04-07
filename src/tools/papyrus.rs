@@ -81,8 +81,6 @@ fn glossa_type_to_sql(g_type: &GlossaType) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::parse;
-    use crate::semantic::analyze_program;
 
     #[test]
     fn test_glossa_type_to_sql() {
