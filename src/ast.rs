@@ -240,19 +240,6 @@ impl std::fmt::Debug for Statement {
 }
 
 impl Statement {
-    /// Get all expressions flattened (for backwards compatibility)
-    pub fn expressions(&self) -> Box<dyn Iterator<Item = &Expr> + '_> {
-        match self {
-            Statement::Regular { clauses, .. } => {
-                Box::new(clauses.iter().flat_map(|c| c.expressions.iter()))
-            }
-            Statement::TypeDefinition(_) => Box::new(std::iter::empty()),
-            Statement::TraitDefinition(_) => Box::new(std::iter::empty()),
-            Statement::TraitImpl(_) => Box::new(std::iter::empty()),
-            Statement::TestDeclaration(_) => Box::new(std::iter::empty()),
-        }
-    }
-
     /// Check if this is a query statement
     pub fn is_query(&self) -> bool {
         match self {
