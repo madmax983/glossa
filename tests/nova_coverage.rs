@@ -34,6 +34,61 @@ fn test_run_weave_success() {
 }
 
 #[test]
+fn test_run_papyrus_success() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::papyrus::run_papyrus(temp_file.path());
+    assert!(result.is_ok(), "Papyrus failed: {:?}", result.err());
+}
+
+#[test]
+fn test_run_papyrus_file_not_found() {
+    let path = PathBuf::from("non_existent_file.gl");
+    let result = glossa::tools::papyrus::run_papyrus(&path);
+    assert!(result.is_err());
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Ἀρχεῖον οὐχ εὑρέθη")
+    );
+}
+
+#[test]
+fn test_run_papyrus_syntax_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "invalid syntax").expect("Failed to write");
+
+    let result = glossa::tools::papyrus::run_papyrus(temp_file.path());
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Parse error"));
+}
+
+#[test]
+fn test_run_papyrus_semantic_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "ψ πέντε γίγνεται.").expect("Failed to write");
+
+    let result = glossa::tools::papyrus::run_papyrus(temp_file.path());
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Semantic error"));
+}
+
+#[test]
 fn test_run_tests_no_tests_found() {
     let mut temp_file = Builder::new()
         .suffix(".gl")
