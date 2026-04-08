@@ -33,8 +33,7 @@
 //!     Printable <|.. User : implements
 //! ```
 
-use crate::parser::parse;
-use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, analyze_program};
+use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType};
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
@@ -50,18 +49,11 @@ pub fn run_map(input: &Path) -> Result<()> {
 
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
 
-    let ast = match parse(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("{}", e));
-        }
-    };
-    let program = match analyze_program(&ast) {
+    let program = match crate::tools::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
-            status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("{}", e));
+            status.error("Σφάλμα (Error)");
+            return Err(e);
         }
     };
 

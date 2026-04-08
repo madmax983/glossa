@@ -11,8 +11,6 @@
 //! It is especially useful for documentation and education.
 
 use crate::codegen::generate_rust_file;
-use crate::parser::parse;
-use crate::semantic::analyze_program;
 use crate::tools::mosaic::run_mosaic_inner;
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
@@ -40,18 +38,11 @@ pub fn run_weave(input: &Path) -> Result<()> {
     };
 
     // 1. Parse & Analyze
-    let ast = match parse(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("{}", e));
-        }
-    };
-    let program = match analyze_program(&ast) {
+    let program = match crate::tools::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
-            status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("{}", e));
+            status.error("Σφάλμα (Error)");
+            return Err(e);
         }
     };
 
