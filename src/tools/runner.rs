@@ -803,6 +803,19 @@ mod tests {
     }
 
     #[test]
+    fn test_report_file_valid() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("report.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
+        }
+
+        let result = report_file(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn test_ui_error_cleanup_missing_file() {
         // By passing a path that doesn't exist, `load_source` fails.
         // This exercises the `status.error()` branches for all runner tools.
