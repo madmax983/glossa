@@ -18,6 +18,8 @@
 
 #[cfg(feature = "nova")]
 pub mod alchemist;
+#[cfg(feature = "nova")]
+pub mod auditor;
 pub(crate) mod cache;
 pub use cache::Cache;
 #[cfg(feature = "nova")]

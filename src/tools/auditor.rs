@@ -1,0 +1,326 @@
+use crate::parser::parse;
+use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, analyze_program};
+use crate::tools::runner::load_source;
+use crate::tools::ui::Status;
+use miette::Result;
+use smol_str::SmolStr;
+use std::collections::{HashMap, HashSet};
+use std::path::Path;
+
+/// Run the Auditor tool on a file
+///
+/// Reads the source file, compiles it, and runs static analysis to find unused variables
+/// and variables declared as mutable but never reassigned.
+pub fn run_auditor(input: &Path) -> Result<()> {
+    if !input.exists() {
+        return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
+    }
+
+    let status = Status::start_with_symbol("Λογιστής (Auditing Code)", "🔍");
+
+    let source = match load_source(input) {
+        Ok(s) => s,
+        Err(e) => {
+            status.error("Σφάλμα ἀρχείου (File Error)");
+            return Err(e);
+        }
+    };
+
+    let ast = match parse(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα συντάξεως (Syntax Error)");
+            return Err(miette::miette!("Parse error: {}", e));
+        }
+    };
+
+    let program = match analyze_program(&ast) {
+        Ok(p) => p,
+        Err(e) => {
+            status.error("Σφάλμα σημασίας (Semantic Error)");
+            return Err(miette::miette!("Semantic error: {}", e));
+        }
+    };
+
+    status.success();
+
+    let mut visitor = AuditorVisitor::new();
+    for stmt in &program.statements {
+        visitor.visit_statement(stmt);
+    }
+
+    let mut issues = 0;
+
+    println!(
+        "\n🔍 \x1b[1;36mAudit Report for {}\x1b[0m\n",
+        input.display()
+    );
+
+    for (var, count) in &visitor.usage_count {
+        if *count == 0 {
+            println!(
+                "⚠️  \x1b[1;33mUnused Variable:\x1b[0m Variable '{}' is declared but never used.",
+                var
+            );
+            issues += 1;
+        }
+    }
+
+    for (var, count) in &visitor.mutation_count {
+        if *count == 0
+            && visitor.mutable_vars.contains(var)
+            && visitor.usage_count.get(var).unwrap_or(&0) > &0
+        {
+            println!(
+                "💡 \x1b[1;34mUnnecessary Mutation:\x1b[0m Variable '{}' is declared mutable ('μετά') but never changed.",
+                var
+            );
+            issues += 1;
+        }
+    }
+
+    if issues == 0 {
+        println!("✨ \x1b[1;32mNo issues found. The code is pure.\x1b[0m");
+    } else {
+        println!("\nTotal issues found: {}", issues);
+    }
+
+    Ok(())
+}
+
+struct AuditorVisitor {
+    usage_count: HashMap<SmolStr, usize>,
+    mutation_count: HashMap<SmolStr, usize>,
+    mutable_vars: HashSet<SmolStr>,
+}
+
+impl AuditorVisitor {
+    fn new() -> Self {
+        Self {
+            usage_count: HashMap::new(),
+            mutation_count: HashMap::new(),
+            mutable_vars: HashSet::new(),
+        }
+    }
+
+    fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
+        match stmt {
+            AnalyzedStatement::Binding {
+                name,
+                value,
+                mutable,
+            } => {
+                self.usage_count.insert(name.clone(), 0);
+                self.mutation_count.insert(name.clone(), 0);
+                if *mutable {
+                    self.mutable_vars.insert(name.clone());
+                }
+                self.visit_expr(value);
+            }
+            AnalyzedStatement::Assignment { name, value } => {
+                if let Some(count) = self.mutation_count.get_mut(name) {
+                    *count += 1;
+                }
+                if let Some(count) = self.usage_count.get_mut(name) {
+                    *count += 1;
+                }
+                self.visit_expr(value);
+            }
+            AnalyzedStatement::Print(exprs) => {
+                for expr in exprs {
+                    self.visit_expr(expr);
+                }
+            }
+            AnalyzedStatement::Expression(exprs) => {
+                for expr in exprs {
+                    self.visit_expr(expr);
+                }
+            }
+            AnalyzedStatement::Query(exprs) => {
+                for expr in exprs {
+                    self.visit_expr(expr);
+                }
+            }
+            AnalyzedStatement::If {
+                condition,
+                then_body,
+                else_body,
+            } => {
+                self.visit_expr(condition);
+                for s in then_body {
+                    self.visit_statement(s);
+                }
+                if let Some(else_stmts) = else_body {
+                    for s in else_stmts {
+                        self.visit_statement(s);
+                    }
+                }
+            }
+            AnalyzedStatement::While { condition, body } => {
+                self.visit_expr(condition);
+                for s in body {
+                    self.visit_statement(s);
+                }
+            }
+            AnalyzedStatement::For {
+                variable,
+                iterator,
+                body,
+            } => {
+                self.usage_count.insert(variable.clone(), 0);
+                self.visit_expr(iterator);
+                for s in body {
+                    self.visit_statement(s);
+                }
+            }
+            AnalyzedStatement::Match { scrutinee, arms } => {
+                self.visit_expr(scrutinee);
+                for (expr, stmts) in arms {
+                    self.visit_expr(expr);
+                    for s in stmts {
+                        self.visit_statement(s);
+                    }
+                }
+            }
+            AnalyzedStatement::FunctionDef { params, body, .. } => {
+                for (param_name, _) in params {
+                    self.usage_count.insert(param_name.clone(), 0);
+                }
+                for s in body {
+                    self.visit_statement(s);
+                }
+            }
+            AnalyzedStatement::Return { value } => {
+                if let Some(v) = value {
+                    self.visit_expr(v);
+                }
+            }
+            AnalyzedStatement::TestDeclaration { body, .. } => {
+                for s in body {
+                    self.visit_statement(s);
+                }
+            }
+            AnalyzedStatement::Break
+            | AnalyzedStatement::Continue
+            | AnalyzedStatement::TypeDefinition { .. }
+            | AnalyzedStatement::TraitDefinition { .. }
+            | AnalyzedStatement::TraitImplementation { .. } => {}
+        }
+    }
+
+    fn visit_expr(&mut self, expr: &AnalyzedExpr) {
+        match &expr.expr {
+            AnalyzedExprKind::Variable(name) => {
+                if let Some(count) = self.usage_count.get_mut(name) {
+                    *count += 1;
+                }
+            }
+            AnalyzedExprKind::BinOp { left, right, .. } => {
+                self.visit_expr(left);
+                self.visit_expr(right);
+            }
+            AnalyzedExprKind::UnaryOp { operand, .. } => {
+                self.visit_expr(operand);
+            }
+            AnalyzedExprKind::StructInstantiation { args, .. } => {
+                for arg in args {
+                    self.visit_expr(arg);
+                }
+            }
+            AnalyzedExprKind::PropertyAccess { owner, .. } => {
+                self.visit_expr(owner);
+            }
+            AnalyzedExprKind::MethodCall { receiver, args, .. } => {
+                self.visit_expr(receiver);
+                for arg in args {
+                    self.visit_expr(arg);
+                }
+            }
+            AnalyzedExprKind::FunctionCall { args, .. } => {
+                for arg in args {
+                    self.visit_expr(arg);
+                }
+            }
+            AnalyzedExprKind::VerbCall { args, .. } => {
+                for arg in args {
+                    self.visit_expr(arg);
+                }
+            }
+            AnalyzedExprKind::ArrayLiteral(exprs) => {
+                for e in exprs {
+                    self.visit_expr(e);
+                }
+            }
+            AnalyzedExprKind::IndexAccess { array, index } => {
+                self.visit_expr(array);
+                self.visit_expr(index);
+            }
+            AnalyzedExprKind::Lambda { body, .. } => {
+                self.visit_expr(body);
+            }
+            AnalyzedExprKind::Some(inner) => {
+                self.visit_expr(inner);
+            }
+            AnalyzedExprKind::Ok(inner) => {
+                self.visit_expr(inner);
+            }
+            AnalyzedExprKind::Err(inner) => {
+                self.visit_expr(inner);
+            }
+            AnalyzedExprKind::Unwrap(inner) => {
+                self.visit_expr(inner);
+            }
+            AnalyzedExprKind::Try(inner) => {
+                self.visit_expr(inner);
+            }
+            AnalyzedExprKind::Assert { condition } => {
+                self.visit_expr(condition);
+            }
+            AnalyzedExprKind::AssertEq { left, right } => {
+                self.visit_expr(left);
+                self.visit_expr(right);
+            }
+            AnalyzedExprKind::Range { start, end, .. } => {
+                self.visit_expr(start);
+                self.visit_expr(end);
+            }
+            AnalyzedExprKind::NumberLiteral(_)
+            | AnalyzedExprKind::StringLiteral(_)
+            | AnalyzedExprKind::BooleanLiteral(_)
+            | AnalyzedExprKind::None
+            | AnalyzedExprKind::CollectionNew { .. } => {}
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    #[test]
+    fn test_auditor_unused_var() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("unused.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ 10 ἔστω.\n".as_bytes()).unwrap();
+        }
+
+        let result = run_auditor(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_auditor_unused_mut() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("mut.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("μετά ξ 10 ἔστω. ξ λέγε.\n".as_bytes()).unwrap();
+        }
+
+        let result = run_auditor(&input_path);
+        assert!(result.is_ok());
+    }
+}
