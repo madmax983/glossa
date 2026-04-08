@@ -1,0 +1,11 @@
+--- src/semantic/resolver.rs
++++ src/semantic/resolver.rs
+@@ -532,6 +532,8 @@
+     /// assert_eq!(unused.len(), 1);
+     /// assert_eq!(unused[0].name, "forgotten");
+     /// ```
++    /// ⚡ Bolt Optimization: Returns an `impl Iterator` instead of allocating a `Vec`
++    /// to avoid unnecessary heap allocations when the caller only needs to iterate.
+     pub fn unused_bindings(&self) -> impl Iterator<Item = &Binding> + '_ {
+         self.levels
+             .iter()
