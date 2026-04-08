@@ -336,7 +336,20 @@ mod tests {
         let mut visitor = AuditorVisitor::new();
 
         let statements = vec![
-            AnalyzedStatement::Assignment { name: "x".into(), value: dummy_expr() },
+            AnalyzedStatement::Binding {
+                name: "x".into(),
+                value: dummy_expr(),
+                mutable: true,
+            },
+            AnalyzedStatement::Binding {
+                name: "x_immut".into(),
+                value: dummy_expr(),
+                mutable: false,
+            },
+            AnalyzedStatement::Assignment {
+                name: "x".into(),
+                value: dummy_expr(),
+            },
             AnalyzedStatement::Print(vec![dummy_expr()]),
             AnalyzedStatement::Expression(vec![dummy_expr()]),
             AnalyzedStatement::Query(vec![dummy_expr()]),
@@ -364,7 +377,9 @@ mod tests {
                 body: vec![AnalyzedStatement::Break],
                 return_type: None,
             },
-            AnalyzedStatement::Return { value: Some(Box::new(dummy_expr())) },
+            AnalyzedStatement::Return {
+                value: Some(Box::new(dummy_expr())),
+            },
             AnalyzedStatement::TestDeclaration {
                 name: "t".into(),
                 body: vec![AnalyzedStatement::Break],
@@ -441,7 +456,9 @@ mod tests {
             AnalyzedExprKind::Err(Box::new(dummy_expr())),
             AnalyzedExprKind::Unwrap(Box::new(dummy_expr())),
             AnalyzedExprKind::Try(Box::new(dummy_expr())),
-            AnalyzedExprKind::Assert { condition: Box::new(dummy_expr()) },
+            AnalyzedExprKind::Assert {
+                condition: Box::new(dummy_expr()),
+            },
             AnalyzedExprKind::AssertEq {
                 left: Box::new(dummy_expr()),
                 right: Box::new(dummy_expr()),
@@ -455,7 +472,9 @@ mod tests {
             AnalyzedExprKind::StringLiteral("s".into()),
             AnalyzedExprKind::BooleanLiteral(true),
             AnalyzedExprKind::None,
-            AnalyzedExprKind::CollectionNew { collection_type: "HashMap".into() },
+            AnalyzedExprKind::CollectionNew {
+                collection_type: "HashMap".into(),
+            },
         ];
 
         for kind in exprs {
