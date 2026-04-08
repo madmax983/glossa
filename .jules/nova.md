@@ -24,3 +24,7 @@
 **Concept:** A CLI tool (`glossa labyrinth`) that visualizes the control flow graph of a Glossa program as a Mermaid.js diagram. This expands the "Architectural Transparency" feature set by tracing logic branching instead of just structural relations.
 **Fate:** Merged
 **Lesson:** Iterating over the complex nested variants in `AnalyzedStatement` proves the semantic AST is stable enough for deep structural introspection. Representing implicit logic branches explicitly via node/edge graph generators reinforces the language's determinism.
+## The Papyrus (ὁ Πάπυρος)
+**Concept:** A SQL Schema generator (`glossa papyrus`) that transpiles Glossa structs (`εἶδος`) directly to `CREATE TABLE` SQL statements.
+**Fate:** Proposed
+**Lesson:** Treating Glossa as a Data Definition Language bridges ancient syntax with modern relational databases.
