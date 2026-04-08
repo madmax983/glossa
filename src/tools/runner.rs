@@ -360,6 +360,32 @@ pub fn check_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
     let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
 
+    let _analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
+
+    status.success();
+    Ok(())
+}
+
+/// Generates a language metrics dashboard report for a ΓΛΩΣΣΑ file and prints it to the terminal.
+///
+/// This function loads the source code, parses it, and performs semantic analysis
+/// without generating any output code or binaries. It then prints a [`GlossaReport`]
+/// summarizing the program's statistics.
+///
+/// ## Errors
+///
+/// Returns an error if the input file does not exist, exceeds the size limit,
+/// or contains any syntax or semantic errors.
+pub fn report_file(input: &Path) -> Result<()> {
+    let source = load_source(input)?;
+    let status = Status::start_with_symbol("Ἀναφορά (Reporting)", "📊");
+
     let analyzed = match analyze_source(&source) {
         Ok(a) => a,
         Err(e) => {
@@ -794,6 +820,9 @@ mod tests {
         let bard_res = bard_file(&missing_path);
         assert!(bard_res.is_err());
 
+        let report_res = report_file(&missing_path);
+        assert!(report_res.is_err());
+
         let run_res = run_file(&missing_path);
         assert!(run_res.is_err());
     }
@@ -816,6 +845,9 @@ mod tests {
 
         let bard_res = bard_file(&input_path);
         assert!(bard_res.is_err());
+
+        let report_res = report_file(&input_path);
+        assert!(report_res.is_err());
 
         let run_res = run_file(&input_path);
         assert!(run_res.is_err());

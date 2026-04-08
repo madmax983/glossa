@@ -102,6 +102,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate a language metrics dashboard
+    Report {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Visualize the control flow graph as a map (Requires "nova" feature)
     Labyrinth {
         /// Input file (.γλ)
