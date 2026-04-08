@@ -40,3 +40,6 @@
 ## 2024-04-03 - Fixing Broken Intra-Doc Links
 **Confusion:** The documentation contained broken links to internal private modules (`parser::grammar` and `cache`), causing warnings during `cargo doc`.
 **Clarification:** Updated the intra-doc links to point to the exported, public equivalents (`parser` and `Cache`) so that the documentation correctly resolves and is warning-free.
+## 2024-04-03 - Fixing Broken Intra-Doc Links
+**Confusion:** The documentation contained broken links to internal private modules (`parser::grammar` and `cache`), causing warnings during `cargo doc`.
+**Clarification:** Updated the intra-doc links to point to the exported, public equivalents (`parser` and `Cache`) so that the documentation correctly resolves and is warning-free.
