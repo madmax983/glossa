@@ -331,7 +331,7 @@ fn execute_binary(executable: &Path) -> Result<()> {
 /// Verifies the syntax and semantics of a ΓΛΩΣΣΑ file.
 ///
 /// This function loads the source code, parses it, and performs semantic analysis
-/// without generating any output code or binaries. It prints a [`GlossaReport`]
+/// without generating any output code or binaries. It prints a `GlossaReport`
 /// summarizing the program's statistics if successful.
 ///
 /// ## Errors

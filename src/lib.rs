@@ -99,7 +99,7 @@
 //! * [`highlight`]: **The Painter** - Semantic syntax highlighting for the CLI.
 //! * [`morphology`]: **The Analyst** - Word analysis, lexicon lookup, and participle parsing.
 //! * [`parser`]: **The Builder and Gatekeeper** - Constructs the AST from the raw parse tree using a PEG parser that defines the valid syntax.
-//! * [`tools::report`]: **The Scribe** - Report generation and statistics.
+//! * `tools::report`: **The Scribe** - Report generation and statistics.
 //! * [`tools::narrator`]: **The Bard** - Code-to-story translator for debugging and learning.
 //! * [`semantic`]: **The Assembler** - The slot-based engine that assembles sentences from words.
 //! * [`text`]: **The Sizer** - Text utilities and normalization (polytonic -> monotonic).

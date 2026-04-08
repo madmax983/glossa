@@ -9,12 +9,12 @@
 //! * [`runner`]: **The Engine Room** - Orchestrates the full compilation pipeline (load -> analyze -> compile -> run).
 //! * [`repl`]: **The Playground** - An interactive Read-Eval-Print Loop for experimentation.
 //! * [`highlight`]: **The Painter** - Syntax highlighting for terminal output.
-//! * [`report`]: **The Scribe** - Detailed compilation reports and error diagnostics.
+//! * `report`: **The Scribe** - Detailed compilation reports and error diagnostics.
 //! * [`Cache`]: **The Vault** - Incremental compilation cache to speed up builds.
 //! * [`dictionary`]: **The Lexicon** - Word lookup utility for the built-in dictionary.
 //! * [`narrator`]: **The Bard** - Experimental "code-to-story" translator.
 //! * [`tester`]: **The Judge** - Built-in test runner for unit tests defined in ΓΛΩΣΣΑ files.
-//! * [`ui`]: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
+//! * `ui`: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
 #[cfg(feature = "nova")]
 pub mod alchemist;
