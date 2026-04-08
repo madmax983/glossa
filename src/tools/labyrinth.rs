@@ -15,8 +15,7 @@
 //! * **Nodes**: Statements and expressions.
 //! * **Edges**: The flow of execution.
 
-use crate::parser::parse;
-use crate::semantic::{AnalyzedProgram, AnalyzedStatement, analyze_program};
+use crate::semantic::{AnalyzedProgram, AnalyzedStatement};
 use crate::tools::ui::Status;
 use std::path::Path;
 
@@ -26,18 +25,11 @@ pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
 
     let status = Status::start_with_symbol("Λαβύρινθος (Control Flow Graph)", "🔀");
 
-    let ast = match parse(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("{}", e));
-        }
-    };
-    let program = match analyze_program(&ast) {
+    let program = match crate::tools::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
-            status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("{}", e));
+            status.error("Σφάλμα (Error)");
+            return Err(e);
         }
     };
 

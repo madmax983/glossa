@@ -40,8 +40,6 @@
 //! ```
 
 use crate::codegen::generate_rust_file;
-use crate::parser::parse;
-use crate::semantic::analyze_program;
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, CellAlignment, Color, Table, presets};
 use crossterm::style::Stylize;
@@ -302,18 +300,11 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     let status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
 
-    let ast = match parse(&source) {
+    let analyzed = match crate::tools::runner::analyze_source(&source) {
         Ok(a) => a,
         Err(e) => {
-            status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("{}", e));
-        }
-    };
-    let analyzed = match analyze_program(&ast) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("{}", e));
+            status.error("Σφάλμα (Error)");
+            return Err(e);
         }
     };
     let rust_code = generate_rust_file(&analyzed);

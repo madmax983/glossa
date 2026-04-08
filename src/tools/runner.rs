@@ -21,7 +21,7 @@ const MAX_FILE_SIZE: u64 = 1024 * 1024;
 /// This helper runs the first two phases of the compiler pipeline:
 /// 1. **Parsing**: Converts source text to AST
 /// 2. **Semantic Analysis**: Resolves names, types, and statement structure
-fn analyze_source(source: &str) -> Result<AnalyzedProgram> {
+pub fn analyze_source(source: &str) -> Result<AnalyzedProgram> {
     let ast = parse(source).map_err(|e| miette::miette!("{}", e))?;
     analyze_program(&ast).map_err(|e| miette::miette!("{}", e))
 }
