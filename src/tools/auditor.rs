@@ -350,6 +350,10 @@ mod tests {
                 name: "x".into(),
                 value: dummy_expr(),
             },
+            AnalyzedStatement::Assignment {
+                name: "unbound".into(),
+                value: dummy_expr(),
+            },
             AnalyzedStatement::Print(vec![dummy_expr()]),
             AnalyzedStatement::Expression(vec![dummy_expr()]),
             AnalyzedStatement::Query(vec![dummy_expr()]),
@@ -357,6 +361,11 @@ mod tests {
                 condition: Box::new(dummy_expr()),
                 then_body: vec![AnalyzedStatement::Break],
                 else_body: Some(vec![AnalyzedStatement::Continue]),
+            },
+            AnalyzedStatement::If {
+                condition: Box::new(dummy_expr()),
+                then_body: vec![AnalyzedStatement::Break],
+                else_body: None,
             },
             AnalyzedStatement::While {
                 condition: Box::new(dummy_expr()),
@@ -380,6 +389,7 @@ mod tests {
             AnalyzedStatement::Return {
                 value: Some(Box::new(dummy_expr())),
             },
+            AnalyzedStatement::Return { value: None },
             AnalyzedStatement::TestDeclaration {
                 name: "t".into(),
                 body: vec![AnalyzedStatement::Break],
@@ -410,6 +420,7 @@ mod tests {
 
         let exprs = vec![
             AnalyzedExprKind::Variable("x".into()),
+            AnalyzedExprKind::Variable("unbound".into()),
             AnalyzedExprKind::BinOp {
                 left: Box::new(dummy_expr()),
                 op: crate::morphology::lexicon::BinaryOp::Add,
