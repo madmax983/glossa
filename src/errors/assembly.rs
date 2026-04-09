@@ -37,6 +37,14 @@ pub enum AssemblyError {
     #[diagnostic(code(glossa::assembly::double_verb))]
     DoubleVerb,
 
+    /// Missing verb in a statement
+    ///
+    /// # Example
+    /// `ὁ ἄνθρωπος.` (The man.)
+    #[error("Ῥῆμα οὐχ εὑρέθη! ἄνευ ῥήματος πρᾶξις οὐκ ἔστιν.")]
+    #[diagnostic(code(glossa::assembly::missing_verb))]
+    MissingVerb,
+
     /// Subject and Verb do not agree in number/person
     ///
     /// # Example
