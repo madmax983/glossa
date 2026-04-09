@@ -189,4 +189,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Run the Auditor to find code smells (Requires "nova" feature)
+    Audit {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
