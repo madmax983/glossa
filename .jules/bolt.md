@@ -22,3 +22,6 @@
 **[Extract Dependencies Buffer Optimization]**
 **Learning:** Recursively creating and extending `Vec<String>` allocations for dependency extraction is inefficient.
 **Action:** Refactored `extract_dependencies` to pass a `&mut Vec<String>` buffer down the recursive call tree to eliminate all intermediate collections.
+**[HashMap to FxHashMap in Internal Environment]**
+**Learning:** For internal interpreter environments that do not ingest arbitrary user string keys in a hash-collision scenario, the standard library `HashMap` (using SipHash) introduces unnecessary cryptographic hashing overhead. Switching to `rustc_hash::FxHashMap` provides a measurable speedup for variable resolution and lookups without introducing new dependencies, as it is often already present in compiler toolchains.
+**Action:** Replace `HashMap` with `FxHashMap` in internal state environments or symbol tables where HashDoS is not a threat model.
