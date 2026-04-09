@@ -1,5 +1,4 @@
-use crate::parser::parse;
-use crate::semantic::{AnalyzedStatement, GlossaType, analyze_program};
+use crate::semantic::{AnalyzedStatement, GlossaType};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use miette::Result;
@@ -23,19 +22,13 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
         }
     };
 
-    let ast = match parse(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("Parse error: {}", e));
-        }
-    };
-
-    let program = match analyze_program(&ast) {
+    let program = match crate::tools::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
-            status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("Semantic error: {}", e));
+            // Note: Since `analyze_source` unifies parsing and semantics, we
+            // map it to a generic analysis error.
+            status.error("Σφάλμα ἀναλύσεως (Analysis Error)");
+            return Err(e);
         }
     };
 
