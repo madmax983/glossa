@@ -355,12 +355,20 @@ mod tests {
                 value: dummy_expr(),
             },
             AnalyzedStatement::Print(vec![dummy_expr()]),
+            AnalyzedStatement::Print(vec![]),
             AnalyzedStatement::Expression(vec![dummy_expr()]),
+            AnalyzedStatement::Expression(vec![]),
             AnalyzedStatement::Query(vec![dummy_expr()]),
+            AnalyzedStatement::Query(vec![]),
             AnalyzedStatement::If {
                 condition: Box::new(dummy_expr()),
                 then_body: vec![AnalyzedStatement::Break],
                 else_body: Some(vec![AnalyzedStatement::Continue]),
+            },
+            AnalyzedStatement::If {
+                condition: Box::new(dummy_expr()),
+                then_body: vec![],
+                else_body: Some(vec![]),
             },
             AnalyzedStatement::If {
                 condition: Box::new(dummy_expr()),
@@ -371,19 +379,38 @@ mod tests {
                 condition: Box::new(dummy_expr()),
                 body: vec![AnalyzedStatement::Break],
             },
+            AnalyzedStatement::While {
+                condition: Box::new(dummy_expr()),
+                body: vec![],
+            },
             AnalyzedStatement::For {
                 variable: "y".into(),
                 iterator: Box::new(dummy_expr()),
                 body: vec![AnalyzedStatement::Break],
             },
+            AnalyzedStatement::For {
+                variable: "z".into(),
+                iterator: Box::new(dummy_expr()),
+                body: vec![],
+            },
             AnalyzedStatement::Match {
                 scrutinee: Box::new(dummy_expr()),
                 arms: vec![(dummy_expr(), vec![AnalyzedStatement::Break])],
+            },
+            AnalyzedStatement::Match {
+                scrutinee: Box::new(dummy_expr()),
+                arms: vec![],
             },
             AnalyzedStatement::FunctionDef {
                 name: "f".into(),
                 params: vec![("p".into(), Some(crate::semantic::GlossaType::Number))],
                 body: vec![AnalyzedStatement::Break],
+                return_type: None,
+            },
+            AnalyzedStatement::FunctionDef {
+                name: "g".into(),
+                params: vec![],
+                body: vec![],
                 return_type: None,
             },
             AnalyzedStatement::Return {
@@ -393,6 +420,10 @@ mod tests {
             AnalyzedStatement::TestDeclaration {
                 name: "t".into(),
                 body: vec![AnalyzedStatement::Break],
+            },
+            AnalyzedStatement::TestDeclaration {
+                name: "t_empty".into(),
+                body: vec![],
             },
             AnalyzedStatement::TypeDefinition {
                 name: "T".into(),
@@ -435,6 +466,11 @@ mod tests {
                 fields: vec![],
                 args: vec![dummy_expr()],
             },
+            AnalyzedExprKind::StructInstantiation {
+                type_name: "T".into(),
+                fields: vec![],
+                args: vec![],
+            },
             AnalyzedExprKind::PropertyAccess {
                 owner: Box::new(dummy_expr()),
                 property: "p".into(),
@@ -444,15 +480,29 @@ mod tests {
                 method: "m".into(),
                 args: vec![dummy_expr()],
             },
+            AnalyzedExprKind::MethodCall {
+                receiver: Box::new(dummy_expr()),
+                method: "m".into(),
+                args: vec![],
+            },
             AnalyzedExprKind::FunctionCall {
                 func: "f".into(),
                 args: vec![dummy_expr()],
+            },
+            AnalyzedExprKind::FunctionCall {
+                func: "f".into(),
+                args: vec![],
             },
             AnalyzedExprKind::VerbCall {
                 verb: "v".into(),
                 args: vec![dummy_expr()],
             },
+            AnalyzedExprKind::VerbCall {
+                verb: "v".into(),
+                args: vec![],
+            },
             AnalyzedExprKind::ArrayLiteral(vec![dummy_expr()]),
+            AnalyzedExprKind::ArrayLiteral(vec![]),
             AnalyzedExprKind::IndexAccess {
                 array: Box::new(dummy_expr()),
                 index: Box::new(dummy_expr()),
