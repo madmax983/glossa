@@ -34,7 +34,7 @@ C4Container
 
     Container_Boundary(tools, "Developer Experience (Nova)") {
         Container(alchemist, "The Alchemist", "src/tools/alchemist.rs", "Python Exporter")
-        Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
+        Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache (Public for Testing)")
         Container(cartographer, "Cartographer", "src/tools/cartographer.rs", "Generates Mermaid Class Diagrams")
         Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
         Container(dictionary, "The Lexicon", "src/tools/dictionary.rs", "The Source of Truth for Words (Dictionary)")
@@ -44,10 +44,10 @@ C4Container
         Container(mosaic, "Mosaic", "src/tools/mosaic.rs", "Visualizes Semantic Assembly")
         Container(narrator, "The Bard", "src/tools/narrator.rs", "Generates English narrative ('Scroll of Logic') from AST")
         Container(repl, "REPL", "src/tools/repl.rs", "Interactive Read-Eval-Print Loop")
-        Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports")
+        Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports (Public for Testing)")
         Container(runner, "Runner", "src/tools/runner.rs", "Orchestrates the compilation pipeline")
         Container(tester, "The Judge", "src/tools/tester.rs", "Verifies Correctness (Test Runner)")
-        Container(ui, "The Stage", "src/tools/ui.rs", "Presentation Layer & UI Helpers")
+        Container(ui, "The Stage", "src/tools/ui.rs", "Presentation Layer & UI Helpers (Public for Testing)")
         Container(weave, "Weave", "src/tools/weave.rs", "Rosetta Stone Markdown Exporter")
     }
 
