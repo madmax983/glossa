@@ -195,4 +195,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate a GraphQL Schema from structs and traits (Requires "nova" feature)
+    Architect {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

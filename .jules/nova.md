@@ -32,3 +32,7 @@
 **Concept:** A basic static analysis tool / linter (`glossa audit`) that traverses the semantic AST (`AnalyzedProgram`) to find code smells, such as unused variables and unnecessary mutable declarations.
 **Fate:** Merged
 **Lesson:** Iterating over the complex nested variants in `AnalyzedStatement` and `AnalyzedExpr` provides a strong foundation for building static analysis tools without modifying core logic.
+## 🌟 The Architect (ὁ Ἀρχιτέκτων)
+**Concept:** A GraphQL Schema generator (`glossa architect`) that transpiles Glossa structs (`εἶδος`) and traits (`χαρακτήρ`) directly to GraphQL `type` and `interface` schemas.
+**Fate:** Merged
+**Lesson:** By treating Glossa's typed semantic AST as a universal data definition language, we can effortlessly bridge Ancient Greek syntax with modern API schema standards like GraphQL.
