@@ -109,7 +109,11 @@ fn test_run_papyrus_semantic_error() {
     let result = glossa::tools::papyrus::run_papyrus(temp_file.path());
     assert!(result.is_err());
     let err_str = result.unwrap_err().to_string();
-    assert!(err_str.contains("Semantic error") || err_str.contains("Analysis error") || err_str.contains("Σφάλμα"));
+    assert!(
+        err_str.contains("Semantic error")
+            || err_str.contains("Analysis error")
+            || err_str.contains("Σφάλμα")
+    );
 }
 
 #[test]
