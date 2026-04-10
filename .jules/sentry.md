@@ -68,3 +68,7 @@
 **[Panic Safety in Assembly and Patterns]
 **Learning:** Using unreachable!() in fallback match arms acts as a ticking time bomb for structural panics if prior validation assumes impossible conditions.
 **Action:** Replace unreachable!() with safe negative-match default returns (e.g., return false; or Ok(false)) and explicitly construct failing unit tests to cover these fallback paths.
+
+**[Codegen Unchecked Indexing and Checked Neg]
+**Learning:** Found potential runtime panics in `generate_unary_op` (using `checked_neg().expect(...)`) and in `generate_collection_index` (using `try_from().expect(...)` for index bound checking) in `src/codegen.rs` which were not covered by tests.
+**Action:** Wrote isolated unit tests `test_generate_unary_op_neg_checked` and `test_generate_collection_index_bounds_check` to guarantee the panic safeguards execute as intended and generate the appropriate error structures.
