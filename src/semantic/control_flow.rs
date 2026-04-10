@@ -11,7 +11,7 @@ use super::conversion::convert_assembled_to_analyzed;
 use super::expressions::get_first_word;
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope,
-    analyzer::analyze_statement, assemble_statement,
+    analyzer::analyze_statement,
 };
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
@@ -708,8 +708,20 @@ fn skip_first_word_and_parse(
         is_query: false,
         is_propagate: false,
     };
-    let analyzed = assemble_statement(&stmt)?;
-    let converted = convert_assembled_to_analyzed(&analyzed, scope)?;
+    let analyzed = crate::semantic::assemble_statement(&stmt)?;
+
+    let converted = match convert_assembled_to_analyzed(&analyzed, scope) {
+        Ok(res) => res,
+        Err(e) => {
+            if e.to_string().contains("Ῥῆμα οὐχ εὑρέθη") || e.to_string().contains("MissingVerb")
+            {
+                let (expr, _ty) = crate::semantic::conversion::extract_value(&analyzed, scope)?;
+                crate::semantic::model::AnalyzedStatement::Expression(vec![expr])
+            } else {
+                return Err(e);
+            }
+        }
+    };
 
     // Extract the first expression as the condition
     match converted {

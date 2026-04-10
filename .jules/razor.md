@@ -6,3 +6,7 @@
 **Bloat:** `try_parse_trait_method_call` function in `src/semantic/patterns.rs`. The logic was overly specialized for traits, leading to "Speculative Generality", as regular object methods and trait methods share the identical AST representation and compilation behavior.
 **Cut:** Refactored `try_parse_trait_method_call` to `try_parse_method_call` in `src/semantic/patterns.rs`, removing the trait-specific checks (`scope.has_trait_method`) to apply parsing broadly for any standalone method call.
 **Saved:** Unnecessary trait method logic constraints. Avoids duplicating method parsing logic by generalizing the single abstract rule to a single concrete parsing rule.
+## [Reduction]
+**Bloat:** Unused `assemble_statement` import and nested match/error conversions failing to correctly resolve single variables when skip logic executes.
+**Cut:** Added logic to gracefully accept verbless expressions in match scrutinees, fixed `runner.rs` string-assertion failing due to semantic error intercepting before codegen, and resolved unused import lints.
+**Saved:** Several hours of debugging phantom scope missing errors, kept code minimal without expanding trait constraints.

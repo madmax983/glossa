@@ -1660,13 +1660,7 @@ pub fn extract_value(
     }
 
     // Default
-    Ok((
-        AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(0),
-            glossa_type: GlossaType::Number,
-        },
-        GlossaType::Number,
-    ))
+    return Err(GlossaError::undefined("Unknown Term".to_string()))
 }
 
 #[cfg(test)]

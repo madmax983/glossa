@@ -13,6 +13,16 @@ pub enum AssemblyError {
     #[diagnostic(code(glossa::assembly::double_subject))]
     DoubleSubject,
 
+    /// Missing verb in a statement
+    #[error("Ῥῆμα οὐχ εὑρέθη! Πᾶσα πρότασις δεῖται πράξεως.")]
+    #[diagnostic(code(glossa::assembly::missing_verb))]
+    MissingVerb,
+
+    /// Undefined variable reference
+    #[error("Ἄγνωστον ὄνομα: {name}")]
+    #[diagnostic(code(glossa::assembly::undefined_name))]
+    UndefinedName { name: String },
+
     /// Two objects found in the same statement (Accusative collision)
     ///
     /// # Example
