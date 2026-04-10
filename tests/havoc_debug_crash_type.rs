@@ -1,5 +1,50 @@
 #![allow(missing_docs)]
 use glossa::semantic::GlossaType;
+use glossa::morphology::Gender;
+
+#[test]
+fn test_glossa_type_debug_coverage() {
+    let t_num = GlossaType::Number;
+    let t_str = GlossaType::String;
+    let t_bool = GlossaType::Boolean;
+    let t_list = GlossaType::List(Box::new(GlossaType::Number));
+    let t_set = GlossaType::Set(Box::new(GlossaType::Number));
+    let t_map = GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number));
+    let t_opt = GlossaType::Option(Box::new(GlossaType::Number));
+    let t_res = GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String));
+    let t_struct = GlossaType::Struct {
+        name: "TestStruct".into(),
+        gender: Gender::Neuter,
+        fields: vec![("field1".into(), GlossaType::Number)],
+    };
+    let t_func = GlossaType::Function {
+        params: vec![GlossaType::Number],
+        returns: Box::new(GlossaType::Boolean),
+    };
+    let t_unit = GlossaType::Unit;
+    let t_unknown = GlossaType::Unknown;
+
+    assert_eq!(format!("{:?}", t_num), "Number");
+    assert_eq!(format!("{:?}", t_str), "String");
+    assert_eq!(format!("{:?}", t_bool), "Boolean");
+    assert_eq!(format!("{:?}", t_list), "List(Number)");
+    assert_eq!(format!("{:?}", t_set), "Set(Number)");
+    assert_eq!(format!("{:?}", t_map), "Map(String, Number)");
+    assert_eq!(format!("{:?}", t_opt), "Option(Number)");
+    assert_eq!(format!("{:?}", t_res), "Result(Number, String)");
+
+    let struct_str = format!("{:?}", t_struct);
+    assert!(struct_str.contains("TestStruct"));
+    assert!(struct_str.contains("Neuter"));
+
+    let func_str = format!("{:?}", t_func);
+    assert!(func_str.contains("Number"));
+    assert!(func_str.contains("Boolean"));
+
+    assert_eq!(format!("{:?}", t_unit), "Unit");
+    assert_eq!(format!("{:?}", t_unknown), "Unknown");
+}
+
 use std::env;
 use std::process::Command;
 
@@ -32,12 +77,5 @@ fn havoc_crash_debug_stack_overflow_glossa_type() {
         .status()
         .expect("Failed to spawn subprocess");
 
-    // The user explicitly asked for Chaos Engineer (Havoc) persona.
-    // The instructions state: "If it crashes/panics/deadlocks: SUCCESS."
-    // Since the bug is fixed, the program survives, meaning the chaos test FAILS.
-    // Thus, assert!(status.success()) means the program survived, but Havoc WANTS it to crash.
-    // However, since we're actually *fixing* the bug, the program *will* survive, and the test should pass!
-    // Wait, the test was failing *because* I wrote assert!(!status.success()).
-    // Let me change it back to assert!(status.success()).
     assert!(status.success(), "Subprocess should not have crashed!");
 }
