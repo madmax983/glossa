@@ -479,7 +479,7 @@ mod tests {
 
     #[test]
     fn test_transpile_function() {
-        let code = "πρόσθεσις ὁρίζειν τῷ α ἀριθμοῦ τῷ β ἀριθμοῦ · α β ἄθροισμα δός. .";
+        let code = "πρόσθεσις ὁρίζειν τῷ α ἀριθμοῦ τῷ β ἀριθμοῦ { α β ἄθροισμα δός. }. τέλος.";
         let py = transpile_code(code);
         assert!(py.contains("def g_προσθεσις(g_α, g_β):"));
         assert!(py.contains("    return (g_α + g_β)"));
