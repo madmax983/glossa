@@ -6,3 +6,7 @@
 **Bloat:** `try_parse_trait_method_call` function in `src/semantic/patterns.rs`. The logic was overly specialized for traits, leading to "Speculative Generality", as regular object methods and trait methods share the identical AST representation and compilation behavior.
 **Cut:** Refactored `try_parse_trait_method_call` to `try_parse_method_call` in `src/semantic/patterns.rs`, removing the trait-specific checks (`scope.has_trait_method`) to apply parsing broadly for any standalone method call.
 **Saved:** Unnecessary trait method logic constraints. Avoids duplicating method parsing logic by generalizing the single abstract rule to a single concrete parsing rule.
+## [Reduction]
+**Bloat:** `ScopeGuard` RAII wrapper struct in `src/semantic/resolver.rs` which implemented `Drop`, `Deref`, and `DerefMut` solely to manage scope popping upon drop.
+**Cut:** Deleted the `ScopeGuard` struct entirely and replaced `enter_scope` with a single closure-based `with_scope` method that encapsulates `enter()`, execution, and `exit()` safely. Updated all references across `semantic/` modules.
+**Saved:** ~25 lines of structural boilerplate and 3 trait implementations, flattening the abstraction layer and enforcing a cleaner scoping idiom.

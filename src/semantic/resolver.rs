@@ -9,8 +9,7 @@
 //! The resolver uses a stack-based lexical environment:
 //! * **[`Scope`]**: The entire environment, containing a stack of [`ScopeLevel`]s.
 //! * **[`ScopeLevel`]**: A single dictionary (using `FxHashMap` for speed) mapping names to [`Binding`]s.
-//! * **[`ScopeGuard`]**: An RAII (Resource Acquisition Is Initialization) guard returned by [`Scope::enter_scope`].
-//!   When the guard goes out of scope, it automatically drops the deepest `ScopeLevel`.
+//! * Scoping is strictly block-based and safely bounded via the `with_scope` closure method to prevent leakage.
 //!
 //! This design guarantees that variable shadowing works correctly and that symbols
 //! are strictly confined to the block where they are defined, preventing leakage.
@@ -24,10 +23,10 @@
 //! let mut scope = Scope::new();
 //! scope.define("ἡλικία", GlossaType::Number); // Let age be a Number
 //!
-//! {
-//!     let mut inner_scope = scope.enter_scope();
+//! scope.with_scope(|inner_scope| {
 //!     inner_scope.define("ὄνομα", GlossaType::String); // Name exists only here
-//! } // `inner_scope` is dropped, removing "ὄνομα"
+//!     assert!(inner_scope.lookup("ὄνομα").is_some());
+//! }); // `inner_scope` ends, removing "ὄνομα"
 //!
 //! assert!(scope.lookup("ἡλικία").is_some());
 //! assert!(scope.lookup("ὄνομα").is_none());
@@ -97,30 +96,6 @@ pub struct FunctionSignature {
     pub return_type: Option<GlossaType>,
 }
 
-/// A RAII guard for a scope level. Exits the scope when dropped.
-pub struct ScopeGuard<'a> {
-    scope: &'a mut Scope,
-}
-
-impl<'a> Drop for ScopeGuard<'a> {
-    fn drop(&mut self) {
-        self.scope.exit();
-    }
-}
-
-impl<'a> std::ops::Deref for ScopeGuard<'a> {
-    type Target = Scope;
-    fn deref(&self) -> &Scope {
-        self.scope
-    }
-}
-
-impl<'a> std::ops::DerefMut for ScopeGuard<'a> {
-    fn deref_mut(&mut self) -> &mut Scope {
-        self.scope
-    }
-}
-
 /// A tracked variable binding with type and metadata.
 ///
 /// Bindings are resolved when a variable is used (e.g., retrieving its value).
@@ -161,11 +136,10 @@ impl Scope {
         self.levels.push(ScopeLevel::new());
     }
 
-    /// Creates a nested lexical scope and returns a RAII [`ScopeGuard`].
+    /// Creates a nested lexical scope and executes the provided closure within it.
     ///
-    /// The returned guard allows defining symbols that only exist within the block.
-    /// When the guard goes out of scope and is dropped, the inner scope level
-    /// is automatically destroyed.
+    /// Symbols defined within the closure will be securely destroyed when the
+    /// closure completes, avoiding variable leakage.
     ///
     /// # Examples
     ///
@@ -176,21 +150,21 @@ impl Scope {
     /// let mut scope = Scope::new();
     /// scope.define("a", GlossaType::Number); // Parent level
     ///
-    /// {
-    ///     // Enters child scope level
-    ///     let mut child_scope = scope.enter_scope();
+    /// scope.with_scope(|child_scope| {
     ///     child_scope.define("b", GlossaType::String);
     ///
     ///     assert!(child_scope.is_defined("a")); // Inherits parent scope
     ///     assert!(child_scope.is_defined("b")); // Defines own scope
-    /// } // `child_scope` is dropped, child level is destroyed
+    /// }); // child scope ends here
     ///
     /// assert!(scope.is_defined("a"));
     /// assert!(!scope.is_defined("b")); // "b" no longer exists
     /// ```
-    pub fn enter_scope(&mut self) -> ScopeGuard<'_> {
+    pub fn with_scope<R, F: FnOnce(&mut Scope) -> R>(&mut self, f: F) -> R {
         self.enter();
-        ScopeGuard { scope: self }
+        let result = f(self);
+        self.exit();
+        result
     }
 
     /// Exit the current scope level
@@ -447,12 +421,11 @@ impl Scope {
     /// let mut scope = Scope::new();
     /// scope.define("a", GlossaType::Boolean);
     ///
-    /// {
-    ///     let mut inner = scope.enter_scope();
+    /// scope.with_scope(|inner| {
     ///     assert!(!inner.is_defined_locally("a")); // "a" is an ancestor, not local
     ///     inner.define("b", GlossaType::Number);
     ///     assert!(inner.is_defined_locally("b"));
-    /// }
+    /// });
     /// ```
     pub fn is_defined_locally(&self, name: &str) -> bool {
         self.levels
@@ -624,9 +597,10 @@ mod tests {
         let mut parent = Scope::new();
         parent.define("ξ".to_string(), GlossaType::Number);
 
-        let child = parent.enter_scope();
-        assert!(child.is_defined("ξ"));
-        assert_eq!(child.lookup("ξ"), Some(&GlossaType::Number));
+        parent.with_scope(|child| {
+            assert!(child.is_defined("ξ"));
+            assert_eq!(child.lookup("ξ"), Some(&GlossaType::Number));
+        });
     }
 
     #[test]
@@ -634,10 +608,10 @@ mod tests {
         let mut parent = Scope::new();
         parent.define("ξ".to_string(), GlossaType::Number);
 
-        let mut child = parent.enter_scope();
-        child.define("ξ".to_string(), GlossaType::String);
-
-        assert_eq!(child.lookup("ξ"), Some(&GlossaType::String));
+        parent.with_scope(|child| {
+            child.define("ξ".to_string(), GlossaType::String);
+            assert_eq!(child.lookup("ξ"), Some(&GlossaType::String));
+        });
     }
 
     #[test]
@@ -750,10 +724,11 @@ mod tests {
         let mut parent = Scope::new();
         parent.define_mut("π".to_string(), GlossaType::Number);
 
-        let child = parent.enter_scope();
-        let binding = child.lookup_binding("π").unwrap();
-        assert_eq!(binding.name, "π");
-        assert!(binding.mutable);
+        parent.with_scope(|child| {
+            let binding = child.lookup_binding("π").unwrap();
+            assert_eq!(binding.name, "π");
+            assert!(binding.mutable);
+        });
     }
 
     #[test]
