@@ -709,7 +709,31 @@ fn skip_first_word_and_parse(
         is_propagate: false,
     };
     let analyzed = assemble_statement(&stmt)?;
-    let converted = convert_assembled_to_analyzed(&analyzed, scope)?;
+    let converted = match convert_assembled_to_analyzed(&analyzed, scope) {
+        Ok(c) => c,
+        Err(e) => {
+            // Memory rule: safely intercept AssemblyError::MissingVerb to correctly extract
+            // and analyze these partial clauses as expressions, since control flow
+            // conditions often parse as valid verbless phrases.
+            if e.to_string().contains("Ῥῆμα οὐχ εὑρέθη") {
+                // If it's just a missing verb, we can extract the variable manually from the analyzed struct
+                if let Some(subj) = &analyzed.subject {
+                    return Ok(AnalyzedExpr {
+                        expr: crate::semantic::model::AnalyzedExprKind::Variable(
+                            subj.lemma.clone(),
+                        ),
+                        glossa_type: crate::semantic::types::GlossaType::Unknown,
+                    });
+                } else if let Some(obj) = &analyzed.object {
+                    return Ok(AnalyzedExpr {
+                        expr: crate::semantic::model::AnalyzedExprKind::Variable(obj.lemma.clone()),
+                        glossa_type: crate::semantic::types::GlossaType::Unknown,
+                    });
+                }
+            }
+            return Err(e);
+        }
+    };
 
     // Extract the first expression as the condition
     match converted {

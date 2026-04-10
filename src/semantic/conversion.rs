@@ -40,6 +40,7 @@ use super::expressions::{
 };
 use super::patterns::detect_iterator_pattern;
 use crate::ast::Expr;
+use crate::errors::AssemblyError;
 use crate::errors::GlossaError;
 use crate::morphology::{self};
 use crate::semantic::assembly::AssembledStatement;
@@ -1151,9 +1152,30 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
         }
     }
 
+    // Check for Double Subject before fallback
+    if asm_stmt.subject.is_some()
+        && !asm_stmt.nominatives.is_empty()
+        && asm_stmt.operators.is_empty()
+        && asm_stmt.nested_phrases.is_empty()
+    {
+        // Only return DoubleSubject error if we're not actually attempting to do a standalone expression check
+        return Err(GlossaError::from(AssemblyError::DoubleSubject));
+    }
+
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            // Missing verb check: If we have a standalone subject with no operators, blocks, phrases, or query mark,
+            // and no verb, it's a standalone verbless phrase acting as a full statement.
+            if asm_stmt.verb.is_none()
+                && !asm_stmt.is_query
+                && asm_stmt.operators.is_empty()
+                && asm_stmt.blocks.is_empty()
+                && asm_stmt.nested_phrases.is_empty()
+            {
+                return Err(GlossaError::from(AssemblyError::MissingVerb));
+            }
+
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
