@@ -1,5 +1,5 @@
---- src/semantic/validation.rs
-+++ src/semantic/validation.rs
+--- validation.rs
++++ validation.rs
 @@ -94,10 +94,9 @@
 
  fn check_expr_undefined_variables(expr: &AnalyzedExpr, scope: &crate::semantic::resolver::Scope) -> Result<(), GlossaError> {

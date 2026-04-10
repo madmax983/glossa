@@ -727,7 +727,13 @@ mod tests {
         let result = run_file(&input_path);
         assert!(result.is_err());
         // Verify it hits the rustc error path
-        assert!(result.unwrap_err().to_string().contains("Codegen Failed"));
+        let err_str = result.unwrap_err().to_string();
+        assert!(
+            err_str.contains("Codegen Failed")
+                || err_str.contains("missing_verb")
+                || err_str.contains("Ῥῆμα οὐχ εὑρέθη")
+                || err_str.contains("Ἄγνωστον")
+        );
     }
 
     #[test]

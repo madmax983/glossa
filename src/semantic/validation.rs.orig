@@ -92,12 +92,10 @@ fn check_expr_undefined_variables(
     expr: &AnalyzedExpr,
     scope: &crate::semantic::resolver::Scope,
 ) -> Result<(), GlossaError> {
-    if let AnalyzedExprKind::Variable(name) = &expr.expr
-        && !scope.is_defined(name)
-        && name != "new"
-        && expr.glossa_type == GlossaType::Unknown
-    {
-        return Err(GlossaError::undefined(name.as_str()));
+    if let AnalyzedExprKind::Variable(name) = &expr.expr {
+        if !scope.is_defined(name) && name != "new" && expr.glossa_type == GlossaType::Unknown {
+            return Err(GlossaError::undefined(name.as_str()));
+        }
     }
 
     match &expr.expr {
