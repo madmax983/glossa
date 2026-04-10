@@ -159,3 +159,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod control_flow_coverage_tests;
