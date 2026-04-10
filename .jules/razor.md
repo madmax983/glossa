@@ -10,3 +10,7 @@
 **Bloat:** Unused deprecated `expressions()` method in `Statement` struct in `src/ast.rs`.
 **Cut:** Deleted the `expressions()` method.
 **Saved:** 13 lines of code.
+## [Reduction]
+**Bloat:** `MissingVerb` returning as an internal compiler error and `UndefinedVariable` silently passing as `NumberLiteral(0)`.
+**Cut:** Added explicit missing verb and undefined variable validation.
+**Saved:** Explicitly raising clear errors instead of implicitly suppressing undefined behaviour.

@@ -954,24 +954,28 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
+    if let Some(ref subj) = asm_stmt.subject {
+        let var_type = scope
+            .lookup(&subj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         args.insert(
             0,
             AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
+                glossa_type: var_type,
             },
         );
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
+    if let Some(ref obj) = asm_stmt.object {
+        let var_type = scope
+            .lookup(&obj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         args.push(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
+            glossa_type: var_type,
         });
     }
 
@@ -1104,6 +1108,21 @@ fn classify_containment_query(
 
 /// Helper: Default expression
 fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatement, GlossaError> {
+    if !asm_stmt.nominatives.is_empty() && asm_stmt.subject.is_some() {
+        return Err(GlossaError::from(
+            crate::errors::AssemblyError::DoubleSubject,
+        ));
+    }
+
+    if asm_stmt.verb.is_none()
+        && !asm_stmt.is_query
+        && !asm_stmt.is_propagate
+        && asm_stmt.operators.is_empty()
+        && asm_stmt.literals.is_empty()
+    {
+        return Err(GlossaError::from(crate::errors::AssemblyError::MissingVerb));
+    }
+
     // Determine if we should attempt to build expressions from literals+operators
     // or if we are in a fallback scenario (using Subject/Object with operators).
     // If literals < operators + 1, build_expressions_from_literals_and_ops will fail.

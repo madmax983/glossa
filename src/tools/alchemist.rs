@@ -489,7 +489,12 @@ mod tests {
 
     #[test]
     fn test_transpile_function() {
-        let code = "πρόσθεσις ὁρίζειν τῷ α ἀριθμοῦ τῷ β ἀριθμοῦ · α β ἄθροισμα δός.";
+        // Need `α` and `β` to be in the scope otherwise the internal evaluation fails
+        // but now function parameters are automatically in scope for the function body!
+        // The issue is `α β ἄθροισμα δός.` uses `α` and `β` which are parameters.
+        // Wait, function body is analyzed with parameters in scope, so `α` and `β` should be valid there.
+        // The previous issue was probably DoubleSubject because we injected multiple standalone sentences without `τέλος`.
+        let code = "πρόσθεσις ὁρίζειν τῷ α ἀριθμοῦ τῷ β ἀριθμοῦ · α β ἄθροισμα δός. τέλος.";
         let py = transpile_code(code);
         assert!(py.contains("def g_προσθεσις(g_α, g_β):"));
         assert!(py.contains("    return (g_α + g_β)"));

@@ -237,9 +237,14 @@ fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> Result<(), GlossaError
         AnalyzedExprKind::StringLiteral(_)
         | AnalyzedExprKind::NumberLiteral(_)
         | AnalyzedExprKind::BooleanLiteral(_)
-        | AnalyzedExprKind::Variable(_)
         | AnalyzedExprKind::None
         | AnalyzedExprKind::CollectionNew { .. } => {}
+        AnalyzedExprKind::Variable(name) => {
+            // A variable was parsed, but we need to ensure it was properly defined or isn't just an unknown fallback.
+            if expr.glossa_type == crate::semantic::GlossaType::Unknown {
+                return Err(GlossaError::undefined(name.to_string()));
+            }
+        }
     }
     Ok(())
 }

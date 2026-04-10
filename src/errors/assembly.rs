@@ -50,6 +50,14 @@ pub enum AssemblyError {
         verb: (Option<Person>, Option<Number>),
     },
 
+    /// Missing verb in the statement
+    ///
+    /// # Example
+    /// `ὁ ἄνθρωπος.` (The man.)
+    #[error("Ῥῆμα οὐχ εὑρέθη! Πᾶσα πρότασις δεῖται πράξεως.")]
+    #[diagnostic(code(glossa::assembly::missing_verb))]
+    MissingVerb,
+
     /// Resource limit exceeded to prevent denial of service
     ///
     /// # Example
