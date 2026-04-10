@@ -1,0 +1,13 @@
+<<<<<<< SEARCH
+fn test_function_definition_scope() {
+    // Note: Added trailing period
+    let source = "συνάρτησις ὁρίζειν (χ)· { χ. }.";
+    let ast = parse(source).unwrap();
+    let result = analyze_program(&ast);
+=======
+fn test_function_definition_scope() {
+    // Note: Added trailing period
+    let source = "συνάρτησις ὁρίζειν (χ)· { δός χ. }.";
+    let ast = parse(source).unwrap();
+    let result = analyze_program(&ast);
+>>>>>>> REPLACE

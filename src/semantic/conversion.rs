@@ -175,7 +175,7 @@ pub fn classify_assembled_statement(
         return Ok(res);
     }
 
-    classify_expression(asm_stmt)
+    classify_expression(asm_stmt, scope)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1103,7 +1103,7 @@ fn classify_containment_query(
 }
 
 /// Helper: Default expression
-fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatement, GlossaError> {
+fn classify_expression(asm_stmt: &AssembledStatement, scope: &Scope) -> Result<AnalyzedStatement, GlossaError> {
     // Determine if we should attempt to build expressions from literals+operators
     // or if we are in a fallback scenario (using Subject/Object with operators).
     // If literals < operators + 1, build_expressions_from_literals_and_ops will fail.
@@ -1154,16 +1154,53 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
-            exprs.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            });
+            if scope.is_defined(&subj.lemma) || scope.is_function(&subj.lemma) || scope.is_defined_locally(&subj.lemma) || crate::morphology::lexicon::is_none_word(&subj.lemma) || crate::morphology::lexicon::is_ok_word(&subj.lemma) || crate::morphology::lexicon::is_some_word(&subj.lemma) || crate::morphology::lexicon::is_err_word(&subj.lemma) || crate::morphology::lexicon::numeral_value(&subj.lemma).is_some() {
+                exprs.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: GlossaType::Unknown,
+                });
+            } else {
+                return Err(GlossaError::undefined(subj.lemma.clone()));
+            }
         } else if let Some(ref obj) = asm_stmt.object {
-            exprs.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            });
+            if scope.is_defined(&obj.lemma) || scope.is_function(&obj.lemma) || scope.is_defined_locally(&obj.lemma) || crate::morphology::lexicon::is_none_word(&obj.lemma) || crate::morphology::lexicon::is_ok_word(&obj.lemma) || crate::morphology::lexicon::is_some_word(&obj.lemma) || crate::morphology::lexicon::is_err_word(&obj.lemma) || crate::morphology::lexicon::numeral_value(&obj.lemma).is_some() {
+                exprs.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: GlossaType::Unknown,
+                });
+            } else {
+                return Err(GlossaError::undefined(obj.lemma.clone()));
+            }
+        } else if let Some(first_nom) = asm_stmt.nominatives.first() {
+            if scope.is_defined(&first_nom.lemma) || scope.is_function(&first_nom.lemma) || scope.is_defined_locally(&first_nom.lemma) || crate::morphology::lexicon::is_none_word(&first_nom.lemma) || crate::morphology::lexicon::is_ok_word(&first_nom.lemma) || crate::morphology::lexicon::is_some_word(&first_nom.lemma) || crate::morphology::lexicon::is_err_word(&first_nom.lemma) || crate::morphology::lexicon::numeral_value(&first_nom.lemma).is_some() {
+                exprs.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(first_nom.lemma.clone()),
+                    glossa_type: GlossaType::Unknown,
+                });
+            } else {
+                return Err(GlossaError::undefined(first_nom.lemma.clone()));
+            }
         }
+    }
+
+    if exprs.is_empty()
+        && asm_stmt.verb.is_none()
+        && !asm_stmt.is_query
+        && asm_stmt.blocks.is_empty()
+        && asm_stmt.participles.is_empty()
+        && asm_stmt.literals.is_empty()
+        && !asm_stmt.has_delimiter_preposition
+        && asm_stmt.operators.is_empty()
+        && !asm_stmt.has_containment_preposition
+        && asm_stmt.genitives.is_empty()
+    {
+        return Err(GlossaError::from(crate::errors::AssemblyError::MissingVerb));
+    }
+
+    if asm_stmt.verb.is_some() && asm_stmt.subject.is_some() && !asm_stmt.nominatives.is_empty() {
+        return Err(GlossaError::from(
+            crate::errors::AssemblyError::DoubleSubject,
+        ));
     }
 
     if asm_stmt.is_propagate && !exprs.is_empty() {
@@ -2805,13 +2842,8 @@ mod tests {
         };
         // No literals, operators, subject, object, or nested phrases -> exprs will be empty.
 
-        let result = classify_expression(&asm_stmt);
-        assert!(result.is_ok());
-
-        if let AnalyzedStatement::Expression(exprs) = result.unwrap() {
-            assert!(exprs.is_empty(), "Expected empty expressions array");
-        } else {
-            panic!("Expected AnalyzedStatement::Expression");
-        }
+        let scope = Scope::new();
+        let result = classify_expression(&asm_stmt, &scope);
+        assert!(result.is_err());
     }
 }

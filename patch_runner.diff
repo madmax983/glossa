@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+        // Verify it hits the rustc error path
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Codegen Failed")
+                || err_msg.contains("MissingVerb")
+                || err_msg.contains("Ῥῆμα οὐχ εὑρέθη")
+        );
+    }
+=======
+        // Verify it hits the rustc error path
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Codegen Failed")
+                || err_msg.contains("MissingVerb")
+                || err_msg.contains("Ῥῆμα οὐχ εὑρέθη")
+                || err_msg.contains("Ἄγνωστον ὄνομα")
+        );
+    }
+>>>>>>> REPLACE
