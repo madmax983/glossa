@@ -280,9 +280,11 @@ fn classify_function_call(
         return Ok(None);
     };
 
-    // ⚡ Bolt Optimization: Use `Vec::with_capacity` to prevent multiple allocations during parameter collection
-    let mut args: Vec<AnalyzedExpr> = Vec::with_capacity(asm_stmt.literals.len() + asm_stmt.nested_phrases.len());
-    args.extend(asm_stmt.literals.iter().map(literal_to_analyzed_expr));
+    let mut args: Vec<AnalyzedExpr> = asm_stmt
+        .literals
+        .iter()
+        .map(literal_to_analyzed_expr)
+        .collect();
 
     for nested_terms in &asm_stmt.nested_phrases {
         let phrase_expr = Expr::Phrase(nested_terms.clone());
