@@ -12,3 +12,14 @@ The only one that works is `Ἀσυμφωνία` (Disagreement).
 
 💡 **The Fix:**
 Please either implement these helpful error messages so the compiler actually uses them, or remove them from the README! It is extremely confusing to tell users they will see friendly Greek errors when instead they get silent compilation or raw `rustc` aborts. Also, an undefined variable shouldn't just silently become 0!
+
+# 🗣️ Echo: Getting Started example is broken
+
+🤦 **The Confusion:**
+Tried to run the `story_demo`. Compiler said `NarrativeGenerator` not found.
+
+🕵️ **The Reality:**
+Turns out I needed to enable feature `nova`.
+
+💡 **The Fix:**
+Add a huge banner in README saying 'REQUIRES FEATURE NOVA'.
