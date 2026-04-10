@@ -171,4 +171,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Trace the execution of a .γλ file with variable state (Requires "nova" feature)
+    Trace {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

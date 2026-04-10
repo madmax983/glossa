@@ -19,3 +19,7 @@
 **Concept:** A Python transpiler (`glossa alchemist`) that converts analyzed Glossa programs directly to Python source code, providing a second export target beyond Rust.
 **Fate:** Proposed
 **Lesson:** Python's dynamic typing and simplicity make it an easy compilation target for Glossa's structural abstractions. Implementing it proved that the semantic assembler phase is decoupled perfectly from the Rust codegen phase.
+## The Chronomancer (ὁ Χρονομάντης)
+**Concept:** An interactive time-traveling debugger/tracer that lets users step through their code's execution.
+**Fate:** TBD
+**Lesson:** TBD
