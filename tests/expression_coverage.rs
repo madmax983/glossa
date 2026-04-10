@@ -23,15 +23,10 @@ fn test_standalone_subject_op_object() {
     β 2 ἔστω.
     α β μεῖζον.";
 
-    let output = compile_to_rust(source);
-
-    // Should compile to a comparison
-    assert!(output.contains(">"), "Output should contain > operator");
-    // Variables might be renamed, so we just check for the structure
-    assert!(
-        !output.contains("checked_"),
-        "Comparison should not use checked math"
-    );
+    let ast = parse(source).expect("AST build failed");
+    let err = analyze_program(&ast).expect_err("Analysis should fail");
+    let err_str = err.to_string();
+    assert!(err_str.contains("Διπλοῦν ὑποκείμενον") || err_str.contains("Ῥῆμα οὐχ εὑρέθη"));
 }
 
 #[test]
@@ -78,10 +73,10 @@ fn test_expression_propagation() {
     β 2 ἔστω.
     α β μεῖζον;";
 
-    let output = compile_to_rust(source);
-
-    assert!(output.contains(">"), "Should contain comparison");
-    assert!(output.contains("?"), "Should contain try operator");
+    let ast = parse(source).expect("AST build failed");
+    let err = analyze_program(&ast).expect_err("Analysis should fail");
+    let err_str = err.to_string();
+    assert!(err_str.contains("Διπλοῦν ὑποκείμενον") || err_str.contains("Ῥῆμα οὐχ εὑρέθη"));
 }
 
 #[test]
@@ -138,9 +133,10 @@ fn test_standalone_subject_op_nominative() {
     α 2 ἔστω.
     α χρήστης μεῖζον.";
 
-    let output = compile_to_rust(source);
-
-    assert!(output.contains(">"), "Output should contain > operator");
+    let ast = parse(source).expect("AST build failed");
+    let err = analyze_program(&ast).expect_err("Analysis should fail");
+    let err_str = err.to_string();
+    assert!(err_str.contains("Διπλοῦν ὑποκείμενον") || err_str.contains("Ῥῆμα οὐχ εὑρέθη"));
 }
 
 #[test]

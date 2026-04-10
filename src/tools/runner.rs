@@ -723,9 +723,9 @@ mod tests {
         let input_path = dir.path().join("rustc_error.gl");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            // This is valid Glossa but invalid Rust (redefining String)
-            // Memory says: εἶδος String ὁρίζειν...
-            f.write_all("εἶδος String ὁρίζειν { x ἀριθμοῦ. }. τέλος.".as_bytes())
+            // Valid glossa structurally, but fails type check:
+            // "Let x be 10. x equals 'hello'."
+            f.write_all("ξ 10 ἔστω. ξ «χαῖρε» ἰσοῦται.".as_bytes())
                 .unwrap();
         }
 

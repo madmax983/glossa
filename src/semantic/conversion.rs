@@ -40,7 +40,7 @@ use super::expressions::{
 };
 use super::patterns::detect_iterator_pattern;
 use crate::ast::Expr;
-use crate::errors::GlossaError;
+use crate::errors::{AssemblyError, GlossaError};
 use crate::morphology::{self};
 use crate::semantic::assembly::AssembledStatement;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
@@ -1175,6 +1175,19 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
             };
             exprs.push(try_expr);
         }
+    }
+
+    // If we couldn't build any expressions and have missing verbless sentence parts, it's a semantic error
+    #[allow(clippy::collapsible_if)]
+    if exprs.is_empty() && asm_stmt.verb.is_none() {
+        if asm_stmt.subject.is_some() || asm_stmt.object.is_some() {
+            return Err(GlossaError::AssemblyError(AssemblyError::MissingVerb));
+        }
+    }
+
+    // Also catch double subjects
+    if asm_stmt.subject.is_some() && !asm_stmt.nominatives.is_empty() {
+        return Err(GlossaError::AssemblyError(AssemblyError::DoubleSubject));
     }
 
     Ok(AnalyzedStatement::Expression(exprs))

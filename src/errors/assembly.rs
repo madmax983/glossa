@@ -29,6 +29,14 @@ pub enum AssemblyError {
     #[diagnostic(code(glossa::assembly::double_indirect))]
     DoubleIndirect,
 
+    /// Statement has no verb, so we don't know what to do with the subjects/objects
+    ///
+    /// # Example
+    /// `ὁ ἄνθρωπος` (The man)
+    #[error("Ῥῆμα οὐχ εὑρέθη! Χωρὶς ῥήματος πράξις οὐκ ἔστιν.")]
+    #[diagnostic(code(glossa::assembly::missing_verb))]
+    MissingVerb,
+
     /// Two verbs found in the same statement
     ///
     /// # Example
