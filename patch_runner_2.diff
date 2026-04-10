@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // This is valid Glossa but invalid Rust (redefining String)
+            // Need a valid valid execution that fails in rustc.
+            // Defining `String` twice will cause rustc error.
+            f.write_all("εἶδος String ὁρίζειν { }.\nεἶδος String ὁρίζειν { }.".as_bytes())
+                .unwrap();
+        }
+=======
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // This is valid Glossa but invalid Rust (redefining String)
+            // Memory says: εἶδος String ὁρίζειν...
+            // Changed "τέλος." to just "εἶδος String ὁρίζειν { }." because "τέλος." alone now throws undefined/MissingVerb
+            f.write_all("εἶδος String ὁρίζειν { }.".as_bytes())
+                .unwrap();
+        }
+>>>>>>> REPLACE

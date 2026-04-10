@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+        // Match wildcard "ἄλλο" is allowed as a standalone expression
+        if let Some(ref subj) = asm_stmt.subject {
+            if subj.lemma == "αλλος"
+                || subj.lemma == "εις"
+                || subj.lemma == "ουδεις"
+                || subj.lemma == "μηδεις"
+                || subj.lemma == "μηδεν"
+            {
+                // Ignore match patterns like "ἄλλο", "ἕν", "μηδέν", "οὐδέν"
+            } else {
+                return Err(GlossaError::AssemblyError(
+                    crate::errors::AssemblyError::MissingVerb,
+                ));
+            }
+        } else {
+            return Err(GlossaError::AssemblyError(
+                crate::errors::AssemblyError::MissingVerb,
+            ));
+        }
+    }
+=======
+        // Match wildcard "ἄλλο" is allowed as a standalone expression
+        if let Some(ref subj) = asm_stmt.subject {
+            if subj.lemma == "αλλος"
+                || subj.lemma == "εις"
+                || subj.lemma == "ουδεις"
+                || subj.lemma == "μηδεις"
+                || subj.lemma == "μηδεν"
+            {
+                // Ignore match patterns like "ἄλλο", "ἕν", "μηδέν", "οὐδέν"
+            } else {
+                eprintln!("MissingVerb thrown for subject: {}", subj.lemma);
+                return Err(GlossaError::AssemblyError(
+                    crate::errors::AssemblyError::MissingVerb,
+                ));
+            }
+        } else {
+            eprintln!("MissingVerb thrown with no subject!");
+            return Err(GlossaError::AssemblyError(
+                crate::errors::AssemblyError::MissingVerb,
+            ));
+        }
+    }
+>>>>>>> REPLACE

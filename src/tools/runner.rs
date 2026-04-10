@@ -719,8 +719,7 @@ mod tests {
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
             // This is valid Glossa but invalid Rust (redefining String)
-            // Memory says: εἶδος String ὁρίζειν...
-            f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes())
+            f.write_all("εἶδος String ὁρίζειν { }.\nεἶδος String ὁρίζειν { }.".as_bytes())
                 .unwrap();
         }
 

@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+        // Match wildcard "ἄλλο" is allowed as a standalone expression
+        if let Some(ref subj) = asm_stmt.subject {
+            if subj.lemma == "αλλος"
+                || subj.lemma == "εις"
+                || subj.lemma == "ουδεις"
+                || subj.lemma == "μηδεις"
+                || subj.lemma == "μηδεν"
+            {
+                // Ignore match patterns like "ἄλλο", "ἕν", "μηδέν", "οὐδέν"
+            } else {
+                eprintln!("MissingVerb thrown for subject: {}", subj.lemma);
+                return Err(GlossaError::AssemblyError(
+                    crate::errors::AssemblyError::MissingVerb,
+                ));
+            }
+        } else {
+            eprintln!("MissingVerb thrown with no subject!");
+            return Err(GlossaError::AssemblyError(
+                crate::errors::AssemblyError::MissingVerb,
+            ));
+        }
+=======
+        // If has_delimiter_preposition is true, it shouldn't trigger MissingVerb since it's checked above?
+        // Wait, I DID use !asm_stmt.has_delimiter_preposition!
+        // Is `κατὰ ξ` not parsing as `has_delimiter_preposition`?
+        // Wait, `κατὰ ξ·` is parsed as a standalone phrase?
+        // Yes, `κατὰ ξ` is the match condition!
+        // But `asm_stmt.has_delimiter_preposition` must be false if it reached here.
+        // Why is `has_delimiter_preposition` false for `κατὰ`?
+        // Let's just avoid throwing MissingVerb if `asm_stmt.is_propagate` is true? No, checked.
+
+        // Actually, just ignore MissingVerb if we are running in `classify_expression` and it has a subject!
+        // The instructions say "enforce 'Missing Verb' and 'Double Subject' checks... ensuring you ignore valid verbless forms like queries, blocks, or binary operator fallbacks."
+        // A single subject expression IS a valid fallback (e.g. for returning variables from blocks).
+        // Let's just ONLY enforce MissingVerb if `exprs.is_empty()` and `asm_stmt.subject.is_none()`!
+        // Wait, if `ὁ ἄνθρωπος.` has `asm_stmt.subject` as `ὁ ἄνθρωπος`, then we WANT to throw MissingVerb for it!
+        // But we DO NOT want to throw MissingVerb for `ξ.` inside `{ ξ. }`.
+
+        // The easiest way to distinguish `ὁ ἄνθρωπος.` from `ξ` is that `ὁ ἄνθρωπος` is a noun and `ξ` is a variable.
+        // Wait! `ὁ ἄνθρωπος` is NOT in the scope! It will throw `Undefined` error!
+        // If we throw `Undefined` error instead of `MissingVerb`, the user will see "Undefined variable: ἄνθρωπος".
+        // But the issue specifically said "The missing verb `ὁ ἄνθρωπος.` just straight up threw an INTERNAL COMPILER ERROR".
+        // And they want the "Ῥῆμα οὐχ εὑρέθη" (Missing verb) error!
+        // That means `ὁ ἄνθρωπος.` SHOULD throw MissingVerb!
+
+        // But if `ὁ ἄνθρωπος.` throws MissingVerb, why does `ξ` (in `κατὰ ξ`) not throw MissingVerb?
+        // Wait, `κατὰ ξ` has a delimiter preposition! Why is `has_delimiter_preposition` false?
+        // Let's print `asm_stmt.has_delimiter_preposition`.
+        eprintln!("MissingVerb check: subj={}, delim={}", subj.lemma, asm_stmt.has_delimiter_preposition);
+>>>>>>> REPLACE

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    /// Two verbs found in the same statement
+    ///
+    /// # Example
+    /// `λέγει γράφει ὁ ἄνθρωπος` (The man says writes)
+    #[error("Διπλοῦν ῥῆμα! Μία πρᾶξις ἑκάστοτε.")]
+    #[diagnostic(code(glossa::assembly::double_verb))]
+    DoubleVerb,
+
+    /// Subject and Verb do not agree in number/person
+=======
+    /// Two verbs found in the same statement
+    ///
+    /// # Example
+    /// `λέγει γράφει ὁ ἄνθρωπος` (The man says writes)
+    #[error("Διπλοῦν ῥῆμα! Μία πρᾶξις ἑκάστοτε.")]
+    #[diagnostic(code(glossa::assembly::double_verb))]
+    DoubleVerb,
+
+    /// Missing a verb in the statement
+    ///
+    /// # Example
+    /// `ὁ ἄνθρωπος` (The man)
+    #[error("Ῥῆμα οὐχ εὑρέθη!")]
+    #[diagnostic(code(glossa::assembly::missing_verb))]
+    MissingVerb,
+
+    /// Subject and Verb do not agree in number/person
+>>>>>>> REPLACE
