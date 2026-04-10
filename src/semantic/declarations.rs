@@ -472,18 +472,30 @@ fn extract_parameters_from_expr(
         let analysis = morphology::analyze(&word.original);
 
         // Check for dative article τῷ
-        if analysis.part_of_speech == morphology::PartOfSpeech::Article
-            && analysis.case == Some(morphology::Case::Dative)
+        // OR simply if it is a word (as some tests use e.g. `(χ)` inside a phrase for params)
+        if (analysis.part_of_speech == morphology::PartOfSpeech::Article
+            && analysis.case == Some(morphology::Case::Dative))
+            || crate::morphology::lexicon::lookup(&word.normalized).is_none() // Just a variable name
         {
-            // Next word should be the parameter name
-            if i + 1 < words.len() {
-                let param_word = &words[i + 1];
-                let param_name = param_word.normalized.clone();
+            let mut param_name = String::new();
+            let mut is_article = false;
+            if analysis.part_of_speech == morphology::PartOfSpeech::Article {
+                is_article = true;
+                // Next word should be the parameter name
+                if i + 1 < words.len() {
+                    let param_word = &words[i + 1];
+                    param_name = param_word.normalized.to_string();
+                }
+            } else {
+                param_name = word.normalized.to_string();
+            }
 
+            if !param_name.is_empty() {
                 // Check if word after param is a genitive (type annotation)
                 let mut param_type = None;
-                if i + 2 < words.len() {
-                    let next_word = &words[i + 2];
+                let offset = if is_article { 2 } else { 1 };
+                if i + offset < words.len() {
+                    let next_word = &words[i + offset];
                     let next_analysis = morphology::analyze(&next_word.original);
                     if next_analysis.case == Some(morphology::Case::Genitive) {
                         // Map genitive type to GlossaType
@@ -494,8 +506,10 @@ fn extract_parameters_from_expr(
                     }
                 }
 
-                params.push((param_name, param_type));
-                i += 1; // Skip the parameter name
+                params.push((smol_str::SmolStr::new(param_name), param_type));
+                if is_article {
+                    i += 1; // Skip the parameter name
+                }
             }
         }
 
