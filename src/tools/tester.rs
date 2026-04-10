@@ -137,6 +137,31 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                     // End of details section
                     break;
                 }
+
+                // Hide internal Rust thread information and temp file paths
+                if current.starts_with("thread '")
+                    && current.contains("panicked at")
+                    && let Some(panicked_idx) = current.find("panicked at")
+                {
+                    let mut clean_panic = format!("{}panicked", &current[..panicked_idx]);
+                    // Remove the "(pid)" thread id
+                    if let Some(idx1) = clean_panic.find(" (")
+                        && let Some(idx2) = clean_panic[idx1..].find(") ")
+                    {
+                        clean_panic.replace_range(idx1..idx1 + idx2 + 2, " ");
+                    }
+                    message.push_str(&clean_panic);
+                    message.push('\n');
+                    lines.next();
+                    continue;
+                }
+
+                // Hide backtrace hint
+                if current.starts_with("note: run with `RUST_BACKTRACE=1`") {
+                    lines.next();
+                    continue;
+                }
+
                 message.push_str(current);
                 message.push('\n');
                 lines.next();
@@ -165,9 +190,45 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
         .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
 
     if !rustc_output.status.success() {
-        let stderr = String::from_utf8_lossy(&rustc_output.stderr);
+        let raw_stderr = String::from_utf8_lossy(&rustc_output.stderr);
+
+        let mut clean_stderr = String::new();
+        let mut prev_empty = false;
+        for line in raw_stderr.lines() {
+            // Skip file location lines
+            if line.starts_with(" --> ") {
+                continue;
+            }
+
+            let trimmed = line.trim_start();
+
+            // Check if the line starts with a line number followed by |
+            if trimmed.chars().next().is_some_and(|c| c.is_ascii_digit()) && trimmed.contains(" | ")
+            {
+                continue;
+            }
+
+            // Skip the underline carets and empty pipes
+            if trimmed.starts_with('|') {
+                continue;
+            }
+
+            let is_empty = line.trim().is_empty();
+            if is_empty && prev_empty {
+                continue;
+            }
+
+            clean_stderr.push_str(line);
+            clean_stderr.push('\n');
+            prev_empty = is_empty;
+        }
+
         status.error("Σφάλμα μεταγλωττίσεως δοκιμῶν (Test Compilation Error)");
-        return Err(miette::miette!("{}\n{}", "Rustc Error:".red(), stderr));
+        return Err(miette::miette!(
+            "{}\n{}",
+            "Rustc Error:".red(),
+            clean_stderr.trim()
+        ));
     }
 
     Ok(status)
