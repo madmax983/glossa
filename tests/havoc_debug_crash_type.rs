@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
-use glossa::semantic::GlossaType;
 use glossa::morphology::Gender;
+use glossa::semantic::GlossaType;
 
 #[test]
 fn test_glossa_type_debug_coverage() {
