@@ -294,6 +294,31 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
     }
 }
 
+/// Run unit tests defined within a ΓΛΩΣΣΑ file.
+///
+/// This tool allows developers to execute `δοκιμή` (test) blocks directly from their source
+/// files. It works by orchestrating the compilation pipeline, generating a Rust file with
+/// `#[test]` attributes, compiling it using `rustc --test`, and then executing the resulting
+/// test harness binary. It finally parses the output to present a clean, language-specific
+/// test report to the user.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::tools::tester::run_tests;
+/// use std::path::PathBuf;
+/// use std::fs;
+/// use tempfile::tempdir;
+///
+/// let dir = tempdir().unwrap();
+/// let input = dir.path().join("tests.γλ");
+///
+/// // Create a temporary Glossa file with a test declaration
+/// fs::write(&input, "δοκιμή «example».\n  ξ 5 ἔστω.\nτέλος.").unwrap();
+///
+/// // Execute the test harness
+/// run_tests(&input).unwrap();
+/// ```
 pub fn run_tests(input: &Path) -> Result<()> {
     // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
     let source = crate::tools::runner::load_source(input)?;

@@ -43,6 +43,25 @@ pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
     Ok(())
 }
 
+/// Generate a Mermaid.js flowchart representation of the program's control flow.
+///
+/// This function translates the semantic AST (`AnalyzedProgram`) into a Mermaid
+/// graph definition string. It maps statements (like `If`, `While`, `Match`) to
+/// nodes and control flow edges, providing a visual representation of the logic.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::tools::labyrinth::generate_cfg;
+/// use glossa::semantic::analyze_program;
+/// use glossa::parser::parse;
+///
+/// let source = "ξ 5 ἔστω.";
+/// let ast = parse(source).unwrap();
+/// let program = analyze_program(&ast).unwrap();
+/// let cfg = generate_cfg(&program);
+/// assert!(cfg.contains("graph TD"));
+/// ```
 pub fn generate_cfg(program: &AnalyzedProgram) -> String {
     let mut builder = CFGBuilder::new();
     builder.build_program(program);

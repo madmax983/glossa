@@ -43,3 +43,6 @@
 ## 2024-04-03 - Fixing Broken Intra-Doc Links
 **Confusion:** The documentation contained broken links to internal private modules (`parser::grammar` and `cache`), causing warnings during `cargo doc`.
 **Clarification:** Updated the intra-doc links to point to the exported, public equivalents (`parser` and `Cache`) so that the documentation correctly resolves and is warning-free.
+## 2024-05-27 - Documenting internal pub fns
+**Confusion:** Writing doc-tests for `pub fn` functions inside `pub(crate)` modules (like `analyze_verb_all_into`) fails compilation because doc-tests run as an external crate and cannot access `pub(crate)` items.
+**Clarification:** Use ````text` blocks instead of ````rust` for doc-tests on functions that cannot be tested externally due to module visibility, or structure the code so public APIs are testable.
