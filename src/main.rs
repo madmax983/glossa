@@ -155,6 +155,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Trace { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::tracer::run_tracer(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'trace' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

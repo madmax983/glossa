@@ -195,4 +195,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Run the Tracer to step through state (Requires "nova" feature)
+    Trace {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

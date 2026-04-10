@@ -32,3 +32,8 @@
 **Concept:** A basic static analysis tool / linter (`glossa audit`) that traverses the semantic AST (`AnalyzedProgram`) to find code smells, such as unused variables and unnecessary mutable declarations.
 **Fate:** Merged
 **Lesson:** Iterating over the complex nested variants in `AnalyzedStatement` and `AnalyzedExpr` provides a strong foundation for building static analysis tools without modifying core logic.
+
+## The Tracer (ὁ Ἰχνηλάτης)
+**Concept:** An interactive execution tracer (`glossa trace`) that steps through a program, displaying the environment (`env`) after each evaluated statement to visualize variable mutations.
+**Fate:** Proposed
+**Lesson:** Providing a tool to visually walk through the state of the compiler's internal `Interpreter` reinforces the idea of the compiler as an educational tool for learning programming semantics.
