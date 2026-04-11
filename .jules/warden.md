@@ -112,3 +112,7 @@ Signed,
 **2024-05-15 - Unbounded File Read DoS in Weave Test**
 **Threat:** The `test_run_weave_success` test was using `std::fs::read_to_string`, which loads an entire file into memory without limits. An attacker could theoretically use a massive file to exhaust memory and crash the test environment (DoS).
 **Defense:** Replaced the unbounded read with a capped reader using `std::io::Read::take()` and `1024 * 1024 + 1` limit, preventing memory exhaustion.
+
+**2026-04-10 - [Unbounded File Read DoS in nova_coverage Test]**
+**Threat:** The `test_run_weave_success` test in `tests/nova_coverage.rs` was using `std::fs::read_to_string`, which loads an entire file into memory without limits. An attacker could theoretically use a massive file to exhaust memory and crash the test environment (DoS).
+**Defense:** Replaced the unbounded read with a capped reader using `std::io::Read::take()` and `1024 * 1024 + 1` limit, preventing memory exhaustion.

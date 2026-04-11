@@ -2,7 +2,8 @@
 #![cfg(feature = "nova")]
 
 use glossa::tools::tester::run_tests;
-use std::fs;
+
+use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 use tempfile::Builder;
@@ -23,7 +24,12 @@ fn test_run_weave_success() {
     let output_path = temp_file.path().with_extension("md");
     assert!(output_path.exists());
 
-    let md = fs::read_to_string(&output_path).unwrap();
+    let mut f = std::fs::File::open(&output_path).unwrap();
+    let mut md = String::new();
+    std::io::Read::take(&mut f, 1024 * 1024 + 1)
+        .read_to_string(&mut md)
+        .unwrap();
+
     assert!(md.contains("# Rosetta Stone"));
     assert!(md.contains("```glossa"));
     assert!(md.contains("«χαῖρε κόσμε» λέγε."));
