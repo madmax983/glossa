@@ -303,8 +303,8 @@ fn test_unwrap_in_expression() {
 
     // Should contain unwrap
     assert!(
-        output.contains("unwrap"),
-        "Expected 'unwrap' in output: {}",
+        output.contains("attempted to unwrap an empty value"),
+        "Expected 'attempted to unwrap an empty value' in output: {}",
         output
     );
 }
@@ -373,7 +373,7 @@ fn test_result_unwrap() {
         output
     );
     assert!(
-        output.contains("unwrap"),
+        output.contains("attempted to unwrap an empty value"),
         "Expected 'unwrap()' in output: {}",
         output
     );
@@ -536,8 +536,8 @@ fn test_unwrap_preserves_value() {
     let output = compile(source).unwrap();
 
     assert!(
-        output.contains("unwrap"),
-        "Expected 'unwrap' in: {}",
+        output.contains("attempted to unwrap an empty value"),
+        "Expected 'attempted to unwrap an empty value' in: {}",
         output
     );
 }
@@ -601,7 +601,11 @@ fn test_option_workflow() {
         println_count
     );
     // Should have unwrap call
-    assert!(output.contains("unwrap"), "Expected unwrap in: {}", output);
+    assert!(
+        output.contains("attempted to unwrap an empty value"),
+        "Expected 'attempted to unwrap an empty value' in: {}",
+        output
+    );
 }
 
 #[test]
@@ -675,10 +679,10 @@ fn test_multiple_unwraps_sequence() {
     let output = compile(source).unwrap();
 
     // Should have at least 2 unwrap calls
-    let unwrap_count = output.matches("unwrap").count();
+    let unwrap_count = output.matches("attempted to unwrap an empty value").count();
     assert!(
         unwrap_count >= 2,
-        "Expected at least 2 unwrap calls, got {}: {}",
+        "Expected at least 2 safe unwraps calls, got {}: {}",
         unwrap_count,
         output
     );
@@ -779,8 +783,8 @@ fn test_propagation_vs_unwrap() {
 
     // Unwrap should have .unwrap()
     assert!(
-        unwrap_output.contains("unwrap"),
-        "Expected unwrap in: {}",
+        unwrap_output.contains("attempted to unwrap an empty value"),
+        "Expected 'attempted to unwrap an empty value' in: {}",
         unwrap_output
     );
 
