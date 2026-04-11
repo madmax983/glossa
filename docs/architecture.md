@@ -34,6 +34,7 @@ C4Container
 
     Container_Boundary(tools, "Developer Experience (Nova)") {
         Container(alchemist, "The Alchemist", "src/tools/alchemist.rs", "Python Exporter")
+        Container(auditor, "The Auditor", "src/tools/auditor.rs", "Static analysis to find unused variables and mutations")
         Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
         Container(cartographer, "Cartographer", "src/tools/cartographer.rs", "Generates Mermaid Class Diagrams")
         Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
@@ -66,6 +67,7 @@ C4Container
     Rel(semantic, tester, "Analyzed Program")
     Rel(semantic, interpreter, "Analyzed Program")
     Rel(semantic, alchemist, "Analyzed Program")
+    Rel(semantic, auditor, "Analyzed Program")
     Rel(semantic, labyrinth, "Analyzed Program")
     Rel(semantic, weave, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
