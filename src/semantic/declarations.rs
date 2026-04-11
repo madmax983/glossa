@@ -144,19 +144,18 @@ pub fn analyze_trait_definition(
         if method.is_default {
             // Analyze default method body
             let body = if let Some(body_stmts) = &method.body {
-                let mut analyzed_body = Vec::with_capacity(body_stmts.len());
-                // Create a child scope for the method
-                {
-                    let mut scope = scope.enter_scope();
+                let analyzed_body = scope.with_scope(|method_scope| {
+                    let mut analyzed = Vec::with_capacity(body_stmts.len());
                     // Add method parameters to scope (including self)
                     for (param_name, param_type) in &params {
-                        scope.define(param_name.clone(), param_type.clone());
+                        method_scope.define(param_name.clone(), param_type.clone());
                     }
                     // Properly analyze statements in the body using unified helper
                     for body_stmt in body_stmts {
-                        analyzed_body.extend(analyze_statement(body_stmt, &mut scope)?);
+                        analyzed.extend(analyze_statement(body_stmt, method_scope)?);
                     }
-                }
+                    Ok::<_, GlossaError>(analyzed)
+                })?;
                 Some(analyzed_body)
             } else {
                 Some(vec![])
@@ -247,21 +246,21 @@ pub fn analyze_trait_impl(
         }
 
         // Create a child scope for the method body with self bound
-        let mut analyzed_body = Vec::with_capacity(method.body.len());
-        {
-            let mut scope = scope.enter_scope();
-            scope.define("self".to_string(), struct_type.clone());
+        let analyzed_body = scope.with_scope(|method_scope| {
+            let mut analyzed = Vec::with_capacity(method.body.len());
+            method_scope.define("self".to_string(), struct_type.clone());
 
             // Also bind parameters
             for (param_name, param_type) in &params {
-                scope.define(param_name.clone(), param_type.clone());
+                method_scope.define(param_name.clone(), param_type.clone());
             }
 
             // Analyze the method body using unified helper
             for body_stmt in &method.body {
-                analyzed_body.extend(analyze_statement(body_stmt, &mut scope)?);
+                analyzed.extend(analyze_statement(body_stmt, method_scope)?);
             }
-        }
+            Ok::<_, GlossaError>(analyzed)
+        })?;
 
         let return_type = infer_return_type_from_body(&analyzed_body);
 
@@ -369,11 +368,10 @@ pub fn parse_function_definition(
     // Extract parameters (dative words) from the header
     let params = extract_parameters_from_expr(header_expr, scope)?;
 
-    // Use enter_scope() to create a child scope that inherits types/traits
+    // Use with_scope to create a child scope that inherits types/traits
     // We can pre-allocate since we know exactly how many expressions form the body
-    let mut body_statements = Vec::with_capacity(clause.expressions.len().saturating_sub(1));
-    {
-        let mut function_scope = scope.enter_scope();
+    let body_statements = scope.with_scope(|function_scope| {
+        let mut statements = Vec::with_capacity(clause.expressions.len().saturating_sub(1));
         for (param_name, param_type) in &params {
             let glossa_type = param_type.clone().unwrap_or(GlossaType::Unknown);
             function_scope.define(param_name.clone(), glossa_type);
@@ -396,9 +394,10 @@ pub fn parse_function_definition(
             };
 
             // Analyze each body expression using unified helper
-            body_statements.extend(analyze_statement(&clause_stmt, &mut function_scope)?);
+            statements.extend(analyze_statement(&clause_stmt, function_scope)?);
         }
-    }
+        Ok::<_, GlossaError>(statements)
+    })?;
 
     // Infer return type from return statements
     let return_type = infer_return_type_from_body(&body_statements);
@@ -543,17 +542,16 @@ pub fn analyze_test_declaration(
 ) -> Result<AnalyzedStatement, GlossaError> {
     let test_name = test_decl.name.clone();
 
-    // Analyze the test body statements
-    let mut analyzed_body = Vec::with_capacity(test_decl.body.len());
-
     // Create a child scope for the test
-    {
-        let mut test_scope = scope.enter_scope();
+    let analyzed_body = scope.with_scope(|test_scope| {
+        // Analyze the test body statements
+        let mut analyzed = Vec::with_capacity(test_decl.body.len());
 
         for body_stmt in &test_decl.body {
-            analyzed_body.extend(analyze_statement(body_stmt, &mut test_scope)?);
+            analyzed.extend(analyze_statement(body_stmt, test_scope)?);
         }
-    }
+        Ok::<_, GlossaError>(analyzed)
+    })?;
 
     Ok(AnalyzedStatement::TestDeclaration {
         name: test_name,
