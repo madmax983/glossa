@@ -121,9 +121,30 @@ use unicode_normalization::UnicodeNormalization;
 
 /// A fully assembled statement with all grammatical roles filled
 ///
-/// This struct represents the "final state" of a sentence after parsing.
-/// It contains all the semantic components (subject, verb, object, etc.)
-/// extracted from the input stream.
+/// This struct represents the intermediate "assembled" state of a sentence after
+/// grammatical parsing but before semantic classification. It acts as a set of labeled
+/// buckets (Subject, Verb, Object, Literals, etc.) where words are sorted based purely on
+/// their Ancient Greek morphology.
+///
+/// # Why it exists
+/// Ancient Greek relies on word endings (morphology) rather than word order to dictate meaning.
+/// Therefore, the `Assembler` iterates through words in any order, analyzes their morphology,
+/// and places them into the correct bucket in this struct.
+/// Later, the `Semantic Analyzer` looks at which buckets are filled to determine if this is
+/// an assignment, a function call, a loop, or a print statement.
+///
+/// ## Examples
+///
+/// If we parse the sentence "the user says the name" (`ὁ χρήστης τὸ ὄνομα λέγει`):
+///
+/// ```rust
+/// use glossa::semantic::assembly::AssembledStatement;
+///
+/// let mut stmt = AssembledStatement::default();
+/// // - "ὁ χρήστης" goes into `stmt.subject` (Nominative Case).
+/// // - "λέγει" goes into `stmt.verb` (Verb).
+/// // - "τὸ ὄνομα" goes into `stmt.object` (Accusative Case).
+/// ```
 #[derive(Clone, Default)]
 pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer
@@ -228,10 +249,41 @@ impl std::fmt::Debug for AssembledStatement {
 }
 
 /// A noun/pronoun constituent with its grammatical info
+///
+/// In the grammatical world of ΓΛΩΣΣΑ, a `Constituent` is the physical manifestation of a noun,
+/// pronoun, or adjective acting as a primary sentence component (e.g., Subject, Object).
+/// It bridges the raw morphological analysis ([`crate::morphology::models::MorphAnalysis`])
+/// with the structural needs of the [`Assembler`].
+///
+/// # Why it exists
+/// The parser gives us isolated words, but to build a sentence, we need to know *what* each word is doing.
+/// The `Constituent` holds onto both the raw text (for error reporting) and the deep grammatical truths
+/// (like [`Case`] and [`Number`]) required to verify things like Subject-Verb Agreement.
+///
+/// ## Examples
+///
+/// Creating a constituent representing the subject "the man" (`ὁ ἄνθρωπος`):
+///
+/// ```rust
+/// use glossa::semantic::assembly::Constituent;
+/// use glossa::morphology::{Case, Number, Gender, Person};
+/// use smol_str::SmolStr;
+///
+/// let subject = Constituent {
+///     lemma: SmolStr::new("ανθρωπος"),
+///     original: SmolStr::new("ἄνθρωπος"),
+///     normalized: SmolStr::new("ανθρωπος"),
+///     case: Case::Nominative,
+///     number: Some(Number::Singular),
+///     gender: Some(Gender::Masculine),
+///     person: Some(Person::Third),
+/// };
+/// ```
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct Constituent {
-    /// The dictionary form
+    /// The dictionary form (e.g., "ανθρωπος" for "ἀνθρώπους").
+    /// This is what the semantic resolver looks up in the [`crate::semantic::resolver::Scope`].
     pub lemma: SmolStr,
 
     /// Original text as it appeared
@@ -903,6 +955,17 @@ impl Assembler {
         // Check subject-verb agreement if both present
         if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {
             self.check_agreement(subject, verb)?;
+
+            // If we have a verb, a subject, and extra nominatives, but it's not a function definition or binary operation
+            // Wait, maybe we should also ignore print verbs/find verbs used for iterator patterns, as they often use adjectives/nominatives as patterns
+            if !self.state.nominatives.is_empty()
+                && self.state.operators.is_empty()
+                && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
+                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
+                && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
+            {
+                return Err(AssemblyError::DoubleSubject);
+            }
         }
 
         // Return the assembled statement
