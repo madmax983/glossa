@@ -109,8 +109,7 @@ mod tests {
         let input_path = dir.path().join("astrolabe_test.γλ");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("ξ 10 ἔστω.\n".as_bytes())
-                .unwrap();
+            f.write_all("ξ 10 ἔστω.\n".as_bytes()).unwrap();
         }
 
         // Running it should succeed
