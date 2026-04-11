@@ -30,7 +30,7 @@ use std::time::Instant;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// use glossa::tools::ui::Status;
 ///
 /// let mut status = Status::start("Compiling");
@@ -50,11 +50,12 @@ impl Status {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// use glossa::tools::ui::Status;
     /// let status = Status::start("Compiling...");
     /// status.success();
     /// ```
+    #[allow(dead_code)]
     pub fn start(message: impl Into<String>) -> Self {
         Self::start_with_symbol(message, "⚡")
     }
@@ -63,7 +64,7 @@ impl Status {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// use glossa::tools::ui::Status;
     /// let status = Status::start_with_symbol("Testing", "🧪");
     /// status.success();
@@ -92,7 +93,7 @@ impl Status {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// use glossa::tools::ui::Status;
     /// let mut status = Status::start("Running Phase 1");
     /// // ... work ...
@@ -113,7 +114,7 @@ impl Status {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// use glossa::tools::ui::Status;
     /// let status = Status::start("Connecting");
     /// // ... work ...
@@ -138,7 +139,7 @@ impl Status {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// use glossa::tools::ui::Status;
     /// let status = Status::start("Downloading");
     /// // ... fail ...

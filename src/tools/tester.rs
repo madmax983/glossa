@@ -40,8 +40,6 @@
 //! ```
 
 use crate::codegen::generate_rust_file;
-use crate::parser::parse;
-use crate::semantic::analyze_program;
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, CellAlignment, Color, Table, presets};
 use crossterm::style::Stylize;
@@ -74,22 +72,26 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
                 || line.ends_with(" ... FAILED")
                 || line.ends_with(" ... ignored"))
         {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            // Expected parts: ["test", "test_name", "...", "status"]
-            // Sometimes there might be extra info, but name is usually at index 1
-            if parts.len() >= 4 {
+            // Expected parts: "test", "test_name", "...", "status"
+            // We can iterate without allocating an intermediate `Vec<&str>`
+            // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` with zero-cost iterator consumption.
+            let mut iter = line.split_whitespace();
+            if iter.clone().count() >= 4 {
+                let _ = iter.next(); // "test"
                 #[allow(clippy::collapsible_if)]
-                if let [_, name, .., status_str] = parts.as_slice() {
-                    let status = match *status_str {
-                        "ok" => TestStatus::Ok,
-                        "FAILED" => TestStatus::Failed,
-                        "ignored" => TestStatus::Ignored,
-                        _ => continue,
-                    };
-                    results.push(TestResult {
-                        name: name.to_string(),
-                        status,
-                    });
+                if let Some(name) = iter.next() {
+                    if let Some(status_str) = iter.last() {
+                        let status = match status_str {
+                            "ok" => TestStatus::Ok,
+                            "FAILED" => TestStatus::Failed,
+                            "ignored" => TestStatus::Ignored,
+                            _ => continue,
+                        };
+                        results.push(TestResult {
+                            name: name.to_string(),
+                            status,
+                        });
+                    }
                 }
             }
         }
@@ -302,18 +304,11 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
     let status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
 
-    let ast = match parse(&source) {
+    let analyzed = match crate::tools::runner::analyze_source(&source) {
         Ok(a) => a,
         Err(e) => {
-            status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("{}", e));
-        }
-    };
-    let analyzed = match analyze_program(&ast) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("{}", e));
+            status.error("Σφάλμα (Error)");
+            return Err(e);
         }
     };
     let rust_code = generate_rust_file(&analyzed);

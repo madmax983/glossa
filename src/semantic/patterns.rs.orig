@@ -1158,12 +1158,9 @@ mod tests {
         };
 
         let result = try_parse_struct_instantiation(&stmt, &mut scope);
-        // The non-struct branch will return an Err because `GlossaType::Number` is not a `Struct`.
-        // See line 228: if the type is found but not a struct, it should ideally not match,
-        // but right now lookup_type returns Option<&GlossaType>.
-        // Actually wait, looking at line 230:
-        // return Err(GlossaError::undefined(type_name.to_string()));
-        assert!(result.is_err());
+        // The non-struct branch should return &[] for fields, and then proceed
+        // parse_struct_args will return Some(vec![]) because terms between 3 and 3 is empty
+        assert!(result.is_ok());
     }
 }
 

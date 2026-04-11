@@ -164,130 +164,181 @@ fn format_subject(asm: &AssembledStatement) -> String {
     }
 }
 
-fn format_collections(asm: &AssembledStatement, other: &mut Vec<String>) {
+fn append_to_other(other: &mut String, text: &str) {
+    if !other.is_empty() {
+        other.push('\n');
+    }
+    other.push_str(text);
+}
+
+fn format_collections(asm: &AssembledStatement, other: &mut String) {
     // Genitives
     if !asm.genitives.is_empty() {
-        // ⚡ Bolt Optimization: Avoid intermediate `Vec` allocations by constructing
-        // the joined string directly with `String::with_capacity` and a loop.
-        let mut gens = String::with_capacity(asm.genitives.len() * 10);
+        append_to_other(other, "Gen: [");
         for (i, g) in asm.genitives.iter().enumerate() {
             if i > 0 {
-                gens.push_str(", ");
+                other.push_str(", ");
             }
-            gens.push_str(&fmt_constituent(g));
+            other.push_str(&fmt_constituent(g));
         }
-        other.push(format!("Gen: [{}]", gens));
+        other.push(']');
     }
 
     // Adjectives
     if !asm.adjectives.is_empty() {
-        // ⚡ Bolt Optimization: Avoid intermediate `Vec` allocations by constructing
-        // the joined string directly with `String::with_capacity` and a loop.
-        let mut adjs = String::with_capacity(asm.adjectives.len() * 10);
+        append_to_other(other, "Adj: [");
         for (i, adj) in asm.adjectives.iter().enumerate() {
             if i > 0 {
-                adjs.push_str(", ");
+                other.push_str(", ");
             }
-            adjs.push_str(&fmt_constituent(adj));
+            other.push_str(&fmt_constituent(adj));
         }
-        other.push(format!("Adj: [{}]", adjs));
+        other.push(']');
     }
 
     // Participles
     if !asm.participles.is_empty() {
-        // ⚡ Bolt Optimization: Avoid intermediate `Vec` allocations by constructing
-        // the joined string directly with `String::with_capacity` and a loop.
-        let mut parts = String::with_capacity(asm.participles.len() * 10);
+        append_to_other(other, "Participles: [");
         for (i, part) in asm.participles.iter().enumerate() {
             if i > 0 {
-                parts.push_str(", ");
+                other.push_str(", ");
             }
-            parts.push_str(part.original.as_str());
+            other.push_str(part.original.as_str());
         }
-        other.push(format!("Participles: [{}]", parts));
+        other.push(']');
     }
 }
 
-fn format_structural_elements(asm: &AssembledStatement, other: &mut Vec<String>) {
+fn format_structural_elements(asm: &AssembledStatement, other: &mut String) {
+    use std::fmt::Write;
     // New Fields (Arrays, Index Accesses, Properties, Blocks, Phrases, Unwraps)
     if !asm.arrays.is_empty() {
-        other.push(format!("Arrays: {}", asm.arrays.len()));
+        let _ = write!(
+            other,
+            "{}Arrays: {}",
+            if other.is_empty() { "" } else { "\n" },
+            asm.arrays.len()
+        );
     }
     if !asm.index_accesses.is_empty() {
-        other.push(format!("Index Accesses: {}", asm.index_accesses.len()));
+        let _ = write!(
+            other,
+            "{}Index Accesses: {}",
+            if other.is_empty() { "" } else { "\n" },
+            asm.index_accesses.len()
+        );
     }
     if !asm.property_accesses.is_empty() {
-        // ⚡ Bolt Optimization: Avoid intermediate `Vec` allocations by constructing
-        // the joined string directly with `String::with_capacity` and a loop.
-        // Also uses `write!` to avoid secondary `String` allocations from `format!`.
-        use std::fmt::Write;
-        let mut props = String::with_capacity(asm.property_accesses.len() * 15);
+        append_to_other(other, "Properties: [");
         for (i, (o, p)) in asm.property_accesses.iter().enumerate() {
             if i > 0 {
-                props.push_str(", ");
+                other.push_str(", ");
             }
-            let _ = write!(props, "{}.{}", o, p);
+            let _ = write!(other, "{}.{}", o, p);
         }
-        other.push(format!("Properties: [{}]", props));
+        other.push(']');
     }
     if !asm.blocks.is_empty() {
-        other.push(format!("Blocks: {}", asm.blocks.len()));
+        let _ = write!(
+            other,
+            "{}Blocks: {}",
+            if other.is_empty() { "" } else { "\n" },
+            asm.blocks.len()
+        );
     }
     if !asm.nested_phrases.is_empty() {
-        other.push(format!("Phrases: {}", asm.nested_phrases.len()));
+        let _ = write!(
+            other,
+            "{}Phrases: {}",
+            if other.is_empty() { "" } else { "\n" },
+            asm.nested_phrases.len()
+        );
     }
     if !asm.unwraps.is_empty() {
-        other.push(format!("Unwraps: {}", asm.unwraps.len()));
+        let _ = write!(
+            other,
+            "{}Unwraps: {}",
+            if other.is_empty() { "" } else { "\n" },
+            asm.unwraps.len()
+        );
     }
 
     // String Method
     if let Some((method, delim)) = &asm.string_method {
-        other.push(format!("Method: {}({})", method, delim));
+        let _ = write!(
+            other,
+            "{}Method: {}({})",
+            if other.is_empty() { "" } else { "\n" },
+            method,
+            delim
+        );
     }
 }
 
-fn format_flags(asm: &AssembledStatement, other: &mut Vec<String>) {
+fn format_flags(asm: &AssembledStatement, other: &mut String) {
+    use std::fmt::Write;
     // Flags
-    let mut flags = Vec::new();
+    let mut flags = String::new();
+    let mut add_flag = |f: &str| {
+        if !flags.is_empty() {
+            flags.push_str(", ");
+        }
+        flags.push_str(f);
+    };
+
     if asm.is_query {
-        flags.push("Query (?)");
+        add_flag("Query (?)");
     }
     if asm.is_propagate {
-        flags.push("Propagate (;)");
+        add_flag("Propagate (;)");
     }
     if asm.has_mutable_marker {
-        flags.push("Mut (μετά)");
+        add_flag("Mut (μετά)");
     }
     if asm.has_containment_preposition {
-        flags.push("In (ἐν)");
+        add_flag("In (ἐν)");
     }
     if asm.has_delimiter_preposition {
-        flags.push("By (κατά)");
+        add_flag("By (κατά)");
     }
 
     if !flags.is_empty() {
-        other.push(format!("Flags: [{}]", flags.join(", ")));
+        let _ = write!(
+            other,
+            "{}Flags: [{}]",
+            if other.is_empty() { "" } else { "\n" },
+            flags
+        );
     }
 }
 
+/// ⚡ Bolt Optimization: Reduces intermediate heap allocations from formatting
+/// `.collect::<Vec<_>>().join("\n")` or `format!()` usage, and directly appends to
+/// a pre-allocated String buffer.
 fn format_other_column(asm: &AssembledStatement) -> String {
-    let mut other = Vec::new();
+    use std::fmt::Write;
+    let mut other = String::with_capacity(128); // Pre-allocate with an estimated size
 
     // Literals
     if !asm.literals.is_empty() {
-        other.push(format!("Literals: {}", asm.literals.len()));
+        let _ = write!(other, "Literals: {}", asm.literals.len());
     }
 
     // Operators
     if !asm.operators.is_empty() {
-        other.push(format!("Ops: {:?}", asm.operators));
+        let _ = write!(
+            other,
+            "{}Ops: {:?}",
+            if other.is_empty() { "" } else { "\n" },
+            asm.operators
+        );
     }
 
     format_collections(asm, &mut other);
     format_structural_elements(asm, &mut other);
     format_flags(asm, &mut other);
 
-    other.join("\n")
+    other
 }
 
 fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {

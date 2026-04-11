@@ -528,16 +528,17 @@ impl Scope {
     /// let mut scope = Scope::new();
     /// scope.define("forgotten", GlossaType::Number);
     ///
-    /// let unused = scope.unused_bindings();
+    /// let unused: Vec<_> = scope.unused_bindings().collect();
     /// assert_eq!(unused.len(), 1);
     /// assert_eq!(unused[0].name, "forgotten");
     /// ```
-    pub fn unused_bindings(&self) -> Vec<&Binding> {
+    /// ⚡ Bolt Optimization: Returns an `impl Iterator` instead of allocating a `Vec`
+    /// to avoid unnecessary heap allocations when the caller only needs to iterate.
+    pub fn unused_bindings(&self) -> impl Iterator<Item = &Binding> + '_ {
         self.levels
             .iter()
             .flat_map(|l| l.variables.values())
             .filter(|b| !b.used)
-            .collect()
     }
 
     /// Recites the names and signatures of all known actions ([`FunctionSignature`]) that can shape reality.
@@ -718,7 +719,7 @@ mod tests {
         scope.define("υ".to_string(), GlossaType::String);
         scope.mark_used("ξ");
 
-        let unused = scope.unused_bindings();
+        let unused: Vec<_> = scope.unused_bindings().collect();
         assert_eq!(unused.len(), 1);
         assert_eq!(unused[0].name, "υ");
     }

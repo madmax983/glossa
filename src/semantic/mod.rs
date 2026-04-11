@@ -71,6 +71,30 @@ use crate::ast::Statement;
 use crate::errors::GlossaError;
 
 /// Analyze a single statement using the slot-based assembler
+///
+/// # Why it exists
+///
+/// This function is the main entry point into the slot-based assembly system for a complete
+/// statement. Instead of manually feeding words and expressions to an [`Assembler`] and
+/// tracking context, this function coordinates the parsing of all clauses within a statement.
+/// It creates the assembler, iterates over the clauses and their constituent expressions, and
+/// handles the disambiguation context automatically before finalizing the assembled semantic structure.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::parser::parse;
+/// use glossa::semantic::assemble_statement;
+///
+/// // Create an AST with a single statement: "Say hello."
+/// let ast = parse("«χαῖρε» λέγε.").unwrap();
+///
+/// // Assemble the statement into grammatical slots
+/// let assembled = assemble_statement(&ast.statements[0]).unwrap();
+///
+/// // The verb slot should be filled
+/// assert!(assembled.verb.is_some());
+/// ```
 pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
     let mut asm = Assembler::new();
     asm.set_query(stmt.is_query());

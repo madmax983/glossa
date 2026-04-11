@@ -240,19 +240,6 @@ impl std::fmt::Debug for Statement {
 }
 
 impl Statement {
-    /// Get all expressions flattened (for backwards compatibility)
-    pub fn expressions(&self) -> Box<dyn Iterator<Item = &Expr> + '_> {
-        match self {
-            Statement::Regular { clauses, .. } => {
-                Box::new(clauses.iter().flat_map(|c| c.expressions.iter()))
-            }
-            Statement::TypeDefinition(_) => Box::new(std::iter::empty()),
-            Statement::TraitDefinition(_) => Box::new(std::iter::empty()),
-            Statement::TraitImpl(_) => Box::new(std::iter::empty()),
-            Statement::TestDeclaration(_) => Box::new(std::iter::empty()),
-        }
-    }
-
     /// Check if this is a query statement
     pub fn is_query(&self) -> bool {
         match self {
@@ -630,6 +617,21 @@ impl Drop for Expr {
 }
 
 /// Binary operators in GLOSSA
+///
+/// # Why it exists
+///
+/// This enum represents the various mathematical and logical operations that can
+/// be performed between two expressions. It translates Ancient Greek concepts
+/// like `καί` (and), `ἤ` (or), and `μεῖζον` (greater) into abstract semantic nodes.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::ast::BinOperator;
+///
+/// let addition = BinOperator::Add;
+/// let and_op = BinOperator::And;
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinOperator {
     // Arithmetic
@@ -666,6 +668,19 @@ pub enum BinOperator {
 }
 
 /// Unary operators in GLOSSA
+///
+/// # Why it exists
+///
+/// This enum represents logical inversions or operations that apply to a single
+/// operand, such as logical negation (`οὐκ`, "not").
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::ast::UnaryOperator;
+///
+/// let not_op = UnaryOperator::Not;
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOperator {
     /// Logical Negation - `οὐ`, `οὐκ`, `οὐχ`

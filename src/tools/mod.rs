@@ -9,15 +9,17 @@
 //! * [`runner`]: **The Engine Room** - Orchestrates the full compilation pipeline (load -> analyze -> compile -> run).
 //! * [`repl`]: **The Playground** - An interactive Read-Eval-Print Loop for experimentation.
 //! * [`highlight`]: **The Painter** - Syntax highlighting for terminal output.
-//! * [`report`]: **The Scribe** - Detailed compilation reports and error diagnostics.
+//! * `report`: **The Scribe** - Detailed compilation reports and error diagnostics.
 //! * [`Cache`]: **The Vault** - Incremental compilation cache to speed up builds.
 //! * [`dictionary`]: **The Lexicon** - Word lookup utility for the built-in dictionary.
 //! * [`narrator`]: **The Bard** - Experimental "code-to-story" translator.
 //! * [`tester`]: **The Judge** - Built-in test runner for unit tests defined in ΓΛΩΣΣΑ files.
-//! * [`ui`]: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
+//! * `ui`: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
 #[cfg(feature = "nova")]
 pub mod alchemist;
+#[cfg(feature = "nova")]
+pub mod auditor;
 pub(crate) mod cache;
 pub use cache::Cache;
 #[cfg(feature = "nova")]
@@ -28,12 +30,16 @@ pub mod highlight;
 #[cfg(feature = "nova")]
 pub mod interpreter;
 #[cfg(feature = "nova")]
+pub mod labyrinth;
+#[cfg(feature = "nova")]
 pub mod mentor;
 #[cfg(feature = "nova")]
 pub mod mosaic;
 pub mod narrator;
+#[cfg(feature = "nova")]
+pub mod papyrus;
 pub mod repl;
-pub mod report;
+pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
 ///
 /// This module orchestrates the full compilation pipeline from source file to executable binary.
@@ -54,6 +60,6 @@ pub mod report;
 /// ```
 pub mod runner;
 pub mod tester;
-pub mod ui;
+pub(crate) mod ui;
 #[cfg(feature = "nova")]
 pub mod weave;

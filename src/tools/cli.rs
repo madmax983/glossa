@@ -102,6 +102,18 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate a language metrics dashboard
+    Report {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
+    /// Visualize the control flow graph as a map (Requires "nova" feature)
+    Labyrinth {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Start the interactive tutorial (Requires "nova" feature)
     Mentor,
 
@@ -168,6 +180,18 @@ pub enum Commands {
 
     /// Transpile a .γλ file to Python (Requires "nova" feature)
     Alchemist {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
+    /// Transpile a .γλ file to SQL CREATE TABLE schema (Requires "nova" feature)
+    Papyrus {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
+    /// Run the Auditor to find code smells (Requires "nova" feature)
+    Audit {
         /// Input file (.γλ)
         input: PathBuf,
     },
