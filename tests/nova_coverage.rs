@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 #![cfg(feature = "nova")]
 
-use glossa::tools::tester::run_tests;
+use glossa::tools::run_tests;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;

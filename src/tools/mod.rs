@@ -24,8 +24,8 @@ pub(crate) mod cache;
 pub use cache::Cache;
 #[cfg(feature = "nova")]
 pub mod cartographer;
-pub mod cli;
-pub mod dictionary;
+pub(crate) mod cli;
+pub(crate) mod dictionary;
 pub mod highlight;
 #[cfg(feature = "nova")]
 pub mod interpreter;
@@ -35,10 +35,10 @@ pub mod labyrinth;
 pub mod mentor;
 #[cfg(feature = "nova")]
 pub mod mosaic;
-pub mod narrator;
+pub(crate) mod narrator;
 #[cfg(feature = "nova")]
 pub mod papyrus;
-pub mod repl;
+pub(crate) mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
 ///
@@ -49,7 +49,7 @@ pub(crate) mod report;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use glossa::tools::runner::run_file;
+/// use glossa::tools::run_file;
 /// use std::path::Path;
 ///
 /// // Execute a Glossa file directly from its path
@@ -58,8 +58,16 @@ pub(crate) mod report;
 ///     eprintln!("Execution failed: {}", e);
 /// }
 /// ```
-pub mod runner;
-pub mod tester;
+pub(crate) mod runner;
+pub(crate) mod tester;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
 pub mod weave;
+
+// Export the necessary CLI and binary items for src/main.rs and integration tests
+pub use cli::{Cli, Commands};
+pub use dictionary::lookup_word;
+pub use narrator::tell_tale;
+pub use repl::run_repl;
+pub use runner::{bard_file, build_file, check_file, highlight_file, report_file, run_file};
+pub use tester::run_tests;

@@ -6,12 +6,10 @@
 use clap::Parser;
 use miette::Result;
 
-use glossa::tools::cli::{Cli, Commands};
-use glossa::tools::dictionary::lookup_word;
-use glossa::tools::repl::run_repl;
-use glossa::tools::runner::{
-    bard_file, build_file, check_file, highlight_file, report_file, run_file,
-};
+use glossa::tools::lookup_word;
+use glossa::tools::run_repl;
+use glossa::tools::{Cli, Commands};
+use glossa::tools::{bard_file, build_file, check_file, highlight_file, report_file, run_file};
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -61,7 +59,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Test { input }) => {
-            glossa::tools::tester::run_tests(&input)?;
+            glossa::tools::run_tests(&input)?;
         }
 
         Some(Commands::Mosaic { input }) => {
