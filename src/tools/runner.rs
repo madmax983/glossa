@@ -749,9 +749,10 @@ mod tests {
         let input_path = dir.path().join("rustc_error.gl");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            // This is valid Glossa but invalid Rust (redefining String)
-            // Memory says: εἶδος String ὁρίζειν...
-            f.write_all("εἶδος String ὁρίζειν { x ἀριθμοῦ. }. τέλος.".as_bytes())
+            // This is valid Glossa but invalid Rust (causes rustc error)
+            // To bypass MissingVerb on struct fields, we use a different valid Glossa syntax
+            // that causes a rustc error. For instance, redefining String struct:
+            f.write_all("εἶδος String · ἔστω. τέλος.".as_bytes())
                 .unwrap();
         }
 
