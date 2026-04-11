@@ -72,22 +72,26 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
                 || line.ends_with(" ... FAILED")
                 || line.ends_with(" ... ignored"))
         {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            // Expected parts: ["test", "test_name", "...", "status"]
-            // Sometimes there might be extra info, but name is usually at index 1
-            if parts.len() >= 4 {
+            // Expected parts: "test", "test_name", "...", "status"
+            // We can iterate without allocating an intermediate `Vec<&str>`
+            // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` with zero-cost iterator consumption.
+            let mut iter = line.split_whitespace();
+            if iter.clone().count() >= 4 {
+                let _ = iter.next(); // "test"
                 #[allow(clippy::collapsible_if)]
-                if let [_, name, .., status_str] = parts.as_slice() {
-                    let status = match *status_str {
-                        "ok" => TestStatus::Ok,
-                        "FAILED" => TestStatus::Failed,
-                        "ignored" => TestStatus::Ignored,
-                        _ => continue,
-                    };
-                    results.push(TestResult {
-                        name: name.to_string(),
-                        status,
-                    });
+                if let Some(name) = iter.next() {
+                    if let Some(status_str) = iter.last() {
+                        let status = match status_str {
+                            "ok" => TestStatus::Ok,
+                            "FAILED" => TestStatus::Failed,
+                            "ignored" => TestStatus::Ignored,
+                            _ => continue,
+                        };
+                        results.push(TestResult {
+                            name: name.to_string(),
+                            status,
+                        });
+                    }
                 }
             }
         }
@@ -137,6 +141,31 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                     // End of details section
                     break;
                 }
+
+                // Hide internal Rust thread information and temp file paths
+                if current.starts_with("thread '")
+                    && current.contains("panicked at")
+                    && let Some(panicked_idx) = current.find("panicked at")
+                {
+                    let mut clean_panic = format!("{}panicked", &current[..panicked_idx]);
+                    // Remove the "(pid)" thread id
+                    if let Some(idx1) = clean_panic.find(" (")
+                        && let Some(idx2) = clean_panic[idx1..].find(") ")
+                    {
+                        clean_panic.replace_range(idx1..idx1 + idx2 + 2, " ");
+                    }
+                    message.push_str(&clean_panic);
+                    message.push('\n');
+                    lines.next();
+                    continue;
+                }
+
+                // Hide backtrace hint
+                if current.starts_with("note: run with `RUST_BACKTRACE=1`") {
+                    lines.next();
+                    continue;
+                }
+
                 message.push_str(current);
                 message.push('\n');
                 lines.next();
@@ -165,9 +194,45 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
         .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
 
     if !rustc_output.status.success() {
-        let stderr = String::from_utf8_lossy(&rustc_output.stderr);
+        let raw_stderr = String::from_utf8_lossy(&rustc_output.stderr);
+
+        let mut clean_stderr = String::new();
+        let mut prev_empty = false;
+        for line in raw_stderr.lines() {
+            // Skip file location lines
+            if line.starts_with(" --> ") {
+                continue;
+            }
+
+            let trimmed = line.trim_start();
+
+            // Check if the line starts with a line number followed by |
+            if trimmed.chars().next().is_some_and(|c| c.is_ascii_digit()) && trimmed.contains(" | ")
+            {
+                continue;
+            }
+
+            // Skip the underline carets and empty pipes
+            if trimmed.starts_with('|') {
+                continue;
+            }
+
+            let is_empty = line.trim().is_empty();
+            if is_empty && prev_empty {
+                continue;
+            }
+
+            clean_stderr.push_str(line);
+            clean_stderr.push('\n');
+            prev_empty = is_empty;
+        }
+
         status.error("Σφάλμα μεταγλωττίσεως δοκιμῶν (Test Compilation Error)");
-        return Err(miette::miette!("{}\n{}", "Rustc Error:".red(), stderr));
+        return Err(miette::miette!(
+            "{}\n{}",
+            "Rustc Error:".red(),
+            clean_stderr.trim()
+        ));
     }
 
     Ok(status)
@@ -294,6 +359,31 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
     }
 }
 
+/// Run unit tests defined within a ΓΛΩΣΣΑ file.
+///
+/// This tool allows developers to execute `δοκιμή` (test) blocks directly from their source
+/// files. It works by orchestrating the compilation pipeline, generating a Rust file with
+/// `#[test]` attributes, compiling it using `rustc --test`, and then executing the resulting
+/// test harness binary. It finally parses the output to present a clean, language-specific
+/// test report to the user.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::tools::tester::run_tests;
+/// use std::path::PathBuf;
+/// use std::fs;
+/// use tempfile::tempdir;
+///
+/// let dir = tempdir().unwrap();
+/// let input = dir.path().join("tests.γλ");
+///
+/// // Create a temporary Glossa file with a test declaration
+/// fs::write(&input, "δοκιμή «example».\n  ξ 5 ἔστω.\nτέλος.").unwrap();
+///
+/// // Execute the test harness
+/// run_tests(&input).unwrap();
+/// ```
 pub fn run_tests(input: &Path) -> Result<()> {
     // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
     let source = crate::tools::runner::load_source(input)?;

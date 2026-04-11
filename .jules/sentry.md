@@ -1,7 +1,10 @@
-## [Morphological Ambiguity]
-**Learning:** `analyze_noun` relies on a fixed check order (Third -> Second -> First), which causes `First Declension Alpha` nouns (ending in -α) to be misidentified as `Second Declension Neuter` plurals (also ending in -α) if they don't have a lexicon entry. `analyze_noun_all` correctly identifies both but requires the caller to disambiguate.
-**Action:** Use `analyze_noun_all` when dealing with ambiguous endings or ensure the lexicon is populated. Tests for ambiguous words must verify the *presence* of the correct analysis, not just the first one.
+**Testing Semantic Control Flow Guards**
+**Learning:** In Glossa, many structural validations (e.g. checking length of clauses, presence of body, etc.) in `semantic/control_flow.rs` and `semantic/declarations.rs` are protected by `GlossaError::semantic` but are unreachable via normal parsing strings because the parser guarantees their structure. Attempting to parse strings to hit these will fail at the PEG grammar level.
+**Action:** Construct `Statement` AST nodes manually using `Statement::Regular { ... }` in a unit test to bypass the parser and test the robustness of the semantic layer against unexpected or malformed structures. This ensures that if the grammar rules ever loosen, the semantic analyzer safely rejects the input without panicking.
 
+**Testing Semantic Control Flow Guards**
+**Learning:** In Glossa, many structural validations (e.g. checking length of clauses, presence of body, etc.) in `semantic/control_flow.rs` and `semantic/declarations.rs` are protected by `GlossaError::semantic` but are unreachable via normal parsing strings because the parser guarantees their structure. Attempting to parse strings to hit these will fail at the PEG grammar level.
+**Action:** Construct `Statement` AST nodes manually using `Statement::Regular { ... }` in a unit test to bypass the parser and test the robustness of the semantic layer against unexpected or malformed structures. This ensures that if the grammar rules ever loosen, the semantic analyzer safely rejects the input without panicking.
 ## [Panic Safety in Morphology Analysis]
 **Learning:** `analyze_all` in `src/morphology/mod.rs` was sorting analyses by confidence using `unwrap()` on `partial_cmp`. If `confidence` is `NaN`, this causes a panic.
 **Action:** Replaced `unwrap()` with `unwrap_or(std::cmp::Ordering::Equal)` to handle NaN safely. Always verify `partial_cmp` on floats is handled safely.
@@ -68,3 +71,10 @@
 **[Panic Safety in Assembly and Patterns]
 **Learning:** Using unreachable!() in fallback match arms acts as a ticking time bomb for structural panics if prior validation assumes impossible conditions.
 **Action:** Replace unreachable!() with safe negative-match default returns (e.g., return false; or Ok(false)) and explicitly construct failing unit tests to cover these fallback paths.
+
+**[Codegen Unchecked Indexing and Checked Neg]
+**Learning:** Found potential runtime panics in `generate_unary_op` (using `checked_neg().expect(...)`) and in `generate_collection_index` (using `try_from().expect(...)` for index bound checking) in `src/codegen.rs` which were not covered by tests.
+**Action:** Wrote isolated unit tests `test_generate_unary_op_neg_checked` and `test_generate_collection_index_bounds_check` to guarantee the panic safeguards execute as intended and generate the appropriate error structures.
+**[Report Module Exhaustive Coverage]**
+**Learning:** The `AnalyzedExprKind` and `AnalyzedStatement` enums frequently gain new variants (like `CollectionNew`, `TraitImplementation`, `Try`). Match statements with a catch-all `_ => {}` silently ignore these new nodes during traversals, leading to permanently untested code paths and hidden bugs. Using exhaustive matching explicitly forces developers to update traversals when new nodes are added.
+**Action:** Replaced `_ => {}` with explicit matches for leaf nodes (`NumberLiteral`, `StringLiteral`, `None`, etc.) in `tell_expr` and `tell_statement` in narrator. Exhaustively instantiated every single AST node variant in `test_tell_expr_all_variants` to ensure the recursive formatting logic actually executes on all possible program structures.

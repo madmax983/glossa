@@ -45,7 +45,7 @@ use smol_str::SmolStr;
 /// assert!(GlossaType::Unknown.is_compatible(&str_type));
 /// assert!(num_type.is_compatible(&GlossaType::Unknown));
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum GlossaType {
     /// **ἀριθμός** (Number) - 64-bit signed integer (`i64`)
     ///
@@ -135,6 +135,38 @@ pub enum GlossaType {
     ///
     /// Used when the type cannot yet be determined. Acts as a wildcard in compatibility checks.
     Unknown,
+}
+
+impl std::fmt::Debug for GlossaType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            GlossaType::Number => f.debug_tuple("Number").finish(),
+            GlossaType::String => f.debug_tuple("String").finish(),
+            GlossaType::Boolean => f.debug_tuple("Boolean").finish(),
+            GlossaType::List(inner) => f.debug_tuple("List").field(inner).finish(),
+            GlossaType::Set(inner) => f.debug_tuple("Set").field(inner).finish(),
+            GlossaType::Map(key, value) => f.debug_tuple("Map").field(key).field(value).finish(),
+            GlossaType::Option(inner) => f.debug_tuple("Option").field(inner).finish(),
+            GlossaType::Result(ok, err) => f.debug_tuple("Result").field(ok).field(err).finish(),
+            GlossaType::Struct {
+                name,
+                gender,
+                fields,
+            } => f
+                .debug_struct("Struct")
+                .field("name", name)
+                .field("gender", gender)
+                .field("fields", fields)
+                .finish(),
+            GlossaType::Function { params, returns } => f
+                .debug_struct("Function")
+                .field("params", params)
+                .field("returns", returns)
+                .finish(),
+            GlossaType::Unit => f.debug_tuple("Unit").finish(),
+            GlossaType::Unknown => f.debug_tuple("Unknown").finish(),
+        })
+    }
 }
 
 impl std::fmt::Display for GlossaType {

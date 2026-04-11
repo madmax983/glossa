@@ -558,6 +558,20 @@ fn try_analyze_infinitive(
     }
 }
 
+/// Analyze a verb and append all possible morphological interpretations to an existing vector.
+///
+/// This exists to allow callers to collect analyses without allocating a new `Vec`
+/// each time. By passing in a mutable reference to an existing collection, you can
+/// accumulate results across multiple words or fallback strategies efficiently.
+///
+/// ## Examples
+///
+/// ```text
+/// let mut analyses = Vec::new();
+/// // Append all analyses of "γράφω" into our vector
+/// analyze_verb_all_into("γραφω", &mut analyses);
+/// assert!(!analyses.is_empty());
+/// ```
 pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
     let start_len = analyses.len();
 
