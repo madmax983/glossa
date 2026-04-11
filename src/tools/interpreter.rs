@@ -143,10 +143,10 @@ pub enum EvalError {
 pub struct Interpreter {
     // Stack of scopes. For now, just one global scope for simplicity.
     // In a real implementation, this would be `Vec<FxHashMap<String, Value>>`.
-    env: Vec<FxHashMap<String, Value>>,
+    pub(crate) env: Vec<FxHashMap<String, Value>>,
 
     // Output buffer for capturing print statements (useful for testing/WASM)
-    output: Vec<String>,
+    pub(crate) output: Vec<String>,
 }
 
 impl Default for Interpreter {
@@ -204,7 +204,7 @@ impl Interpreter {
         self.output.join("\n")
     }
 
-    fn eval_statement(&mut self, stmt: &AnalyzedStatement) -> Result<(), EvalError> {
+    pub(crate) fn eval_statement(&mut self, stmt: &AnalyzedStatement) -> Result<(), EvalError> {
         match stmt {
             AnalyzedStatement::Binding { name, value, .. } => {
                 let val = self.eval_expr(value)?;

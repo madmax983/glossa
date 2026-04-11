@@ -195,4 +195,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Trace the execution step-by-step to view interpreter state (Requires "nova" feature)
+    Astrolabe {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

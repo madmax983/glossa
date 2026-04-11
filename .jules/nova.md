@@ -32,3 +32,7 @@
 **Concept:** A basic static analysis tool / linter (`glossa audit`) that traverses the semantic AST (`AnalyzedProgram`) to find code smells, such as unused variables and unnecessary mutable declarations.
 **Fate:** Merged
 **Lesson:** Iterating over the complex nested variants in `AnalyzedStatement` and `AnalyzedExpr` provides a strong foundation for building static analysis tools without modifying core logic.
+## The Astrolabe (ὁ Ἀστρολάβος)
+**Concept:** A CLI tool (`glossa astrolabe`) that visualizes the interpreter state step-by-step.
+**Fate:** Merged
+**Lesson:** Exposing interpreter variables lets us trace and visualize program execution in real time without printing statements manually.
