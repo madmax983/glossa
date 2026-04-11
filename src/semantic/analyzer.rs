@@ -128,10 +128,12 @@ fn analyze_statement_recursive(
         let mut analyzed = Vec::new();
         // Create a child scope for the block
         // This ensures variables defined inside the block don't leak out
-        let mut block_scope = scope.enter_scope();
-        for s in block_stmts {
-            analyzed.extend(analyze_statement_recursive(s, &mut block_scope, depth + 1)?);
-        }
+        scope.with_scope(|block_scope| {
+            for s in block_stmts {
+                analyzed.extend(analyze_statement_recursive(s, block_scope, depth + 1)?);
+            }
+            Ok::<(), GlossaError>(())
+        })?;
         return Ok(analyzed);
     }
 

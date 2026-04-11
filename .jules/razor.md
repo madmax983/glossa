@@ -10,3 +10,7 @@
 **Bloat:** Unused deprecated `expressions()` method in `Statement` struct in `src/ast.rs`.
 **Cut:** Deleted the `expressions()` method.
 **Saved:** 13 lines of code.
+## [Reduction]
+**Bloat:** `ScopeGuard` RAII struct in `src/semantic/resolver.rs`. It used `Drop`, `Deref`, and `DerefMut` to manage scope lifetimes.
+**Cut:** Replaced `ScopeGuard` and `enter_scope` with a single higher-order `with_scope` method that takes a closure, manages `enter` and `exit`, and executes the closure.
+**Saved:** Dozens of lines of boilerplate code in `resolver.rs`. Replaced an unnecessary wrapper struct, three trait implementations, and error-prone local variable scoping patterns with a cleaner block-based syntax.
