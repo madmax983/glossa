@@ -1,7 +1,10 @@
-## [Morphological Ambiguity]
-**Learning:** `analyze_noun` relies on a fixed check order (Third -> Second -> First), which causes `First Declension Alpha` nouns (ending in -α) to be misidentified as `Second Declension Neuter` plurals (also ending in -α) if they don't have a lexicon entry. `analyze_noun_all` correctly identifies both but requires the caller to disambiguate.
-**Action:** Use `analyze_noun_all` when dealing with ambiguous endings or ensure the lexicon is populated. Tests for ambiguous words must verify the *presence* of the correct analysis, not just the first one.
+**Testing Semantic Control Flow Guards**
+**Learning:** In Glossa, many structural validations (e.g. checking length of clauses, presence of body, etc.) in `semantic/control_flow.rs` and `semantic/declarations.rs` are protected by `GlossaError::semantic` but are unreachable via normal parsing strings because the parser guarantees their structure. Attempting to parse strings to hit these will fail at the PEG grammar level.
+**Action:** Construct `Statement` AST nodes manually using `Statement::Regular { ... }` in a unit test to bypass the parser and test the robustness of the semantic layer against unexpected or malformed structures. This ensures that if the grammar rules ever loosen, the semantic analyzer safely rejects the input without panicking.
 
+**Testing Semantic Control Flow Guards**
+**Learning:** In Glossa, many structural validations (e.g. checking length of clauses, presence of body, etc.) in `semantic/control_flow.rs` and `semantic/declarations.rs` are protected by `GlossaError::semantic` but are unreachable via normal parsing strings because the parser guarantees their structure. Attempting to parse strings to hit these will fail at the PEG grammar level.
+**Action:** Construct `Statement` AST nodes manually using `Statement::Regular { ... }` in a unit test to bypass the parser and test the robustness of the semantic layer against unexpected or malformed structures. This ensures that if the grammar rules ever loosen, the semantic analyzer safely rejects the input without panicking.
 ## [Panic Safety in Morphology Analysis]
 **Learning:** `analyze_all` in `src/morphology/mod.rs` was sorting analyses by confidence using `unwrap()` on `partial_cmp`. If `confidence` is `NaN`, this causes a panic.
 **Action:** Replaced `unwrap()` with `unwrap_or(std::cmp::Ordering::Equal)` to handle NaN safely. Always verify `partial_cmp` on floats is handled safely.

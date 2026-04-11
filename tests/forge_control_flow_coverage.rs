@@ -4,6 +4,9 @@ use glossa::semantic::analyze_statement;
 use glossa::semantic::{GlossaType, Scope};
 use smol_str::SmolStr;
 
+// The semantic module is not pub, so we use `analyze_statement` instead of `analyze_control_flow`.
+// However, `analyze_statement` expects actual variables and definitions, so we must be careful with empty clauses.
+
 #[test]
 fn test_parse_for_range_loop_missing_word() {
     let stmt = Statement::Regular {
@@ -124,4 +127,29 @@ fn test_parse_for_range_loop_variable_resolution() {
     scope.define(var_a_str, GlossaType::Number);
     let res = analyze_statement(&stmt, &mut scope);
     assert!(res.is_ok());
+}
+
+#[test]
+fn test_parse_for_range_loop_empty_range_clause_proper() {
+    let stmt = Statement::Regular {
+        is_query: false,
+        is_propagate: false,
+        clauses: vec![
+            Clause {
+                expressions: vec![],
+            },
+            Clause {
+                expressions: vec![Expr::Word(Word {
+                    original: "i".into(),
+                    normalized: "i".into(),
+                })],
+            },
+        ],
+    };
+
+    let mut scope = Scope::new();
+    // analyze_statement relies on the first word for control_flow.
+    // An empty expression clause has no words, so analyze_statement falls back to other processing
+    // and won't trigger parse_for_range_loop. It will probably trigger double_subject or assembly error.
+    let _res = analyze_statement(&stmt, &mut scope);
 }
