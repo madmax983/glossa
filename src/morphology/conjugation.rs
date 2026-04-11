@@ -354,40 +354,8 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
 
     // Try conjugation patterns in order
     for pattern in CONJUGATION_PATTERNS {
-        if let Some((stem, person, number)) = match_verb_endings(word, pattern.endings) {
-            let lemma = match pattern.lemma_strategy {
-                LemmaStrategy::Standard => {
-                    // Optimization: If ending is "ω", then lemma == word (e.g. λέγω)
-                    if word.ends_with('ω') && word.len() == stem.len() + "ω".len() {
-                        Cow::Owned(word.to_string())
-                    } else {
-                        Cow::Owned(format!("{}ω", stem))
-                    }
-                }
-                LemmaStrategy::StripAugment => {
-                    let true_stem = strip_augment(stem);
-                    Cow::Owned(format!("{}ω", true_stem))
-                }
-                LemmaStrategy::PassiveOptative => {
-                    // Strip the θη passive marker (if present) to get base stem, then add -ω for lemma
-                    // Use strip_suffix instead of trim_end_matches to avoid over-stripping root characters
-                    let base_stem = stem.strip_suffix('θ').unwrap_or(stem);
-                    Cow::Owned(format!("{}ω", base_stem))
-                }
-            };
-
-            return Some(MorphAnalysis {
-                lemma,
-                part_of_speech: PartOfSpeech::Verb,
-                case: None,
-                number: Some(number),
-                gender: None,
-                person: Some(person),
-                tense: Some(pattern.tense),
-                mood: Some(pattern.mood),
-                voice: Some(pattern.voice),
-                confidence: pattern.base_confidence,
-            });
+        if let Some(analysis) = try_conjugation_pattern(word, pattern) {
+            return Some(analysis);
         }
     }
 
@@ -428,6 +396,87 @@ pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
     }
 
     None
+}
+
+fn try_conjugation_pattern_all(
+    word: &str,
+    pattern: &ConjugationPattern,
+    analyses: &mut Vec<MorphAnalysis>,
+) {
+    match_verb_endings_all(word, pattern.endings, |stem, person, number| {
+        // Handle lemma generation
+        let lemma_stem: Cow<str> = match pattern.lemma_strategy {
+            LemmaStrategy::Standard => Cow::Borrowed(stem),
+            LemmaStrategy::StripAugment => strip_augment(stem),
+            LemmaStrategy::PassiveOptative => Cow::Borrowed(stem.strip_suffix('θ').unwrap_or(stem)),
+        };
+
+        // Calculate confidence
+        let ending_len = word.len() - stem.len();
+        let length_bonus = (ending_len as f32 - 1.0) * 0.03;
+        let confidence = (pattern.base_confidence + length_bonus).min(0.95);
+
+        // Optimization: If lemma_stem is just stem (Standard strategy), and ending is "ω", then lemma == word
+        let lemma = if matches!(pattern.lemma_strategy, LemmaStrategy::Standard)
+            && word.ends_with('ω')
+            && word.len() == stem.len() + "ω".len()
+        {
+            Cow::Owned(word.to_string())
+        } else {
+            Cow::Owned(format!("{}ω", lemma_stem))
+        };
+
+        analyses.push(MorphAnalysis {
+            lemma,
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: Some(number),
+            gender: None,
+            person: Some(person),
+            tense: Some(pattern.tense),
+            mood: Some(pattern.mood),
+            voice: Some(pattern.voice),
+            confidence,
+        });
+    });
+}
+
+fn try_conjugation_pattern(word: &str, pattern: &ConjugationPattern) -> Option<MorphAnalysis> {
+    let (stem, person, number) = match_verb_endings(word, pattern.endings)?;
+
+    let lemma = match pattern.lemma_strategy {
+        LemmaStrategy::Standard => {
+            // Optimization: If ending is "ω", then lemma == word (e.g. λέγω)
+            if word.ends_with('ω') && word.len() == stem.len() + "ω".len() {
+                Cow::Owned(word.to_string())
+            } else {
+                Cow::Owned(format!("{}ω", stem))
+            }
+        }
+        LemmaStrategy::StripAugment => {
+            let true_stem = strip_augment(stem);
+            Cow::Owned(format!("{}ω", true_stem))
+        }
+        LemmaStrategy::PassiveOptative => {
+            // Strip the θη passive marker (if present) to get base stem, then add -ω for lemma
+            // Use strip_suffix instead of trim_end_matches to avoid over-stripping root characters
+            let base_stem = stem.strip_suffix('θ').unwrap_or(stem);
+            Cow::Owned(format!("{}ω", base_stem))
+        }
+    };
+
+    Some(MorphAnalysis {
+        lemma,
+        part_of_speech: PartOfSpeech::Verb,
+        case: None,
+        number: Some(number),
+        gender: None,
+        person: Some(person),
+        tense: Some(pattern.tense),
+        mood: Some(pattern.mood),
+        voice: Some(pattern.voice),
+        confidence: pattern.base_confidence,
+    })
 }
 
 /// Match a word against verb endings
@@ -485,6 +534,44 @@ pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
 /// Analyze a word as a verb, pushing results into an existing vector
 ///
 /// Zero-allocation version of `analyze_verb_all`.
+fn try_analyze_infinitive(
+    word: &str,
+    suffix: &str,
+    tense: Tense,
+    analyses: &mut Vec<MorphAnalysis>,
+) {
+    if let Some(stem) = word.strip_suffix(suffix)
+        && !stem.is_empty()
+    {
+        analyses.push(MorphAnalysis {
+            lemma: Cow::Owned(format!("{}ω", stem)),
+            part_of_speech: PartOfSpeech::Verb,
+            case: None,
+            number: None,
+            gender: None,
+            person: None,
+            tense: Some(tense),
+            mood: Some(Mood::Infinitive),
+            voice: Some(Voice::Active),
+            confidence: 0.85,
+        });
+    }
+}
+
+/// Analyze a verb and append all possible morphological interpretations to an existing vector.
+///
+/// This exists to allow callers to collect analyses without allocating a new `Vec`
+/// each time. By passing in a mutable reference to an existing collection, you can
+/// accumulate results across multiple words or fallback strategies efficiently.
+///
+/// ## Examples
+///
+/// ```text
+/// let mut analyses = Vec::new();
+/// // Append all analyses of "γράφω" into our vector
+/// analyze_verb_all_into("γραφω", &mut analyses);
+/// assert!(!analyses.is_empty());
+/// ```
 pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
     let start_len = analyses.len();
 
@@ -508,80 +595,11 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
     }
 
     for pattern in CONJUGATION_PATTERNS {
-        match_verb_endings_all(word, pattern.endings, |stem, person, number| {
-            // Handle lemma generation
-            let lemma_stem: Cow<str> = match pattern.lemma_strategy {
-                LemmaStrategy::Standard => Cow::Borrowed(stem),
-                LemmaStrategy::StripAugment => strip_augment(stem),
-                LemmaStrategy::PassiveOptative => {
-                    Cow::Borrowed(stem.strip_suffix('θ').unwrap_or(stem))
-                }
-            };
-
-            // Calculate confidence
-            let ending_len = word.len() - stem.len();
-            let length_bonus = (ending_len as f32 - 1.0) * 0.03;
-            let confidence = (pattern.base_confidence + length_bonus).min(0.95);
-
-            // Optimization: If lemma_stem is just stem (Standard strategy), and ending is "ω", then lemma == word
-            let lemma = if matches!(pattern.lemma_strategy, LemmaStrategy::Standard)
-                && word.ends_with('ω')
-                && word.len() == stem.len() + "ω".len()
-            {
-                Cow::Owned(word.to_string())
-            } else {
-                Cow::Owned(format!("{}ω", lemma_stem))
-            };
-
-            analyses.push(MorphAnalysis {
-                lemma,
-                part_of_speech: PartOfSpeech::Verb,
-                case: None,
-                number: Some(number),
-                gender: None,
-                person: Some(person),
-                tense: Some(pattern.tense),
-                mood: Some(pattern.mood),
-                voice: Some(pattern.voice),
-                confidence,
-            });
-        });
+        try_conjugation_pattern_all(word, pattern, analyses);
     }
 
-    // Try infinitives
-    if let Some(stem) = word.strip_suffix(PRESENT_INFINITIVE)
-        && !stem.is_empty()
-    {
-        analyses.push(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}ω", stem)),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: None,
-            gender: None,
-            person: None,
-            tense: Some(Tense::Present),
-            mood: Some(Mood::Infinitive),
-            voice: Some(Voice::Active),
-            confidence: 0.85,
-        });
-    }
-
-    if let Some(stem) = word.strip_suffix(AORIST_INFINITIVE)
-        && !stem.is_empty()
-    {
-        analyses.push(MorphAnalysis {
-            lemma: Cow::Owned(format!("{}ω", stem)),
-            part_of_speech: PartOfSpeech::Verb,
-            case: None,
-            number: None,
-            gender: None,
-            person: None,
-            tense: Some(Tense::Aorist),
-            mood: Some(Mood::Infinitive),
-            voice: Some(Voice::Active),
-            confidence: 0.85,
-        });
-    }
+    try_analyze_infinitive(word, PRESENT_INFINITIVE, Tense::Present, analyses);
+    try_analyze_infinitive(word, AORIST_INFINITIVE, Tense::Aorist, analyses);
 
     // Sort the newly added analyses (the tail)
     analyses[start_len..].sort_by(|a, b| {
@@ -625,7 +643,7 @@ pub fn analyze_verb_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
 /// # Examples
 ///
 /// ```rust
-/// use glossa::morphology::{conjugation::conjugate, Tense, Mood, Voice, Person, Number};
+/// use glossa::morphology::{conjugate, Tense, Mood, Voice, Person, Number};
 ///
 /// // Conjugate "λεγ" (to say) in Present Active Indicative, 1st Person Singular
 /// let result = conjugate("λεγ", Tense::Present, Mood::Indicative, Voice::Active, Person::First, Number::Singular);
@@ -668,7 +686,7 @@ pub fn conjugate(
 /// # Examples
 ///
 /// ```rust
-/// use glossa::morphology::{conjugation::infinitive, Tense, Voice};
+/// use glossa::morphology::{infinitive, Tense, Voice};
 ///
 /// // Present Active Infinitive of "λεγ" (to say)
 /// let result = infinitive("λεγ", Tense::Present, Voice::Active);

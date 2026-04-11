@@ -30,7 +30,7 @@ use std::time::SystemTime;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use glossa::tools::cache::Cache;
+/// use glossa::tools::Cache;
 /// use std::path::Path;
 ///
 /// let cache = Cache::new();
@@ -56,7 +56,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::cache::Cache;
+    /// use glossa::tools::Cache;
     /// let cache = Cache::new();
     /// ```
     pub fn new() -> Self {
@@ -84,7 +84,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use glossa::tools::cache::Cache;
+    /// use glossa::tools::Cache;
     /// let cache = Cache::new();
     /// cache.init().unwrap(); // Creates ~/.cache/.glossa/cache
     /// ```
@@ -114,7 +114,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::cache::Cache;
+    /// use glossa::tools::Cache;
     /// use std::path::Path;
     ///
     /// let cache = Cache::new();
@@ -147,7 +147,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::cache::Cache;
+    /// use glossa::tools::Cache;
     /// use std::path::Path;
     ///
     /// let cache = Cache::new();
@@ -185,7 +185,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::cache::Cache;
+    /// use glossa::tools::Cache;
     /// use std::path::Path;
     ///
     /// let cache = Cache::new();
@@ -226,6 +226,82 @@ mod tests {
         assert_eq!(
             cache.base_dir,
             PathBuf::from(".").join(".glossa").join("cache")
+        );
+    }
+
+    #[test]
+    fn should_generate_consistent_cache_key_for_same_path() {
+        let cache = Cache::default();
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test.gl");
+        fs::write(&file_path, "test").unwrap();
+
+        let key1 = cache.key(&file_path);
+        let key2 = cache.key(&file_path);
+        assert_eq!(key1, key2, "Keys for the same path should be identical");
+        assert_eq!(key1.len(), 64, "Key should be a 64-character SHA-256 hash");
+    }
+
+    #[test]
+    fn should_invalidate_when_exe_is_older_than_source() {
+        let cache = Cache::default();
+        let dir = tempfile::tempdir().unwrap();
+        let source_file = dir.path().join("source.gl");
+        let exe_file = dir.path().join("source.exe");
+
+        // Create exe first (older)
+        fs::write(&exe_file, "exe").unwrap();
+        // Wait a bit to ensure timestamp difference
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        // Create source later (newer)
+        fs::write(&source_file, "source").unwrap();
+
+        assert!(
+            !cache.is_valid(&source_file, &exe_file),
+            "Cache should be invalid when source is newer than exe"
+        );
+    }
+
+    #[test]
+    fn should_be_valid_when_exe_is_newer_than_source() {
+        let cache = Cache::default();
+        let dir = tempfile::tempdir().unwrap();
+        let source_file = dir.path().join("source.gl");
+        let exe_file = dir.path().join("source.exe");
+
+        // Create source first (older)
+        fs::write(&source_file, "source").unwrap();
+        // Wait a bit to ensure timestamp difference
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        // Create exe later (newer)
+        fs::write(&exe_file, "exe").unwrap();
+
+        assert!(
+            cache.is_valid(&source_file, &exe_file),
+            "Cache should be valid when exe is newer than source"
+        );
+    }
+
+    #[test]
+    fn should_invalidate_when_exe_or_source_missing() {
+        let cache = Cache::default();
+        let dir = tempfile::tempdir().unwrap();
+        let source_file = dir.path().join("source.gl");
+        let exe_file = dir.path().join("source.exe");
+
+        // Missing exe
+        fs::write(&source_file, "source").unwrap();
+        assert!(
+            !cache.is_valid(&source_file, &exe_file),
+            "Cache should be invalid when exe is missing"
+        );
+
+        // Missing source
+        fs::remove_file(&source_file).unwrap();
+        fs::write(&exe_file, "exe").unwrap();
+        assert!(
+            cache.is_valid(&source_file, &exe_file),
+            "Cache is technically valid when exe is newer than missing source (UNIX_EPOCH)"
         );
     }
 }

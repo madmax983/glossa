@@ -11,8 +11,6 @@
 //! It is especially useful for documentation and education.
 
 use crate::codegen::generate_rust_file;
-use crate::parser::parse;
-use crate::semantic::analyze_program;
 use crate::tools::mosaic::run_mosaic_inner;
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
@@ -40,18 +38,11 @@ pub fn run_weave(input: &Path) -> Result<()> {
     };
 
     // 1. Parse & Analyze
-    let ast = match parse(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("{}", e));
-        }
-    };
-    let program = match analyze_program(&ast) {
+    let program = match crate::tools::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
-            status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("{}", e));
+            status.error("Σφάλμα (Error)");
+            return Err(e);
         }
     };
 
@@ -124,6 +115,8 @@ mod tests {
 
     #[test]
     fn test_run_weave_success() {
+        use std::io::Read;
+
         let dir = tempfile::tempdir().unwrap();
         let input_path = dir.path().join("weave_test.γλ");
         {
@@ -137,7 +130,11 @@ mod tests {
         let output_path = input_path.with_extension("md");
         assert!(output_path.exists());
 
-        let md = fs::read_to_string(&output_path).unwrap();
+        let mut f = std::fs::File::open(&output_path).unwrap();
+        let mut md = String::new();
+        std::io::Read::take(&mut f, 1024 * 1024 + 1)
+            .read_to_string(&mut md)
+            .unwrap();
 
         // Assertions for expected content
         assert!(md.contains("# Rosetta Stone"));

@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 #![cfg(feature = "nova")]
-use glossa::morphology::lexicon::{BinaryOp, UnaryOp};
+use glossa::morphology::{BinaryOp, UnaryOp};
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
 };

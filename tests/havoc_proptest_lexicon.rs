@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-use glossa::morphology::lexicon::lookup;
+use glossa::morphology::lookup;
 use proptest::prelude::*;
 
 proptest! {

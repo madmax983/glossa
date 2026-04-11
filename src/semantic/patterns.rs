@@ -231,17 +231,18 @@ pub fn try_parse_struct_instantiation(
     };
 
     // Extract fields from struct type
-    let fields_info: Vec<(SmolStr, GlossaType)> =
+    // ⚡ Bolt Optimization: Use slice instead of cloning `fields` to prevent unnecessary heap allocations
+    let fields_info: &[(SmolStr, GlossaType)] =
         if let GlossaType::Struct { fields, .. } = &struct_type {
-            fields.clone()
+            fields.as_slice()
         } else {
-            vec![]
+            &[]
         };
 
     let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
 
     // Collect constructor arguments (everything between type_name and ἔστω)
-    let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], &fields_info, scope) else {
+    let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], fields_info, scope) else {
         return Ok(None);
     };
 
@@ -605,70 +606,65 @@ fn process_fold_participle(
 ) -> bool {
     // Look for target operator (Add for sum, Mul for product)
     for &bin_op in &asm_stmt.operators {
-        if matches!(
-            bin_op,
-            crate::morphology::lexicon::BinaryOp::Add | crate::morphology::lexicon::BinaryOp::Mul
-        ) {
-            // Determine initial value based on operation
-            let init_value = match bin_op {
-                crate::morphology::lexicon::BinaryOp::Add => 0,
-                crate::morphology::lexicon::BinaryOp::Mul => 1,
-                _ => unreachable!(),
-            };
+        // Determine initial value based on operation
+        let init_value = match bin_op {
+            crate::morphology::lexicon::BinaryOp::Add => 0,
+            crate::morphology::lexicon::BinaryOp::Mul => 1,
+            _ => continue, // Unsupported operators are ignored as fold targets
+        };
 
-            // Determine capture mode based on participle tense
-            let capture_mode = match participle.tense {
-                crate::morphology::Tense::Aorist => CaptureMode::Move,
-                // Iterator closures always take arguments, so Memoize is unsafe.
-                crate::morphology::Tense::Perfect => CaptureMode::Borrow,
-                _ => CaptureMode::Borrow,
-            };
+        // Determine capture mode based on participle tense
+        let capture_mode = match participle.tense {
+            crate::morphology::Tense::Aorist => CaptureMode::Move,
+            // Iterator closures always take arguments, so Memoize is unsafe.
+            crate::morphology::Tense::Perfect => CaptureMode::Borrow,
+            _ => CaptureMode::Borrow,
+        };
 
-            // Create fold closure: |acc, x| acc + x (or acc * x)
-            let fold_body = AnalyzedExpr {
-                expr: AnalyzedExprKind::BinOp {
-                    op: bin_op,
-                    left: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable("acc".into()),
-                        glossa_type: GlossaType::Number,
-                    }),
-                    right: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable("x".into()),
-                        glossa_type: GlossaType::Number,
-                    }),
-                },
-                glossa_type: GlossaType::Number,
-            };
+        // Create fold closure: |acc, x| acc + x (or acc * x)
+        let fold_body = AnalyzedExpr {
+            expr: AnalyzedExprKind::BinOp {
+                op: bin_op,
+                left: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("acc".into()),
+                    glossa_type: GlossaType::Number,
+                }),
+                right: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("x".into()),
+                    glossa_type: GlossaType::Number,
+                }),
+            },
+            glossa_type: GlossaType::Number,
+        };
 
-            let fold_closure = AnalyzedExpr {
-                expr: AnalyzedExprKind::Lambda {
-                    params: vec!["acc".into(), "x".into()],
-                    body: Box::new(fold_body),
-                    capture_mode,
-                },
-                glossa_type: GlossaType::Function {
-                    params: vec![GlossaType::Number, GlossaType::Number],
-                    returns: Box::new(GlossaType::Number),
-                },
-            };
+        let fold_closure = AnalyzedExpr {
+            expr: AnalyzedExprKind::Lambda {
+                params: vec!["acc".into(), "x".into()],
+                body: Box::new(fold_body),
+                capture_mode,
+            },
+            glossa_type: GlossaType::Function {
+                params: vec![GlossaType::Number, GlossaType::Number],
+                returns: Box::new(GlossaType::Number),
+            },
+        };
 
-            let init_expr = AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(init_value),
-                glossa_type: GlossaType::Number,
-            };
+        let init_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(init_value),
+            glossa_type: GlossaType::Number,
+        };
 
-            let new_expr = AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(current_expr.clone()),
-                    method: "fold".into(),
-                    args: vec![init_expr, fold_closure],
-                },
-                glossa_type: GlossaType::Number,
-            };
-            *current_expr = new_expr;
+        let new_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(current_expr.clone()),
+                method: "fold".into(),
+                args: vec![init_expr, fold_closure],
+            },
+            glossa_type: GlossaType::Number,
+        };
+        *current_expr = new_expr;
 
-            return true;
-        }
+        return true;
     }
     false
 }
@@ -1002,6 +998,36 @@ mod tests {
     use crate::semantic::{AnalyzedExprKind, Constituent};
 
     #[test]
+    fn test_process_fold_participle_unsupported_op_fallback() {
+        let participle = crate::semantic::assembly::ParticipleConstituent {
+            verb_lemma: "dummy".into(),
+            original: "dummy".into(),
+            normalized: "dummy".into(),
+            case: crate::morphology::Case::Nominative,
+            number: crate::morphology::Number::Singular,
+            gender: crate::morphology::Gender::Masculine,
+            tense: crate::morphology::Tense::Present,
+            voice: crate::morphology::Voice::Active,
+        };
+
+        let mut asm_stmt = AssembledStatement::default();
+        asm_stmt
+            .operators
+            .push(crate::morphology::lexicon::BinaryOp::Sub);
+
+        let mut current_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+
+        let result = process_fold_participle(&participle, &asm_stmt, &mut current_expr);
+        assert!(
+            !result,
+            "process_fold_participle should safely return false on unsupported operator"
+        );
+    }
+
+    #[test]
     fn test_extract_comparison_value_lemma() {
         let mut scope = Scope::new();
         scope.define("ονομα", GlossaType::String);
@@ -1109,6 +1135,35 @@ mod tests {
         } else {
             panic!("Expected variable");
         }
+    }
+
+    #[test]
+    fn test_try_parse_struct_instantiation_non_struct_type() {
+        let mut scope = Scope::new();
+        // Define a type that is NOT a Struct
+        scope.define_type("NonStructType", GlossaType::Number);
+
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![crate::ast::Expr::Phrase(vec![
+                    crate::ast::Expr::Word(crate::ast::Word::new("var")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("νεον")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("NonStructType")),
+                    // ἔστω is a binding verb
+                    crate::ast::Expr::Word(crate::ast::Word::new("ἔστω")),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = try_parse_struct_instantiation(&stmt, &mut scope);
+        // The non-struct branch will return an Err because `GlossaType::Number` is not a `Struct`.
+        // See line 228: if the type is found but not a struct, it should ideally not match,
+        // but right now lookup_type returns Option<&GlossaType>.
+        // Actually wait, looking at line 230:
+        // return Err(GlossaError::undefined(type_name.to_string()));
+        assert!(result.is_err());
     }
 }
 

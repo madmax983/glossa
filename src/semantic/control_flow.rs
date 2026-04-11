@@ -7,7 +7,6 @@
 //! - Return (δός)
 //! - Break/Continue (παῦε, συνέχιζε)
 
-use super::conversion::convert_assembled_to_analyzed;
 use super::expressions::get_first_word;
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope,
@@ -265,12 +264,10 @@ fn parse_for_range_loop(
     };
 
     // Use a scope guard to ensure the loop variable is removed after parsing
-    let body_analyzed = {
-        let mut loop_scope = scope.enter_scope();
+    let body_analyzed = scope.with_scope(|loop_scope| {
         loop_scope.define(variable.clone(), GlossaType::Number);
-
-        analyze_statement(&body_stmt, &mut loop_scope)?
-    };
+        analyze_statement(&body_stmt, loop_scope)
+    })?;
 
     Ok(Some(AnalyzedStatement::For {
         variable,
@@ -353,13 +350,11 @@ fn parse_for_iteration_loop(
     };
 
     // Use scope guard for loop variable
-    let body_analyzed = {
-        let mut loop_scope = scope.enter_scope();
+    let body_analyzed = scope.with_scope(|loop_scope| {
         // TODO: Infer element type from collection type
         loop_scope.define(variable.clone(), GlossaType::String);
-
-        analyze_statement(&body_stmt, &mut loop_scope)?
-    };
+        analyze_statement(&body_stmt, loop_scope)
+    })?;
 
     Ok(Some(AnalyzedStatement::For {
         variable,
@@ -725,7 +720,34 @@ fn skip_first_word_and_parse(
         is_propagate: false,
     };
     let analyzed = assemble_statement(&stmt)?;
-    let converted = convert_assembled_to_analyzed(&analyzed, scope)?;
+
+    // We bypass the top-level MissingVerb check by extracting the expression manually
+    // from the assembled statement if it's a simple fallback condition.
+    let converted =
+        match crate::semantic::conversion::convert_assembled_to_analyzed(&analyzed, scope) {
+            Ok(c) => c,
+            Err(GlossaError::AssemblyError(crate::errors::AssemblyError::MissingVerb)) => {
+                // If the conversion failed ONLY because of a MissingVerb check (which was added for top-level
+                // statements to prevent Codegen ICEs), we can still extract the variable manually.
+                // Control flow conditions are allowed to be verbless expressions (e.g. `κατὰ ξ`).
+                if let Some(ref subj) = analyzed.subject {
+                    let var_expr = crate::semantic::AnalyzedExpr {
+                        expr: crate::semantic::AnalyzedExprKind::Variable(subj.lemma.clone()),
+                        glossa_type: crate::semantic::GlossaType::Unknown,
+                    };
+                    AnalyzedStatement::Expression(vec![var_expr])
+                } else if let Some(ref obj) = analyzed.object {
+                    let var_expr = crate::semantic::AnalyzedExpr {
+                        expr: crate::semantic::AnalyzedExprKind::Variable(obj.lemma.clone()),
+                        glossa_type: crate::semantic::GlossaType::Unknown,
+                    };
+                    AnalyzedStatement::Expression(vec![var_expr])
+                } else {
+                    return Err(GlossaError::semantic("Empty condition in conditional"));
+                }
+            }
+            Err(e) => return Err(e),
+        };
 
     // Extract the first expression as the condition
     match converted {
@@ -751,6 +773,8 @@ fn skip_first_word_and_parse(
                 glossa_type: GlossaType::Boolean,
             })
         }
+        // In case the query classification wrapped it inside a Query wrapper (e.g. for `contains` checking)
+        // or other valid structures, we must handle it securely.
         _ => Err(GlossaError::semantic(format!(
             "Invalid condition format: {:?}",
             converted
@@ -920,6 +944,7 @@ mod tests {
                 expressions: vec![Expr::Phrase(vec![
                     Expr::Word(Word::new("εως")),
                     Expr::Word(Word::new("ξ")),
+                    Expr::Word(Word::new("εστι")),
                     Expr::Word(Word::new("ισον")),
                     Expr::NumberLiteral(5),
                 ])],
@@ -951,6 +976,7 @@ mod tests {
                     expressions: vec![Expr::Phrase(vec![
                         Expr::Word(Word::new("εως")),
                         Expr::Word(Word::new("ξ")),
+                        Expr::Word(Word::new("εστι")),
                         Expr::Word(Word::new("ισον")),
                         Expr::NumberLiteral(5),
                     ])],
@@ -1149,6 +1175,7 @@ mod tests {
                     expressions: vec![Expr::Phrase(vec![
                         Expr::Word(Word::new("εαν")),
                         Expr::Word(Word::new("χ")),
+                        Expr::Word(Word::new("εστι")),
                         Expr::Word(Word::new("ισον")),
                         Expr::NumberLiteral(5),
                     ])],

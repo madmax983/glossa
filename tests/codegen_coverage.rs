@@ -126,7 +126,7 @@ fn test_generate_closure_optimization() {
 fn test_generate_unary_op_optimization() {
     let stmt = AnalyzedStatement::Expression(vec![AnalyzedExpr {
         expr: AnalyzedExprKind::UnaryOp {
-            op: glossa::morphology::lexicon::UnaryOp::Neg,
+            op: glossa::morphology::UnaryOp::Neg,
             operand: Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::NumberLiteral(10),
                 glossa_type: GlossaType::Number,

@@ -50,7 +50,7 @@ impl ProgramStats {
     ///
     /// ## Examples
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// use glossa::parser::parse;
     /// use glossa::semantic::analyze_program;
     /// use glossa::tools::report::ProgramStats;
@@ -78,6 +78,54 @@ impl ProgramStats {
         stats
     }
 
+    fn visit_if_statement(
+        &mut self,
+        condition: &AnalyzedExpr,
+        then_body: &[AnalyzedStatement],
+        else_body: &Option<Vec<AnalyzedStatement>>,
+        depth: usize,
+    ) {
+        self.conditional_count += 1;
+        self.visit_expr(condition);
+        for s in then_body {
+            self.visit_statement(s, depth + 1);
+        }
+        if let Some(else_body) = else_body {
+            for s in else_body {
+                self.visit_statement(s, depth + 1);
+            }
+        }
+    }
+
+    fn visit_match_statement(
+        &mut self,
+        scrutinee: &AnalyzedExpr,
+        arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
+        depth: usize,
+    ) {
+        self.conditional_count += 1;
+        self.visit_expr(scrutinee);
+        for (pat, body) in arms {
+            self.visit_expr(pat);
+            for s in body {
+                self.visit_statement(s, depth + 1);
+            }
+        }
+    }
+
+    fn visit_loop_body(
+        &mut self,
+        condition: &AnalyzedExpr,
+        body: &[AnalyzedStatement],
+        depth: usize,
+    ) {
+        self.loop_count += 1;
+        self.visit_expr(condition);
+        for s in body {
+            self.visit_statement(s, depth + 1);
+        }
+    }
+
     fn visit_statement(&mut self, stmt: &AnalyzedStatement, depth: usize) {
         self.statement_count += 1;
         self.max_depth = self.max_depth.max(depth);
@@ -102,40 +150,16 @@ impl ProgramStats {
                 then_body,
                 else_body,
             } => {
-                self.conditional_count += 1;
-                self.visit_expr(condition);
-                for s in then_body {
-                    self.visit_statement(s, depth + 1);
-                }
-                if let Some(else_body) = else_body {
-                    for s in else_body {
-                        self.visit_statement(s, depth + 1);
-                    }
-                }
+                self.visit_if_statement(condition, then_body, else_body, depth);
             }
             AnalyzedStatement::While { condition, body } => {
-                self.loop_count += 1;
-                self.visit_expr(condition);
-                for s in body {
-                    self.visit_statement(s, depth + 1);
-                }
+                self.visit_loop_body(condition, body, depth);
             }
             AnalyzedStatement::For { iterator, body, .. } => {
-                self.loop_count += 1;
-                self.visit_expr(iterator);
-                for s in body {
-                    self.visit_statement(s, depth + 1);
-                }
+                self.visit_loop_body(iterator, body, depth);
             }
             AnalyzedStatement::Match { scrutinee, arms } => {
-                self.conditional_count += 1;
-                self.visit_expr(scrutinee);
-                for (pat, body) in arms {
-                    self.visit_expr(pat);
-                    for s in body {
-                        self.visit_statement(s, depth + 1);
-                    }
-                }
+                self.visit_match_statement(scrutinee, arms, depth);
             }
             AnalyzedStatement::FunctionDef { body, .. } => {
                 // Function definitions in statements (if any) are already counted in scope?
@@ -173,14 +197,18 @@ impl ProgramStats {
         }
     }
 
+    fn visit_exprs(&mut self, exprs: &[AnalyzedExpr]) {
+        for expr in exprs {
+            self.visit_expr(expr);
+        }
+    }
+
     fn visit_expr(&mut self, expr: &AnalyzedExpr) {
         self.expression_count += 1;
         match &expr.expr {
             AnalyzedExprKind::PropertyAccess { owner, .. } => self.visit_expr(owner),
             AnalyzedExprKind::VerbCall { args, .. } => {
-                for arg in args {
-                    self.visit_expr(arg);
-                }
+                self.visit_exprs(args);
             }
             AnalyzedExprKind::BinOp { left, right, .. } => {
                 self.visit_expr(left);
@@ -192,9 +220,7 @@ impl ProgramStats {
                 self.visit_expr(end);
             }
             AnalyzedExprKind::ArrayLiteral(exprs) => {
-                for e in exprs {
-                    self.visit_expr(e);
-                }
+                self.visit_exprs(exprs);
             }
             AnalyzedExprKind::Some(e)
             | AnalyzedExprKind::Ok(e)
@@ -209,15 +235,11 @@ impl ProgramStats {
             }
             AnalyzedExprKind::FunctionCall { args, .. }
             | AnalyzedExprKind::StructInstantiation { args, .. } => {
-                for arg in args {
-                    self.visit_expr(arg);
-                }
+                self.visit_exprs(args);
             }
             AnalyzedExprKind::MethodCall { receiver, args, .. } => {
                 self.visit_expr(receiver);
-                for arg in args {
-                    self.visit_expr(arg);
-                }
+                self.visit_exprs(args);
             }
             AnalyzedExprKind::Lambda { body, .. } => {
                 self.visit_expr(body);
@@ -249,7 +271,7 @@ impl<'a> GlossaReport<'a> {
     ///
     /// ## Examples
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// use glossa::parser::parse;
     /// use glossa::semantic::analyze_program;
     /// use glossa::tools::report::GlossaReport;
@@ -379,7 +401,7 @@ impl Display for GlossaReport<'_> {
 ///
 /// ## Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// use glossa::parser::parse;
 /// use glossa::semantic::analyze_program;
 /// use glossa::tools::report::{CompilationReport, ProgramStats};

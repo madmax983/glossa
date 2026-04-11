@@ -33,12 +33,15 @@ C4Container
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
 
     Container_Boundary(tools, "Developer Experience (Nova)") {
+        Container(alchemist, "The Alchemist", "src/tools/alchemist.rs", "Python Exporter")
+        Container(auditor, "The Auditor", "src/tools/auditor.rs", "Static analysis to find unused variables and mutability smells")
         Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
         Container(cartographer, "Cartographer", "src/tools/cartographer.rs", "Generates Mermaid Class Diagrams")
         Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
         Container(dictionary, "The Lexicon", "src/tools/dictionary.rs", "The Source of Truth for Words (Dictionary)")
         Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
         Container(interpreter, "Interpreter", "src/tools/interpreter.rs", "In-memory tree-walk simulator")
+        Container(labyrinth, "Labyrinth", "src/tools/labyrinth.rs", "Visualizes the control flow graph as a Mermaid flowchart")
         Container(mentor, "Mentor", "src/tools/mentor.rs", "Interactive Tutorial Mode")
         Container(mosaic, "Mosaic", "src/tools/mosaic.rs", "Visualizes Semantic Assembly")
         Container(narrator, "The Bard", "src/tools/narrator.rs", "Generates English narrative ('Scroll of Logic') from AST")
@@ -47,6 +50,7 @@ C4Container
         Container(runner, "Runner", "src/tools/runner.rs", "Orchestrates the compilation pipeline")
         Container(tester, "The Judge", "src/tools/tester.rs", "Verifies Correctness (Test Runner)")
         Container(ui, "The Stage", "src/tools/ui.rs", "Presentation Layer & UI Helpers")
+        Container(weave, "Weave", "src/tools/weave.rs", "Rosetta Stone Markdown Exporter")
     }
 
     Container(codegen, "Code Generator", "src/codegen.rs", "Generates Rust source code")
@@ -62,6 +66,10 @@ C4Container
     Rel(semantic, mosaic, "Analyzed Program")
     Rel(semantic, tester, "Analyzed Program")
     Rel(semantic, interpreter, "Analyzed Program")
+    Rel(semantic, alchemist, "Analyzed Program")
+    Rel(semantic, auditor, "Analyzed Program")
+    Rel(semantic, labyrinth, "Analyzed Program")
+    Rel(semantic, weave, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 
     Rel(morphology, dictionary, "Lexicon Data")

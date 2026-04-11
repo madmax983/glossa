@@ -414,7 +414,7 @@ impl std::fmt::Debug for ParticipleConstituent {
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::semantic::assembly::Literal;
+/// use glossa::semantic::Literal;
 ///
 /// // Create a string literal embodying truth
 /// let text = Literal::String("Ἀλήθεια".to_string());
@@ -591,7 +591,7 @@ impl Assembler {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::semantic::assembly::Assembler;
+    /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
     /// asm.feed_number(42).unwrap();
@@ -607,7 +607,7 @@ impl Assembler {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::semantic::assembly::Assembler;
+    /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
     /// asm.feed_boolean(true).unwrap();
@@ -1006,9 +1006,7 @@ impl Assembler {
     /// Helper to create a string method call if conditions are met
     #[allow(clippy::collapsible_if)]
     fn try_create_string_method(&mut self, method_name: &str) -> Result<bool, AssemblyError> {
-        if self.state.has_delimiter_preposition
-            && matches!(self.state.literals.last(), Some(Literal::String(_)))
-        {
+        if self.state.has_delimiter_preposition {
             if let Some(ref subj) = self.state.subject {
                 Self::check_limit(
                     self.state.property_accesses.len(),
@@ -1018,7 +1016,12 @@ impl Assembler {
 
                 let delim = match self.state.literals.pop() {
                     Some(Literal::String(s)) => s,
-                    _ => unreachable!(),
+                    other => {
+                        if let Some(lit) = other {
+                            self.state.literals.push(lit);
+                        }
+                        return Ok(false);
+                    }
                 };
 
                 let normalized_original = normalize_greek(&subj.original);
@@ -1184,6 +1187,30 @@ impl Default for Assembler {
 mod tests {
     use super::*;
     use crate::morphology::{Tense, Voice, analyze};
+
+    #[test]
+    fn test_try_create_string_method_invalid_literal_fallback() {
+        let mut asm = Assembler::new();
+        asm.state.has_delimiter_preposition = true;
+        asm.state.subject = Some(Constituent {
+            lemma: "dummy".into(),
+            original: "dummy".into(),
+            normalized: "dummy".into(),
+            case: crate::morphology::Case::Nominative,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        // Ensure invalid literals do not panic. The inner logic is technically
+        // unreachable in single-threaded Rust due to an earlier check, but replacing
+        // unreachable!() ensures safety against structural or logic refactoring.
+        asm.state.literals.push(Literal::Number(42));
+
+        let result = asm.try_create_string_method("split");
+        assert!(result.is_ok());
+        assert!(!result.unwrap(), "should return false and not panic");
+    }
 
     #[test]
     fn test_operator_detection() {

@@ -26,7 +26,7 @@ use crate::errors::GlossaError;
 ///
 /// ```rust
 /// use glossa::ast::Program;
-/// use glossa::semantic::analyzer::analyze_program;
+/// use glossa::semantic::analyze_program;
 ///
 /// // Create an empty program structure
 /// let empty_ast = Program { statements: vec![] };
@@ -59,7 +59,7 @@ pub struct AnalyzedProgram {
 ///
 /// ```rust
 /// use glossa::parser::parse;
-/// use glossa::semantic::{Scope, analyzer::analyze_statement};
+/// use glossa::semantic::{Scope, analyze_statement};
 ///
 /// let mut scope = Scope::new();
 /// let ast = parse("ξ πέντε ἔστω.").unwrap(); // "Let ξ be 5."
@@ -128,11 +128,12 @@ fn analyze_statement_recursive(
         let mut analyzed = Vec::new();
         // Create a child scope for the block
         // This ensures variables defined inside the block don't leak out
-        let mut block_scope = scope.enter_scope();
-        for s in block_stmts {
-            analyzed.extend(analyze_statement_recursive(s, &mut block_scope, depth + 1)?);
-        }
-        return Ok(analyzed);
+        return scope.with_scope(|block_scope| {
+            for s in block_stmts {
+                analyzed.extend(analyze_statement_recursive(s, block_scope, depth + 1)?);
+            }
+            Ok(analyzed)
+        });
     }
 
     // 6. Use the assembler-based approach for regular statements

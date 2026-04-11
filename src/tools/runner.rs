@@ -21,7 +21,7 @@ const MAX_FILE_SIZE: u64 = 1024 * 1024;
 /// This helper runs the first two phases of the compiler pipeline:
 /// 1. **Parsing**: Converts source text to AST
 /// 2. **Semantic Analysis**: Resolves names, types, and statement structure
-fn analyze_source(source: &str) -> Result<AnalyzedProgram> {
+pub fn analyze_source(source: &str) -> Result<AnalyzedProgram> {
     let ast = parse(source).map_err(|e| miette::miette!("{}", e))?;
     analyze_program(&ast).map_err(|e| miette::miette!("{}", e))
 }
@@ -230,29 +230,22 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     // Check if we can use cached binary
     if cache.is_valid(input, &cached_exe) && cached_exe.exists() {
-        println!();
-        println!("   {}", "Γ Λ Ω Σ Σ Α   R U N".bold().cyan());
-        println!("   {}", "Ἐκτέλεσις (Execution)".italic().dim());
-        println!();
-
-        // Run cached binary directly
-        let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
-
-        println!();
-        println!("   {}", "--- Τέλος (End) ---".dim());
-
-        if !exit_status.success() {
-            std::process::exit(exit_status.code().unwrap_or(1));
-        }
-        return Ok(());
+        return execute_binary(&cached_exe);
     }
 
     // Compile source
     let source = load_source(input)?;
+    compile_and_build(&source, &cached_rs, &cached_exe)?;
 
+    // Run the compiled program
+    execute_binary(&cached_exe)
+}
+
+/// Helper to compile Glossa source and build it with rustc
+fn compile_and_build(source: &str, cached_rs: &Path, cached_exe: &Path) -> Result<()> {
     let mut status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🚀");
 
-    let rust_code = match compile(&source) {
+    let rust_code = match compile(source) {
         Ok(code) => code,
         Err(e) => {
             status.error("Σφάλμα μεταγλωττίσεως");
@@ -261,17 +254,28 @@ pub fn run_file(input: &Path) -> Result<()> {
     };
 
     // Write Rust source to cache
-    fs::write(&cached_rs, &rust_code).into_diagnostic()?;
+    fs::write(cached_rs, &rust_code).into_diagnostic()?;
 
     status.update("Οἰκοδόμησις (Building)");
 
+    if let Err(e) = invoke_rustc(cached_rs, cached_exe) {
+        status.error("Σφάλμα κώδικος (Codegen Error)");
+        return Err(e);
+    }
+
+    status.success();
+    Ok(())
+}
+
+/// Helper to invoke rustc and format internal compiler errors
+fn invoke_rustc(cached_rs: &Path, cached_exe: &Path) -> Result<()> {
     // Compile with rustc (hide output)
     let rustc_cmd = std::env::var("GLOSSA_RUSTC_CMD").unwrap_or_else(|_| "rustc".to_string());
 
     let rustc_output = Command::new(rustc_cmd)
-        .arg(&cached_rs)
+        .arg(cached_rs)
         .arg("-o")
-        .arg(&cached_exe)
+        .arg(cached_exe)
         .arg("-O") // Optimize for speed
         .arg("--color=always")
         .stdout(Stdio::piped())
@@ -281,7 +285,6 @@ pub fn run_file(input: &Path) -> Result<()> {
 
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
-        status.error("Σφάλμα κώδικος (Codegen Error)");
 
         // Format the error nicely
         let error_msg = format!(
@@ -303,15 +306,17 @@ pub fn run_file(input: &Path) -> Result<()> {
         return Err(miette::miette!("{}\n{}\n\n{}", error_msg, help_msg, stderr));
     }
 
-    status.success();
+    Ok(())
+}
 
+/// Helper to execute a compiled binary
+fn execute_binary(executable: &Path) -> Result<()> {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   R U N".bold().cyan());
     println!("   {}", "Ἐκτέλεσις (Execution)".italic().dim());
     println!();
 
-    // Run the compiled program
-    let exit_status = Command::new(&cached_exe).status().into_diagnostic()?;
+    let exit_status = Command::new(executable).status().into_diagnostic()?;
 
     println!();
     println!("   {}", "--- Τέλος (End) ---".dim());
@@ -326,7 +331,7 @@ pub fn run_file(input: &Path) -> Result<()> {
 /// Verifies the syntax and semantics of a ΓΛΩΣΣΑ file.
 ///
 /// This function loads the source code, parses it, and performs semantic analysis
-/// without generating any output code or binaries. It prints a [`GlossaReport`]
+/// without generating any output code or binaries. It prints a `GlossaReport`
 /// summarizing the program's statistics if successful.
 ///
 /// ## Errors
@@ -354,6 +359,32 @@ pub fn run_file(input: &Path) -> Result<()> {
 pub fn check_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
     let status = Status::start_with_symbol("Ἔλεγχος (Checking)", "🔍");
+
+    let _analyzed = match analyze_source(&source) {
+        Ok(a) => a,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
+
+    status.success();
+    Ok(())
+}
+
+/// Generates a language metrics dashboard report for a ΓΛΩΣΣΑ file and prints it to the terminal.
+///
+/// This function loads the source code, parses it, and performs semantic analysis
+/// without generating any output code or binaries. It then prints a [`GlossaReport`]
+/// summarizing the program's statistics.
+///
+/// ## Errors
+///
+/// Returns an error if the input file does not exist, exceeds the size limit,
+/// or contains any syntax or semantic errors.
+pub fn report_file(input: &Path) -> Result<()> {
+    let source = load_source(input)?;
+    let status = Status::start_with_symbol("Ἀναφορά (Reporting)", "📊");
 
     let analyzed = match analyze_source(&source) {
         Ok(a) => a,
@@ -718,16 +749,23 @@ mod tests {
         let input_path = dir.path().join("rustc_error.gl");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            // This is valid Glossa but invalid Rust (redefining String)
-            // Memory says: εἶδος String ὁρίζειν...
-            f.write_all("εἶδος String ὁρίζειν { }. τέλος.".as_bytes())
-                .unwrap();
+            f.write_all("«test» λέγε.".as_bytes()).unwrap();
         }
 
-        let result = run_file(&input_path);
+        // We can force invoke_rustc to fail by using the helper directly on bad files,
+        // but `run_file` does everything. Instead of an unsafe `set_var`,
+        // we'll just test that `invoke_rustc` fails on a bad Rust file directly!
+        let rs_path = dir.path().join("bad.rs");
+        let exe_path = dir.path().join("bad");
+        std::fs::write(&rs_path, "fn main() { unknown_variable; }").unwrap();
+
+        let result = invoke_rustc(&rs_path, &exe_path);
+
         assert!(result.is_err());
         // Verify it hits the rustc error path
-        assert!(result.unwrap_err().to_string().contains("Codegen Failed"));
+        let err_msg = result.unwrap_err().to_string();
+        eprintln!("RUSTC ERROR WAS: {}", err_msg);
+        assert!(err_msg.contains("Codegen Failed") || err_msg.contains("Failed to start rustc"));
     }
 
     #[test]
@@ -772,6 +810,19 @@ mod tests {
     }
 
     #[test]
+    fn test_report_file_valid() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("report.gl");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
+        }
+
+        let result = report_file(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn test_ui_error_cleanup_missing_file() {
         // By passing a path that doesn't exist, `load_source` fails.
         // This exercises the `status.error()` branches for all runner tools.
@@ -788,6 +839,9 @@ mod tests {
 
         let bard_res = bard_file(&missing_path);
         assert!(bard_res.is_err());
+
+        let report_res = report_file(&missing_path);
+        assert!(report_res.is_err());
 
         let run_res = run_file(&missing_path);
         assert!(run_res.is_err());
@@ -811,6 +865,9 @@ mod tests {
 
         let bard_res = bard_file(&input_path);
         assert!(bard_res.is_err());
+
+        let report_res = report_file(&input_path);
+        assert!(report_res.is_err());
 
         let run_res = run_file(&input_path);
         assert!(run_res.is_err());

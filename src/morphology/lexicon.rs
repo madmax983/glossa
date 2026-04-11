@@ -107,7 +107,7 @@ impl LexiconEntry {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::morphology::{lexicon::lookup, Case, PartOfSpeech};
+    /// use glossa::morphology::{lookup, Case, PartOfSpeech};
     ///
     /// let entry = lookup("αριθμος").expect("Word not found");
     /// let analysis = entry.to_analysis();
@@ -2309,7 +2309,7 @@ pub fn numeral_value(normalized_word: &str) -> Option<i64> {
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::morphology::lexicon::{BinaryOp, comparison_operator};
+/// use glossa::morphology::{BinaryOp, comparison_operator};
 ///
 /// // The Greek word for "equal" (ἴσον) translates directly to the Eq binary operator
 /// let op = comparison_operator("ισον").unwrap();
@@ -2357,7 +2357,7 @@ impl BinaryOp {}
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::morphology::lexicon::{UnaryOp, is_negation};
+/// use glossa::morphology::{UnaryOp, is_negation};
 ///
 /// // The Greek particle "οὐ" negates existence
 /// assert!(is_negation("ου"));
@@ -2447,7 +2447,7 @@ pub fn is_conditional_particle(normalized_word: &str) -> bool {
 ///
 /// # Examples
 /// ```
-/// use glossa::morphology::lexicon::ELSE_PATTERN_WORDS;
+/// use glossa::morphology::ELSE_PATTERN_WORDS;
 ///
 /// assert_eq!(ELSE_PATTERN_WORDS, ["ει", "δε", "μη"]);
 /// ```

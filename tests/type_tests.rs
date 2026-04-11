@@ -137,7 +137,7 @@ fn test_instantiation_with_word_number() {
         // "5" parses as Expr::NumberLiteral(5) in the parser?
         // Let's check parser. But patterns.rs handles Expr::Word that parses as i64 OR lookups in lexicon.
 
-        // This tests the `Expr::Word` -> `lexicon::numeral_value` path.
+        // This tests the `Expr::Word` -> `glossa::morphology::numeral_value` path.
         σ νέον Σημεῖον πέντε ἔστω.
     "#;
     let code = compile(source);
@@ -152,7 +152,7 @@ fn test_instantiation_with_explicit_numeric_word() {
     // So Expr::Word with "123" might not happen from parser, but we can try "123" string? No.
     // If the parser always produces NumberLiteral for digits, that path in patterns.rs (Expr::Word -> parse i64) might be dead code
     // unless we construct AST manually or if parser is lenient.
-    // But let's leave it. The `lexicon::numeral_value` path is covered by "πέντε".
+    // But let's leave it. The `glossa::morphology::numeral_value` path is covered by "πέντε".
 
     // What about Expr::StringLiteral for a non-String field?
     // `test_instantiation_with_literals` covers StringLiteral for String field (with .to_string()).

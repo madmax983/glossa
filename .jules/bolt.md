@@ -19,3 +19,15 @@
 **[String Formatting Optimization in Cartographer]**
 **Learning:** Using `.collect::<Vec<String>>().join(", ")` inside loops creates unnecessary intermediate heap allocations for the `Vec` and the intermediate formatted strings.
 **Action:** Replace `.collect::<Vec<String>>().join(", ")` with iterative formatting directly into a `String` buffer using `std::fmt::Write`, applying `.push_str(", ")` between elements to achieve zero intermediate allocations.
+**[Extract Dependencies Buffer Optimization]**
+**Learning:** Recursively creating and extending `Vec<String>` allocations for dependency extraction is inefficient.
+**Action:** Refactored `extract_dependencies` to pass a `&mut Vec<String>` buffer down the recursive call tree to eliminate all intermediate collections.
+**[Closure Codegen Parameters Iteration]**
+**Learning:** When using `quote!` to generate code dynamically in `proc-macro2` or `syn`, it is unnecessary to `.collect::<Vec<_>>()` mapped iterators of identifiers into an intermediate allocation. The `quote!` macro's `#(#iter),*` repetition syntax natively accepts any iterator (that implements `Clone` if used multiple times or passed downwards).
+**Action:** Replace `let idents: Vec<_> = params.iter().map(...).collect();` with `let idents = params.iter().map(...);` and ensure helper functions accept `impl Iterator<Item = Ident> + Clone` to maintain zero-cost iterator chains without heap allocations.
+**[Quote Macro Iterators]**
+**Learning:** `quote!` repetition syntax `#(#var)*` evaluates `var` by reference, meaning `&var` must implement `IntoIterator`. While `&Vec<T>` implements it, `&impl Iterator` does not, because advancing an iterator requires mutable access. Therefore, `.collect::<Vec<_>>()` is actually required before using variables in `quote!` repetitions, and converting it to a lazy iterator will cause a compile-time error.
+**Action:** Do not try to remove `.collect::<Vec<_>>()` before `quote!` repetitions. Look for other targets.
+**[HashMap to FxHashMap in Internal Environment]**
+**Learning:** For internal interpreter environments that do not ingest arbitrary user string keys in a hash-collision scenario, the standard library `HashMap` (using SipHash) introduces unnecessary cryptographic hashing overhead. Switching to `rustc_hash::FxHashMap` provides a measurable speedup for variable resolution and lookups without introducing new dependencies, as it is often already present in compiler toolchains.
+**Action:** Replace `HashMap` with `FxHashMap` in internal state environments or symbol tables where HashDoS is not a threat model.

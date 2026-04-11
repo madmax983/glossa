@@ -33,8 +33,7 @@
 //!     Printable <|.. User : implements
 //! ```
 
-use crate::parser::parse;
-use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, analyze_program};
+use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType};
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
@@ -50,18 +49,11 @@ pub fn run_map(input: &Path) -> Result<()> {
 
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
 
-    let ast = match parse(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("{}", e));
-        }
-    };
-    let program = match analyze_program(&ast) {
+    let program = match crate::tools::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
-            status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("{}", e));
+            status.error("Σφάλμα (Error)");
+            return Err(e);
         }
     };
 
@@ -134,7 +126,9 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
                 map.push_str(&format!("        +{}: {}\n", field_name, field_type));
 
                 // Extract dependencies (associations)
-                for dep in extract_dependencies(field_type) {
+                let mut deps = Vec::new();
+                extract_dependencies(field_type, &mut deps);
+                for dep in deps {
                     if dep != *name {
                         // Avoid self-reference arrows if desired (or keep them?)
                         // We only want arrows to other defined structs
@@ -224,26 +218,23 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
 }
 
 /// Helper to recursively extract struct names from a type
-fn extract_dependencies(ty: &GlossaType) -> Vec<String> {
+fn extract_dependencies(ty: &GlossaType, buffer: &mut Vec<String>) {
     match ty {
-        GlossaType::Struct { name, .. } => vec![name.to_string()],
+        GlossaType::Struct { name, .. } => buffer.push(name.to_string()),
         GlossaType::List(inner) | GlossaType::Set(inner) | GlossaType::Option(inner) => {
-            extract_dependencies(inner)
+            extract_dependencies(inner, buffer);
         }
         GlossaType::Map(k, v) | GlossaType::Result(k, v) => {
-            let mut deps = extract_dependencies(k);
-            deps.extend(extract_dependencies(v));
-            deps
+            extract_dependencies(k, buffer);
+            extract_dependencies(v, buffer);
         }
         GlossaType::Function { params, returns } => {
-            let mut deps = vec![];
             for p in params {
-                deps.extend(extract_dependencies(p));
+                extract_dependencies(p, buffer);
             }
-            deps.extend(extract_dependencies(returns));
-            deps
+            extract_dependencies(returns, buffer);
         }
-        _ => vec![],
+        _ => {}
     }
 }
 

@@ -31,10 +31,10 @@
 //! This allows for authentic Greek syntax where emphasis is conveyed through word order
 //! without changing the semantic meaning.
 
-pub mod analyzer;
+pub(crate) mod analyzer;
 #[cfg(test)]
 mod assembler_tests;
-pub mod assembly;
+pub(crate) mod assembly;
 #[cfg(test)]
 mod classification_tests;
 pub(crate) mod control_flow;
@@ -57,7 +57,7 @@ mod types;
 pub(crate) mod validation;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
-pub use analyzer::{AnalyzedProgram, analyze_program};
+pub use analyzer::{AnalyzedProgram, analyze_program, analyze_statement};
 pub use assembly::Assembler;
 pub use assembly::{
     AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,
@@ -71,6 +71,30 @@ use crate::ast::Statement;
 use crate::errors::GlossaError;
 
 /// Analyze a single statement using the slot-based assembler
+///
+/// # Why it exists
+///
+/// This function is the main entry point into the slot-based assembly system for a complete
+/// statement. Instead of manually feeding words and expressions to an [`Assembler`] and
+/// tracking context, this function coordinates the parsing of all clauses within a statement.
+/// It creates the assembler, iterates over the clauses and their constituent expressions, and
+/// handles the disambiguation context automatically before finalizing the assembled semantic structure.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::parser::parse;
+/// use glossa::semantic::assemble_statement;
+///
+/// // Create an AST with a single statement: "Say hello."
+/// let ast = parse("«χαῖρε» λέγε.").unwrap();
+///
+/// // Assemble the statement into grammatical slots
+/// let assembled = assemble_statement(&ast.statements[0]).unwrap();
+///
+/// // The verb slot should be filled
+/// assert!(assembled.verb.is_some());
+/// ```
 pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
     let mut asm = Assembler::new();
     asm.set_query(stmt.is_query());
@@ -159,3 +183,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod control_flow_coverage_tests;
