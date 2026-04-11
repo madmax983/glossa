@@ -92,9 +92,14 @@ pub fn try_parse_method_call(
     let method_name = &method_word.normalized;
     let receiver_name = &receiver_word.normalized;
 
-    // Check if receiver is a variable in scope
-    let Some(receiver_type) = scope.lookup(receiver_name) else {
-        return Ok(None);
+    // Check if receiver is a variable in scope, but allow "self" for method bodies
+    let receiver_type = if receiver_name == "self" {
+        &GlossaType::Unknown
+    } else {
+        match scope.lookup(receiver_name) {
+            Some(t) => t,
+            None => return Ok(None),
+        }
     };
 
     let GlossaType::Struct {
