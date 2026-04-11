@@ -8,11 +8,14 @@
 //! Compiler feedback should be more than just "Error" or "Success".
 //! ΓΛΩΣΣΑ strives to provide **insights** into the code:
 //!
+//!
+//! # Understanding the output
+//! The report contains the cyclomatic complexity of a given file. This is generally proxy by the conditional_count value
 //! * How complex is the program? (Cyclomatic complexity proxy via `conditional_count`)
 //! * How deep is the nesting? (`max_depth`)
 //! * How "functional" vs "imperative" is the style? (Expression vs Statement count)
 //!
-//! The [`GlossaReport`] provides a dashboard-style summary of these metrics.
+//! The `GlossaReport` provides a dashboard-style summary of these metrics.
 
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;

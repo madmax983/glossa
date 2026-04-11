@@ -43,3 +43,6 @@
 ## 2024-04-03 - Fixing Broken Intra-Doc Links
 **Confusion:** The documentation contained broken links to internal private modules (`parser::grammar` and `cache`), causing warnings during `cargo doc`.
 **Clarification:** Updated the intra-doc links to point to the exported, public equivalents (`parser` and `Cache`) so that the documentation correctly resolves and is warning-free.
+## 2024-04-11 - Tolerating broken links for private modules
+**Confusion:** Resolving intra-doc link warnings for `GlossaReport` fails when following persona rules that mandate making items clickable using `[GlossaReport]`. It fails since `report` module is internal (`pub(crate)`) and making `GlossaReport` public without exposing the `report` module would cause tests to fail since `[GlossaReport]` still cannot resolve or tests expecting proper module privacy paths will fail. Making `report` module public just for the sake of the docs also violates keeping internal implementations private.
+**Clarification:** I learned that it is completely fine to remove the `[ ]` characters and use `` `GlossaReport` `` to render the name as an inline code snippet. This resolves the `cargo doc` warnings and does not break tests or compromise module privacy, while still looking professional in the HTML output.
