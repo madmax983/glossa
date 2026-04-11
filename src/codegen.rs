@@ -1553,6 +1553,34 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_unary_op_neg_checked() {
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(10),
+            glossa_type: GlossaType::Number,
+        };
+        let code = generate_unary_op(UnaryOp::Neg, &expr).to_string();
+        assert!(code.contains("checked_neg"));
+        assert!(code.contains("expect"));
+        assert!(code.contains("arithmetic overflow"));
+    }
+
+    #[test]
+    fn test_generate_collection_index_bounds_check() {
+        let array = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable("arr".into()),
+            glossa_type: GlossaType::List(Box::new(GlossaType::Number)),
+        };
+        let index = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(10),
+            glossa_type: GlossaType::Number,
+        };
+        let code = generate_collection_index(&array, &index).to_string();
+        assert!(code.contains("try_from"));
+        assert!(code.contains("expect"));
+        assert!(code.contains("index out of bounds"));
+    }
+
+    #[test]
     fn test_generate_control_unwrap() {
         let expr = AnalyzedExpr {
             expr: AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
