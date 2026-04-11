@@ -568,7 +568,10 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
             let var_type = scope
                 .lookup(normalized)
                 .cloned()
-                .unwrap_or(GlossaType::Number);
+                .unwrap_or(GlossaType::Unknown);
+            if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
+                return Err(GlossaError::undefined(normalized.clone()));
+            }
             return Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(normalized.clone()),
                 glossa_type: var_type,
@@ -592,6 +595,19 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
                 glossa_type: GlossaType::Number,
             });
         }
+
+        let var_type = scope
+            .lookup(normalized)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
+        if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
+            return Err(GlossaError::undefined(normalized.clone()));
+        }
+
+        return Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(normalized.clone()),
+            glossa_type: var_type,
+        });
     }
 
     Err(GlossaError::semantic("Invalid match pattern"))

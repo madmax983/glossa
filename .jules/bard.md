@@ -37,3 +37,6 @@
 ## 2026-03-18 - [The Semantic Model]
 **Confusion:** Lack of documentation for the semantic models in `src/semantic/model.rs` which serves as the core data container.
 **Clarification:** Added comprehensive module-level documentation explaining the Atlas pattern, the separation of logic, types, and state, and included a code example illustrating an analyzed binding statement.
+## 2026-03-18 - [The Sentential Assembled Statement]
+**Confusion:** The semantic assembler structures, particularly `AssembledStatement` and `Constituent`, lacked any explicit explanation of why they exist as intermediate layers or how they relate to Ancient Greek's word order independence.
+**Clarification:** I added robust module-level docs to these structs. The `Constituent` docs now clarify that it bridges raw morphology with syntax verification, while `AssembledStatement` docs explain how it acts as "buckets" for different case roles, enabling word-order flexibility before semantic meaning (e.g. print vs loop vs function call) is inferred.
