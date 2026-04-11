@@ -112,3 +112,7 @@ Signed,
 **2024-05-15 - Unbounded File Read DoS in Weave Test**
 **Threat:** The `test_run_weave_success` test was using `std::fs::read_to_string`, which loads an entire file into memory without limits. An attacker could theoretically use a massive file to exhaust memory and crash the test environment (DoS).
 **Defense:** Replaced the unbounded read with a capped reader using `std::io::Read::take()` and `1024 * 1024 + 1` limit, preventing memory exhaustion.
+
+**2026-10-27 - [Hardening unwrap in Perfect participle codegen]**
+**Threat:** Code generated for Perfect participles (`CaptureMode::Memoize`) contained an `.unwrap()` on the Option cache. While logically guaranteed to be `Some` because it was immediately initialized if `None`, using `unwrap()` directly relies on implicit invariants that could fail under future refactoring, bypassing explicit panic tracking.
+**Defense:** Replaced `.unwrap()` with `.expect("memoized value should be initialized")` in `src/codegen.rs`. Updated the corresponding unit test assertions in `tests/option_result_tests.rs` and `src/codegen.rs` to enforce this exact panic string, hardening the test suite against generic unwraps.

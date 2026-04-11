@@ -303,8 +303,8 @@ fn test_unwrap_in_expression() {
 
     // Should contain unwrap
     assert!(
-        output.contains("unwrap"),
-        "Expected 'unwrap' in output: {}",
+        output.contains("expect"),
+        "Expected 'expect' in output: {}",
         output
     );
 }
@@ -373,8 +373,8 @@ fn test_result_unwrap() {
         output
     );
     assert!(
-        output.contains("unwrap"),
-        "Expected 'unwrap()' in output: {}",
+        output.contains("expect"),
+        "Expected 'expect' in output: {}",
         output
     );
 }
@@ -536,8 +536,8 @@ fn test_unwrap_preserves_value() {
     let output = compile(source).unwrap();
 
     assert!(
-        output.contains("unwrap"),
-        "Expected 'unwrap' in: {}",
+        output.contains("expect"),
+        "Expected 'expect' in: {}",
         output
     );
 }
@@ -600,8 +600,8 @@ fn test_option_workflow() {
         "Expected at least 2 println calls, got {}",
         println_count
     );
-    // Should have unwrap call
-    assert!(output.contains("unwrap"), "Expected unwrap in: {}", output);
+    // Should have expect call
+    assert!(output.contains("expect"), "Expected expect in: {}", output);
 }
 
 #[test]
@@ -777,10 +777,10 @@ fn test_propagation_vs_unwrap() {
     let unwrap_output = compile(unwrap_source).unwrap();
     let propagate_output = compile(propagate_source).unwrap();
 
-    // Unwrap should have .unwrap()
+    // Unwrap should have .expect()
     assert!(
-        unwrap_output.contains("unwrap"),
-        "Expected unwrap in: {}",
+        unwrap_output.contains("expect"),
+        "Expected expect in: {}",
         unwrap_output
     );
 
