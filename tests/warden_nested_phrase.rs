@@ -15,8 +15,8 @@ fn test_nested_phrase_binding_error() {
 
 #[test]
 fn test_function_definition_scope() {
-    // Note: Added trailing period
-    let source = "συνάρτησις ὁρίζειν (χ)· { χ. }.";
+    // Note: Added trailing period and return verb to avoid missing verb error
+    let source = "συνάρτησις ὁρίζειν (χ)· { δὸς χ. }.";
     let ast = parse(source).unwrap();
     let result = analyze_program(&ast);
 

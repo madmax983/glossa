@@ -895,9 +895,25 @@ impl Assembler {
             || self.state.object.is_some()
             || !self.state.literals.is_empty();
 
-        if self.state.verb.is_none() && has_content && !self.state.is_query {
-            // Allow verbless statements for queries and pure literal expressions
-            // But for now, let's be lenient
+        let has_only_literals = !self.state.literals.is_empty()
+            && self.state.subject.is_none()
+            && self.state.object.is_none()
+            && self.state.indirect.is_none()
+            && self.state.operators.is_empty();
+
+        let is_operator_expr = !self.state.operators.is_empty();
+
+        let is_pure_expression = !self.state.blocks.is_empty()
+            || !self.state.nested_phrases.is_empty()
+            || !self.state.unwraps.is_empty()
+            || !self.state.property_accesses.is_empty()
+            || !self.state.index_accesses.is_empty()
+            || !self.state.arrays.is_empty()
+            || has_only_literals
+            || is_operator_expr;
+
+        if self.state.verb.is_none() && has_content && !self.state.is_query && !self.state.is_propagate && !is_pure_expression {
+            return Err(AssemblyError::MissingVerb);
         }
 
         // Check subject-verb agreement if both present
@@ -1126,6 +1142,40 @@ mod tests {
     use crate::morphology::{Tense, Voice, analyze};
 
     #[test]
+    fn test_missing_verb_error() {
+        let mut asm = Assembler::new();
+        // Feed subject
+        let subj = analyze("ανθρωπος");
+        asm.feed(&subj, "ἄνθρωπος").unwrap();
+
+        let stmt = asm.finalize();
+        // We print the actual result to see why it's not MissingVerb if it fails
+        assert!(matches!(stmt, Err(AssemblyError::MissingVerb)), "Expected MissingVerb, got {:?}", stmt);
+    }
+
+    #[test]
+    fn test_missing_verb_bypassed_for_query() {
+        let mut asm = Assembler::new();
+        // Feed subject
+        let subj = analyze("ανθρωπος");
+        asm.feed(&subj, "ἄνθρωπος").unwrap();
+        asm.set_query(true);
+
+        let stmt = asm.finalize();
+        assert!(stmt.is_ok());
+    }
+
+    #[test]
+    fn test_missing_verb_bypassed_for_pure_expression() {
+        let mut asm = Assembler::new();
+        // Feed literal only
+        asm.feed_number(5).unwrap();
+
+        let stmt = asm.finalize();
+        assert!(stmt.is_ok());
+    }
+
+    #[test]
     fn test_try_create_string_method_invalid_literal_fallback() {
         let mut asm = Assembler::new();
         asm.state.has_delimiter_preposition = true;
@@ -1276,6 +1326,9 @@ mod tests {
         let subj2 = analyze("θεος");
         asm.feed(&subj2, "θεός").unwrap(); // Should succeed now
 
+        let verb = analyze("λεγει");
+        asm.feed(&verb, "λέγει").unwrap();
+
         let stmt = asm.finalize().unwrap();
         assert!(stmt.subject.is_some());
         assert_eq!(stmt.nominatives.len(), 1); // Second nominative in the list
@@ -1318,6 +1371,9 @@ mod tests {
 
         let nom = analyze("ονομα");
         asm.feed(&nom, "ὄνομα").unwrap();
+
+        let verb = analyze("λεγει");
+        asm.feed(&verb, "λέγει").unwrap();
 
         let stmt = asm.finalize().unwrap();
         assert_eq!(stmt.genitives.len(), 1);
@@ -2044,6 +2100,9 @@ mod tests {
         // PartOfSpeech::Noun but case: None
         let unknown = make_analysis("unknown", PartOfSpeech::Noun, None, Some(Number::Singular));
         asm.feed(&unknown, "unknown").unwrap();
+
+        let verb = analyze("λεγει");
+        asm.feed(&verb, "λέγει").unwrap();
 
         let stmt = asm.finalize().unwrap();
 

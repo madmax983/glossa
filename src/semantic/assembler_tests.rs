@@ -106,6 +106,9 @@ fn test_ordinal_not_ignored_without_subject() {
     let is_verb = analyze("εστι");
     asm.feed(&is_verb, "ἐστί").unwrap();
 
+    let verb_feed = analyze("λεγει");
+    asm.feed(&verb_feed, "λέγει").unwrap();
+
     let stmt = asm.finalize().unwrap();
 
     assert!(stmt.subject.is_some(), "Subject should be present");
@@ -140,6 +143,9 @@ fn test_length_property_not_ignored_without_subject() {
 
     // Feed "5"
     asm.feed_number(5).unwrap();
+
+    let verb_feed = analyze("λεγει");
+    asm.feed(&verb_feed, "λέγει").unwrap();
 
     let stmt = asm.finalize().unwrap();
 
@@ -782,14 +788,10 @@ fn test_verbless_statement() {
     // No verb fed.
 
     let stmt = asm.finalize();
-    // Current behavior allows verbless statements if they have content.
     assert!(
-        stmt.is_ok(),
-        "Verbless statement with content should be allowed"
+        stmt.is_err(),
+        "Verbless statement with content should NOT be allowed"
     );
-    let s = stmt.unwrap();
-    assert!(s.subject.is_some());
-    assert!(s.verb.is_none());
 }
 
 // From atlas_refactor_coverage.rs
@@ -888,6 +890,9 @@ fn test_assembler_numeral_coverage() {
     // "πέντε" (5)
     let five = analyze("πεντε");
     asm.feed(&five, "πέντε").unwrap();
+
+    let verb = analyze("λεγει");
+    asm.feed(&verb, "λέγει").unwrap();
 
     let stmt = asm.finalize().unwrap();
     assert_eq!(stmt.literals.len(), 1);
