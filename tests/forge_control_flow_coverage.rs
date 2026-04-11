@@ -125,6 +125,8 @@ fn test_parse_for_range_loop_variable_resolution() {
     let mut scope = Scope::new();
     let var_a_str: SmolStr = "var_a".into();
     scope.define(var_a_str, GlossaType::Number);
+    let var_b_str: SmolStr = "var_b".into();
+    scope.define(var_b_str, GlossaType::Number);
     let res = analyze_statement(&stmt, &mut scope);
     assert!(res.is_ok());
 }
