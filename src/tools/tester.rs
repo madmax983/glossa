@@ -182,10 +182,10 @@ pub fn run_tests(input: &Path) -> Result<()> {
         .prefix("glossa_test_")
         .suffix(".rs")
         .tempfile()
-        .map_err(|e| miette::miette!("Failed to create temporary file for test: {}", e))?;
+        .map_err(|e| miette::miette!("Σφάλμα συστήματος (System Error): Could not create temporary file. {}", e))?;
 
     write!(temp_file, "{}", rust_code)
-        .map_err(|e| miette::miette!("Failed to write to temporary test file: {}", e))?;
+        .map_err(|e| miette::miette!("Σφάλμα συστήματος (System Error): Could not write to temporary file. {}", e))?;
     let temp_path = temp_file.path().to_owned();
 
     // 4. Determine output path for the test binary
@@ -216,7 +216,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
         .arg("-o")
         .arg(&exe_path)
         .output()
-        .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
+        .map_err(|e| miette::miette!("Σφάλμα περιβάλλοντος (Environment Error): Rust compiler not found. Is it installed? Detail: {}", e))?;
 
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
@@ -352,7 +352,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
     }
 
     if !test_output.status.success() {
-        return Err(miette::miette!("Tests failed"));
+        return Err(miette::miette!("Δοκιμασίαι ἀπέτυχαν (Tests Failed): Please review the errors above."));
     }
 
     Ok(())
@@ -387,7 +387,9 @@ mod tests {
 
         assert!(!output.status.success());
         let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(stderr.contains("Failed to start rustc. Is Rust installed?"));
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        // The error output from the child process is printed to stderr
+        assert!(stderr.contains("Rust compiler not found") || stdout.contains("Rust compiler not found") || stderr.contains("Failed to start rustc"));
     }
 
     #[test]

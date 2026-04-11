@@ -31,14 +31,14 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
         Ok(a) => a,
         Err(e) => {
             status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("Parse error: {}", e));
+            return Err(miette::miette!("{}", e));
         }
     };
     let program = match analyze_program(&ast) {
         Ok(p) => p,
         Err(e) => {
             status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("Semantic error: {}", e));
+            return Err(miette::miette!("{}", e));
         }
     };
 
@@ -530,7 +530,7 @@ mod tests {
         }
         let result = run_alchemist(&input_path);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Parse error"));
+        assert!(result.unwrap_err().to_string().contains("Σφάλμα συντάξεως"));
     }
 
     #[test]
@@ -545,6 +545,6 @@ mod tests {
         }
         let result = run_alchemist(&input_path);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Semantic error"));
+        assert!(result.unwrap_err().to_string().contains("Ἄγνωστον ὄνομα"));
     }
 }

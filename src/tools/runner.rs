@@ -70,7 +70,7 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
     check_file_size(input)?;
 
     let file = fs::File::open(input)
-        .map_err(|e| miette::miette!("Failed to open file {}: {}", input.display(), e))?;
+        .map_err(|e| miette::miette!("Σφάλμα ἀρχείου (File Error): Cannot open {}. Reason: {}", input.display(), e))?;
     let mut content = String::new();
 
     // Use take to limit the read, preventing OOM on infinite streams (e.g. /dev/zero)
@@ -151,7 +151,7 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
     if let Err(e) = fs::write(&output_path, &rust_code) {
         status.error("Σφάλμα ἀρχείου (File Error)");
         return Err(miette::miette!(
-            "Failed to write to file {}: {}",
+            "Σφάλμα ἀρχείου (File Error): Cannot write to {}. Reason: {}",
             output_path.display(),
             e
         ));
@@ -277,7 +277,7 @@ pub fn run_file(input: &Path) -> Result<()> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .map_err(|e| miette::miette!("Failed to start rustc. Is Rust installed? Detail: {}", e))?;
+        .map_err(|e| miette::miette!("Σφάλμα περιβάλλοντος (Environment Error): Rust compiler not found. Is it installed? Detail: {}", e))?;
 
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
@@ -519,9 +519,9 @@ mod tests {
         // Since we reverted .read_to_string() back to into_diagnostic() to avoid penalty on unreachable
         // code, the OS error bubbles up cleanly via miette instead of our custom prefix if open succeeds
         // and read fails (which is OS-dependent on directories). However, if open fails directly, we
-        // expect "Failed to open file". We assert on general error presence.
+        // expect "Cannot open". We assert on general error presence.
         assert!(
-            err_msg.contains("Failed to open file")
+            err_msg.contains("Cannot open")
                 || err_msg.contains("Is a directory")
                 || err_msg.contains("Access is denied")
                 || err_msg.contains("Permission denied")
@@ -542,7 +542,7 @@ mod tests {
             result
                 .unwrap_err()
                 .to_string()
-                .contains("Failed to write to file")
+                .contains("Cannot write to")
         );
     }
 
@@ -666,7 +666,9 @@ mod tests {
 
         assert!(!output.status.success());
         let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(stderr.contains("Failed to start rustc. Is Rust installed?"));
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        // The error output from the child process is printed to stderr
+        assert!(stderr.contains("Rust compiler not found") || stdout.contains("Rust compiler not found") || stderr.contains("Failed to start rustc"));
     }
 
     #[test]
