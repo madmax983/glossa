@@ -175,7 +175,7 @@ pub fn classify_assembled_statement(
         return Ok(res);
     }
 
-    classify_expression(asm_stmt)
+    classify_expression(asm_stmt, scope)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1103,7 +1103,10 @@ fn classify_containment_query(
 }
 
 /// Helper: Default expression
-fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatement, GlossaError> {
+fn classify_expression(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<AnalyzedStatement, GlossaError> {
     // Determine if we should attempt to build expressions from literals+operators
     // or if we are in a fallback scenario (using Subject/Object with operators).
     // If literals < operators + 1, build_expressions_from_literals_and_ops will fail.
@@ -1174,6 +1177,34 @@ fn classify_expression(asm_stmt: &AssembledStatement) -> Result<AnalyzedStatemen
                 expr: AnalyzedExprKind::Try(Box::new(last_expr)),
             };
             exprs.push(try_expr);
+        }
+    }
+
+    // Warden Check: If we have an expression (like a fallback Subject/Object)
+    // but no verb, and we are not a query, we must reject it to prevent Codegen ICE.
+    // Notice that we also check if `is_query` is false, but we can't fully rely on that for control flow
+    // conditions because they are parsed as expressions but sometimes lack verbs entirely.
+    // Instead of forcing `MissingVerb` here during condition parsing, we will only throw it if it's
+    // NOT a query AND it's not part of a larger control flow / binary operation / literal.
+    if !exprs.is_empty() && asm_stmt.verb.is_none() && !asm_stmt.is_query {
+        // Exception: pure literal expressions without subject/object (like '1.' or 'true.') are fine
+        // Exception 2: binary operators and fallbacks are allowed to be verbless (e.g. `ξ μηδενὸς μεῖζον` for control flow conditions)
+        let is_pure_literal = asm_stmt.subject.is_none() && asm_stmt.object.is_none();
+        let is_binary_op = !asm_stmt.operators.is_empty();
+
+        // Let's only enforce MissingVerb if it's purely a single variable expression without any operators or literals attached,
+        // which matches the 'ὁ ἄνθρωπος.' failure case without breaking control flow conditions which rely on verbless binary operations.
+        if !is_pure_literal && !is_binary_op && exprs.len() == 1 {
+            // Check if it's a standalone variable
+            if let AnalyzedExprKind::Variable(ref name) = exprs[0].expr {
+                // If it's an undefined variable, we throw MissingVerb!
+                // This prevents the codegen ICE while allowing valid control flow conditions.
+                if !scope.is_defined(name) {
+                    return Err(GlossaError::AssemblyError(
+                        crate::errors::AssemblyError::MissingVerb,
+                    ));
+                }
+            }
         }
     }
 
@@ -2797,6 +2828,7 @@ mod tests {
 
     #[test]
     fn test_classify_expression_empty_exprs_propagate() {
+        let scope = Scope::new();
         // Create an AssembledStatement that will produce an empty `exprs` array
         // but has `is_propagate` set to true.
         let asm_stmt = AssembledStatement {
@@ -2805,7 +2837,7 @@ mod tests {
         };
         // No literals, operators, subject, object, or nested phrases -> exprs will be empty.
 
-        let result = classify_expression(&asm_stmt);
+        let result = classify_expression(&asm_stmt, &scope);
         assert!(result.is_ok());
 
         if let AnalyzedStatement::Expression(exprs) = result.unwrap() {

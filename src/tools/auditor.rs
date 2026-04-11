@@ -2,6 +2,8 @@ use crate::parser::parse;
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, analyze_program};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::{Attribute, Cell, Color, Table};
 use miette::Result;
 use smol_str::SmolStr;
 use std::collections::{HashMap, HashSet};
@@ -56,12 +58,21 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         input.display()
     );
 
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL);
+    table.set_header(vec![
+        Cell::new("Type").add_attribute(Attribute::Bold),
+        Cell::new("Variable").add_attribute(Attribute::Bold),
+        Cell::new("Message").add_attribute(Attribute::Bold),
+    ]);
+
     for (var, count) in &visitor.usage_count {
         if *count == 0 {
-            println!(
-                "⚠️  \x1b[1;33mUnused Variable:\x1b[0m Variable '{}' is declared but never used.",
-                var
-            );
+            table.add_row(vec![
+                Cell::new("⚠️ Unused Variable").fg(Color::Yellow),
+                Cell::new(var),
+                Cell::new("Declared but never used"),
+            ]);
             issues += 1;
         }
     }
@@ -71,10 +82,11 @@ pub fn run_auditor(input: &Path) -> Result<()> {
             && visitor.mutable_vars.contains(var)
             && visitor.usage_count.get(var).unwrap_or(&0) > &0
         {
-            println!(
-                "💡 \x1b[1;34mUnnecessary Mutation:\x1b[0m Variable '{}' is declared mutable ('μετά') but never changed.",
-                var
-            );
+            table.add_row(vec![
+                Cell::new("💡 Unnecessary Mutation").fg(Color::Blue),
+                Cell::new(var),
+                Cell::new("Declared mutable ('μετά') but never changed"),
+            ]);
             issues += 1;
         }
     }
@@ -82,6 +94,7 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     if issues == 0 {
         println!("✨ \x1b[1;32mNo issues found. The code is pure.\x1b[0m");
     } else {
+        println!("{table}");
         println!("\nTotal issues found: {}", issues);
     }
 

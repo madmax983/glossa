@@ -28,3 +28,6 @@
 **[Quote Macro Iterators]**
 **Learning:** `quote!` repetition syntax `#(#var)*` evaluates `var` by reference, meaning `&var` must implement `IntoIterator`. While `&Vec<T>` implements it, `&impl Iterator` does not, because advancing an iterator requires mutable access. Therefore, `.collect::<Vec<_>>()` is actually required before using variables in `quote!` repetitions, and converting it to a lazy iterator will cause a compile-time error.
 **Action:** Do not try to remove `.collect::<Vec<_>>()` before `quote!` repetitions. Look for other targets.
+**[HashMap to FxHashMap in Internal Environment]**
+**Learning:** For internal interpreter environments that do not ingest arbitrary user string keys in a hash-collision scenario, the standard library `HashMap` (using SipHash) introduces unnecessary cryptographic hashing overhead. Switching to `rustc_hash::FxHashMap` provides a measurable speedup for variable resolution and lookups without introducing new dependencies, as it is often already present in compiler toolchains.
+**Action:** Replace `HashMap` with `FxHashMap` in internal state environments or symbol tables where HashDoS is not a threat model.
