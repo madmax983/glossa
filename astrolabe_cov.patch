@@ -1,0 +1,37 @@
+--- src/tools/astrolabe.rs
++++ src/tools/astrolabe.rs
+@@ -116,4 +116,33 @@
+         let result = run_astrolabe(&input_path);
+         assert!(result.is_ok(), "{:?}", result.unwrap_err());
+     }
++
++    #[test]
++    fn test_run_astrolabe_parse_error() {
++        let dir = tempfile::tempdir().unwrap();
++        let input_path = dir.path().join("astrolabe_parse_err.γλ");
++        std::fs::write(&input_path, b"invalid syntax").unwrap();
++
++        let result = run_astrolabe(&input_path);
++        assert!(result.is_err());
++    }
++
++    #[test]
++    fn test_run_astrolabe_semantic_error() {
++        let dir = tempfile::tempdir().unwrap();
++        let input_path = dir.path().join("astrolabe_semantic_err.γλ");
++        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
++
++        let result = run_astrolabe(&input_path);
++        assert!(result.is_err());
++    }
++
++    #[test]
++    fn test_run_astrolabe_execution_error_and_output() {
++        let dir = tempfile::tempdir().unwrap();
++        let input_path = dir.path().join("astrolabe_exec_err.γλ");
++        std::fs::write(&input_path, "«test output» λέγε. 1 0 μερισμός λέγε.").unwrap();
++
++        let result = run_astrolabe(&input_path);
++        assert!(result.is_ok());
++    }
+ }
