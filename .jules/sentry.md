@@ -57,3 +57,7 @@
 **Sentry Unit Tests Added for Control Flow Branches**
 **Learning:** Found coverage gaps in `src/semantic/control_flow.rs` for `parse_conditional`, `check_else_pattern_in_expression`, and `check_conditional_start`. Realized that coverage unit tests for internal modules `pub(crate)` cannot be placed in the `tests/` directory as integration tests because they will trigger an `E0603: module is private` compilation error.
 **Action:** Always embed unit tests for private modules directly within the target file under `#[cfg(test)] mod tests` block to ensure they compile and increase coverage successfully without violating module visibility rules.
+
+**Coverage Improvement: Semantic Validation and Tester Modules**
+**Learning:** Adding test coverage to complex logic modules often requires artificially constructing deeply nested syntax structures (like matching/for-loops with multiple fallback/depth branches) or injecting intentional parsing errors. `cargo-llvm-cov` acts as a crucial guide for prioritizing unexecuted paths.
+**Action:** Always mock error outputs or create robust `dummy_expr` nodes to satisfy structural constraints when testing coverage gaps in recursive AST walkers and validation engines.

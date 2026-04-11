@@ -205,3 +205,95 @@ mod tests {
         assert!(result.is_ok());
     }
 }
+#[cfg(test)]
+mod additional_tests {
+    use crate::semantic::{
+        AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType,
+        validation::{check_expr_depth, check_statement_depth},
+    };
+    use smol_str::SmolStr;
+
+    #[test]
+    fn test_expr_depth_coverage() {
+        let dummy_expr = Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: GlossaType::Unknown,
+        });
+
+        // Test Some
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Some(dummy_expr.clone()),
+            glossa_type: GlossaType::Unknown,
+        };
+        assert!(check_expr_depth(&expr, 0).is_ok());
+
+        // Test UnaryOp
+        let expr2 = AnalyzedExpr {
+            expr: AnalyzedExprKind::UnaryOp {
+                op: crate::morphology::UnaryOp::Not,
+                operand: dummy_expr.clone(),
+            },
+            glossa_type: GlossaType::Unknown,
+        };
+        assert!(check_expr_depth(&expr2, 0).is_ok());
+
+        // Test IndexAccess
+        let expr3 = AnalyzedExpr {
+            expr: AnalyzedExprKind::IndexAccess {
+                array: dummy_expr.clone(),
+                index: dummy_expr.clone(),
+            },
+            glossa_type: GlossaType::Unknown,
+        };
+        assert!(check_expr_depth(&expr3, 0).is_ok());
+
+        // Test ArrayLiteral
+        let expr4 = AnalyzedExpr {
+            expr: AnalyzedExprKind::ArrayLiteral(vec![*dummy_expr.clone()]),
+            glossa_type: GlossaType::Unknown,
+        };
+        assert!(check_expr_depth(&expr4, 0).is_ok());
+
+        // Test StructInstantiation
+        let expr5 = AnalyzedExpr {
+            expr: AnalyzedExprKind::StructInstantiation {
+                type_name: SmolStr::new("Test"),
+                fields: vec![SmolStr::new("x")],
+                args: vec![*dummy_expr.clone()],
+            },
+            glossa_type: GlossaType::Unknown,
+        };
+        assert!(check_expr_depth(&expr5, 0).is_ok());
+    }
+
+    #[test]
+    fn test_statement_depth_coverage() {
+        let dummy_expr = Box::new(AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: GlossaType::Unknown,
+        });
+        let dummy_stmt = AnalyzedStatement::Break;
+
+        // Test While
+        let stmt = AnalyzedStatement::While {
+            condition: dummy_expr.clone(),
+            body: vec![dummy_stmt.clone()],
+        };
+        assert!(check_statement_depth(&stmt, 0).is_ok());
+
+        // Test For
+        let stmt2 = AnalyzedStatement::For {
+            iterator: dummy_expr.clone(),
+            variable: SmolStr::new("x"),
+            body: vec![dummy_stmt.clone()],
+        };
+        assert!(check_statement_depth(&stmt2, 0).is_ok());
+
+        // Test Match
+        let stmt3 = AnalyzedStatement::Match {
+            scrutinee: dummy_expr.clone(),
+            arms: vec![(*dummy_expr.clone(), vec![dummy_stmt.clone()])],
+        };
+        assert!(check_statement_depth(&stmt3, 0).is_ok());
+    }
+}
