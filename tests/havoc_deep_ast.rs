@@ -1,7 +1,6 @@
 use glossa::ast::{Clause, Expr, Program, Statement};
 
 #[test]
-#[ignore = "Demonstrates a SIGABRT stack overflow when directly analyzing deeply nested ASTs bypassing parser limits"]
 fn test_deep_ast_overflow_analyzer() {
     let depth = 50000;
 

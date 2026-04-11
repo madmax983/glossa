@@ -14,6 +14,7 @@ use super::patterns::{try_parse_struct_instantiation, try_parse_trait_method_cal
 use super::{AnalyzedStatement, GlossaType, Scope, assemble_statement};
 use crate::ast::{Expr, Program, Statement};
 use crate::errors::GlossaError;
+use crate::limits::MAX_AST_DEPTH;
 
 /// Analyzed program with resolved names and types
 ///
@@ -73,6 +74,20 @@ pub fn analyze_statement(
     stmt: &Statement,
     scope: &mut Scope,
 ) -> Result<Vec<AnalyzedStatement>, GlossaError> {
+    analyze_statement_recursive(stmt, scope, 0)
+}
+
+pub(crate) fn analyze_statement_recursive(
+    stmt: &Statement,
+    scope: &mut Scope,
+    depth: usize,
+) -> Result<Vec<AnalyzedStatement>, GlossaError> {
+    if depth > MAX_AST_DEPTH {
+        return Err(GlossaError::LimitExceeded {
+            resource: "statement analysis depth".into(),
+            max: MAX_AST_DEPTH,
+        });
+    }
     // 1. Check for function definitions
     if contains_function_definition_verb(stmt)
         && let Some(func_def) = parse_function_definition(stmt, scope)?
@@ -95,7 +110,7 @@ pub fn analyze_statement(
     }
 
     // 2. Check for control flow (if, while, etc.)
-    if let Some(control_flow) = analyze_control_flow(stmt, scope)? {
+    if let Some(control_flow) = analyze_control_flow(stmt, scope, depth)? {
         return Ok(vec![control_flow]);
     }
 
@@ -116,7 +131,7 @@ pub fn analyze_statement(
         // This ensures variables defined inside the block don't leak out
         let mut block_scope = scope.enter_scope();
         for s in block_stmts {
-            analyzed.extend(analyze_statement(s, &mut block_scope)?);
+            analyzed.extend(analyze_statement_recursive(s, &mut block_scope, depth + 1)?);
         }
         return Ok(analyzed);
     }

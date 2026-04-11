@@ -444,9 +444,18 @@ pub fn contains_function_definition_verb(stmt: &Statement) -> bool {
 /// assert!(!contains_verb_in_expr(&expr, "οριζειν"));
 /// ```
 pub fn contains_verb_in_expr(expr: &Expr, verb: &str) -> bool {
+    contains_verb_in_expr_recursive(expr, verb, 0)
+}
+
+fn contains_verb_in_expr_recursive(expr: &Expr, verb: &str, depth: usize) -> bool {
+    if depth > MAX_AST_DEPTH {
+        return false;
+    }
     match expr {
         Expr::Word(word) => word.normalized == verb,
-        Expr::Phrase(terms) => terms.iter().any(|t| contains_verb_in_expr(t, verb)),
+        Expr::Phrase(terms) => terms
+            .iter()
+            .any(|t| contains_verb_in_expr_recursive(t, verb, depth + 1)),
         _ => false,
     }
 }
@@ -503,6 +512,7 @@ fn feed_expr_recursive(
                     // This is a nested phrase (parenthesized expression)
                     // Store it for later analysis instead of flattening
                     if let Expr::Phrase(nested_terms) = term {
+                        check_cloning_depth_safety(term, MAX_AST_DEPTH)?;
                         asm.feed_nested_phrase(nested_terms.clone())?;
                     }
                 } else {
