@@ -128,11 +128,12 @@ fn analyze_statement_recursive(
         let mut analyzed = Vec::new();
         // Create a child scope for the block
         // This ensures variables defined inside the block don't leak out
-        let mut block_scope = scope.enter_scope();
-        for s in block_stmts {
-            analyzed.extend(analyze_statement_recursive(s, &mut block_scope, depth + 1)?);
-        }
-        return Ok(analyzed);
+        return scope.with_scope(|block_scope| {
+            for s in block_stmts {
+                analyzed.extend(analyze_statement_recursive(s, block_scope, depth + 1)?);
+            }
+            Ok(analyzed)
+        });
     }
 
     // 6. Use the assembler-based approach for regular statements

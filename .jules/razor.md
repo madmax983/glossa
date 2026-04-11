@@ -10,3 +10,7 @@
 **Bloat:** Unused deprecated `expressions()` method in `Statement` struct in `src/ast.rs`.
 **Cut:** Deleted the `expressions()` method.
 **Saved:** 13 lines of code.
+## [Reduction]
+**Bloat:** `ScopeGuard` RAII structure with explicit `Drop`, `Deref`, and `DerefMut` trait implementations in `src/semantic/resolver.rs` which added verbosity and abstraction bloat. Explicit `enter_scope()` usage forced callers to manually manage the scope lifetime or use separate code blocks (`{ ... }`).
+**Cut:** Replaced `ScopeGuard` and `enter_scope` with a single closure-based higher-order function `with_scope(|scope| { ... })`.
+**Saved:** Over 30 lines of boilerplate structs and trait implementations. Reduced cognitive load for scope lifetime management by encapsulating setup and teardown into an idiomatic Rust closure approach.

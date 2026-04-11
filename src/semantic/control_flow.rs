@@ -265,12 +265,10 @@ fn parse_for_range_loop(
     };
 
     // Use a scope guard to ensure the loop variable is removed after parsing
-    let body_analyzed = {
-        let mut loop_scope = scope.enter_scope();
+    let body_analyzed = scope.with_scope(|loop_scope| {
         loop_scope.define(variable.clone(), GlossaType::Number);
-
-        analyze_statement(&body_stmt, &mut loop_scope)?
-    };
+        analyze_statement(&body_stmt, loop_scope)
+    })?;
 
     Ok(Some(AnalyzedStatement::For {
         variable,
@@ -353,13 +351,11 @@ fn parse_for_iteration_loop(
     };
 
     // Use scope guard for loop variable
-    let body_analyzed = {
-        let mut loop_scope = scope.enter_scope();
+    let body_analyzed = scope.with_scope(|loop_scope| {
         // TODO: Infer element type from collection type
         loop_scope.define(variable.clone(), GlossaType::String);
-
-        analyze_statement(&body_stmt, &mut loop_scope)?
-    };
+        analyze_statement(&body_stmt, loop_scope)
+    })?;
 
     Ok(Some(AnalyzedStatement::For {
         variable,
