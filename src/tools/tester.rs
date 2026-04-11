@@ -63,27 +63,32 @@ struct TestResult {
     status: TestStatus,
 }
 
+/// ⚡ Bolt Optimization: Avoids intermediate `.collect::<Vec<&str>>()` allocation in
+/// `parse_test_output` by manually advancing an iterator, which is much faster.
 fn parse_test_output(output: &str) -> Vec<TestResult> {
     let mut results = Vec::new();
     for line in output.lines() {
         // Standard rustc test output line format: "test test_name ... status"
-        if line.starts_with("test ")
-            && (line.ends_with(" ... ok")
-                || line.ends_with(" ... FAILED")
-                || line.ends_with(" ... ignored"))
-        {
-            let parts: Vec<&str> = line.split_whitespace().collect();
+        if line.starts_with("test ") {
+            let status = if line.ends_with(" ... ok") {
+                TestStatus::Ok
+            } else if line.ends_with(" ... FAILED") {
+                TestStatus::Failed
+            } else if line.ends_with(" ... ignored") {
+                TestStatus::Ignored
+            } else {
+                continue;
+            };
+
+            let mut parts = line.split_whitespace();
+            let _ = parts.next(); // Skip "test"
+
             // Expected parts: ["test", "test_name", "...", "status"]
             // Sometimes there might be extra info, but name is usually at index 1
-            if parts.len() >= 4 {
-                #[allow(clippy::collapsible_if)]
-                if let [_, name, .., status_str] = parts.as_slice() {
-                    let status = match *status_str {
-                        "ok" => TestStatus::Ok,
-                        "FAILED" => TestStatus::Failed,
-                        "ignored" => TestStatus::Ignored,
-                        _ => continue,
-                    };
+            if let Some(name) = parts.next() {
+                // Ensure there are at least two more parts ("..." and status)
+                // matching the old check `if parts.len() >= 4`
+                if parts.next().is_some() && parts.next().is_some() {
                     results.push(TestResult {
                         name: name.to_string(),
                         status,
@@ -127,7 +132,8 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                 .to_string();
 
             // Capture output until next "----" or empty line followed by "failures:"
-            let mut message = String::new();
+            // ⚡ Bolt Optimization: Uses `String::with_capacity(512)` to reduce heap reallocations.
+            let mut message = String::with_capacity(512);
             while let Some(current) = lines.peek() {
                 if current.trim().starts_with("----") && current.trim().ends_with("stdout ----") {
                     // Start of next failure

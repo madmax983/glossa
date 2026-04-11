@@ -22,3 +22,6 @@
 **[Extract Dependencies Buffer Optimization]**
 **Learning:** Recursively creating and extending `Vec<String>` allocations for dependency extraction is inefficient.
 **Action:** Refactored `extract_dependencies` to pass a `&mut Vec<String>` buffer down the recursive call tree to eliminate all intermediate collections.
+**[Parse Test Output Iteration over Split]**
+**Learning:** `split_whitespace().collect::<Vec<&str>>()` is an expensive operation just to check the length and extract 2 elements from the start/end of a line. We can avoid the allocation by just advancing the `split_whitespace()` iterator and keeping track of elements.
+**Action:** Avoid `collect::<Vec<&str>>()` for parsing lines if we only need a few elements.
