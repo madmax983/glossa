@@ -451,6 +451,34 @@ pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
 }
 
 /// Generate Rust code for a single analyzed statement
+///
+/// # Why it exists
+///
+/// This function acts as a bridge between the AST semantic analysis phase and the Rust source
+/// text generation. While most of the internal code generation relies heavily on the `TokenStream`
+/// structure provided by the `quote` crate (which handles things like syntactic validation and
+/// hygiene internally), it is sometimes necessary to obtain a raw `String` representation of a
+/// translated statement, such as when embedding fragments or writing out to a file.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::semantic::{AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType};
+/// use smol_str::SmolStr;
+/// use glossa::codegen::generate_statement_code;
+///
+/// let stmt = AnalyzedStatement::Binding {
+///     name: SmolStr::new("ξ"),
+///     value: AnalyzedExpr {
+///         expr: AnalyzedExprKind::NumberLiteral(5),
+///         glossa_type: GlossaType::Number,
+///     },
+///     mutable: false,
+/// };
+///
+/// let rust_code = generate_statement_code(&stmt);
+/// // The resulting code string is `let g__u3be_ = 5i64 ;`
+/// ```
 pub fn generate_statement_code(stmt: &AnalyzedStatement) -> String {
     generate_statement(stmt).to_string()
 }

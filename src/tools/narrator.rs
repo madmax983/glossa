@@ -458,9 +458,6 @@ pub(crate) fn tell_expr(expr: &AnalyzedExpr) -> String {
         AnalyzedExprKind::NumberLiteral(n) => format!("{}", n),
         AnalyzedExprKind::BooleanLiteral(b) => format!("{}", b),
         AnalyzedExprKind::Variable(name) => format!("`{}`", name),
-        AnalyzedExprKind::PropertyAccess { owner, property } => {
-            format!("{}.{}", tell_expr(owner), property)
-        }
         AnalyzedExprKind::VerbCall { verb, args } => tell_verb_call(verb, args),
         AnalyzedExprKind::BinOp { left, op, right } => {
             format!("({} {:?} {})", tell_expr(left), op, tell_expr(right))
@@ -510,6 +507,9 @@ pub(crate) fn tell_expr(expr: &AnalyzedExpr) -> String {
         }
         AnalyzedExprKind::AssertEq { left, right } => {
             format!("assert_eq({}, {})", tell_expr(left), tell_expr(right))
+        }
+        AnalyzedExprKind::PropertyAccess { owner, property } => {
+            format!("{}.{}", tell_expr(owner), property)
         }
     }
 }
@@ -610,5 +610,178 @@ mod tests {
 
         assert!(tale.contains("PRINT"));
         assert!(tale.contains("Proclaim: \"χαῖρε\""));
+    }
+
+    #[test]
+    fn test_tell_expr_all_variants() {
+        use crate::morphology::lexicon::{BinaryOp, UnaryOp};
+        use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
+
+        let kinds = vec![
+            AnalyzedExprKind::StringLiteral("test".to_string()),
+            AnalyzedExprKind::NumberLiteral(42),
+            AnalyzedExprKind::BooleanLiteral(true),
+            AnalyzedExprKind::Variable("var".to_string().into()),
+            AnalyzedExprKind::PropertyAccess {
+                owner: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("obj".to_string().into()),
+                    glossa_type: GlossaType::Unknown,
+                }),
+                property: "prop".to_string().into(),
+            },
+            AnalyzedExprKind::VerbCall {
+                verb: "call".to_string().into(),
+                args: vec![],
+            },
+            AnalyzedExprKind::BinOp {
+                left: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+                op: BinaryOp::Add,
+                right: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(2),
+                    glossa_type: GlossaType::Number,
+                }),
+            },
+            AnalyzedExprKind::UnaryOp {
+                op: UnaryOp::Neg,
+                operand: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+            },
+            AnalyzedExprKind::Range {
+                start: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+                end: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(10),
+                    glossa_type: GlossaType::Number,
+                }),
+                inclusive: true,
+            },
+            AnalyzedExprKind::ArrayLiteral(vec![]),
+            AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            })),
+            AnalyzedExprKind::None,
+            AnalyzedExprKind::Ok(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            })),
+            AnalyzedExprKind::Err(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("err".to_string()),
+                glossa_type: GlossaType::String,
+            })),
+            AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("x".to_string().into()),
+                glossa_type: GlossaType::Unknown,
+            })),
+            AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("x".to_string().into()),
+                glossa_type: GlossaType::Unknown,
+            })),
+            AnalyzedExprKind::IndexAccess {
+                array: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("arr".to_string().into()),
+                    glossa_type: GlossaType::Unknown,
+                }),
+                index: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(0),
+                    glossa_type: GlossaType::Number,
+                }),
+            },
+            AnalyzedExprKind::FunctionCall {
+                func: "fn".to_string().into(),
+                args: vec![],
+            },
+            AnalyzedExprKind::MethodCall {
+                receiver: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable("obj".to_string().into()),
+                    glossa_type: GlossaType::Unknown,
+                }),
+                method: "meth".to_string().into(),
+                args: vec![],
+            },
+            AnalyzedExprKind::StructInstantiation {
+                type_name: "Type".to_string().into(),
+                fields: vec![],
+                args: vec![],
+            },
+            AnalyzedExprKind::Lambda {
+                params: vec!["p".into()],
+                body: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+                capture_mode: crate::semantic::CaptureMode::Borrow,
+            },
+            AnalyzedExprKind::CollectionNew {
+                collection_type: GlossaType::Unknown.to_string(),
+            },
+            AnalyzedExprKind::Assert {
+                condition: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::BooleanLiteral(true),
+                    glossa_type: GlossaType::Boolean,
+                }),
+            },
+            AnalyzedExprKind::AssertEq {
+                left: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+                right: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+            },
+        ];
+
+        for kind in kinds {
+            let expr = AnalyzedExpr {
+                expr: kind,
+                glossa_type: GlossaType::Unknown,
+            };
+            let formatted = tell_expr(&expr);
+            assert!(!formatted.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_tell_statement_all_variants() {
+        use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType};
+
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        };
+
+        let stmts = vec![
+            AnalyzedStatement::Query(vec![dummy_expr.clone()]),
+            AnalyzedStatement::For {
+                variable: "i".to_string().into(),
+                iterator: Box::new(dummy_expr.clone()),
+                body: vec![],
+            },
+            AnalyzedStatement::Match {
+                scrutinee: Box::new(dummy_expr.clone()),
+                arms: vec![(dummy_expr.clone(), vec![])],
+            },
+            AnalyzedStatement::Break,
+            AnalyzedStatement::Continue,
+            AnalyzedStatement::Return {
+                value: Some(Box::new(dummy_expr.clone())),
+            },
+            AnalyzedStatement::Return { value: None },
+        ];
+
+        for stmt in stmts {
+            let mut table = comfy_table::Table::new();
+            add_statement(&mut table, &stmt, 0);
+            assert!(!table.is_empty());
+        }
     }
 }

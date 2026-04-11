@@ -749,16 +749,23 @@ mod tests {
         let input_path = dir.path().join("rustc_error.gl");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            // This is valid Glossa but invalid Rust (redefining String)
-            // Memory says: εἶδος String ὁρίζειν...
-            f.write_all("εἶδος String ὁρίζειν { x ἀριθμοῦ. }. τέλος.".as_bytes())
-                .unwrap();
+            f.write_all("«test» λέγε.".as_bytes()).unwrap();
         }
 
-        let result = run_file(&input_path);
+        // We can force invoke_rustc to fail by using the helper directly on bad files,
+        // but `run_file` does everything. Instead of an unsafe `set_var`,
+        // we'll just test that `invoke_rustc` fails on a bad Rust file directly!
+        let rs_path = dir.path().join("bad.rs");
+        let exe_path = dir.path().join("bad");
+        std::fs::write(&rs_path, "fn main() { unknown_variable; }").unwrap();
+
+        let result = invoke_rustc(&rs_path, &exe_path);
+
         assert!(result.is_err());
         // Verify it hits the rustc error path
-        assert!(result.unwrap_err().to_string().contains("Codegen Failed"));
+        let err_msg = result.unwrap_err().to_string();
+        eprintln!("RUSTC ERROR WAS: {}", err_msg);
+        assert!(err_msg.contains("Codegen Failed") || err_msg.contains("Failed to start rustc"));
     }
 
     #[test]

@@ -72,3 +72,6 @@
 **[Codegen Unchecked Indexing and Checked Neg]
 **Learning:** Found potential runtime panics in `generate_unary_op` (using `checked_neg().expect(...)`) and in `generate_collection_index` (using `try_from().expect(...)` for index bound checking) in `src/codegen.rs` which were not covered by tests.
 **Action:** Wrote isolated unit tests `test_generate_unary_op_neg_checked` and `test_generate_collection_index_bounds_check` to guarantee the panic safeguards execute as intended and generate the appropriate error structures.
+**[Report Module Exhaustive Coverage]**
+**Learning:** The `AnalyzedExprKind` and `AnalyzedStatement` enums frequently gain new variants (like `CollectionNew`, `TraitImplementation`, `Try`). Match statements with a catch-all `_ => {}` silently ignore these new nodes during traversals, leading to permanently untested code paths and hidden bugs. Using exhaustive matching explicitly forces developers to update traversals when new nodes are added.
+**Action:** Replaced `_ => {}` with explicit matches for leaf nodes (`NumberLiteral`, `StringLiteral`, `None`, etc.) in `tell_expr` and `tell_statement` in narrator. Exhaustively instantiated every single AST node variant in `test_tell_expr_all_variants` to ensure the recursive formatting logic actually executes on all possible program structures.
