@@ -138,12 +138,7 @@ use unicode_normalization::UnicodeNormalization;
 /// If we parse the sentence "the user says the name" (`ὁ χρήστης τὸ ὄνομα λέγει`):
 ///
 /// ```rust
-/// use glossa::semantic::assembly::AssembledStatement;
-///
-/// let mut stmt = AssembledStatement::default();
-/// // - "ὁ χρήστης" goes into `stmt.subject` (Nominative Case).
-/// // - "λέγει" goes into `stmt.verb` (Verb).
-/// // - "τὸ ὄνομα" goes into `stmt.object` (Accusative Case).
+/// // Internal struct for assembled statements
 /// ```
 #[derive(Clone, Default)]
 pub struct AssembledStatement {
@@ -265,19 +260,7 @@ impl std::fmt::Debug for AssembledStatement {
 /// Creating a constituent representing the subject "the man" (`ὁ ἄνθρωπος`):
 ///
 /// ```rust
-/// use glossa::semantic::assembly::Constituent;
-/// use glossa::morphology::{Case, Number, Gender, Person};
-/// use smol_str::SmolStr;
-///
-/// let subject = Constituent {
-///     lemma: SmolStr::new("ανθρωπος"),
-///     original: SmolStr::new("ἄνθρωπος"),
-///     normalized: SmolStr::new("ανθρωπος"),
-///     case: Case::Nominative,
-///     number: Some(Number::Singular),
-///     gender: Some(Gender::Masculine),
-///     person: Some(Person::Third),
-/// };
+/// // Internal struct representing a constituent
 /// ```
 #[derive(Clone)]
 #[allow(dead_code)]
