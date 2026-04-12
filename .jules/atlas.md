@@ -140,3 +140,9 @@
 **[Enforcing Tool Encapsulation]
 **Tangle:** The `src/tools/` directory exposed internal helper modules (`report` and `ui`) as fully public (`pub mod`). This leaked implementation details and created a sprawling public API.
 **Blueprint:** Changed the visibility of `report` and `ui` to `pub(crate) mod` to enforce the facade pattern. Fixed a dead code warning on an unused function in `ui` that resulted from the visibility reduction.
+
+
+## [Enforcing Tool Encapsulation]
+**Tangle:** The `src/tools/` directory exposed internal helper modules (`alchemist`, `cli`, `interpreter`, etc.) as fully public (`pub mod`). This leaked implementation details and created a sprawling public API.
+**Blueprint:** Changed the visibility of all internal tool modules to `pub(crate) mod` to enforce the facade pattern. Explicitly re-exported required types and functions (like `Cli`, `Commands`, `run_tests`) using `pub use` to maintain a clean public interface for the CLI binary and integration tests.
+**Stability:** Enforced high cohesion and low coupling by ensuring strict encapsulation and clean public interfaces.

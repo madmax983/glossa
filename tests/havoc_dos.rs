@@ -17,7 +17,7 @@ fn test_dos_dev_zero() {
         let path = Path::new("/dev/zero");
         // We expect run_file to fail either due to file size check (if fixed) or some other error.
         // If it hangs, it won't return.
-        let result = glossa::tools::runner::run_file(path);
+        let result = glossa::tools::run_file(path);
         // Send the result back
         // If run_file hangs, this line is never reached.
         let _ = tx.send(result);

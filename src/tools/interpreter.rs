@@ -44,6 +44,7 @@ use std::fmt;
 /// assert_eq!(is_valid.to_string(), "true");
 /// ```
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum Value {
     /// A signed 64-bit integer.
     Number(i64),

@@ -17,28 +17,28 @@
 //! * `ui`: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
 #[cfg(feature = "nova")]
-pub mod alchemist;
+pub(crate) mod alchemist;
 #[cfg(feature = "nova")]
-pub mod auditor;
+pub(crate) mod auditor;
 pub(crate) mod cache;
 pub use cache::Cache;
 #[cfg(feature = "nova")]
-pub mod cartographer;
-pub mod cli;
-pub mod dictionary;
-pub mod highlight;
+pub(crate) mod cartographer;
+pub(crate) mod cli;
+pub(crate) mod dictionary;
+pub(crate) mod highlight;
 #[cfg(feature = "nova")]
-pub mod interpreter;
+pub(crate) mod interpreter;
 #[cfg(feature = "nova")]
-pub mod labyrinth;
+pub(crate) mod labyrinth;
 #[cfg(feature = "nova")]
-pub mod mentor;
+pub(crate) mod mentor;
 #[cfg(feature = "nova")]
-pub mod mosaic;
-pub mod narrator;
+pub(crate) mod mosaic;
+pub(crate) mod narrator;
 #[cfg(feature = "nova")]
-pub mod papyrus;
-pub mod repl;
+pub(crate) mod papyrus;
+pub(crate) mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
 ///
@@ -58,8 +58,36 @@ pub(crate) mod report;
 ///     eprintln!("Execution failed: {}", e);
 /// }
 /// ```
-pub mod runner;
-pub mod tester;
+pub(crate) mod runner;
+pub(crate) mod tester;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
-pub mod weave;
+pub(crate) mod weave;
+
+// Re-export what is needed by main.rs and integration tests
+pub use cli::{Cli, Commands};
+pub use dictionary::lookup_word;
+pub use highlight::highlight;
+pub use narrator::tell_tale;
+pub use repl::run_repl;
+pub use runner::{bard_file, build_file, check_file, highlight_file, report_file, run_file};
+pub use tester::run_tests;
+
+#[cfg(feature = "nova")]
+pub use alchemist::{run_alchemist, transpile_to_python};
+#[cfg(feature = "nova")]
+pub use auditor::run_auditor;
+#[cfg(feature = "nova")]
+pub use cartographer::run_map;
+#[cfg(feature = "nova")]
+pub use interpreter::Interpreter;
+#[cfg(feature = "nova")]
+pub use labyrinth::run_labyrinth;
+#[cfg(feature = "nova")]
+pub use mentor::run_mentor;
+#[cfg(feature = "nova")]
+pub use mosaic::{run_mosaic, run_mosaic_inner};
+#[cfg(feature = "nova")]
+pub use papyrus::run_papyrus;
+#[cfg(feature = "nova")]
+pub use weave::run_weave;
