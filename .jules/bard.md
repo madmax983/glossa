@@ -49,3 +49,7 @@
 ## 2024-05-27 - Documenting internal pub fns
 **Confusion:** Writing doc-tests for `pub fn` functions inside `pub(crate)` modules (like `analyze_verb_all_into`) fails compilation because doc-tests run as an external crate and cannot access `pub(crate)` items.
 **Clarification:** Use ````text` blocks instead of ````rust` for doc-tests on functions that cannot be tested externally due to module visibility, or structure the code so public APIs are testable.
+
+## 2026-03-19 - Broken Intra-Doc Links Resolved
+**Confusion:** The `cargo doc` command was throwing warnings about unresolved intra-doc links to `ScopeGuard` in `src/semantic/resolver.rs` and linking to the private struct `GlossaReport` in `src/tools/runner.rs`.
+**Clarification:** I replaced the intra-doc link `[`ScopeGuard`]` with `` `ScopeGuard` `` because the type itself was not explicitly defined (maybe handled as a closure via `with_scope`). For `GlossaReport`, since it is not public in `tools::mod.rs` by default without features/exports, I replaced the intra-doc link with `` `GlossaReport` `` to avoid linking issues to private types in public function docs.
