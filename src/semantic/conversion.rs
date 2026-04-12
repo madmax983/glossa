@@ -2661,7 +2661,7 @@ mod tests {
         assert!(stmt.is_some());
 
         // Ensure the fallback literal generation (0) happened
-        if let AnalyzedStatement::Query(exprs) = stmt.unwrap() {
+        if let AnalyzedStatement::Query(exprs) = &stmt.unwrap() {
             assert_eq!(exprs.len(), 1);
             if let AnalyzedExprKind::MethodCall { args, .. } = &exprs[0].expr {
                 assert_eq!(args.len(), 1);
@@ -2710,7 +2710,7 @@ mod tests {
         assert!(result.is_ok());
         let opt_stmt = result.unwrap();
         assert!(opt_stmt.is_some());
-        if let AnalyzedStatement::Expression(exprs) = opt_stmt.unwrap() {
+        if let AnalyzedStatement::Expression(exprs) = opt_stmt.as_ref().unwrap() {
             if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
                 assert_eq!(method, "insert");
                 assert!(args.is_empty());
@@ -2761,7 +2761,7 @@ mod tests {
         assert!(result.is_ok());
         let opt_stmt = result.unwrap();
         assert!(opt_stmt.is_some());
-        if let AnalyzedStatement::Expression(exprs) = opt_stmt.unwrap() {
+        if let AnalyzedStatement::Expression(exprs) = opt_stmt.as_ref().unwrap() {
             if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
                 assert_eq!(method, "insert");
                 assert_eq!(args.len(), 1);
@@ -2809,7 +2809,7 @@ mod tests {
         assert!(result.is_ok());
         let opt_stmt = result.unwrap();
         assert!(opt_stmt.is_some());
-        if let AnalyzedStatement::Expression(exprs) = opt_stmt.unwrap() {
+        if let AnalyzedStatement::Expression(exprs) = opt_stmt.as_ref().unwrap() {
             if let AnalyzedExprKind::MethodCall { method, args, .. } = &exprs[0].expr {
                 assert_eq!(method, "push");
                 assert_eq!(args.len(), 1);
@@ -2840,7 +2840,7 @@ mod tests {
         let result = classify_expression(&asm_stmt, &scope);
         assert!(result.is_ok());
 
-        if let AnalyzedStatement::Expression(exprs) = result.unwrap() {
+        if let AnalyzedStatement::Expression(exprs) = &result.unwrap() {
             assert!(exprs.is_empty(), "Expected empty expressions array");
         } else {
             panic!("Expected AnalyzedStatement::Expression");

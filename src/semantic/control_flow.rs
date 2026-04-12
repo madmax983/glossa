@@ -751,24 +751,24 @@ fn skip_first_word_and_parse(
 
     // Extract the first expression as the condition
     match converted {
-        AnalyzedStatement::Expression(exprs) => {
+        AnalyzedStatement::Expression(ref exprs) => {
             if let Some(first) = exprs.first() {
                 Ok(first.clone())
             } else {
                 Err(GlossaError::semantic("Empty condition in conditional"))
             }
         }
-        AnalyzedStatement::Binding { name, value, .. } => {
+        AnalyzedStatement::Binding { ref name, ref value, .. } => {
             // Convert binding "x is y" to "x == y"
             let left = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(name),
+                expr: AnalyzedExprKind::Variable(name.clone()),
                 glossa_type: value.glossa_type.clone(),
             };
             Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::BinOp {
                     left: Box::new(left),
                     op: crate::morphology::lexicon::BinaryOp::Eq,
-                    right: Box::new(value),
+                    right: Box::new(value.clone()),
                 },
                 glossa_type: GlossaType::Boolean,
             })
@@ -996,7 +996,7 @@ mod tests {
         assert!(result.is_ok());
         let analyzed = result.unwrap().unwrap();
 
-        match analyzed {
+        match &analyzed {
             AnalyzedStatement::While { condition, body } => {
                 // Assert condition
                 assert_eq!(condition.glossa_type, GlossaType::Boolean);
@@ -1108,7 +1108,7 @@ mod tests {
             condition: _,
             then_body: _,
             else_body,
-        } = stmt
+        } = &stmt
         {
             assert!(else_body.is_some());
         } else {
@@ -1155,7 +1155,7 @@ mod tests {
             condition: _,
             then_body: _,
             else_body,
-        } = stmt
+        } = &stmt
         {
             assert!(else_body.is_some());
         } else {
@@ -1197,7 +1197,7 @@ mod tests {
             condition,
             then_body: _,
             else_body: _,
-        } = stmt
+        } = &stmt
         {
             // Expected condition to be binop ==
             if let AnalyzedExprKind::BinOp { op, .. } = condition.expr {

@@ -49,7 +49,7 @@ fn test_classify_simple_binding() {
     let result =
         classify_assembled_statement(&asm_stmt, &mut scope).expect("Classification failed");
 
-    if let AnalyzedStatement::Binding { name, value, .. } = result {
+    if let AnalyzedStatement::Binding { name, value, .. } = &result {
         assert_eq!(name, "x");
         if let AnalyzedExprKind::NumberLiteral(n) = value.expr {
             assert_eq!(n, 5);
@@ -79,9 +79,9 @@ fn test_classify_binding_subject_object_swap() {
     let result =
         classify_assembled_statement(&asm_stmt, &mut scope).expect("Classification failed");
 
-    if let AnalyzedStatement::Binding { name, value, .. } = result {
+    if let AnalyzedStatement::Binding { name, value, .. } = &result {
         assert_eq!(name, "x"); // Should be swapped to x
-        if let AnalyzedExprKind::Variable(v) = value.expr {
+        if let AnalyzedExprKind::Variable(v) = &value.expr {
             assert_eq!(v, "val");
         } else {
             panic!("Expected Variable val");
@@ -119,7 +119,7 @@ fn test_classify_binding_false_participle() {
     let result =
         classify_assembled_statement(&asm_stmt, &mut scope).expect("Classification failed");
 
-    if let AnalyzedStatement::Binding { name, .. } = result {
+    if let AnalyzedStatement::Binding { name, .. } = &result {
         assert_eq!(name, "written"); // Should bind to the participle's normalized form
     } else {
         panic!("Expected Binding, got {:?}", result);
@@ -164,7 +164,7 @@ fn test_classify_binding_fallback_participle() {
     let result =
         classify_assembled_statement(&asm_stmt, &mut scope).expect("Classification failed");
 
-    if let AnalyzedStatement::Binding { name, .. } = result {
+    if let AnalyzedStatement::Binding { name, .. } = &result {
         assert_eq!(name, "legomenon");
     } else {
         panic!("Expected Binding, got {:?}", result);
@@ -188,7 +188,7 @@ fn test_classify_print_binary_op() {
     let result =
         classify_assembled_statement(&asm_stmt, &mut scope).expect("Classification failed");
 
-    if let AnalyzedStatement::Print(exprs) = result {
+    if let AnalyzedStatement::Print(exprs) = &result {
         assert_eq!(exprs.len(), 1);
         if let AnalyzedExprKind::BinOp { left, op, right: _ } = &exprs[0].expr {
             assert_eq!(*op, BinaryOp::Add);
@@ -222,7 +222,7 @@ fn test_classify_print_property_access() {
     let result =
         classify_assembled_statement(&asm_stmt, &mut scope).expect("Classification failed");
 
-    if let AnalyzedStatement::Print(exprs) = result {
+    if let AnalyzedStatement::Print(exprs) = &result {
         assert_eq!(exprs.len(), 1);
         if let AnalyzedExprKind::MethodCall {
             receiver, method, ..
@@ -266,7 +266,7 @@ fn test_classify_print_index_access() {
     let result =
         classify_assembled_statement(&asm_stmt, &mut scope).expect("Classification failed");
 
-    if let AnalyzedStatement::Print(exprs) = result {
+    if let AnalyzedStatement::Print(exprs) = &result {
         assert_eq!(exprs.len(), 1);
         if let AnalyzedExprKind::IndexAccess { array, index } = &exprs[0].expr {
             if let AnalyzedExprKind::Variable(v) = &array.expr {
@@ -305,7 +305,7 @@ fn test_classify_print_unwrap() {
     let result =
         classify_assembled_statement(&asm_stmt, &mut scope).expect("Classification failed");
 
-    if let AnalyzedStatement::Print(exprs) = result {
+    if let AnalyzedStatement::Print(exprs) = &result {
         assert_eq!(exprs.len(), 1);
         if let AnalyzedExprKind::Unwrap(inner) = &exprs[0].expr {
             if let AnalyzedExprKind::Variable(v) = &inner.expr {
@@ -334,7 +334,7 @@ fn test_classify_print_default() {
     let result =
         classify_assembled_statement(&asm_stmt, &mut scope).expect("Classification failed");
 
-    if let AnalyzedStatement::Print(exprs) = result {
+    if let AnalyzedStatement::Print(exprs) = &result {
         assert_eq!(exprs.len(), 1);
         if let AnalyzedExprKind::StringLiteral(s) = &exprs[0].expr {
             assert_eq!(s, "hello");

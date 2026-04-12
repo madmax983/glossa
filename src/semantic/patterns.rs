@@ -1048,7 +1048,7 @@ mod tests {
         });
 
         let expr = extract_comparison_value(&stmt, &scope);
-        if let AnalyzedExprKind::Variable(name) = expr.expr {
+        if let AnalyzedExprKind::Variable(name) = &expr.expr {
             assert_eq!(name, "ονομα", "Expected lemma 'ονομα', got '{}'", name);
         } else {
             panic!("Expected variable");
@@ -1073,7 +1073,7 @@ mod tests {
         });
 
         let expr = extract_comparison_value(&stmt, &scope);
-        if let AnalyzedExprKind::Variable(name) = expr.expr {
+        if let AnalyzedExprKind::Variable(name) = &expr.expr {
             assert_eq!(name, "θ", "Expected stripped name 'θ', got '{}'", name);
         } else {
             panic!("Expected variable");
@@ -1098,7 +1098,7 @@ mod tests {
         });
 
         let expr = extract_comparison_value(&stmt, &scope);
-        if let AnalyzedExprKind::Variable(name) = expr.expr {
+        if let AnalyzedExprKind::Variable(name) = &expr.expr {
             assert_eq!(
                 name, "μυος",
                 "Expected original name 'μυος', got '{}'",
@@ -1126,7 +1126,7 @@ mod tests {
         });
 
         let expr = extract_comparison_value(&stmt, &scope);
-        if let AnalyzedExprKind::Variable(name) = expr.expr {
+        if let AnalyzedExprKind::Variable(name) = &expr.expr {
             assert_eq!(
                 name, "θ",
                 "Expected fallback to stripped name 'θ', got '{}'",
@@ -1238,7 +1238,7 @@ mod coverage_tests {
 
         let expr = expr_opt.unwrap();
         // Should be MethodCall "any"
-        if let AnalyzedExprKind::MethodCall { method, args, .. } = expr.expr {
+        if let AnalyzedExprKind::MethodCall { method, args, .. } = &expr.expr {
             assert_eq!(method, "any");
             assert_eq!(args.len(), 1);
             // Verify argument is a closure x > x
@@ -1301,7 +1301,7 @@ mod coverage_tests {
 
         let expr = expr_opt.unwrap();
         // Should be MethodCall "find"
-        if let AnalyzedExprKind::MethodCall { method, args, .. } = expr.expr {
+        if let AnalyzedExprKind::MethodCall { method, args, .. } = &expr.expr {
             assert_eq!(method, "find");
             assert_eq!(args.len(), 1);
         } else {
@@ -1371,14 +1371,14 @@ mod coverage_tests {
         // Should be MethodCall "collect" (finalized), inner is filter
         if let AnalyzedExprKind::MethodCall {
             method, receiver, ..
-        } = expr.expr
+        } = &expr.expr
         {
             assert_eq!(method, "collect");
             // Check inner receiver
             if let AnalyzedExprKind::MethodCall {
                 method: inner_method,
                 ..
-            } = receiver.expr
+            } = &receiver.expr
             {
                 assert_eq!(inner_method, "filter");
             } else {
