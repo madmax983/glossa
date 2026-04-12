@@ -1,0 +1,21 @@
+--- src/tools/astrolabe.rs
++++ src/tools/astrolabe.rs
+@@ -144,6 +144,18 @@
+         let result = run_astrolabe(&input_path);
+         assert!(result.is_ok());
+     }
++
++    #[test]
++    fn test_run_astrolabe_file_error() {
++        let dir = tempfile::tempdir().unwrap();
++        let input_path = dir.path().join("astrolabe_file_err.γλ");
++        std::fs::write(&input_path, "ξ 10 ἔστω.").unwrap();
++
++        // Force file load error by opening as a directory
++        let dir_path = dir.path().join("fake_dir.γλ");
++        std::fs::create_dir(&dir_path).unwrap();
++
++        let result = run_astrolabe(&dir_path);
++        assert!(result.is_err());
++    }
+ }
