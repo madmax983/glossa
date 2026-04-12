@@ -2202,6 +2202,11 @@ static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(
     m
 });
 
+/// Get an iterator over all entries in the built-in lexicon
+pub fn entries() -> impl Iterator<Item = (&'static str, &'static LexiconEntry)> {
+    LEXICON.iter().map(|(k, v)| (*k, v))
+}
+
 /// Look up a word in the lexicon
 pub fn lookup(normalized_word: &str) -> Option<&'static LexiconEntry> {
     LEXICON.get(normalized_word)

@@ -60,6 +60,19 @@ fn main() -> Result<()> {
             lookup_word(&word)?;
         }
 
+        Some(Commands::Translate { query }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::translator::run_translate(&query)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = query;
+                miette::bail!(
+                    "The 'translate' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Test { input }) => {
             glossa::tools::tester::run_tests(&input)?;
         }

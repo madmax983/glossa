@@ -32,3 +32,8 @@
 **Concept:** A basic static analysis tool / linter (`glossa audit`) that traverses the semantic AST (`AnalyzedProgram`) to find code smells, such as unused variables and unnecessary mutable declarations.
 **Fate:** Merged
 **Lesson:** Iterating over the complex nested variants in `AnalyzedStatement` and `AnalyzedExpr` provides a strong foundation for building static analysis tools without modifying core logic.
+
+## 🌟 The Translator (ὁ Μεταφραστής)
+**Concept:** A CLI tool (`glossa translate <query>`) that performs a reverse dictionary lookup for English terms or Rust equivalents to find matching Greek lemmas in the built-in Lexicon.
+**Fate:** Merged
+**Lesson:** Creating "The Translator" proved that the Lexicon structure, by retaining structured documentation fields (`meaning`, `rust_equiv`), inherently acts as a bilingual bridging mechanism, aiding developers in adopting the Ancient Greek syntax.

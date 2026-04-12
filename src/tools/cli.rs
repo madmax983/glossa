@@ -154,6 +154,12 @@ pub enum Commands {
         word: String,
     },
 
+    /// Reverse-lookup an English term or Rust equivalent in the lexicon (Requires "nova" feature)
+    Translate {
+        /// The English term or Rust equivalent to translate into Greek
+        query: String,
+    },
+
     /// Run tests defined in a .γλ file
     Test {
         /// Input file (.γλ)
