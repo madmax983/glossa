@@ -144,8 +144,19 @@ impl Clone for GlossaType {
             GlossaType::Number => GlossaType::Number,
             GlossaType::String => GlossaType::String,
             GlossaType::Boolean => GlossaType::Boolean,
-            GlossaType::Function { params, returns } => GlossaType::Function { params: params.clone(), returns: returns.clone() },
-            GlossaType::Struct { name, gender, fields } => GlossaType::Struct { name: name.clone(), gender: *gender, fields: fields.clone() },
+            GlossaType::Function { params, returns } => GlossaType::Function {
+                params: params.clone(),
+                returns: returns.clone(),
+            },
+            GlossaType::Struct {
+                name,
+                gender,
+                fields,
+            } => GlossaType::Struct {
+                name: name.clone(),
+                gender: *gender,
+                fields: fields.clone(),
+            },
             GlossaType::List(t) => GlossaType::List(t.clone()),
             GlossaType::Map(key, value) => GlossaType::Map(key.clone(), value.clone()),
             GlossaType::Set(t) => GlossaType::Set(t.clone()),
@@ -158,33 +169,29 @@ impl Clone for GlossaType {
 
 impl Drop for GlossaType {
     fn drop(&mut self) {
-        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
-            match self {
-                GlossaType::Function { params, returns } => {
-                    let _ = std::mem::take(params);
-                    let _ = std::mem::replace(returns, Box::new(GlossaType::Unit));
-                }
-                GlossaType::Struct { fields, .. } => {
-                    let _ = std::mem::take(fields);
-                }
-                GlossaType::List(t) | GlossaType::Set(t) | GlossaType::Option(t) => {
-                    let _ = std::mem::replace(&mut **t, GlossaType::Unit);
-                }
-                GlossaType::Map(key, value) => {
-                    let _ = std::mem::replace(&mut **key, GlossaType::Unit);
-                    let _ = std::mem::replace(&mut **value, GlossaType::Unit);
-                }
-                GlossaType::Result(ok, err) => {
-                    let _ = std::mem::replace(&mut **ok, GlossaType::Unit);
-                    let _ = std::mem::replace(&mut **err, GlossaType::Unit);
-                }
-                _ => {}
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            GlossaType::Function { params, returns } => {
+                let _ = std::mem::take(params);
+                let _ = std::mem::replace(returns, Box::new(GlossaType::Unit));
             }
+            GlossaType::Struct { fields, .. } => {
+                let _ = std::mem::take(fields);
+            }
+            GlossaType::List(t) | GlossaType::Set(t) | GlossaType::Option(t) => {
+                let _ = std::mem::replace(&mut **t, GlossaType::Unit);
+            }
+            GlossaType::Map(key, value) => {
+                let _ = std::mem::replace(&mut **key, GlossaType::Unit);
+                let _ = std::mem::replace(&mut **value, GlossaType::Unit);
+            }
+            GlossaType::Result(ok, err) => {
+                let _ = std::mem::replace(&mut **ok, GlossaType::Unit);
+                let _ = std::mem::replace(&mut **err, GlossaType::Unit);
+            }
+            _ => {}
         })
     }
 }
-
-
 
 impl std::fmt::Debug for GlossaType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

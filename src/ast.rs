@@ -132,7 +132,15 @@ pub enum Statement {
 impl Clone for Statement {
     fn clone(&self) -> Self {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
-            Statement::Regular { clauses, is_query, is_propagate } => Statement::Regular { clauses: clauses.clone(), is_query: *is_query, is_propagate: *is_propagate },
+            Statement::Regular {
+                clauses,
+                is_query,
+                is_propagate,
+            } => Statement::Regular {
+                clauses: clauses.clone(),
+                is_query: *is_query,
+                is_propagate: *is_propagate,
+            },
             Statement::TypeDefinition(t) => Statement::TypeDefinition(t.clone()),
             Statement::TraitDefinition(t) => Statement::TraitDefinition(t.clone()),
             Statement::TraitImpl(t) => Statement::TraitImpl(t.clone()),
@@ -144,7 +152,18 @@ impl Clone for Statement {
 impl PartialEq for Statement {
     fn eq(&self, other: &Self) -> bool {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || match (self, other) {
-            (Statement::Regular { clauses: c1, is_query: q1, is_propagate: p1 }, Statement::Regular { clauses: c2, is_query: q2, is_propagate: p2 }) => c1 == c2 && q1 == q2 && p1 == p2,
+            (
+                Statement::Regular {
+                    clauses: c1,
+                    is_query: q1,
+                    is_propagate: p1,
+                },
+                Statement::Regular {
+                    clauses: c2,
+                    is_query: q2,
+                    is_propagate: p2,
+                },
+            ) => c1 == c2 && q1 == q2 && p1 == p2,
             (Statement::TypeDefinition(t1), Statement::TypeDefinition(t2)) => t1 == t2,
             (Statement::TraitDefinition(t1), Statement::TraitDefinition(t2)) => t1 == t2,
             (Statement::TraitImpl(t1), Statement::TraitImpl(t2)) => t1 == t2,
@@ -156,25 +175,78 @@ impl PartialEq for Statement {
 
 impl Drop for Statement {
     fn drop(&mut self) {
-        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
-            match self {
-                Statement::Regular { clauses, .. } => { let _ = std::mem::take(clauses); }
-                Statement::TypeDefinition(_) => {}
-                Statement::TraitDefinition(_) => {}
-                Statement::TraitImpl(_) => {}
-                Statement::TestDeclaration(_) => {}
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            Statement::Regular { clauses, .. } => {
+                let _ = std::mem::take(clauses);
             }
+            Statement::TypeDefinition(_) => {}
+            Statement::TraitDefinition(_) => {}
+            Statement::TraitImpl(_) => {}
+            Statement::TestDeclaration(_) => {}
         })
     }
 }
 
-impl Clone for TypeDef { fn clone(&self) -> Self { stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self { name: self.name.clone(), fields: self.fields.clone() }) } }
-impl Clone for FieldDecl { fn clone(&self) -> Self { stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self { name: self.name.clone(), type_name: self.type_name.clone() }) } }
-impl Clone for TraitDef { fn clone(&self) -> Self { stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self { name: self.name.clone(), methods: self.methods.clone() }) } }
-impl Clone for TraitMethodDecl { fn clone(&self) -> Self { stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self { name: self.name.clone(), params: self.params.clone(), body: self.body.clone(), is_default: self.is_default }) } }
-impl Clone for TraitImplDef { fn clone(&self) -> Self { stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self { type_name: self.type_name.clone(), trait_name: self.trait_name.clone(), methods: self.methods.clone() }) } }
-impl Clone for ImplMethodDef { fn clone(&self) -> Self { stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self { name: self.name.clone(), params: self.params.clone(), body: self.body.clone() }) } }
-impl Clone for TestDecl { fn clone(&self) -> Self { stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self { name: self.name.clone(), body: self.body.clone() }) } }
+impl Clone for TypeDef {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self {
+            name: self.name.clone(),
+            fields: self.fields.clone(),
+        })
+    }
+}
+impl Clone for FieldDecl {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self {
+            name: self.name.clone(),
+            type_name: self.type_name.clone(),
+        })
+    }
+}
+impl Clone for TraitDef {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self {
+            name: self.name.clone(),
+            methods: self.methods.clone(),
+        })
+    }
+}
+impl Clone for TraitMethodDecl {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self {
+            name: self.name.clone(),
+            params: self.params.clone(),
+            body: self.body.clone(),
+            is_default: self.is_default,
+        })
+    }
+}
+impl Clone for TraitImplDef {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self {
+            type_name: self.type_name.clone(),
+            trait_name: self.trait_name.clone(),
+            methods: self.methods.clone(),
+        })
+    }
+}
+impl Clone for ImplMethodDef {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self {
+            name: self.name.clone(),
+            params: self.params.clone(),
+            body: self.body.clone(),
+        })
+    }
+}
+impl Clone for TestDecl {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || Self {
+            name: self.name.clone(),
+            body: self.body.clone(),
+        })
+    }
+}
 
 /// A type definition (struct)
 #[derive(Debug, PartialEq)]

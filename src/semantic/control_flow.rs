@@ -758,7 +758,11 @@ fn skip_first_word_and_parse(
                 Err(GlossaError::semantic("Empty condition in conditional"))
             }
         }
-        AnalyzedStatement::Binding { ref name, ref value, .. } => {
+        AnalyzedStatement::Binding {
+            ref name,
+            ref value,
+            ..
+        } => {
             // Convert binding "x is y" to "x == y"
             let left = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(name.clone()),
