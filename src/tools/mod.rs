@@ -60,8 +60,8 @@ pub(crate) mod report;
 /// ```
 pub mod runner;
 pub mod tester;
+#[cfg(feature = "nova")]
+pub mod translator;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
 pub mod weave;
-#[cfg(feature = "nova")]
-pub mod translator;

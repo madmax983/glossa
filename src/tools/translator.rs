@@ -12,10 +12,7 @@ use miette::Result;
 
 /// Run the Translator tool
 pub fn run_translate(query: &str) -> Result<()> {
-    let status = Status::start_with_symbol(
-        format!("Μεταφραστής (Translating '{}')", query),
-        "🔤",
-    );
+    let status = Status::start_with_symbol(format!("Μεταφραστής (Translating '{}')", query), "🔤");
 
     let query_lower = query.to_lowercase();
 
@@ -94,6 +91,11 @@ mod tests {
     fn test_translate_not_found() {
         let result = run_translate("supercalifragilisticexpialidocious");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No Greek equivalent found"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("No Greek equivalent found")
+        );
     }
 }
