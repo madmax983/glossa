@@ -67,34 +67,40 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
     let mut results = Vec::new();
     for line in output.lines() {
         // Standard rustc test output line format: "test test_name ... status"
-        if line.starts_with("test ")
-            && (line.ends_with(" ... ok")
-                || line.ends_with(" ... FAILED")
-                || line.ends_with(" ... ignored"))
+        if !line.starts_with("test ")
+            || (!line.ends_with(" ... ok")
+                && !line.ends_with(" ... FAILED")
+                && !line.ends_with(" ... ignored"))
         {
-            // Expected parts: "test", "test_name", "...", "status"
-            // We can iterate without allocating an intermediate `Vec<&str>`
-            // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` with zero-cost iterator consumption.
-            let mut iter = line.split_whitespace();
-            if iter.clone().count() >= 4 {
-                let _ = iter.next(); // "test"
-                #[allow(clippy::collapsible_if)]
-                if let Some(name) = iter.next() {
-                    if let Some(status_str) = iter.last() {
-                        let status = match status_str {
-                            "ok" => TestStatus::Ok,
-                            "FAILED" => TestStatus::Failed,
-                            "ignored" => TestStatus::Ignored,
-                            _ => continue,
-                        };
-                        results.push(TestResult {
-                            name: name.to_string(),
-                            status,
-                        });
-                    }
-                }
-            }
+            continue;
         }
+
+        // Expected parts: "test", "test_name", "...", "status"
+        // We can iterate without allocating an intermediate `Vec<&str>`
+        // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` with zero-cost iterator consumption.
+        let mut iter = line.split_whitespace();
+        if iter.clone().count() < 4 {
+            continue;
+        }
+
+        let _ = iter.next(); // "test"
+
+        let Some(name) = iter.next() else { continue };
+        let Some(status_str) = iter.last() else {
+            continue;
+        };
+
+        let status = match status_str {
+            "ok" => TestStatus::Ok,
+            "FAILED" => TestStatus::Failed,
+            "ignored" => TestStatus::Ignored,
+            _ => continue,
+        };
+
+        results.push(TestResult {
+            name: name.to_string(),
+            status,
+        });
     }
     results
 }
@@ -117,61 +123,63 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
 
     // Scan for "---- <name> stdout ----"
     while let Some(line) = lines.next() {
-        if line.trim().starts_with("----") && line.trim().ends_with("stdout ----") {
-            // Extract name: "---- test_name stdout ----"
-            let trimmed = line.trim();
-            let name_part = trimmed
-                .trim_start_matches("---- ")
-                .trim_end_matches(" stdout ----");
-            // Remove module path if present for cleaner display
-            let name = name_part
-                .split("::")
-                .last()
-                .unwrap_or(name_part)
-                .to_string();
+        if !line.trim().starts_with("----") || !line.trim().ends_with("stdout ----") {
+            continue;
+        }
 
-            // Capture output until next "----" or empty line followed by "failures:"
-            let mut message = String::new();
-            while let Some(current) = lines.peek() {
-                if current.trim().starts_with("----") && current.trim().ends_with("stdout ----") {
-                    // Start of next failure
-                    break;
-                }
-                if current.trim() == "failures:" {
-                    // End of details section
-                    break;
-                }
+        // Extract name: "---- test_name stdout ----"
+        let trimmed = line.trim();
+        let name_part = trimmed
+            .trim_start_matches("---- ")
+            .trim_end_matches(" stdout ----");
+        // Remove module path if present for cleaner display
+        let name = name_part
+            .split("::")
+            .last()
+            .unwrap_or(name_part)
+            .to_string();
 
-                // Hide internal Rust thread information and temp file paths
-                if current.starts_with("thread '")
-                    && current.contains("panicked at")
-                    && let Some(panicked_idx) = current.find("panicked at")
+        // Capture output until next "----" or empty line followed by "failures:"
+        let mut message = String::new();
+        while let Some(current) = lines.peek() {
+            if current.trim().starts_with("----") && current.trim().ends_with("stdout ----") {
+                // Start of next failure
+                break;
+            }
+            if current.trim() == "failures:" {
+                // End of details section
+                break;
+            }
+
+            // Hide internal Rust thread information and temp file paths
+            if current.starts_with("thread '")
+                && current.contains("panicked at")
+                && let Some(panicked_idx) = current.find("panicked at")
+            {
+                let mut clean_panic = format!("{}panicked", &current[..panicked_idx]);
+                // Remove the "(pid)" thread id
+                if let Some(idx1) = clean_panic.find(" (")
+                    && let Some(idx2) = clean_panic[idx1..].find(") ")
                 {
-                    let mut clean_panic = format!("{}panicked", &current[..panicked_idx]);
-                    // Remove the "(pid)" thread id
-                    if let Some(idx1) = clean_panic.find(" (")
-                        && let Some(idx2) = clean_panic[idx1..].find(") ")
-                    {
-                        clean_panic.replace_range(idx1..idx1 + idx2 + 2, " ");
-                    }
-                    message.push_str(&clean_panic);
-                    message.push('\n');
-                    lines.next();
-                    continue;
+                    clean_panic.replace_range(idx1..idx1 + idx2 + 2, " ");
                 }
-
-                // Hide backtrace hint
-                if current.starts_with("note: run with `RUST_BACKTRACE=1`") {
-                    lines.next();
-                    continue;
-                }
-
-                message.push_str(current);
+                message.push_str(&clean_panic);
                 message.push('\n');
                 lines.next();
+                continue;
             }
-            failures.push((name, message.trim().to_string()));
+
+            // Hide backtrace hint
+            if current.starts_with("note: run with `RUST_BACKTRACE=1`") {
+                lines.next();
+                continue;
+            }
+
+            message.push_str(current);
+            message.push('\n');
+            lines.next();
         }
+        failures.push((name, message.trim().to_string()));
     }
 
     failures
@@ -257,6 +265,15 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
     println!("   {}", "Unit Test Results".italic().dim());
     println!();
 
+    print_test_summary(results, test_output);
+    print_results_table(results);
+
+    if !test_output.status.success() {
+        print_failure_details(test_output, stdout);
+    }
+}
+
+fn print_test_summary(results: &[TestResult], test_output: &std::process::Output) {
     if test_output.status.success() {
         if !results.is_empty() {
             println!(
@@ -276,7 +293,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         );
         println!();
     }
+}
 
+fn print_results_table(results: &[TestResult]) {
     if !results.is_empty() {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
@@ -298,9 +317,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
             };
 
             // Clean up test name (remove module prefix if any)
-            // e.g., "tests::test_name" -> "test_name"
             let display_name = result.name.split("::").last().unwrap_or(&result.name);
-
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
         println!("{table}");
@@ -320,42 +337,42 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         ]);
         println!("{empty_table}");
     }
+}
 
-    // If there were failures, try to extract and print them nicely
-    if !test_output.status.success() {
-        println!();
-        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+fn print_failure_details(test_output: &std::process::Output, stdout: &str) {
+    println!();
+    println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
 
-        let failures = extract_failures(stdout);
+    let failures = extract_failures(stdout);
 
-        if !failures.is_empty() {
-            for (name, msg) in failures {
-                println!(
-                    "{} {}",
-                    "FAILED:".red().bold(),
-                    name.cyan().bold().underlined()
-                );
-                // Create a box for the error message
-                let border_top =
-                    "╭───────────────────────────────────────────────────────────────────╮".red();
-                let border_bottom =
-                    "╰───────────────────────────────────────────────────────────────────╯".red();
-
-                println!("{}", border_top);
-                for line in msg.lines() {
-                    // Wrap extremely long lines if needed, but for now simple print
-                    println!("{} {}", "│".red(), line);
-                }
-                println!("{}", border_bottom);
-                println!();
-            }
-        } else {
-            // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
-            if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
-            }
+    if failures.is_empty() {
+        // Fallback to raw output if extraction failed but tests failed
+        println!("{}", stdout);
+        if !test_output.stderr.is_empty() {
+            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
         }
+        return;
+    }
+
+    for (name, msg) in failures {
+        println!(
+            "{} {}",
+            "FAILED:".red().bold(),
+            name.cyan().bold().underlined()
+        );
+        // Create a box for the error message
+        let border_top =
+            "╭───────────────────────────────────────────────────────────────────╮".red();
+        let border_bottom =
+            "╰───────────────────────────────────────────────────────────────────╯".red();
+
+        println!("{}", border_top);
+        for line in msg.lines() {
+            // Wrap extremely long lines if needed, but for now simple print
+            println!("{} {}", "│".red(), line);
+        }
+        println!("{}", border_bottom);
+        println!();
     }
 }
 
