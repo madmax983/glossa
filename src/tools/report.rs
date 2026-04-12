@@ -297,6 +297,11 @@ impl<'a> GlossaReport<'a> {
 
 impl Display for GlossaReport<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f)?;
+        writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
+        writeln!(f, "   {}", "Language Metrics Dashboard".italic().dim())?;
+        writeln!(f)?;
+
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL).set_header(vec![
             Cell::new("Μετρική (Metric)")
@@ -350,10 +355,6 @@ impl Display for GlossaReport<'_> {
             ]);
         }
 
-        writeln!(f)?;
-        writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
-        writeln!(f, "   {}", "Language Metrics Dashboard".italic().dim())?;
-        writeln!(f)?;
         writeln!(f, "{}", table)?;
 
         // If there are top-level functions, list them
@@ -443,6 +444,11 @@ pub struct CompilationReport {
 
 impl Display for CompilationReport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f)?;
+        writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
+        writeln!(f, "   {}", "Compilation Metrics Dashboard".italic().dim())?;
+        writeln!(f)?;
+
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL).set_header(vec![
             Cell::new("Μετρική (Metric)")

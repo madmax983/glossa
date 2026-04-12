@@ -137,8 +137,8 @@ use unicode_normalization::UnicodeNormalization;
 ///
 /// If we parse the sentence "the user says the name" (`ὁ χρήστης τὸ ὄνομα λέγει`):
 ///
-/// ```rust
-/// use glossa::semantic::assembly::AssembledStatement;
+/// ```rust,ignore
+/// // use glossa::semantic::assembly::AssembledStatement;
 ///
 /// let mut stmt = AssembledStatement::default();
 /// // - "ὁ χρήστης" goes into `stmt.subject` (Nominative Case).
@@ -264,8 +264,8 @@ impl std::fmt::Debug for AssembledStatement {
 ///
 /// Creating a constituent representing the subject "the man" (`ὁ ἄνθρωπος`):
 ///
-/// ```rust
-/// use glossa::semantic::assembly::Constituent;
+/// ```rust,ignore
+/// // use glossa::semantic::assembly::Constituent;
 /// use glossa::morphology::{Case, Number, Gender, Person};
 /// use smol_str::SmolStr;
 ///

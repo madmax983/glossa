@@ -4,6 +4,7 @@ use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, Table};
+use crossterm::style::Stylize;
 use miette::Result;
 use smol_str::SmolStr;
 use std::collections::{HashMap, HashSet};
@@ -53,10 +54,10 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 
     let mut issues = 0;
 
-    println!(
-        "\n🔍 \x1b[1;36mAudit Report for {}\x1b[0m\n",
-        input.display()
-    );
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   A U D I T O R".bold().cyan());
+    println!("   {}", "Code Audit Report".italic().dim());
+    println!();
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
@@ -92,10 +93,10 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     }
 
     if issues == 0 {
-        println!("✨ \x1b[1;32mNo issues found. The code is pure.\x1b[0m");
+        println!("   ✨ \x1b[1;32mNo issues found. The code is pure.\x1b[0m\n");
     } else {
-        println!("{table}");
-        println!("\nTotal issues found: {}", issues);
+        println!("{table}\n");
+        println!("   ⚠️  \x1b[1;33mTotal issues found: {}\x1b[0m\n", issues);
     }
 
     Ok(())
