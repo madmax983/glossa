@@ -1547,6 +1547,38 @@ fn extract_enum_from_object(
 
 fn extract_object_fallback(
     asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
+    if let Some(ref obj) = asm_stmt.object {
+        let obj_lemma = &obj.lemma;
+
+        if let Some(value) = crate::morphology::lexicon::numeral_value(obj_lemma) {
+            return Ok(Some((
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(value),
+                    glossa_type: GlossaType::Number,
+                },
+                GlossaType::Number,
+            )));
+        }
+
+        if let Some(glossa_type) = scope.lookup(obj_lemma) {
+            return Ok(Some((
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: glossa_type.clone(),
+                },
+                glossa_type.clone(),
+            )));
+        } else {
+            return Err(GlossaError::undefined(obj_lemma.as_str()));
+        }
+    }
+    Ok(None)
+}
+
+fn extract_subject_fallback(
+    asm_stmt: &AssembledStatement,
     _scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some(ref obj) = asm_stmt.object {
@@ -1687,6 +1719,9 @@ pub fn extract_value(
         return Ok(res);
     }
     if let Some(res) = extract_object_fallback(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_subject_fallback(asm_stmt, scope)? {
         return Ok(res);
     }
 
