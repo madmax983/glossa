@@ -76,22 +76,22 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
             // We can iterate without allocating an intermediate `Vec<&str>`
             // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` with zero-cost iterator consumption.
             let mut iter = line.split_whitespace();
-            if iter.clone().count() >= 4 {
-                let _ = iter.next(); // "test"
-                #[allow(clippy::collapsible_if)]
-                if let Some(name) = iter.next() {
-                    if let Some(status_str) = iter.last() {
-                        let status = match status_str {
-                            "ok" => TestStatus::Ok,
-                            "FAILED" => TestStatus::Failed,
-                            "ignored" => TestStatus::Ignored,
-                            _ => continue,
-                        };
-                        results.push(TestResult {
-                            name: name.to_string(),
-                            status,
-                        });
-                    }
+            let _ = iter.next(); // "test"
+            if let Some(name) = iter.next() {
+                if name == "..." {
+                    continue;
+                } // Handle empty test name edge case
+                if let Some(status_str) = iter.last() {
+                    let status = match status_str {
+                        "ok" => TestStatus::Ok,
+                        "FAILED" => TestStatus::Failed,
+                        "ignored" => TestStatus::Ignored,
+                        _ => continue,
+                    };
+                    results.push(TestResult {
+                        name: name.to_string(),
+                        status,
+                    });
                 }
             }
         }
