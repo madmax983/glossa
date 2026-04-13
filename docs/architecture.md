@@ -45,6 +45,7 @@ C4Container
         Container(mentor, "Mentor", "src/tools/mentor.rs", "Interactive Tutorial Mode")
         Container(mosaic, "Mosaic", "src/tools/mosaic.rs", "Visualizes Semantic Assembly")
         Container(narrator, "The Bard", "src/tools/narrator.rs", "Generates English narrative ('Scroll of Logic') from AST")
+        Container(papyrus, "Papyrus", "src/tools/papyrus.rs", "Generates SQL CREATE TABLE schemas")
         Container(repl, "REPL", "src/tools/repl.rs", "Interactive Read-Eval-Print Loop")
         Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports")
         Container(runner, "Runner", "src/tools/runner.rs", "Orchestrates the compilation pipeline")
@@ -70,6 +71,7 @@ C4Container
     Rel(semantic, auditor, "Analyzed Program")
     Rel(semantic, labyrinth, "Analyzed Program")
     Rel(semantic, weave, "Analyzed Program")
+    Rel(semantic, papyrus, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 
     Rel(morphology, dictionary, "Lexicon Data")
