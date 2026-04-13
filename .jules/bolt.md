@@ -31,3 +31,6 @@
 **[HashMap to FxHashMap in Internal Environment]**
 **Learning:** For internal interpreter environments that do not ingest arbitrary user string keys in a hash-collision scenario, the standard library `HashMap` (using SipHash) introduces unnecessary cryptographic hashing overhead. Switching to `rustc_hash::FxHashMap` provides a measurable speedup for variable resolution and lookups without introducing new dependencies, as it is often already present in compiler toolchains.
 **Action:** Replace `HashMap` with `FxHashMap` in internal state environments or symbol tables where HashDoS is not a threat model.
+**[Avoiding Deep Copies in Statement Conversion]**
+**Learning:** Using `clone()` followed by `.to_vec()` on a slice of a cloned struct causes double allocations for all nested vectors and strings. By taking ownership with a single `.clone()` and mutating in-place (`.remove(0)` and `std::mem::swap`), we can avoid intermediate heap allocations entirely while satisfying the borrow checker.
+**Action:** Always prefer mutating a cloned owned instance in place rather than replacing its fields with newly allocated subset copies.

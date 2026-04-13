@@ -1,0 +1,35 @@
+--- src/semantic/declarations.rs
++++ src/semantic/declarations.rs
+@@ -506,20 +506,24 @@
+
+ /// Collect all Word nodes from an expression (flattening phrases)
+-fn collect_words_from_expr(expr: &Expr) -> Vec<&crate::ast::Word> {
+-    let mut words = Vec::new();
+-    collect_words_from_expr_into(expr, &mut words);
+-    words
++fn collect_words_from_expr(expr: &Expr) -> impl Iterator<Item = &crate::ast::Word> {
++    // We use a Box<dyn Iterator> to handle the recursive nature of phrases
++    // ⚡ Bolt Optimization: Returned an iterator instead of allocating a `Vec<&Word>`
++    fn collect_recursive<'a>(expr: &'a Expr) -> Box<dyn Iterator<Item = &'a crate::ast::Word> + 'a> {
++        match expr {
++            Expr::Word(word) => Box::new(std::iter::once(word)),
++            Expr::Phrase(terms) => {
++                Box::new(terms.iter().flat_map(collect_recursive))
++            }
++            _ => Box::new(std::iter::empty()),
++        }
++    }
++    collect_recursive(expr)
+ }
+
+-fn collect_words_from_expr_into<'a>(expr: &'a Expr, words: &mut Vec<&'a crate::ast::Word>) {
+-    match expr {
+-        Expr::Word(word) => words.push(word),
+-        Expr::Phrase(terms) => {
+-            for term in terms {
+-                collect_words_from_expr_into(term, words);
+-            }
+-        }
+-        _ => {}
+-    }
+-}

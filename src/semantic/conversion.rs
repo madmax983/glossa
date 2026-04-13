@@ -396,11 +396,12 @@ fn resolve_binding_target<'a>(
         && morphology::lexicon::lookup(&asm_stmt.participles[0].verb_lemma).is_none();
 
     if has_false_participle {
-        let first_participle = &asm_stmt.participles[0];
         let mut fixed_asm = asm_stmt.clone();
-        fixed_asm.participles = asm_stmt.participles[1..].to_vec();
+        // ⚡ Bolt Optimization: Use `.remove(0)` instead of `.to_vec()` to avoid double allocation,
+        // and reuse the existing string without `.to_string()`.
+        let first_participle = fixed_asm.participles.remove(0);
         return Ok((
-            first_participle.normalized.to_string(),
+            first_participle.normalized.into(),
             std::borrow::Cow::Owned(fixed_asm),
         ));
     }
@@ -412,8 +413,8 @@ fn resolve_binding_target<'a>(
 
         if scope.is_defined(&subject.lemma) && !scope.is_defined(&object.lemma) {
             let mut swapped = asm_stmt.clone();
-            swapped.subject = Some(object.clone());
-            swapped.object = Some(subject.clone());
+            // ⚡ Bolt Optimization: Use `std::mem::swap` to avoid cloning `Constituent` structs entirely.
+            std::mem::swap(&mut swapped.subject, &mut swapped.object);
             return Ok((object_name.to_string(), std::borrow::Cow::Owned(swapped)));
         } else {
             return Ok((
@@ -433,11 +434,12 @@ fn resolve_binding_target<'a>(
 
     // Fallback: Bind to first participle (if any remain)
     if !asm_stmt.participles.is_empty() {
-        let first_participle = &asm_stmt.participles[0];
         let mut fixed_asm = asm_stmt.clone();
-        fixed_asm.participles = asm_stmt.participles[1..].to_vec();
+        // ⚡ Bolt Optimization: Use `.remove(0)` instead of `.to_vec()` to avoid double allocation,
+        // and reuse the existing string without `.to_string()`.
+        let first_participle = fixed_asm.participles.remove(0);
         return Ok((
-            first_participle.normalized.to_string(),
+            first_participle.normalized.into(),
             std::borrow::Cow::Owned(fixed_asm),
         ));
     }
