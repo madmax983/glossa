@@ -17,3 +17,7 @@
 **Bloat:** Undefined variables silently decaying into literal `0` integers deep within semantic parsing (in `extract_value`), and critical sentence structure checks (`DoubleSubject`, `MissingVerb`) being ignored or throwing silent raw Rust codegen errors.
 **Cut:** Removed silent variable decay defaults. Flattened statement validation into `classify_assembled_statement` where scoping and AST context are available, actively preventing `DoubleSubject` and explicit `MissingVerb` states. Added a post-classification generic `check_undefined_variables` AST walker that gracefully handles all node types without specific `Option<...>` fallback boilerplates.
 **Saved:** Multiple paths that historically led to compiler crashes / malformed semantic models. Unified missing-verb catching, and prevented dozens of lines of unneeded checks later down in the codegen toolchain.
+## [Reduction]
+**Bloat:** `parse_test_output` in `src/tools/tester.rs`. Using iterator cloning, `split_whitespace`, and manual advances to extract pieces of test output string.
+**Cut:** Replaced string whitespace splitting with explicit slice manipulation and string search (`rfind`).
+**Saved:** 15 lines of code, reduced parsing complexity and removed iterator state logic. Avoids any edge case bounds issue without needing extra checks.

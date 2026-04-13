@@ -67,32 +67,27 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
     let mut results = Vec::new();
     for line in output.lines() {
         // Standard rustc test output line format: "test test_name ... status"
-        if line.starts_with("test ")
-            && (line.ends_with(" ... ok")
-                || line.ends_with(" ... FAILED")
-                || line.ends_with(" ... ignored"))
-        {
-            // Expected parts: "test", "test_name", "...", "status"
-            // We can iterate without allocating an intermediate `Vec<&str>`
-            // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` with zero-cost iterator consumption.
-            let mut iter = line.split_whitespace();
-            if iter.clone().count() >= 4 {
-                let _ = iter.next(); // "test"
-                #[allow(clippy::collapsible_if)]
-                if let Some(name) = iter.next() {
-                    if let Some(status_str) = iter.last() {
-                        let status = match status_str {
-                            "ok" => TestStatus::Ok,
-                            "FAILED" => TestStatus::Failed,
-                            "ignored" => TestStatus::Ignored,
-                            _ => continue,
-                        };
-                        results.push(TestResult {
-                            name: name.to_string(),
-                            status,
-                        });
-                    }
+        if line.starts_with("test ") {
+            #[allow(clippy::collapsible_if)]
+            if let Some(idx) = line.rfind(" ... ") {
+                if idx < 5 {
+                    continue;
                 }
+                let name = line[5..idx].trim();
+                if name.is_empty() {
+                    continue;
+                }
+                let status_str = &line[idx + 5..];
+                let status = match status_str {
+                    "ok" => TestStatus::Ok,
+                    "FAILED" => TestStatus::Failed,
+                    "ignored" => TestStatus::Ignored,
+                    _ => continue,
+                };
+                results.push(TestResult {
+                    name: name.to_string(),
+                    status,
+                });
             }
         }
     }
