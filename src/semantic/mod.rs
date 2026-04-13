@@ -34,7 +34,7 @@
 pub(crate) mod analyzer;
 #[cfg(test)]
 mod assembler_tests;
-pub(crate) mod assembly;
+pub mod assembly;
 #[cfg(test)]
 mod classification_tests;
 pub(crate) mod control_flow;

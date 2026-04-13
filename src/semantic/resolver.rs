@@ -9,7 +9,7 @@
 //! The resolver uses a stack-based lexical environment:
 //! * **[`Scope`]**: The entire environment, containing a stack of [`ScopeLevel`]s.
 //! * **[`ScopeLevel`]**: A single dictionary (using `FxHashMap` for speed) mapping names to [`Binding`]s.
-//! * **[`ScopeGuard`]**: An RAII (Resource Acquisition Is Initialization) guard returned by [`Scope::enter_scope`].
+//! * **`ScopeGuard`**: An RAII (Resource Acquisition Is Initialization) guard returned by `Scope::enter_scope`.
 //!   When the guard goes out of scope, it automatically drops the deepest `ScopeLevel`.
 //!
 //! This design guarantees that variable shadowing works correctly and that symbols
@@ -136,7 +136,7 @@ impl Scope {
         self.levels.push(ScopeLevel::new());
     }
 
-    /// Creates a nested lexical scope and returns a RAII [`ScopeGuard`].
+    /// Creates a nested lexical scope and returns a RAII `ScopeGuard`.
     ///
     /// The returned guard allows defining symbols that only exist within the block.
     /// When the guard goes out of scope and is dropped, the inner scope level
