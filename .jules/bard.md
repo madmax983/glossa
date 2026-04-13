@@ -49,3 +49,7 @@
 ## 2024-05-27 - Documenting internal pub fns
 **Confusion:** Writing doc-tests for `pub fn` functions inside `pub(crate)` modules (like `analyze_verb_all_into`) fails compilation because doc-tests run as an external crate and cannot access `pub(crate)` items.
 **Clarification:** Use ````text` blocks instead of ````rust` for doc-tests on functions that cannot be tested externally due to module visibility, or structure the code so public APIs are testable.
+## 2026-03-18 - Replacing Private Module Doc Links
+
+**Confusion:** Resolving intra-doc links to private items inside `pub(crate)` modules fails the doc build, since Rustdoc cannot generate a stable path. Attempting to suppress these warnings by either explicitly marking the modules public or changing the links to an outer exposed scope can violate visibility boundaries or semantic meaning.
+**Clarification:** I updated the doc comment references that were failing (e.g., from `[ScopeGuard]` which pointed to an unexported guard structure to an explicit prose description, and fixing broken links to private structures like `GlossaReport` by making them use raw text or exposing them selectively). Doc tests inside private modules also need to be `text` rather than `rust`.

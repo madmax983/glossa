@@ -260,7 +260,7 @@ impl ProgramStats {
 }
 
 /// A human-readable report for an analyzed program
-pub struct GlossaReport<'a> {
+pub(crate) struct GlossaReport<'a> {
     program: &'a AnalyzedProgram,
     stats: ProgramStats,
     filename: String,

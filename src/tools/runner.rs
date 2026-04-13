@@ -375,7 +375,7 @@ pub fn check_file(input: &Path) -> Result<()> {
 /// Generates a language metrics dashboard report for a ΓΛΩΣΣΑ file and prints it to the terminal.
 ///
 /// This function loads the source code, parses it, and performs semantic analysis
-/// without generating any output code or binaries. It then prints a [`GlossaReport`]
+/// without generating any output code or binaries. It then prints a `GlossaReport`
 /// summarizing the program's statistics.
 ///
 /// ## Errors

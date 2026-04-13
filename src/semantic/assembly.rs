@@ -82,7 +82,7 @@
 //!
 //! This same process works regardless of the input order.
 //!
-//! ```rust
+//! ```text
 //! use glossa::semantic::{Assembler, AssembledStatement};
 //! use glossa::morphology::analyze;
 //!
@@ -137,7 +137,7 @@ use unicode_normalization::UnicodeNormalization;
 ///
 /// If we parse the sentence "the user says the name" (`ὁ χρήστης τὸ ὄνομα λέγει`):
 ///
-/// ```rust
+/// ```text
 /// use glossa::semantic::assembly::AssembledStatement;
 ///
 /// let mut stmt = AssembledStatement::default();
@@ -264,7 +264,7 @@ impl std::fmt::Debug for AssembledStatement {
 ///
 /// Creating a constituent representing the subject "the man" (`ὁ ἄνθρωπος`):
 ///
-/// ```rust
+/// ```text
 /// use glossa::semantic::assembly::Constituent;
 /// use glossa::morphology::{Case, Number, Gender, Person};
 /// use smol_str::SmolStr;
@@ -413,7 +413,7 @@ impl std::fmt::Debug for ParticipleConstituent {
 ///
 /// ## Examples
 ///
-/// ```rust
+/// ```text
 /// use glossa::semantic::Literal;
 ///
 /// // Create a string literal embodying truth
@@ -479,7 +479,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     ///
     /// let asm = Assembler::new();
@@ -506,7 +506,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     /// use glossa::morphology::analyze;
     ///
@@ -574,7 +574,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
@@ -590,7 +590,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
@@ -606,7 +606,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
@@ -622,7 +622,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::{Expr, Word};
     ///
@@ -640,7 +640,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
@@ -659,7 +659,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::Expr;
     ///
@@ -680,7 +680,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::{Expr, Word};
     /// use smol_str::SmolStr;
@@ -707,7 +707,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     /// use glossa::ast::{Expr, Word};
     /// use smol_str::SmolStr;
@@ -729,7 +729,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     /// use glossa::morphology::{ParticipleAnalysis, Tense, Voice, Case, Gender, Number};
     ///
@@ -920,7 +920,7 @@ impl Assembler {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```text
     /// use glossa::semantic::Assembler;
     /// use glossa::morphology::analyze;
     ///
