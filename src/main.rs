@@ -155,6 +155,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Ephor { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::ephor::run_ephor(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'ephor' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

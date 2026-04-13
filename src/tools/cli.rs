@@ -139,6 +139,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Start the visual interactive debugger (Requires "nova" feature)
+    Ephor {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Start the interactive REPL
     Repl,
 

@@ -32,3 +32,8 @@
 **Concept:** A basic static analysis tool / linter (`glossa audit`) that traverses the semantic AST (`AnalyzedProgram`) to find code smells, such as unused variables and unnecessary mutable declarations.
 **Fate:** Merged
 **Lesson:** Iterating over the complex nested variants in `AnalyzedStatement` and `AnalyzedExpr` provides a strong foundation for building static analysis tools without modifying core logic.
+
+## 🌟 The Ephor (ὁ Ἔφορος)
+**Concept:** A visual interactive debugger for the Simulator.
+**Fate:** Merged
+**Lesson:** Rendering real-time execution states via the tree-walk interpreter drastically improves DX and insight into the AST.

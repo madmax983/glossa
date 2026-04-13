@@ -26,6 +26,8 @@ pub use cache::Cache;
 pub mod cartographer;
 pub mod cli;
 pub mod dictionary;
+#[cfg(feature = "nova")]
+pub mod ephor;
 pub mod highlight;
 #[cfg(feature = "nova")]
 pub mod interpreter;
