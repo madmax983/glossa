@@ -14,8 +14,8 @@ libfuzzer-sys = "0.4"
 path = ".."
 
 [[bin]]
-name = "fuzz_target_1"
-path = "fuzz_targets/fuzz_target_1.rs"
+name = "fuzz_limit_bypass"
+path = "fuzz_targets/fuzz_limit_bypass.rs"
 test = false
 doc = false
 bench = false
