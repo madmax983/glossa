@@ -160,8 +160,12 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                     continue;
                 }
 
-                // Hide backtrace hint
-                if current.starts_with("note: run with `RUST_BACKTRACE=1`") {
+                // Hide backtrace hint and temp file paths and carets
+                if current.starts_with("note: run with `RUST_BACKTRACE=1`")
+                    || current.contains("glossa_test_")
+                    || current.trim_start().starts_with("^^^")
+                    || current.contains("RUST_BACKTRACE")
+                {
                     lines.next();
                     continue;
                 }
@@ -213,7 +217,12 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
             }
 
             // Skip the underline carets and empty pipes
-            if trimmed.starts_with('|') {
+            if trimmed.starts_with('|') || trimmed.starts_with('^') {
+                continue;
+            }
+
+            // Skip temporary file paths and backtrace info
+            if line.contains("glossa_test_") || line.contains("RUST_BACKTRACE") {
                 continue;
             }
 
