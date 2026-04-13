@@ -116,3 +116,6 @@ Signed,
 **2026-04-10 - [Unbounded File Read DoS in nova_coverage Test]**
 **Threat:** The `test_run_weave_success` test in `tests/nova_coverage.rs` was using `std::fs::read_to_string`, which loads an entire file into memory without limits. An attacker could theoretically use a massive file to exhaust memory and crash the test environment (DoS).
 **Defense:** Replaced the unbounded read with a capped reader using `std::io::Read::take()` and `1024 * 1024 + 1` limit, preventing memory exhaustion.
+**2026-04-10 - [Rand Crate Unsoundness]**
+**Threat:** The dependency `rand` version 0.9.2 had a known vulnerability (RUSTSEC-2026-0097) where it is unsound with a custom logger using `rand::rng()`.
+**Defense:** Updated the `rand` crate to version 0.9.3 to resolve the vulnerability.
