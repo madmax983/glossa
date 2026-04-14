@@ -32,7 +32,7 @@ C4Container
     Container(morphology, "Declension Resolver", "src/morphology", "Analyzes case, gender, number, and resolves agreement")
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
 
-    Container_Boundary(tools, "Developer Experience (Nova)") {
+    Container_Boundary(tools, "Developer Experience (Nova) [Facade API]") {
         Container(alchemist, "The Alchemist", "src/tools/alchemist.rs", "Python Exporter")
         Container(auditor, "The Auditor", "src/tools/auditor.rs", "Static analysis to find unused variables and mutability smells")
         Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
