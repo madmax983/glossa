@@ -863,6 +863,7 @@ fn test_statement_end_with_semicolon() {
 fn test_propagation_in_workflow() {
     // Realistic workflow with propagation
     let source = r#"
+        αποτελεσμα επιτυχια 0 εστω.
         τιμη τι πεντε εστω;
         αποτελεσμα επιτυχια τιμη εστω.
     "#;
