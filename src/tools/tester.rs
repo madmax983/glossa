@@ -74,12 +74,15 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
         {
             // Expected parts: "test", "test_name", "...", "status"
             // We can iterate without allocating an intermediate `Vec<&str>`
-            // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` with zero-cost iterator consumption.
+            // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` and `.clone().count()`
+            // with zero-cost iterator consumption using `.next()`, checking if there is a third
+            // element before proceeding to ensure we have at least 4 elements total.
             let mut iter = line.split_whitespace();
-            if iter.clone().count() >= 4 {
-                let _ = iter.next(); // "test"
-                #[allow(clippy::collapsible_if)]
-                if let Some(name) = iter.next() {
+            let _ = iter.next(); // "test"
+            #[allow(clippy::collapsible_if)]
+            if let Some(name) = iter.next() {
+                if iter.next().is_some() {
+                    // Ensures at least 3 parts existed so far ("test", name, ...).
                     if let Some(status_str) = iter.last() {
                         let status = match status_str {
                             "ok" => TestStatus::Ok,
