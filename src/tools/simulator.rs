@@ -144,6 +144,44 @@ mod tests {
     }
 
     #[test]
+    fn test_run_simulator_analysis_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("sim_analysis_err_test.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("invalid syntax".as_bytes()).unwrap();
+        }
+
+        let result = run_simulator(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_simulator_file_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("sim_file_err_test.γλ");
+        // Create a directory instead of a file so `load_source` fails
+        std::fs::create_dir_all(&input_path).unwrap();
+
+        let result = run_simulator(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_simulator_not_implemented() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("sim_not_impl_test.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            // This contains a type definition, which is not implemented in the simulator
+            f.write_all("εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.".as_bytes()).unwrap();
+        }
+
+        let result = run_simulator(&input_path);
+        assert!(result.is_ok()); // Should succeed with a warning, not fail
+    }
+
+    #[test]
     fn test_run_simulator_file_not_found() {
         let path = Path::new("non_existent_file.γλ");
         let result = run_simulator(path);
