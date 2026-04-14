@@ -78,21 +78,21 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
             let mut iter = line.split_whitespace();
             if iter.clone().count() >= 4 {
                 let _ = iter.next(); // "test"
-                #[allow(clippy::collapsible_if)]
-                if let Some(name) = iter.next() {
-                    if let Some(status_str) = iter.last() {
-                        let status = match status_str {
-                            "ok" => TestStatus::Ok,
-                            "FAILED" => TestStatus::Failed,
-                            "ignored" => TestStatus::Ignored,
-                            _ => continue,
-                        };
-                        results.push(TestResult {
-                            name: name.to_string(),
-                            status,
-                        });
-                    }
-                }
+
+                // Use let-else for cleaner unwrap
+                let Some(name) = iter.next() else { continue };
+                let Some(status_str) = iter.last() else { continue };
+
+                let status = match status_str {
+                    "ok" => TestStatus::Ok,
+                    "FAILED" => TestStatus::Failed,
+                    "ignored" => TestStatus::Ignored,
+                    _ => continue,
+                };
+                results.push(TestResult {
+                    name: name.to_string(),
+                    status,
+                });
             }
         }
     }
