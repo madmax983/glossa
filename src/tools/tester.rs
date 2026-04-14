@@ -723,6 +723,9 @@ test name ... ok
 test name with spaces ... ok
 ";
         let results = parse_test_output(output);
+        // The first one is invalid because it's missing a name: "test ... ok"
+        // The second one is valid: "test name ... ok"
+        // The third one is valid: "test name with spaces ... ok"
         assert_eq!(results.len(), 2);
     }
 
