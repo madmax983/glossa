@@ -55,7 +55,7 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
     let mut table = Table::new();
     table.load_preset(presets::UTF8_FULL);
 
-    if program.statements.is_empty() {
+    if cfg.trim() == "graph TD" {
         table.set_header(vec![
             Cell::new("Status")
                 .add_attribute(Attribute::Bold)
