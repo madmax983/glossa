@@ -64,39 +64,44 @@ struct TestResult {
 }
 
 fn parse_test_output(output: &str) -> Vec<TestResult> {
-    let mut results = Vec::new();
-    for line in output.lines() {
-        // Standard rustc test output line format: "test test_name ... status"
-        if line.starts_with("test ")
-            && (line.ends_with(" ... ok")
-                || line.ends_with(" ... FAILED")
-                || line.ends_with(" ... ignored"))
-        {
-            // Expected parts: "test", "test_name", "...", "status"
-            // We can iterate without allocating an intermediate `Vec<&str>`
-            // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` with zero-cost iterator consumption.
+    output
+        .lines()
+        .filter(|line| {
+            line.starts_with("test ")
+                && (line.ends_with(" ... ok")
+                    || line.ends_with(" ... FAILED")
+                    || line.ends_with(" ... ignored"))
+        })
+        .filter_map(|line| {
             let mut iter = line.split_whitespace();
-            if iter.clone().count() >= 4 {
-                let _ = iter.next(); // "test"
-                #[allow(clippy::collapsible_if)]
-                if let Some(name) = iter.next() {
-                    if let Some(status_str) = iter.last() {
-                        let status = match status_str {
-                            "ok" => TestStatus::Ok,
-                            "FAILED" => TestStatus::Failed,
-                            "ignored" => TestStatus::Ignored,
-                            _ => continue,
-                        };
-                        results.push(TestResult {
-                            name: name.to_string(),
-                            status,
-                        });
-                    }
-                }
+            // Expected format: "test" "<name>" "..." "<status>"
+            let _ = iter.next()?; // "test"
+
+            let name = iter.next()?;
+
+            // The status is always the last token.
+            // There must be at least one middle token (like "..."), so we can skip ahead to the last token.
+            // In the original code, `iter.clone().count() >= 4` meant at least 4 tokens total.
+            // So after dropping "test" and "name", there must be at least 2 tokens left ("..." and "status").
+            if iter.clone().count() < 2 {
+                return None; // Not enough tokens remaining
             }
-        }
-    }
-    results
+
+            let status_str = iter.next_back()?;
+
+            let status = match status_str {
+                "ok" => TestStatus::Ok,
+                "FAILED" => TestStatus::Failed,
+                "ignored" => TestStatus::Ignored,
+                _ => return None,
+            };
+
+            Some(TestResult {
+                name: name.to_string(),
+                status,
+            })
+        })
+        .collect()
 }
 
 /// Extracts failed tests and their output from `rustc --test` output.
@@ -252,6 +257,12 @@ fn execute_test_binary(exe_path: &Path, status: &mut Status) -> Result<std::proc
 }
 
 fn print_test_results(results: &[TestResult], test_output: &std::process::Output, stdout: &str) {
+    print_summary(results, test_output);
+    print_results_table(results);
+    print_failure_details(test_output, stdout);
+}
+
+fn print_summary(results: &[TestResult], test_output: &std::process::Output) {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
     println!("   {}", "Unit Test Results".italic().dim());
@@ -276,7 +287,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         );
         println!();
     }
+}
 
+fn print_results_table(results: &[TestResult]) {
     if !results.is_empty() {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
@@ -320,41 +333,44 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         ]);
         println!("{empty_table}");
     }
+}
 
-    // If there were failures, try to extract and print them nicely
-    if !test_output.status.success() {
-        println!();
-        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+fn print_failure_details(test_output: &std::process::Output, stdout: &str) {
+    if test_output.status.success() {
+        return;
+    }
 
-        let failures = extract_failures(stdout);
+    println!();
+    println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
 
-        if !failures.is_empty() {
-            for (name, msg) in failures {
-                println!(
-                    "{} {}",
-                    "FAILED:".red().bold(),
-                    name.cyan().bold().underlined()
-                );
-                // Create a box for the error message
-                let border_top =
-                    "╭───────────────────────────────────────────────────────────────────╮".red();
-                let border_bottom =
-                    "╰───────────────────────────────────────────────────────────────────╯".red();
+    let failures = extract_failures(stdout);
 
-                println!("{}", border_top);
-                for line in msg.lines() {
-                    // Wrap extremely long lines if needed, but for now simple print
-                    println!("{} {}", "│".red(), line);
-                }
-                println!("{}", border_bottom);
-                println!();
+    if !failures.is_empty() {
+        for (name, msg) in failures {
+            println!(
+                "{} {}",
+                "FAILED:".red().bold(),
+                name.cyan().bold().underlined()
+            );
+            // Create a box for the error message
+            let border_top =
+                "╭───────────────────────────────────────────────────────────────────╮".red();
+            let border_bottom =
+                "╰───────────────────────────────────────────────────────────────────╯".red();
+
+            println!("{}", border_top);
+            for line in msg.lines() {
+                // Wrap extremely long lines if needed, but for now simple print
+                println!("{} {}", "│".red(), line);
             }
-        } else {
-            // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
-            if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
-            }
+            println!("{}", border_bottom);
+            println!();
+        }
+    } else {
+        // Fallback to raw output if extraction failed but tests failed
+        println!("{}", stdout);
+        if !test_output.stderr.is_empty() {
+            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
         }
     }
 }
