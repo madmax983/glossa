@@ -156,6 +156,11 @@ impl Default for Interpreter {
 }
 
 impl Interpreter {
+    /// Returns a reference to the environment stack.
+    pub fn env(&self) -> &Vec<FxHashMap<String, Value>> {
+        &self.env
+    }
+
     /// Creates a new, empty Interpreter environment.
     ///
     /// It initializes a single global scope and an empty output buffer.
@@ -449,10 +454,8 @@ mod tests {
     #[test]
     fn test_not_implemented_expression() {
         let expr2 = AnalyzedExpr {
-            expr: AnalyzedExprKind::StructInstantiation {
-                type_name: "TestStruct".into(),
-                fields: vec![],
-                args: vec![],
+            expr: AnalyzedExprKind::CollectionNew {
+                collection_type: "TestCollection".into(),
             },
             glossa_type: crate::semantic::GlossaType::Unknown,
         };

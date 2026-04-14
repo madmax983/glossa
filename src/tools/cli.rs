@@ -190,6 +190,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Run the Simulator to interpret a .γλ file and inspect the final environment state (Requires "nova" feature)
+    Simulator {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Run the Auditor to find code smells (Requires "nova" feature)
     Audit {
         /// Input file (.γλ)
