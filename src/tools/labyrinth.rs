@@ -48,7 +48,12 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
     status.success();
 
     writeln!(writer).into_diagnostic()?;
-    writeln!(writer, "   {}", "Γ Λ Ω Σ Σ Α   L A B Y R I N T H".bold().cyan()).into_diagnostic()?;
+    writeln!(
+        writer,
+        "   {}",
+        "Γ Λ Ω Σ Σ Α   L A B Y R I N T H".bold().cyan()
+    )
+    .into_diagnostic()?;
     writeln!(writer, "   {}", "Control Flow Graph".italic().dim()).into_diagnostic()?;
     writeln!(writer).into_diagnostic()?;
 
@@ -80,12 +85,19 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
 
         writeln!(writer, "{table}").into_diagnostic()?;
         writeln!(writer).into_diagnostic()?;
-        writeln!(writer, "   {}", "📋 Usage Instructions:".bold().underlined()).into_diagnostic()?;
+        writeln!(
+            writer,
+            "   {}",
+            "📋 Usage Instructions:".bold().underlined()
+        )
+        .into_diagnostic()?;
         writeln!(writer, "   1. Copy the code block above.").into_diagnostic()?;
-        writeln!(writer,
+        writeln!(
+            writer,
             "   2. Paste it into {}",
             "https://mermaid.live".cyan().underlined()
-        ).into_diagnostic()?;
+        )
+        .into_diagnostic()?;
         writeln!(writer).into_diagnostic()?;
     }
 
