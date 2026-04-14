@@ -78,13 +78,16 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
             let mut iter = line.split_whitespace();
             if iter.clone().count() >= 4 {
                 let _ = iter.next(); // "test"
-
-                // Use let-else for cleaner unwrap
-                let Some(name) = iter.next() else { continue };
-                let Some(status_str) = iter.last() else {
+                let name = if let Some(n) = iter.next() {
+                    n
+                } else {
                     continue;
                 };
-
+                let status_str = if let Some(s) = iter.last() {
+                    s
+                } else {
+                    continue;
+                };
                 let status = match status_str {
                     "ok" => TestStatus::Ok,
                     "FAILED" => TestStatus::Failed,
