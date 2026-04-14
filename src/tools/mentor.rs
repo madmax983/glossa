@@ -35,7 +35,7 @@ use std::io::{BufRead, Write};
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::tools::mentor::Lesson;
+/// use glossa::tools::Lesson;
 /// use glossa::semantic::AnalyzedProgram;
 ///
 /// let first_lesson = Lesson {

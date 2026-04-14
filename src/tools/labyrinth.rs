@@ -52,7 +52,7 @@ pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::tools::labyrinth::generate_cfg;
+/// use glossa::tools::generate_cfg;
 /// use glossa::semantic::analyze_program;
 /// use glossa::parser::parse;
 ///

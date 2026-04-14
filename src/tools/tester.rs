@@ -370,7 +370,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::tools::tester::run_tests;
+/// use glossa::tools::run_tests;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;
