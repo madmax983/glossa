@@ -1185,9 +1185,8 @@ mod tests {
             person: None,
         });
 
-        // Ensure invalid literals do not panic. The inner logic is technically
-        // unreachable in single-threaded Rust due to an earlier check, but replacing
-        // unreachable!() ensures safety against structural or logic refactoring.
+        // Ensure invalid literals do not panic.
+        // This ensures safety against structural or logic refactoring.
         asm.state.literals.push(Literal::Number(42));
 
         let result = asm.try_create_string_method("split");
