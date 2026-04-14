@@ -9,12 +9,13 @@ use std::path::Path;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Cell, Color, Table};
 use crossterm::{
-    cursor,
-    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
-    execute,
+    cursor, execute,
     style::{Print, ResetColor, SetForegroundColor},
     terminal::{self, Clear, ClearType},
 };
+
+#[cfg(not(test))]
+use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 
 /// A Drop guard to ensure the terminal is always restored to its
 /// normal state even if an error occurs or a panic happens during debugging.
@@ -24,7 +25,10 @@ struct TerminalRestorer<'a, W: Write> {
 
 impl<'a, W: Write> TerminalRestorer<'a, W> {
     fn new(out: &'a mut W) -> Result<Self> {
-        terminal::enable_raw_mode().into_diagnostic()?;
+        #[cfg(not(test))]
+        {
+            terminal::enable_raw_mode().into_diagnostic()?;
+        }
         execute!(out, terminal::EnterAlternateScreen, cursor::Hide).into_diagnostic()?;
         Ok(Self { out })
     }
@@ -33,7 +37,10 @@ impl<'a, W: Write> TerminalRestorer<'a, W> {
 impl<'a, W: Write> Drop for TerminalRestorer<'a, W> {
     fn drop(&mut self) {
         let _ = execute!(self.out, terminal::LeaveAlternateScreen, cursor::Show);
-        let _ = terminal::disable_raw_mode();
+        #[cfg(not(test))]
+        {
+            let _ = terminal::disable_raw_mode();
+        }
     }
 }
 use miette::{IntoDiagnostic, Result};
@@ -154,6 +161,7 @@ fn run_ephor_inner<W: Write>(path: &Path, source: &str, out: &mut W) -> Result<(
 
     render(_restorer.out, &interpreter, current_stmt_idx, total_stmts)?;
 
+    #[cfg(not(test))]
     loop {
         if event::poll(std::time::Duration::from_millis(100)).into_diagnostic()? {
             let evt = event::read().into_diagnostic()?;
@@ -194,15 +202,41 @@ fn run_ephor_inner<W: Write>(path: &Path, source: &str, out: &mut W) -> Result<(
         }
     }
 
+    #[cfg(test)]
+    while current_stmt_idx < total_stmts {
+        let stmt = &program.statements[current_stmt_idx];
+        let _ = interpreter.eval_statement(stmt);
+        current_stmt_idx += 1;
+        render(_restorer.out, &interpreter, current_stmt_idx, total_stmts)?;
+    }
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
     #[test]
     fn test_ephor_basic_compile() {
-        // Just verify it compiles correctly and tests run without terminal interaction
-        let compiled = true;
-        assert!(compiled);
+        // Create a simple program to test Ephor logic
+        let mut file = NamedTempFile::new().unwrap();
+        writeln!(file, "«χαῖρε» λέγε.").unwrap();
+
+        // Write output to a mock buffer
+        let mut output_buffer = Vec::new();
+
+        let path = file.path();
+        let source = "«χαῖρε» λέγε.";
+
+        let result = run_ephor_inner(path, source, &mut output_buffer);
+        assert!(result.is_ok());
+
+        // Verify the render outputs something into our mock buffer
+        let output_str = String::from_utf8(output_buffer).unwrap();
+        assert!(output_str.contains("Output Buffer"));
+        assert!(output_str.contains("χαῖρε"));
     }
 }
