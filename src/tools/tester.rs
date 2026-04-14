@@ -64,44 +64,39 @@ struct TestResult {
 }
 
 fn parse_test_output(output: &str) -> Vec<TestResult> {
-    output
-        .lines()
-        .filter(|line| {
-            line.starts_with("test ")
-                && (line.ends_with(" ... ok")
-                    || line.ends_with(" ... FAILED")
-                    || line.ends_with(" ... ignored"))
-        })
-        .filter_map(|line| {
+    let mut results = Vec::new();
+    for line in output.lines() {
+        // Standard rustc test output line format: "test test_name ... status"
+        if line.starts_with("test ")
+            && (line.ends_with(" ... ok")
+                || line.ends_with(" ... FAILED")
+                || line.ends_with(" ... ignored"))
+        {
+            // Expected parts: "test", "test_name", "...", "status"
+            // We can iterate without allocating an intermediate `Vec<&str>`
+            // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` with zero-cost iterator consumption.
             let mut iter = line.split_whitespace();
-            // Expected format: "test" "<name>" "..." "<status>"
-            let _ = iter.next()?; // "test"
-
-            let name = iter.next()?;
-
-            // The status is always the last token.
-            // There must be at least one middle token (like "..."), so we can skip ahead to the last token.
-            // In the original code, `iter.clone().count() >= 4` meant at least 4 tokens total.
-            // So after dropping "test" and "name", there must be at least 2 tokens left ("..." and "status").
-            if iter.clone().count() < 2 {
-                return None; // Not enough tokens remaining
+            if iter.clone().count() >= 4 {
+                let _ = iter.next(); // "test"
+                #[allow(clippy::collapsible_if)]
+                if let Some(name) = iter.next() {
+                    if let Some(status_str) = iter.last() {
+                        let status = match status_str {
+                            "ok" => TestStatus::Ok,
+                            "FAILED" => TestStatus::Failed,
+                            "ignored" => TestStatus::Ignored,
+                            _ => continue,
+                        };
+                        results.push(TestResult {
+                            name: name.to_string(),
+                            status,
+                        });
+                    }
+                }
             }
-
-            let status_str = iter.next_back()?;
-
-            let status = match status_str {
-                "ok" => TestStatus::Ok,
-                "FAILED" => TestStatus::Failed,
-                "ignored" => TestStatus::Ignored,
-                _ => return None,
-            };
-
-            Some(TestResult {
-                name: name.to_string(),
-                status,
-            })
-        })
-        .collect()
+        }
+    }
+    results
 }
 
 /// Extracts failed tests and their output from `rustc --test` output.
