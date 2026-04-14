@@ -17,6 +17,8 @@
 
 use crate::semantic::{AnalyzedProgram, AnalyzedStatement};
 use crate::tools::ui::Status;
+use comfy_table::{Attribute, Cell, Color, Table, presets};
+use crossterm::style::Stylize;
 use std::path::Path;
 
 /// Run the Labyrinth tool on a file
@@ -36,9 +38,47 @@ pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
     let cfg = generate_cfg(&program);
     status.success();
 
-    println!("\n```mermaid");
-    println!("{}", cfg);
-    println!("```\n");
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   L A B Y R I N T H".bold().cyan());
+    println!("   {}", "Control Flow Graph".italic().dim());
+    println!();
+
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL);
+
+    if cfg.trim() == "graph TD" {
+        table.set_header(vec![
+            Cell::new("Status")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Yellow),
+        ]);
+        table.add_row(vec![
+            Cell::new("No control flow structures found.")
+                .fg(Color::DarkGrey)
+                .add_attribute(Attribute::Italic),
+        ]);
+        println!("{table}");
+        println!();
+    } else {
+        table.set_header(vec![
+            Cell::new("Mermaid.js Diagram")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+        ]);
+
+        let formatted_cfg = format!("```mermaid\n{}\n```", cfg.trim());
+        table.add_row(vec![Cell::new(formatted_cfg)]);
+
+        println!("{table}");
+        println!();
+        println!("   {}", "📋 Usage Instructions:".bold().underlined());
+        println!("   1. Copy the code block above.");
+        println!(
+            "   2. Paste it into {}",
+            "https://mermaid.live".cyan().underlined()
+        );
+        println!();
+    }
 
     Ok(())
 }
