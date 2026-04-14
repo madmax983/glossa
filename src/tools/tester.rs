@@ -73,21 +73,26 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
                 || line.ends_with(" ... ignored"))
         {
             // Expected parts: "test", "test_name", "...", "status"
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            // test lines must have at least 4 parts: "test", name, "...", status
-            if parts.len() >= 4
-                && let ["test", name, .., status_str] = parts.as_slice()
-            {
-                let status = match *status_str {
-                    "ok" => TestStatus::Ok,
-                    "FAILED" => TestStatus::Failed,
-                    "ignored" => TestStatus::Ignored,
-                    _ => continue,
-                };
-                results.push(TestResult {
-                    name: name.to_string(),
-                    status,
-                });
+            // We can iterate without allocating an intermediate `Vec<&str>`
+            // ⚡ Bolt Optimization: Replace `.collect::<Vec<&str>>()` with zero-cost iterator consumption.
+            let mut iter = line.split_whitespace();
+            if iter.clone().count() >= 4 {
+                let _ = iter.next(); // "test"
+                #[allow(clippy::collapsible_if)]
+                if let Some(name) = iter.next() {
+                    if let Some(status_str) = iter.last() {
+                        let status = match status_str {
+                            "ok" => TestStatus::Ok,
+                            "FAILED" => TestStatus::Failed,
+                            "ignored" => TestStatus::Ignored,
+                            _ => continue,
+                        };
+                        results.push(TestResult {
+                            name: name.to_string(),
+                            status,
+                        });
+                    }
+                }
             }
         }
     }
@@ -119,10 +124,11 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                 .trim_start_matches("---- ")
                 .trim_end_matches(" stdout ----");
             // Remove module path if present for cleaner display
-            let name = match name_part.split("::").collect::<Vec<_>>().as_slice() {
-                [.., last] => last.to_string(),
-                _ => name_part.to_string(),
-            };
+            let name = name_part
+                .split("::")
+                .last()
+                .unwrap_or(name_part)
+                .to_string();
 
             // Capture output until next "----" or empty line followed by "failures:"
             let mut message = String::new();
@@ -293,12 +299,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 
             // Clean up test name (remove module prefix if any)
             // e.g., "tests::test_name" -> "test_name"
-            let display_name = match result.name.split("::").collect::<Vec<_>>().as_slice() {
-                [.., last] => last.to_string(),
-                _ => result.name.clone(),
-            };
+            let display_name = result.name.split("::").last().unwrap_or(&result.name);
 
-            table.add_row(vec![Cell::new(&display_name), status_cell]);
+            table.add_row(vec![Cell::new(display_name), status_cell]);
         }
         println!("{table}");
     } else {
