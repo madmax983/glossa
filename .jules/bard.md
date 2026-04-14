@@ -53,3 +53,6 @@
 ## 2026-03-19 - Broken Intra-Doc Links Resolved
 **Confusion:** The `cargo doc` command was throwing warnings about unresolved intra-doc links to `ScopeGuard` in `src/semantic/resolver.rs` and linking to the private struct `GlossaReport` in `src/tools/runner.rs`.
 **Clarification:** I replaced the intra-doc link `[`ScopeGuard`]` with `` `ScopeGuard` `` because the type itself was not explicitly defined (maybe handled as a closure via `with_scope`). For `GlossaReport`, since it is not public in `tools::mod.rs` by default without features/exports, I replaced the intra-doc link with `` `GlossaReport` `` to avoid linking issues to private types in public function docs.
+## 2026-03-19 - [Empty Code Blocks in Assembly Structs]
+**Confusion:** The structs `AssembledStatement` and `Constituent` in `src/semantic/assembly.rs` had placeholder documentation containing empty rust code blocks, leading to `cargo doc` warnings ("Rust code block is empty").
+**Clarification:** I populated these documentation blocks with executable, concrete `doctests` demonstrating how to construct these types using realistic Ancient Greek morphology examples and explicit `crate::` path imports, providing tangible usage context while eliminating compiler warnings.
