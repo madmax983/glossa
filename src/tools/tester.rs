@@ -81,7 +81,9 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
 
                 // Use let-else for cleaner unwrap
                 let Some(name) = iter.next() else { continue };
-                let Some(status_str) = iter.last() else { continue };
+                let Some(status_str) = iter.last() else {
+                    continue;
+                };
 
                 let status = match status_str {
                     "ok" => TestStatus::Ok,
