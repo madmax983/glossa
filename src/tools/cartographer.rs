@@ -113,22 +113,27 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut map = String::from("classDiagram\n");
     let mut dependencies = HashSet::new();
 
+    use std::fmt::Write;
+
     // 1. Iterate over types (structs)
     // We sort by name to ensure deterministic output
     let mut types: Vec<_> = program.scope.types().collect();
     types.sort_by(|a, b| a.0.cmp(b.0));
 
+    // ⚡ Bolt Optimization: Reuse a single buffer to avoid allocating a new Vec for every field
+    let mut deps_buffer = Vec::new();
+
     for (_key, ty) in types {
         if let GlossaType::Struct { name, fields, .. } = ty {
-            map.push_str(&format!("    class {} {{\n", name));
+            let _ = writeln!(map, "    class {} {{", name);
             for (field_name, field_type) in fields {
                 // Format type for display
-                map.push_str(&format!("        +{}: {}\n", field_name, field_type));
+                let _ = writeln!(map, "        +{}: {}", field_name, field_type);
 
                 // Extract dependencies (associations)
-                let mut deps = Vec::new();
-                extract_dependencies(field_type, &mut deps);
-                for dep in deps {
+                deps_buffer.clear();
+                extract_dependencies(field_type, &mut deps_buffer);
+                for dep in deps_buffer.drain(..) {
                     if dep != *name {
                         // Avoid self-reference arrows if desired (or keep them?)
                         // We only want arrows to other defined structs
@@ -144,10 +149,9 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut traits: Vec<_> = program.scope.traits().collect();
     traits.sort_by(|a, b| a.0.cmp(b.0));
 
-    use std::fmt::Write;
     for (_key, trait_def) in traits {
         let name = &trait_def.name;
-        map.push_str(&format!("    class {} {{\n", name));
+        let _ = writeln!(map, "    class {} {{", name);
         map.push_str("        <<interface>>\n");
         for method in &trait_def.methods {
             // ⚡ Bolt Optimization: Replace `.collect::<Vec<String>>().join(", ")` with
@@ -161,15 +165,11 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
                 write!(&mut params_str, "{}: {}", n, t).unwrap();
             }
 
-            let ret_str = method
-                .return_type
-                .as_ref()
-                .map(|t| format!(": {}", t))
-                .unwrap_or_default();
-            map.push_str(&format!(
-                "        +{}({}){}\n",
-                method.name, params_str, ret_str
-            ));
+            let _ = write!(map, "        +{}({})", method.name, params_str);
+            if let Some(t) = &method.return_type {
+                let _ = write!(map, ": {}", t);
+            }
+            map.push('\n');
         }
         map.push_str("    }\n");
     }
@@ -194,7 +194,7 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
 
     for (source, target) in sorted_deps {
         if defined_types.contains(&target) {
-            map.push_str(&format!("    {} --> {}\n", source, target));
+            let _ = writeln!(map, "    {} --> {}", source, target);
         }
     }
 
@@ -207,10 +207,7 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
             ..
         } = stmt
         {
-            map.push_str(&format!(
-                "    {} <|.. {} : implements\n",
-                trait_name, type_name
-            ));
+            let _ = writeln!(map, "    {} <|.. {} : implements", trait_name, type_name);
         }
     }
 
