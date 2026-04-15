@@ -14,7 +14,7 @@
 use crate::tools::interpreter::Interpreter;
 use crate::tools::runner::{analyze_source, load_source};
 use crate::tools::ui::Status;
-use comfy_table::{Attribute, Cell, Color, Table, presets};
+use comfy_table::{presets, Attribute, Cell, Color, Table};
 use crossterm::style::Stylize;
 use miette::Result;
 use std::path::Path;
@@ -174,7 +174,8 @@ mod tests {
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
             // This contains a type definition, which is not implemented in the simulator
-            f.write_all("εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.".as_bytes()).unwrap();
+            f.write_all("εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.".as_bytes())
+                .unwrap();
         }
 
         let result = run_simulator(&input_path);
