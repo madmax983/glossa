@@ -1,11 +1,11 @@
 use crate::codegen::generate_rust_file;
 use crate::parser::parse;
 use crate::semantic::{AnalyzedProgram, analyze_program};
+use crate::tools::Status;
 use crate::tools::cache::Cache;
-use crate::tools::highlight::highlight;
-use crate::tools::narrator::tell_tale;
-use crate::tools::report::{CompilationReport, GlossaReport, ProgramStats};
-use crate::tools::ui::Status;
+use crate::tools::highlight;
+use crate::tools::tell_tale;
+use crate::tools::{CompilationReport, GlossaReport, ProgramStats};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
@@ -110,7 +110,7 @@ pub(crate) fn load_source(input: &Path) -> Result<String> {
 /// ## Examples
 ///
 /// ```
-/// use glossa::tools::runner::build_file;
+/// use glossa::tools::build_file;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;
@@ -202,7 +202,7 @@ pub fn build_file(input: &Path, output: Option<&Path>) -> Result<()> {
 /// ## Examples
 ///
 /// ```
-/// use glossa::tools::runner::run_file;
+/// use glossa::tools::run_file;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;
@@ -342,7 +342,7 @@ fn execute_binary(executable: &Path) -> Result<()> {
 /// ## Examples
 ///
 /// ```
-/// use glossa::tools::runner::check_file;
+/// use glossa::tools::check_file;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;
@@ -421,7 +421,7 @@ pub fn report_file(input: &Path) -> Result<()> {
 /// ## Examples
 ///
 /// ```
-/// use glossa::tools::runner::highlight_file;
+/// use glossa::tools::highlight_file;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;
@@ -470,7 +470,7 @@ pub fn highlight_file(input: &Path) -> Result<()> {
 /// ## Examples
 ///
 /// ```
-/// use glossa::tools::runner::bard_file;
+/// use glossa::tools::bard_file;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;

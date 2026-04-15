@@ -34,7 +34,7 @@
 //! ```
 
 use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType};
-use crate::tools::ui::Status;
+use crate::tools::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
@@ -45,11 +45,11 @@ use std::path::Path;
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
 pub fn run_map(input: &Path) -> Result<()> {
-    let source = crate::tools::runner::load_source(input)?;
+    let source = crate::tools::load_source(input)?;
 
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
 
-    let program = match crate::tools::runner::analyze_source(&source) {
+    let program = match crate::tools::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
             status.error("Σφάλμα (Error)");

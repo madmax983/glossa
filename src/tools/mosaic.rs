@@ -27,7 +27,7 @@
 
 use crate::parser::parse;
 use crate::semantic::{AssembledStatement, Constituent, assemble_statement};
-use crate::tools::ui::Status;
+use crate::tools::Status;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
@@ -38,7 +38,7 @@ use std::path::Path;
 ///
 /// Reads the source file, parses it, and prints the semantic assembly table to stdout.
 pub fn run_mosaic(input_path: &Path) -> Result<()> {
-    let source = crate::tools::runner::load_source(input_path)?;
+    let source = crate::tools::load_source(input_path)?;
 
     let status = Status::start_with_symbol("Ψηφιδωτόν (Mosaic)", "🧩");
 

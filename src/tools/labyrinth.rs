@@ -16,16 +16,16 @@
 //! * **Edges**: The flow of execution.
 
 use crate::semantic::{AnalyzedProgram, AnalyzedStatement};
-use crate::tools::ui::Status;
+use crate::tools::Status;
 use std::path::Path;
 
 /// Run the Labyrinth tool on a file
 pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
-    let source = crate::tools::runner::load_source(input)?;
+    let source = crate::tools::load_source(input)?;
 
     let status = Status::start_with_symbol("Λαβύρινθος (Control Flow Graph)", "🔀");
 
-    let program = match crate::tools::runner::analyze_source(&source) {
+    let program = match crate::tools::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
             status.error("Σφάλμα (Error)");
@@ -52,7 +52,7 @@ pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::tools::labyrinth::generate_cfg;
+/// use glossa::tools::generate_cfg;
 /// use glossa::semantic::analyze_program;
 /// use glossa::parser::parse;
 ///

@@ -1,6 +1,6 @@
 use crate::semantic::{AnalyzedStatement, GlossaType};
-use crate::tools::runner::load_source;
-use crate::tools::ui::Status;
+use crate::tools::Status;
+use crate::tools::load_source;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
@@ -24,7 +24,7 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
         }
     };
 
-    let program = match crate::tools::runner::analyze_source(&source) {
+    let program = match crate::tools::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
             // Note: Since `analyze_source` unifies parsing and semantics, we

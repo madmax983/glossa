@@ -17,28 +17,27 @@
 //! * `ui`: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
 #[cfg(feature = "nova")]
-pub mod alchemist;
+pub(crate) mod alchemist;
 #[cfg(feature = "nova")]
-pub mod auditor;
+pub(crate) mod auditor;
 pub(crate) mod cache;
-pub use cache::Cache;
 #[cfg(feature = "nova")]
-pub mod cartographer;
-pub mod cli;
-pub mod dictionary;
-pub mod highlight;
+pub(crate) mod cartographer;
+pub(crate) mod cli;
+pub(crate) mod dictionary;
+pub(crate) mod highlight;
 #[cfg(feature = "nova")]
-pub mod interpreter;
+pub(crate) mod interpreter;
 #[cfg(feature = "nova")]
-pub mod labyrinth;
+pub(crate) mod labyrinth;
 #[cfg(feature = "nova")]
-pub mod mentor;
+pub(crate) mod mentor;
 #[cfg(feature = "nova")]
-pub mod mosaic;
-pub mod narrator;
+pub(crate) mod mosaic;
+pub(crate) mod narrator;
 #[cfg(feature = "nova")]
-pub mod papyrus;
-pub mod repl;
+pub(crate) mod papyrus;
+pub(crate) mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
 ///
@@ -49,7 +48,7 @@ pub(crate) mod report;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use glossa::tools::runner::run_file;
+/// use glossa::tools::run_file;
 /// use std::path::Path;
 ///
 /// // Execute a Glossa file directly from its path
@@ -58,8 +57,43 @@ pub(crate) mod report;
 ///     eprintln!("Execution failed: {}", e);
 /// }
 /// ```
-pub mod runner;
-pub mod tester;
+pub(crate) mod runner;
+pub(crate) mod tester;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
-pub mod weave;
+pub(crate) mod weave;
+
+// --- Facade Re-exports ---
+
+#[cfg(feature = "nova")]
+pub use alchemist::{run_alchemist, transpile_to_python};
+#[cfg(feature = "nova")]
+pub use auditor::run_auditor;
+pub use cache::Cache;
+#[cfg(feature = "nova")]
+pub use cartographer::{generate_map, run_map};
+pub use cli::{Cli, Commands};
+pub use dictionary::lookup_word;
+pub use highlight::highlight;
+#[cfg(feature = "nova")]
+pub use interpreter::{EvalError, Interpreter, Value};
+#[cfg(feature = "nova")]
+pub use labyrinth::{generate_cfg, run_labyrinth};
+#[cfg(feature = "nova")]
+pub use mentor::{Lesson, run_mentor};
+#[cfg(feature = "nova")]
+pub use mosaic::{run_mosaic, run_mosaic_inner};
+pub use narrator::tell_tale;
+#[cfg(feature = "nova")]
+pub use papyrus::run_papyrus;
+pub use repl::{ReplOutput, run_repl};
+pub use report::{CompilationReport, GlossaReport, ProgramStats};
+pub use runner::{
+    analyze_source, bard_file, build_file, check_file, highlight_file, report_file, run_file,
+};
+// We also expose load_source crate-internally so other tools don't break if they use crate::tools::load_source
+pub(crate) use runner::load_source;
+pub use tester::run_tests;
+pub use ui::Status;
+#[cfg(feature = "nova")]
+pub use weave::run_weave;

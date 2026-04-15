@@ -40,7 +40,7 @@
 //! ```
 
 use crate::codegen::generate_rust_file;
-use crate::tools::ui::Status;
+use crate::tools::Status;
 use comfy_table::{Attribute, Cell, CellAlignment, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
@@ -365,7 +365,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::tools::tester::run_tests;
+/// use glossa::tools::run_tests;
 /// use std::path::PathBuf;
 /// use std::fs;
 /// use tempfile::tempdir;
@@ -381,11 +381,11 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 /// ```
 pub fn run_tests(input: &Path) -> Result<()> {
     // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
-    let source = crate::tools::runner::load_source(input)?;
+    let source = crate::tools::load_source(input)?;
 
     let status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
 
-    let analyzed = match crate::tools::runner::analyze_source(&source) {
+    let analyzed = match crate::tools::analyze_source(&source) {
         Ok(a) => a,
         Err(e) => {
             status.error("Σφάλμα (Error)");

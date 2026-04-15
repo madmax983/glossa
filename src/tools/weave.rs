@@ -11,9 +11,9 @@
 //! It is especially useful for documentation and education.
 
 use crate::codegen::generate_rust_file;
-use crate::tools::mosaic::run_mosaic_inner;
-use crate::tools::runner::load_source;
-use crate::tools::ui::Status;
+use crate::tools::Status;
+use crate::tools::load_source;
+use crate::tools::run_mosaic_inner;
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
@@ -38,7 +38,7 @@ pub fn run_weave(input: &Path) -> Result<()> {
     };
 
     // 1. Parse & Analyze
-    let program = match crate::tools::runner::analyze_source(&source) {
+    let program = match crate::tools::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
             status.error("Σφάλμα (Error)");

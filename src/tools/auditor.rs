@@ -1,7 +1,7 @@
 use crate::parser::parse;
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, analyze_program};
-use crate::tools::runner::load_source;
-use crate::tools::ui::Status;
+use crate::tools::Status;
+use crate::tools::load_source;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, Table};
 use miette::Result;
