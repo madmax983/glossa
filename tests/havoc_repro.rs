@@ -15,14 +15,15 @@ proptest! {
         // "δός <val> 0 ἄθροισμα." should return <val>.
         // But due to the bug, it returns 0.
         let source = format!("
-            λείτουργος ὁρίζειν · δός {} 0 ἄθροισμα.
+            λείτουργος ὁρίζειν {{ δός {} 0 ἄθροισμα. }}
 
             // Main
             λείτουργος λέγε.
         ", val);
 
         let ast = parse(&source).unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
+        // The unwrap was hitting UndefinedName because we fixed the bug where it silently compiled undefined functions/variables.
+        let analyzed = analyze_program(&ast).unwrap_or_else(|_| panic!("Bug detected!"));
         let rust_code = generate_rust(&analyzed);
 
         // If the code returns 0, it means the bug is triggered (since val >= 1).

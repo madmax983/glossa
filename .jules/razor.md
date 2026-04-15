@@ -15,14 +15,6 @@
 **Cut:** Replaced `ScopeGuard` and `enter_scope` with a single closure-based higher-order function `with_scope(|scope| { ... })`.
 **Saved:** Over 30 lines of boilerplate structs and trait implementations. Reduced cognitive load for scope lifetime management by encapsulating setup and teardown into an idiomatic Rust closure approach.
 ## [Reduction]
-**Bloat:** Undefined variables silently decaying into literal `0` integers deep within semantic parsing (in `extract_value`), and critical sentence structure checks (`DoubleSubject`, `MissingVerb`) being ignored or throwing silent raw Rust codegen errors.
-**Cut:** Removed silent variable decay defaults. Flattened statement validation into `classify_assembled_statement` where scoping and AST context are available, actively preventing `DoubleSubject` and explicit `MissingVerb` states. Added a post-classification generic `check_undefined_variables` AST walker that gracefully handles all node types without specific `Option<...>` fallback boilerplates.
-**Saved:** Multiple paths that historically led to compiler crashes / malformed semantic models. Unified missing-verb catching, and prevented dozens of lines of unneeded checks later down in the codegen toolchain.
-## [Reduction]
-**Bloat:** `parse_test_output` in `src/tools/tester.rs`. Using iterator cloning, `split_whitespace`, and manual advances to extract pieces of test output string.
-**Cut:** Replaced string whitespace splitting with explicit slice manipulation and string search (`rfind`).
-**Saved:** 15 lines of code, reduced parsing complexity and removed iterator state logic. Avoids any edge case bounds issue without needing extra checks.
-## [Reduction]
-**Bloat:** Speculative Generality via `CaptureMode::Memoize`. The `Memoize` variant for closure capture modes existed in the semantic model to theoretically cache 0-arity closures (Perfect Participles). However, the compiler actually downgraded these to `CaptureMode::Borrow` at AST assembly time to avoid fatal cache-invalidation bugs when arguments were present. The code generator still contained complex, dead logic (`generate_memoized_closure`) full of `RefCell` caching logic.
-**Cut:** Eliminated `CaptureMode::Memoize` entirely from the semantic model, `src/codegen.rs`, and `src/tools/narrator.rs`.
-**Saved:** Deleted ~40 lines of dangerous, unreachable code, flattened the `CaptureMode` model, and simplified closure generation.
+**Bloat:** Undefined variables silently returned `NumberLiteral(0)` inside `extract_value` instead of failing, and missing verbs produced raw rustc outputs instead of `MissingVerb` errors. Furthermore, DoubleSubject wasn't checked on simple Noun/Noun/Verb combinations.
+**Cut:** Added proper strict error returns inside `extract_value` for undefined subjects, enforced `MissingVerb` by removing the fallback code when no expressions could be made, and simplified the `DoubleSubject` checks inside `classify_expression` to correctly reject `Noun Noun Verb` patterns that aren't bindings or matches.
+**Saved:** Reduced silent error-swallowing bugs and fixed missing verb validation.

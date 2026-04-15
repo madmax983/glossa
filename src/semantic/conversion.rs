@@ -1108,6 +1108,17 @@ fn classify_expression(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
+    if asm_stmt.subject.is_some() && !asm_stmt.nominatives.is_empty() {
+        let is_binary_op = !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2;
+        let actively_attempts_action = asm_stmt.verb.is_some() || !asm_stmt.literals.is_empty();
+
+        if !is_binary_op && actively_attempts_action {
+            return Err(GlossaError::AssemblyError(
+                crate::errors::AssemblyError::DoubleSubject,
+            ));
+        }
+    }
+
     // Determine if we should attempt to build expressions from literals+operators
     // or if we are in a fallback scenario (using Subject/Object with operators).
     // If literals < operators + 1, build_expressions_from_literals_and_ops will fail.
@@ -1518,6 +1529,39 @@ fn extract_enum_from_object(
     Ok(None)
 }
 
+fn extract_subject_fallback(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
+    if let Some(ref subj) = asm_stmt.subject {
+        let subj_lemma = &subj.lemma;
+
+        // Check if it's a numeral word
+        if let Some(value) = crate::morphology::lexicon::numeral_value(subj_lemma) {
+            return Ok(Some((
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(value),
+                    glossa_type: GlossaType::Number,
+                },
+                GlossaType::Number,
+            )));
+        }
+
+        if !scope.is_defined(subj_lemma) {
+            return Err(GlossaError::undefined(subj_lemma.as_str()));
+        }
+
+        return Ok(Some((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            },
+            GlossaType::Unknown,
+        )));
+    }
+    Ok(None)
+}
+
 fn extract_object_fallback(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
@@ -1666,15 +1710,12 @@ pub fn extract_value(
     if let Some(res) = extract_object_fallback(asm_stmt, scope)? {
         return Ok(res);
     }
+    if let Some(res) = extract_subject_fallback(asm_stmt, scope)? {
+        return Ok(res);
+    }
 
-    // Default
-    Ok((
-        AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(0),
-            glossa_type: GlossaType::Number,
-        },
-        GlossaType::Number,
-    ))
+    // If we've exhausted all options, this is an undefined expression
+    Err(GlossaError::semantic("Could not resolve value expression"))
 }
 
 #[cfg(test)]

@@ -774,21 +774,18 @@ fn test_propagation_generates_question_mark() {
 
 #[test]
 fn test_propagation_vs_unwrap() {
-    // Propagation (`;`) should be different from unwrap (`!`)
-    let unwrap_source = "α τι πεντε εστω. β α! εστω.";
-    let propagate_source = "α τι πεντε εστω; β α εστω.";
+    let unwrap_source = "α τι πεντε εστω. α! λεγε.";
+    let propagate_source = "α τι πεντε εστω. α; λεγε.";
 
     let unwrap_output = compile(unwrap_source).unwrap();
     let propagate_output = compile(propagate_source).unwrap();
 
-    // Unwrap should have .unwrap()
     assert!(
         unwrap_output.contains("attempted to unwrap an empty value"),
         "Expected 'attempted to unwrap an empty value' in: {}",
         unwrap_output
     );
 
-    // Propagation should have ?
     assert!(
         propagate_output.contains("?"),
         "Expected ? in: {}",
@@ -829,14 +826,12 @@ fn test_chained_propagation() {
 
 #[test]
 fn test_propagation_early_return() {
-    // Propagation should enable early return pattern
     let source = r#"
-        α τι πεντε εστω;
-        β α εστω.
+        α τι πεντε εστω.
+        α; λεγε.
     "#;
     let output = compile(source).unwrap();
 
-    // The pattern should propagate None/Err upward
     assert!(output.contains("?"), "Expected ? operator in: {}", output);
 }
 
