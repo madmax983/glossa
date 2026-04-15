@@ -427,9 +427,9 @@ fn test_bard_exprs() {
                 expr: AnalyzedExprKind::None,
                 glossa_type: GlossaType::Unit,
             }),
-            capture_mode: CaptureMode::Memoize,
+            capture_mode: CaptureMode::Move,
         },
-        "memo || None",
+        "move || None",
     );
 
     test_expr_tale(
