@@ -14,6 +14,7 @@
 **Bloat:** `ScopeGuard` RAII structure with explicit `Drop`, `Deref`, and `DerefMut` trait implementations in `src/semantic/resolver.rs` which added verbosity and abstraction bloat. Explicit `enter_scope()` usage forced callers to manually manage the scope lifetime or use separate code blocks (`{ ... }`).
 **Cut:** Replaced `ScopeGuard` and `enter_scope` with a single closure-based higher-order function `with_scope(|scope| { ... })`.
 **Saved:** Over 30 lines of boilerplate structs and trait implementations. Reduced cognitive load for scope lifetime management by encapsulating setup and teardown into an idiomatic Rust closure approach.
+## [Reduction]
 **Bloat:** Undefined variables silently decaying into literal `0` integers deep within semantic parsing (in `extract_value`), and critical sentence structure checks (`DoubleSubject`, `MissingVerb`) being ignored or throwing silent raw Rust codegen errors.
 **Cut:** Removed silent variable decay defaults. Flattened statement validation into `classify_assembled_statement` where scoping and AST context are available, actively preventing `DoubleSubject` and explicit `MissingVerb` states. Added a post-classification generic `check_undefined_variables` AST walker that gracefully handles all node types without specific `Option<...>` fallback boilerplates.
 **Saved:** Multiple paths that historically led to compiler crashes / malformed semantic models. Unified missing-verb catching, and prevented dozens of lines of unneeded checks later down in the codegen toolchain.

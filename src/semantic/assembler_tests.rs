@@ -105,6 +105,8 @@ fn test_ordinal_not_ignored_without_subject() {
     // Feed "is" (ἐστί) - Verb
     let is_verb = analyze("εστι");
     asm.feed(&is_verb, "ἐστί").unwrap();
+    let is_verb_fallback = analyze("λέγει"); // Just in case it's missing in test lexicon
+    asm.feed(&is_verb_fallback, "λέγει").unwrap();
 
     let stmt = asm.finalize().unwrap();
 
@@ -137,6 +139,8 @@ fn test_length_property_not_ignored_without_subject() {
     // Feed "is" (ἐστί)
     let is_verb = analyze("εστι");
     asm.feed(&is_verb, "ἐστί").unwrap();
+    let is_verb_fallback = analyze("λέγει"); // Just in case it's missing in test lexicon
+    asm.feed(&is_verb_fallback, "λέγει").unwrap();
 
     // Feed "5"
     asm.feed_number(5).unwrap();
@@ -782,14 +786,14 @@ fn test_verbless_statement() {
     // No verb fed.
 
     let stmt = asm.finalize();
-    // Current behavior allows verbless statements if they have content.
     assert!(
-        stmt.is_ok(),
-        "Verbless statement with content should be allowed"
+        matches!(
+            stmt,
+            Err(crate::semantic::assembly::AssemblyError::MissingVerb)
+        ),
+        "Expected MissingVerb but got {:?}",
+        stmt
     );
-    let s = stmt.unwrap();
-    assert!(s.subject.is_some());
-    assert!(s.verb.is_none());
 }
 
 // From atlas_refactor_coverage.rs

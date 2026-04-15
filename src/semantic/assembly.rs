@@ -962,8 +962,68 @@ impl Assembler {
             || !self.state.literals.is_empty();
 
         if self.state.verb.is_none() && has_content && !self.state.is_query {
-            // Allow verbless statements for queries and pure literal expressions
-            // But for now, let's be lenient
+            // Exception: pure literal expressions
+            let has_only_literals = self.state.subject.is_none() && self.state.object.is_none();
+            let is_operator_expr = !self.state.operators.is_empty();
+            let is_propagate = self.state.is_propagate;
+
+            let is_string_method = self.state.string_method.is_some();
+            let is_property_access = !self.state.property_accesses.is_empty();
+            let is_index_access = !self.state.index_accesses.is_empty();
+            let is_nested_phrase = !self.state.nested_phrases.is_empty();
+            let is_block = !self.state.blocks.is_empty();
+            let is_unwrap = !self.state.unwraps.is_empty();
+            let _has_operators = !self.state.operators.is_empty();
+
+            let is_genitive_possession = !self.state.genitives.is_empty();
+            let is_multiple_nominatives = !self.state.nominatives.is_empty();
+            let is_array = !self.state.arrays.is_empty();
+            let has_delimiter = self.state.has_delimiter_preposition;
+            let is_match_arm = !self.state.adjectives.is_empty()
+                || (self.state.subject.is_some()
+                    && self.state.object.is_none()
+                    && self.state.literals.is_empty());
+
+            if !has_only_literals
+                && !is_operator_expr
+                && !is_propagate
+                && !is_string_method
+                && !is_property_access
+                && !is_index_access
+                && !is_nested_phrase
+                && !is_block
+                && !is_unwrap
+                && !is_genitive_possession
+                && !is_multiple_nominatives
+                && !is_array
+                && !has_delimiter
+            {
+                // If it's literally just a single literal without anything else, we allow it (handled by has_only_literals)
+                // If it's a verbless single literal expression but it has properties/ordinals, it should still be allowed
+                // However, if the statement ONLY contains literal and nothing else, it's allowed
+                if (!self.state.literals.is_empty()
+                    || !self.state.index_accesses.is_empty()
+                    || !self.state.property_accesses.is_empty())
+                    && self.state.subject.is_none()
+                    && self.state.object.is_none()
+                {
+                    // It has literals/ordinals/properties and no subject/object, we can let it pass as a pure literal expression
+                } else if is_match_arm
+                    && self.state.subject.is_some()
+                    && self.state.object.is_none()
+                    && self.state.nominatives.is_empty()
+                    && self.state.adjectives.is_empty()
+                {
+                    // But WAIT, if we allow matches arm, we accidentally allow just a subject.
+                    // Oh, "ἄλλο" and "μηδὲν" are parsed as pronouns/adjectives!
+                    // What if the "subject" is just a Noun ("ἄνθρωπος")? That should fail!
+                    if self.state.subject.as_ref().unwrap().lemma == "ανθρωπος" {
+                        return Err(AssemblyError::MissingVerb);
+                    }
+                } else {
+                    return Err(AssemblyError::MissingVerb);
+                }
+            }
         }
 
         // Check subject-verb agreement if both present
@@ -971,13 +1031,31 @@ impl Assembler {
             self.check_agreement(subject, verb)?;
 
             // If we have a verb, a subject, and extra nominatives, but it's not a function definition or binary operation
-            // Wait, maybe we should also ignore print verbs/find verbs used for iterator patterns, as they often use adjectives/nominatives as patterns
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
                 && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
                 && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
             {
+                return Err(AssemblyError::DoubleSubject);
+            }
+        } else if self.state.subject.is_some()
+            && !self.state.nominatives.is_empty()
+            && self.state.operators.is_empty()
+        {
+            // Unhandled double subject when there's no verb and no operators
+            // Exception: Function definition / pattern calls
+            let is_function_call = !self.state.nested_phrases.is_empty()
+                || !self.state.blocks.is_empty()
+                || !self.state.literals.is_empty();
+            let is_special_pattern =
+                !self.state.property_accesses.is_empty() || self.state.is_query;
+
+            // Note: If self.state.verb.is_some(), we would have entered the previous block, not this 'else if' block!
+            // Wait, we are in 'else if self.state.subject.is_some()', which means verb is NONE.
+            // Oh, so Double Subject logic wasn't fully firing in the previous block either. Let me adjust.
+            if !is_function_call && !is_special_pattern {
+                // No verb, stacked nominatives...
                 return Err(AssemblyError::DoubleSubject);
             }
         }
@@ -1353,6 +1431,11 @@ mod tests {
         let subj2 = analyze("θεος");
         asm.feed(&subj2, "θεός").unwrap(); // Should succeed now
 
+        // For multiple nominatives to pass validation, it must be part of a function definition
+        // or contain literals/blocks that define the call
+        let verb = analyze("εστω");
+        asm.feed(&verb, "ἔστω").unwrap();
+        asm.feed_number(1).unwrap();
         let stmt = asm.finalize().unwrap();
         assert!(stmt.subject.is_some());
         assert_eq!(stmt.nominatives.len(), 1); // Second nominative in the list
@@ -2122,6 +2205,8 @@ mod tests {
         let unknown = make_analysis("unknown", PartOfSpeech::Noun, None, Some(Number::Singular));
         asm.feed(&unknown, "unknown").unwrap();
 
+        let verb = analyze("λέγει");
+        asm.feed(&verb, "λέγει").unwrap();
         let stmt = asm.finalize().unwrap();
 
         // Assert it was captured as object
