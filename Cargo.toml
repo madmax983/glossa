@@ -29,4 +29,4 @@ stacker = "0.1"
 [dev-dependencies]
 insta = "1"
 pretty_assertions = "1"
-proptest = "1.9.0"
+proptest = "1.6.0"

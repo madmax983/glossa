@@ -65,6 +65,10 @@ To identify vulnerabilities, harden interfaces, and eliminate memory safety risk
   - **Defense:** Modified `generate_unary_op` to check `GlossaType::Number` and emit `.checked_neg().expect("arithmetic overflow")`, safely panicking instead of wrapping in release mode.
   - **Verification:** Unit test added in `tests/warden_neg_overflow.rs`.
 
+**2025-06-01 - [Generated Unsafe Code Bypass]**
+**Threat:** Generating executable binaries without enforcing safe Rust meant attackers could inject malicious raw operations that bypass borrow checking, leading to memory vulnerabilities when the output is run.
+**Defense:** Explicitly added `#![deny(unsafe_code)]` to the preamble of `generate_rust_file` in `src/codegen.rs` so the Rust compiler rejects any unsafe blocks. `cargo audit` identified `rand` at `0.9.2` having an unsound custom logger CVE (`RUSTSEC-2026-0097`), which was safely upgraded to `0.9.4` via `proptest`.
+
 ## Pending Actions
 - **Dependency Audit:** `cargo audit` command checked and verified clean.
 - **Recursive Structs:** Currently handled by failing compilation in `rustc`. Future improvement: Detect cycles during semantic analysis for better error messages.
