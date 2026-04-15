@@ -126,3 +126,34 @@ C4Component
 
     Rel(model, types, "Uses")
 ```
+
+## Decoupling Core and Storage
+
+To resolve circular dependencies and improve build times, the persistence logic has been separated from `Core` into a dedicated `Storage` module.
+
+### Class Diagram
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+  %% Removed the circular dependency arrow
+```
+
+### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Core
+    participant Storage
+
+    Core->>Storage: Store Data (Trait Interface)
+    activate Storage
+    Storage-->>Core: Acknowledge Success
+    deactivate Storage
+```
+
+### Reference
+
+For more details on the decision behind this boundary, refer to [ADR 012 - Decouple Storage from Core](adr/012-storage-split.md).
