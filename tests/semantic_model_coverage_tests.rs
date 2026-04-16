@@ -1,8 +1,7 @@
 use glossa::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, CaptureMode, GlossaType,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, CaptureMode, GlossaType,
 };
 use smol_str::SmolStr;
-use std::collections::HashMap;
 
 #[test]
 fn test_analyzed_expr_kind_clone_drop_coverage() {
