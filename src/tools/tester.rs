@@ -455,7 +455,7 @@ mod tests {
     fn test_run_tests_rustc_missing() {
         let dir = tempfile::tempdir().unwrap();
         let input_path = dir.path().join("test_rustc_missing.gl");
-        std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.").unwrap();
+        std::fs::write(&input_path, "δοκιμή «test». «ok» λέγε. τέλος.").unwrap();
 
         // Spawn a child process so we don't mutate the global PATH/env.
         let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
@@ -476,7 +476,11 @@ mod tests {
 
         assert!(!output.status.success());
         let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(stderr.contains("Failed to start rustc. Is Rust installed?"));
+        assert!(
+            stderr.contains("Failed to start rustc. Is Rust installed?"),
+            "Stderr was: {}",
+            stderr
+        );
     }
 
     #[test]

@@ -138,6 +138,20 @@ pub fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
+    // Double Subject Enforcement (must run before specific classifications like print)
+    let actively_attempts_action = asm_stmt.verb.is_some() || !asm_stmt.literals.is_empty();
+    let has_binary_fallback = !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2;
+
+    if actively_attempts_action
+        && asm_stmt.subject.is_some()
+        && !asm_stmt.nominatives.is_empty()
+        && !has_binary_fallback
+    {
+        return Err(GlossaError::AssemblyError(
+            crate::errors::AssemblyError::DoubleSubject,
+        ));
+    }
+
     if let Some(res) = classify_iterator_pattern(asm_stmt, scope)? {
         return Ok(res);
     }
@@ -411,23 +425,24 @@ fn resolve_binding_target<'a>(
         let object_name = &object.normalized;
 
         if scope.is_defined(&subject.lemma) && !scope.is_defined(&object.lemma) {
-            let mut swapped = asm_stmt.clone();
-            swapped.subject = Some(object.clone());
-            swapped.object = Some(subject.clone());
-            return Ok((object_name.to_string(), std::borrow::Cow::Owned(swapped)));
+            let mut fixed = asm_stmt.clone();
+            fixed.subject = Some(subject.clone());
+            fixed.object = None; // Object is the variable being bound, so remove it
+            return Ok((object_name.to_string(), std::borrow::Cow::Owned(fixed)));
         } else {
-            return Ok((
-                subject_name.to_string(),
-                std::borrow::Cow::Borrowed(asm_stmt),
-            ));
+            let mut fixed = asm_stmt.clone();
+            fixed.subject = None; // Subject is the variable being bound, so remove it
+            return Ok((subject_name.to_string(), std::borrow::Cow::Owned(fixed)));
         }
     }
 
     // Default case: Bind to Subject
     if let Some(subject) = &asm_stmt.subject {
+        let mut fixed = asm_stmt.clone();
+        fixed.subject = None; // Subject is the variable being bound, so remove it
         return Ok((
             subject.normalized.to_string(),
-            std::borrow::Cow::Borrowed(asm_stmt),
+            std::borrow::Cow::Owned(fixed),
         ));
     }
 
@@ -954,9 +969,11 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
+    if let Some(ref subj) = asm_stmt.subject {
+        if !scope.is_defined(&subj.lemma) {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
+        let var_type = scope.lookup(&subj.lemma).unwrap_or(&GlossaType::Unknown);
         args.insert(
             0,
             AnalyzedExpr {
@@ -966,9 +983,11 @@ fn try_print_default(
         );
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
+    if let Some(ref obj) = asm_stmt.object {
+        if !scope.is_defined(&obj.lemma) {
+            return Err(GlossaError::undefined(obj.lemma.as_str()));
+        }
+        let var_type = scope.lookup(&obj.lemma).unwrap_or(&GlossaType::Unknown);
         args.push(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
             glossa_type: var_type.clone(),
@@ -1138,6 +1157,9 @@ fn classify_expression(
         let right = if let Some(lit_expr) = exprs.first() {
             Some(lit_expr.clone())
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) {
+                return Err(GlossaError::undefined(obj.lemma.as_str()));
+            }
             Some(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
@@ -1158,11 +1180,17 @@ fn classify_expression(
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            if !scope.is_defined(&subj.lemma) {
+                return Err(GlossaError::undefined(subj.lemma.as_str()));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             });
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) {
+                return Err(GlossaError::undefined(obj.lemma.as_str()));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
@@ -1518,6 +1546,39 @@ fn extract_enum_from_object(
     Ok(None)
 }
 
+fn extract_subject_fallback(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
+    if let Some(ref subj) = asm_stmt.subject {
+        let subj_lemma = &subj.lemma;
+
+        // Check if it's a numeral word
+        if let Some(value) = crate::morphology::lexicon::numeral_value(subj_lemma) {
+            return Ok(Some((
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(value),
+                    glossa_type: GlossaType::Number,
+                },
+                GlossaType::Number,
+            )));
+        }
+
+        if !scope.is_defined(subj_lemma) {
+            return Err(GlossaError::undefined(subj_lemma.as_str()));
+        }
+
+        return Ok(Some((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            },
+            GlossaType::Unknown,
+        )));
+    }
+    Ok(None)
+}
+
 fn extract_object_fallback(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
@@ -1661,6 +1722,9 @@ pub fn extract_value(
         return Ok(res);
     }
     if let Some(res) = extract_literal(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_subject_fallback(asm_stmt, scope)? {
         return Ok(res);
     }
     if let Some(res) = extract_object_fallback(asm_stmt, scope)? {
@@ -2501,9 +2565,9 @@ mod tests {
         assert_eq!(name, "object_var");
         assert!(matches!(fixed_asm, std::borrow::Cow::Owned(_)));
 
-        // Ensure they were actually swapped
-        assert_eq!(fixed_asm.subject.as_ref().unwrap().lemma, "object_var");
-        assert_eq!(fixed_asm.object.as_ref().unwrap().lemma, "subject_var");
+        // Ensure the bound object is removed and subject contains the remaining value
+        assert_eq!(fixed_asm.subject.as_ref().unwrap().lemma, "subject_var");
+        assert!(fixed_asm.object.is_none());
     }
 
     #[test]
@@ -2539,7 +2603,8 @@ mod tests {
         assert!(result.is_ok());
         let (name, fixed_asm) = result.unwrap();
         assert_eq!(name, "subject_var");
-        assert!(matches!(fixed_asm, std::borrow::Cow::Borrowed(_)));
+        assert!(matches!(fixed_asm, std::borrow::Cow::Owned(_)));
+        assert!(fixed_asm.subject.is_none());
     }
 
     #[test]

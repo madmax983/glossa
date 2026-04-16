@@ -854,6 +854,10 @@ fn test_assembler_method_verbs_join_coverage() {
     let join = analyze("ενουνται");
     asm.feed(&join, "ἑνοῦνται").unwrap();
 
+    // 5. Dummy verb to pass MissingVerb check
+    let verb = analyze("λέγει");
+    asm.feed(&verb, "λέγει").unwrap();
+
     let stmt = asm.finalize().unwrap();
     assert_eq!(
         stmt.string_method,
@@ -928,6 +932,10 @@ fn test_assembler_method_verbs_split_coverage() {
     // 4. Split Verb: "σχίζεται"
     let split = analyze("σχιζεται");
     asm.feed(&split, "σχίζεται").unwrap();
+
+    // 5. Dummy verb to pass MissingVerb check
+    let verb = analyze("λέγει");
+    asm.feed(&verb, "λέγει").unwrap();
 
     let stmt = asm.finalize().unwrap();
     assert_eq!(
