@@ -36,7 +36,10 @@ fn test_analyzed_expr_clone_overflow() {
         .unwrap();
 
     // The process should crash/abort (non-zero exit code)
-    assert!(!status.success(), "Process did not crash as expected!");
+    assert!(
+        status.success(),
+        "Process crashed! Stacker mitigation failed!"
+    );
 }
 
 #[test]
@@ -70,5 +73,8 @@ fn test_analyzed_expr_drop_overflow() {
         .unwrap();
 
     // The process should crash/abort (non-zero exit code)
-    assert!(!status.success(), "Process did not crash as expected!");
+    assert!(
+        status.success(),
+        "Process crashed! Stacker mitigation failed!"
+    );
 }

@@ -750,7 +750,7 @@ fn skip_first_word_and_parse(
         };
 
     // Extract the first expression as the condition
-    match converted {
+    match &converted {
         AnalyzedStatement::Expression(exprs) => {
             if let Some(first) = exprs.first() {
                 Ok(first.clone())
@@ -761,14 +761,14 @@ fn skip_first_word_and_parse(
         AnalyzedStatement::Binding { name, value, .. } => {
             // Convert binding "x is y" to "x == y"
             let left = AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(name),
+                expr: AnalyzedExprKind::Variable(name.clone()),
                 glossa_type: value.glossa_type.clone(),
             };
             Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::BinOp {
                     left: Box::new(left),
                     op: crate::morphology::lexicon::BinaryOp::Eq,
-                    right: Box::new(value),
+                    right: Box::new(value.clone()),
                 },
                 glossa_type: GlossaType::Boolean,
             })
@@ -997,7 +997,10 @@ mod tests {
         let analyzed = result.unwrap().unwrap();
 
         match analyzed {
-            AnalyzedStatement::While { condition, body } => {
+            AnalyzedStatement::While {
+                ref condition,
+                ref body,
+            } => {
                 // Assert condition
                 assert_eq!(condition.glossa_type, GlossaType::Boolean);
                 // Assert body
@@ -1107,7 +1110,7 @@ mod tests {
         if let AnalyzedStatement::If {
             condition: _,
             then_body: _,
-            else_body,
+            ref else_body,
         } = stmt
         {
             assert!(else_body.is_some());
@@ -1154,7 +1157,7 @@ mod tests {
         if let AnalyzedStatement::If {
             condition: _,
             then_body: _,
-            else_body,
+            ref else_body,
         } = stmt
         {
             assert!(else_body.is_some());
@@ -1194,7 +1197,7 @@ mod tests {
         assert!(result.is_ok());
         let stmt = result.unwrap().unwrap();
         if let AnalyzedStatement::If {
-            condition,
+            ref condition,
             then_body: _,
             else_body: _,
         } = stmt
