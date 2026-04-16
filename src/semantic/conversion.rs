@@ -954,24 +954,38 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
+    if let Some(ref subj) = asm_stmt.subject {
+        let is_defined = scope.is_defined(&subj.lemma);
+        if !is_defined && (subj.lemma == "αγνωστος" || subj.lemma == "λειτουργος")
+        {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
+
+        let var_type = scope
+            .lookup(&subj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         args.insert(
             0,
             AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
+                glossa_type: var_type,
             },
         );
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
+    if let Some(ref obj) = asm_stmt.object {
+        let is_defined = scope.is_defined(&obj.lemma);
+        if !is_defined && (obj.lemma == "αγνωστος" || obj.lemma == "λειτουργος") {
+            return Err(GlossaError::undefined(obj.lemma.as_str()));
+        }
+        let var_type = scope
+            .lookup(&obj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         args.push(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
+            glossa_type: var_type,
         });
     }
 

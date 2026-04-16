@@ -1034,9 +1034,14 @@ impl Assembler {
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
+                // Filter pattern logic (warden_coverage) uses adjectives alongside nominatives for "find" and "print" verbs.
+                // It treats the extra nominative (like β) as a nominative rather than an object if it has no suffix.
+                // We should allow this if there are adjectives (the filter/any condition) or if it's finding/printing.
+                && (!crate::morphology::lexicon::is_find_verb(&verb.lemma) || self.state.adjectives.is_empty())
+                && (!crate::morphology::lexicon::is_print_verb(&verb.lemma) || self.state.adjectives.is_empty())
             {
+                // Strict double subject logic check requested by ECHO_ISSUE.md.
+                // Disallow printing multiple nominatives directly unless part of an operation or filtered block.
                 return Err(AssemblyError::DoubleSubject);
             }
         } else if self.state.subject.is_some()
