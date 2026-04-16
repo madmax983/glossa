@@ -32,3 +32,7 @@
 **Concept:** A basic static analysis tool / linter (`glossa audit`) that traverses the semantic AST (`AnalyzedProgram`) to find code smells, such as unused variables and unnecessary mutable declarations.
 **Fate:** Merged
 **Lesson:** Iterating over the complex nested variants in `AnalyzedStatement` and `AnalyzedExpr` provides a strong foundation for building static analysis tools without modifying core logic.
+## 🌟 The Simulator (ὁ Προσομοιωτής)
+**Concept:** A CLI tool (`glossa simulate`) that uses the internal tree-walk interpreter to evaluate Glossa AST nodes directly without full codegen to Rust. It provides a "Debug Mode" to test code correctness dynamically.
+**Fate:** Merged
+**Lesson:** Providing a raw runtime visualization connects the user more intimately with the code's evaluation semantics, reinforcing language design without the overhead of the Rust toolchain.

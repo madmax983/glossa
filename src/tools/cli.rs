@@ -195,4 +195,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Simulate the execution of a .γλ file via the internal Interpreter (Requires "nova" feature)
+    Simulate {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
