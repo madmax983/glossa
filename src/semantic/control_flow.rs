@@ -721,7 +721,11 @@ fn skip_first_word_and_parse(
         is_query: true,
         is_propagate: false,
     };
-    let analyzed = assemble_statement(&stmt)?;
+    let mut analyzed = assemble_statement(&stmt)?;
+
+    // We must reset the is_query flag so that operators and values are correctly converted
+    // into full expressions rather than generic query vectors.
+    analyzed.is_query = false;
 
     let converted = crate::semantic::conversion::convert_assembled_to_analyzed(&analyzed, scope)?;
 
