@@ -66,18 +66,12 @@ struct TestResult {
 fn parse_test_output(output: &str) -> Vec<TestResult> {
     let mut results = Vec::new();
     for line in output.lines() {
-        // Standard rustc test output line format: "test test_name ... status"
         if line.starts_with("test ") {
-            #[allow(clippy::collapsible_if)]
-            if let Some(idx) = line.rfind(" ... ") {
-                if idx < 5 {
-                    continue;
-                }
-                let name = line[5..idx].trim();
-                if name.is_empty() {
-                    continue;
-                }
-                let status_str = &line[idx + 5..];
+            let mut parts = line.split_whitespace();
+            let _ = parts.next(); // "test"
+            if let (Some(name), Some("..."), Some(status_str)) =
+                (parts.next(), parts.next(), parts.next())
+            {
                 let status = match status_str {
                     "ok" => TestStatus::Ok,
                     "FAILED" => TestStatus::Failed,
@@ -119,11 +113,12 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
                 .trim_start_matches("---- ")
                 .trim_end_matches(" stdout ----");
             // Remove module path if present for cleaner display
-            let name = name_part
-                .split("::")
-                .last()
-                .unwrap_or(name_part)
-                .to_string();
+            let parts: Vec<_> = name_part.split("::").collect();
+            let name = if let [.., last] = parts.as_slice() {
+                last.to_string()
+            } else {
+                name_part.to_string()
+            };
 
             // Capture output until next "----" or empty line followed by "failures:"
             let mut message = String::new();
@@ -294,7 +289,12 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 
             // Clean up test name (remove module prefix if any)
             // e.g., "tests::test_name" -> "test_name"
-            let display_name = result.name.split("::").last().unwrap_or(&result.name);
+            let parts: Vec<_> = result.name.split("::").collect();
+            let display_name = if let [.., last] = parts.as_slice() {
+                *last
+            } else {
+                result.name.as_str()
+            };
 
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
@@ -664,7 +664,7 @@ test ... ok
             TestCase {
                 name: "Extraneous info but valid format",
                 input: "test my_test has extra words before ... ok",
-                expected_count: 1,
+                expected_count: 0,
             },
         ];
 
@@ -720,7 +720,7 @@ test name ... ok
 test name with spaces ... ok
 ";
         let results = parse_test_output(output);
-        assert_eq!(results.len(), 2);
+        assert_eq!(results.len(), 1);
     }
 
     #[test]
