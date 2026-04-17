@@ -24,6 +24,7 @@ use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, Table};
+use crossterm::style::Stylize;
 use miette::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
@@ -91,17 +92,25 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 
     let mut issues = 0;
 
-    println!(
-        "\n🔍 \x1b[1;36mAudit Report for {}\x1b[0m\n",
-        input.display()
-    );
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   A U D I T O R".bold().cyan());
+    println!("   {}", "Audit Report".italic().dim());
+    println!();
+    println!("   {}", format!("🔍 File: {}", input.display()).bold());
+    println!();
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
     table.set_header(vec![
-        Cell::new("Type").add_attribute(Attribute::Bold),
-        Cell::new("Variable").add_attribute(Attribute::Bold),
-        Cell::new("Message").add_attribute(Attribute::Bold),
+        Cell::new("Type")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
+        Cell::new("Variable")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
+        Cell::new("Message")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
     ]);
 
     for (var, count) in &visitor.usage_count {
@@ -130,10 +139,18 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     }
 
     if issues == 0 {
-        println!("✨ \x1b[1;32mNo issues found. The code is pure.\x1b[0m");
+        let mut success_table = Table::new();
+        success_table.load_preset(UTF8_FULL);
+        success_table.add_row(vec![
+            Cell::new("✨ No issues found. The code is pure.")
+                .fg(Color::Green)
+                .add_attribute(Attribute::Bold),
+        ]);
+        println!("{success_table}");
     } else {
         println!("{table}");
-        println!("\nTotal issues found: {}", issues);
+        println!();
+        println!("   Total issues found: {}", issues);
     }
 
     Ok(())
