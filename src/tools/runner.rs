@@ -1,3 +1,26 @@
+//! The Engine Room (ὁ Κινητήρ) - Compilation Pipeline Orchestrator
+//!
+//! This module acts as the central coordinator for the ΓΛΩΣΣΑ compiler.
+//! It stitches together the various compiler phases (parsing, semantic analysis,
+//! code generation) into cohesive, user-facing commands like `build`, `run`, and `check`.
+//!
+//! # The Mission
+//!
+//! The Runner is responsible for the heavy lifting of taking a raw `.γλωσσ` file
+//! and transforming it into executable Rust code. It manages file loading,
+//! caching, error reporting, and subprocess execution.
+//!
+//! # Core Capabilities
+//!
+//! * **Analysis**: [`analyze_source`](crate::tools::runner::analyze_source) parses text and performs semantic validation.
+//! * **Compilation**: [`build_file`](crate::tools::runner::build_file) handles the full pipeline, generating Rust source code and compiling it via `rustc`.
+//! * **Execution**: [`run_file`](crate::tools::runner::run_file) compiles and runs the resulting binary.
+//! * **Validation**: [`check_file`](crate::tools::runner::check_file) validates syntax and semantics without emitting code.
+//!
+//! # Safety First
+//!
+//! The runner enforces strict resource limits, such as a 1MB maximum file size
+//! for `load_source`, to prevent memory exhaustion attacks during compilation.
 use crate::codegen::generate_rust_file;
 use crate::parser::parse;
 use crate::semantic::{AnalyzedProgram, analyze_program};
@@ -21,6 +44,19 @@ const MAX_FILE_SIZE: u64 = 1024 * 1024;
 /// This helper runs the first two phases of the compiler pipeline:
 /// 1. **Parsing**: Converts source text to AST
 /// 2. **Semantic Analysis**: Resolves names, types, and statement structure
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::tools::runner::analyze_source;
+///
+/// // Parse a simple Glossa program
+/// let source = "ξ 10 ἔστω. ξ λέγε.";
+/// let program = analyze_source(source).unwrap();
+///
+/// // Verify that two statements were successfully parsed
+/// assert_eq!(program.statements.len(), 2);
+/// ```
 pub fn analyze_source(source: &str) -> Result<AnalyzedProgram> {
     let ast = parse(source).map_err(|e| miette::miette!("{}", e))?;
     analyze_program(&ast).map_err(|e| miette::miette!("{}", e))
@@ -56,6 +92,17 @@ fn check_file_size(input: &Path) -> Result<()> {
 /// attacks via memory exhaustion. It uses `take()` to limit the read operation,
 /// ensuring we never read more than `MAX_FILE_SIZE` bytes even from infinite streams
 /// (like `/dev/zero`).
+///
+/// # Examples
+///
+/// ```text
+/// use glossa::tools::runner::load_source;
+/// use std::path::Path;
+///
+/// // Load the source from a given path
+/// let path = Path::new("tests/fixtures/valid.γλ");
+/// let source = load_source(path).unwrap();
+/// ```
 ///
 /// # Errors
 ///
