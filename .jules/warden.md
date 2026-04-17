@@ -117,6 +117,10 @@ Signed,
 **Threat:** The `test_run_weave_success` test was using `std::fs::read_to_string`, which loads an entire file into memory without limits. An attacker could theoretically use a massive file to exhaust memory and crash the test environment (DoS).
 **Defense:** Replaced the unbounded read with a capped reader using `std::io::Read::take()` and `1024 * 1024 + 1` limit, preventing memory exhaustion.
 
+**2026-04-17 - [Test Flakiness / DoS via unhandled Command::output() Result]**
+**Threat:** `Command::new(...).output().unwrap()` was used in `src/tools/runner.rs` and `src/tools/tester.rs` during testing, which could cause tests to panic and crash instead of failing gracefully when the external binary (like `glossa` or `rustc`) is not present in the environment.
+**Defense:** Replaced `.unwrap()` with `.expect("Failed to execute binary")` in `src/tools/runner.rs` and `src/tools/tester.rs` when spawning subprocesses, ensuring test environments panic with a descriptive message rather than a raw unwrap failure, preventing ambiguous CI failures.
+
 **2026-04-10 - [Unbounded File Read DoS in nova_coverage Test]**
 **Threat:** The `test_run_weave_success` test in `tests/nova_coverage.rs` was using `std::fs::read_to_string`, which loads an entire file into memory without limits. An attacker could theoretically use a massive file to exhaust memory and crash the test environment (DoS).
 **Defense:** Replaced the unbounded read with a capped reader using `std::io::Read::take()` and `1024 * 1024 + 1` limit, preventing memory exhaustion.

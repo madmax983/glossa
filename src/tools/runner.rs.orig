@@ -692,11 +692,14 @@ mod tests {
             .arg("run")
             .arg(&input_path)
             .env("GLOSSA_RUSTC_CMD", "nonexistent_rustc_binary")
-            .output();
+            .output()
+            ;
 
         let output = match output {
             Ok(o) => o,
-            Err(_) => return, // graceful degradation
+            Err(e) => {
+                panic!("Failed to execute glossa binary: {}", e);
+            }
         };
 
         assert!(!output.status.success());
