@@ -31,3 +31,7 @@
 **Bloat:** Complex `DoubleSubject` and Missing Verb state checks spread out in `Assembler::finalize()` which were bypassed by certain verbs and nested phrases.
 **Cut:** Removed duplicate and misfiring checks in `finalize()`. Placed a single unified `DoubleSubject` check at the beginning of `classify_expression` in `src/semantic/conversion.rs`.
 **Saved:** Avoided messy verb classification bypassing and consolidated grammatical validation to where semantic structure is actually clear.
+## [Reduction]
+**Bloat:** `src/errors/` module structure with single file `assembly.rs` containing `AssemblyError`.
+**Cut:** Flattened `assembly.rs` into `errors.rs` by combining the contents, removing the `pub(crate) mod assembly;` and replacing the nested directory.
+**Saved:** 1 file, cognitive load of jumping between files, flattened hierarchy.
