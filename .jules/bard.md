@@ -56,3 +56,7 @@
 ## 2026-03-19 - [Empty Code Blocks in Assembly Structs]
 **Confusion:** The structs `AssembledStatement` and `Constituent` in `src/semantic/assembly.rs` had placeholder documentation containing empty rust code blocks, leading to `cargo doc` warnings ("Rust code block is empty").
 **Clarification:** I populated these documentation blocks with executable, concrete `doctests` demonstrating how to construct these types using realistic Ancient Greek morphology examples and explicit `crate::` path imports, providing tangible usage context while eliminating compiler warnings.
+
+## 2026-03-19 - The Missing Link in Tools
+**Confusion:** The `src/tools/` sub-modules like `runner.rs`, `papyrus.rs`, and `auditor.rs` lacked `//!` module-level documentation. This created "The Black Box" where complex modules were missing a high-level conceptual overview.
+**Clarification:** Added comprehensive `//!` documentation blocks to `src/tools/runner.rs`, `src/tools/papyrus.rs`, and `src/tools/auditor.rs`, explaining *what* they do and *how* they work. Also added executable doc tests to `analyze_source` and `load_source` to demonstrate usage.

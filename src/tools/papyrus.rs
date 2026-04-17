@@ -1,3 +1,21 @@
+//! The Papyrus (ὁ Πάπυρος) - SQL Schema Generator
+//!
+//! This module implements the "Papyrus" tool, which inspects the type definitions
+//! (`εἶδος`) within a ΓΛΩΣΣΑ program and translates them into SQL `CREATE TABLE` statements.
+//!
+//! # Purpose
+//!
+//! Ancient records were kept on papyrus. In modern systems, we use databases.
+//! This tool bridges the gap by automatically generating PostgreSQL-compatible schema
+//! definitions directly from your ΓΛΩΣΣΑ structures.
+//!
+//! # How it Works
+//!
+//! The [`run_papyrus`](crate::tools::papyrus::run_papyrus) function orchestrates the process:
+//! 1. Parses and semantically analyzes the source code.
+//! 2. Scans the Abstract Syntax Tree for `TypeDefinition` nodes.
+//! 3. Maps ΓΛΩΣΣΑ types (`ἀριθμοῦ`, `ὀνόματος`, etc.) to SQL types (`BIGINT`, `TEXT`, etc.).
+//! 4. Outputs formatted SQL code to the terminal using a stylish, colorful table.
 use crate::semantic::{AnalyzedStatement, GlossaType};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;

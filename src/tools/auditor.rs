@@ -1,3 +1,23 @@
+//! The Auditor (ὁ Λογιστής) - Static Analysis Tool
+//!
+//! This module implements the "Auditor" tool, providing basic static analysis capabilities
+//! for ΓΛΩΣΣΑ programs to enforce code quality and correctness before compilation.
+//!
+//! # Purpose
+//!
+//! Just as an auditor balances the books and finds inefficiencies, this tool
+//! scans the analyzed Abstract Syntax Tree (AST) to identify potential issues such as:
+//! * **Unused Variables**: Variables defined with `ἔστω` but never referenced.
+//! * **Unnecessary Mutability**: Variables declared as mutable (`μετά`) but never reassigned.
+//!
+//! # How it Works
+//!
+//! The [`run_auditor`](crate::tools::auditor::run_auditor) function drives the analysis:
+//! 1. The code is parsed and semantically analyzed.
+//! 2. A custom visitor (`AuditorVisitor`) traverses every statement and expression in the AST.
+//! 3. The visitor tracks variable declarations, usages, and reassignments using HashMaps and HashSets.
+//! 4. After traversal, the findings are cross-referenced to produce a final report,
+//!    which is displayed in a stylized terminal table.
 use crate::parser::parse;
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, analyze_program};
 use crate::tools::runner::load_source;
