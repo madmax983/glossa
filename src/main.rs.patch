@@ -1,0 +1,19 @@
+--- src/main.rs
++++ src/main.rs
+@@ -158,6 +158,16 @@
+             }
+         }
+
++        Some(Commands::Catalog) => {
++            #[cfg(feature = "nova")]
++            glossa::tools::catalog::run_catalog()?;
++
++            #[cfg(not(feature = "nova"))]
++            miette::bail!(
++                "The 'catalog' command is experimental. Recompile glossa with '--features nova' to enable it."
++            );
++        }
++
+         Some(Commands::Repl) | None => {
+             run_repl()?;
+         }

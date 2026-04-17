@@ -1,0 +1,10 @@
+--- src/tools/cli.rs
++++ src/tools/cli.rs
+@@ -147,4 +147,7 @@
+         /// Input file (.γλ)
+         input: PathBuf,
+     },
++
++    /// Explore the built-in lexicon (Requires "nova" feature)
++    Catalog,
+ }

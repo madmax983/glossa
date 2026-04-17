@@ -32,3 +32,8 @@
 **Concept:** A basic static analysis tool / linter (`glossa audit`) that traverses the semantic AST (`AnalyzedProgram`) to find code smells, such as unused variables and unnecessary mutable declarations.
 **Fate:** Merged
 **Lesson:** Iterating over the complex nested variants in `AnalyzedStatement` and `AnalyzedExpr` provides a strong foundation for building static analysis tools without modifying core logic.
+
+## 🌟 The Catalog (ὁ Κατάλογος)
+**Concept:** A CLI tool (`glossa catalog`) that lists all built-in verbs, operators, particles, and keywords available in the Glossa language. Grouped by their internal morphology (PartOfSpeech) and nicely formatted in terminal tables using `comfy-table`.
+**Fate:** Merged
+**Lesson:** Adding an iterator to the static lexicon unlocks great introspection capabilities for tooling, allowing users to browse the exact translation matrix that the semantic engine uses under the hood.
