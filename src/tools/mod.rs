@@ -18,6 +18,10 @@
 
 #[cfg(feature = "nova")]
 pub mod alchemist;
+/// The Auditor (Λογιστής) tool for static analysis.
+///
+/// This experimental tool analyzes Glossa code to detect unused variables,
+/// unnecessary mutable bindings, and other code quality issues.
 #[cfg(feature = "nova")]
 pub mod auditor;
 pub(crate) mod cache;
@@ -36,6 +40,10 @@ pub mod mentor;
 #[cfg(feature = "nova")]
 pub mod mosaic;
 pub mod narrator;
+/// The Papyrus (Πάπυρος) tool for SQL schema generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
 pub mod papyrus;
 pub mod repl;

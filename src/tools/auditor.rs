@@ -9,10 +9,28 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 use std::path::Path;
 
-/// Run the Auditor tool on a file
+/// Runs the Auditor tool on a given Glossa source file.
 ///
-/// Reads the source file, compiles it, and runs static analysis to find unused variables
-/// and variables declared as mutable but never reassigned.
+/// The Auditor (Λογιστής) reads the provided source file, parses and analyzes it to produce an AST,
+/// and then runs static analysis over the structure to detect unused variables and variables
+/// declared as mutable but never reassigned.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::auditor::run_auditor;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_auditor(&input) {
+///     eprintln!("Audit failed: {}", e);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if the file cannot be read, or if there is a parsing
+/// or semantic analysis error during compilation.
 pub fn run_auditor(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));

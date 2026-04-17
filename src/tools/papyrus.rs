@@ -7,9 +7,27 @@ use miette::Result;
 use std::fmt::Write;
 use std::path::Path;
 
-/// Run the Papyrus tool on a file
+/// Runs the Papyrus tool to generate SQL schemas from Glossa types.
 ///
-/// Reads the source file, compiles it, and generates SQL CREATE TABLE statements.
+/// The Papyrus (Πάπυρος) tool reads the provided source file, compiles it, and automatically
+/// generates corresponding SQL `CREATE TABLE` statements for any type definitions found.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::papyrus::run_papyrus;
+/// use std::path::Path;
+///
+/// let input = Path::new("schema.γλ");
+/// if let Err(e) = run_papyrus(&input) {
+///     eprintln!("Schema generation failed: {}", e);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if the file cannot be read, or if there is a parsing
+/// or semantic analysis error during compilation.
 pub fn run_papyrus(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
