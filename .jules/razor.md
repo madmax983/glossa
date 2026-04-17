@@ -26,3 +26,8 @@
 **Bloat:** Speculative Generality via `CaptureMode::Memoize`. The `Memoize` variant for closure capture modes existed in the semantic model to theoretically cache 0-arity closures (Perfect Participles). However, the compiler actually downgraded these to `CaptureMode::Borrow` at AST assembly time to avoid fatal cache-invalidation bugs when arguments were present. The code generator still contained complex, dead logic (`generate_memoized_closure`) full of `RefCell` caching logic.
 **Cut:** Eliminated `CaptureMode::Memoize` entirely from the semantic model, `src/codegen.rs`, and `src/tools/narrator.rs`.
 **Saved:** Deleted ~40 lines of dangerous, unreachable code, flattened the `CaptureMode` model, and simplified closure generation.
+
+## [Reduction]
+**Bloat:** Complex `DoubleSubject` and Missing Verb state checks spread out in `Assembler::finalize()` which were bypassed by certain verbs and nested phrases.
+**Cut:** Removed duplicate and misfiring checks in `finalize()`. Placed a single unified `DoubleSubject` check at the beginning of `classify_expression` in `src/semantic/conversion.rs`.
+**Saved:** Avoided messy verb classification bypassing and consolidated grammatical validation to where semantic structure is actually clear.
