@@ -472,6 +472,23 @@ impl std::fmt::Debug for Literal {
 ///
 /// This allows tokens to arrive in any order (Subject-Verb-Object, Verb-Object-Subject, etc.)
 /// and still fill the correct semantic roles.
+struct StatementContext {
+    has_only_literals: bool,
+    is_operator_expr: bool,
+    is_propagate: bool,
+    is_string_method: bool,
+    is_property_access: bool,
+    is_index_access: bool,
+    is_nested_phrase: bool,
+    is_block: bool,
+    is_unwrap: bool,
+    is_genitive_possession: bool,
+    is_multiple_nominatives: bool,
+    is_array: bool,
+    has_delimiter: bool,
+    is_match_arm: bool,
+}
+
 pub struct Assembler {
     state: AssembledStatement,
 }
@@ -963,67 +980,27 @@ impl Assembler {
 
         if self.state.verb.is_none() && has_content && !self.state.is_query {
             // Exception: pure literal expressions
-            let has_only_literals = self.state.subject.is_none() && self.state.object.is_none();
-            let is_operator_expr = !self.state.operators.is_empty();
-            let is_propagate = self.state.is_propagate;
+            let ctx = StatementContext {
+                has_only_literals: self.state.subject.is_none() && self.state.object.is_none(),
+                is_operator_expr: !self.state.operators.is_empty(),
+                is_propagate: self.state.is_propagate,
+                is_string_method: self.state.string_method.is_some(),
+                is_property_access: !self.state.property_accesses.is_empty(),
+                is_index_access: !self.state.index_accesses.is_empty(),
+                is_nested_phrase: !self.state.nested_phrases.is_empty(),
+                is_block: !self.state.blocks.is_empty(),
+                is_unwrap: !self.state.unwraps.is_empty(),
+                is_genitive_possession: !self.state.genitives.is_empty(),
+                is_multiple_nominatives: !self.state.nominatives.is_empty(),
+                is_array: !self.state.arrays.is_empty(),
+                has_delimiter: self.state.has_delimiter_preposition,
+                is_match_arm: !self.state.adjectives.is_empty()
+                    || (self.state.subject.is_some()
+                        && self.state.object.is_none()
+                        && self.state.literals.is_empty()),
+            };
 
-            let is_string_method = self.state.string_method.is_some();
-            let is_property_access = !self.state.property_accesses.is_empty();
-            let is_index_access = !self.state.index_accesses.is_empty();
-            let is_nested_phrase = !self.state.nested_phrases.is_empty();
-            let is_block = !self.state.blocks.is_empty();
-            let is_unwrap = !self.state.unwraps.is_empty();
-            let _has_operators = !self.state.operators.is_empty();
-
-            let is_genitive_possession = !self.state.genitives.is_empty();
-            let is_multiple_nominatives = !self.state.nominatives.is_empty();
-            let is_array = !self.state.arrays.is_empty();
-            let has_delimiter = self.state.has_delimiter_preposition;
-            let is_match_arm = !self.state.adjectives.is_empty()
-                || (self.state.subject.is_some()
-                    && self.state.object.is_none()
-                    && self.state.literals.is_empty());
-
-            if !has_only_literals
-                && !is_operator_expr
-                && !is_propagate
-                && !is_string_method
-                && !is_property_access
-                && !is_index_access
-                && !is_nested_phrase
-                && !is_block
-                && !is_unwrap
-                && !is_genitive_possession
-                && !is_multiple_nominatives
-                && !is_array
-                && !has_delimiter
-            {
-                // If it's literally just a single literal without anything else, we allow it (handled by has_only_literals)
-                // If it's a verbless single literal expression but it has properties/ordinals, it should still be allowed
-                // However, if the statement ONLY contains literal and nothing else, it's allowed
-                if (!self.state.literals.is_empty()
-                    || !self.state.index_accesses.is_empty()
-                    || !self.state.property_accesses.is_empty())
-                    && self.state.subject.is_none()
-                    && self.state.object.is_none()
-                {
-                    // It has literals/ordinals/properties and no subject/object, we can let it pass as a pure literal expression
-                } else if is_match_arm
-                    && self.state.subject.is_some()
-                    && self.state.object.is_none()
-                    && self.state.nominatives.is_empty()
-                    && self.state.adjectives.is_empty()
-                {
-                    // But WAIT, if we allow matches arm, we accidentally allow just a subject.
-                    // Oh, "ἄλλο" and "μηδὲν" are parsed as pronouns/adjectives!
-                    // What if the "subject" is just a Noun ("ἄνθρωπος")? That should fail!
-                    if self.state.subject.as_ref().unwrap().lemma == "ανθρωπος" {
-                        return Err(AssemblyError::MissingVerb);
-                    }
-                } else {
-                    return Err(AssemblyError::MissingVerb);
-                }
-            }
+            self.check_missing_verb(&ctx)?;
         }
 
         // Check subject-verb agreement if both present
@@ -1063,6 +1040,49 @@ impl Assembler {
         // Return the assembled statement
         let statement = std::mem::take(&mut self.state);
         Ok(statement)
+    }
+
+    /// Check for missing verb with context
+    fn check_missing_verb(&self, ctx: &StatementContext) -> Result<(), AssemblyError> {
+        if ctx.has_only_literals
+            || ctx.is_operator_expr
+            || ctx.is_propagate
+            || ctx.is_string_method
+            || ctx.is_property_access
+            || ctx.is_index_access
+            || ctx.is_nested_phrase
+            || ctx.is_block
+            || ctx.is_unwrap
+            || ctx.is_genitive_possession
+            || ctx.is_multiple_nominatives
+            || ctx.is_array
+            || ctx.has_delimiter
+        {
+            return Ok(());
+        }
+
+        if (!self.state.literals.is_empty()
+            || !self.state.index_accesses.is_empty()
+            || !self.state.property_accesses.is_empty())
+            && self.state.subject.is_none()
+            && self.state.object.is_none()
+        {
+            return Ok(());
+        }
+
+        if ctx.is_match_arm
+            && self.state.object.is_none()
+            && self.state.nominatives.is_empty()
+            && self.state.adjectives.is_empty()
+            && let Some(subject) = self.state.subject.as_ref()
+        {
+            if subject.lemma == "ανθρωπος" {
+                return Err(AssemblyError::MissingVerb);
+            }
+            return Ok(());
+        }
+
+        Err(AssemblyError::MissingVerb)
     }
 
     /// Check for special markers (mutable, containment, delimiter)
