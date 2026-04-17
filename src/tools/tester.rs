@@ -472,7 +472,7 @@ mod tests {
             .arg(&input_path)
             .env("GLOSSA_RUSTC_CMD", "nonexistent_rustc_binary")
             .output()
-            .unwrap();
+            .expect("Failed to execute glossa binary");
 
         assert!(!output.status.success());
         let stderr = String::from_utf8_lossy(&output.stderr);
