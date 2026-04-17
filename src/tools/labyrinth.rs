@@ -19,6 +19,7 @@ use crate::semantic::{AnalyzedProgram, AnalyzedStatement};
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
+use std::fmt::Write;
 use std::path::Path;
 
 /// Run the Labyrinth tool on a file
@@ -388,10 +389,11 @@ impl CFGBuilder {
     fn finish(self) -> String {
         let mut out = String::from("graph TD\n");
         for node in self.nodes {
-            out.push_str(&format!("    {}\n", node));
+            // ⚡ Bolt Optimization: Avoids intermediate String allocation by formatting directly into the buffer.
+            writeln!(out, "    {}", node).unwrap();
         }
         for edge in self.edges {
-            out.push_str(&format!("    {}\n", edge));
+            writeln!(out, "    {}", edge).unwrap();
         }
         out
     }

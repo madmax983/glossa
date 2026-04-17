@@ -4,6 +4,7 @@ use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
+use std::fmt::Write;
 use std::path::Path;
 
 /// Run the Papyrus tool on a file
@@ -41,11 +42,12 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
 
     for stmt in &program.statements {
         if let AnalyzedStatement::TypeDefinition { name, fields } = stmt {
-            output.push_str(&format!("CREATE TABLE {} (\n", name));
+            // ⚡ Bolt Optimization: Avoids intermediate String allocation by formatting directly into the buffer.
+            writeln!(output, "CREATE TABLE {} (", name).unwrap();
             for (i, (field_name, field_type)) in fields.iter().enumerate() {
                 let sql_type = glossa_type_to_sql(field_type);
                 let comma = if i < fields.len() - 1 { "," } else { "" };
-                output.push_str(&format!("    {} {}{}\n", field_name, sql_type, comma));
+                writeln!(output, "    {} {}{}", field_name, sql_type, comma).unwrap();
             }
             output.push_str(");\n\n");
         }
