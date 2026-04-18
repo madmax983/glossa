@@ -38,7 +38,7 @@ use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 use std::path::Path;
 
 /// Run the Cartographer tool on a file
@@ -111,7 +111,12 @@ pub fn run_map(input: &Path) -> Result<()> {
 /// Generate a Mermaid class diagram from an analyzed program
 pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut map = String::from("classDiagram\n");
-    let mut dependencies = HashSet::new();
+
+    // ⚡ Bolt Optimization: Swapped `HashSet` for `FxHashSet` for performance.
+    // Standard `HashSet` uses SipHash, which is cryptographically secure but slower.
+    // For internal tracking of predictable short type names in the cartographer,
+    // where HashDoS isn't a concern, `FxHashSet` avoids unnecessary hashing overhead.
+    let mut dependencies = FxHashSet::default();
 
     use std::fmt::Write;
 
@@ -177,7 +182,7 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     // 3. Add dependencies (struct field usage)
     // Only include dependencies if the target is actually a defined type/trait in the diagram
     // to avoid arrows to "Unknown" or external things if not modeled.
-    let defined_types: HashSet<String> = program
+    let defined_types: FxHashSet<String> = program
         .scope
         .types()
         .filter_map(|(_, ty)| {
