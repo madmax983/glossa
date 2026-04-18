@@ -2207,11 +2207,6 @@ pub fn lookup(normalized_word: &str) -> Option<&'static LexiconEntry> {
     LEXICON.get(normalized_word)
 }
 
-/// Iterate over all entries in the lexicon
-pub fn entries() -> impl Iterator<Item = (&'static str, &'static LexiconEntry)> {
-    LEXICON.iter().map(|(k, v)| (*k, v))
-}
-
 /// Check if a word is a known verb
 pub fn is_verb(normalized_word: &str) -> bool {
     lookup(normalized_word)

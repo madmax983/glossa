@@ -195,7 +195,4 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
-
-    /// Explore the built-in lexicon (Requires "nova" feature)
-    Catalog,
 }

@@ -78,7 +78,7 @@ impl MorphAnalysis {
 }
 
 /// Part of speech
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PartOfSpeech {
     /// Nouns: words denoting things, concepts, or entities (e.g. types, data structures).
     Noun,
