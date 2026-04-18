@@ -1,6 +1,6 @@
-👺 Havoc: Fix undefined variable panic during binding swap
+👺 Havoc: Expose AST state corruption and undefined variable panic during binding swap
 
-🧨 The Trigger: `ξ 5 ἔστω. ξ ψ ἔστω.` causes a panic because `ψ` is undefined. When Subject (`ξ`) is defined but Object (`ψ`) is not, `resolve_binding_target` swaps them to evaluate `ξ` and bind to `ψ`.
+🧨 The Trigger: `ξ 5 ἔστω. ξ ψ! ἔστω.` causes a panic because `ψ` is undefined. When Subject (`ξ`) is defined but Object (`ψ!`) is not, `resolve_binding_target` swaps them to evaluate `ξ` and bind to `ψ`. However, the bound variable is not removed from the AST during the swap.
 📉 The Stack Trace: `Result::unwrap() on an Err value: SemanticError { message: "Undefined variable: ψ" }`
 🧪 Reproduction: Run `cargo test --test havoc_issue_binding_swap_panic`
-😈 Comment: The bound variable was not removed from the AST during swap, so `extract_value` attempted to process the undefined name and paniced instead of evaluating the swapped AST correctly. We also added an `extract_subject_fallback` to ensure standalone nouns parsed as subjects (e.g. in match scrutinees) are correctly extracted as variables.
+😈 Comment: You assumed that swapping subject and object was enough, but you left the undefined variable lingering in the AST. When `extract_value` processes the modified AST, it stumbles upon the undefined variable left behind in the subject slot, causing a panic.
