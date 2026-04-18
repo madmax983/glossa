@@ -30,8 +30,7 @@ use std::io::{BufRead, Write};
 
 use crate::codegen::generate_statement_code;
 use crate::errors::GlossaError;
-use crate::parser::parse;
-use crate::semantic::{AnalyzedStatement, GlossaType, Scope, analyze_program};
+use crate::semantic::{AnalyzedStatement, GlossaType, Scope};
 
 /// Maximum number of bindings to track in REPL history
 const MAX_REPL_BINDINGS: usize = 50;
@@ -329,8 +328,8 @@ impl ReplContext {
 
         // 2. Compile the Virtual File
         // If this fails (parse error, type error), the history remains unchanged.
-        let ast = parse(&full_source)?;
-        let analyzed = analyze_program(&ast)?;
+        let analyzed = crate::tools::runner::analyze_source(&full_source)
+            .map_err(|e| GlossaError::semantic(e.to_string()))?;
 
         // 3. Detect New Activity
         // If the new input didn't add any executable statements (e.g. it was just a comment),

@@ -18,8 +18,7 @@
 //! 3. The visitor tracks variable declarations, usages, and reassignments using HashMaps and HashSets.
 //! 4. After traversal, the findings are cross-referenced to produce a final report,
 //!    which is displayed in a stylized terminal table.
-use crate::parser::parse;
-use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, analyze_program};
+use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use comfy_table::presets::UTF8_FULL;
@@ -66,19 +65,11 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         }
     };
 
-    let ast = match parse(&source) {
-        Ok(a) => a,
-        Err(e) => {
-            status.error("Σφάλμα συντάξεως (Syntax Error)");
-            return Err(miette::miette!("Parse error: {}", e));
-        }
-    };
-
-    let program = match analyze_program(&ast) {
+    let program = match crate::tools::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
-            status.error("Σφάλμα σημασίας (Semantic Error)");
-            return Err(miette::miette!("Semantic error: {}", e));
+            status.error("Σφάλμα (Error)");
+            return Err(e);
         }
     };
 
@@ -598,5 +589,23 @@ mod tests {
             };
             visitor.visit_expr(&expr);
         }
+    }
+
+    #[test]
+    fn test_auditor_error_paths() {
+        // Test file not found error path
+        let result = run_auditor(Path::new("nonexistent.gl"));
+        assert!(result.is_err());
+
+        // Test syntax/semantic error path
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("error.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("invalid syntax that fails analysis\n".as_bytes())
+                .unwrap();
+        }
+        let result = run_auditor(&input_path);
+        assert!(result.is_err());
     }
 }
