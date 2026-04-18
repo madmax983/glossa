@@ -140,3 +140,8 @@
 **[Enforcing Tool Encapsulation]
 **Tangle:** The `src/tools/` directory exposed internal helper modules (`report` and `ui`) as fully public (`pub mod`). This leaked implementation details and created a sprawling public API.
 **Blueprint:** Changed the visibility of `report` and `ui` to `pub(crate) mod` to enforce the facade pattern. Fixed a dead code warning on an unused function in `ui` that resulted from the visibility reduction.
+
+**[Enforcing The Facade: Tools Module]**
+**Tangle:** The `src/tools/mod.rs` exported internal modules via `pub mod` (e.g., `cli`, `highlight`, `runner`), leading to leaked implementation details and requiring external consumers like `main.rs` and tests to navigate through deeply nested submodule paths (e.g., `glossa::tools::runner::run_file`).
+**Blueprint:** Upgraded `pub mod` to `pub(crate) mod` for all submodules in `src/tools/mod.rs`. Added an explicit public API facade using `pub use` to selectively re-export required functions and types (e.g., `pub use runner::run_file`). Refactored `src/main.rs`, doc tests, and the `tests/` directory to consume the flattened `glossa::tools::*` API.
+**Stability:** Enforces high cohesion and strictly hides internal tools architecture from external consumers while providing a much cleaner public API surface.
