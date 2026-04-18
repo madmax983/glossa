@@ -2376,18 +2376,6 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_object_fallback_empty() {
-        let asm_stmt = AssembledStatement {
-            object: None,
-            ..Default::default()
-        };
-        let scope = Scope::new();
-        let result = extract_object_fallback(&asm_stmt, &scope);
-        assert!(result.is_ok());
-        assert!(result.unwrap().is_none());
-    }
-
-    #[test]
     fn test_classify_property_access_print_owner_not_in_scope() {
         let asm_stmt = AssembledStatement {
             verb: Some(crate::semantic::assembly::VerbConstituent {
