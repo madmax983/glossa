@@ -103,7 +103,6 @@
 //! assert!(stmt.verb.is_some());
 //! assert!(stmt.object.is_some());
 //! ```
-
 use crate::ast::{Expr, Word};
 pub use crate::errors::AssemblyError;
 pub(crate) use crate::limits::{
@@ -118,7 +117,6 @@ use crate::morphology::{
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
 use unicode_normalization::UnicodeNormalization;
-
 /// A fully assembled statement with all grammatical roles filled
 ///
 /// This struct represents the intermediate "assembled" state of a sentence after
@@ -161,71 +159,49 @@ use unicode_normalization::UnicodeNormalization;
 pub struct AssembledStatement {
     /// The subject (nominative) - the agent/doer
     pub subject: Option<Constituent>,
-
     /// Additional nominatives (for function names, etc.)
     pub nominatives: Vec<Constituent>,
-
     /// The verb - the action
     pub verb: Option<VerbConstituent>,
-
     /// The direct object (accusative) - receives the action
     pub object: Option<Constituent>,
-
     /// The indirect object (dative) - recipient/beneficiary
     pub indirect: Option<Constituent>,
-
     /// Possessors/sources (genitive) - attached to other constituents
     pub genitives: Vec<Constituent>,
-
     /// Adjectives modifying nouns
     pub adjectives: Vec<Constituent>,
-
     /// Literal values (strings, numbers) that appeared
     pub literals: Vec<Literal>,
-
     /// Array literals that appeared
     pub arrays: Vec<Vec<Expr>>,
-
     /// Index accesses (array, index)
     pub index_accesses: Vec<(Expr, Expr)>,
-
     /// Property accesses (owner, property)
     pub property_accesses: Vec<(String, String)>,
-
     /// Binary operators found between expressions
     pub operators: Vec<BinaryOp>,
-
     /// Parenthesized blocks (nested expressions)
     pub blocks: Vec<Vec<crate::ast::Statement>>,
-
     /// Nested phrases (parenthesized function calls)
     pub nested_phrases: Vec<Vec<Expr>>,
-
     /// Participles (used for lambdas/closures)
     pub participles: Vec<ParticipleConstituent>,
-
     /// Unwrap expressions (expr!)
     pub unwraps: Vec<Expr>,
-
     /// Whether this is a query (ends with ?)
     pub is_query: bool,
-
     /// Whether this statement propagates (ends with ;)
     pub is_propagate: bool,
-
     /// Whether this binding has the mutable marker (μετά)
     pub has_mutable_marker: bool,
-
     /// Whether this statement has the containment preposition (ἐν)
     pub has_containment_preposition: bool,
-
     /// Whether this statement has the delimiter preposition (κατά)
     pub has_delimiter_preposition: bool,
-
     /// String method call: (method_name, delimiter)
     pub string_method: Option<(String, String)>,
 }
-
 impl std::fmt::Debug for AssembledStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
@@ -259,7 +235,6 @@ impl std::fmt::Debug for AssembledStatement {
         })
     }
 }
-
 /// A noun/pronoun constituent with its grammatical info
 ///
 /// In the grammatical world of ΓΛΩΣΣΑ, a `Constituent` is the physical manifestation of a noun,
@@ -299,26 +274,19 @@ pub struct Constituent {
     /// The dictionary form (e.g., "ανθρωπος" for "ἀνθρώπους").
     /// This is what the semantic resolver looks up in the [`crate::semantic::resolver::Scope`].
     pub lemma: SmolStr,
-
     /// Original text as it appeared
     pub original: SmolStr,
-
     /// Normalized text (lowercase, no diacritics)
     pub normalized: SmolStr,
-
     /// Grammatical case
     pub case: Case,
-
     /// Grammatical number
     pub number: Option<Number>,
-
     /// Grammatical gender
     pub gender: Option<Gender>,
-
     /// Grammatical person (1st, 2nd, 3rd)
     pub person: Option<Person>,
 }
-
 impl std::fmt::Debug for Constituent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
@@ -334,36 +302,27 @@ impl std::fmt::Debug for Constituent {
         })
     }
 }
-
 /// A verb constituent with its grammatical info
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct VerbConstituent {
     /// The dictionary form
     pub lemma: SmolStr,
-
     /// Original text as it appeared
     pub original: SmolStr,
-
     /// Normalized text (lowercase, no diacritics)
     pub normalized: SmolStr,
-
     /// Person (1st, 2nd, 3rd)
     pub person: Option<Person>,
-
     /// Number (singular, plural)
     pub number: Option<Number>,
-
     /// Tense (present, aorist, etc.)
     pub tense: Option<Tense>,
-
     /// Mood (indicative, imperative, etc.)
     pub mood: Option<Mood>,
-
     /// Voice (active, middle, passive)
     pub voice: Option<Voice>,
 }
-
 impl std::fmt::Debug for VerbConstituent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
@@ -380,7 +339,6 @@ impl std::fmt::Debug for VerbConstituent {
         })
     }
 }
-
 /// A participle constituent (used for lambdas/closures)
 #[derive(Clone)]
 #[allow(dead_code)]
@@ -402,7 +360,6 @@ pub struct ParticipleConstituent {
     /// Number (adjectival property)
     pub number: Number,
 }
-
 impl std::fmt::Debug for ParticipleConstituent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
@@ -419,7 +376,6 @@ impl std::fmt::Debug for ParticipleConstituent {
         })
     }
 }
-
 /// A literal value
 ///
 /// Literals are atomic truths inscribed directly by the user. They require no
@@ -445,7 +401,6 @@ pub enum Literal {
     /// A true/false boolean literal (`ἀληθές` or `ψεῦδος`)
     Boolean(bool),
 }
-
 impl std::fmt::Debug for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
@@ -455,7 +410,6 @@ impl std::fmt::Debug for Literal {
         })
     }
 }
-
 /// The slot-based assembler
 ///
 /// Feed it tokens one by one, and it routes them to the appropriate slot
@@ -488,11 +442,42 @@ struct StatementContext {
     has_delimiter: bool,
     is_match_arm: bool,
 }
-
+/// The Assembler orchestrates semantic construction.
+///
+/// It feeds AST elements and maps them to semantic roles (subjects, verbs, objects).
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::semantic::assembly::Assembler;
+/// let mut asm = Assembler::new();
+/// // Then feed analysis and finalise statement
+/// ```
+/// The Assembler orchestrates semantic construction.
+///
+/// It feeds AST elements and maps them to semantic roles (subjects, verbs, objects).
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::semantic::assembly::Assembler;
+/// let mut asm = Assembler::new();
+/// // Then feed analysis and finalise statement
+/// ```
+/// The Assembler orchestrates semantic construction.
+///
+/// It feeds AST elements and maps them to semantic roles (subjects, verbs, objects).
+///
+/// # Examples
+///
+/// ```rust
+/// use glossa::semantic::assembly::Assembler;
+/// let mut asm = Assembler::new();
+/// // Then feed analysis and finalise statement
+/// ```
 pub struct Assembler {
     state: AssembledStatement,
 }
-
 impl Assembler {
     /// Helper to enforce resource limits within the state.
     fn check_limit(len: usize, max: usize, resource: &str) -> Result<(), AssemblyError> {
@@ -505,7 +490,6 @@ impl Assembler {
             Ok(())
         }
     }
-
     /// Create a new empty assembler
     ///
     /// # Examples
@@ -520,17 +504,14 @@ impl Assembler {
             state: AssembledStatement::default(),
         }
     }
-
     /// Mark this statement as a query
     pub fn set_query(&mut self, is_query: bool) {
         self.state.is_query = is_query;
     }
-
     /// Mark this statement as propagation (ends with `;` → converts to `?`)
     pub fn set_propagate(&mut self, is_propagate: bool) {
         self.state.is_propagate = is_propagate;
     }
-
     /// Feed a morphologically-analyzed token into the assembler
     ///
     /// This routes the token to the correct slot based on its case.
@@ -551,16 +532,32 @@ impl Assembler {
     /// let obj = analyze("λόγον");
     /// asm.feed(&obj, "λόγον").unwrap();
     /// ```
+    /// Feeds an AST element into the assembler.
+    ///
+    /// It parses a string into morphologic traits and saves it to the ongoing statement structure. It exists as the primary interface to collect terms.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// asm.feed(&analysis, "λόγος").unwrap();
+    /// ```
     #[allow(dead_code)]
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
         let normalized = normalize_greek(original);
         self.feed_with_normalized(analysis, original, &normalized)
     }
-
     /// Feed a morphologically-analyzed token with pre-computed normalization
+    ///
+    /// Feeds an element into the assembler using its normalized form directly.
     ///
     /// This is a zero-allocation path when the normalized form is already known (e.g. from AST).
     /// It bypasses the costly `normalize_greek` call which may allocate strings.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// asm.feed_with_normalized(&analysis, "λογος", "λόγος").unwrap();
+    /// ```
     pub fn feed_with_normalized(
         &mut self,
         analysis: &MorphAnalysis,
@@ -570,19 +567,15 @@ impl Assembler {
         if self.check_special_markers(normalized, original) {
             return Ok(());
         }
-
         if self.check_method_verbs(normalized)? {
             return Ok(());
         }
-
         if self.check_operators(normalized, original)? {
             return Ok(());
         }
-
         if self.check_special_properties(normalized)? {
             return Ok(());
         }
-
         match analysis.part_of_speech {
             PartOfSpeech::Noun | PartOfSpeech::Pronoun => {
                 self.handle_nominal(analysis, original, normalized)
@@ -600,7 +593,6 @@ impl Assembler {
             _ => Ok(()), // Ignore particles, articles for now
         }
     }
-
     /// Feed a string literal
     ///
     /// # Examples
@@ -616,7 +608,6 @@ impl Assembler {
         self.state.literals.push(Literal::String(value));
         Ok(())
     }
-
     /// Feed a number literal
     ///
     /// # Examples
@@ -632,7 +623,6 @@ impl Assembler {
         self.state.literals.push(Literal::Number(value));
         Ok(())
     }
-
     /// Feed a boolean literal
     ///
     /// # Examples
@@ -648,7 +638,6 @@ impl Assembler {
         self.state.literals.push(Literal::Boolean(value));
         Ok(())
     }
-
     /// Feed an array literal
     ///
     /// # Examples
@@ -666,7 +655,6 @@ impl Assembler {
         self.state.arrays.push(elements);
         Ok(())
     }
-
     /// Feed a parenthesized block (nested expression)
     ///
     /// # Examples
@@ -685,7 +673,6 @@ impl Assembler {
         self.state.blocks.push(statements);
         Ok(())
     }
-
     /// Feed a nested phrase (parenthesized function call)
     ///
     /// # Examples
@@ -706,7 +693,6 @@ impl Assembler {
         self.state.nested_phrases.push(terms);
         Ok(())
     }
-
     /// Feed an index access (`array[index]`)
     ///
     /// # Examples
@@ -733,7 +719,6 @@ impl Assembler {
         self.state.index_accesses.push((array, index));
         Ok(())
     }
-
     /// Feed an unwrap expression (expr!)
     ///
     /// # Examples
@@ -755,7 +740,6 @@ impl Assembler {
         self.state.unwraps.push(expr);
         Ok(())
     }
-
     /// Feed a participle (for lambda construction)
     ///
     /// # Examples
@@ -797,7 +781,6 @@ impl Assembler {
         self.state.participles.push(constituent);
         Ok(())
     }
-
     /// Handle a noun/pronoun/adjective - route to slot by case
     fn handle_nominal(
         &mut self,
@@ -815,7 +798,6 @@ impl Assembler {
             gender: analysis.gender,
             person: analysis.person,
         };
-
         match analysis.case {
             Some(Case::Nominative) => self.handle_nominative(constituent),
             Some(Case::Accusative) => self.handle_accusative(constituent),
@@ -825,7 +807,6 @@ impl Assembler {
             None => self.handle_unknown_case(constituent),
         }
     }
-
     fn handle_nominative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
         // If we already have a verb, check agreement immediately!
         if let Some(verb) = &self.state.verb {
@@ -834,7 +815,6 @@ impl Assembler {
                 self.check_agreement(&constituent, verb)?;
             }
         }
-
         if self.state.subject.is_some() {
             // Additional nominatives stored separately for function call patterns
             Self::check_limit(self.state.nominatives.len(), MAX_NOMINATIVES, "Nominatives")?;
@@ -844,7 +824,6 @@ impl Assembler {
         }
         Ok(())
     }
-
     fn handle_accusative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
         if self.state.object.is_some() {
             return Err(AssemblyError::DoubleObject);
@@ -852,7 +831,6 @@ impl Assembler {
         self.state.object = Some(constituent);
         Ok(())
     }
-
     fn handle_dative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
         // Dative can stack (multiple recipients) but for simplicity, one for now
         if self.state.indirect.is_some() {
@@ -861,14 +839,12 @@ impl Assembler {
         self.state.indirect = Some(constituent);
         Ok(())
     }
-
     fn handle_genitive(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
         // Genitives attach to other constituents (possession, etc.)
         Self::check_limit(self.state.genitives.len(), MAX_GENITIVES, "Genitives")?;
         self.state.genitives.push(constituent);
         Ok(())
     }
-
     fn handle_vocative(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
         // Vocative is direct address - treat as subject for now
         if self.state.subject.is_none() {
@@ -876,7 +852,6 @@ impl Assembler {
         }
         Ok(())
     }
-
     fn handle_unknown_case(&mut self, constituent: Constituent) -> Result<(), AssemblyError> {
         // Unknown case - try to infer from context
         // Default to accusative (object) if we have no object
@@ -887,7 +862,6 @@ impl Assembler {
             Err(AssemblyError::DoubleObject)
         }
     }
-
     /// Handle a verb
     fn handle_verb(
         &mut self,
@@ -898,7 +872,6 @@ impl Assembler {
         if self.state.verb.is_some() {
             return Err(AssemblyError::DoubleVerb);
         }
-
         let verb_constituent = VerbConstituent {
             // OPTIMIZATION: Lemma is guaranteed to be normalized by morphology analysis
             lemma: SmolStr::new(analysis.lemma.as_ref()),
@@ -910,17 +883,13 @@ impl Assembler {
             mood: analysis.mood,
             voice: analysis.voice,
         };
-
         // If we already have a subject, check agreement immediately!
         if let Some(subject) = &self.state.subject {
             self.check_agreement(subject, &verb_constituent)?;
         }
-
         self.state.verb = Some(verb_constituent);
-
         Ok(())
     }
-
     /// Handle an adjective - store it for later pattern matching
     fn handle_adjective(
         &mut self,
@@ -938,12 +907,10 @@ impl Assembler {
             gender: analysis.gender,
             person: None, // Adjectives don't really have person
         };
-
         Self::check_limit(self.state.adjectives.len(), MAX_ADJECTIVES, "Adjectives")?;
         self.state.adjectives.push(constituent);
         Ok(())
     }
-
     /// Finalize the statement - check agreement and assemble
     ///
     /// This validates the sentence structure (e.g. subject-verb agreement) and
@@ -977,7 +944,6 @@ impl Assembler {
         let has_content = self.state.subject.is_some()
             || self.state.object.is_some()
             || !self.state.literals.is_empty();
-
         if self.state.verb.is_none() && has_content && !self.state.is_query {
             // Exception: pure literal expressions
             let ctx = StatementContext {
@@ -999,14 +965,11 @@ impl Assembler {
                         && self.state.object.is_none()
                         && self.state.literals.is_empty()),
             };
-
             self.check_missing_verb(&ctx)?;
         }
-
         // Check subject-verb agreement if both present
         if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {
             self.check_agreement(subject, verb)?;
-
             // If we have a verb, a subject, and extra nominatives, but it's not a function definition or binary operation
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
@@ -1027,7 +990,6 @@ impl Assembler {
                 || !self.state.literals.is_empty();
             let is_special_pattern =
                 !self.state.property_accesses.is_empty() || self.state.is_query;
-
             // Note: If self.state.verb.is_some(), we would have entered the previous block, not this 'else if' block!
             // Wait, we are in 'else if self.state.subject.is_some()', which means verb is NONE.
             // Oh, so Double Subject logic wasn't fully firing in the previous block either. Let me adjust.
@@ -1036,12 +998,10 @@ impl Assembler {
                 return Err(AssemblyError::DoubleSubject);
             }
         }
-
         // Return the assembled statement
         let statement = std::mem::take(&mut self.state);
         Ok(statement)
     }
-
     /// Check for missing verb with context
     fn check_missing_verb(&self, ctx: &StatementContext) -> Result<(), AssemblyError> {
         if ctx.has_only_literals
@@ -1060,7 +1020,6 @@ impl Assembler {
         {
             return Ok(());
         }
-
         if (!self.state.literals.is_empty()
             || !self.state.index_accesses.is_empty()
             || !self.state.property_accesses.is_empty())
@@ -1069,7 +1028,6 @@ impl Assembler {
         {
             return Ok(());
         }
-
         if ctx.is_match_arm
             && self.state.object.is_none()
             && self.state.nominatives.is_empty()
@@ -1081,10 +1039,8 @@ impl Assembler {
             }
             return Ok(());
         }
-
         Err(AssemblyError::MissingVerb)
     }
-
     /// Check for special markers (mutable, containment, delimiter)
     fn check_special_markers(&mut self, normalized: &str, original: &str) -> bool {
         // Check for mutable marker (μετά)
@@ -1092,7 +1048,6 @@ impl Assembler {
             self.state.has_mutable_marker = true;
             return true;
         }
-
         // Check for containment preposition (ἐν)
         if crate::morphology::lexicon::is_containment_preposition(normalized) {
             // DISAMBIGUATION: ἐν (in) vs ἕν (one)
@@ -1101,20 +1056,16 @@ impl Assembler {
             if original.nfd().any(|c| c == '\u{0314}') {
                 return false;
             }
-
             self.state.has_containment_preposition = true;
             return true;
         }
-
         // Check for delimiter preposition (κατά)
         if crate::morphology::lexicon::is_delimiter_preposition(normalized) {
             self.state.has_delimiter_preposition = true;
             return true;
         }
-
         false
     }
-
     /// Helper to create a string method call if conditions are met
     #[allow(clippy::collapsible_if)]
     fn try_create_string_method(&mut self, method_name: &str) -> Result<bool, AssemblyError> {
@@ -1125,7 +1076,6 @@ impl Assembler {
                     MAX_PROPERTY_ACCESSES,
                     "Property Accesses",
                 )?;
-
                 let delim = match self.state.literals.pop() {
                     Some(Literal::String(s)) => s,
                     other => {
@@ -1135,7 +1085,6 @@ impl Assembler {
                         return Ok(false);
                     }
                 };
-
                 let normalized_original = normalize_greek(&subj.original);
                 self.state.string_method = Some((method_name.to_string(), delim));
                 self.state
@@ -1146,7 +1095,6 @@ impl Assembler {
         }
         Ok(false)
     }
-
     /// Check for method verbs (split, join)
     fn check_method_verbs(&mut self, normalized: &str) -> Result<bool, AssemblyError> {
         // Check for split verb
@@ -1155,17 +1103,14 @@ impl Assembler {
         {
             return Ok(true);
         }
-
         // Check for join verb
         if crate::morphology::lexicon::is_join_verb(normalized)
             && self.try_create_string_method("join")?
         {
             return Ok(true);
         }
-
         Ok(false)
     }
-
     /// Check for operators (boolean, comparison, arithmetic)
     fn check_operators(&mut self, normalized: &str, original: &str) -> Result<bool, AssemblyError> {
         // Boolean operators
@@ -1180,24 +1125,20 @@ impl Assembler {
             self.state.operators.push(BinaryOp::Or);
             return Ok(true);
         }
-
         // Comparison operators
         if let Some(op) = crate::morphology::lexicon::comparison_operator(normalized) {
             Self::check_limit(self.state.operators.len(), MAX_OPERATORS, "Operators")?;
             self.state.operators.push(op);
             return Ok(true);
         }
-
         // Arithmetic operators
         if let Some(op) = crate::morphology::lexicon::arithmetic_operator(normalized) {
             Self::check_limit(self.state.operators.len(), MAX_OPERATORS, "Operators")?;
             self.state.operators.push(op);
             return Ok(true);
         }
-
         Ok(false)
     }
-
     /// Check for special properties (numerals, length, ordinals)
     fn check_special_properties(&mut self, normalized: &str) -> Result<bool, AssemblyError> {
         // Numeral words
@@ -1205,7 +1146,6 @@ impl Assembler {
             self.state.literals.push(Literal::Number(value));
             return Ok(true);
         }
-
         // Property nouns (μῆκος)
         if crate::morphology::lexicon::is_length_property(normalized) {
             // If we have a subject, create a property access (use normalized original, not lemma)
@@ -1223,7 +1163,6 @@ impl Assembler {
                 return Ok(true);
             }
         }
-
         // Ordinal adjectives
         if crate::morphology::lexicon::is_ordinal(normalized) {
             // If we have a subject, create an index access with the ordinal index
@@ -1242,16 +1181,13 @@ impl Assembler {
                     normalized: subj.normalized.clone(),
                 });
                 let index_expr = Expr::NumberLiteral(index);
-
                 self.state.index_accesses.push((array, index_expr));
                 self.state.subject = None; // Consume the subject
                 return Ok(true);
             }
         }
-
         Ok(false)
     }
-
     /// Check subject-verb agreement
     fn check_agreement(
         &self,
@@ -1263,7 +1199,6 @@ impl Assembler {
         {
             // Determine subject person (default to 3rd for nouns if not specified)
             let subj_person = subject.person.unwrap_or(Person::Third);
-
             // Check person agreement
             // Exception: Allow Imperative verbs to disagree (e.g. "User, print!" uses 2nd person verb with 3rd person subject)
             let is_imperative = verb.mood == Some(Mood::Imperative);
@@ -1273,11 +1208,9 @@ impl Assembler {
                     verb: (Some(verb_person), Some(verb_number)),
                 });
             }
-
             // Special rule: Neuter plural nouns take singular verbs in Greek!
             let is_neuter_plural =
                 subject.gender == Some(Gender::Neuter) && subj_number == Number::Plural;
-
             if !is_neuter_plural && subj_number != verb_number {
                 return Err(AssemblyError::SubjectVerbDisagreement {
                     subject: (Some(subj_person), Some(subj_number)),
@@ -1288,18 +1221,15 @@ impl Assembler {
         Ok(())
     }
 }
-
 impl Default for Assembler {
     fn default() -> Self {
         Self::new()
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::morphology::{Tense, Voice, analyze};
-
     #[test]
     fn test_try_create_string_method_invalid_literal_fallback() {
         let mut asm = Assembler::new();
@@ -1313,26 +1243,21 @@ mod tests {
             gender: None,
             person: None,
         });
-
         // Ensure invalid literals do not panic. The inner logic is technically
         // unreachable in single-threaded Rust due to an earlier check, but replacing
         // unreachable!() ensures safety against structural or logic refactoring.
         asm.state.literals.push(Literal::Number(42));
-
         let result = asm.try_create_string_method("split");
         assert!(result.is_ok());
         assert!(!result.unwrap(), "should return false and not panic");
     }
-
     #[test]
     fn test_operator_detection() {
         // μεῖζον should be detected as > operator
         let mut asm = Assembler::new();
-
         // Feed comparison adjective
         let meizon = analyze("μειζον");
         asm.feed(&meizon, "μεῖζον").unwrap();
-
         let stmt = asm.finalize().unwrap();
         assert!(
             !stmt.operators.is_empty(),
@@ -1340,16 +1265,13 @@ mod tests {
         );
         assert_eq!(stmt.operators[0], BinaryOp::Gt);
     }
-
     #[test]
     fn test_boolean_or_detection() {
         // ἤ should be detected as || operator
         let mut asm = Assembler::new();
-
         // Feed boolean particle
         let or_particle = analyze("η");
         asm.feed(&or_particle, "ἤ").unwrap();
-
         let stmt = asm.finalize().unwrap();
         assert!(
             !stmt.operators.is_empty(),
@@ -1358,26 +1280,20 @@ mod tests {
         );
         assert_eq!(stmt.operators[0], BinaryOp::Or);
     }
-
     #[test]
     fn test_full_boolean_or_expression() {
         // ἀληθές ἤ ψεῦδος λέγε - simulate the full expression
         let mut asm = Assembler::new();
-
         // Feed true (boolean literal - handled by parser, goes to feed_boolean)
         asm.feed_boolean(true).unwrap();
-
         // Feed ἤ (OR operator)
         let or_particle = analyze("η");
         asm.feed(&or_particle, "ἤ").unwrap();
-
         // Feed false (boolean literal)
         asm.feed_boolean(false).unwrap();
-
         // Feed λέγε (print verb)
         let verb = analyze("λεγε");
         asm.feed(&verb, "λέγε").unwrap();
-
         let stmt = asm.finalize().unwrap();
         assert_eq!(
             stmt.literals.len(),
@@ -1393,64 +1309,50 @@ mod tests {
         );
         assert_eq!(stmt.operators[0], BinaryOp::Or);
     }
-
     #[test]
     fn test_simple_sov() {
         // ὁ ἄνθρωπος τὸν λόγον λέγει (The man says the word)
         let mut asm = Assembler::new();
-
         // Feed subject (nominative)
         let subj = analyze("ανθρωπος");
         asm.feed(&subj, "ἄνθρωπος").unwrap();
-
         // Feed object (accusative)
         let obj = analyze("λογον");
         asm.feed(&obj, "λόγον").unwrap();
-
         // Feed verb
         let verb = analyze("λεγει");
         asm.feed(&verb, "λέγει").unwrap();
-
         let stmt = asm.finalize().unwrap();
         assert!(stmt.subject.is_some());
         assert!(stmt.object.is_some());
         assert!(stmt.verb.is_some());
     }
-
     #[test]
     fn test_vso_same_result() {
         // λέγει τὸν λόγον ὁ ἄνθρωπος (VSO - same meaning)
         let mut asm = Assembler::new();
-
         // Feed verb first
         let verb = analyze("λεγει");
         asm.feed(&verb, "λέγει").unwrap();
-
         // Feed object
         let obj = analyze("λογον");
         asm.feed(&obj, "λόγον").unwrap();
-
         // Feed subject
         let subj = analyze("ανθρωπος");
         asm.feed(&subj, "ἄνθρωπος").unwrap();
-
         let stmt = asm.finalize().unwrap();
         assert!(stmt.subject.is_some());
         assert!(stmt.object.is_some());
         assert!(stmt.verb.is_some());
     }
-
     #[test]
     fn test_multiple_nominatives() {
         // Multiple nominatives are now allowed for function call patterns
         let mut asm = Assembler::new();
-
         let subj1 = analyze("ανθρωπος");
         asm.feed(&subj1, "ἄνθρωπος").unwrap();
-
         let subj2 = analyze("θεος");
         asm.feed(&subj2, "θεός").unwrap(); // Should succeed now
-
         // For multiple nominatives to pass validation, it must be part of a function definition
         // or contain literals/blocks that define the call
         let verb = analyze("εστω");
@@ -1460,83 +1362,62 @@ mod tests {
         assert!(stmt.subject.is_some());
         assert_eq!(stmt.nominatives.len(), 1); // Second nominative in the list
     }
-
     #[test]
     fn test_double_verb_error() {
         let mut asm = Assembler::new();
-
         let verb1 = analyze("λεγει");
         asm.feed(&verb1, "λέγει").unwrap();
-
         let verb2 = analyze("γραφει");
         let result = asm.feed(&verb2, "γράφει");
-
         assert!(matches!(result, Err(AssemblyError::DoubleVerb)));
     }
-
     #[test]
     fn test_literals() {
         let mut asm = Assembler::new();
-
         asm.feed_string("χαῖρε κόσμε".to_string()).unwrap();
-
         let verb = analyze("λεγε");
         asm.feed(&verb, "λέγε").unwrap();
-
         let stmt = asm.finalize().unwrap();
         assert_eq!(stmt.literals.len(), 1);
         assert!(matches!(&stmt.literals[0], Literal::String(s) if s == "χαῖρε κόσμε"));
     }
-
     #[test]
     fn test_genitive_possession() {
         let mut asm = Assembler::new();
-
         // χρήστου ὄνομα (the name of the user)
         let genitive = analyze("χρηστου");
         asm.feed(&genitive, "χρήστου").unwrap();
-
         let nom = analyze("ονομα");
         asm.feed(&nom, "ὄνομα").unwrap();
-
         let stmt = asm.finalize().unwrap();
         assert_eq!(stmt.genitives.len(), 1);
         assert!(stmt.subject.is_some() || stmt.object.is_some());
     }
-
     #[test]
     fn test_dative_indirect_object() {
         let mut asm = Assembler::new();
-
         // τῷ ἀνθρώπῳ δίδωμι (I give to the man)
         let dat = analyze("ανθρωπω");
         asm.feed(&dat, "ἀνθρώπῳ").unwrap();
-
         let verb = analyze("διδωμι");
         asm.feed(&verb, "δίδωμι").unwrap();
-
         let stmt = asm.finalize().unwrap();
         assert!(stmt.indirect.is_some());
     }
-
     #[test]
     fn test_verb_constituent_has_voice() {
         let mut asm = Assembler::new();
-
         // γίγνεται - middle voice verb
         let verb = analyze("γιγνεται");
         asm.feed(&verb, "γίγνεται").unwrap();
-
         let stmt = asm.finalize().unwrap();
         assert!(stmt.verb.is_some());
         let verb_const = stmt.verb.unwrap();
         assert_eq!(verb_const.voice, Some(Voice::Middle));
     }
-
     #[test]
     fn test_subject_verb_person_agreement() {
         let mut asm = Assembler::new();
-
         // Feed subject "ἐγώ" (I) - First Person Singular
         // Manually construct analysis since "ego" might not be in the simple lexicon used in tests
         let ego_analysis = MorphAnalysis {
@@ -1552,7 +1433,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&ego_analysis, "ἐγώ").unwrap();
-
         // Feed verb "λέγει" (He says) - Third Person Singular
         let verb_analysis = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("λεγω"),
@@ -1566,35 +1446,27 @@ mod tests {
             voice: Some(Voice::Active),
             confidence: 1.0,
         };
-
         // This should fail IMMEDIATELY during feed because we have strict agreement checks now
         let result = asm.feed(&verb_analysis, "λέγει");
-
         assert!(
             matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
             "Expected immediate agreement failure"
         );
     }
-
     #[test]
     fn test_double_object_error() {
         let mut asm = Assembler::new();
-
         // First object: λόγον
         let obj1 = analyze("λόγον");
         asm.feed(&obj1, "λόγον").unwrap();
-
         // Second object: λόγον (again)
         let obj2 = analyze("λόγον");
         let result = asm.feed(&obj2, "λόγον");
-
         assert!(matches!(result, Err(AssemblyError::DoubleObject)));
     }
-
     #[test]
     fn test_neuter_plural_subject_singular_verb() {
         let mut asm = Assembler::new();
-
         // Subject: τὰ ζῷα (The animals) - Neuter Plural
         let subj = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("ζωον"),
@@ -1609,7 +1481,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&subj, "ζῷα").unwrap();
-
         // Verb: τρέχει (runs) - Singular
         let verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("τρεχω"),
@@ -1624,7 +1495,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&verb, "τρέχει").unwrap();
-
         // Should succeed despite Plural Subject + Singular Verb
         let stmt = asm.finalize();
         assert!(
@@ -1633,11 +1503,9 @@ mod tests {
             stmt.err()
         );
     }
-
     #[test]
     fn test_imperative_mismatch() {
         let mut asm = Assembler::new();
-
         // Subject: "User" (3rd person)
         let subj = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("User"),
@@ -1652,7 +1520,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&subj, "User").unwrap();
-
         // Verb: "Print!" (Imperative, 2nd person)
         let verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("print"),
@@ -1667,7 +1534,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&verb, "Print").unwrap();
-
         // Should succeed
         let stmt = asm.finalize();
         assert!(
@@ -1676,12 +1542,10 @@ mod tests {
             stmt.err()
         );
     }
-
     #[test]
     fn test_gender_mismatch_ignored() {
         // This test verifies that Gender Mismatch is CURRENTLY IGNORED.
         let mut asm = Assembler::new();
-
         // Adjective: καλός (Masculine)
         let adj = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("καλος"),
@@ -1696,7 +1560,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&adj, "καλός").unwrap();
-
         // Noun: γυνή (Feminine)
         let noun = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("γυνη"),
@@ -1711,7 +1574,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&noun, "γυνή").unwrap();
-
         // Verb (to complete the sentence)
         let verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("λεγω"),
@@ -1726,16 +1588,13 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&verb, "λέγει").unwrap();
-
         let stmt = asm.finalize();
         // Currently expecting OK because the check is missing
         assert!(stmt.is_ok(), "Gender mismatch is currently ignored");
     }
-
     #[test]
     fn test_split_method_generation() {
         let mut asm = Assembler::new();
-
         // 1. Subject: "text"
         let subj = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("text"),
@@ -1750,7 +1609,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&subj, "text").unwrap();
-
         // 2. Delimiter Preposition: "κατά"
         let marker_analysis = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("κατα"),
@@ -1765,10 +1623,8 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&marker_analysis, "κατά").unwrap();
-
         // 3. Delimiter Literal: ","
         asm.feed_string(",".to_string()).unwrap();
-
         // 4. Split Verb: "σχίζεται" (is split)
         let split_verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("σχιζω"), // assuming lemma for split verb
@@ -1783,27 +1639,22 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&split_verb, "σχίζεται").unwrap();
-
         let stmt = asm.finalize().unwrap();
-
         // Check if property access was created
         assert!(
             !stmt.property_accesses.is_empty(),
             "Should generate property access for split"
         );
         assert_eq!(stmt.property_accesses[0].1, "split");
-
         // Check if string method info was captured
         assert_eq!(
             stmt.string_method,
             Some(("split".to_string(), ",".to_string()))
         );
     }
-
     #[test]
     fn test_immediate_agreement_failure_vso() {
         let mut asm = Assembler::new();
-
         // Feed verb: "I see" (1st Person Singular)
         let verb_analysis = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("βλεπω"),
@@ -1818,7 +1669,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&verb_analysis, "βλέπω").unwrap();
-
         // Feed subject: "The gift" (3rd Person Singular)
         let subj_analysis = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("δωρον"),
@@ -1832,7 +1682,6 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-
         // Should fail IMMEDIATELY because "I see" (1st) != "gift" (3rd)
         let result = asm.feed(&subj_analysis, "δῶρον");
         assert!(
@@ -1840,11 +1689,9 @@ mod tests {
             "Expected immediate agreement failure for VSO"
         );
     }
-
     #[test]
     fn test_immediate_agreement_failure_svo() {
         let mut asm = Assembler::new();
-
         // Feed subject: "The gift" (3rd Person Singular)
         let subj_analysis = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("δωρον"),
@@ -1859,7 +1706,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&subj_analysis, "δῶρον").unwrap();
-
         // Feed verb: "I see" (1st Person Singular)
         let verb_analysis = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("βλεπω"),
@@ -1873,7 +1719,6 @@ mod tests {
             voice: Some(Voice::Active),
             confidence: 1.0,
         };
-
         // Should fail IMMEDIATELY because "gift" (3rd) != "I see" (1st)
         let result = asm.feed(&verb_analysis, "βλέπω");
         assert!(
@@ -1881,7 +1726,6 @@ mod tests {
             "Expected immediate agreement failure for SVO"
         );
     }
-
     fn make_analysis(
         lemma: &str,
         pos: PartOfSpeech,
@@ -1901,7 +1745,6 @@ mod tests {
             confidence: 1.0,
         }
     }
-
     #[test]
     fn test_max_literals_exceeded() {
         let mut asm = Assembler::new();
@@ -1913,7 +1756,6 @@ mod tests {
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Literals" && max == MAX_LITERALS)
         );
     }
-
     #[test]
     fn test_max_nominatives_exceeded() {
         let mut asm = Assembler::new();
@@ -1924,7 +1766,6 @@ mod tests {
             Some(Number::Singular),
         );
         asm.feed(&subj, "subject").unwrap();
-
         for i in 0..MAX_NOMINATIVES {
             let nom = make_analysis(
                 &format!("nom_{}", i),
@@ -1934,7 +1775,6 @@ mod tests {
             );
             asm.feed(&nom, &format!("nom_{}", i)).unwrap();
         }
-
         let nom = make_analysis(
             "overflow",
             PartOfSpeech::Noun,
@@ -1942,12 +1782,10 @@ mod tests {
             Some(Number::Singular),
         );
         let result = asm.feed(&nom, "overflow");
-
         assert!(
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Nominatives" && max == MAX_NOMINATIVES)
         );
     }
-
     #[test]
     fn test_max_adjectives_exceeded() {
         let mut asm = Assembler::new();
@@ -1960,7 +1798,6 @@ mod tests {
             );
             asm.feed(&adj, &format!("adj_{}", i)).unwrap();
         }
-
         let adj = make_analysis(
             "overflow",
             PartOfSpeech::Adjective,
@@ -1968,12 +1805,10 @@ mod tests {
             Some(Number::Singular),
         );
         let result = asm.feed(&adj, "overflow");
-
         assert!(
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Adjectives" && max == MAX_ADJECTIVES)
         );
     }
-
     #[test]
     fn test_max_operators_exceeded() {
         let mut asm = Assembler::new();
@@ -1982,12 +1817,10 @@ mod tests {
             asm.feed(&op_analysis, "καί").unwrap();
         }
         let result = asm.feed(&op_analysis, "καί");
-
         assert!(
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Operators" && max == MAX_OPERATORS)
         );
     }
-
     #[test]
     fn test_max_genitives_exceeded() {
         let mut asm = Assembler::new();
@@ -2000,7 +1833,6 @@ mod tests {
             );
             asm.feed(&genitive, &format!("gen_{}", i)).unwrap();
         }
-
         let genitive = make_analysis(
             "overflow",
             PartOfSpeech::Noun,
@@ -2008,12 +1840,10 @@ mod tests {
             Some(Number::Singular),
         );
         let result = asm.feed(&genitive, "overflow");
-
         assert!(
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Genitives" && max == MAX_GENITIVES)
         );
     }
-
     #[test]
     fn test_silent_swallowing_of_unknown_case() {
         let mut asm = Assembler::new();
@@ -2024,17 +1854,14 @@ mod tests {
             Some(Number::Singular),
         );
         asm.feed(&obj, "object").unwrap();
-
         let unknown = make_analysis("unknown", PartOfSpeech::Noun, None, Some(Number::Singular));
         let result = asm.feed(&unknown, "unknown");
-
         assert!(
             matches!(result, Err(AssemblyError::DoubleObject)),
             "Expected DoubleObject error for unknown case when object slot is full, got {:?}",
             result
         );
     }
-
     #[test]
     fn test_neuter_plural_subject_first_person_verb() {
         let mut asm = Assembler::new();
@@ -2051,7 +1878,6 @@ mod tests {
             confidence: 1.0,
         };
         asm.feed(&subj, "δῶρα").unwrap();
-
         let verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("blepw"),
             part_of_speech: PartOfSpeech::Verb,
@@ -2064,7 +1890,6 @@ mod tests {
             voice: Some(Voice::Active),
             confidence: 1.0,
         };
-
         let result = asm.feed(&verb, "βλέπω");
         assert!(
             matches!(result, Err(AssemblyError::SubjectVerbDisagreement { .. })),
@@ -2072,16 +1897,13 @@ mod tests {
             result
         );
     }
-
     #[test]
     fn test_disambiguation_en_vs_hen() {
         let mut asm = Assembler::new();
         let analysis = make_analysis("εν", PartOfSpeech::Preposition, None, None);
-
         asm.feed(&analysis, "ἐν").unwrap();
         let stmt = asm.finalize().unwrap();
         assert!(stmt.has_containment_preposition);
-
         let mut asm = Assembler::new();
         let hen = "ἕν";
         asm.feed(&analysis, hen).unwrap();
@@ -2091,7 +1913,6 @@ mod tests {
             "Should not detect containment preposition for 'one' (hen)"
         );
     }
-
     #[test]
     fn test_max_arrays_exceeded() {
         let mut asm = Assembler::new();
@@ -2103,13 +1924,11 @@ mod tests {
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Arrays" && max == MAX_ARRAYS)
         );
     }
-
     #[test]
     fn test_max_index_accesses_exceeded() {
         let mut asm = Assembler::new();
         let array = Expr::NumberLiteral(0); // Dummy expression
         let index = Expr::NumberLiteral(0);
-
         for _ in 0..MAX_INDEX_ACCESSES {
             asm.feed_index_access(array.clone(), index.clone()).unwrap();
         }
@@ -2118,7 +1937,6 @@ mod tests {
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Index Accesses" && max == MAX_INDEX_ACCESSES)
         );
     }
-
     #[test]
     fn test_max_nested_phrases_exceeded() {
         let mut asm = Assembler::new();
@@ -2130,7 +1948,6 @@ mod tests {
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Nested Phrases" && max == MAX_NESTED_PHRASES)
         );
     }
-
     #[test]
     fn test_max_participles_exceeded() {
         let mut asm = Assembler::new();
@@ -2143,7 +1960,6 @@ mod tests {
             number: crate::morphology::Number::Singular,
             confidence: 1.0,
         };
-
         for i in 0..MAX_PARTICIPLES {
             asm.feed_participle(&analysis, &format!("part_{}", i))
                 .unwrap();
@@ -2153,7 +1969,6 @@ mod tests {
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Participles" && max == MAX_PARTICIPLES)
         );
     }
-
     #[test]
     fn test_max_unwraps_exceeded() {
         let mut asm = Assembler::new();
@@ -2166,7 +1981,6 @@ mod tests {
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Unwraps" && max == MAX_UNWRAPS)
         );
     }
-
     #[test]
     fn test_max_blocks_exceeded() {
         let mut asm = Assembler::new();
@@ -2178,11 +1992,9 @@ mod tests {
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Blocks" && max == MAX_BLOCKS)
         );
     }
-
     #[test]
     fn test_max_property_accesses_exceeded() {
         let mut asm = Assembler::new();
-
         // Fill up to the limit
         for _ in 0..MAX_PROPERTY_ACCESSES {
             // Replenish subject because check_special_properties consumes it
@@ -2193,12 +2005,10 @@ mod tests {
                 Some(Number::Singular),
             );
             asm.feed(&subj, "subject").unwrap();
-
             // Feed property "μῆκος" (length)
             let prop = make_analysis("μηκος", PartOfSpeech::Noun, None, None);
             asm.feed_with_normalized(&prop, "μῆκος", "μηκος").unwrap();
         }
-
         // Try one more time to break it
         let subj = make_analysis(
             "subject",
@@ -2207,28 +2017,22 @@ mod tests {
             Some(Number::Singular),
         );
         asm.feed(&subj, "subject").unwrap();
-
         let prop = make_analysis("μηκος", PartOfSpeech::Noun, None, None);
         let result = asm.feed_with_normalized(&prop, "μῆκος", "μηκος");
-
         assert!(
             matches!(result, Err(AssemblyError::LimitExceeded { ref resource, max }) if resource == "Property Accesses" && max == MAX_PROPERTY_ACCESSES)
         );
     }
-
     #[test]
     fn test_unknown_case_becomes_object_when_slot_empty() {
         let mut asm = Assembler::new();
-
         // Feed unknown word
         // PartOfSpeech::Noun but case: None
         let unknown = make_analysis("unknown", PartOfSpeech::Noun, None, Some(Number::Singular));
         asm.feed(&unknown, "unknown").unwrap();
-
         let verb = analyze("λέγει");
         asm.feed(&verb, "λέγει").unwrap();
         let stmt = asm.finalize().unwrap();
-
         // Assert it was captured as object
         assert!(
             stmt.object.is_some(),

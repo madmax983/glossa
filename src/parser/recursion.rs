@@ -1,3 +1,6 @@
+//! Recursion Limits
+//!
+//! Enforces parser depth limits to prevent stack overflows on malicious inputs.
 use super::ParseError;
 
 /// Check recursion depth to prevent stack overflows

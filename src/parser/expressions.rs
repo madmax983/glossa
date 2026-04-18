@@ -1,3 +1,6 @@
+//! Expression Parsing
+//!
+//! Builds AST expressions from parsing grammar pairs.
 use crate::ast::*;
 use crate::parser::build_statement;
 use crate::parser::common::{ParseError, parse_number_literal};
