@@ -2376,6 +2376,74 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_subject_fallback_numeral() {
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "πεντε".into(),
+                normalized: "πεντε".into(),
+                original: "πεντε".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_subject_fallback(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        let opt = result.unwrap();
+        assert!(opt.is_some());
+        assert_eq!(opt.unwrap().1, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_extract_subject_fallback_defined() {
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "x".into(),
+                normalized: "x".into(),
+                original: "x".into(),
+                gender: None,
+                case: crate::morphology::Case::Nominative,
+                number: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        scope.define("x", GlossaType::Number);
+        let result = extract_subject_fallback(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        let opt = result.unwrap();
+        assert!(opt.is_some());
+        assert_eq!(opt.unwrap().1, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_extract_object_fallback_defined() {
+        let asm_stmt = AssembledStatement {
+            object: Some(Constituent {
+                lemma: "y".into(),
+                normalized: "y".into(),
+                original: "y".into(),
+                gender: None,
+                case: crate::morphology::Case::Accusative,
+                number: None,
+                person: None,
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        scope.define("y", GlossaType::String);
+        let result = extract_object_fallback(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        let opt = result.unwrap();
+        assert!(opt.is_some());
+        assert_eq!(opt.unwrap().1, GlossaType::String);
+    }
+
+    #[test]
     fn test_extract_subject_fallback_empty() {
         let asm_stmt = AssembledStatement {
             subject: None,
