@@ -81,7 +81,9 @@ pub use dictionary::lookup_word;
 pub use highlight::highlight;
 pub use narrator::tell_tale;
 pub use repl::run_repl;
-pub use runner::{analyze_source, bard_file, build_file, check_file, highlight_file, report_file, run_file};
+pub use runner::{
+    analyze_source, bard_file, build_file, check_file, highlight_file, report_file, run_file,
+};
 pub use tester::run_tests;
 
 #[cfg(feature = "nova")]
