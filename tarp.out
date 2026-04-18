@@ -1233,3 +1233,143 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 [2m2026-04-18T13:49:51.327213Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
 [2m2026-04-18T13:49:51.327317Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/collection_tests-2319ee9088bce69c
+
+running 27 tests
+test test_codegen_empty_array ... ok
+test test_codegen_array_literal ... ok
+test test_array_iteration_with_body ... ok
+test test_array_iteration ... ok
+test test_hashmap_insert ... ok
+test test_hashmap_get ... ok
+test test_hashset_insert_string ... ok
+test test_hashset_insert ... ok
+test test_hashmap_contains_key ... ok
+test test_hashset_contains ... ok
+test test_length_property ... ok
+test test_length_multiple ... ok
+test test_ordinal_index_second ... ok
+test test_ordinal_index_first ... ok
+test test_parse_array_literal ... ok
+test test_ordinal_index_third ... ok
+test test_parse_array_with_variables ... ok
+test test_parse_empty_array ... ok
+test test_numeric_index_expression ... ok
+test test_numeric_index ... ok
+test test_pop_operation ... ok
+test test_pop_multiple ... ok
+test test_push_operation ... ok
+test test_push_multiple ... ok
+test test_string_contains ... ok
+test test_string_split ... ok
+test test_string_join ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.25s
+
+[2m2026-04-18T13:50:01.247194Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-04-18T13:50:01.247276Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/sentry_codegen_perf-c6988cb71a5f89b7
+
+running 4 tests
+test test_codegen_runtime_neg_panic ... ok
+test test_codegen_runtime_index_panic ... ok
+test test_codegen_runtime_negative_index_panic ... ok
+test test_codegen_runtime_unwrap_panic ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+
+[2m2026-04-18T13:50:11.099232Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-04-18T13:50:11.099330Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/compile_tests-c1c1a05d2cff3b11
+
+running 14 tests
+test test_assignment_missing_value_error ... ok
+test test_greek_numeral_word ... ok
+test test_assignment_codegen ... ok
+test test_immutable_assignment_error ... ok
+test test_mutable_binding ... ok
+test test_mutable_binding_and_reassignment ... ok
+test test_multiple_statements ... ok
+test test_hello_cosmos ... ok
+test test_preserves_greek_in_strings ... ok
+test test_variable_binding ... ok
+test test_variable_binding_and_use ... ok
+test test_undefined_assignment_error ... ok
+test test_number_literal ... ok
+test test_array_index_codegen ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.99s
+
+[2m2026-04-18T13:50:20.943225Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-04-18T13:50:20.943311Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/sentry_tester_tests-55ff8adb5b4b56de
+
+running 5 tests
+test test_run_tests_compilation_error ... ok
+test test_run_tests_invalid_input_path ... ok
+test test_run_tests_empty_test_file ... ok
+test test_run_tests_integration ... ok
+test test_run_tests_failing_integration ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.08s
+
+[2m2026-04-18T13:50:32.007203Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-04-18T13:50:32.007282Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_fuzz-4deb58799bffa973
+
+running 3 tests
+test fuzz_parser_structured ... ok
+test fuzz_parser ... ok
+test fuzz_semantic_validish_source ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.22s
+
+[2m2026-04-18T13:50:43.691732Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-04-18T13:50:43.691845Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/trait_tests-cd608aaa85bd232f
+
+running 32 tests
+test test_analyze_trait_definition ... ok
+test test_analyze_trait_impl ... ok
+test test_call_trait_method_with_args ... ok
+test test_call_default_method ... ok
+test test_call_trait_method ... ok
+test test_codegen_trait_definition ... ok
+test test_codegen_trait_impl ... ok
+test test_codegen_trait_method_call_genitive ... ok
+test test_codegen_trait_with_default ... ok
+test test_codegen_full_example ... ok
+test test_call_both_trait_methods_on_same_type ... ok
+test test_duplicate_trait_error ... ok
+test test_impl_with_default_method_not_required ... ok
+test test_default_method_body_analysis ... ok
+test test_missing_required_method_error ... ok
+test test_impl_for_undefined_trait_error ... ok
+test test_multiple_types_implement_same_trait ... ok
+test test_parse_empty_trait ... ok
+test test_impl_for_undefined_type_error ... ok
+test test_parse_trait_impl_with_method ... ok
+test test_parse_impl_multiple_methods ... ok
+test test_parse_empty_trait_impl ... ok
+test test_parse_trait_multiple_methods ... ok
+test test_parse_trait_with_required_method ... ok
+test test_parse_trait_with_default_method ... ok
+test test_repro_trait_default_method_return_type ... ok
+test test_trait_method_call_error_not_implemented ... ok
+test test_trait_stored_in_scope ... ok
+test test_type_implements_multiple_traits ... ok
+test test_repro_trait_impl_return_type ... ok
+test test_standalone_method_call ... ok
+test test_override_default_method ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
+
+[2m2026-04-18T13:50:53.879209Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-04-18T13:50:53.879287Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/warden_recursion_bypass-1176cc3e7a385984
+
+running 1 test
+test test_exploit_recursion_bypass ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+[2m2026-04-18T14:11:40.297679Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2026-04-18T14:11:40.325781Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /app/target/debug/deps/havoc_operator_stress-79bfcf3b6c62bc4e
+
+running 1 test
+test test_stack_overflow_in_drop has been running for over 60 seconds
+[2m2026-04-18T14:12:52.522332Z[0m [31mERROR[0m [2mcargo_tarpaulin[0m[2m:[0m Failed to run tests: Error: Timed out waiting for test response
+Error: "Failed to run tests: Error: Timed out waiting for test response"

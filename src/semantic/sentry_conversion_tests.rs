@@ -389,7 +389,10 @@ fn test_binding_subject_object_swap() {
     };
 
     let analyzed = convert_assembled_to_analyzed(&asm_stmt, &mut scope);
-    assert!(analyzed.is_err(), "Should fail due to strict undefined checking");
+    assert!(
+        analyzed.is_err(),
+        "Should fail due to strict undefined checking"
+    );
 }
 
 #[test]
