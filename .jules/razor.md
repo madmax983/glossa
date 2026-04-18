@@ -31,3 +31,7 @@
 **Bloat:** Complex `DoubleSubject` and Missing Verb state checks spread out in `Assembler::finalize()` which were bypassed by certain verbs and nested phrases.
 **Cut:** Removed duplicate and misfiring checks in `finalize()`. Placed a single unified `DoubleSubject` check at the beginning of `classify_expression` in `src/semantic/conversion.rs`.
 **Saved:** Avoided messy verb classification bypassing and consolidated grammatical validation to where semantic structure is actually clear.
+## [Reduction]
+**Bloat:** Generic closure `F: FnOnce() -> Option<PathBuf>` and lazy `.or_else()` used in `Cache::with_dirs` merely for test dependency injection. This is a classic case of "Generic Soup" and over-engineering for simple fallback logic.
+**Cut:** Replaced the generic closure parameter with a concrete, eagerly evaluated `Option<PathBuf>` and used `.or()` instead of `.or_else()`.
+**Saved:** Reduced cognitive load and avoided unnecessary monomorphization/generic typing for a simple initialization method.
