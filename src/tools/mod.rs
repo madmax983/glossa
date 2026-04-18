@@ -95,9 +95,9 @@ pub use cartographer::run_map;
 #[cfg(feature = "nova")]
 pub use interpreter::{EvalError, Interpreter, Value};
 #[cfg(feature = "nova")]
-pub use labyrinth::{run_labyrinth, run_labyrinth_inner, generate_cfg};
+pub use labyrinth::{generate_cfg, run_labyrinth, run_labyrinth_inner};
 #[cfg(feature = "nova")]
-pub use mentor::{run_mentor, Lesson};
+pub use mentor::{Lesson, run_mentor};
 #[cfg(feature = "nova")]
 pub use mosaic::{run_mosaic, run_mosaic_inner};
 #[cfg(feature = "nova")]
