@@ -616,6 +616,41 @@ failures:
 ",
                 expected_count: 0,
             },
+            TestCase {
+                name: "Missing end of test details block",
+                input: "
+failures:
+
+---- my_test_missing_end stdout ----
+Error message here
+",
+                expected_count: 1,
+            },
+            TestCase {
+                name: "Missing next test block",
+                input: "
+failures:
+
+---- my_test_next stdout ----
+Error 1
+---- my_test_next_missing stdout ----
+Error 2
+",
+                expected_count: 2,
+            },
+            TestCase {
+                name: "Thread panicked internal rust string stripped",
+                input: "
+failures:
+
+---- test_panicked stdout ----
+thread 'test_panicked' panicked at 'internal panic message', src/lib.rs:1:1
+   0: std::backtrace::Backtrace::create
+   1: core::panicking::panic_fmt
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+",
+                expected_count: 1, // It should still capture the failure but strip some internal messages
+            },
         ];
 
         for case in test_cases {
