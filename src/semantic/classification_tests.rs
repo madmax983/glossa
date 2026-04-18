@@ -77,10 +77,7 @@ fn test_classify_binding_subject_object_swap() {
     };
 
     let result = classify_assembled_statement(&asm_stmt, &mut scope);
-    assert!(
-        result.is_err(),
-        "Should fail due to strict undefined checking"
-    );
+    assert!(result.is_err(), "Should fail due to strict undefined checking");
 }
 
 #[test]
