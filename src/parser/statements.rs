@@ -1,3 +1,6 @@
+//! Statement Parsing
+//!
+//! Handles parsing of grammatical clauses into regular statements.
 use crate::ast::*;
 use crate::parser::common::ParseError;
 use crate::parser::expressions::build_expression;

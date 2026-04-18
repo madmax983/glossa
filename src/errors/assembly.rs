@@ -1,3 +1,6 @@
+//! Assembly Error Types
+//!
+//! Defines errors that can occur during the semantic assembly phase.
 use crate::morphology::{Number, Person};
 use miette::Diagnostic;
 use thiserror::Error;
