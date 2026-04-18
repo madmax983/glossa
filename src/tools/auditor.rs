@@ -602,7 +602,8 @@ mod tests {
         let input_path = dir.path().join("error.γλ");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("invalid syntax that fails analysis\n".as_bytes()).unwrap();
+            f.write_all("invalid syntax that fails analysis\n".as_bytes())
+                .unwrap();
         }
         let result = run_auditor(&input_path);
         assert!(result.is_err());
