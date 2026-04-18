@@ -14,8 +14,7 @@
 //! 2. **The Challenge**: A specific coding task to perform.
 //! 3. **The Verification**: Real-time analysis of the user's code to ensure they met the goal.
 
-use crate::parser::parse;
-use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, analyze_program};
+use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType};
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
@@ -188,8 +187,7 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
 }
 
 fn process_submission(source: &str) -> Result<AnalyzedProgram, String> {
-    let ast = parse(source).map_err(|e| e.to_string())?;
-    analyze_program(&ast).map_err(|e| e.to_string())
+    crate::tools::runner::analyze_source(source).map_err(|e| e.to_string())
 }
 
 fn print_banner<W: Write>(w: &mut W) -> Result<()> {
