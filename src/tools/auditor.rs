@@ -591,3 +591,20 @@ mod tests {
         }
     }
 }
+
+    #[test]
+    fn test_auditor_error_paths() {
+        // Test file not found error path
+        let result = run_auditor(Path::new("nonexistent.gl"));
+        assert!(result.is_err());
+
+        // Test syntax/semantic error path
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("error.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("invalid syntax that fails analysis\n".as_bytes()).unwrap();
+        }
+        let result = run_auditor(&input_path);
+        assert!(result.is_err());
+    }
