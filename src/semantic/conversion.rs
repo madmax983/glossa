@@ -1518,6 +1518,44 @@ fn extract_enum_from_object(
     Ok(None)
 }
 
+fn extract_subject_fallback(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
+    if let Some(ref subj) = asm_stmt.subject {
+        let subj_lemma = &subj.lemma;
+
+        // Check if it's a numeral word
+        if let Some(value) = crate::morphology::lexicon::numeral_value(subj_lemma) {
+            return Ok(Some((
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(value),
+                    glossa_type: GlossaType::Number,
+                },
+                GlossaType::Number,
+            )));
+        }
+
+        if !scope.is_defined(subj_lemma) {
+            return Err(GlossaError::undefined(subj_lemma.as_str()));
+        }
+
+        let var_type = scope
+            .lookup(subj_lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
+
+        return Ok(Some((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj_lemma.clone()),
+                glossa_type: var_type.clone(),
+            },
+            var_type,
+        )));
+    }
+    Ok(None)
+}
+
 fn extract_object_fallback(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
@@ -1540,12 +1578,16 @@ fn extract_object_fallback(
             return Err(GlossaError::undefined(obj_lemma.as_str()));
         }
 
+        let var_type = scope
+            .lookup(&obj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         return Ok(Some((
             AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
+                glossa_type: var_type.clone(),
             },
-            GlossaType::Unknown,
+            var_type,
         )));
     }
     Ok(None)
@@ -1661,6 +1703,9 @@ pub fn extract_value(
         return Ok(res);
     }
     if let Some(res) = extract_literal(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_subject_fallback(asm_stmt, scope)? {
         return Ok(res);
     }
     if let Some(res) = extract_object_fallback(asm_stmt, scope)? {

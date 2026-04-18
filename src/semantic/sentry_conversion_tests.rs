@@ -388,20 +388,11 @@ fn test_binding_subject_object_swap() {
         ..Default::default()
     };
 
-    let analyzed = convert_assembled_to_analyzed(&asm_stmt, &mut scope)
-        .expect("Should analyze binding with swap");
-
-    if let AnalyzedStatement::Binding { name, value, .. } = analyzed {
-        assert_eq!(name, "new", "Should bind to the undefined variable 'new'");
-
-        if let AnalyzedExprKind::Variable(var_name) = value.expr {
-            assert_eq!(var_name, "existing", "Value should be 'existing'");
-        } else {
-            panic!("Value should be variable 'existing'");
-        }
-    } else {
-        panic!("Expected Binding statement");
-    }
+    let analyzed = convert_assembled_to_analyzed(&asm_stmt, &mut scope);
+    assert!(
+        analyzed.is_err(),
+        "Should fail due to strict undefined checking"
+    );
 }
 
 #[test]

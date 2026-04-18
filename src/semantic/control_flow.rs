@@ -161,12 +161,13 @@ fn parse_range_bound(
             })
         } else {
             // Try as variable
+            let var_type = scope
+                .lookup(&w.normalized)
+                .cloned()
+                .ok_or_else(|| GlossaError::undefined(w.normalized.as_str()))?;
             Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(w.normalized.clone()),
-                glossa_type: scope
-                    .lookup(&w.normalized)
-                    .cloned()
-                    .unwrap_or(GlossaType::Number),
+                glossa_type: var_type,
             })
         }
     } else {

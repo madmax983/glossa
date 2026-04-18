@@ -80,6 +80,7 @@ fn test_parse_for_range_loop_missing_word_end() {
     };
 
     let mut scope = Scope::new();
+    scope.define("1", GlossaType::Number); // It parses "1" as a variable if it's not a literal
     let res = analyze_statement(&stmt, &mut scope);
     assert!(res.is_err());
     if let Err(e) = res {

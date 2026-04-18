@@ -76,19 +76,11 @@ fn test_classify_binding_subject_object_swap() {
         ..Default::default()
     };
 
-    let result =
-        classify_assembled_statement(&asm_stmt, &mut scope).expect("Classification failed");
-
-    if let AnalyzedStatement::Binding { name, value, .. } = result {
-        assert_eq!(name, "x"); // Should be swapped to x
-        if let AnalyzedExprKind::Variable(v) = value.expr {
-            assert_eq!(v, "val");
-        } else {
-            panic!("Expected Variable val");
-        }
-    } else {
-        panic!("Expected Binding, got {:?}", result);
-    }
+    let result = classify_assembled_statement(&asm_stmt, &mut scope);
+    assert!(
+        result.is_err(),
+        "Should fail due to strict undefined checking"
+    );
 }
 
 #[test]

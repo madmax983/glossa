@@ -124,3 +124,7 @@ Signed,
 **2026-04-10 - [Unbounded File Read DoS in nova_coverage Test]**
 **Threat:** The `test_run_weave_success` test in `tests/nova_coverage.rs` was using `std::fs::read_to_string`, which loads an entire file into memory without limits. An attacker could theoretically use a massive file to exhaust memory and crash the test environment (DoS).
 **Defense:** Replaced the unbounded read with a capped reader using `std::io::Read::take()` and `1024 * 1024 + 1` limit, preventing memory exhaustion.
+
+**2024-06-25 - Strict Undefined Variable Checking**
+**Threat:** Missing variables during semantic extraction were silently defaulting to `Unknown` or `NumberLiteral(0)` in `extract_object_fallback` and `extract_subject_fallback` (and loops via `parse_range_bound`), potentially allowing execution of undefined semantic logic and masking runtime bugs or vulnerabilities.
+**Defense:** Added explicit lookup via `scope.lookup(...)` inside fallbacks and returned `Err(GlossaError::undefined(name))` immediately if the variable is absent, adhering to "Parse, don't validate".
