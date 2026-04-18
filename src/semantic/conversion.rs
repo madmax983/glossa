@@ -2364,8 +2364,6 @@ mod tests {
     }
 
     #[test]
-
-    #[test]
     fn test_extract_subject_fallback_empty() {
         let asm_stmt = AssembledStatement {
             subject: None,
