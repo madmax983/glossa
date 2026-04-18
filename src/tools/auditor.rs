@@ -38,7 +38,7 @@ use std::path::Path;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use glossa::tools::run_auditor;
+/// use glossa::tools::auditor::run_auditor;
 /// use std::path::Path;
 ///
 /// let input = Path::new("main.γλ");

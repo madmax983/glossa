@@ -24,7 +24,7 @@
 //! # Usage
 //!
 //! ```rust
-//! use glossa::tools::highlight;
+//! use glossa::highlight::highlight;
 //!
 //! let source = "ὁ ἄνθρωπος τὸν λόγον λέγει.";
 //! let highlighted = highlight(source).unwrap();

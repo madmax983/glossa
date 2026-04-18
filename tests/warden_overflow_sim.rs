@@ -4,7 +4,7 @@ use glossa::morphology::{BinaryOp, UnaryOp};
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
 };
-use glossa::tools::Interpreter;
+use glossa::tools::interpreter::Interpreter;
 
 #[test]
 fn test_warden_overflow_sim_defense() {

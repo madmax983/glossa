@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-use glossa::tools::run_tests;
+use glossa::tools::tester::run_tests;
 use std::fs;
 
 #[test]

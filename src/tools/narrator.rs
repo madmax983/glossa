@@ -37,7 +37,7 @@ use std::fmt::Write;
 /// ```
 /// use glossa::parser::parse;
 /// use glossa::semantic::analyze_program;
-/// use glossa::tools::tell_tale;
+/// use glossa::tools::narrator::tell_tale;
 ///
 /// let source = "ξ 5 ἔστω.";
 /// let ast = parse(source).unwrap();

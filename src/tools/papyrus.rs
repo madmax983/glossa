@@ -33,7 +33,7 @@ use std::path::Path;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use glossa::tools::run_papyrus;
+/// use glossa::tools::papyrus::run_papyrus;
 /// use std::path::Path;
 ///
 /// let input = Path::new("schema.γλ");

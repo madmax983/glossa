@@ -6,9 +6,11 @@
 use clap::Parser;
 use miette::Result;
 
-use glossa::tools::{
-    Cli, Commands, bard_file, build_file, check_file, highlight_file, lookup_word, report_file,
-    run_file, run_repl,
+use glossa::tools::cli::{Cli, Commands};
+use glossa::tools::dictionary::lookup_word;
+use glossa::tools::repl::run_repl;
+use glossa::tools::runner::{
+    bard_file, build_file, check_file, highlight_file, report_file, run_file,
 };
 
 fn main() -> Result<()> {
@@ -26,7 +28,7 @@ fn main() -> Result<()> {
 
         Some(Commands::Mentor) => {
             #[cfg(feature = "nova")]
-            glossa::tools::run_mentor()?;
+            glossa::tools::mentor::run_mentor()?;
 
             #[cfg(not(feature = "nova"))]
             miette::bail!(
@@ -59,12 +61,12 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Test { input }) => {
-            glossa::tools::run_tests(&input)?;
+            glossa::tools::tester::run_tests(&input)?;
         }
 
         Some(Commands::Mosaic { input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::run_mosaic(&input)?;
+            glossa::tools::mosaic::run_mosaic(&input)?;
 
             #[cfg(not(feature = "nova"))]
             {
@@ -77,7 +79,7 @@ fn main() -> Result<()> {
 
         Some(Commands::Map { input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::run_map(&input)?;
+            glossa::tools::cartographer::run_map(&input)?;
 
             #[cfg(not(feature = "nova"))]
             {
@@ -90,7 +92,7 @@ fn main() -> Result<()> {
 
         Some(Commands::Labyrinth { input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::run_labyrinth(&input)?;
+            glossa::tools::labyrinth::run_labyrinth(&input)?;
 
             #[cfg(not(feature = "nova"))]
             {
@@ -103,7 +105,7 @@ fn main() -> Result<()> {
 
         Some(Commands::Weave { input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::run_weave(&input)?;
+            glossa::tools::weave::run_weave(&input)?;
 
             #[cfg(not(feature = "nova"))]
             {
@@ -116,7 +118,7 @@ fn main() -> Result<()> {
 
         Some(Commands::Alchemist { input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::run_alchemist(&input)?;
+            glossa::tools::alchemist::run_alchemist(&input)?;
 
             #[cfg(not(feature = "nova"))]
             {
@@ -129,7 +131,7 @@ fn main() -> Result<()> {
 
         Some(Commands::Papyrus { input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::run_papyrus(&input)?;
+            glossa::tools::papyrus::run_papyrus(&input)?;
 
             #[cfg(not(feature = "nova"))]
             {
@@ -142,7 +144,7 @@ fn main() -> Result<()> {
 
         Some(Commands::Audit { input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::run_auditor(&input)?;
+            glossa::tools::auditor::run_auditor(&input)?;
 
             #[cfg(not(feature = "nova"))]
             {

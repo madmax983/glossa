@@ -17,36 +17,36 @@
 //! * `ui`: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
 #[cfg(feature = "nova")]
-pub(crate) mod alchemist;
+pub mod alchemist;
 /// The Auditor (Λογιστής) tool for static analysis.
 ///
 /// This experimental tool analyzes Glossa code to detect unused variables,
 /// unnecessary mutable bindings, and other code quality issues.
 #[cfg(feature = "nova")]
-pub(crate) mod auditor;
+pub mod auditor;
 pub(crate) mod cache;
 pub use cache::Cache;
 #[cfg(feature = "nova")]
-pub(crate) mod cartographer;
-pub(crate) mod cli;
-pub(crate) mod dictionary;
-pub(crate) mod highlight;
+pub mod cartographer;
+pub mod cli;
+pub mod dictionary;
+pub mod highlight;
 #[cfg(feature = "nova")]
-pub(crate) mod interpreter;
+pub mod interpreter;
 #[cfg(feature = "nova")]
-pub(crate) mod labyrinth;
+pub mod labyrinth;
 #[cfg(feature = "nova")]
-pub(crate) mod mentor;
+pub mod mentor;
 #[cfg(feature = "nova")]
-pub(crate) mod mosaic;
-pub(crate) mod narrator;
+pub mod mosaic;
+pub mod narrator;
 /// The Papyrus (Πάπυρος) tool for SQL schema generation.
 ///
 /// This experimental tool reads Glossa type definitions and automatically
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
-pub(crate) mod papyrus;
-pub(crate) mod repl;
+pub mod papyrus;
+pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
 ///
@@ -57,7 +57,7 @@ pub(crate) mod report;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use glossa::tools::run_file;
+/// use glossa::tools::runner::run_file;
 /// use std::path::Path;
 ///
 /// // Execute a Glossa file directly from its path
@@ -66,41 +66,8 @@ pub(crate) mod report;
 ///     eprintln!("Execution failed: {}", e);
 /// }
 /// ```
-pub(crate) mod runner;
-pub(crate) mod tester;
+pub mod runner;
+pub mod tester;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
-pub(crate) mod weave;
-
-// ============================================================================
-// Public API Facade
-// ============================================================================
-
-pub use cli::{Cli, Commands};
-pub use dictionary::lookup_word;
-pub use highlight::highlight;
-pub use narrator::tell_tale;
-pub use repl::run_repl;
-pub use runner::{
-    analyze_source, bard_file, build_file, check_file, highlight_file, report_file, run_file,
-};
-pub use tester::run_tests;
-
-#[cfg(feature = "nova")]
-pub use alchemist::{run_alchemist, transpile_to_python};
-#[cfg(feature = "nova")]
-pub use auditor::run_auditor;
-#[cfg(feature = "nova")]
-pub use cartographer::run_map;
-#[cfg(feature = "nova")]
-pub use interpreter::{EvalError, Interpreter, Value};
-#[cfg(feature = "nova")]
-pub use labyrinth::{generate_cfg, run_labyrinth, run_labyrinth_inner};
-#[cfg(feature = "nova")]
-pub use mentor::{Lesson, run_mentor};
-#[cfg(feature = "nova")]
-pub use mosaic::{run_mosaic, run_mosaic_inner};
-#[cfg(feature = "nova")]
-pub use papyrus::run_papyrus;
-#[cfg(feature = "nova")]
-pub use weave::run_weave;
+pub mod weave;

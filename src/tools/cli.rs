@@ -55,7 +55,7 @@ use std::path::PathBuf;
 /// # Examples
 ///
 /// ```rust
-/// use glossa::tools::Cli;
+/// use glossa::tools::cli::Cli;
 /// use clap::Parser;
 ///
 /// // You can parse arguments from an iterator, which is useful for testing!
@@ -85,7 +85,7 @@ pub struct Cli {
 /// # Examples
 ///
 /// ```rust
-/// use glossa::tools::Commands;
+/// use glossa::tools::cli::Commands;
 /// use std::path::PathBuf;
 ///
 /// let run_cmd = Commands::Run { input: PathBuf::from("main.γλ") };
