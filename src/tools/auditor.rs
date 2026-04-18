@@ -590,7 +590,6 @@ mod tests {
             visitor.visit_expr(&expr);
         }
     }
-}
 
     #[test]
     fn test_auditor_error_paths() {
@@ -608,3 +607,4 @@ mod tests {
         let result = run_auditor(&input_path);
         assert!(result.is_err());
     }
+}
