@@ -2364,6 +2364,20 @@ mod tests {
     }
 
     #[test]
+
+    #[test]
+    fn test_extract_subject_fallback_empty() {
+        let asm_stmt = AssembledStatement {
+            subject: None,
+            ..Default::default()
+        };
+        let scope = Scope::new();
+        let result = extract_subject_fallback(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
     fn test_extract_object_fallback_empty() {
         let asm_stmt = AssembledStatement {
             object: None,
