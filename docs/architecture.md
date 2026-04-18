@@ -95,6 +95,7 @@ C4Component
         Component(resolver, "Resolver", "src/semantic/resolver.rs", "Manages Scope and Bindings")
         Component(assembly, "Assembly", "src/semantic/assembly/mod.rs", "Routes words to grammatical slots")
         Component(conversion, "Conversion", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
+        %% Note: Conversion handles early Error Enforcement (DoubleSubject, Undefined)
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
         Component(types, "Type System", "src/semantic/types.rs", "GlossaType definitions and utilities")
@@ -113,7 +114,7 @@ C4Component
     Rel(control_flow, expressions, "Analyzes conditions")
     Rel(control_flow, model, "Produces")
 
-    Rel(conversion, assembly, "Uses Assembler")
+    Rel(conversion, assembly, "Uses Assembler & Validates Structure")
     Rel(assembly, morphology, "Uses")
     Rel(assembly, expressions, "Feeds sub-expressions")
 
