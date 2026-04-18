@@ -60,16 +60,13 @@ impl Cache {
     /// let cache = Cache::new();
     /// ```
     pub fn new() -> Self {
-        Self::with_dirs(dirs_next::cache_dir(), dirs_next::home_dir)
+        Self::with_dirs(dirs_next::cache_dir(), dirs_next::home_dir())
     }
 
     /// Internal constructor that allows dependency injection for tests
-    pub(crate) fn with_dirs<F>(cache_dir: Option<PathBuf>, home_dir_fn: F) -> Self
-    where
-        F: FnOnce() -> Option<PathBuf>,
-    {
+    pub(crate) fn with_dirs(cache_dir: Option<PathBuf>, home_dir: Option<PathBuf>) -> Self {
         let base_dir = cache_dir
-            .or_else(home_dir_fn)
+            .or(home_dir)
             .unwrap_or_else(|| PathBuf::from("."))
             .join(".glossa")
             .join("cache");
@@ -221,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_cache_with_dirs_fallback() {
-        let cache = Cache::with_dirs(None, || None);
+        let cache = Cache::with_dirs(None, None);
         assert!(cache.base_dir.ends_with("cache"));
         assert_eq!(
             cache.base_dir,
