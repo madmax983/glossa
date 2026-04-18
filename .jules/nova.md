@@ -37,3 +37,8 @@
 **Concept:** A CLI tool (`glossa catalog`) that lists all built-in verbs, operators, particles, and keywords available in the Glossa language. Grouped by their internal morphology (PartOfSpeech) and nicely formatted in terminal tables using `comfy-table`.
 **Fate:** Merged
 **Lesson:** Adding an iterator to the static lexicon unlocks great introspection capabilities for tooling, allowing users to browse the exact translation matrix that the semantic engine uses under the hood.
+
+## 🌟 The Scribe (ὁ Γραμματεύς)
+**Concept:** A CLI tool (`glossa scribe`) that iterates over the defined types, functions, and traits in a program's `Scope` and automatically generates standardized API documentation in Markdown format.
+**Fate:** Merged
+**Lesson:** By separating the semantic assembly output into a structured model (`AnalyzedProgram` / `Scope`), we unlock powerful static introspection capabilities like doc generation without changing any parsing logic.

@@ -198,4 +198,10 @@ pub enum Commands {
 
     /// Explore the built-in lexicon (Requires "nova" feature)
     Catalog,
+
+    /// Generate Markdown API documentation (Requires "nova" feature)
+    Scribe {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
