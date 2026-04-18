@@ -35,3 +35,6 @@
 **[Buffer Reuse Optimization in Loop]**
 **Learning:** Creating a new `Vec::new()` inside a tight loop creates an unnecessary heap allocation on every iteration. This is a common performance pitfall in graph or dependency extraction algorithms.
 **Action:** Declare a single mutable `Vec` (e.g., `let mut buffer = Vec::new();`) outside the loop, pass it by mutable reference `&mut buffer` into inner functions, and call `buffer.clear()` at the start of each loop iteration to reuse the same memory allocation without reallocating.
+**[Replace HashSet with FxHashSet in cartographer]**
+**Learning:** Standard HashSet is secure but slow due to SipHash. Since the keys here are just short predictable string representations within compiler phases and are not exposed to hash DOS attacks from users, using FxHashSet avoids significant hashing overhead.
+**Action:** Always prefer FxHashSet over HashSet for short internal keys when not exposed to untrusted inputs.
