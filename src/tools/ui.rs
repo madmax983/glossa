@@ -265,4 +265,12 @@ mod tests {
         // calling success again or error does nothing if already inactive
         status.success();
     }
+
+    #[test]
+    fn test_status_error_inactive() {
+        let mut status = Status::start("Test Error Inactive");
+        status.active = false;
+        // calling error does nothing if already inactive, we shouldn't see it print or panic
+        status.error("Simulated inactive error");
+    }
 }
