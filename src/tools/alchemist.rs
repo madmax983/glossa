@@ -244,11 +244,11 @@ fn transpile_function_def(
     let mut out = format!("{}def {}(", ind, sanitize_ident(name));
     for (i, (p, _)) in params.iter().enumerate() {
         if i > 0 {
-            write!(out, ", ").unwrap();
+            out.push_str(", ");
         }
-        write!(out, "{}", sanitize_ident(p)).unwrap();
+        out.push_str(&sanitize_ident(p));
     }
-    writeln!(out, "):").unwrap();
+    out.push_str("):\n");
 
     if body.is_empty() {
         writeln!(out, "{}    pass", ind).unwrap();
