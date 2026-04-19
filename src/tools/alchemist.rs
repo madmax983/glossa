@@ -440,7 +440,7 @@ mod tests {
     use crate::semantic::{AnalyzedExpr, AnalyzedExprKind};
 
     #[test]
-    fn test_transpile_unimplemented_expr_fallback() {
+    fn test_transpile_unimplemented_expr_fallback_new() {
         let expr = AnalyzedExpr {
             expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::NumberLiteral(1),
@@ -487,7 +487,7 @@ mod tests {
     }
 
     #[test]
-    fn test_transpile_unimplemented_expr_fallback() {
+    fn test_transpile_unimplemented_expr_fallback_new() {
         // Construct a generic placeholder AnalyzedExpr manually
         let expr = AnalyzedExpr {
             expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
