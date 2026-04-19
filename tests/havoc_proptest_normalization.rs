@@ -9,7 +9,7 @@ proptest! {
     }
 }
 
-use glossa::tools::highlight::highlight;
+use glossa::tools::highlight;
 
 proptest! {
     #[test]

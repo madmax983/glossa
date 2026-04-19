@@ -112,7 +112,7 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
     Ok(())
 }
 
-fn glossa_type_to_sql(g_type: &GlossaType) -> String {
+pub fn glossa_type_to_sql(g_type: &GlossaType) -> String {
     match g_type {
         GlossaType::Number => "BIGINT NOT NULL".to_string(),
         GlossaType::String => "TEXT NOT NULL".to_string(),

@@ -140,3 +140,7 @@
 **[Enforcing Tool Encapsulation]
 **Tangle:** The `src/tools/` directory exposed internal helper modules (`report` and `ui`) as fully public (`pub mod`). This leaked implementation details and created a sprawling public API.
 **Blueprint:** Changed the visibility of `report` and `ui` to `pub(crate) mod` to enforce the facade pattern. Fixed a dead code warning on an unused function in `ui` that resulted from the visibility reduction.
+
+**[Tools Facade Refactoring]
+**Tangle:** The `src/tools/` directory exposed all of its internal submodules (`alchemist`, `weaver`, `runner`, etc.) publicly as `pub mod`. This leaked internal implementation details and forced external consumers (like `main.rs` and the `tests/` integration directory) to rely on deep nested paths (`glossa::tools::runner::run_file`), breaking encapsulation and increasing structural coupling.
+**Blueprint:** Converted all internal tool submodules in `src/tools/mod.rs` to `pub(crate) mod` to enforce a strict boundary. Applied the Facade Pattern by explicitly re-exporting only the necessary functions and structs via a flattened public API (`pub use ...`). Updated `main.rs` and all integration tests to consume the clean, top-level `glossa::tools::*` namespace. Note: Integration tests compile as external crates and cannot access `pub(crate)` or `#[cfg(test)]` items from the library, so internal functions needed for testing were explicitly exported behind the `#[cfg(feature = "nova")]` feature flag rather than using test-specific configuration.
