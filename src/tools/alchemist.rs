@@ -132,9 +132,10 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             format!("{}print({})", ind, format_transpiled_exprs(exprs))
         }
         AnalyzedStatement::Expression(exprs) => {
+            use std::fmt::Write;
             let mut out = String::new();
             for expr in exprs {
-                out.push_str(&format!("{}{}\n", ind, transpile_expr(expr)));
+                writeln!(out, "{}{}", ind, transpile_expr(expr)).unwrap();
             }
             out.trim_end().to_string()
         }
@@ -167,24 +168,23 @@ fn transpile_if(
     else_body: &Option<Vec<AnalyzedStatement>>,
     indent: usize,
 ) -> String {
+    use std::fmt::Write;
     let ind = "    ".repeat(indent);
     let mut out = format!("{}if {}:\n", ind, transpile_expr(condition));
     if then_body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for b_stmt in then_body {
-            out.push_str(&transpile_statement(b_stmt, indent + 1));
-            out.push('\n');
+            writeln!(out, "{}", transpile_statement(b_stmt, indent + 1)).unwrap();
         }
     }
     if let Some(ebody) = else_body {
-        out.push_str(&format!("{}else:\n", ind));
+        writeln!(out, "{}else:", ind).unwrap();
         if ebody.is_empty() {
-            out.push_str(&format!("{}    pass\n", ind));
+            writeln!(out, "{}    pass", ind).unwrap();
         } else {
             for b_stmt in ebody {
-                out.push_str(&transpile_statement(b_stmt, indent + 1));
-                out.push('\n');
+                writeln!(out, "{}", transpile_statement(b_stmt, indent + 1)).unwrap();
             }
         }
     }
@@ -192,14 +192,14 @@ fn transpile_if(
 }
 
 fn transpile_while(condition: &AnalyzedExpr, body: &[AnalyzedStatement], indent: usize) -> String {
+    use std::fmt::Write;
     let ind = "    ".repeat(indent);
     let mut out = format!("{}while {}:\n", ind, transpile_expr(condition));
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for b_stmt in body {
-            out.push_str(&transpile_statement(b_stmt, indent + 1));
-            out.push('\n');
+            writeln!(out, "{}", transpile_statement(b_stmt, indent + 1)).unwrap();
         }
     }
     out.trim_end().to_string()
@@ -211,6 +211,7 @@ fn transpile_for(
     body: &[AnalyzedStatement],
     indent: usize,
 ) -> String {
+    use std::fmt::Write;
     let ind = "    ".repeat(indent);
     let mut out = format!(
         "{}for {} in {}:\n",
@@ -219,11 +220,10 @@ fn transpile_for(
         transpile_expr(iterator)
     );
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for b_stmt in body {
-            out.push_str(&transpile_statement(b_stmt, indent + 1));
-            out.push('\n');
+            writeln!(out, "{}", transpile_statement(b_stmt, indent + 1)).unwrap();
         }
     }
     out.trim_end().to_string()
@@ -235,18 +235,19 @@ fn transpile_function_def(
     body: &[AnalyzedStatement],
     indent: usize,
 ) -> String {
+    use std::fmt::Write;
     let ind = "    ".repeat(indent);
     let mut out = format!("{}def {}(", ind, sanitize_ident(name));
     for (i, (p, _)) in params.iter().enumerate() {
         if i > 0 {
-            out.push_str(", ");
+            write!(out, ", ").unwrap();
         }
-        out.push_str(&sanitize_ident(p));
+        write!(out, "{}", sanitize_ident(p)).unwrap();
     }
-    out.push_str("):\n");
+    writeln!(out, "):").unwrap();
 
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for (i, b_stmt) in body.iter().enumerate() {
             let mut is_last_expr = false;
@@ -258,15 +259,14 @@ fn transpile_function_def(
                 if let AnalyzedStatement::Expression(exprs) = b_stmt {
                     for (j, expr) in exprs.iter().enumerate() {
                         if j == exprs.len() - 1 {
-                            out.push_str(&format!("{}    return {}\n", ind, transpile_expr(expr)));
+                            writeln!(out, "{}    return {}", ind, transpile_expr(expr)).unwrap();
                         } else {
-                            out.push_str(&format!("{}    {}\n", ind, transpile_expr(expr)));
+                            writeln!(out, "{}    {}", ind, transpile_expr(expr)).unwrap();
                         }
                     }
                 }
             } else {
-                out.push_str(&transpile_statement(b_stmt, indent + 1));
-                out.push('\n');
+                writeln!(out, "{}", transpile_statement(b_stmt, indent + 1)).unwrap();
             }
         }
     }
@@ -278,6 +278,7 @@ fn transpile_type_def(
     fields: &[(smol_str::SmolStr, crate::semantic::GlossaType)],
     indent: usize,
 ) -> String {
+    use std::fmt::Write;
     let ind = "    ".repeat(indent);
     let mut out = format!(
         "{}@dataclass\n{}class {}:\n",
@@ -286,26 +287,26 @@ fn transpile_type_def(
         sanitize_ident(name)
     );
     if fields.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for (f_name, _) in fields {
-            out.push_str(&format!("{}    {}: Any\n", ind, sanitize_ident(f_name)));
+            writeln!(out, "{}    {}: Any", ind, sanitize_ident(f_name)).unwrap();
         }
     }
     out.trim_end().to_string()
 }
 
 fn transpile_test_declaration(name: &str, body: &[AnalyzedStatement], indent: usize) -> String {
+    use std::fmt::Write;
     let ind = "    ".repeat(indent);
     // We can transpile tests as regular functions prefixed with test_
     let safe_name = name.replace(" ", "_").replace("-", "_").replace("\"", "");
     let mut out = format!("{}def test_{}():\n", ind, safe_name);
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for b_stmt in body {
-            out.push_str(&transpile_statement(b_stmt, indent + 1));
-            out.push('\n');
+            writeln!(out, "{}", transpile_statement(b_stmt, indent + 1)).unwrap();
         }
     }
     out.trim_end().to_string()
@@ -316,21 +317,17 @@ fn transpile_match(
     arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
     indent: usize,
 ) -> String {
+    use std::fmt::Write;
     let ind = "    ".repeat(indent);
     // Python 3.10+ match statement
     let mut out = format!("{}match {}:\n", ind, transpile_expr(scrutinee));
     for (pattern_expr, arm_body) in arms {
-        out.push_str(&format!(
-            "{}    case {}:\n",
-            ind,
-            transpile_expr(pattern_expr)
-        ));
+        writeln!(out, "{}    case {}:", ind, transpile_expr(pattern_expr)).unwrap();
         if arm_body.is_empty() {
-            out.push_str(&format!("{}        pass\n", ind));
+            writeln!(out, "{}        pass", ind).unwrap();
         } else {
             for b_stmt in arm_body {
-                out.push_str(&transpile_statement(b_stmt, indent + 2));
-                out.push('\n');
+                writeln!(out, "{}", transpile_statement(b_stmt, indent + 2)).unwrap();
             }
         }
     }
@@ -441,6 +438,55 @@ fn sanitize_ident(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::semantic::{AnalyzedExpr, AnalyzedExprKind};
+
+    #[test]
+    fn test_transpile_unimplemented_expr_fallback_new() {
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: crate::semantic::GlossaType::Number,
+            })),
+            glossa_type: crate::semantic::GlossaType::Unknown,
+        };
+        let py = transpile_expr(&expr);
+        assert!(py.contains("/* Unimplemented expr: "));
+    }
+
+    #[test]
+    fn test_run_alchemist_coverage() {
+        // Just trigger standard alchemist transpile paths
+        let code = "εἰ ἀληθές ἐστι, «ναι» λέγε.";
+        let ast = parse(code).unwrap();
+        let mut program = analyze_program(&ast).unwrap();
+        program.statements.push(AnalyzedStatement::Break);
+        program.statements.push(AnalyzedStatement::Continue);
+        program
+            .statements
+            .push(AnalyzedStatement::Return { value: None });
+        program.statements.push(AnalyzedStatement::While {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: crate::semantic::GlossaType::Boolean,
+            }),
+            body: vec![],
+        });
+        program.statements.push(AnalyzedStatement::For {
+            variable: smol_str::SmolStr::new("x"),
+            iterator: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(vec![]),
+                glossa_type: crate::semantic::GlossaType::List(Box::new(
+                    crate::semantic::GlossaType::Unknown,
+                )),
+            }),
+            body: vec![],
+        });
+
+        let py = transpile_to_python(&program);
+        assert!(py.contains("break"));
+        assert!(py.contains("continue"));
+    }
+
     use crate::parser::parse;
     use crate::semantic::analyze_program;
 
