@@ -14,7 +14,6 @@ use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
-use std::fmt::Write;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
