@@ -6,8 +6,8 @@
 
 use crate::morphology::models::PartOfSpeech;
 use comfy_table::presets::UTF8_FULL;
-use crossterm::style::Stylize;
 use comfy_table::{Cell, Color, Table};
+use crossterm::style::Stylize;
 use miette::Result;
 
 /// Run the catalog explorer
