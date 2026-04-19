@@ -6,6 +6,7 @@
 
 use crate::morphology::models::PartOfSpeech;
 use comfy_table::presets::UTF8_FULL;
+use crossterm::style::Stylize;
 use comfy_table::{Cell, Color, Table};
 use miette::Result;
 
@@ -26,6 +27,9 @@ pub fn run_catalog() -> Result<()> {
     let mut pos_keys: Vec<_> = entries_by_pos.keys().copied().collect();
     // Sort keys based on debug formatting since they don't implement Ord natively
     pos_keys.sort_by_key(|k| format!("{:?}", k));
+
+    println!("\n   {}", "Γ Λ Ω Σ Σ Α   C A T A L O G".cyan().bold());
+    println!("   {}\n", "The Lexicon Explorer".dim().italic());
 
     for pos in pos_keys {
         let mut table = Table::new();
@@ -48,7 +52,7 @@ pub fn run_catalog() -> Result<()> {
             ]);
         }
 
-        println!("\n=== {:?} ===", pos);
+        println!("\n  {}", format!("{:?} Lexicon", pos).yellow().bold());
         println!("{table}");
     }
 
