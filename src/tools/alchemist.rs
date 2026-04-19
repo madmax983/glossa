@@ -369,11 +369,7 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
                 if i > 0 {
                     kw_args_buf.push_str(", ");
                 }
-                kw_args_buf.push_str(&format!(
-                    "{}={}",
-                    sanitize_ident(f),
-                    transpile_expr(a)
-                ));
+                kw_args_buf.push_str(&format!("{}={}", sanitize_ident(f), transpile_expr(a)));
             }
             format!("{}({})", sanitize_ident(type_name), kw_args_buf)
         }
