@@ -323,12 +323,17 @@ fn transpile_match(
     // Python 3.10+ match statement
     let mut out = format!("{}match {}:\n", ind, transpile_expr(scrutinee));
     for (pattern_expr, arm_body) in arms {
-        writeln!(out, "{}    case {}:", ind, transpile_expr(pattern_expr)).unwrap();
+        out.push_str(&format!(
+            "{}    case {}:\n",
+            ind,
+            transpile_expr(pattern_expr)
+        ));
         if arm_body.is_empty() {
-            writeln!(out, "{}        pass", ind).unwrap();
+            out.push_str(&format!("{}        pass\n", ind));
         } else {
             for b_stmt in arm_body {
-                writeln!(out, "{}", transpile_statement(b_stmt, indent + 2)).unwrap();
+                out.push_str(&transpile_statement(b_stmt, indent + 2));
+                out.push('\n');
             }
         }
     }
