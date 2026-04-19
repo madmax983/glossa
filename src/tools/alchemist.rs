@@ -457,7 +457,7 @@ mod tests {
             variable: smol_str::SmolStr::new("x"),
             iterator: Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::ArrayLiteral(vec![]),
-                glossa_type: crate::semantic::GlossaType::Array(Box::new(crate::semantic::GlossaType::Unknown)),
+                glossa_type: crate::semantic::GlossaType::List(Box::new(crate::semantic::GlossaType::Unknown)),
             }),
             body: vec![],
         });
