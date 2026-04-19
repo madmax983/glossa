@@ -1123,7 +1123,10 @@ fn classify_expression(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
-    if !asm_stmt.nominatives.is_empty() && asm_stmt.operators.is_empty() {
+    // Exclude function calls / closures / nested phrases from DoubleSubject logic
+    let is_function_call = !asm_stmt.nested_phrases.is_empty() || !asm_stmt.blocks.is_empty();
+
+    if !asm_stmt.nominatives.is_empty() && asm_stmt.operators.is_empty() && !is_function_call {
         // Only trigger DoubleSubject if there are no operators, as nominatives can be operands in expressions
         return Err(GlossaError::AssemblyError(
             crate::errors::AssemblyError::DoubleSubject,
@@ -1695,6 +1698,7 @@ pub fn extract_value(
     }
 
     // Default
+    #[allow(clippy::collapsible_if)]
     if let Some(ref subj) = asm_stmt.subject {
         if !scope.is_defined(&subj.lemma) {
             return Err(GlossaError::undefined(subj.lemma.as_str()));
