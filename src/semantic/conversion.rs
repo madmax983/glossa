@@ -412,7 +412,7 @@ fn resolve_binding_target<'a>(
 
         if scope.is_defined(&subject.lemma) && !scope.is_defined(&object.lemma) {
             let mut swapped = asm_stmt.clone();
-            swapped.subject = Some(object.clone());
+            swapped.subject = None;
             swapped.object = Some(subject.clone());
             return Ok((object_name.to_string(), std::borrow::Cow::Owned(swapped)));
         } else {
@@ -425,9 +425,11 @@ fn resolve_binding_target<'a>(
 
     // Default case: Bind to Subject
     if let Some(subject) = &asm_stmt.subject {
+        let mut fixed = asm_stmt.clone();
+        fixed.subject = None;
         return Ok((
             subject.normalized.to_string(),
-            std::borrow::Cow::Borrowed(asm_stmt),
+            std::borrow::Cow::Owned(fixed),
         ));
     }
 
@@ -954,9 +956,11 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
+    if let Some(ref subj) = asm_stmt.subject {
+        if !scope.is_defined(&subj.lemma) {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
+        let var_type = scope.lookup(&subj.lemma).unwrap();
         args.insert(
             0,
             AnalyzedExpr {
@@ -966,9 +970,11 @@ fn try_print_default(
         );
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
+    if let Some(ref obj) = asm_stmt.object {
+        if !scope.is_defined(&obj.lemma) {
+            return Err(GlossaError::undefined(obj.lemma.as_str()));
+        }
+        let var_type = scope.lookup(&obj.lemma).unwrap();
         args.push(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
             glossa_type: var_type.clone(),
@@ -983,6 +989,12 @@ fn classify_print(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    if !asm_stmt.nominatives.is_empty() {
+        return Err(GlossaError::AssemblyError(
+            crate::errors::AssemblyError::DoubleSubject,
+        ));
+    }
+
     if let Some(ref verb) = asm_stmt.verb {
         let verb_lemma = &verb.lemma;
 
@@ -1029,6 +1041,9 @@ fn classify_query(
         exprs.push(literal_to_analyzed_expr(lit));
     }
     if let Some(ref subj) = asm_stmt.subject {
+        if !scope.is_defined(&subj.lemma) {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
         let var_type = scope
             .lookup(&subj.lemma)
             .cloned()
@@ -1108,6 +1123,12 @@ fn classify_expression(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
+    if !asm_stmt.nominatives.is_empty() && asm_stmt.operators.is_empty() {
+        // Only trigger DoubleSubject if there are no operators, as nominatives can be operands in expressions
+        return Err(GlossaError::AssemblyError(
+            crate::errors::AssemblyError::DoubleSubject,
+        ));
+    }
     // Determine if we should attempt to build expressions from literals+operators
     // or if we are in a fallback scenario (using Subject/Object with operators).
     // If literals < operators + 1, build_expressions_from_literals_and_ops will fail.
@@ -1158,11 +1179,17 @@ fn classify_expression(
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            if !scope.is_defined(&subj.lemma) {
+                return Err(GlossaError::undefined(subj.lemma.as_str()));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             });
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) {
+                return Err(GlossaError::undefined(obj.lemma.as_str()));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
@@ -1668,6 +1695,12 @@ pub fn extract_value(
     }
 
     // Default
+    if let Some(ref subj) = asm_stmt.subject {
+        if !scope.is_defined(&subj.lemma) {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
+    }
+
     Ok((
         AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(0),
@@ -2501,8 +2534,8 @@ mod tests {
         assert_eq!(name, "object_var");
         assert!(matches!(fixed_asm, std::borrow::Cow::Owned(_)));
 
-        // Ensure they were actually swapped
-        assert_eq!(fixed_asm.subject.as_ref().unwrap().lemma, "object_var");
+        // Ensure target is removed and value is placed appropriately
+        assert!(fixed_asm.subject.is_none());
         assert_eq!(fixed_asm.object.as_ref().unwrap().lemma, "subject_var");
     }
 
