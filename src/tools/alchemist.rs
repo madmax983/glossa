@@ -65,11 +65,10 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
 /// instead of intermediate `format!` strings to eliminate heap allocations.
 pub fn transpile_to_python(program: &AnalyzedProgram) -> String {
     let mut out = String::new();
-    out.push_str("from typing import Any\n");
-    out.push_str("from dataclasses import dataclass\n\n");
+    writeln!(out, "from typing import Any").unwrap();
+    writeln!(out, "from dataclasses import dataclass\n").unwrap();
     for stmt in &program.statements {
-        out.push_str(&transpile_statement(stmt, 0));
-        out.push('\n');
+        writeln!(out, "{}", transpile_statement(stmt, 0)).unwrap();
     }
     out
 }
@@ -78,9 +77,9 @@ fn format_transpiled_exprs(exprs: &[AnalyzedExpr]) -> String {
     let mut buf = String::with_capacity(exprs.len() * 16);
     for (i, expr) in exprs.iter().enumerate() {
         if i > 0 {
-            buf.push_str(", ");
+            write!(buf, ", ").unwrap();
         }
-        buf.push_str(&transpile_expr(expr));
+        write!(buf, "{}", transpile_expr(expr)).unwrap();
     }
     buf
 }
@@ -173,8 +172,7 @@ fn transpile_if(
         writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for b_stmt in then_body {
-            out.push_str(&transpile_statement(b_stmt, indent + 1));
-            out.push('\n');
+            writeln!(out, "{}", transpile_statement(b_stmt, indent + 1)).unwrap();
         }
     }
     if let Some(ebody) = else_body {
@@ -183,8 +181,7 @@ fn transpile_if(
             writeln!(out, "{}    pass", ind).unwrap();
         } else {
             for b_stmt in ebody {
-                out.push_str(&transpile_statement(b_stmt, indent + 1));
-                out.push('\n');
+                writeln!(out, "{}", transpile_statement(b_stmt, indent + 1)).unwrap();
             }
         }
     }
@@ -198,7 +195,12 @@ fn transpile_while(condition: &AnalyzedExpr, body: &[AnalyzedStatement], indent:
         writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for b_stmt in body {
-            writeln!(out, "{}", transpile_statement(b_stmt, indent + 1).trim_end()).unwrap();
+            writeln!(
+                out,
+                "{}",
+                transpile_statement(b_stmt, indent + 1).trim_end()
+            )
+            .unwrap();
         }
     }
     out.trim_end().to_string()
@@ -221,7 +223,12 @@ fn transpile_for(
         writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for b_stmt in body {
-            writeln!(out, "{}", transpile_statement(b_stmt, indent + 1).trim_end()).unwrap();
+            writeln!(
+                out,
+                "{}",
+                transpile_statement(b_stmt, indent + 1).trim_end()
+            )
+            .unwrap();
         }
     }
     out.trim_end().to_string()
@@ -237,11 +244,11 @@ fn transpile_function_def(
     let mut out = format!("{}def {}(", ind, sanitize_ident(name));
     for (i, (p, _)) in params.iter().enumerate() {
         if i > 0 {
-            out.push_str(", ");
+            write!(out, ", ").unwrap();
         }
-        out.push_str(&sanitize_ident(p));
+        write!(out, "{}", sanitize_ident(p)).unwrap();
     }
-    out.push_str("):\n");
+    writeln!(out, "):").unwrap();
 
     if body.is_empty() {
         writeln!(out, "{}    pass", ind).unwrap();
@@ -263,8 +270,7 @@ fn transpile_function_def(
                     }
                 }
             } else {
-                out.push_str(&transpile_statement(b_stmt, indent + 1));
-                out.push('\n');
+                writeln!(out, "{}", transpile_statement(b_stmt, indent + 1)).unwrap();
             }
         }
     }
@@ -302,8 +308,7 @@ fn transpile_test_declaration(name: &str, body: &[AnalyzedStatement], indent: us
         writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for b_stmt in body {
-            out.push_str(&transpile_statement(b_stmt, indent + 1));
-            out.push('\n');
+            writeln!(out, "{}", transpile_statement(b_stmt, indent + 1)).unwrap();
         }
     }
     out.trim_end().to_string()
@@ -323,8 +328,7 @@ fn transpile_match(
             writeln!(out, "{}        pass", ind).unwrap();
         } else {
             for b_stmt in arm_body {
-                out.push_str(&transpile_statement(b_stmt, indent + 2));
-                out.push('\n');
+                writeln!(out, "{}", transpile_statement(b_stmt, indent + 2)).unwrap();
             }
         }
     }
@@ -363,7 +367,7 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
             let mut kw_args_buf = String::with_capacity(fields.len() * 16);
             for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
                 if i > 0 {
-                    kw_args_buf.push_str(", ");
+                    write!(&mut kw_args_buf, ", ").unwrap();
                 }
                 let _ = write!(
                     &mut kw_args_buf,
