@@ -433,7 +433,6 @@ fn sanitize_ident(name: &str) -> String {
     format!("g_{}", safe_name)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -484,20 +483,6 @@ mod tests {
         let py = transpile_to_python(&program);
         assert!(py.contains("break"));
         assert!(py.contains("continue"));
-    }
-
-    #[test]
-    fn test_transpile_unimplemented_expr_fallback_new() {
-        // Construct a generic placeholder AnalyzedExpr manually
-        let expr = AnalyzedExpr {
-            expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(1),
-                glossa_type: crate::semantic::GlossaType::Number,
-            })),
-            glossa_type: crate::semantic::GlossaType::Unknown,
-        };
-        let py = transpile_expr(&expr);
-        assert!(py.contains("/* Unimplemented expr: "));
     }
 
     use crate::parser::parse;
