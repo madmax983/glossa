@@ -438,6 +438,37 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_run_alchemist_coverage() {
+        // Just trigger standard alchemist transpile paths
+        let code = "εἰ ἀληθές ἐστι, «ναι» λέγε.";
+        let ast = parse(code).unwrap();
+        let mut program = analyze_program(&ast).unwrap();
+        program.statements.push(AnalyzedStatement::Break);
+        program.statements.push(AnalyzedStatement::Continue);
+        program.statements.push(AnalyzedStatement::Return { value: None });
+        program.statements.push(AnalyzedStatement::While {
+            condition: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: crate::semantic::GlossaType::Boolean,
+            }),
+            body: vec![],
+        });
+        program.statements.push(AnalyzedStatement::For {
+            variable: smol_str::SmolStr::new("x"),
+            iterator: Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(vec![]),
+                glossa_type: crate::semantic::GlossaType::Array(Box::new(crate::semantic::GlossaType::Unknown)),
+            }),
+            body: vec![],
+        });
+
+        let py = transpile_to_python(&program);
+        assert!(py.contains("break"));
+        assert!(py.contains("continue"));
+    }
+
+
+    #[test]
     fn test_transpile_unimplemented_expr_fallback() {
         // Construct a generic placeholder AnalyzedExpr manually
         let expr = AnalyzedExpr {
