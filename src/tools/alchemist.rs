@@ -445,7 +445,9 @@ mod tests {
         let mut program = analyze_program(&ast).unwrap();
         program.statements.push(AnalyzedStatement::Break);
         program.statements.push(AnalyzedStatement::Continue);
-        program.statements.push(AnalyzedStatement::Return { value: None });
+        program
+            .statements
+            .push(AnalyzedStatement::Return { value: None });
         program.statements.push(AnalyzedStatement::While {
             condition: Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::BooleanLiteral(true),
@@ -457,7 +459,9 @@ mod tests {
             variable: smol_str::SmolStr::new("x"),
             iterator: Box::new(AnalyzedExpr {
                 expr: AnalyzedExprKind::ArrayLiteral(vec![]),
-                glossa_type: crate::semantic::GlossaType::List(Box::new(crate::semantic::GlossaType::Unknown)),
+                glossa_type: crate::semantic::GlossaType::List(Box::new(
+                    crate::semantic::GlossaType::Unknown,
+                )),
             }),
             body: vec![],
         });
@@ -466,7 +470,6 @@ mod tests {
         assert!(py.contains("break"));
         assert!(py.contains("continue"));
     }
-
 
     #[test]
     fn test_transpile_unimplemented_expr_fallback() {
