@@ -73,13 +73,12 @@ pub fn transpile_to_python(program: &AnalyzedProgram) -> String {
 }
 
 fn format_transpiled_exprs(exprs: &[AnalyzedExpr]) -> String {
-    use std::fmt::Write;
     let mut buf = String::with_capacity(exprs.len() * 16);
     for (i, expr) in exprs.iter().enumerate() {
         if i > 0 {
-            write!(buf, ", ").unwrap();
+            buf.push_str(", ");
         }
-        write!(buf, "{}", transpile_expr(expr)).unwrap();
+        buf.push_str(&transpile_expr(expr));
     }
     buf
 }
@@ -365,18 +364,16 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
             fields,
             args,
         } => {
-            use std::fmt::Write;
             let mut kw_args_buf = String::with_capacity(fields.len() * 16);
             for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
                 if i > 0 {
-                    write!(&mut kw_args_buf, ", ").unwrap();
+                    kw_args_buf.push_str(", ");
                 }
-                let _ = write!(
-                    &mut kw_args_buf,
+                kw_args_buf.push_str(&format!(
                     "{}={}",
                     sanitize_ident(f),
                     transpile_expr(a)
-                );
+                ));
             }
             format!("{}({})", sanitize_ident(type_name), kw_args_buf)
         }
