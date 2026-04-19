@@ -439,7 +439,6 @@ mod tests {
 
     #[test]
     fn test_transpile_unimplemented_expr_fallback() {
-
         // Construct a generic placeholder AnalyzedExpr manually
         let expr = AnalyzedExpr {
             expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
