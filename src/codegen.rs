@@ -900,6 +900,31 @@ fn generate_test(name: &str, body: &[AnalyzedStatement]) -> TokenStream {
     }
 }
 
+fn generate_expr_some(inner: &AnalyzedExpr) -> TokenStream {
+    let inner_tokens = generate_expr(inner);
+    quote! { Some(#inner_tokens) }
+}
+
+fn generate_expr_ok(inner: &AnalyzedExpr) -> TokenStream {
+    let inner_tokens = generate_expr(inner);
+    quote! { Ok(#inner_tokens) }
+}
+
+fn generate_expr_err(inner: &AnalyzedExpr) -> TokenStream {
+    let inner_tokens = generate_expr(inner);
+    quote! { Err(#inner_tokens) }
+}
+
+fn generate_expr_try(inner: &AnalyzedExpr) -> TokenStream {
+    let inner_tokens = generate_expr(inner);
+    quote! { #inner_tokens? }
+}
+
+fn generate_expr_unwrap(inner: &AnalyzedExpr) -> TokenStream {
+    let inner_tokens = generate_expr(inner);
+    quote! { #inner_tokens.expect("attempted to unwrap an empty value") }
+}
+
 fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => generate_literal_string(s),
@@ -910,32 +935,17 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
 
         AnalyzedExprKind::ArrayLiteral(elements) => generate_collection_array(elements),
 
-        AnalyzedExprKind::Some(inner) => {
-            let inner_tokens = generate_expr(inner);
-            quote! { Some(#inner_tokens) }
-        }
+        AnalyzedExprKind::Some(inner) => generate_expr_some(inner),
 
         AnalyzedExprKind::None => quote! { None },
 
-        AnalyzedExprKind::Ok(inner) => {
-            let inner_tokens = generate_expr(inner);
-            quote! { Ok(#inner_tokens) }
-        }
+        AnalyzedExprKind::Ok(inner) => generate_expr_ok(inner),
 
-        AnalyzedExprKind::Err(inner) => {
-            let inner_tokens = generate_expr(inner);
-            quote! { Err(#inner_tokens) }
-        }
+        AnalyzedExprKind::Err(inner) => generate_expr_err(inner),
 
-        AnalyzedExprKind::Try(inner) => {
-            let inner_tokens = generate_expr(inner);
-            quote! { #inner_tokens? }
-        }
+        AnalyzedExprKind::Try(inner) => generate_expr_try(inner),
 
-        AnalyzedExprKind::Unwrap(inner) => {
-            let inner_tokens = generate_expr(inner);
-            quote! { #inner_tokens.expect("attempted to unwrap an empty value") }
-        }
+        AnalyzedExprKind::Unwrap(inner) => generate_expr_unwrap(inner),
 
         AnalyzedExprKind::IndexAccess { array, index } => generate_collection_index(array, index),
 
