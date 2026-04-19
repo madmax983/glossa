@@ -125,4 +125,47 @@ mod tests {
         let output_path = input_path.with_extension("doc.md");
         assert!(output_path.exists());
     }
+
+    #[test]
+    fn test_run_scholar_file_error() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api.γλ");
+        fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { }.").unwrap();
+
+        // Create a directory at the expected output path so that fs::write fails
+        let output_path = input_path.with_extension("doc.md");
+        fs::create_dir(&output_path).unwrap();
+
+        let result = run_scholar(&input_path);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Failed to write")
+                || err_msg.contains("directory")
+                || err_msg.contains("denied")
+                || err_msg.contains("Permission")
+        );
+    }
+
+    #[test]
+    fn test_run_scholar_empty_fields_methods_functions() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api.γλ");
+
+        let source = "
+        εἶδος Χρήστης ὁρίζειν { }.
+        χαρακτήρ Εὐγενής ὁρίζειν { }.
+        ";
+        fs::write(&input_path, source).unwrap();
+
+        let result = run_scholar(&input_path);
+        assert!(result.is_ok());
+
+        let output_path = input_path.with_extension("doc.md");
+        assert!(output_path.exists());
+
+        let md = fs::read_to_string(&output_path).unwrap();
+        assert!(md.contains("*No fields defined.*"));
+        assert!(md.contains("*No methods defined.*"));
+    }
 }
