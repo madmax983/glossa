@@ -439,10 +439,7 @@ mod tests {
 
     #[test]
     fn test_transpile_unimplemented_expr_fallback() {
-        let _program = AnalyzedProgram {
-            statements: vec![],
-            scope: crate::semantic::Scope::new(),
-        };
+
         // Construct a generic placeholder AnalyzedExpr manually
         let expr = AnalyzedExpr {
             expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
