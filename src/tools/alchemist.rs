@@ -436,6 +436,25 @@ fn sanitize_ident(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_transpile_unimplemented_expr_fallback() {
+        let mut program = AnalyzedProgram {
+            statements: vec![],
+            scope: crate::semantic::Scope::new(),
+        };
+        // Construct a generic placeholder AnalyzedExpr manually
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: crate::semantic::GlossaType::Number,
+            })),
+            glossa_type: crate::semantic::GlossaType::Unknown,
+        };
+        let py = transpile_expr(&expr);
+        assert!(py.contains("/* Unimplemented expr: "));
+    }
+
     use crate::parser::parse;
     use crate::semantic::analyze_program;
 
