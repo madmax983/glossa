@@ -198,8 +198,7 @@ fn transpile_while(condition: &AnalyzedExpr, body: &[AnalyzedStatement], indent:
         writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for b_stmt in body {
-            out.push_str(&transpile_statement(b_stmt, indent + 1));
-            out.push('\n');
+            writeln!(out, "{}", transpile_statement(b_stmt, indent + 1).trim_end()).unwrap();
         }
     }
     out.trim_end().to_string()
@@ -222,8 +221,7 @@ fn transpile_for(
         writeln!(out, "{}    pass", ind).unwrap();
     } else {
         for b_stmt in body {
-            out.push_str(&transpile_statement(b_stmt, indent + 1));
-            out.push('\n');
+            writeln!(out, "{}", transpile_statement(b_stmt, indent + 1).trim_end()).unwrap();
         }
     }
     out.trim_end().to_string()
