@@ -37,6 +37,7 @@ C4Container
         Container(auditor, "The Auditor", "src/tools/auditor.rs", "Static analysis to find unused variables and mutability smells")
         Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
         Container(cartographer, "Cartographer", "src/tools/cartographer.rs", "Generates Mermaid Class Diagrams")
+        Container(catalog, "The Catalog", "src/tools/catalog.rs", "Lexicon Explorer (CLI)")
         Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
         Container(dictionary, "The Lexicon", "src/tools/dictionary.rs", "The Source of Truth for Words (Dictionary)")
         Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
@@ -75,6 +76,7 @@ C4Container
     Rel(semantic, codegen, "Analyzed Program")
 
     Rel(morphology, dictionary, "Lexicon Data")
+    Rel(morphology, catalog, "Lexicon Data")
     Rel(parser, tester, "AST")
     Rel(codegen, tester, "Rust Source")
 ```
