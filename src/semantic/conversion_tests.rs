@@ -582,14 +582,9 @@ fn test_default_case() {
     let scope = Scope::new();
     let asm_stmt = AssembledStatement::default();
 
-    let (analyzed, glossa_type) =
-        extract_value(&asm_stmt, &scope).expect("Should fallback to default");
-
-    if let AnalyzedExprKind::NumberLiteral(n) = analyzed.expr {
-        assert_eq!(n, 0);
-    } else {
-        panic!("Expected default 0");
-    }
-
-    assert_eq!(glossa_type, GlossaType::Number);
+    let err = extract_value(&asm_stmt, &scope).unwrap_err();
+    assert!(matches!(
+        err,
+        crate::errors::GlossaError::SemanticError { .. }
+    ));
 }

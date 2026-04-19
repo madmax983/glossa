@@ -31,3 +31,8 @@
 **Bloat:** Complex `DoubleSubject` and Missing Verb state checks spread out in `Assembler::finalize()` which were bypassed by certain verbs and nested phrases.
 **Cut:** Removed duplicate and misfiring checks in `finalize()`. Placed a single unified `DoubleSubject` check at the beginning of `classify_expression` in `src/semantic/conversion.rs`.
 **Saved:** Avoided messy verb classification bypassing and consolidated grammatical validation to where semantic structure is actually clear.
+
+## [Reduction]
+**Bloat:** Complex `check_missing_verb` exemptions, DoubleSubject checks duplicated/misplaced in `Assembler::finalize()`, silent fallback to `NumberLiteral(0)` / `Unknown` for undefined variables.
+**Cut:** Simplified `check_missing_verb` (removed hardcoded lemma checks). Moved `DoubleSubject` check to a single, authoritative place at the start of `classify_expression`. Enforced `scope.is_defined()` errors in variable extractions to fail loudly instead of silencing errors.
+**Saved:** Multiple paths of buggy silent errors, eliminated codegen ICEs from missing verbs, and simplified semantic validation rules.

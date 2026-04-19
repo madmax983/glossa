@@ -1108,6 +1108,12 @@ fn classify_expression(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
+    if !asm_stmt.nominatives.is_empty() {
+        return Err(GlossaError::AssemblyError(
+            crate::errors::AssemblyError::DoubleSubject,
+        ));
+    }
+
     // Determine if we should attempt to build expressions from literals+operators
     // or if we are in a fallback scenario (using Subject/Object with operators).
     // If literals < operators + 1, build_expressions_from_literals_and_ops will fail.
@@ -1667,13 +1673,8 @@ pub fn extract_value(
         return Ok(res);
     }
 
-    // Default
-    Ok((
-        AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(0),
-            glossa_type: GlossaType::Number,
-        },
-        GlossaType::Number,
+    Err(GlossaError::semantic(
+        "Could not extract a meaningful value from the statement",
     ))
 }
 

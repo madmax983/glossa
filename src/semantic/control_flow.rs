@@ -496,6 +496,9 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
                     .lookup(normalized)
                     .cloned()
                     .unwrap_or(GlossaType::Unknown);
+                if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
+                    return Err(GlossaError::undefined(normalized.clone()));
+                }
                 return Ok(AnalyzedExpr {
                     expr: AnalyzedExprKind::Variable(normalized.clone()),
                     glossa_type: var_type,
@@ -731,15 +734,29 @@ fn skip_first_word_and_parse(
                 // statements to prevent Codegen ICEs), we can still extract the variable manually.
                 // Control flow conditions are allowed to be verbless expressions (e.g. `κατὰ ξ`).
                 if let Some(ref subj) = analyzed.subject {
+                    if !scope.is_defined(&subj.lemma) && !scope.is_function(&subj.lemma) {
+                        return Err(GlossaError::undefined(subj.lemma.clone()));
+                    }
+                    let var_type = scope
+                        .lookup(&subj.lemma)
+                        .cloned()
+                        .unwrap_or(GlossaType::Unknown);
                     let var_expr = crate::semantic::AnalyzedExpr {
                         expr: crate::semantic::AnalyzedExprKind::Variable(subj.lemma.clone()),
-                        glossa_type: crate::semantic::GlossaType::Unknown,
+                        glossa_type: var_type,
                     };
                     AnalyzedStatement::Expression(vec![var_expr])
                 } else if let Some(ref obj) = analyzed.object {
+                    if !scope.is_defined(&obj.lemma) && !scope.is_function(&obj.lemma) {
+                        return Err(GlossaError::undefined(obj.lemma.clone()));
+                    }
+                    let var_type = scope
+                        .lookup(&obj.lemma)
+                        .cloned()
+                        .unwrap_or(GlossaType::Unknown);
                     let var_expr = crate::semantic::AnalyzedExpr {
                         expr: crate::semantic::AnalyzedExprKind::Variable(obj.lemma.clone()),
-                        glossa_type: crate::semantic::GlossaType::Unknown,
+                        glossa_type: var_type,
                     };
                     AnalyzedStatement::Expression(vec![var_expr])
                 } else {
