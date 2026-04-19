@@ -439,7 +439,7 @@ mod tests {
 
     #[test]
     fn test_transpile_unimplemented_expr_fallback() {
-        let mut program = AnalyzedProgram {
+        let _program = AnalyzedProgram {
             statements: vec![],
             scope: crate::semantic::Scope::new(),
         };
