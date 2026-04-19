@@ -453,28 +453,6 @@ struct StatementContext {
 /// let mut asm = Assembler::new();
 /// // Then feed analysis and finalise statement
 /// ```
-/// The Assembler orchestrates semantic construction.
-///
-/// It feeds AST elements and maps them to semantic roles (subjects, verbs, objects).
-///
-/// # Examples
-///
-/// ```rust
-/// use glossa::semantic::assembly::Assembler;
-/// let mut asm = Assembler::new();
-/// // Then feed analysis and finalise statement
-/// ```
-/// The Assembler orchestrates semantic construction.
-///
-/// It feeds AST elements and maps them to semantic roles (subjects, verbs, objects).
-///
-/// # Examples
-///
-/// ```rust
-/// use glossa::semantic::assembly::Assembler;
-/// let mut asm = Assembler::new();
-/// // Then feed analysis and finalise statement
-/// ```
 pub struct Assembler {
     state: AssembledStatement,
 }

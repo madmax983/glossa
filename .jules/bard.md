@@ -60,3 +60,6 @@
 ## 2026-03-19 - The Missing Link in Tools
 **Confusion:** The `src/tools/` sub-modules like `runner.rs`, `papyrus.rs`, and `auditor.rs` lacked `//!` module-level documentation. This created "The Black Box" where complex modules were missing a high-level conceptual overview.
 **Clarification:** Added comprehensive `//!` documentation blocks to `src/tools/runner.rs`, `src/tools/papyrus.rs`, and `src/tools/auditor.rs`, explaining *what* they do and *how* they work. Also added executable doc tests to `analyze_source` and `load_source` to demonstrate usage.
+## 2026-03-20 - [The Assembler Documentation Duplication]
+**Confusion:** The documentation for the `Assembler` struct in `src/semantic/assembly.rs` was duplicated three times, causing a wall of text that was redundant and confusing.
+**Clarification:** I deleted the duplicated documentation blocks, leaving only one clean, descriptive rustdoc comment with its code example. This makes the generated HTML documentation much easier to read and maintain.
