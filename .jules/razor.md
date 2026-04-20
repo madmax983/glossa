@@ -36,3 +36,8 @@
 **Bloat:** Generic closure `F: FnOnce() -> Option<PathBuf>` and deferred evaluation (`.or_else`) in `Cache::with_dirs`.
 **Cut:** Replaced generic with eager `Option<PathBuf>` parameter and used direct `Option::or`.
 **Saved:** 5 lines of code, simplified API signature.
+
+## [Reduction]
+**Bloat:** `TestResult` struct in `src/tools/tester.rs` acting purely as a transient data container for `(String, TestStatus)` and `TraitMethodParts` in `src/codegen.rs` doing the same for trait generation parameters. Also nested `if` statements requiring `#[allow(clippy::collapsible_if)]`.
+**Cut:** Removed both structs entirely, migrating to bare tuples (`(String, TestStatus)` and `(Ident, Vec<TokenStream>, Option<TokenStream>)`). Flattened parsing logic with `if let Some(rest) = line.strip_prefix("test ")`.
+**Saved:** Multiple lines of struct definitions, repetitive field assignments, and reduced cognitive load in string slicing parsing.

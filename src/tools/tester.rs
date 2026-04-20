@@ -57,38 +57,25 @@ enum TestStatus {
     Ignored,
 }
 
-#[derive(Debug)]
-struct TestResult {
-    name: String,
-    status: TestStatus,
-}
-
-fn parse_test_output(output: &str) -> Vec<TestResult> {
+fn parse_test_output(output: &str) -> Vec<(String, TestStatus)> {
     let mut results = Vec::new();
     for line in output.lines() {
         // Standard rustc test output line format: "test test_name ... status"
-        if line.starts_with("test ") {
-            #[allow(clippy::collapsible_if)]
-            if let Some(idx) = line.rfind(" ... ") {
-                if idx < 5 {
-                    continue;
-                }
-                let name = line[5..idx].trim();
-                if name.is_empty() {
-                    continue;
-                }
-                let status_str = &line[idx + 5..];
-                let status = match status_str {
-                    "ok" => TestStatus::Ok,
-                    "FAILED" => TestStatus::Failed,
-                    "ignored" => TestStatus::Ignored,
-                    _ => continue,
-                };
-                results.push(TestResult {
-                    name: name.to_string(),
-                    status,
-                });
+        if let Some(rest) = line.strip_prefix("test ")
+            && let Some(idx) = rest.rfind(" ... ")
+        {
+            let name = rest[..idx].trim();
+            if name.is_empty() {
+                continue;
             }
+            let status_str = rest[idx + 5..].trim();
+            let status = match status_str {
+                "ok" => TestStatus::Ok,
+                "FAILED" => TestStatus::Failed,
+                "ignored" => TestStatus::Ignored,
+                _ => continue,
+            };
+            results.push((name.to_string(), status));
         }
     }
     results
@@ -246,7 +233,11 @@ fn execute_test_binary(exe_path: &Path, status: &mut Status) -> Result<std::proc
     Ok(test_output)
 }
 
-fn print_test_results(results: &[TestResult], test_output: &std::process::Output, stdout: &str) {
+fn print_test_results(
+    results: &[(String, TestStatus)],
+    test_output: &std::process::Output,
+    stdout: &str,
+) {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
     println!("   {}", "Unit Test Results".italic().dim());
@@ -283,8 +274,8 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
             Cell::new("Status").add_attribute(Attribute::Bold),
         ]);
 
-        for result in results {
-            let status_cell = match result.status {
+        for (name, status) in results {
+            let status_cell = match status {
                 TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
                 TestStatus::Failed => Cell::new("FAILED")
                     .fg(Color::Red)
@@ -294,7 +285,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 
             // Clean up test name (remove module prefix if any)
             // e.g., "tests::test_name" -> "test_name"
-            let display_name = result.name.split("::").last().unwrap_or(&result.name);
+            let display_name = name.split("::").last().unwrap_or(name);
 
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
@@ -490,10 +481,10 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 ";
         let results = parse_test_output(output);
         assert_eq!(results.len(), 2);
-        assert_eq!(results[0].name, "test_one");
-        assert_eq!(results[0].status, TestStatus::Ok);
-        assert_eq!(results[1].name, "test_two");
-        assert_eq!(results[1].status, TestStatus::Ok);
+        assert_eq!(results[0].0, "test_one");
+        assert_eq!(results[0].1, TestStatus::Ok);
+        assert_eq!(results[1].0, "test_two");
+        assert_eq!(results[1].1, TestStatus::Ok);
     }
 
     #[test]
@@ -517,10 +508,10 @@ test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; 
 ";
         let results = parse_test_output(output);
         assert_eq!(results.len(), 2);
-        assert_eq!(results[0].name, "test_one");
-        assert_eq!(results[0].status, TestStatus::Failed);
-        assert_eq!(results[1].name, "test_two");
-        assert_eq!(results[1].status, TestStatus::Ok);
+        assert_eq!(results[0].0, "test_one");
+        assert_eq!(results[0].1, TestStatus::Failed);
+        assert_eq!(results[1].0, "test_two");
+        assert_eq!(results[1].1, TestStatus::Ok);
     }
 
     #[test]
@@ -533,8 +524,8 @@ test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; fini
 ";
         let results = parse_test_output(output);
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].name, "test_ignore");
-        assert_eq!(results[0].status, TestStatus::Ignored);
+        assert_eq!(results[0].0, "test_ignore");
+        assert_eq!(results[0].1, TestStatus::Ignored);
     }
 
     #[test]
