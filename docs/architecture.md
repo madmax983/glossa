@@ -128,3 +128,33 @@ C4Component
 
     Rel(model, types, "Uses")
 ```
+
+## Public API (Facade Pattern)
+
+To simplify external usage and encapsulate internal complexity, ΓΛΩΣΣΑ employs the Facade pattern at its root (`src/lib.rs`).
+
+```mermaid
+classDiagram
+    class Consumer {
+        <<External>>
+    }
+    class GlossaFacade {
+        +parse(source)
+        +analyze_program(ast)
+        +generate_rust(analyzed_program)
+    }
+    class Parser {
+        <<Internal>>
+    }
+    class Semantic {
+        <<Internal>>
+    }
+    class Codegen {
+        <<Internal>>
+    }
+
+    Consumer --> GlossaFacade : Uses
+    GlossaFacade --> Parser : Delegates to
+    GlossaFacade --> Semantic : Delegates to
+    GlossaFacade --> Codegen : Delegates to
+```
