@@ -117,6 +117,12 @@ pub enum Commands {
     /// Start the interactive tutorial (Requires "nova" feature)
     Mentor,
 
+    /// Generate a theatrical play script from a .γλ file (Requires "nova" feature)
+    Theater {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Compile a .γλ file to Rust source
     Build {
         /// Input file (.γλ)

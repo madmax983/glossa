@@ -25,6 +25,8 @@ pub mod alchemist;
 #[cfg(feature = "nova")]
 pub mod auditor;
 pub(crate) mod cache;
+#[cfg(feature = "nova")]
+pub mod theater;
 pub use cache::Cache;
 #[cfg(feature = "nova")]
 pub mod cartographer;

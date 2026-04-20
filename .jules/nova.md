@@ -42,3 +42,8 @@
 **Concept:** A Markdown documentation generator (`glossa scholar`) that uses the compiler's semantic phase to extract and format types, traits, and functions.
 **Fate:** Merged
 **Lesson:** Using the `AnalyzedProgram`'s scope directly allows us to generate accurate API documentation effortlessly, proving the power of a centralized semantic model.
+
+## 🌟 The Dramatist (ὁ Δραματουργός)
+**Concept:** A CLI tool (`glossa theater`) that converts a Glossa program into a theatrical play script (Markdown), treating functions as scenes and bindings as props entering the stage.
+**Fate:** Merged
+**Lesson:** Exploring the artistic nature of code by treating semantic AST nodes as theatrical events is fun and makes execution flows extremely readable.
