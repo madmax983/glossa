@@ -732,13 +732,9 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
     }
 }
 
-struct TraitMethodParts {
-    name: Ident,
-    params: Vec<TokenStream>,
-    return_type: Option<TokenStream>,
-}
-
-fn generate_trait_method_parts(method: &AnalyzedMethod) -> TraitMethodParts {
+fn generate_trait_method_parts(
+    method: &AnalyzedMethod,
+) -> (Ident, Vec<TokenStream>, Option<TokenStream>) {
     let method_name = sanitize_ident(&method.name);
 
     let param_tokens = method
@@ -757,11 +753,7 @@ fn generate_trait_method_parts(method: &AnalyzedMethod) -> TraitMethodParts {
 
     let ret_tokens = method.return_type.as_ref().map(generate_type_tokens);
 
-    TraitMethodParts {
-        name: method_name,
-        params: param_tokens.collect(),
-        return_type: ret_tokens,
-    }
+    (method_name, param_tokens.collect(), ret_tokens)
 }
 
 fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
@@ -777,11 +769,9 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
 
     // Generate method signatures
     let method_tokens = methods.iter().map(|method| {
-        let parts = generate_trait_method_parts(method);
-        let method_name = parts.name;
-        let param_tokens = parts.params;
+        let (method_name, param_tokens, return_type) = generate_trait_method_parts(method);
 
-        if let Some(ret_ty) = parts.return_type {
+        if let Some(ret_ty) = return_type {
             if let Some(body) = &method.body {
                 let body_stmts = generate_statements(body);
                 quote! {
@@ -840,9 +830,7 @@ fn generate_trait_impl(
 
     // Generate method implementations
     let method_tokens = methods.iter().map(|method| {
-        let parts = generate_trait_method_parts(method);
-        let method_name = parts.name;
-        let param_tokens = parts.params;
+        let (method_name, param_tokens, return_type) = generate_trait_method_parts(method);
 
         // Generate method body
         let body_stmts: Vec<TokenStream> = if let Some(body) = &method.body {
@@ -851,7 +839,7 @@ fn generate_trait_impl(
             Vec::new()
         };
 
-        if let Some(ret_ty) = parts.return_type {
+        if let Some(ret_ty) = return_type {
             quote! {
                 fn #method_name(#(#param_tokens),*) -> #ret_ty {
                     #(#body_stmts)*
@@ -1615,20 +1603,20 @@ mod tests {
                 return_type: Some(GlossaType::Boolean),
             };
 
-            let parts = generate_trait_method_parts(&method);
+            let (name, params, return_type) = generate_trait_method_parts(&method);
 
-            assert_eq!(parts.name.to_string(), "g_test_method");
+            assert_eq!(name.to_string(), "g_test_method");
 
             // Check params
-            let params_str: Vec<String> = parts.params.iter().map(|t| t.to_string()).collect();
+            let params_str: Vec<String> = params.iter().map(|t| t.to_string()).collect();
             assert_eq!(params_str.len(), 2);
             assert_eq!(params_str[0], "& self");
             assert!(params_str[1].contains("g_arg1"));
             assert!(params_str[1].contains("i64"));
 
             // Check return type
-            assert!(parts.return_type.is_some());
-            assert_eq!(parts.return_type.unwrap().to_string(), "bool");
+            assert!(return_type.is_some());
+            assert_eq!(return_type.unwrap().to_string(), "bool");
         }
 
         #[test]

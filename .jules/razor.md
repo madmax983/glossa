@@ -36,3 +36,8 @@
 **Bloat:** Generic closure `F: FnOnce() -> Option<PathBuf>` and deferred evaluation (`.or_else`) in `Cache::with_dirs`.
 **Cut:** Replaced generic with eager `Option<PathBuf>` parameter and used direct `Option::or`.
 **Saved:** 5 lines of code, simplified API signature.
+
+## [Reduction]
+**Bloat:** Single-use data-holding structs `TestResult` in `src/tools/tester.rs` and `TraitMethodParts` in `src/codegen.rs` that provided no additional encapsulation or behavior over simple groupings of data.
+**Cut:** Replaced these structs with native Rust tuples: `(String, TestStatus)` and `(Ident, Vec<TokenStream>, Option<TokenStream>)` respectively.
+**Saved:** Over 15 lines of struct definitions and named-field instantiation boilerplate, eliminating unnecessary abstractions in favor of idiomatic structural types.
