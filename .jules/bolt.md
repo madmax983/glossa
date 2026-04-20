@@ -38,3 +38,7 @@
 **[Replace HashSet with FxHashSet in cartographer]**
 **Learning:** Standard HashSet is secure but slow due to SipHash. Since the keys here are just short predictable string representations within compiler phases and are not exposed to hash DOS attacks from users, using FxHashSet avoids significant hashing overhead.
 **Action:** Always prefer FxHashSet over HashSet for short internal keys when not exposed to untrusted inputs.
+
+**[String Formatting Optimization in Dictionary]**
+**Learning:** Using `.collect::<Vec<String>>().join(", ")` to concatenate simple strings is inefficient and causes unnecessary heap allocations.
+**Action:** Replace `.collect::<Vec<String>>().join(", ")` with a single pre-allocated `String` buffer (or simply reuse an existing one) and use `std::fmt::Write` trait with `write!` or `push_str` to format elements directly into the buffer, eliminating intermediate collections.

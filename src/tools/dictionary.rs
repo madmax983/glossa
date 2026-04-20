@@ -188,28 +188,48 @@ fn print_morphological_analyses(analyses: &[crate::morphology::models::MorphAnal
             .fg(Color::Yellow),
     ]);
 
+    // ⚡ Bolt Optimization: Reuse a single String buffer and avoid intermediate format allocations
+    // by writing directly into the buffer instead of collecting into a Vec<String> and joining.
+    use std::fmt::Write;
+    let mut grammar_buf = String::new();
+
     for analysis in analyses {
-        let mut grammar = Vec::new();
+        grammar_buf.clear();
+        let mut first = true;
+        let mut push_comma = |buf: &mut String| {
+            if !first {
+                buf.push_str(", ");
+            }
+            first = false;
+        };
+
         if let Some(c) = analysis.case {
-            grammar.push(format!("{}", c));
+            push_comma(&mut grammar_buf);
+            let _ = write!(grammar_buf, "{}", c);
         }
         if let Some(n) = analysis.number {
-            grammar.push(format!("{}", n));
+            push_comma(&mut grammar_buf);
+            let _ = write!(grammar_buf, "{}", n);
         }
         if let Some(g) = analysis.gender {
-            grammar.push(format!("{}", g));
+            push_comma(&mut grammar_buf);
+            let _ = write!(grammar_buf, "{}", g);
         }
         if let Some(p) = analysis.person {
-            grammar.push(format!("{:?}", p));
+            push_comma(&mut grammar_buf);
+            let _ = write!(grammar_buf, "{:?}", p);
         }
         if let Some(t) = analysis.tense {
-            grammar.push(format!("{:?}", t));
+            push_comma(&mut grammar_buf);
+            let _ = write!(grammar_buf, "{:?}", t);
         }
         if let Some(m) = analysis.mood {
-            grammar.push(format!("{:?}", m));
+            push_comma(&mut grammar_buf);
+            let _ = write!(grammar_buf, "{:?}", m);
         }
         if let Some(v) = analysis.voice {
-            grammar.push(format!("{:?}", v));
+            push_comma(&mut grammar_buf);
+            let _ = write!(grammar_buf, "{:?}", v);
         }
 
         let conf_cell = if analysis.confidence >= 0.9 {
@@ -223,7 +243,7 @@ fn print_morphological_analyses(analyses: &[crate::morphology::models::MorphAnal
         table.add_row(vec![
             Cell::new(analysis.lemma.as_ref()),
             Cell::new(format!("{:?}", analysis.part_of_speech)),
-            Cell::new(grammar.join(", ")),
+            Cell::new(&grammar_buf),
             conf_cell,
         ]);
     }
