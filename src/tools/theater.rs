@@ -300,4 +300,154 @@ mod tests {
         let result = run_theater(&input_path);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_theater_coverage_all_statements() {
+        use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
+        use smol_str::SmolStr;
+
+        let mut play = String::new();
+        let mut act_counter = 1;
+
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        };
+
+        // 1. Assignment
+        transpile_statement_to_script(
+            &AnalyzedStatement::Assignment {
+                name: SmolStr::new("x"),
+                value: dummy_expr.clone(),
+            },
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        // 2. Query
+        transpile_statement_to_script(
+            &AnalyzedStatement::Query(vec![dummy_expr.clone()]),
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        // 3. FunctionDef (with params)
+        transpile_statement_to_script(
+            &AnalyzedStatement::FunctionDef {
+                name: SmolStr::new("my_func"),
+                params: vec![(SmolStr::new("p1"), Some(GlossaType::Number))],
+                body: vec![AnalyzedStatement::Expression(vec![dummy_expr.clone()])],
+                return_type: None,
+            },
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        // 4. If (with else)
+        transpile_statement_to_script(
+            &AnalyzedStatement::If {
+                condition: Box::new(dummy_expr.clone()),
+                then_body: vec![AnalyzedStatement::Expression(vec![dummy_expr.clone()])],
+                else_body: Some(vec![AnalyzedStatement::Expression(vec![dummy_expr.clone()])]),
+            },
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        // 5. While
+        transpile_statement_to_script(
+            &AnalyzedStatement::While {
+                condition: Box::new(dummy_expr.clone()),
+                body: vec![AnalyzedStatement::Expression(vec![dummy_expr.clone()])],
+            },
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        // 6. Return (Some)
+        transpile_statement_to_script(
+            &AnalyzedStatement::Return {
+                value: Some(Box::new(dummy_expr.clone())),
+            },
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        // 7. Return (None)
+        transpile_statement_to_script(
+            &AnalyzedStatement::Return { value: None },
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        // 8. Expression
+        transpile_statement_to_script(
+            &AnalyzedStatement::Expression(vec![dummy_expr.clone()]),
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        // 9. Unimplemented (Break)
+        transpile_statement_to_script(
+            &AnalyzedStatement::Break,
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        // 10. Print (Non-string vs String logic)
+        transpile_statement_to_script(
+            &AnalyzedStatement::Print(vec![
+                dummy_expr.clone(),
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::StringLiteral("test".to_string()),
+                    glossa_type: GlossaType::String,
+                }
+            ]),
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        assert!(play.contains("changes shape"));
+        assert!(play.contains("What is the truth of"));
+        assert!(play.contains("The Summoning of MY_FUNC"));
+        // The script generator outputs the parameter names directly.
+        assert!(play.contains("p1"));
+        assert!(play.contains("A tension arises"));
+        assert!(play.contains("If so..."));
+        assert!(play.contains("Otherwise..."));
+        assert!(play.contains("An endless cycle begins"));
+        assert!(play.contains("offers 1 to the heavens"));
+        assert!(play.contains("fades into nothingness"));
+        assert!(play.contains("An action occurs"));
+        assert!(play.contains("Behold, 1!"));
+        assert!(play.contains("\"test\""));
+    }
+
+    #[test]
+    fn test_theater_coverage_struct_no_fields() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("empty_struct.γλ");
+        // "εἶδος Τ ὁρίζειν { }." creates a struct named "Τ"
+        std::fs::write(&input_path, "εἶδος Τ ὁρίζειν { }.\n").unwrap();
+
+        let result = run_theater(&input_path);
+        assert!(result.is_ok());
+
+        let output_path = input_path.with_extension("play.md");
+        let md = std::fs::read_to_string(&output_path).unwrap();
+
+        // The name created by the snippet is "Τ"
+        assert!(md.contains("**Τ**, a defined form."));
+        assert!(!md.contains("Possessing:")); // Should bypass the fields iteration
+    }
 }
