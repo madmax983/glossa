@@ -833,6 +833,95 @@ mod tests {
     use crate::ast::{Clause, Expr, Statement, Word};
 
     #[test]
+    fn test_parse_return_expression_boolean() {
+        let scope = Scope::new();
+        let clause = Clause {
+            expressions: vec![Expr::Phrase(vec![
+                Expr::Word(Word::new("δός")),
+                Expr::BooleanLiteral(true),
+            ])],
+        };
+
+        let result = parse_return_expression(&clause, &scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::BooleanLiteral(true) => (),
+            _ => panic!("Expected BooleanLiteral(true)"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::Boolean);
+    }
+
+    #[test]
+    fn test_parse_return_expression_string() {
+        let scope = Scope::new();
+        let clause = Clause {
+            expressions: vec![Expr::Phrase(vec![
+                Expr::Word(Word::new("δός")),
+                Expr::StringLiteral("test".to_string()),
+            ])],
+        };
+
+        let result = parse_return_expression(&clause, &scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::StringLiteral(s) if s == "test" => (),
+            _ => panic!("Expected StringLiteral"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::String);
+    }
+
+    #[test]
+    fn test_parse_return_expression_number() {
+        let scope = Scope::new();
+        let clause = Clause {
+            expressions: vec![Expr::Phrase(vec![
+                Expr::Word(Word::new("δός")),
+                Expr::NumberLiteral(42),
+            ])],
+        };
+
+        let result = parse_return_expression(&clause, &scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::NumberLiteral(42) => (),
+            _ => panic!("Expected NumberLiteral(42)"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_parse_return_expression_variable() {
+        let mut scope = Scope::new();
+        scope.define("foo", GlossaType::String);
+        let clause = Clause {
+            expressions: vec![Expr::Phrase(vec![
+                Expr::Word(Word::new("δός")),
+                Expr::Word(Word::new("foo")),
+            ])],
+        };
+
+        let result = parse_return_expression(&clause, &scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::Variable(v) if v == "foo" => (),
+            _ => panic!("Expected Variable(foo)"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::String);
+    }
+
+    #[test]
+    fn test_parse_return_statement_empty_clauses() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = parse_return_statement(&stmt, &mut scope).unwrap();
+        match result {
+            Some(AnalyzedStatement::Return { value: None }) => (),
+            _ => panic!("Expected Return with None"),
+        }
+    }
+
+    #[test]
     fn test_for_iteration_error_not_word() {
         let mut scope = Scope::new();
 
