@@ -37,3 +37,8 @@
 **Concept:** A CLI tool (`glossa catalog`) that lists all built-in verbs, operators, particles, and keywords available in the Glossa language. Grouped by their internal morphology (PartOfSpeech) and nicely formatted in terminal tables using `comfy-table`.
 **Fate:** Merged
 **Lesson:** Adding an iterator to the static lexicon unlocks great introspection capabilities for tooling, allowing users to browse the exact translation matrix that the semantic engine uses under the hood.
+
+## The Scholar (ὁ Σχολαστικός)
+**Concept:** A Markdown documentation generator (`glossa scholar`) that uses the compiler's semantic phase to extract and format types, traits, and functions.
+**Fate:** Merged
+**Lesson:** Using the `AnalyzedProgram`'s scope directly allows us to generate accurate API documentation effortlessly, proving the power of a centralized semantic model.
