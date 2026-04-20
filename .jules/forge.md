@@ -9,3 +9,7 @@
 **[Codegen Statement Generator]**
 **Learning:** The `generate_statement` function in `src/codegen.rs` became a "God Object" by inlining the translation logic for all 17 AST statement variants into a single massive `match` block.
 **Action:** Always extract the internal logic of complex `match` arms (like `If`, `While`, `For`, `Match`) into their own private helper functions. This turns the main `match` block into a clean router and drastically reduces cognitive load.
+
+**[Auditor Visitor God Functions]**
+**Learning:** The `visit_statement` and `visit_expr` functions in `src/tools/auditor.rs` became "God Functions" containing massive `match` blocks.
+**Action:** Extract complex `match` arms for `If`, `While`, `For`, `Match`, and repetitive logic into private helper functions like `visit_if_statement` and `visit_exprs` to flatten nesting and clarify the match block routing.
