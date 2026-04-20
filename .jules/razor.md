@@ -36,3 +36,8 @@
 **Bloat:** Generic closure `F: FnOnce() -> Option<PathBuf>` and deferred evaluation (`.or_else`) in `Cache::with_dirs`.
 **Cut:** Replaced generic with eager `Option<PathBuf>` parameter and used direct `Option::or`.
 **Saved:** 5 lines of code, simplified API signature.
+
+## [Reduction]
+**Bloat:** Excessive depth in module hierarchy where `src/tools/` exported multiple submodules (`pub mod cli`, `pub mod tester`, etc.) individually, requiring deep imports everywhere (`use glossa::tools::cli::Cli`). This unnecessarily exposed the internal structure of the `tools` module to consumers like `src/main.rs` and the tests.
+**Cut:** Replaced all `pub mod` declarations in `src/tools/mod.rs` with `pub(crate) mod` (or `#[cfg(feature = "nova")] pub(crate) mod` for feature-gated experimental code). Then created a flattened public API surface directly in `src/tools/mod.rs` using `pub use module::Item;`. Consumers now just `use glossa::tools::Item;` directly.
+**Saved:** Deep import paths, coupling of directory structure to the public API, and cognitive overhead for consumers trying to find the correct tool import paths. Reduced the public API footprint by explicitly exporting only necessary structs and functions.
