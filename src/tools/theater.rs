@@ -314,6 +314,18 @@ mod tests {
             glossa_type: GlossaType::Number,
         };
 
+        // 0. Binding (Mutable)
+        transpile_statement_to_script(
+            &AnalyzedStatement::Binding {
+                name: SmolStr::new("y"),
+                value: dummy_expr.clone(),
+                mutable: true,
+            },
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
         // 1. Assignment
         transpile_statement_to_script(
             &AnalyzedStatement::Assignment {
@@ -346,12 +358,39 @@ mod tests {
             0,
         );
 
+        // 3.5. FunctionDef (no params)
+        transpile_statement_to_script(
+            &AnalyzedStatement::FunctionDef {
+                name: SmolStr::new("my_empty_func"),
+                params: vec![],
+                body: vec![],
+                return_type: None,
+            },
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
         // 4. If (with else)
         transpile_statement_to_script(
             &AnalyzedStatement::If {
                 condition: Box::new(dummy_expr.clone()),
                 then_body: vec![AnalyzedStatement::Expression(vec![dummy_expr.clone()])],
-                else_body: Some(vec![AnalyzedStatement::Expression(vec![dummy_expr.clone()])]),
+                else_body: Some(vec![AnalyzedStatement::Expression(vec![
+                    dummy_expr.clone(),
+                ])]),
+            },
+            &mut play,
+            &mut act_counter,
+            0,
+        );
+
+        // 4.5. If (no else)
+        transpile_statement_to_script(
+            &AnalyzedStatement::If {
+                condition: Box::new(dummy_expr.clone()),
+                then_body: vec![AnalyzedStatement::Expression(vec![dummy_expr.clone()])],
+                else_body: None,
             },
             &mut play,
             &mut act_counter,
@@ -396,12 +435,7 @@ mod tests {
         );
 
         // 9. Unimplemented (Break)
-        transpile_statement_to_script(
-            &AnalyzedStatement::Break,
-            &mut play,
-            &mut act_counter,
-            0,
-        );
+        transpile_statement_to_script(&AnalyzedStatement::Break, &mut play, &mut act_counter, 0);
 
         // 10. Print (Non-string vs String logic)
         transpile_statement_to_script(
@@ -410,16 +444,18 @@ mod tests {
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::StringLiteral("test".to_string()),
                     glossa_type: GlossaType::String,
-                }
+                },
             ]),
             &mut play,
             &mut act_counter,
             0,
         );
 
+        assert!(play.contains("restless"));
         assert!(play.contains("changes shape"));
         assert!(play.contains("What is the truth of"));
         assert!(play.contains("The Summoning of MY_FUNC"));
+        assert!(play.contains("The Summoning of MY_EMPTY_FUNC"));
         // The script generator outputs the parameter names directly.
         assert!(play.contains("p1"));
         assert!(play.contains("A tension arises"));
@@ -431,6 +467,45 @@ mod tests {
         assert!(play.contains("An action occurs"));
         assert!(play.contains("Behold, 1!"));
         assert!(play.contains("\"test\""));
+    }
+
+    #[test]
+    fn test_theater_coverage_struct_multiple_fields() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("multi_struct.γλ");
+        // "εἶδος Τ ὁρίζειν { α ὀνόματος . β ἀριθμοῦ }." creates a struct named "Τ" with 2 fields
+        std::fs::write(&input_path, "εἶδος Τ ὁρίζειν { α ὀνόματος . β ἀριθμοῦ }.\n").unwrap();
+
+        let result = run_theater(&input_path);
+        assert!(result.is_ok());
+
+        let output_path = input_path.with_extension("play.md");
+        let md = std::fs::read_to_string(&output_path).unwrap();
+
+        assert!(md.contains("**Τ**, a defined form."));
+        assert!(md.contains("Possessing:"));
+        assert!(md.contains("α, β")); // This hits the `i > 0` comma logic
+    }
+
+    #[test]
+    fn test_theater_file_write_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("write_error.γλ");
+        std::fs::write(&input_path, "ξ 10 ἔστω.\n").unwrap();
+
+        // Create a directory at the expected output path so that fs::write fails
+        let output_path = input_path.with_extension("play.md");
+        std::fs::create_dir(&output_path).unwrap();
+
+        let result = run_theater(&input_path);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Failed to write script file")
+                || err_msg.contains("directory")
+                || err_msg.contains("denied")
+                || err_msg.contains("Permission")
+        );
     }
 
     #[test]
