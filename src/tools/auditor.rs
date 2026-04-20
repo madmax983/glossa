@@ -147,6 +147,70 @@ impl AuditorVisitor {
         }
     }
 
+    fn visit_if_statement(
+        &mut self,
+        condition: &AnalyzedExpr,
+        then_body: &[AnalyzedStatement],
+        else_body: &Option<Vec<AnalyzedStatement>>,
+    ) {
+        self.visit_expr(condition);
+        for s in then_body {
+            self.visit_statement(s);
+        }
+        if let Some(else_stmts) = else_body {
+            for s in else_stmts {
+                self.visit_statement(s);
+            }
+        }
+    }
+
+    fn visit_while_loop(&mut self, condition: &AnalyzedExpr, body: &[AnalyzedStatement]) {
+        self.visit_expr(condition);
+        for s in body {
+            self.visit_statement(s);
+        }
+    }
+
+    fn visit_for_loop(
+        &mut self,
+        variable: &smol_str::SmolStr,
+        iterator: &AnalyzedExpr,
+        body: &[AnalyzedStatement],
+    ) {
+        self.usage_count.insert(variable.clone(), 0);
+        self.visit_expr(iterator);
+        for s in body {
+            self.visit_statement(s);
+        }
+    }
+
+    fn visit_match_statement(
+        &mut self,
+        scrutinee: &AnalyzedExpr,
+        arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
+    ) {
+        self.visit_expr(scrutinee);
+        for (expr, stmts) in arms {
+            self.visit_expr(expr);
+            for s in stmts {
+                self.visit_statement(s);
+            }
+        }
+    }
+
+    fn visit_function_def(
+        &mut self,
+        params: &[(smol_str::SmolStr, Option<crate::semantic::GlossaType>)],
+        body: &[AnalyzedStatement],
+    ) {
+        for (param_name, _) in params {
+            self.usage_count.insert(param_name.clone(), 0);
+        }
+        for s in body {
+            self.visit_statement(s);
+        }
+    }
+
     fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
         match stmt {
             AnalyzedStatement::Binding {
@@ -190,49 +254,23 @@ impl AuditorVisitor {
                 then_body,
                 else_body,
             } => {
-                self.visit_expr(condition);
-                for s in then_body {
-                    self.visit_statement(s);
-                }
-                if let Some(else_stmts) = else_body {
-                    for s in else_stmts {
-                        self.visit_statement(s);
-                    }
-                }
+                self.visit_if_statement(condition, then_body, else_body);
             }
             AnalyzedStatement::While { condition, body } => {
-                self.visit_expr(condition);
-                for s in body {
-                    self.visit_statement(s);
-                }
+                self.visit_while_loop(condition, body);
             }
             AnalyzedStatement::For {
                 variable,
                 iterator,
                 body,
             } => {
-                self.usage_count.insert(variable.clone(), 0);
-                self.visit_expr(iterator);
-                for s in body {
-                    self.visit_statement(s);
-                }
+                self.visit_for_loop(variable, iterator, body);
             }
             AnalyzedStatement::Match { scrutinee, arms } => {
-                self.visit_expr(scrutinee);
-                for (expr, stmts) in arms {
-                    self.visit_expr(expr);
-                    for s in stmts {
-                        self.visit_statement(s);
-                    }
-                }
+                self.visit_match_statement(scrutinee, arms);
             }
             AnalyzedStatement::FunctionDef { params, body, .. } => {
-                for (param_name, _) in params {
-                    self.usage_count.insert(param_name.clone(), 0);
-                }
-                for s in body {
-                    self.visit_statement(s);
-                }
+                self.visit_function_def(params, body);
             }
             AnalyzedStatement::Return { value } => {
                 if let Some(v) = value {
@@ -252,6 +290,12 @@ impl AuditorVisitor {
         }
     }
 
+    fn visit_exprs(&mut self, exprs: &[AnalyzedExpr]) {
+        for expr in exprs {
+            self.visit_expr(expr);
+        }
+    }
+
     fn visit_expr(&mut self, expr: &AnalyzedExpr) {
         match &expr.expr {
             AnalyzedExprKind::Variable(name) => {
@@ -263,63 +307,27 @@ impl AuditorVisitor {
                 self.visit_expr(left);
                 self.visit_expr(right);
             }
-            AnalyzedExprKind::UnaryOp { operand, .. } => {
-                self.visit_expr(operand);
-            }
-            AnalyzedExprKind::StructInstantiation { args, .. } => {
-                for arg in args {
-                    self.visit_expr(arg);
-                }
-            }
-            AnalyzedExprKind::PropertyAccess { owner, .. } => {
-                self.visit_expr(owner);
-            }
+            AnalyzedExprKind::UnaryOp { operand, .. } => self.visit_expr(operand),
+            AnalyzedExprKind::StructInstantiation { args, .. } => self.visit_exprs(args),
+            AnalyzedExprKind::PropertyAccess { owner, .. } => self.visit_expr(owner),
             AnalyzedExprKind::MethodCall { receiver, args, .. } => {
                 self.visit_expr(receiver);
-                for arg in args {
-                    self.visit_expr(arg);
-                }
+                self.visit_exprs(args);
             }
-            AnalyzedExprKind::FunctionCall { args, .. } => {
-                for arg in args {
-                    self.visit_expr(arg);
-                }
-            }
-            AnalyzedExprKind::VerbCall { args, .. } => {
-                for arg in args {
-                    self.visit_expr(arg);
-                }
-            }
-            AnalyzedExprKind::ArrayLiteral(exprs) => {
-                for e in exprs {
-                    self.visit_expr(e);
-                }
-            }
+            AnalyzedExprKind::FunctionCall { args, .. } => self.visit_exprs(args),
+            AnalyzedExprKind::VerbCall { args, .. } => self.visit_exprs(args),
+            AnalyzedExprKind::ArrayLiteral(exprs) => self.visit_exprs(exprs),
             AnalyzedExprKind::IndexAccess { array, index } => {
                 self.visit_expr(array);
                 self.visit_expr(index);
             }
-            AnalyzedExprKind::Lambda { body, .. } => {
-                self.visit_expr(body);
-            }
-            AnalyzedExprKind::Some(inner) => {
-                self.visit_expr(inner);
-            }
-            AnalyzedExprKind::Ok(inner) => {
-                self.visit_expr(inner);
-            }
-            AnalyzedExprKind::Err(inner) => {
-                self.visit_expr(inner);
-            }
-            AnalyzedExprKind::Unwrap(inner) => {
-                self.visit_expr(inner);
-            }
-            AnalyzedExprKind::Try(inner) => {
-                self.visit_expr(inner);
-            }
-            AnalyzedExprKind::Assert { condition } => {
-                self.visit_expr(condition);
-            }
+            AnalyzedExprKind::Lambda { body, .. } => self.visit_expr(body),
+            AnalyzedExprKind::Some(inner) => self.visit_expr(inner),
+            AnalyzedExprKind::Ok(inner) => self.visit_expr(inner),
+            AnalyzedExprKind::Err(inner) => self.visit_expr(inner),
+            AnalyzedExprKind::Unwrap(inner) => self.visit_expr(inner),
+            AnalyzedExprKind::Try(inner) => self.visit_expr(inner),
+            AnalyzedExprKind::Assert { condition } => self.visit_expr(condition),
             AnalyzedExprKind::AssertEq { left, right } => {
                 self.visit_expr(left);
                 self.visit_expr(right);
