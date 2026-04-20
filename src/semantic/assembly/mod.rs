@@ -111,21 +111,10 @@ pub(crate) use crate::limits::{
     MAX_UNWRAPS,
 };
 use crate::morphology::lexicon::BinaryOp;
-use crate::morphology::{
-    Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person,
-};
+use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person};
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
 use unicode_normalization::UnicodeNormalization;
-
-
-
-
-
-
-
-
-
 
 /// The slot-based assembler
 ///

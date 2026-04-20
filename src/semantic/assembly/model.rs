@@ -1,6 +1,6 @@
 use crate::ast::Expr;
-use crate::morphology::{Gender, Number, Person, Case, Voice, Mood, Tense};
 use crate::morphology::lexicon::BinaryOp;
+use crate::morphology::{Case, Gender, Mood, Number, Person, Tense, Voice};
 use smol_str::SmolStr;
 
 /// A fully assembled statement with all grammatical roles filled
