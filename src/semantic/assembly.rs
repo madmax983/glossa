@@ -193,6 +193,8 @@ pub struct AssembledStatement {
     pub is_query: bool,
     /// Whether this statement propagates (ends with ;)
     pub is_propagate: bool,
+    /// Indicates if the statement is a condition
+    pub is_condition: bool,
     /// Whether this binding has the mutable marker (μετά)
     pub has_mutable_marker: bool,
     /// Whether this statement has the containment preposition (ἐν)
@@ -917,6 +919,9 @@ impl Assembler {
     /// - Two subjects or two verbs are found (`DoubleSubject`, `DoubleVerb`)
     /// - Subject and verb disagree in number (`SubjectVerbDisagreement`)
     /// - Grammatical gender mismatch occurs
+    pub fn into_state(self) -> AssembledStatement {
+        self.state
+    }
     pub fn finalize(&mut self) -> Result<AssembledStatement, AssemblyError> {
         // Check for required verb (unless it's a query or has only literals)
         let has_content = self.state.subject.is_some()
@@ -924,26 +929,28 @@ impl Assembler {
             || !self.state.literals.is_empty();
         if self.state.verb.is_none() && has_content && !self.state.is_query {
             // Exception: pure literal expressions
-            let ctx = StatementContext {
-                has_only_literals: self.state.subject.is_none() && self.state.object.is_none(),
-                is_operator_expr: !self.state.operators.is_empty(),
-                is_propagate: self.state.is_propagate,
-                is_string_method: self.state.string_method.is_some(),
-                is_property_access: !self.state.property_accesses.is_empty(),
-                is_index_access: !self.state.index_accesses.is_empty(),
-                is_nested_phrase: !self.state.nested_phrases.is_empty(),
-                is_block: !self.state.blocks.is_empty(),
-                is_unwrap: !self.state.unwraps.is_empty(),
-                is_genitive_possession: !self.state.genitives.is_empty(),
-                is_multiple_nominatives: !self.state.nominatives.is_empty(),
-                is_array: !self.state.arrays.is_empty(),
-                has_delimiter: self.state.has_delimiter_preposition,
-                is_match_arm: !self.state.adjectives.is_empty()
-                    || (self.state.subject.is_some()
-                        && self.state.object.is_none()
-                        && self.state.literals.is_empty()),
-            };
-            self.check_missing_verb(&ctx)?;
+            if !self.state.is_condition {
+                let ctx = StatementContext {
+                    has_only_literals: self.state.subject.is_none() && self.state.object.is_none(),
+                    is_operator_expr: !self.state.operators.is_empty(),
+                    is_propagate: self.state.is_propagate,
+                    is_string_method: self.state.string_method.is_some(),
+                    is_property_access: !self.state.property_accesses.is_empty(),
+                    is_index_access: !self.state.index_accesses.is_empty(),
+                    is_nested_phrase: !self.state.nested_phrases.is_empty(),
+                    is_block: !self.state.blocks.is_empty(),
+                    is_unwrap: !self.state.unwraps.is_empty(),
+                    is_genitive_possession: !self.state.genitives.is_empty(),
+                    is_multiple_nominatives: !self.state.nominatives.is_empty(),
+                    is_array: !self.state.arrays.is_empty(),
+                    has_delimiter: self.state.has_delimiter_preposition,
+                    is_match_arm: !self.state.adjectives.is_empty()
+                        || (self.state.subject.is_some()
+                            && self.state.object.is_none()
+                            && self.state.literals.is_empty()),
+                };
+                self.check_missing_verb(&ctx)?;
+            }
         }
         // Check subject-verb agreement if both present
         if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {
