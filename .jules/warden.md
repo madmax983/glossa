@@ -124,3 +124,6 @@ Signed,
 **2026-04-10 - [Unbounded File Read DoS in nova_coverage Test]**
 **Threat:** The `test_run_weave_success` test in `tests/nova_coverage.rs` was using `std::fs::read_to_string`, which loads an entire file into memory without limits. An attacker could theoretically use a massive file to exhaust memory and crash the test environment (DoS).
 **Defense:** Replaced the unbounded read with a capped reader using `std::io::Read::take()` and `1024 * 1024 + 1` limit, preventing memory exhaustion.
+**2024-11-20 - [Logic Bug in Passive Optative Lemma Generation]**
+**Threat:** DoS or incorrect translation mapping via stem corruption. The `trim_end_matches` function in `src/morphology/conjugation.rs` over-stripped all trailing `θ` characters from valid stems containing sequential thetas when processing `LemmaStrategy::PassiveOptative`, causing invalid base lemmas (e.g. `αθθ` stripped to `α` instead of `αθ`).
+**Defense:** Replaced the greedy `.trim_end_matches('θ')` approach with safe `.strip_suffix('θ').unwrap_or(stem)` logic. The fix prevents root characters from being destructively eliminated. Validated using `test_trim_end_matches_bug_reproduction` in `tests/warden_logic.rs`.
