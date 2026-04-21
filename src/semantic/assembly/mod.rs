@@ -648,10 +648,7 @@ impl Assembler {
                 is_multiple_nominatives: !self.state.nominatives.is_empty(),
                 is_array: !self.state.arrays.is_empty(),
                 has_delimiter: self.state.has_delimiter_preposition,
-                is_match_arm: !self.state.adjectives.is_empty()
-                    || (self.state.subject.is_some()
-                        && self.state.object.is_none()
-                        && self.state.literals.is_empty()),
+                is_match_arm: !self.state.adjectives.is_empty(),
             };
             self.check_missing_verb(&ctx)?;
         }
@@ -662,7 +659,6 @@ impl Assembler {
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
                 && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
             {
                 return Err(AssemblyError::DoubleSubject);
@@ -716,15 +712,7 @@ impl Assembler {
         {
             return Ok(());
         }
-        if ctx.is_match_arm
-            && self.state.object.is_none()
-            && self.state.nominatives.is_empty()
-            && self.state.adjectives.is_empty()
-            && let Some(subject) = self.state.subject.as_ref()
-        {
-            if subject.lemma == "ανθρωπος" {
-                return Err(AssemblyError::MissingVerb);
-            }
+        if ctx.is_match_arm {
             return Ok(());
         }
         Err(AssemblyError::MissingVerb)
