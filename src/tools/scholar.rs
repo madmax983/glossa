@@ -7,6 +7,7 @@ use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
 use miette::Result;
+use std::fmt::Write;
 use std::path::Path;
 
 /// Runs the Scholar tool to generate Markdown documentation from Glossa code.
@@ -22,27 +23,26 @@ pub fn run_scholar(input: &Path) -> Result<()> {
         }
     };
 
-    let mut md = String::new();
+    let mut md = String::with_capacity(4096);
     let filename = input.file_name().unwrap_or_default().to_string_lossy();
 
-    md.push_str(&format!("# API Documentation: `{}`\n\n", filename));
+    writeln!(md, "# API Documentation: `{}`\n", filename).unwrap();
 
     // Document Types (Structs)
     let types: Vec<_> = program.scope.types().collect();
     if !types.is_empty() {
-        md.push_str("## Types (Εἴδη)\n\n");
+        writeln!(md, "## Types (Εἴδη)\n").unwrap();
         for (name, type_def) in types {
-            md.push_str(&format!("### `{}`\n\n", name));
+            writeln!(md, "### `{}`\n", name).unwrap();
             if let crate::semantic::GlossaType::Struct { fields, .. } = type_def {
                 if !fields.is_empty() {
-                    md.push_str("| Field | Type |\n");
-                    md.push_str("|-------|------|\n");
+                    writeln!(md, "| Field | Type |\n|-------|------|").unwrap();
                     for (field_name, field_type) in fields {
-                        md.push_str(&format!("| `{}` | `{}` |\n", field_name, field_type));
+                        writeln!(md, "| `{}` | `{}` |", field_name, field_type).unwrap();
                     }
                     md.push('\n');
                 } else {
-                    md.push_str("*No fields defined.*\n\n");
+                    writeln!(md, "*No fields defined.*\n").unwrap();
                 }
             }
         }
@@ -51,16 +51,16 @@ pub fn run_scholar(input: &Path) -> Result<()> {
     // Document Traits (Characters)
     let traits: Vec<_> = program.scope.traits().collect();
     if !traits.is_empty() {
-        md.push_str("## Traits (Χαρακτῆρες)\n\n");
+        writeln!(md, "## Traits (Χαρακτῆρες)\n").unwrap();
         for (name, trait_def) in traits {
-            md.push_str(&format!("### `{}`\n\n", name));
+            writeln!(md, "### `{}`\n", name).unwrap();
             if !trait_def.methods.is_empty() {
                 for method in &trait_def.methods {
-                    md.push_str(&format!("* `{}`\n", method.name));
+                    writeln!(md, "* `{}`", method.name).unwrap();
                 }
                 md.push('\n');
             } else {
-                md.push_str("*No methods defined.*\n\n");
+                writeln!(md, "*No methods defined.*\n").unwrap();
             }
         }
     }
@@ -68,20 +68,23 @@ pub fn run_scholar(input: &Path) -> Result<()> {
     // Document Functions (Verbs)
     let functions: Vec<_> = program.scope.functions().collect();
     if !functions.is_empty() {
-        md.push_str("## Functions (Ἔργα)\n\n");
+        writeln!(md, "## Functions (Ἔργα)\n").unwrap();
         for func in functions {
-            // Reconstruct the signature
-            let params = func
-                .param_types
-                .iter()
-                .map(|t| format!("{}", t))
-                .collect::<Vec<_>>()
-                .join(", ");
-            let ret = func
-                .return_type
-                .as_ref()
-                .map_or("Οὐδέν".to_string(), |t| format!("{}", t));
-            md.push_str(&format!("### `{}({}) -> {}`\n\n", func.name, params, ret));
+            // ⚡ Bolt Optimization: Use `write!` to build strings dynamically without intermediate `Vec` collections.
+            write!(md, "### `{}(", func.name).unwrap();
+            for (i, t) in func.param_types.iter().enumerate() {
+                if i > 0 {
+                    write!(md, ", ").unwrap();
+                }
+                write!(md, "{}", t).unwrap();
+            }
+            write!(md, ") -> ").unwrap();
+            if let Some(ret_type) = &func.return_type {
+                write!(md, "{}", ret_type).unwrap();
+            } else {
+                write!(md, "Οὐδέν").unwrap();
+            }
+            writeln!(md, "`\n").unwrap();
         }
     }
 
@@ -167,5 +170,25 @@ mod tests {
         let md = fs::read_to_string(&output_path).unwrap();
         assert!(md.contains("*No fields defined.*"));
         assert!(md.contains("*No methods defined.*"));
+    }
+
+    #[test]
+    fn test_run_scholar_with_functions() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api.γλ");
+
+        let source = "
+        προσθεσις ὁρίζειν τῷ ξ ἀριθμοῦ τῷ ψ ἀριθμοῦ· δός ξ ψ ἄθροισμα.
+        ";
+        fs::write(&input_path, source).unwrap();
+
+        let result = run_scholar(&input_path);
+        assert!(result.is_ok());
+
+        let output_path = input_path.with_extension("doc.md");
+        assert!(output_path.exists());
+
+        let md = fs::read_to_string(&output_path).unwrap();
+        assert!(md.contains("### `προσθεσις(Ἀριθμός, Ἀριθμός) -> Ἀριθμός`"));
     }
 }
