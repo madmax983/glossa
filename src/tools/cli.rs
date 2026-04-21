@@ -102,6 +102,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate TypeScript interfaces from type definitions (Requires "nova" feature)
+    Herald {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Generate a language metrics dashboard
     Report {
         /// Input file (.γλ)

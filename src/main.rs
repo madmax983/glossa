@@ -142,6 +142,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Herald { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::herald::run_herald(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'herald' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Audit { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::auditor::run_auditor(&input)?;

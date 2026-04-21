@@ -42,3 +42,8 @@
 **Concept:** A Markdown documentation generator (`glossa scholar`) that uses the compiler's semantic phase to extract and format types, traits, and functions.
 **Fate:** Merged
 **Lesson:** Using the `AnalyzedProgram`'s scope directly allows us to generate accurate API documentation effortlessly, proving the power of a centralized semantic model.
+
+## 🌟 The Herald (ὁ Κῆρυξ)
+**Concept:** A TypeScript interface generator (`glossa herald`) that traverses the semantic AST and translates `TypeDefinition` nodes into TypeScript `interface` schemas.
+**Fate:** Proposed
+**Lesson:** Adding a TypeScript export path shows the versatility of Glossa as a data definition language for modern web stacks, effectively bridging ancient Greek and front-end code bases.
