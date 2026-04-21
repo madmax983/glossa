@@ -1,0 +1,98 @@
+<<<<<<< SEARCH
+impl Commands {
+    /// Extracts the input file path for commands that operate on a file.
+    pub fn input_path(&self) -> Option<&PathBuf> {
+        match self {
+            Commands::Run { input } => Some(input),
+            Commands::Report { input } => Some(input),
+            Commands::Labyrinth { input } => Some(input),
+            Commands::Mentor => None,
+            Commands::Build { input, .. } => Some(input),
+            Commands::Check { input } => Some(input),
+            Commands::Highlight { input } => Some(input),
+            Commands::Repl => None,
+            Commands::Bard { input } => Some(input),
+            Commands::Lookup { .. } => None,
+            Commands::Test { input } => Some(input),
+            Commands::Mosaic { input } => Some(input),
+            Commands::Map { input } => Some(input),
+            Commands::Weave { input } => Some(input),
+            Commands::Alchemist { input } => Some(input),
+            Commands::Papyrus { input } => Some(input),
+            Commands::Audit { input } => Some(input),
+            Commands::Catalog => None,
+            Commands::Scholar { input } => Some(input),
+        }
+    }
+}
+=======
+impl Commands {
+    /// Extracts the input file path for commands that operate on a file.
+    pub fn input_path(&self) -> Option<&PathBuf> {
+        match self {
+            Commands::Run { input } => Some(input),
+            Commands::Report { input } => Some(input),
+            Commands::Labyrinth { input } => Some(input),
+            Commands::Mentor => None,
+            Commands::Build { input, .. } => Some(input),
+            Commands::Check { input } => Some(input),
+            Commands::Highlight { input } => Some(input),
+            Commands::Repl => None,
+            Commands::Bard { input } => Some(input),
+            Commands::Lookup { .. } => None,
+            Commands::Test { input } => Some(input),
+            Commands::Mosaic { input } => Some(input),
+            Commands::Map { input } => Some(input),
+            Commands::Weave { input } => Some(input),
+            Commands::Alchemist { input } => Some(input),
+            Commands::Papyrus { input } => Some(input),
+            Commands::Audit { input } => Some(input),
+            Commands::Catalog => None,
+            Commands::Scholar { input } => Some(input),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_commands_input_path() {
+        let p = PathBuf::from("test.γλ");
+
+        let commands_with_input = vec![
+            Commands::Run { input: p.clone() },
+            Commands::Report { input: p.clone() },
+            Commands::Labyrinth { input: p.clone() },
+            Commands::Build { input: p.clone(), output: None },
+            Commands::Check { input: p.clone() },
+            Commands::Highlight { input: p.clone() },
+            Commands::Bard { input: p.clone() },
+            Commands::Test { input: p.clone() },
+            Commands::Mosaic { input: p.clone() },
+            Commands::Map { input: p.clone() },
+            Commands::Weave { input: p.clone() },
+            Commands::Alchemist { input: p.clone() },
+            Commands::Papyrus { input: p.clone() },
+            Commands::Audit { input: p.clone() },
+            Commands::Scholar { input: p.clone() },
+        ];
+
+        for cmd in commands_with_input {
+            assert_eq!(cmd.input_path(), Some(&p));
+        }
+
+        let commands_without_input = vec![
+            Commands::Mentor,
+            Commands::Repl,
+            Commands::Lookup { word: "test".to_string() },
+            Commands::Catalog,
+        ];
+
+        for cmd in commands_without_input {
+            assert_eq!(cmd.input_path(), None);
+        }
+    }
+}
+>>>>>>> REPLACE
