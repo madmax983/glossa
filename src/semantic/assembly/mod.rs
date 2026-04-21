@@ -712,7 +712,12 @@ impl Assembler {
         {
             return Ok(());
         }
-        if ctx.is_match_arm {
+        if ctx.is_match_arm
+            && self.state.object.is_none()
+            && self.state.nominatives.is_empty()
+            && self.state.adjectives.is_empty()
+            && self.state.subject.is_some()
+        {
             return Ok(());
         }
         Err(AssemblyError::MissingVerb)
