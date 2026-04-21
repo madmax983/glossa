@@ -42,3 +42,6 @@
 **[String Formatting Optimization in Dictionary]**
 **Learning:** Using `.collect::<Vec<String>>().join(", ")` to concatenate simple strings is inefficient and causes unnecessary heap allocations.
 **Action:** Replace `.collect::<Vec<String>>().join(", ")` with a single pre-allocated `String` buffer (or simply reuse an existing one) and use `std::fmt::Write` trait with `write!` or `push_str` to format elements directly into the buffer, eliminating intermediate collections.
+**[Optimizing Scholar Docs Generator String Formats]
+**Learning:** Found an unnecessary intermediate heap allocation and `Vec` creation in `src/tools/scholar.rs` resulting from `.map(|t| format!("{}", t)).collect::<Vec<_>>().join(", ")`, alongside many intermediate `format!()` strings being pushed to the buffer.
+**Action:** Replaced `md.push_str(&format!(...))` and `.collect::<Vec<_>>().join(...)` with direct `std::fmt::Write` macro usage (`write!`, `writeln!`) directly into a pre-allocated `String::with_capacity(4096)` buffer.
