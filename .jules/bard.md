@@ -63,3 +63,7 @@
 ## 2026-03-20 - [The Assembler Documentation Duplication]
 **Confusion:** The documentation for the `Assembler` struct in `src/semantic/assembly.rs` was duplicated three times, causing a wall of text that was redundant and confusing.
 **Clarification:** I deleted the duplicated documentation blocks, leaving only one clean, descriptive rustdoc comment with its code example. This makes the generated HTML documentation much easier to read and maintain.
+
+## 2024-05-15 - [Echo Issue] Correctly throw semantic and assembly errors
+**Confusion:** The Troubleshooting guide listed `Οὐκ οἶδα τὸ ὄνομα` (Undefined Name) and `Διπλοῦν ὑποκείμενον` (Double Subject), but double subjects compiled successfully and undefined variables silently returned `0` or evaluated to empty strings. Missing verbs threw an ICE instead of a graceful compiler error.
+**Clarification:** I added strict validation logic in `classify_print` for DoubleSubject and in `try_print_default` for `UndefinedName`. Updated test suite ensures they hit `should_panic` accordingly.

@@ -954,25 +954,76 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
-        args.insert(
-            0,
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
-            },
-        );
+    if let Some(ref subj) = asm_stmt.subject {
+        let is_self_property_access = asm_stmt
+            .property_accesses
+            .iter()
+            .any(|(owner, _)| owner == subj.lemma || owner == subj.normalized);
+        let is_in_trait_or_struct = !asm_stmt.nested_phrases.is_empty()
+            || scope.lookup("self").is_some()
+            || scope.is_defined("self")
+            || scope.lookup_binding("self").is_some();
+        let is_resolved = scope.lookup(&subj.lemma).is_some()
+            || is_self_property_access
+            || is_in_trait_or_struct
+            || scope.lookup_binding(&subj.lemma).is_some()
+            || scope.is_defined(&subj.lemma);
+
+        if let Some(var_type) = scope.lookup(&subj.lemma) {
+            args.insert(
+                0,
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                },
+            );
+        } else if !is_resolved {
+            return Err(GlossaError::undefined(subj.lemma.clone()));
+        } else {
+            args.insert(
+                0,
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: scope
+                        .lookup_binding(&subj.lemma)
+                        .map(|b| b.glossa_type.clone())
+                        .unwrap_or(GlossaType::Unknown),
+                },
+            );
+        }
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
-        args.push(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
-        });
+    if let Some(ref obj) = asm_stmt.object {
+        let is_self_property_access = asm_stmt
+            .property_accesses
+            .iter()
+            .any(|(owner, _)| owner == obj.lemma || owner == obj.normalized);
+        let is_in_trait_or_struct = !asm_stmt.nested_phrases.is_empty()
+            || scope.lookup("self").is_some()
+            || scope.is_defined("self")
+            || scope.lookup_binding("self").is_some();
+        let is_resolved = scope.lookup(&obj.lemma).is_some()
+            || is_self_property_access
+            || is_in_trait_or_struct
+            || scope.lookup_binding(&obj.lemma).is_some()
+            || scope.is_defined(&obj.lemma);
+
+        if let Some(var_type) = scope.lookup(&obj.lemma) {
+            args.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: var_type.clone(),
+            });
+        } else if !is_resolved {
+            return Err(GlossaError::undefined(obj.lemma.clone()));
+        } else {
+            args.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: scope
+                    .lookup_binding(&obj.lemma)
+                    .map(|b| b.glossa_type.clone())
+                    .unwrap_or(GlossaType::Unknown),
+            });
+        }
     }
 
     Ok(args)
@@ -987,6 +1038,17 @@ fn classify_print(
         let verb_lemma = &verb.lemma;
 
         if crate::morphology::lexicon::is_print_verb(verb_lemma) {
+            if asm_stmt.subject.is_some()
+                && !asm_stmt.nominatives.is_empty()
+                && asm_stmt.operators.is_empty()
+                && asm_stmt.literals.is_empty()
+                && asm_stmt.nested_phrases.is_empty()
+            {
+                return Err(GlossaError::AssemblyError(
+                    crate::semantic::AssemblyError::DoubleSubject,
+                ));
+            }
+
             if let Some(args) = try_print_binary_op(asm_stmt, scope) {
                 return Ok(Some(AnalyzedStatement::Print(args)));
             }

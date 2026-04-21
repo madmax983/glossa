@@ -22,7 +22,7 @@ proptest! {
         ", val);
 
         let ast = parse(&source).unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
+        let analyzed = match analyze_program(&ast) { Ok(a) => a, Err(_) => panic!("Bug detected!") };
         let rust_code = generate_rust(&analyzed);
 
         // If the code returns 0, it means the bug is triggered (since val >= 1).

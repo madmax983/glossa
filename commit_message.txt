@@ -1,0 +1,5 @@
+fix: properly emit DoubleSubject and UndefinedName errors
+
+- Ensures `DoubleSubject` is not bypassed by print verbs in `classify_print` or `convert_assembled_to_analyzed`.
+- Updates `try_print_default` in `conversion.rs` to validate variables through `scope.lookup` and throw `GlossaError::undefined` when they don't exist.
+- Modified `tests/havoc_issue_echo.rs` to assert correct panics.
