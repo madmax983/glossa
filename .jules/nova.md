@@ -1,5 +1,3 @@
-# Nova's Journal - The Idea Graveyard
-
 ## 🌟 The Oracle (ὁ Μάντις)
 **Concept:** A CLI tool (`glossa explain`) that visualizes the semantic assembly process, showing how Greek morphology (case endings) maps to grammatical slots (Subject, Object, Verb).
 **Fate:** Merged

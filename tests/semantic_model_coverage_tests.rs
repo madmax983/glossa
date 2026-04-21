@@ -390,3 +390,12 @@ fn test_deep_recursion_debug() {
     let dbg = format!("{:?}", expr);
     assert!(dbg.contains("Unwrap"));
 }
+
+#[test]
+fn test_analyzed_statement_type_definition_debug() {
+    let stmt = AnalyzedStatement::TypeDefinition {
+        name: smol_str::SmolStr::new("Type"),
+        fields: vec![],
+    };
+    assert!(format!("{:?}", stmt).contains("TypeDefinition"));
+}
