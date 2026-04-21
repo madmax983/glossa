@@ -370,7 +370,7 @@ fn test_run_herald_file_error() {
     let input_path = dir.path().join("file_error.γλ");
     std::fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.").unwrap();
 
-    let output_path = input_path.with_extension("md");
+    let _output_path = input_path.with_extension("md");
     // Wait, Herald just prints to stdout, it doesn't write to a file!
     // Let me check src/tools/herald.rs to confirm.
 }
