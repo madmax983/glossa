@@ -217,8 +217,6 @@ fn main() -> Result<()> {
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_main_cli_args_missing_file_extension() {
         use std::process::Command;
