@@ -3,7 +3,12 @@ use std::process::Command;
 #[test]
 fn test_cli_invalid_extension() {
     let mut cmd = Command::new("cargo");
-    cmd.arg("run").arg("--bin").arg("glossa").arg("--").arg("run").arg("tests/test_data/non_existent.md");
+    cmd.arg("run")
+        .arg("--bin")
+        .arg("glossa")
+        .arg("--")
+        .arg("run")
+        .arg("tests/test_data/non_existent.md");
 
     let output = cmd.output().expect("Failed to execute cargo run");
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -16,7 +21,12 @@ fn test_cli_invalid_extension() {
 #[test]
 fn test_cli_missing_extension() {
     let mut cmd = Command::new("cargo");
-    cmd.arg("run").arg("--bin").arg("glossa").arg("--").arg("run").arg("tests/test_data/no_extension_file");
+    cmd.arg("run")
+        .arg("--bin")
+        .arg("glossa")
+        .arg("--")
+        .arg("run")
+        .arg("tests/test_data/no_extension_file");
 
     let output = cmd.output().expect("Failed to execute cargo run");
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -28,7 +38,12 @@ fn test_cli_missing_extension() {
 #[test]
 fn test_cli_dir_extension_bypass() {
     let mut cmd = Command::new("cargo");
-    cmd.arg("run").arg("--bin").arg("glossa").arg("--").arg("run").arg("tests/test_data"); // Just point it to a dir, checking it gets past validate
+    cmd.arg("run")
+        .arg("--bin")
+        .arg("glossa")
+        .arg("--")
+        .arg("run")
+        .arg("tests/test_data"); // Just point it to a dir, checking it gets past validate
 
     let output = cmd.output().expect("Failed to execute cargo run");
     let stderr = String::from_utf8_lossy(&output.stderr);
