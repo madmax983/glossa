@@ -205,3 +205,30 @@ pub enum Commands {
         input: PathBuf,
     },
 }
+
+impl Commands {
+    /// Extracts the input file path for commands that operate on a file.
+    pub fn input_path(&self) -> Option<&PathBuf> {
+        match self {
+            Commands::Run { input } => Some(input),
+            Commands::Report { input } => Some(input),
+            Commands::Labyrinth { input } => Some(input),
+            Commands::Mentor => None,
+            Commands::Build { input, .. } => Some(input),
+            Commands::Check { input } => Some(input),
+            Commands::Highlight { input } => Some(input),
+            Commands::Repl => None,
+            Commands::Bard { input } => Some(input),
+            Commands::Lookup { .. } => None,
+            Commands::Test { input } => Some(input),
+            Commands::Mosaic { input } => Some(input),
+            Commands::Map { input } => Some(input),
+            Commands::Weave { input } => Some(input),
+            Commands::Alchemist { input } => Some(input),
+            Commands::Papyrus { input } => Some(input),
+            Commands::Audit { input } => Some(input),
+            Commands::Catalog => None,
+            Commands::Scholar { input } => Some(input),
+        }
+    }
+}

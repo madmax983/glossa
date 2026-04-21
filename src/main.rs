@@ -13,8 +13,38 @@ use glossa::tools::runner::{
     bard_file, build_file, check_file, highlight_file, report_file, run_file,
 };
 
+fn validate_extension(path: &std::path::Path) -> Result<()> {
+    if path.is_dir() {
+        return Ok(()); // Allow directories if commands natively support them
+    }
+    if let Some(ext) = path.extension() {
+        let ext_str = ext.to_string_lossy();
+        if ext_str != "γλ" && ext_str != "gl" {
+            miette::bail!(
+                "Invalid file format: '.{}'.\nΓΛΩΣΣΑ source files must have a '.γλ' or '.gl' extension.",
+                ext_str
+            );
+        }
+    } else {
+        miette::bail!("Missing file extension.\nΓΛΩΣΣΑ source files must have a '.γλ' or '.gl' extension.");
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
+
+    // Validate global file parameter if provided
+    if let Some(ref file) = cli.file {
+        validate_extension(file)?;
+    }
+
+    // Validate subcommand file inputs
+    if let Some(ref cmd) = cli.command {
+        if let Some(input) = cmd.input_path() {
+            validate_extension(input)?;
+        }
+    }
 
     // If a file is provided without a subcommand, run it
     if let Some(file) = cli.file {
