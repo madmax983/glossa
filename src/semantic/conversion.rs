@@ -1340,10 +1340,11 @@ fn extract_enum_from_subject(
     asm_stmt: &AssembledStatement,
     _scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(result) = detect_enum_variant(subj, &asm_stmt.literals)
-    {
-        return Ok(Some(result));
+    #[allow(clippy::collapsible_if)]
+    if let Some(ref subj) = asm_stmt.subject {
+        if let Some(result) = detect_enum_variant(subj, &asm_stmt.literals) {
+            return Ok(Some(result));
+        }
     }
     Ok(None)
 }
