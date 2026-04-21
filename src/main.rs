@@ -26,7 +26,9 @@ fn validate_extension(path: &std::path::Path) -> Result<()> {
             );
         }
     } else {
-        miette::bail!("Missing file extension.\nΓΛΩΣΣΑ source files must have a '.γλ' or '.gl' extension.");
+        miette::bail!(
+            "Missing file extension.\nΓΛΩΣΣΑ source files must have a '.γλ' or '.gl' extension."
+        );
     }
     Ok(())
 }
@@ -40,10 +42,8 @@ fn main() -> Result<()> {
     }
 
     // Validate subcommand file inputs
-    if let Some(ref cmd) = cli.command {
-        if let Some(input) = cmd.input_path() {
-            validate_extension(input)?;
-        }
+    if let Some(input) = cli.command.as_ref().and_then(|cmd| cmd.input_path()) {
+        validate_extension(input)?;
     }
 
     // If a file is provided without a subcommand, run it
