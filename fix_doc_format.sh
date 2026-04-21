@@ -1,2 +1,3 @@
 #!/bin/bash
-sed -i '/^\s*$/d' src/semantic/assembly.rs
+echo "}" >> src/tools/scholar.rs
+cargo fmt --all
