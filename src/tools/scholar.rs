@@ -189,6 +189,6 @@ mod tests {
         assert!(output_path.exists());
 
         let md = fs::read_to_string(&output_path).unwrap();
-        assert!(md.contains("### `προσθεσις(ἀριθμός, ἀριθμός) -> Οὐδέν`"));
+        assert!(md.contains("### `προσθεσις(Ἀριθμός, Ἀριθμός) -> Ἀριθμός`"));
     }
 }
