@@ -55,8 +55,6 @@ fn test_cli_dir_extension_bypass() {
 }
 #[cfg(test)]
 mod additional_tests {
-    use std::path::PathBuf;
-
     #[test]
     fn test_main_cli_args_missing_file_extension() {
         use std::process::Command;
