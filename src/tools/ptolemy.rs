@@ -142,6 +142,77 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_run_ptolemy_success() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api.γλ");
+        fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.").unwrap();
+
+        let result = run_ptolemy(&input_path);
+        assert!(result.is_ok());
+
+        let output_path = input_path.with_extension("d.ts");
+        assert!(output_path.exists());
+    }
+
+    #[test]
+    fn test_run_ptolemy_file_error() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api.γλ");
+        fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { }.").unwrap();
+
+        let output_path = input_path.with_extension("d.ts");
+        fs::create_dir(&output_path).unwrap();
+
+        let result = run_ptolemy(&input_path);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Failed to write")
+                || err_msg.contains("directory")
+                || err_msg.contains("denied")
+                || err_msg.contains("Permission")
+        );
+    }
+
+    #[test]
+    fn test_run_ptolemy_with_functions() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api.γλ");
+
+        let source = "
+        προσθεσις ὁρίζειν τῷ ξ ἀριθμοῦ τῷ ψ ἀριθμοῦ· δός ξ ψ ἄθροισμα.
+        ";
+        fs::write(&input_path, source).unwrap();
+
+        let result = run_ptolemy(&input_path);
+        assert!(result.is_ok());
+
+        let output_path = input_path.with_extension("d.ts");
+        assert!(output_path.exists());
+
+        let ts = fs::read_to_string(&output_path).unwrap();
+        assert!(ts.contains("export declare function προσθεσις(arg0: number, arg1: number): number;"));
+    }
+
+    #[test]
+    fn test_run_ptolemy_nonexistent() {
+        let result = run_ptolemy(Path::new("nonexistent_file.γλ"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_ptolemy_analysis_error() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api.γλ");
+        fs::write(&input_path, "invalid syntax here.").unwrap();
+
+        let result = run_ptolemy(&input_path);
+        assert!(result.is_err());
+    }
 
     #[test]
     fn test_glossa_type_to_ts() {
