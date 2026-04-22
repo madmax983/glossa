@@ -32,7 +32,7 @@ C4Container
     Container(morphology, "Declension Resolver", "src/morphology", "Analyzes case, gender, number, and resolves agreement")
     Container(semantic, "Semantic Analyzer", "src/semantic", "Checks types, aspect, voice, and ownership")
 
-    Container_Boundary(tools, "Developer Experience (Nova)") {
+    Container_Boundary(tools, "Developer Experience (Tools Facade)") {
         Container(alchemist, "The Alchemist", "src/tools/alchemist.rs", "Python Exporter")
         Container(auditor, "The Auditor", "src/tools/auditor.rs", "Static analysis to find unused variables and mutability smells")
         Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
@@ -59,26 +59,14 @@ C4Container
 
     Rel(lexer, parser, "Stream<Token>")
     Rel(parser, morphology, "AST (Unresolved)")
-    Rel(parser, highlight, "AST (Unresolved)")
+    Rel(parser, tools, "AST (Unresolved)")
     Rel(morphology, semantic, "AST (Resolved Morphology)")
-    Rel(semantic, report, "Analyzed Program")
-    Rel(semantic, narrator, "Analyzed Program")
-    Rel(semantic, cartographer, "Analyzed Program")
-    Rel(semantic, mentor, "Analyzed Program")
-    Rel(semantic, mosaic, "Analyzed Program")
-    Rel(semantic, tester, "Analyzed Program")
-    Rel(semantic, interpreter, "Analyzed Program")
-    Rel(semantic, alchemist, "Analyzed Program")
-    Rel(semantic, auditor, "Analyzed Program")
-    Rel(semantic, labyrinth, "Analyzed Program")
-    Rel(semantic, weave, "Analyzed Program")
-    Rel(semantic, papyrus, "Analyzed Program")
+    Rel(semantic, tools, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 
-    Rel(morphology, dictionary, "Lexicon Data")
-    Rel(morphology, catalog, "Lexicon Data")
-    Rel(parser, tester, "AST")
-    Rel(codegen, tester, "Rust Source")
+    Rel(morphology, tools, "Lexicon Data")
+    Rel(parser, tools, "AST")
+    Rel(codegen, tools, "Rust Source")
 ```
 
 ## Semantic Analysis (C4 Component Level)
