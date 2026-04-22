@@ -33,9 +33,7 @@ fn validate_extension(path: &std::path::Path) -> Result<()> {
     Ok(())
 }
 
-fn main() -> Result<()> {
-    let cli = Cli::parse();
-
+fn validate_cli(cli: &Cli) -> Result<()> {
     // Validate global file parameter if provided
     if let Some(ref file) = cli.file {
         validate_extension(file)?;
@@ -45,6 +43,14 @@ fn main() -> Result<()> {
     if let Some(input) = cli.command.as_ref().and_then(|cmd| cmd.input_path()) {
         validate_extension(input)?;
     }
+
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    let cli = Cli::parse();
+
+    validate_cli(&cli)?;
 
     // If a file is provided without a subcommand, run it
     if let Some(file) = cli.file {
@@ -310,5 +316,36 @@ mod tests {
 
         assert!(!output.status.success());
         assert!(stderr.contains("Invalid file format: '.md'"));
+    }
+
+    #[test]
+    fn test_validate_cli_directly() {
+        let cli_valid_global = Cli {
+            command: None,
+            file: Some(PathBuf::from("test.γλ")),
+        };
+        assert!(validate_cli(&cli_valid_global).is_ok());
+
+        let cli_invalid_global = Cli {
+            command: None,
+            file: Some(PathBuf::from("test.md")),
+        };
+        assert!(validate_cli(&cli_invalid_global).is_err());
+
+        let cli_valid_cmd = Cli {
+            command: Some(Commands::Run {
+                input: PathBuf::from("test.γλ"),
+            }),
+            file: None,
+        };
+        assert!(validate_cli(&cli_valid_cmd).is_ok());
+
+        let cli_invalid_cmd = Cli {
+            command: Some(Commands::Run {
+                input: PathBuf::from("test.md"),
+            }),
+            file: None,
+        };
+        assert!(validate_cli(&cli_invalid_cmd).is_err());
     }
 }
