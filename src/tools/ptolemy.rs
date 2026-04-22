@@ -216,7 +216,7 @@ mod tests {
         let output_path = input_path.with_extension("d.ts");
         let ts = fs::read_to_string(&output_path).unwrap();
         assert!(
-            ts.contains("export declare function ἐκτύπωσις(arg0: number): void;")
+            ts.contains("export declare function εκτυπωσις(arg0: number): void;")
         );
     }
 
