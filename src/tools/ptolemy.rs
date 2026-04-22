@@ -195,7 +195,9 @@ mod tests {
         assert!(output_path.exists());
 
         let ts = fs::read_to_string(&output_path).unwrap();
-        assert!(ts.contains("export declare function προσθεσις(arg0: number, arg1: number): number;"));
+        assert!(
+            ts.contains("export declare function προσθεσις(arg0: number, arg1: number): number;")
+        );
     }
 
     #[test]
