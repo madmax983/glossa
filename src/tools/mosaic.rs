@@ -100,7 +100,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                 }
                 Err(e) => {
                     table.add_row(vec![
-                        Cell::new(format!("{}", i + 1)),
+                        Cell::new(i + 1),
                         Cell::new(format!("Error: {}", e)).fg(Color::Red),
                         Cell::new(""),
                         Cell::new(""),
@@ -119,7 +119,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                 _ => "Unknown",
             };
             table.add_row(vec![
-                Cell::new(format!("{}", i + 1)),
+                Cell::new(i + 1),
                 Cell::new(type_name)
                     .fg(Color::Blue)
                     .add_attribute(Attribute::Italic),
@@ -359,7 +359,7 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
     let other_column = format_other_column(asm);
 
     table.add_row(vec![
-        Cell::new(format!("{}", line)),
+        Cell::new(line),
         Cell::new(full_subject),
         Cell::new(verb),
         Cell::new(object),
