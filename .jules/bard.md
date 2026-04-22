@@ -63,3 +63,6 @@
 ## 2026-03-20 - [The Assembler Documentation Duplication]
 **Confusion:** The documentation for the `Assembler` struct in `src/semantic/assembly.rs` was duplicated three times, causing a wall of text that was redundant and confusing.
 **Clarification:** I deleted the duplicated documentation blocks, leaving only one clean, descriptive rustdoc comment with its code example. This makes the generated HTML documentation much easier to read and maintain.
+## 2026-03-21 - [Missing Documentation Warnings]
+**Confusion:** Building documentation with `RUSTDOCFLAGS="-W missing_docs" cargo doc` threw warnings for `src/semantic/assembly/mod.rs` regarding the `model` module, and the compiler output warnings for missing intra-doc links.
+**Clarification:** Added module-level documentation `//!` to `src/semantic/assembly/model.rs` and moved the struct documentation for `Assembler` immediately above its definition. Resolved intra-doc links by ensuring they reference paths accessible in scope (e.g. `[`crate::semantic::assembly::Assembler`]`).
