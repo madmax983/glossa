@@ -238,7 +238,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_commands_input_path() {
+    fn test_commands_input_path_all() {
         let p = PathBuf::from("test.γλ");
 
         let commands_with_input = vec![
