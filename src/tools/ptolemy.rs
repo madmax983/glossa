@@ -201,8 +201,36 @@ mod tests {
     }
 
     #[test]
+    fn test_run_ptolemy_with_function_no_return() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api2.γλ");
+
+        let source = "
+        ἐκτύπωσις ὁρίζειν τῷ ξ ἀριθμοῦ· ξ λέγε.
+        ";
+        fs::write(&input_path, source).unwrap();
+
+        let result = run_ptolemy(&input_path);
+        assert!(result.is_ok());
+
+        let output_path = input_path.with_extension("d.ts");
+        let ts = fs::read_to_string(&output_path).unwrap();
+        assert!(
+            ts.contains("export declare function ἐκτύπωσις(arg0: number): void;")
+        );
+    }
+
+    #[test]
     fn test_run_ptolemy_nonexistent() {
         let result = run_ptolemy(Path::new("nonexistent_file.γλ"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_ptolemy_load_error() {
+        let dir = tempdir().unwrap();
+        // A directory exists but fails to load as source
+        let result = run_ptolemy(dir.path());
         assert!(result.is_err());
     }
 
