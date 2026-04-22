@@ -237,19 +237,23 @@ mod tests {
         let invalid_path = PathBuf::from("test.md");
         let result = validate_extension(&invalid_path);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid file format: '.md'"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid file format: '.md'")
+        );
 
         // Test missing extensions
         let missing_path = PathBuf::from("test");
         let result2 = validate_extension(&missing_path);
         assert!(result2.is_err());
-        assert!(result2
-            .unwrap_err()
-            .to_string()
-            .contains("Missing file extension"));
+        assert!(
+            result2
+                .unwrap_err()
+                .to_string()
+                .contains("Missing file extension")
+        );
     }
 
     #[test]
