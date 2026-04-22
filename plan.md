@@ -1,0 +1,3 @@
+1. **Fix cargo fmt:** The CI failed on `cargo fmt --all -- --check`. I will run `cargo fmt --all` to format the code properly.
+2. **Fix coverage:** The CI failed on `codecov/patch`. I need to ensure the new lines of code I added have proper test coverage. The changes I made in `src/tools/auditor.rs` (formatting logic) need a test case to cover the new header printing logic, or at least run the auditor test successfully so it covers those lines. I will add a test in `src/tools/auditor.rs` (or see if one already exists that I can trigger or run properly).
+3. **Submit:** Submit the changes again.

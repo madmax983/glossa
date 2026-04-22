@@ -430,10 +430,10 @@ fn generate_panic_hook() -> TokenStream {
                 _ => ("Σφάλμα ἐκτελέσεως", msg),
             };
 
-            eprintln!("\x1b[31m✕ {}: {}\x1b[0m", greek_msg, english_msg);
+            eprintln!("✕ {}: {}", greek_msg, english_msg);
 
             if let Some(location) = info.location() {
-                eprintln!("\x1b[90m  (at line {})\x1b[0m", location.line());
+                eprintln!("  (at line {})", location.line());
             }
         }));
     }

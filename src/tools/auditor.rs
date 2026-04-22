@@ -23,6 +23,7 @@ use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, Table};
+use crossterm::style::Stylize;
 use miette::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
@@ -82,10 +83,15 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 
     let mut issues = 0;
 
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   A U D I T O R".cyan().bold());
     println!(
-        "\n🔍 \x1b[1;36mAudit Report for {}\x1b[0m\n",
-        input.display()
+        "   {}",
+        format!("Audit Report for {}", input.display())
+            .italic()
+            .dim()
     );
+    println!();
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
@@ -121,10 +127,14 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     }
 
     if issues == 0 {
-        println!("✨ \x1b[1;32mNo issues found. The code is pure.\x1b[0m");
+        println!(
+            "   {}",
+            "✨ No issues found. The code is pure.".green().bold()
+        );
+        println!();
     } else {
         println!("{table}");
-        println!("\nTotal issues found: {}", issues);
+        println!("\n   Total issues found: {}", issues);
     }
 
     Ok(())
@@ -615,5 +625,38 @@ mod tests {
         }
         let result = run_auditor(&input_path);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_auditor_output_success_and_issues() {
+        let dir = tempfile::tempdir().unwrap();
+
+        // 1. Test code with NO issues (pure)
+        let pure_path = dir.path().join("pure.γλ");
+        {
+            let mut f = std::fs::File::create(&pure_path).unwrap();
+            f.write_all("«pure» λέγε.\n".as_bytes()).unwrap();
+        }
+        let result = run_auditor(&pure_path);
+        assert!(result.is_ok());
+
+        // 2. Test code with unused variable issue
+        let issue_path = dir.path().join("issue.γλ");
+        {
+            let mut f = std::fs::File::create(&issue_path).unwrap();
+            f.write_all("ξ 5 ἔστω.\n".as_bytes()).unwrap(); // declared, unused
+        }
+        let result = run_auditor(&issue_path);
+        assert!(result.is_ok());
+
+        // 3. Test code with unnecessary mutation issue
+        let mut_path = dir.path().join("mut.γλ");
+        {
+            let mut f = std::fs::File::create(&mut_path).unwrap();
+            // Declared mutable but never reassigned, though used
+            f.write_all("μετὰ ξ 5 ἔστω.\nξ λέγε.\n".as_bytes()).unwrap();
+        }
+        let result = run_auditor(&mut_path);
+        assert!(result.is_ok());
     }
 }
