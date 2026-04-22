@@ -148,9 +148,14 @@ struct StatementContext {
     has_delimiter: bool,
     is_match_arm: bool,
 }
-/// The Assembler orchestrates semantic construction.
+pub mod model;
+pub use model::*;
+
+/// The `Assembler` orchestrates semantic construction.
 ///
-/// It feeds AST elements and maps them to semantic roles (subjects, verbs, objects).
+/// It acts as a state machine that collects morphologically analyzed tokens
+/// and routes them into the correct semantic "slots" (Subject, Verb, Object)
+/// based on their grammatical case, enabling free word order parsing.
 ///
 /// # Examples
 ///
@@ -159,9 +164,6 @@ struct StatementContext {
 /// let mut asm = Assembler::new();
 /// // Then feed analysis and finalise statement
 /// ```
-pub mod model;
-pub use model::*;
-
 pub struct Assembler {
     state: AssembledStatement,
 }

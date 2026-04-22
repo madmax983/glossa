@@ -1,3 +1,9 @@
+//! Data models representing the intermediate state of an assembled sentence.
+//!
+//! The `model` module defines the structural components (like `AssembledStatement`
+//! and `Constituent`) that the `Assembler` populates as it routes words into
+//! grammatical slots based on their morphological case.
+
 use crate::ast::Expr;
 use crate::morphology::lexicon::BinaryOp;
 use crate::morphology::{Case, Gender, Mood, Number, Person, Tense, Voice};
@@ -120,7 +126,7 @@ pub enum Literal {
 /// In the grammatical world of ΓΛΩΣΣΑ, a `Constituent` is the physical manifestation of a noun,
 /// pronoun, or adjective acting as a primary sentence component (e.g., Subject, Object).
 /// It bridges the raw morphological analysis ([`crate::morphology::models::MorphAnalysis`])
-/// with the structural needs of the [`Assembler`].
+/// with the structural needs of the [`crate::semantic::assembly::Assembler`].
 ///
 /// # Why it exists
 /// The parser gives us isolated words, but to build a sentence, we need to know *what* each word is doing.
