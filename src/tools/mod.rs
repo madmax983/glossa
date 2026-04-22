@@ -48,6 +48,11 @@ pub mod narrator;
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
 pub mod papyrus;
+/// The Ptolemy (Πτολεμαῖος) tool for TypeScript definitions generation.
+///
+/// This experimental tool generates TypeScript type definitions from Glossa types and functions.
+#[cfg(feature = "nova")]
+pub mod ptolemy;
 pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs

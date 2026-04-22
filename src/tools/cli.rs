@@ -204,4 +204,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Transpile a .γλ file to TypeScript definitions (Requires "nova" feature)
+    Ptolemy {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

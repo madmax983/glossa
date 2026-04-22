@@ -178,6 +178,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Ptolemy { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::ptolemy::run_ptolemy(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'ptolemy' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

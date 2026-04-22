@@ -42,3 +42,8 @@
 **Concept:** A Markdown documentation generator (`glossa scholar`) that uses the compiler's semantic phase to extract and format types, traits, and functions.
 **Fate:** Merged
 **Lesson:** Using the `AnalyzedProgram`'s scope directly allows us to generate accurate API documentation effortlessly, proving the power of a centralized semantic model.
+
+## 🌟 The Ptolemy (ὁ Πτολεμαῖος)
+**Concept:** A TypeScript definition file generator (`glossa ptolemy`) that traverses the semantic AST's `AnalyzedProgram` to translate Glossa definitions and functions into `.d.ts` typescript interface declarations, enabling seamless cross-language interoperability mappings.
+**Fate:** Merged
+**Lesson:** Treating Glossa as a definition layer mapping enables translation not only of implementations into Python/Rust, but also interface boundaries directly into heavily-adopted strongly typed systems like TypeScript.
