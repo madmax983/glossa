@@ -36,3 +36,7 @@
 **Bloat:** Generic closure `F: FnOnce() -> Option<PathBuf>` and deferred evaluation (`.or_else`) in `Cache::with_dirs`.
 **Cut:** Replaced generic with eager `Option<PathBuf>` parameter and used direct `Option::or`.
 **Saved:** 5 lines of code, simplified API signature.
+## [Reduction]
+**Bloat:** Manual string slicing and hardcoded offset arithmetic (`line[5..idx]`, `idx < 5`) in `parse_test_output` in `src/tools/tester.rs` which increased cognitive load and was fragile.
+**Cut:** Replaced `starts_with("test ")` and manual slice arithmetic with idiomatic `line.strip_prefix("test ")`. This removed the need for the `idx < 5` bounds check because the prefix is already stripped before calling `rfind`.
+**Saved:** Removed 3 lines of complex bounds checking and simplified string extraction, replacing brittle indexing with safe, idiomatic Rust.

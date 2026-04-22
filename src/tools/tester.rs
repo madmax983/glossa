@@ -67,17 +67,14 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
     let mut results = Vec::new();
     for line in output.lines() {
         // Standard rustc test output line format: "test test_name ... status"
-        if line.starts_with("test ") {
-            #[allow(clippy::collapsible_if)]
-            if let Some(idx) = line.rfind(" ... ") {
-                if idx < 5 {
-                    continue;
-                }
-                let name = line[5..idx].trim();
+        #[allow(clippy::collapsible_if)]
+        if let Some(rest) = line.strip_prefix("test ") {
+            if let Some(idx) = rest.rfind(" ... ") {
+                let name = rest[..idx].trim();
                 if name.is_empty() {
                     continue;
                 }
-                let status_str = &line[idx + 5..];
+                let status_str = &rest[idx + 5..];
                 let status = match status_str {
                     "ok" => TestStatus::Ok,
                     "FAILED" => TestStatus::Failed,
