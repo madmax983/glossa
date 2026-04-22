@@ -142,19 +142,26 @@ mod tests {
         );
         assert_eq!(glossa_type_to_ts(&GlossaType::Unknown), "any");
         assert_eq!(
-            glossa_type_to_ts(&GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String))),
+            glossa_type_to_ts(&GlossaType::Result(
+                Box::new(GlossaType::Number),
+                Box::new(GlossaType::String)
+            )),
             "number"
         );
+        assert_eq!(glossa_type_to_ts(&GlossaType::Unit), "void");
         assert_eq!(
-            glossa_type_to_ts(&GlossaType::Unit),
-            "void"
-        );
-        assert_eq!(
-            glossa_type_to_ts(&GlossaType::Struct { name: "User".into(), gender: crate::morphology::Gender::Masculine, fields: vec![] }),
+            glossa_type_to_ts(&GlossaType::Struct {
+                name: "User".into(),
+                gender: crate::morphology::Gender::Masculine,
+                fields: vec![]
+            }),
             "User"
         );
         assert_eq!(
-            glossa_type_to_ts(&GlossaType::Function { params: vec![GlossaType::Number, GlossaType::String], returns: Box::new(GlossaType::Boolean) }),
+            glossa_type_to_ts(&GlossaType::Function {
+                params: vec![GlossaType::Number, GlossaType::String],
+                returns: Box::new(GlossaType::Boolean)
+            }),
             "(arg0: number, arg1: string) => boolean"
         );
     }
