@@ -27,6 +27,7 @@ use miette::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 use std::path::Path;
+use crossterm::style::Stylize;
 
 /// Runs the Auditor tool on a given Glossa source file.
 ///
@@ -82,10 +83,10 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 
     let mut issues = 0;
 
-    println!(
-        "\n🔍 \x1b[1;36mAudit Report for {}\x1b[0m\n",
-        input.display()
-    );
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   A U D I T O R".cyan().bold());
+    println!("   {}", format!("Audit Report for {}", input.display()).italic().dim());
+    println!();
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
@@ -121,10 +122,11 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     }
 
     if issues == 0 {
-        println!("✨ \x1b[1;32mNo issues found. The code is pure.\x1b[0m");
+        println!("   {}", "✨ No issues found. The code is pure.".green().bold());
+        println!();
     } else {
         println!("{table}");
-        println!("\nTotal issues found: {}", issues);
+        println!("\n   Total issues found: {}", issues);
     }
 
     Ok(())
