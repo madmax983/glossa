@@ -208,7 +208,8 @@ mod tests {
     fn test_run_ptolemy_analysis_error() {
         let dir = tempdir().unwrap();
         let input_path = dir.path().join("api.γλ");
-        fs::write(&input_path, "invalid syntax here.").unwrap();
+        // Use valid tokens but semantically invalid syntax that fails the analyzer
+        fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
 
         let result = run_ptolemy(&input_path);
         assert!(result.is_err());
