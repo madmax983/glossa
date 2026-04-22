@@ -96,6 +96,7 @@ C4Component
         Component(expressions, "Expressions", "src/semantic/expressions.rs", "Recursively analyzes nested expressions")
         Component(resolver, "Resolver", "src/semantic/resolver.rs", "Manages Scope and Bindings")
         Component(assembly, "Assembly", "src/semantic/assembly/mod.rs", "Routes words to grammatical slots")
+        Component(assembly_model, "Assembly Model", "src/semantic/assembly/model.rs", "Data Transfer Objects (DTOs)")
         Component(conversion, "Conversion", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
@@ -115,7 +116,9 @@ C4Component
     Rel(control_flow, expressions, "Analyzes conditions")
     Rel(control_flow, model, "Produces")
 
-    Rel(conversion, assembly, "Uses Assembler")
+    Rel(conversion, assembly, "Uses")
+    Rel(conversion, assembly_model, "Consumes")
+    Rel(assembly, assembly_model, "Produces")
     Rel(assembly, morphology, "Uses")
     Rel(assembly, expressions, "Feeds sub-expressions")
 
