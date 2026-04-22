@@ -36,3 +36,7 @@
 **Bloat:** Generic closure `F: FnOnce() -> Option<PathBuf>` and deferred evaluation (`.or_else`) in `Cache::with_dirs`.
 **Cut:** Replaced generic with eager `Option<PathBuf>` parameter and used direct `Option::or`.
 **Saved:** 5 lines of code, simplified API signature.
+## [Reduction]
+**Bloat:** Undefined variables silently decaying into literal `0` integers deep within semantic parsing (`extract_value`), and critical sentence structure checks (`MissingVerb`) being ignored or throwing silent raw Rust codegen errors.
+**Cut:** Removed silent variable decay defaults. Flattened statement validation into `check_undefined_variables` where scoping and AST context are available, actively preventing undefined names. Placed explicit MissingVerb catching inside `Assembler::finalize`.
+**Saved:** Multiple paths that historically led to compiler crashes / malformed semantic models. Unified missing-verb catching, and prevented dozens of lines of unneeded checks later down in the codegen toolchain.
