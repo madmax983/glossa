@@ -198,6 +198,12 @@ mod tests {
             "{\"type\": \"array\", \"items\": {\"type\": \"string\"}}"
         );
 
+        let set_type = GlossaType::Set(Box::new(GlossaType::Number));
+        assert_eq!(
+            glossa_type_to_json_schema(&set_type),
+            "{\"type\": \"array\", \"items\": {\"type\": \"integer\"}}"
+        );
+
         let option_type = GlossaType::Option(Box::new(GlossaType::Number));
         assert_eq!(
             glossa_type_to_json_schema(&option_type),
