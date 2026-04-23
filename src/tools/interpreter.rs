@@ -613,7 +613,9 @@ mod tests {
 #[cfg(test)]
 mod extra_tests {
     use super::*;
-    use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType};
+    use crate::semantic::{
+        AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType,
+    };
 
     #[test]
     fn test_interpreter_print_multiple() {
@@ -640,12 +642,10 @@ mod extra_tests {
     fn test_interpreter_print_single() {
         let mut interpreter = Interpreter::new();
         let program = AnalyzedProgram {
-            statements: vec![AnalyzedStatement::Print(vec![
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(1),
-                    glossa_type: GlossaType::Number,
-                },
-            ])],
+            statements: vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            }])],
             scope: crate::semantic::Scope::new(),
         };
 
