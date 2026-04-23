@@ -215,11 +215,15 @@ impl Interpreter {
                 self.assign_var(name, val)?;
             }
             AnalyzedStatement::Print(exprs) => {
-                let mut parts = Vec::new();
-                for expr in exprs {
-                    parts.push(self.eval_expr(expr)?.to_string());
+                use std::fmt::Write;
+                // ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<_>>()` allocation and `.join(" ")`.
+                let mut line = String::with_capacity(exprs.len() * 16);
+                for (i, expr) in exprs.iter().enumerate() {
+                    if i > 0 {
+                        line.push(' ');
+                    }
+                    let _ = write!(&mut line, "{}", self.eval_expr(expr)?);
                 }
-                let line = parts.join(" ");
                 println!("{}", line);
                 self.output.push(line);
             }

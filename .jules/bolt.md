@@ -48,3 +48,6 @@
 **[Removing unnecessary format! for integers]
 **Learning:** Cell::new takes T: ToString. Using format!("{}", num) creates an unnecessary String allocation and formatting overhead compared to passing the integer directly which uses fast itoa conversion.
 **Action:** Pass integers directly to Cell::new instead of formatting them first.
+**Optimization of string join patterns**
+**Learning:** Removing intermediate heap allocations for string concatenations using string formatting in a pre-allocated `String` with `write!` eliminates memory overhead when formatting output strings. However, `[T]::join` on array slice already allocates a single `String` directly and avoiding it doesn't help. We should only avoid `.collect::<Vec<_>>().join(" ")`.
+**Action:** Replace `format!(..., parts.join(" "))` with a `String::with_capacity` buffer and `write!` macro directly, avoiding intermediate `Vec` allocations.
