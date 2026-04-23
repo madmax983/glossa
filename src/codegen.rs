@@ -1553,8 +1553,9 @@ mod tests {
         };
         let code = generate_collection_index(&array, &index).to_string();
         assert!(code.contains("try_from"));
-        assert!(code.contains("expect"));
-        assert!(code.contains("index out of bounds"));
+        assert!(code.contains("expect (\"index out of bounds: too large\")"));
+        assert!(code.contains("index out of bounds: negative index"));
+        assert!(code.contains("expect (\"index out of bounds: index too large\")"));
     }
 
     #[test]
