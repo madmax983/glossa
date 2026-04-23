@@ -237,7 +237,11 @@ fn execute_test_binary(exe_path: &Path, status: &mut Status) -> Result<std::proc
     Ok(test_output)
 }
 
-fn print_test_results(results: &[(String, TestStatus)], test_output: &std::process::Output, stdout: &str) {
+fn print_test_results(
+    results: &[(String, TestStatus)],
+    test_output: &std::process::Output,
+    stdout: &str,
+) {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
     println!("   {}", "Unit Test Results".italic().dim());
