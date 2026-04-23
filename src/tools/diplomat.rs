@@ -175,6 +175,7 @@ fn glossa_type_to_json_schema(g_type: &GlossaType) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write as IoWrite;
 
     #[test]
     fn test_glossa_type_to_json_schema() {
@@ -203,6 +204,72 @@ mod tests {
             "{\"type\": [\"integer\", \"null\"]}"
         );
 
+        let map_type = GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number));
+        assert_eq!(
+            glossa_type_to_json_schema(&map_type),
+            "{\"type\": \"object\", \"additionalProperties\": {\"type\": \"integer\"}}"
+        );
+
+        let complex_option = GlossaType::Option(Box::new(GlossaType::Map(
+            Box::new(GlossaType::String),
+            Box::new(GlossaType::Number),
+        )));
+        assert_eq!(
+            glossa_type_to_json_schema(&complex_option),
+            "{\"type\": [\"object\", \"null\"], \"additionalProperties\": {\"type\": \"integer\"}}"
+        );
+
+        let unknown_option = GlossaType::Option(Box::new(GlossaType::Unknown));
+        assert_eq!(
+            glossa_type_to_json_schema(&unknown_option),
+            "{\"anyOf\": [{}, {\"type\": \"null\"}]}"
+        );
+
         assert_eq!(glossa_type_to_json_schema(&GlossaType::Unknown), "{}");
+    }
+
+    #[test]
+    fn test_run_diplomat_success() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_schema.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }. \n".as_bytes())
+                .unwrap();
+        }
+
+        let result = run_diplomat(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_diplomat_no_structs() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("no_structs.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«χαῖρε» λέγε.\n".as_bytes()).unwrap();
+        }
+
+        let result = run_diplomat(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_diplomat_errors() {
+        // Test file not found error path
+        let result = run_diplomat(Path::new("nonexistent.gl"));
+        assert!(result.is_err());
+
+        // Test syntax/semantic error path
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("error.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("invalid syntax that fails analysis\n".as_bytes())
+                .unwrap();
+        }
+        let result = run_diplomat(&input_path);
+        assert!(result.is_err());
     }
 }
