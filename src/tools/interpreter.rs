@@ -215,11 +215,15 @@ impl Interpreter {
                 self.assign_var(name, val)?;
             }
             AnalyzedStatement::Print(exprs) => {
-                let mut parts = Vec::new();
-                for expr in exprs {
-                    parts.push(self.eval_expr(expr)?.to_string());
+                use std::fmt::Write;
+                // ⚡ Bolt Optimization: Removed intermediate `.collect::<Vec<_>>()` allocation and `.join(" ")`.
+                let mut line = String::with_capacity(exprs.len() * 16);
+                for (i, expr) in exprs.iter().enumerate() {
+                    if i > 0 {
+                        line.push(' ');
+                    }
+                    let _ = write!(&mut line, "{}", self.eval_expr(expr)?);
                 }
-                let line = parts.join(" ");
                 println!("{}", line);
                 self.output.push(line);
             }
@@ -603,5 +607,49 @@ mod tests {
             interpreter.assign_var("x", Value::Number(1)),
             Err(EvalError::VariableNotFound(_))
         ));
+    }
+}
+
+#[cfg(test)]
+mod extra_tests {
+    use super::*;
+    use crate::semantic::{
+        AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType,
+    };
+
+    #[test]
+    fn test_interpreter_print_multiple() {
+        let mut interpreter = Interpreter::new();
+        let program = AnalyzedProgram {
+            statements: vec![AnalyzedStatement::Print(vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(2),
+                    glossa_type: GlossaType::Number,
+                },
+            ])],
+            scope: crate::semantic::Scope::new(),
+        };
+
+        interpreter.run(&program).unwrap();
+        assert_eq!(interpreter.get_output(), "1 2");
+    }
+
+    #[test]
+    fn test_interpreter_print_single() {
+        let mut interpreter = Interpreter::new();
+        let program = AnalyzedProgram {
+            statements: vec![AnalyzedStatement::Print(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            }])],
+            scope: crate::semantic::Scope::new(),
+        };
+
+        interpreter.run(&program).unwrap();
+        assert_eq!(interpreter.get_output(), "1");
     }
 }
