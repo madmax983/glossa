@@ -609,3 +609,47 @@ mod tests {
         ));
     }
 }
+
+#[cfg(test)]
+mod extra_tests {
+    use super::*;
+    use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType};
+
+    #[test]
+    fn test_interpreter_print_multiple() {
+        let mut interpreter = Interpreter::new();
+        let program = AnalyzedProgram {
+            statements: vec![AnalyzedStatement::Print(vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(2),
+                    glossa_type: GlossaType::Number,
+                },
+            ])],
+            scope: crate::semantic::Scope::new(),
+        };
+
+        interpreter.run(&program).unwrap();
+        assert_eq!(interpreter.get_output(), "1 2");
+    }
+
+    #[test]
+    fn test_interpreter_print_single() {
+        let mut interpreter = Interpreter::new();
+        let program = AnalyzedProgram {
+            statements: vec![AnalyzedStatement::Print(vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                },
+            ])],
+            scope: crate::semantic::Scope::new(),
+        };
+
+        interpreter.run(&program).unwrap();
+        assert_eq!(interpreter.get_output(), "1");
+    }
+}
