@@ -42,3 +42,7 @@
 **Concept:** A Markdown documentation generator (`glossa scholar`) that uses the compiler's semantic phase to extract and format types, traits, and functions.
 **Fate:** Merged
 **Lesson:** Using the `AnalyzedProgram`'s scope directly allows us to generate accurate API documentation effortlessly, proving the power of a centralized semantic model.
+## 🌟 The Diplomat (ὁ Διπλωμάτης)
+**Concept:** A JSON Schema generator (`glossa diplomat`) that transpiles Glossa struct definitions (`εἶδος`) directly into Draft-07 JSON Schema templates.
+**Fate:** Merged
+**Lesson:** Establishing formalized data interfaces unlocks interoperability with the outside world. Mapping the internal `GlossaType` variants to robust JSON type arrays bridges the gap between purely Ancient Greek type abstractions and modern REST API standards.

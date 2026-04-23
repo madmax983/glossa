@@ -32,6 +32,12 @@ pub mod cartographer;
 pub mod catalog;
 pub mod cli;
 pub mod dictionary;
+/// The Diplomat (ὁ Διπλωμάτης) tool for JSON Schema generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding JSON Schema configurations.
+#[cfg(feature = "nova")]
+pub mod diplomat;
 pub mod highlight;
 #[cfg(feature = "nova")]
 pub mod interpreter;

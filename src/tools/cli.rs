@@ -204,4 +204,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Transpile a .γλ file to a JSON Schema (Requires "nova" feature)
+    Diplomat {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
