@@ -6,6 +6,18 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 /// Errors that can occur during assembly
+///
+/// ## Examples
+///
+/// Attempting to use two objects in the same sentence causes an error:
+///
+/// ```rust
+/// use glossa::errors::AssemblyError;
+///
+/// let error = AssemblyError::DoubleObject;
+/// assert!(error.to_string().contains("Διπλοῦν ἀντικείμενον"));
+/// ```
+///
 #[derive(Debug, Clone, Error, Diagnostic)]
 pub enum AssemblyError {
     /// Two subjects found in the same statement (Nominative collision)

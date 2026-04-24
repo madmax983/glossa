@@ -47,6 +47,18 @@ use thiserror::Error;
 /// This enum aggregates all possible errors from the compiler pipeline.
 /// It implements [`miette::Diagnostic`] to provide pretty-printed error reports with
 /// source code snippets and labels.
+///
+/// ## Examples
+///
+/// Creating and matching on a semantic error:
+///
+/// ```rust
+/// use glossa::errors::GlossaError;
+///
+/// let error = GlossaError::semantic("Type mismatch");
+/// assert!(matches!(error, GlossaError::SemanticError { .. }));
+/// ```
+///
 #[derive(Debug, Clone, Error, Diagnostic)]
 pub enum GlossaError {
     /// **Syntax Error**: The parser failed to understand the code structure.
