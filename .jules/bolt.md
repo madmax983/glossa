@@ -51,3 +51,7 @@
 **Optimization of string join patterns**
 **Learning:** Removing intermediate heap allocations for string concatenations using string formatting in a pre-allocated `String` with `write!` eliminates memory overhead when formatting output strings. However, `[T]::join` on array slice already allocates a single `String` directly and avoiding it doesn't help. We should only avoid `.collect::<Vec<_>>().join(" ")`.
 **Action:** Replace `format!(..., parts.join(" "))` with a `String::with_capacity` buffer and `write!` macro directly, avoiding intermediate `Vec` allocations.
+
+**[HashMap to FxHashMap in tools/catalog.rs]**
+**Learning:** `std::collections::HashMap` introduces unnecessary hashing overhead for internal keys (`PartOfSpeech` enum variants). Switching to `rustc_hash::FxHashMap` is a safe, zero-cost optimization since the map is entirely internal and does not process unvalidated string inputs that could be vulnerable to HashDoS.
+**Action:** Replaced `std::collections::HashMap` with `rustc_hash::FxHashMap` in `src/tools/catalog.rs` for `entries_by_pos`.
