@@ -38,7 +38,7 @@ pub mod assembly;
 #[cfg(test)]
 mod classification_tests;
 pub(crate) mod control_flow;
-pub(crate) mod conversion;
+pub mod conversion;
 #[cfg(test)]
 mod conversion_tests;
 pub(crate) mod declarations;

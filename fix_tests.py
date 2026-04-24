@@ -5,7 +5,8 @@ with open("src/semantic/conversion/mod.rs", "r") as f:
 
 new_lines = []
 for line in lines:
-    if line.startswith("use crate::semantic::{Constituent, Literal, GlossaType, AnalyzedExprKind, AnalyzedStatement, AnalyzedExpr, Scope};"):
+    if line.startswith("#[cfg(test)]"):
+        new_lines.append(line)
         new_lines.append("use crate::semantic::{Constituent, Literal, GlossaType, AnalyzedExprKind};\n")
     else:
         new_lines.append(line)

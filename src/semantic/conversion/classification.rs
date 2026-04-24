@@ -1,16 +1,17 @@
-use super::*;
 use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::semantic::assembly::AssembledStatement;
+use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
+use crate::semantic::resolver::Scope;
+use crate::semantic::types::GlossaType;
+use crate::semantic::{Constituent, Literal};
 use crate::semantic::expressions::{
     analyze_argument_expr, build_binary_expr, build_expressions_from_literals_and_ops,
     literal_to_analyzed_expr,
 };
-use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
 use crate::semantic::patterns::detect_iterator_pattern;
-use crate::semantic::resolver::Scope;
-use crate::semantic::types::GlossaType;
-use crate::semantic::{Constituent, Literal};
+use super::extraction::*;
+use crate::semantic::conversion::resolve_binding_target;
 
 /// Diagnoses the semantic intent of an assembled statement using heuristic pattern matching.
 ///

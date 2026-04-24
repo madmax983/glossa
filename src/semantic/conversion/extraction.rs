@@ -1,14 +1,14 @@
-use super::*;
 use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::semantic::assembly::AssembledStatement;
+use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
+use crate::semantic::resolver::Scope;
+use crate::semantic::types::GlossaType;
 use crate::semantic::expressions::{
     analyze_argument_expr, build_binary_expr, build_expressions_from_literals_and_ops,
     literal_to_analyzed_expr, literal_to_type,
 };
-use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
-use crate::semantic::resolver::Scope;
-use crate::semantic::types::GlossaType;
+use super::classification::*;
 
 pub(crate) fn extract_unwrap(
     asm_stmt: &AssembledStatement,

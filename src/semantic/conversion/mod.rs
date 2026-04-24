@@ -35,7 +35,8 @@
 //!    - **Try/Propagate**: `expr;` (becomes `expr?`).
 
 pub(crate) mod classification;
-pub(crate) mod extraction;
+pub mod extraction;
+
 pub use classification::*;
 pub use extraction::*;
 
@@ -94,9 +95,15 @@ pub fn convert_assembled_to_analyzed(
     classify_assembled_statement(asm_stmt, scope)
 }
 
+
 // -------------------------------------------------------------------------------------------------
 // Helper functions for classify_assembled_statement
 // -------------------------------------------------------------------------------------------------
+
+
+
+
+
 
 /// Helper: Resolve the target variable name and the effective assembled statement for binding
 ///
@@ -104,7 +111,7 @@ pub fn convert_assembled_to_analyzed(
 /// `AssembledStatement` to avoid cloning a large struct on a hot path during semantic analysis.
 /// We only need to clone and mutate the assembled statement if we're swapping subject/object
 /// or fixing false participles. Otherwise, we just return a borrowed reference to the original statement.
-fn resolve_binding_target<'a>(
+pub(crate) fn resolve_binding_target<'a>(
     asm_stmt: &'a AssembledStatement,
     scope: &Scope,
 ) -> Result<(String, std::borrow::Cow<'a, AssembledStatement>), GlossaError> {
@@ -162,9 +169,41 @@ fn resolve_binding_target<'a>(
     Err(GlossaError::semantic("Binding without subject"))
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // -------------------------------------------------------------------------------------------------
 // Helper functions for extract_value
 // -------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
 
 #[cfg(test)]
 use crate::semantic::{Constituent, Literal, GlossaType, AnalyzedExprKind};
