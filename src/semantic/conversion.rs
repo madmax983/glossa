@@ -2360,6 +2360,29 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_object_fallback_defined() {
+        let asm_stmt = AssembledStatement {
+            object: Some(Constituent {
+                lemma: "γνωστος".into(),
+                normalized: "γνωστος".into(),
+                original: "γνωστος".into(),
+                case: crate::morphology::models::Case::Nominative,
+                person: None,
+                number: Some(crate::morphology::models::Number::Singular),
+                gender: Some(crate::morphology::models::Gender::Masculine),
+            }),
+            ..Default::default()
+        };
+        let mut scope = Scope::new();
+        scope.define("γνωστος", GlossaType::Number);
+        let result = extract_object_fallback(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        let (_expr, ty) = result.unwrap().unwrap();
+        // By default, extract_object_fallback returns Unknown for variables it finds
+        assert_eq!(ty, GlossaType::Unknown);
+    }
+
+    #[test]
     fn test_classify_property_access_print_owner_not_in_scope() {
         let asm_stmt = AssembledStatement {
             verb: Some(crate::semantic::assembly::VerbConstituent {
