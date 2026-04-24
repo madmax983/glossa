@@ -44,6 +44,32 @@ pub fn run_diplomat(input: &Path) -> Result<()> {
 
     status.success();
 
+    let output = generate_schema_string(&program);
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   D I P L O M A T".bold().cyan());
+    println!("   {}", "JSON Schema Definitions".italic().dim());
+    println!();
+
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL);
+
+    table.set_header(vec![
+        Cell::new("JSON Schema")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
+    ]);
+
+    let formatted_code = format!("```json\n{}\n```", output.trim());
+    table.add_row(vec![Cell::new(formatted_code)]);
+
+    println!("{table}");
+    println!();
+
+    Ok(())
+}
+
+pub(crate) fn generate_schema_string(program: &crate::semantic::AnalyzedProgram) -> String {
     let mut output = String::new();
     output.push_str("{\n");
     output.push_str("  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n");
@@ -104,28 +130,7 @@ pub fn run_diplomat(input: &Path) -> Result<()> {
 
     output.push_str("  }\n");
     output.push_str("}\n");
-
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   D I P L O M A T".bold().cyan());
-    println!("   {}", "JSON Schema Definitions".italic().dim());
-    println!();
-
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
-
-    table.set_header(vec![
-        Cell::new("JSON Schema")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-    ]);
-
-    let formatted_code = format!("```json\n{}\n```", output.trim());
-    table.add_row(vec![Cell::new(formatted_code)]);
-
-    println!("{table}");
-    println!();
-
-    Ok(())
+    output
 }
 
 fn glossa_type_to_json_schema(g_type: &GlossaType) -> String {
@@ -232,6 +237,40 @@ mod tests {
         );
 
         assert_eq!(glossa_type_to_json_schema(&GlossaType::Unknown), "{}");
+    }
+
+    #[test]
+    fn test_generate_schema_string_complex() {
+        use crate::semantic::{AnalyzedProgram, Scope};
+        use smol_str::SmolStr;
+
+        let stmt1 = AnalyzedStatement::TypeDefinition {
+            name: SmolStr::new("StructA"),
+            fields: vec![
+                (SmolStr::new("req_field"), GlossaType::Number),
+                (SmolStr::new("opt_field"), GlossaType::Option(Box::new(GlossaType::String))),
+            ],
+        };
+
+        let stmt2 = AnalyzedStatement::TypeDefinition {
+            name: SmolStr::new("StructB"),
+            fields: vec![],
+        };
+
+        let program = AnalyzedProgram {
+            statements: vec![stmt1, stmt2],
+            scope: Scope::new(),
+        };
+
+        let output = generate_schema_string(&program);
+
+        // Assert it handled the comma between multiple structs
+        assert!(output.contains("\"StructA\": {"));
+        assert!(output.contains("},\n    \"StructB\": {"));
+
+        // Assert it handled Option types correctly for "required" properties list
+        assert!(output.contains("\"req_field\""));
+        assert!(!output.contains("\"opt_field\"\n      ]")); // Should not be in required array
     }
 
     #[test]
