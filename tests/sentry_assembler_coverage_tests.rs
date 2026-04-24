@@ -68,3 +68,11 @@ fn test_conversion_undefined_unknown_type() {
     let prog = glossa::semantic::analyze_program(&ast);
     assert!(prog.is_err());
 }
+
+#[test]
+fn test_conversion_undefined_unknown_type_try_print() {
+    let source = "ἄγνωστος λέγε.";
+    let ast = glossa::parser::parse(source).unwrap();
+    let prog = glossa::semantic::analyze_program(&ast);
+    assert!(prog.is_err());
+}
