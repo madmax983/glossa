@@ -675,7 +675,8 @@ mod tests {
         let input_path = dir.path().join("test.gl");
         {
             let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
-            f.write_all("«test» λέγε.".as_bytes()).expect("Failed to write to file");
+            f.write_all("«test» λέγε.".as_bytes())
+                .expect("Failed to write to file");
         }
 
         // Call build_file
@@ -758,7 +759,8 @@ mod tests {
         let input_path = dir.path().join("run_test.gl");
         {
             let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
-            f.write_all("«test» λέγε.".as_bytes()).expect("Failed to write to file");
+            f.write_all("«test» λέγε.".as_bytes())
+                .expect("Failed to write to file");
         }
 
         // 2. Run it
@@ -786,7 +788,8 @@ mod tests {
         let input_path = dir.path().join("error.gl");
         {
             let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
-            f.write_all("invalid syntax".as_bytes()).expect("Failed to write to file");
+            f.write_all("invalid syntax".as_bytes())
+                .expect("Failed to write to file");
         }
 
         let result = run_file(&input_path);
@@ -800,7 +803,8 @@ mod tests {
         let input_path = dir.path().join("rustc_error.gl");
         {
             let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
-            f.write_all("«test» λέγε.".as_bytes()).expect("Failed to write to file");
+            f.write_all("«test» λέγε.".as_bytes())
+                .expect("Failed to write to file");
         }
 
         // We can force invoke_rustc to fail by using the helper directly on bad files,
@@ -825,7 +829,8 @@ mod tests {
         let input_path = dir.path().join("check.gl");
         {
             let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).expect("Failed to write to file");
+            f.write_all("ξ πέντε ἔστω.".as_bytes())
+                .expect("Failed to write to file");
         }
 
         let result = check_file(&input_path);
@@ -838,7 +843,8 @@ mod tests {
         let input_path = dir.path().join("highlight.gl");
         {
             let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).expect("Failed to write to file");
+            f.write_all("ξ πέντε ἔστω.".as_bytes())
+                .expect("Failed to write to file");
         }
 
         // We can't easily capture stdout here without a lot of plumbing,
@@ -853,7 +859,8 @@ mod tests {
         let input_path = dir.path().join("bard.gl");
         {
             let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).expect("Failed to write to file");
+            f.write_all("ξ πέντε ἔστω.".as_bytes())
+                .expect("Failed to write to file");
         }
 
         let result = bard_file(&input_path);
@@ -866,7 +873,8 @@ mod tests {
         let input_path = dir.path().join("report.gl");
         {
             let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).expect("Failed to write to file");
+            f.write_all("ξ πέντε ἔστω.".as_bytes())
+                .expect("Failed to write to file");
         }
 
         let result = report_file(&input_path);

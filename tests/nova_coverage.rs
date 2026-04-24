@@ -68,7 +68,10 @@ fn test_run_papyrus_file_not_found() {
 
 #[test]
 fn test_run_papyrus_file_too_large() {
-    let dir = Builder::new().prefix("papyrus_large").tempdir().expect("Failed to create temp dir");
+    let dir = Builder::new()
+        .prefix("papyrus_large")
+        .tempdir()
+        .expect("Failed to create temp dir");
     let input_path = dir.path().join("too_large.γλ");
 
     let max_size = 1024 * 1024;

@@ -455,7 +455,8 @@ mod tests {
     fn test_run_tests_rustc_missing() {
         let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("test_rustc_missing.gl");
-        std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.").expect("Failed to write to file");
+        std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.")
+            .expect("Failed to write to file");
 
         // Spawn a child process so we don't mutate the global PATH/env.
         let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
