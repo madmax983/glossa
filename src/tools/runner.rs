@@ -565,7 +565,7 @@ mod tests {
         let source = "«χαῖρε κόσμε» λέγε.";
         let result = compile(source);
         assert!(result.is_ok());
-        let code = result.unwrap();
+        let code = result.expect("Expected Result to be Ok");
         // quote! generates `println !` with space
         assert!(code.contains("println"), "Expected println in: {}", code);
     }
@@ -575,7 +575,7 @@ mod tests {
         let source = "ξ πέντε ἔστω.";
         let result = compile(source);
         assert!(result.is_ok());
-        let code = result.unwrap();
+        let code = result.expect("Expected Result to be Ok");
         assert!(code.contains("let"));
     }
 
@@ -588,7 +588,7 @@ mod tests {
 
     #[test]
     fn test_load_source_directory_error() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         // A directory exists, so it passes the `!input.exists()` check.
         // But `fs::File::open` or `read_to_string` will fail on a directory.
         let result = load_source(dir.path());
@@ -608,10 +608,10 @@ mod tests {
 
     #[test]
     fn test_build_file_output_directory_error() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("test.gl");
         // Using fs::write avoids needing std::io::Write in scope
-        std::fs::write(&input_path, "«test» λέγε.").unwrap();
+        std::fs::write(&input_path, "«test» λέγε.").expect("Failed to write file");
 
         // Try to output the compiled rust file to a directory path instead of a file path
         let result = build_file(&input_path, Some(dir.path()));
@@ -627,12 +627,12 @@ mod tests {
     #[test]
     fn test_file_size_check_internal() {
         // Create large file
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let file_path = dir.path().join("large_internal.gl");
         {
-            let mut f = std::fs::File::create(&file_path).unwrap();
+            let mut f = std::fs::File::create(&file_path).expect("Failed to create file");
             let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
-            f.write_all(&data).unwrap();
+            f.write_all(&data).expect("Failed to write to file");
         }
 
         // Call check_file_size directly
@@ -649,12 +649,12 @@ mod tests {
     #[test]
     fn test_build_file_size_limit() {
         // Create large file
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let file_path = dir.path().join("large_build.gl");
         {
-            let mut f = std::fs::File::create(&file_path).unwrap();
+            let mut f = std::fs::File::create(&file_path).expect("Failed to create file");
             let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
-            f.write_all(&data).unwrap();
+            f.write_all(&data).expect("Failed to write to file");
         }
 
         // Call build_file
@@ -671,11 +671,11 @@ mod tests {
     #[test]
     fn test_build_file_success() {
         // Create a temporary input file
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("test.gl");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("«test» λέγε.".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
+            f.write_all("«test» λέγε.".as_bytes()).expect("Failed to write to file");
         }
 
         // Call build_file
@@ -687,19 +687,19 @@ mod tests {
         assert!(output_path.exists());
 
         // Output size is > 0
-        let metadata = std::fs::metadata(&output_path).unwrap();
+        let metadata = std::fs::metadata(&output_path).expect("Failed to get metadata");
         assert!(metadata.len() > 0);
     }
 
     #[test]
     fn test_run_file_size_limit() {
         // Create large file
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let file_path = dir.path().join("large_run.gl");
         {
-            let mut f = std::fs::File::create(&file_path).unwrap();
+            let mut f = std::fs::File::create(&file_path).expect("Failed to create file");
             let data = vec![0u8; (MAX_FILE_SIZE + 1) as usize];
-            f.write_all(&data).unwrap();
+            f.write_all(&data).expect("Failed to write to file");
         }
 
         // Call run_file (should fail at size check before running rustc)
@@ -718,9 +718,9 @@ mod tests {
     // block can cause data races with other parallel tests executing run_file. Instead
     // of modifying the environment, we use a custom test function wrapper.
     fn test_run_file_rustc_missing() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("run_rustc_missing.gl");
-        std::fs::write(&input_path, "«test» λέγε.").unwrap();
+        std::fs::write(&input_path, "«test» λέγε.").expect("Failed to write file");
 
         // By spawning a child process that runs `glossa run`, we can cleanly set an environment
         // variable without modifying the global state of the concurrent test runner.
@@ -754,11 +754,11 @@ mod tests {
     #[test]
     fn test_run_file_success() {
         // 1. Create a temporary Glossa file
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("run_test.gl");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("«test» λέγε.".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
+            f.write_all("«test» λέγε.".as_bytes()).expect("Failed to write to file");
         }
 
         // 2. Run it
@@ -782,11 +782,11 @@ mod tests {
 
     #[test]
     fn test_run_compile_error() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("error.gl");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("invalid syntax".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
+            f.write_all("invalid syntax".as_bytes()).expect("Failed to write to file");
         }
 
         let result = run_file(&input_path);
@@ -796,11 +796,11 @@ mod tests {
 
     #[test]
     fn test_run_rustc_error() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("rustc_error.gl");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("«test» λέγε.".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
+            f.write_all("«test» λέγε.".as_bytes()).expect("Failed to write to file");
         }
 
         // We can force invoke_rustc to fail by using the helper directly on bad files,
@@ -808,7 +808,7 @@ mod tests {
         // we'll just test that `invoke_rustc` fails on a bad Rust file directly!
         let rs_path = dir.path().join("bad.rs");
         let exe_path = dir.path().join("bad");
-        std::fs::write(&rs_path, "fn main() { unknown_variable; }").unwrap();
+        std::fs::write(&rs_path, "fn main() { unknown_variable; }").expect("Failed to write file");
 
         let result = invoke_rustc(&rs_path, &exe_path);
 
@@ -821,11 +821,11 @@ mod tests {
 
     #[test]
     fn test_check_file_valid() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("check.gl");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
+            f.write_all("ξ πέντε ἔστω.".as_bytes()).expect("Failed to write to file");
         }
 
         let result = check_file(&input_path);
@@ -834,11 +834,11 @@ mod tests {
 
     #[test]
     fn test_highlight_file_valid() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("highlight.gl");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
+            f.write_all("ξ πέντε ἔστω.".as_bytes()).expect("Failed to write to file");
         }
 
         // We can't easily capture stdout here without a lot of plumbing,
@@ -849,11 +849,11 @@ mod tests {
 
     #[test]
     fn test_bard_file_valid() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("bard.gl");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
+            f.write_all("ξ πέντε ἔστω.".as_bytes()).expect("Failed to write to file");
         }
 
         let result = bard_file(&input_path);
@@ -862,11 +862,11 @@ mod tests {
 
     #[test]
     fn test_report_file_valid() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("report.gl");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("ξ πέντε ἔστω.".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
+            f.write_all("ξ πέντε ἔστω.".as_bytes()).expect("Failed to write to file");
         }
 
         let result = report_file(&input_path);
@@ -901,9 +901,9 @@ mod tests {
     #[test]
     fn test_ui_error_cleanup_invalid_syntax() {
         // By passing invalid syntax, `analyze_source` fails.
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("invalid.gl");
-        std::fs::write(&input_path, "not valid greek").unwrap();
+        std::fs::write(&input_path, "not valid greek").expect("Failed to write file");
 
         let check_res = check_file(&input_path);
         assert!(check_res.is_err());

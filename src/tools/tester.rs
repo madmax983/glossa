@@ -370,7 +370,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 /// use std::fs;
 /// use tempfile::tempdir;
 ///
-/// let dir = tempdir().unwrap();
+/// let dir = tempdir().expect("Failed to create temp dir");
 /// let input = dir.path().join("tests.γλ");
 ///
 /// // Create a temporary Glossa file with a test declaration
@@ -453,9 +453,9 @@ mod tests {
 
     #[test]
     fn test_run_tests_rustc_missing() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("test_rustc_missing.gl");
-        std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.").unwrap();
+        std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.").expect("Failed to write to file");
 
         // Spawn a child process so we don't mutate the global PATH/env.
         let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
@@ -783,9 +783,9 @@ test name with spaces ... ok
 
     #[test]
     fn test_run_tests_parse_error() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("parse_error.gl");
-        std::fs::write(&input_path, b"invalid syntax").unwrap();
+        std::fs::write(&input_path, b"invalid syntax").expect("Failed to write to file");
 
         let result = run_tests(&input_path);
         assert!(result.is_err());
@@ -795,9 +795,9 @@ test name with spaces ... ok
 
     #[test]
     fn test_run_tests_semantic_error() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
         let input_path = dir.path().join("semantic_error.gl");
-        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
+        std::fs::write(&input_path, "ψ 10 γίγνεται.").expect("Failed to write to file");
 
         let result = run_tests(&input_path);
         assert!(result.is_err());

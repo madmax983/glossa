@@ -24,7 +24,7 @@ fn test_run_weave_success() {
     let output_path = temp_file.path().with_extension("md");
     assert!(output_path.exists());
 
-    let mut f = std::fs::File::open(&output_path).unwrap();
+    let mut f = std::fs::File::open(&output_path).expect("Failed to open file");
     let mut md = String::new();
     std::io::Read::take(&mut f, 1024 * 1024 + 1)
         .read_to_string(&mut md)
@@ -68,15 +68,15 @@ fn test_run_papyrus_file_not_found() {
 
 #[test]
 fn test_run_papyrus_file_too_large() {
-    let dir = Builder::new().prefix("papyrus_large").tempdir().unwrap();
+    let dir = Builder::new().prefix("papyrus_large").tempdir().expect("Failed to create temp dir");
     let input_path = dir.path().join("too_large.γλ");
 
     let max_size = 1024 * 1024;
     {
         use std::io::Write;
-        let mut f = std::fs::File::create(&input_path).unwrap();
+        let mut f = std::fs::File::create(&input_path).expect("Failed to create file");
         let data = vec![0u8; max_size + 1];
-        f.write_all(&data).unwrap();
+        f.write_all(&data).expect("Failed to write to file");
     }
 
     let result = glossa::tools::papyrus::run_papyrus(&input_path);
@@ -239,7 +239,7 @@ fn test_run_scholar_success() {
     let output_path = temp_file.path().with_extension("doc.md");
     assert!(output_path.exists());
 
-    let mut f = std::fs::File::open(&output_path).unwrap();
+    let mut f = std::fs::File::open(&output_path).expect("Failed to open file");
     let mut md = String::new();
     std::io::Read::take(&mut f, 1024 * 1024 + 1)
         .read_to_string(&mut md)
