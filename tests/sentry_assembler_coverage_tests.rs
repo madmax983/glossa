@@ -49,7 +49,8 @@ fn test_assembler_coverage_missing_verb_complex_expr() -> Result<(), glossa::err
 }
 
 #[test]
-fn test_assembler_coverage_missing_verb_complex_expr_obj() -> Result<(), glossa::errors::GlossaError> {
+fn test_assembler_coverage_missing_verb_complex_expr_obj() -> Result<(), glossa::errors::GlossaError>
+{
     let mut asm = glossa::semantic::assembly::Assembler::new();
     let obj = glossa::morphology::analyze_all("λογον");
     let _ = asm.feed(&obj[0], "λόγον");
