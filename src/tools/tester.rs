@@ -112,64 +112,84 @@ fn extract_failures(output: &str) -> Vec<(String, String)> {
 
     // Scan for "---- <name> stdout ----"
     while let Some(line) = lines.next() {
-        if line.trim().starts_with("----") && line.trim().ends_with("stdout ----") {
-            // Extract name: "---- test_name stdout ----"
-            let trimmed = line.trim();
-            let name_part = trimmed
-                .trim_start_matches("---- ")
-                .trim_end_matches(" stdout ----");
-            // Remove module path if present for cleaner display
-            let name = name_part
-                .split("::")
-                .last()
-                .unwrap_or(name_part)
-                .to_string();
+        let Some(name) = parse_failure_name(line) else {
+            continue;
+        };
 
-            // Capture output until next "----" or empty line followed by "failures:"
-            let mut message = String::new();
-            while let Some(current) = lines.peek() {
-                if current.trim().starts_with("----") && current.trim().ends_with("stdout ----") {
-                    // Start of next failure
-                    break;
-                }
-                if current.trim() == "failures:" {
-                    // End of details section
-                    break;
-                }
-
-                // Hide internal Rust thread information and temp file paths
-                if current.starts_with("thread '")
-                    && current.contains("panicked at")
-                    && let Some(panicked_idx) = current.find("panicked at")
-                {
-                    let mut clean_panic = format!("{}panicked", &current[..panicked_idx]);
-                    // Remove the "(pid)" thread id
-                    if let Some(idx1) = clean_panic.find(" (")
-                        && let Some(idx2) = clean_panic[idx1..].find(") ")
-                    {
-                        clean_panic.replace_range(idx1..idx1 + idx2 + 2, " ");
-                    }
-                    message.push_str(&clean_panic);
-                    message.push('\n');
-                    lines.next();
-                    continue;
-                }
-
-                // Hide backtrace hint
-                if current.starts_with("note: run with `RUST_BACKTRACE=1`") {
-                    lines.next();
-                    continue;
-                }
-
-                message.push_str(current);
-                message.push('\n');
-                lines.next();
-            }
-            failures.push((name, message.trim().to_string()));
-        }
+        let message = capture_failure_message(&mut lines);
+        failures.push((name, message));
     }
 
     failures
+}
+
+fn parse_failure_name(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    if !trimmed.starts_with("----") || !trimmed.ends_with("stdout ----") {
+        return None;
+    }
+
+    let name_part = trimmed
+        .trim_start_matches("---- ")
+        .trim_end_matches(" stdout ----");
+
+    // Remove module path if present for cleaner display
+    Some(
+        name_part
+            .split("::")
+            .last()
+            .unwrap_or(name_part)
+            .to_string(),
+    )
+}
+
+fn capture_failure_message(lines: &mut std::iter::Peekable<std::str::Lines>) -> String {
+    let mut message = String::new();
+    while let Some(current) = lines.peek() {
+        let trimmed = current.trim();
+        if (trimmed.starts_with("----") && trimmed.ends_with("stdout ----"))
+            || trimmed == "failures:"
+        {
+            break;
+        }
+
+        // Hide backtrace hint
+        if current.starts_with("note: run with `RUST_BACKTRACE=1`") {
+            lines.next();
+            continue;
+        }
+
+        if let Some(clean_panic) = clean_panic_message(current) {
+            message.push_str(&clean_panic);
+            message.push('\n');
+            lines.next();
+            continue;
+        }
+
+        message.push_str(current);
+        message.push('\n');
+        lines.next();
+    }
+    message.trim().to_string()
+}
+
+fn clean_panic_message(current: &str) -> Option<String> {
+    if !current.starts_with("thread '") {
+        return None;
+    }
+
+    let panicked_idx = current.find("panicked at")?;
+    let mut clean_panic = format!("{}panicked", &current[..panicked_idx]);
+
+    // Remove the "(pid)" thread id
+    #[allow(clippy::collapsible_if)]
+    if let Some(idx1) = clean_panic.find(" (") {
+        if let Some(idx2) = clean_panic[idx1..].find(") ") {
+            clean_panic.replace_range(idx1..idx1 + idx2 + 2, " ");
+        }
+    }
+
+    Some(clean_panic)
 }
 
 /// Run tests defined in a Glossa file
