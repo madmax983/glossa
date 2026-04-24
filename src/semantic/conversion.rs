@@ -2359,6 +2359,8 @@ mod tests {
         assert!(result.unwrap().is_none());
     }
 
+
+
     #[test]
     fn test_extract_object_fallback_defined() {
         let asm_stmt = AssembledStatement {
