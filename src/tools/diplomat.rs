@@ -248,7 +248,10 @@ mod tests {
             name: SmolStr::new("StructA"),
             fields: vec![
                 (SmolStr::new("req_field"), GlossaType::Number),
-                (SmolStr::new("opt_field"), GlossaType::Option(Box::new(GlossaType::String))),
+                (
+                    SmolStr::new("opt_field"),
+                    GlossaType::Option(Box::new(GlossaType::String)),
+                ),
             ],
         };
 
