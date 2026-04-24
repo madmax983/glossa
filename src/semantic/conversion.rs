@@ -871,9 +871,6 @@ fn try_print_property_access(
     if !asm_stmt.property_accesses.is_empty() {
         let mut args = Vec::with_capacity(asm_stmt.property_accesses.len());
         for (owner, method) in &asm_stmt.property_accesses {
-            if owner != "self" && owner != "selfου" && !scope.is_defined(owner) {
-                return None; // Will be handled elsewhere or fallback will error
-            }
             let receiver = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(owner.clone().into()),
                 glossa_type: scope.lookup(owner).cloned().unwrap_or(GlossaType::Unknown),
@@ -957,29 +954,25 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject {
-        if let Some(var_type) = scope.lookup(&subj.lemma) {
-            args.insert(
-                0,
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                },
-            );
-        } else if crate::morphology::lexicon::numeral_value(&subj.lemma).is_none() {
-            return Err(GlossaError::undefined(subj.lemma.as_str()));
-        }
+    if let Some(ref subj) = asm_stmt.subject
+        && let Some(var_type) = scope.lookup(&subj.lemma)
+    {
+        args.insert(
+            0,
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                glossa_type: var_type.clone(),
+            },
+        );
     }
 
-    if let Some(ref obj) = asm_stmt.object {
-        if let Some(var_type) = scope.lookup(&obj.lemma) {
-            args.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: var_type.clone(),
-            });
-        } else if crate::morphology::lexicon::numeral_value(&obj.lemma).is_none() {
-            return Err(GlossaError::undefined(obj.lemma.as_str()));
-        }
+    if let Some(ref obj) = asm_stmt.object
+        && let Some(var_type) = scope.lookup(&obj.lemma)
+    {
+        args.push(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+            glossa_type: var_type.clone(),
+        });
     }
 
     Ok(args)
@@ -1165,21 +1158,11 @@ fn classify_expression(
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
-            if !scope.is_defined(&subj.lemma)
-                && crate::morphology::lexicon::numeral_value(&subj.lemma).is_none()
-            {
-                return Err(GlossaError::undefined(subj.lemma.as_str()));
-            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             });
         } else if let Some(ref obj) = asm_stmt.object {
-            if !scope.is_defined(&obj.lemma)
-                && crate::morphology::lexicon::numeral_value(&obj.lemma).is_none()
-            {
-                return Err(GlossaError::undefined(obj.lemma.as_str()));
-            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
@@ -1389,12 +1372,9 @@ fn extract_enum_from_nominatives(
 
 fn extract_property_access(
     asm_stmt: &AssembledStatement,
-    scope: &Scope,
+    _scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
     if let Some((owner, method)) = asm_stmt.property_accesses.first() {
-        if owner != "self" && owner != "selfου" && !scope.is_defined(owner) {
-            return Err(GlossaError::undefined(owner.as_str()));
-        }
         let receiver = AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(owner.clone().into()),
             glossa_type: GlossaType::Unknown,
@@ -1685,16 +1665,6 @@ pub fn extract_value(
     }
     if let Some(res) = extract_object_fallback(asm_stmt, scope)? {
         return Ok(res);
-    }
-
-    // Check for undefined subject before defaulting
-    #[allow(clippy::collapsible_if)]
-    if let Some(ref subj) = asm_stmt.subject {
-        if !scope.is_defined(&subj.lemma)
-            && crate::morphology::lexicon::numeral_value(&subj.lemma).is_none()
-        {
-            return Err(GlossaError::undefined(subj.lemma.as_str()));
-        }
     }
 
     // Default

@@ -40,13 +40,3 @@
 **Bloat:** Undefined variables silently decaying into literal `0` integers deep within semantic parsing (`extract_value`), and critical sentence structure checks (`MissingVerb`) being ignored or throwing silent raw Rust codegen errors.
 **Cut:** Removed silent variable decay defaults. Flattened statement validation into `check_undefined_variables` where scoping and AST context are available, actively preventing undefined names. Placed explicit MissingVerb catching inside `Assembler::finalize`.
 **Saved:** Multiple paths that historically led to compiler crashes / malformed semantic models. Unified missing-verb catching, and prevented dozens of lines of unneeded checks later down in the codegen toolchain.
-
-## [Reduction]
-**Bloat:** Undefined variables silently evaluating to 0 and double subjects failing to emit correct errors.
-**Cut:** Added strict checks for `!scope.is_defined()` with safe handling for numerals in `src/semantic/conversion.rs`. Relaxed `AssemblyError::DoubleSubject` restrictions in `src/semantic/assembly/mod.rs` so that verbs like `εὑρέ` (find) don't trigger false positives while actual double nominatives fail properly.
-**Saved:** Multiple hidden edge cases, providing real `UndefinedName` and `DoubleSubject` diagnostics instead of silent defaults or obscure codegen panics.
-
-## [Reduction]
-**Bloat:** Missing verb panicking into Internal Compiler Error.
-**Cut:** Fixed `check_missing_verb` in `src/semantic/assembly/mod.rs` which was hardcoding a check for `ανθρωπος` to throw `MissingVerb`. Now correctly handles any non-number/non-special string and correctly propagates `MissingVerb`.
-**Saved:** Prevents unhandled panics inside `check_missing_verb`.

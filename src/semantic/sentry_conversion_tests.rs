@@ -225,8 +225,7 @@ fn test_extract_value_index_access() {
 
 #[test]
 fn test_extract_value_property_access() {
-    let mut scope = Scope::new();
-    scope.define("owner".to_string(), GlossaType::Unknown);
+    let scope = Scope::new();
 
     // owner.prop
     let asm_stmt = AssembledStatement {
