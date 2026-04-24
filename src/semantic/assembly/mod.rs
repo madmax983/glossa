@@ -740,13 +740,11 @@ impl Assembler {
                 {
                     return Err(AssemblyError::MissingVerb);
                 }
-            } else {
-                if self.state.object.is_none()
+            } else if self.state.object.is_none()
                     && self.state.nominatives.is_empty()
                     && self.state.adjectives.is_empty()
                 {
                     return Ok(());
-                }
             }
         }
 
@@ -766,13 +764,11 @@ impl Assembler {
                 {
                     return Err(AssemblyError::MissingVerb);
                 }
-            } else {
-                if self.state.subject.is_none()
+            } else if self.state.subject.is_none()
                     && self.state.nominatives.is_empty()
                     && self.state.adjectives.is_empty()
                 {
                     return Ok(());
-                }
             }
         }
         Err(AssemblyError::MissingVerb)
