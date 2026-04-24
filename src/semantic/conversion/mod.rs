@@ -39,20 +39,12 @@ pub(crate) mod extraction;
 pub use classification::*;
 pub use extraction::*;
 
-use super::expressions::{
-    analyze_argument_expr, build_binary_expr, build_expressions_from_literals_and_ops,
-    literal_to_analyzed_expr,
-};
-use super::patterns::detect_iterator_pattern;
-use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::morphology::{self};
 use crate::semantic::assembly::AssembledStatement;
-use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
+use crate::semantic::model::AnalyzedStatement;
 use crate::semantic::resolver::Scope;
 
-use crate::semantic::types::GlossaType;
-use crate::semantic::{Constituent, Literal};
 
 /// Convert an AssembledStatement to an AnalyzedStatement
 ///
@@ -102,15 +94,9 @@ pub fn convert_assembled_to_analyzed(
     classify_assembled_statement(asm_stmt, scope)
 }
 
-
 // -------------------------------------------------------------------------------------------------
 // Helper functions for classify_assembled_statement
 // -------------------------------------------------------------------------------------------------
-
-
-
-
-
 
 /// Helper: Resolve the target variable name and the effective assembled statement for binding
 ///
@@ -176,31 +162,12 @@ fn resolve_binding_target<'a>(
     Err(GlossaError::semantic("Binding without subject"))
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // -------------------------------------------------------------------------------------------------
 // Helper functions for extract_value
 // -------------------------------------------------------------------------------------------------
 
 #[cfg(test)]
+use crate::semantic::{Constituent, Literal, GlossaType, AnalyzedExprKind};
 mod tests {
     use super::*;
 
