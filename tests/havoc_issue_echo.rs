@@ -15,7 +15,10 @@ fn test_undefined_variable_evaluates_to_zero_silently() {
     let source = "ἄγνωστος λέγε.";
     let ast = parse(source).unwrap();
     let prog = analyze_program(&ast);
-    assert!(prog.is_err(), "Should return an error instead of being silent!");
+    assert!(
+        prog.is_err(),
+        "Should return an error instead of being silent!"
+    );
 }
 
 #[test]

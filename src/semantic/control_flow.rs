@@ -560,7 +560,11 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
             }
 
             // Also check 'μηδὲν', 'οὐδὲν' etc
-            if normalized == "μηδεν" || normalized == "ουδεν" || normalized == "τι" || normalized == "εν" {
+            if normalized == "μηδεν"
+                || normalized == "ουδεν"
+                || normalized == "τι"
+                || normalized == "εν"
+            {
                 return Ok(AnalyzedExpr {
                     expr: AnalyzedExprKind::Variable(normalized.clone()),
                     glossa_type: GlossaType::Unknown,
@@ -572,15 +576,16 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
                 .lookup(normalized)
                 .cloned()
                 .unwrap_or(GlossaType::Unknown);
-            // Wait, we don't throw an error here, `parse_match_pattern` might just parse literals
-            // But we actually DO throw an error if it's not defined!
-            // BUT, `μηδὲν ᾖ` the `μηδὲν` is NOT defined in the scope, it's just a pattern token!
-            // Wait, if it's a variable reference, then it IS defined in the scope.
-            // Let's just leave the rest of parse_match_pattern as it was:
             if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
-                // Actually, if it's not a function and not defined, let's just return it as Unknown instead of erroring out right here.
-                // It might be evaluated correctly later or it's a pattern we couldn't resolve perfectly.
-                // No, we should throw an error if we enforce strict scoping, but `parse_match_pattern` might be checking literal variables that shouldn't error.
+                // If it's undefined and not a function, it shouldn't silently compile.
+                // However, wait: we have specific "pattern" keywords like `μηδέν`, `ἕν`, `τι` which might not be caught by numeral_value.
+                if normalized != "μηδεν"
+                    && normalized != "εν"
+                    && normalized != "τι"
+                    && normalized != "ουδεν"
+                {
+                    return Err(GlossaError::undefined(&*w.original));
+                }
             }
             return Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(normalized.clone()),
@@ -734,7 +739,27 @@ fn skip_first_word_and_parse(
         is_query: false,
         is_propagate: false,
     };
-    let analyzed = assemble_statement(&stmt)?;
+    let analyzed = match assemble_statement(&stmt) {
+        Ok(a) => a,
+        Err(GlossaError::AssemblyError(crate::errors::AssemblyError::MissingVerb)) => {
+            // Re-assemble and ignore the error. Since we only want to extract the subject/object,
+            // we can just bypass assemble_statement entirely!
+            // Just return early with a synthetic analyzed expr using the first word.
+            #[allow(clippy::collapsible_if)]
+            if let Some(crate::ast::Expr::Phrase(terms)) =
+                stmt.clauses().first().and_then(|c| c.expressions.first())
+            {
+                if let Some(crate::ast::Expr::Word(w)) = terms.first() {
+                    return Ok(AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(w.normalized.clone()),
+                        glossa_type: GlossaType::Unknown,
+                    });
+                }
+            }
+            return Err(GlossaError::semantic("Empty condition in conditional"));
+        }
+        Err(e) => return Err(e),
+    };
 
     // We bypass the top-level MissingVerb check by extracting the expression manually
     // from the assembled statement if it's a simple fallback condition.
@@ -745,7 +770,12 @@ fn skip_first_word_and_parse(
                 // If the conversion failed ONLY because of a MissingVerb check (which was added for top-level
                 // statements to prevent Codegen ICEs), we can still extract the variable manually.
                 // Control flow conditions are allowed to be verbless expressions (e.g. `κατὰ ξ`).
-                if let Some(ref subj) = analyzed.subject {
+                if !analyzed.literals.is_empty() {
+                    let var_expr = crate::semantic::expressions::literal_to_analyzed_expr(
+                        &analyzed.literals[0],
+                    );
+                    AnalyzedStatement::Expression(vec![var_expr])
+                } else if let Some(ref subj) = analyzed.subject {
                     let var_expr = crate::semantic::AnalyzedExpr {
                         expr: crate::semantic::AnalyzedExprKind::Variable(subj.lemma.clone()),
                         glossa_type: crate::semantic::GlossaType::Unknown,

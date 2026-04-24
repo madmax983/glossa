@@ -718,36 +718,63 @@ impl Assembler {
             return Ok(());
         }
 
-        // Exception for patterns/variables evaluated directly that are not "ἄνθρωπος".
-        // The tests enforce that "ὁ ἄνθρωπος." throws MissingVerb.
-        // We can just explicitly check if it's "ανθρωπος"!
-
+        // Exception for standalone subjects or objects without a verb.
+        // This is necessary to support valid match arm targets (e.g., specific nouns)
+        // while correctly throwing MissingVerb for invalid standalone sentences.
+        // If it's a known numeral value or a specific reserved fallback word, allow it.
+        // Otherwise, throw MissingVerb to adhere to standard grammar rules.
         if let Some(subject) = self.state.subject.as_ref() {
-            if subject.lemma == "ανθρωπος" {
-                return Err(AssemblyError::MissingVerb);
-            }
-
-            if self.state.object.is_none()
-                && self.state.nominatives.is_empty()
-                && self.state.adjectives.is_empty()
+            if crate::morphology::lexicon::numeral_value(&subject.lemma).is_none()
+                && subject.lemma != "αλλο"
+                && subject.lemma != "μηδεν"
+                && subject.lemma != "ουδεν"
+                && subject.lemma != "τι"
+                && subject.lemma != "εν"
+                && subject.lemma != "self"
+                && subject.lemma != "selfου"
             {
-                return Ok(());
+                // Is there anything else indicating a complex expression?
+                if self.state.object.is_none()
+                    && self.state.nominatives.is_empty()
+                    && self.state.adjectives.is_empty()
+                {
+                    return Err(AssemblyError::MissingVerb);
+                }
+            } else {
+                if self.state.object.is_none()
+                    && self.state.nominatives.is_empty()
+                    && self.state.adjectives.is_empty()
+                {
+                    return Ok(());
+                }
             }
         }
 
         if let Some(object) = self.state.object.as_ref() {
-            if object.lemma == "ανθρωπος" {
-                return Err(AssemblyError::MissingVerb);
-            }
-
-            if self.state.subject.is_none()
-                && self.state.nominatives.is_empty()
-                && self.state.adjectives.is_empty()
+            if crate::morphology::lexicon::numeral_value(&object.lemma).is_none()
+                && object.lemma != "αλλο"
+                && object.lemma != "μηδεν"
+                && object.lemma != "ουδεν"
+                && object.lemma != "τι"
+                && object.lemma != "εν"
+                && object.lemma != "self"
+                && object.lemma != "selfου"
             {
-                return Ok(());
+                if self.state.subject.is_none()
+                    && self.state.nominatives.is_empty()
+                    && self.state.adjectives.is_empty()
+                {
+                    return Err(AssemblyError::MissingVerb);
+                }
+            } else {
+                if self.state.subject.is_none()
+                    && self.state.nominatives.is_empty()
+                    && self.state.adjectives.is_empty()
+                {
+                    return Ok(());
+                }
             }
         }
-
         Err(AssemblyError::MissingVerb)
     }
     /// Check for special markers (mutable, containment, delimiter)
