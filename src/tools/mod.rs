@@ -32,6 +32,8 @@ pub mod cartographer;
 pub mod catalog;
 pub mod cli;
 pub mod dictionary;
+#[cfg(feature = "nova")]
+pub mod emissary;
 pub mod highlight;
 #[cfg(feature = "nova")]
 pub mod interpreter;

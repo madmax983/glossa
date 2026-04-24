@@ -42,3 +42,8 @@
 **Concept:** A Markdown documentation generator (`glossa scholar`) that uses the compiler's semantic phase to extract and format types, traits, and functions.
 **Fate:** Merged
 **Lesson:** Using the `AnalyzedProgram`'s scope directly allows us to generate accurate API documentation effortlessly, proving the power of a centralized semantic model.
+
+## 🌟 The Emissary (ὁ Ἀπεσταλμένος)
+**Concept:** A JSON Schema generator (`glossa emissary`) that transpiles Glossa struct definitions (`εἶδος`) directly into JSON Schema representations.
+**Fate:** Merged
+**Lesson:** Providing a tool that creates JSON Schemas alongside Papyrus's SQL creation bridges ancient Glossa syntax into modern API development ecosystems, proving the framework can decouple easily from strictly code generation into widespread data specification formats.
