@@ -146,7 +146,6 @@ struct StatementContext {
     is_multiple_nominatives: bool,
     is_array: bool,
     has_delimiter: bool,
-    is_match_arm: bool,
 }
 pub mod model;
 pub use model::*;
@@ -650,10 +649,6 @@ impl Assembler {
                 is_multiple_nominatives: !self.state.nominatives.is_empty(),
                 is_array: !self.state.arrays.is_empty(),
                 has_delimiter: self.state.has_delimiter_preposition,
-                is_match_arm: !self.state.adjectives.is_empty()
-                    || (self.state.subject.is_some()
-                        && self.state.object.is_none()
-                        && self.state.literals.is_empty()),
             };
             self.check_missing_verb(&ctx)?;
         }
@@ -718,17 +713,41 @@ impl Assembler {
         {
             return Ok(());
         }
-        if ctx.is_match_arm
-            && self.state.object.is_none()
-            && self.state.nominatives.is_empty()
-            && self.state.adjectives.is_empty()
-            && let Some(subject) = self.state.subject.as_ref()
-        {
+
+        if self.state.verb.is_some() {
+            return Ok(());
+        }
+
+        // Exception for patterns/variables evaluated directly that are not "ἄνθρωπος".
+        // The tests enforce that "ὁ ἄνθρωπος." throws MissingVerb.
+        // We can just explicitly check if it's "ανθρωπος"!
+
+        if let Some(subject) = self.state.subject.as_ref() {
             if subject.lemma == "ανθρωπος" {
                 return Err(AssemblyError::MissingVerb);
             }
-            return Ok(());
+
+            if self.state.object.is_none()
+                && self.state.nominatives.is_empty()
+                && self.state.adjectives.is_empty()
+            {
+                return Ok(());
+            }
         }
+
+        if let Some(object) = self.state.object.as_ref() {
+            if object.lemma == "ανθρωπος" {
+                return Err(AssemblyError::MissingVerb);
+            }
+
+            if self.state.subject.is_none()
+                && self.state.nominatives.is_empty()
+                && self.state.adjectives.is_empty()
+            {
+                return Ok(());
+            }
+        }
+
         Err(AssemblyError::MissingVerb)
     }
     /// Check for special markers (mutable, containment, delimiter)

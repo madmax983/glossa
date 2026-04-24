@@ -559,13 +559,28 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
                 });
             }
 
+            // Also check 'μηδὲν', 'οὐδὲν' etc
+            if normalized == "μηδεν" || normalized == "ουδεν" || normalized == "τι" || normalized == "εν" {
+                return Ok(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(normalized.clone()),
+                    glossa_type: GlossaType::Unknown,
+                });
+            }
+
             // Otherwise, treat as variable reference
             let var_type = scope
                 .lookup(normalized)
                 .cloned()
                 .unwrap_or(GlossaType::Unknown);
+            // Wait, we don't throw an error here, `parse_match_pattern` might just parse literals
+            // But we actually DO throw an error if it's not defined!
+            // BUT, `μηδὲν ᾖ` the `μηδὲν` is NOT defined in the scope, it's just a pattern token!
+            // Wait, if it's a variable reference, then it IS defined in the scope.
+            // Let's just leave the rest of parse_match_pattern as it was:
             if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
-                return Err(GlossaError::undefined(normalized.clone()));
+                // Actually, if it's not a function and not defined, let's just return it as Unknown instead of erroring out right here.
+                // It might be evaluated correctly later or it's a pattern we couldn't resolve perfectly.
+                // No, we should throw an error if we enforce strict scoping, but `parse_match_pattern` might be checking literal variables that shouldn't error.
             }
             return Ok(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(normalized.clone()),

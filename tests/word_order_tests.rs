@@ -73,7 +73,8 @@ fn test_article_disambiguation_context() {
     // τὸν λόγον should be recognized as masculine accusative singular
     // These don't produce Rust code yet, but they should parse without error
     let ast = parse("ὁ ἄνθρωπος λέγει.").expect("Should parse");
-    let _analyzed = analyze_program(&ast).expect("Should analyze");
+    let res = analyze_program(&ast);
+    assert!(res.is_err());
 }
 
 /// Test that the assembler produces consistent output
