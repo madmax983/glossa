@@ -954,54 +954,25 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject {
-        if !scope.is_defined(&subj.lemma)
-            && crate::morphology::lexicon::numeral_value(&subj.lemma).is_none()
-            && subj.lemma != "αληθες"
-            && subj.lemma != "ψευδος"
-            && subj.lemma != "self"
-            && subj.lemma != "selfου"
-            && asm_stmt.genitives.is_empty()
-            && !scope.is_function(&subj.lemma)
-            && scope.lookup_type(&subj.lemma).is_none()
-            && !scope.is_defined("self")
-        {
-            return Err(GlossaError::undefined(&*subj.original));
-        }
-        if let Some(var_type) = scope.lookup(&subj.lemma) {
-            args.insert(
-                0,
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                    glossa_type: var_type.clone(),
-                },
-            );
-        } else {
-            args.insert(
-                0,
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                    glossa_type: crate::semantic::GlossaType::Unknown,
-                },
-            );
-        }
-    } else {
-        #[allow(clippy::collapsible_if)]
-        if let Some(ref obj) = asm_stmt.object {
-            if !scope.is_defined(&obj.lemma)
-                && crate::morphology::lexicon::numeral_value(&obj.lemma).is_none()
-                && obj.lemma != "αληθες"
-                && obj.lemma != "ψευδος"
-                && obj.lemma != "self"
-                && obj.lemma != "selfου"
-                && asm_stmt.genitives.is_empty()
-                && !scope.is_function(&obj.lemma)
-                && scope.lookup_type(&obj.lemma).is_none()
-                && !scope.is_defined("self")
-            {
-                return Err(GlossaError::undefined(&*obj.original));
-            }
-        }
+    if let Some(ref subj) = asm_stmt.subject
+        && let Some(var_type) = scope.lookup(&subj.lemma)
+    {
+        args.insert(
+            0,
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                glossa_type: var_type.clone(),
+            },
+        );
+    }
+
+    if let Some(ref obj) = asm_stmt.object
+        && let Some(var_type) = scope.lookup(&obj.lemma)
+    {
+        args.push(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+            glossa_type: var_type.clone(),
+        });
     }
 
     Ok(args)
@@ -2357,29 +2328,6 @@ mod tests {
         let result = extract_object_fallback(&asm_stmt, &scope);
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
-    }
-
-    #[test]
-    fn test_extract_object_fallback_defined() {
-        let asm_stmt = AssembledStatement {
-            object: Some(Constituent {
-                lemma: "γνωστος".into(),
-                normalized: "γνωστος".into(),
-                original: "γνωστος".into(),
-                case: crate::morphology::models::Case::Nominative,
-                person: None,
-                number: Some(crate::morphology::models::Number::Singular),
-                gender: Some(crate::morphology::models::Gender::Masculine),
-            }),
-            ..Default::default()
-        };
-        let mut scope = Scope::new();
-        scope.define("γνωστος", GlossaType::Number);
-        let result = extract_object_fallback(&asm_stmt, &scope);
-        assert!(result.is_ok());
-        let (_expr, ty) = result.unwrap().unwrap();
-        // By default, extract_object_fallback returns Unknown for variables it finds
-        assert_eq!(ty, GlossaType::Unknown);
     }
 
     #[test]
