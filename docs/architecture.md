@@ -50,6 +50,7 @@ C4Container
         Container(repl, "REPL", "src/tools/repl.rs", "Interactive Read-Eval-Print Loop")
         Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports")
         Container(runner, "Runner", "src/tools/runner.rs", "Orchestrates the compilation pipeline")
+        Container(scholar, "The Scholar", "src/tools/scholar.rs", "API Doc Generator")
         Container(tester, "The Judge", "src/tools/tester.rs", "Verifies Correctness (Test Runner)")
         Container(ui, "The Stage", "src/tools/ui.rs", "Presentation Layer & UI Helpers")
         Container(weave, "Weave", "src/tools/weave.rs", "Rosetta Stone Markdown Exporter")
@@ -73,6 +74,7 @@ C4Container
     Rel(semantic, labyrinth, "Analyzed Program")
     Rel(semantic, weave, "Analyzed Program")
     Rel(semantic, papyrus, "Analyzed Program")
+    Rel(semantic, scholar, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 
     Rel(morphology, dictionary, "Lexicon Data")
