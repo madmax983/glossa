@@ -13,3 +13,7 @@
 **[Auditor Visitor God Functions]**
 **Learning:** The `visit_statement` and `visit_expr` functions in `src/tools/auditor.rs` became "God Functions" containing massive `match` blocks.
 **Action:** Extract complex `match` arms for `If`, `While`, `For`, `Match`, and repetitive logic into private helper functions like `visit_if_statement` and `visit_exprs` to flatten nesting and clarify the match block routing.
+
+**[Auditor Visitor God Functions]**
+**Learning:** The `visit_statement` and `visit_expr` functions in `src/tools/auditor.rs` became "God Functions" containing massive `match` blocks.
+**Action:** Extract complex `match` arms for repetitive logic into private helper functions like `visit_binding`, `visit_assignment`, `visit_binop`, and `visit_method_call` to flatten nesting and clarify the match block routing.

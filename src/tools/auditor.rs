@@ -221,6 +221,25 @@ impl AuditorVisitor {
         }
     }
 
+    fn visit_binding(&mut self, name: &smol_str::SmolStr, value: &AnalyzedExpr, mutable: bool) {
+        self.usage_count.insert(name.clone(), 0);
+        self.mutation_count.insert(name.clone(), 0);
+        if mutable {
+            self.mutable_vars.insert(name.clone());
+        }
+        self.visit_expr(value);
+    }
+
+    fn visit_assignment(&mut self, name: &smol_str::SmolStr, value: &AnalyzedExpr) {
+        if let Some(count) = self.mutation_count.get_mut(name) {
+            *count += 1;
+        }
+        if let Some(count) = self.usage_count.get_mut(name) {
+            *count += 1;
+        }
+        self.visit_expr(value);
+    }
+
     fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
         match stmt {
             AnalyzedStatement::Binding {
@@ -228,36 +247,15 @@ impl AuditorVisitor {
                 value,
                 mutable,
             } => {
-                self.usage_count.insert(name.clone(), 0);
-                self.mutation_count.insert(name.clone(), 0);
-                if *mutable {
-                    self.mutable_vars.insert(name.clone());
-                }
-                self.visit_expr(value);
+                self.visit_binding(name, value, *mutable);
             }
             AnalyzedStatement::Assignment { name, value } => {
-                if let Some(count) = self.mutation_count.get_mut(name) {
-                    *count += 1;
-                }
-                if let Some(count) = self.usage_count.get_mut(name) {
-                    *count += 1;
-                }
-                self.visit_expr(value);
+                self.visit_assignment(name, value);
             }
-            AnalyzedStatement::Print(exprs) => {
-                for expr in exprs {
-                    self.visit_expr(expr);
-                }
-            }
-            AnalyzedStatement::Expression(exprs) => {
-                for expr in exprs {
-                    self.visit_expr(expr);
-                }
-            }
-            AnalyzedStatement::Query(exprs) => {
-                for expr in exprs {
-                    self.visit_expr(expr);
-                }
+            AnalyzedStatement::Print(exprs)
+            | AnalyzedStatement::Expression(exprs)
+            | AnalyzedStatement::Query(exprs) => {
+                self.visit_exprs(exprs);
             }
             AnalyzedStatement::If {
                 condition,
@@ -306,6 +304,16 @@ impl AuditorVisitor {
         }
     }
 
+    fn visit_binop(&mut self, left: &AnalyzedExpr, right: &AnalyzedExpr) {
+        self.visit_expr(left);
+        self.visit_expr(right);
+    }
+
+    fn visit_method_call(&mut self, receiver: &AnalyzedExpr, args: &[AnalyzedExpr]) {
+        self.visit_expr(receiver);
+        self.visit_exprs(args);
+    }
+
     fn visit_expr(&mut self, expr: &AnalyzedExpr) {
         match &expr.expr {
             AnalyzedExprKind::Variable(name) => {
@@ -313,16 +321,12 @@ impl AuditorVisitor {
                     *count += 1;
                 }
             }
-            AnalyzedExprKind::BinOp { left, right, .. } => {
-                self.visit_expr(left);
-                self.visit_expr(right);
-            }
+            AnalyzedExprKind::BinOp { left, right, .. } => self.visit_binop(left, right),
             AnalyzedExprKind::UnaryOp { operand, .. } => self.visit_expr(operand),
             AnalyzedExprKind::StructInstantiation { args, .. } => self.visit_exprs(args),
             AnalyzedExprKind::PropertyAccess { owner, .. } => self.visit_expr(owner),
             AnalyzedExprKind::MethodCall { receiver, args, .. } => {
-                self.visit_expr(receiver);
-                self.visit_exprs(args);
+                self.visit_method_call(receiver, args);
             }
             AnalyzedExprKind::FunctionCall { args, .. } => self.visit_exprs(args),
             AnalyzedExprKind::VerbCall { args, .. } => self.visit_exprs(args),
