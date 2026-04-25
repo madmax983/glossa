@@ -1056,6 +1056,62 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_comparison_value_stripped_suffix_es() {
+        let mut scope = Scope::new();
+        scope.define("αγαπ", GlossaType::Number);
+
+        let mut stmt = AssembledStatement::default();
+        stmt.genitives.push(Constituent {
+            lemma: "dummy".into(),
+            original: "αγαπης".into(),
+            normalized: "αγαπης".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        let expr = extract_comparison_value(&stmt, &scope);
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(
+                name, "αγαπ",
+                "Expected stripped name 'αγαπ', got '{}'",
+                name
+            );
+        } else {
+            panic!("Expected variable");
+        }
+    }
+
+    #[test]
+    fn test_extract_comparison_value_stripped_suffix_on() {
+        let mut scope = Scope::new();
+        scope.define("μετρ", GlossaType::Number);
+
+        let mut stmt = AssembledStatement::default();
+        stmt.genitives.push(Constituent {
+            lemma: "dummy".into(),
+            original: "μετρων".into(),
+            normalized: "μετρων".into(),
+            case: crate::morphology::Case::Genitive,
+            number: None,
+            gender: None,
+            person: None,
+        });
+
+        let expr = extract_comparison_value(&stmt, &scope);
+        if let AnalyzedExprKind::Variable(name) = expr.expr {
+            assert_eq!(
+                name, "μετρ",
+                "Expected stripped name 'μετρ', got '{}'",
+                name
+            );
+        } else {
+            panic!("Expected variable");
+        }
+    }
+
+    #[test]
     fn test_extract_comparison_value_stripped() {
         let mut scope = Scope::new();
         scope.define("θ", GlossaType::Number);
@@ -1135,6 +1191,28 @@ mod tests {
         } else {
             panic!("Expected variable");
         }
+    }
+
+
+    #[test]
+    fn test_try_parse_struct_instantiation_empty_terms() {
+        let mut scope = Scope::new();
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![crate::ast::Expr::Phrase(vec![
+                    crate::ast::Expr::Word(crate::ast::Word::new("var")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("νεον")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("Type")),
+                    crate::ast::Expr::NumberLiteral(5),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = try_parse_struct_instantiation(&stmt, &mut scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
     }
 
     #[test]
@@ -1390,23 +1468,37 @@ mod coverage_tests {
     }
 
     #[test]
-    fn test_try_parse_struct_instantiation_empty_terms() {
-        let mut scope = Scope::new();
-        let stmt = crate::ast::Statement::Regular {
-            clauses: vec![crate::ast::Clause {
-                expressions: vec![crate::ast::Expr::Phrase(vec![
-                    crate::ast::Expr::Word(crate::ast::Word::new("var")),
-                    crate::ast::Expr::Word(crate::ast::Word::new("νεον")),
-                    crate::ast::Expr::Word(crate::ast::Word::new("Type")),
-                    crate::ast::Expr::NumberLiteral(5),
-                ])],
-            }],
-            is_query: false,
-            is_propagate: false,
+    fn test_parse_struct_args_unsupported_type() {
+        let scope = Scope::new();
+        let fields = vec![("x".into(), GlossaType::Number)];
+
+        // Pass an unsupported expression type (e.g., a phrase)
+        let terms = vec![crate::ast::Expr::Phrase(vec![])];
+
+        let result = parse_struct_args(&terms, &fields, &scope);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_process_find_no_predicate_coverage() {
+        let scope = Scope::new();
+        let asm_stmt = AssembledStatement::default();
+        let mut current_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
         };
 
-        let result = try_parse_struct_instantiation(&stmt, &mut scope);
-        assert!(result.is_ok());
-        assert!(result.unwrap().is_none());
+        // No operators -> found_predicate = false
+        process_find(&asm_stmt, &scope, &mut current_expr);
+
+        // Expected to be a MethodCall to "next" with no args
+        if let AnalyzedExprKind::MethodCall { method, args, .. } = current_expr.expr {
+            assert_eq!(method, "find");
+            assert_eq!(args.len(), 1);
+        } else {
+            panic!("Expected MethodCall 'find'");
+        }
     }
+
+
 }
