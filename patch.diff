@@ -1,11 +1,21 @@
 --- src/semantic/control_flow.rs
 +++ src/semantic/control_flow.rs
-@@ -936,7 +936,7 @@
+@@ -932,6 +932,18 @@
          };
+         let result = parse_return_expression(&clause2, &scope);
+         assert!(result.is_err());
++
++        // Another invalid phrase to trigger extract_value error
++        // A valid sentence but not a value-producing expression
++        let clause3 = Clause {
++            expressions: vec![Expr::Phrase(vec![
++                Expr::Word(Word::new("δός")), // Return
++                Expr::Word(Word::new("ἄνθρωπος")), // Subject
++                Expr::Word(Word::new("τρέχει")), // Verb
++            ])],
++        };
++        let result = parse_return_expression(&clause3, &scope);
++        assert!(result.is_err());
+     }
 
-         // Let's create an invalid phrase that fails inside extract_value
--        // By supplying a verb but no arguments it should be an invalid value
-+        // By supplying an empty phrase... wait, extract_value handles verbs if they are variables?
-         let clause2 = Clause {
-             expressions: vec![Expr::Phrase(vec![
-                 Expr::Word(Word::new("δός")),
+     #[test]

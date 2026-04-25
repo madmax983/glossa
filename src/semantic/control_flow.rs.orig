@@ -919,13 +919,17 @@ mod tests {
     #[test]
     fn test_parse_return_expression_invalid() {
         let scope = Scope::new();
-        let clause = Clause {
+
+        // Let's create an invalid phrase that causes finalize or extract_value to error.
+        // A sentence with two unrelated verbs usually errors out.
+        let clause2 = Clause {
             expressions: vec![Expr::Phrase(vec![
-                Expr::Word(Word::new("δός")),
-                Expr::Word(Word::new("καί")), // Just a conjunction, invalid
+                Expr::Word(Word::new("δός")),    // Return
+                Expr::Word(Word::new("λέγε")),   // Verb
+                Expr::Word(Word::new("τρέχει")), // Verb
             ])],
         };
-        let result = parse_return_expression(&clause, &scope);
+        let result = parse_return_expression(&clause2, &scope);
         assert!(result.is_err());
     }
 
