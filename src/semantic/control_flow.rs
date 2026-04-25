@@ -528,7 +528,9 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
     let mut asm = crate::semantic::assembly::Assembler::new();
     let mut ctx = crate::morphology::DisambiguationContext::new();
     for term in words {
-        crate::semantic::expressions::feed_expr_to_assembler_with_context(&mut asm, term, &mut ctx)?;
+        crate::semantic::expressions::feed_expr_to_assembler_with_context(
+            &mut asm, term, &mut ctx,
+        )?;
     }
 
     let asm_stmt = asm.finalize()?;
