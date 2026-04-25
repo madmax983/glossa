@@ -1,6 +1,5 @@
-use glossa::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType};
+use glossa::semantic::GlossaType;
 use glossa::tools::merchant::run_merchant;
-use glossa::tools::runner::analyze_source;
 use std::fs;
 use std::path::PathBuf;
 
@@ -50,7 +49,10 @@ fn test_merchant_unit_type() {
 #[test]
 fn test_merchant_function_type() {
     let mut out = String::new();
-    let func = GlossaType::Function { params: vec![], returns: Box::new(GlossaType::Number) };
+    let func = GlossaType::Function {
+        params: vec![],
+        returns: Box::new(GlossaType::Number),
+    };
     glossa::tools::merchant::write_glossa_type_to_json_schema(&func, &mut out).unwrap();
     assert_eq!(out, r#"{"type": "object"}"#);
 }
@@ -58,6 +60,10 @@ fn test_merchant_function_type() {
 #[test]
 fn test_merchant_unknown_type() {
     let mut out = String::new();
-    glossa::tools::merchant::write_glossa_type_to_json_schema(&glossa::semantic::GlossaType::Unknown, &mut out).unwrap();
+    glossa::tools::merchant::write_glossa_type_to_json_schema(
+        &glossa::semantic::GlossaType::Unknown,
+        &mut out,
+    )
+    .unwrap();
     assert_eq!(out, r#"{"type": "object"}"#);
 }
