@@ -40,6 +40,8 @@ pub mod labyrinth;
 #[cfg(feature = "nova")]
 pub mod mentor;
 #[cfg(feature = "nova")]
+pub mod merchant;
+#[cfg(feature = "nova")]
 pub mod mosaic;
 pub mod narrator;
 /// The Papyrus (Πάπυρος) tool for SQL schema generation.

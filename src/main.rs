@@ -178,6 +178,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Merchant { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::merchant::run_merchant(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'merchant' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

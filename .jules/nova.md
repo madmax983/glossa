@@ -42,3 +42,8 @@
 **Concept:** A Markdown documentation generator (`glossa scholar`) that uses the compiler's semantic phase to extract and format types, traits, and functions.
 **Fate:** Merged
 **Lesson:** Using the `AnalyzedProgram`'s scope directly allows us to generate accurate API documentation effortlessly, proving the power of a centralized semantic model.
+
+## 🌟 The Merchant (ὁ Ἔμπορος)
+**Concept:** A CLI tool (`glossa merchant`) that transpiles Glossa structs (`εἶδος`) directly to standard JSON Schema definitions, similar to how the Papyrus tool outputs SQL Schemas.
+**Fate:** Merged
+**Lesson:** Exporting Glossa data types to standard formats like JSON Schema significantly improves interoperability. Traversing the semantic layer's `AnalyzedProgram` is an effective way to implement generators without needing heavy external serialization crates.

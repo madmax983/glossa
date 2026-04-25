@@ -204,4 +204,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate a JSON Schema definition file for a .γλ file (Requires "nova" feature)
+    Merchant {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
