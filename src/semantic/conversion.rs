@@ -234,7 +234,11 @@ fn classify_property_access_print(
     let property = &subject.normalized;
 
     // Check if owner is a struct type in scope
-    let Some(owner_type) = scope.lookup(owner_lemma) else {
+    let Some(owner_type) = (if owner_lemma == "self" || owner_lemma == "selfου" {
+        Some(&GlossaType::Unknown)
+    } else {
+        scope.lookup(owner_lemma)
+    }) else {
         return Ok(None);
     };
 
@@ -867,10 +871,13 @@ fn try_print_binary_op(
 fn try_print_property_access(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
-) -> Option<Vec<AnalyzedExpr>> {
+) -> Result<Option<Vec<AnalyzedExpr>>, GlossaError> {
     if !asm_stmt.property_accesses.is_empty() {
         let mut args = Vec::with_capacity(asm_stmt.property_accesses.len());
         for (owner, method) in &asm_stmt.property_accesses {
+            if !scope.is_defined(owner) && owner != "self" && owner != "selfου" {
+                return Err(GlossaError::undefined(owner));
+            }
             let receiver = AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(owner.clone().into()),
                 glossa_type: scope.lookup(owner).cloned().unwrap_or(GlossaType::Unknown),
@@ -902,9 +909,9 @@ fn try_print_property_access(
                 glossa_type: return_type,
             });
         }
-        return Some(args);
+        return Ok(Some(args));
     }
-    None
+    Ok(None)
 }
 
 fn try_print_index_access(
@@ -954,25 +961,29 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
-        args.insert(
-            0,
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
-            },
-        );
+    if let Some(ref subj) = asm_stmt.subject {
+        if let Some(var_type) = scope.lookup(&subj.lemma) {
+            args.insert(
+                0,
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                },
+            );
+        } else {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
-        args.push(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
-        });
+    if let Some(ref obj) = asm_stmt.object {
+        if let Some(var_type) = scope.lookup(&obj.lemma) {
+            args.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: var_type.clone(),
+            });
+        } else {
+            return Err(GlossaError::undefined(obj.lemma.as_str()));
+        }
     }
 
     Ok(args)
@@ -991,7 +1002,7 @@ fn classify_print(
                 return Ok(Some(AnalyzedStatement::Print(args)));
             }
 
-            if let Some(args) = try_print_property_access(asm_stmt, scope) {
+            if let Some(args) = try_print_property_access(asm_stmt, scope)? {
                 return Ok(Some(AnalyzedStatement::Print(args)));
             }
 
@@ -1155,14 +1166,85 @@ fn classify_expression(
         }
     }
 
+    // We must check DoubleSubject here before proceeding to Variable checks.
+    // If the Assembler successfully produced a DoubleSubject error previously,
+    // we would have caught it there, but sometimes DoubleSubject bypasses Assembler validations
+    // or isn't caught. In `ὁ ἄνθρωπος ὁ θεὸς λέγει`, we have 2 nominatives!
+    if asm_stmt.subject.is_some() && !asm_stmt.nominatives.is_empty() && asm_stmt.operators.is_empty() {
+        let is_function_call = !asm_stmt.nested_phrases.is_empty()
+            || !asm_stmt.blocks.is_empty()
+            || !asm_stmt.literals.is_empty();
+        let is_special_pattern =
+            !asm_stmt.property_accesses.is_empty() || asm_stmt.is_query;
+
+        let verb_lemma = asm_stmt.verb.as_ref().map(|v| v.lemma.as_str()).unwrap_or("");
+
+        let is_binding_verb = crate::morphology::lexicon::is_binding_verb(verb_lemma);
+        let is_print_verb = crate::morphology::lexicon::is_print_verb(verb_lemma);
+        let is_find_verb = crate::morphology::lexicon::is_find_verb(verb_lemma);
+        let is_push_pop = verb_lemma == "τίθημι" || verb_lemma == "αἴρω";
+
+        if !is_function_call && !is_special_pattern && !is_binding_verb && !is_print_verb && !is_find_verb && !is_push_pop {
+             return Err(GlossaError::AssemblyError(crate::errors::AssemblyError::DoubleSubject));
+        }
+    }
+
+    // Check undefined variables upfront if we have operators (since we might build them as variables)
+    if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2 {
+        #[allow(clippy::collapsible_if)]
+        if let Some(ref subj) = asm_stmt.subject {
+            if !scope.is_defined(&subj.lemma) && crate::morphology::lexicon::numeral_value(&subj.lemma).is_none() {
+                // If it's a field being returned/assigned (e.g. selfου ξ), it might not be explicitly in scope.
+                if asm_stmt.property_accesses.is_empty() && asm_stmt.genitives.is_empty() && subj.lemma != "self" && subj.lemma != "selfου" {
+                    return Err(GlossaError::undefined(subj.lemma.as_str()));
+                }
+            }
+        }
+        #[allow(clippy::collapsible_if)]
+        if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) && crate::morphology::lexicon::numeral_value(&obj.lemma).is_none() {
+                if asm_stmt.property_accesses.is_empty() && asm_stmt.genitives.is_empty() && obj.lemma != "self" && obj.lemma != "selfου" {
+                    return Err(GlossaError::undefined(obj.lemma.as_str()));
+                }
+            }
+        }
+    }
+
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            if asm_stmt.verb.is_none() && asm_stmt.operators.is_empty() && !asm_stmt.is_propagate {
+                // If we have a standalone subject and no verb at all, and no operators/propagation, it's a Missing Verb error
+                // Exception: Numerals are valid standalone expressions (e.g., list length access)
+                if crate::morphology::lexicon::numeral_value(&subj.lemma).is_none()
+                   && !["ἄλλο", "μηδέν", "οὐδέν", "τι", "ἕν"].contains(&subj.lemma.as_str()) {
+                    // One last exception: if it's part of a trait impl block or property access, it might just be an expression
+                    // We'll let extract_property_access handle undefined variables correctly if it's a property.
+                    if asm_stmt.property_accesses.is_empty() && asm_stmt.genitives.is_empty() {
+                        return Err(GlossaError::AssemblyError(crate::errors::AssemblyError::MissingVerb));
+                    }
+                }
+            }
+
+            if !scope.is_defined(&subj.lemma) && crate::morphology::lexicon::numeral_value(&subj.lemma).is_none() {
+                // Ignore undefined subject if this is part of a function definition or property access
+                let is_func_def = asm_stmt.verb.as_ref().map_or(false, |v| v.lemma == "ὁρίζω");
+                if !is_func_def && asm_stmt.property_accesses.is_empty() && asm_stmt.genitives.is_empty() {
+                    return Err(GlossaError::undefined(subj.lemma.as_str()));
+                }
+            }
+
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             });
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) && crate::morphology::lexicon::numeral_value(&obj.lemma).is_none() {
+                if asm_stmt.property_accesses.is_empty() && asm_stmt.genitives.is_empty() {
+                    return Err(GlossaError::undefined(obj.lemma.as_str()));
+                }
+            }
+
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
@@ -1198,7 +1280,11 @@ fn try_parse_genitive_method_call(
     let owner_lemma = &asm_stmt.genitives[0].lemma;
     let method_name = &subject.normalized;
 
-    let owner_type = scope.lookup(owner_lemma)?;
+    let owner_type = if owner_lemma == "self" || owner_lemma == "selfου" {
+        GlossaType::Unknown
+    } else {
+        scope.lookup(owner_lemma)?.clone()
+    };
 
     if scope.is_defined(method_name) {
         return None;
@@ -1537,6 +1623,28 @@ fn extract_object_fallback(
         }
 
         if !scope.is_defined(obj_lemma) {
+            // Function definitions might have an undefined object as the name
+            if let Some(verb) = &asm_stmt.verb {
+                if verb.lemma == "ὁρίζω" {
+                    return Ok(Some((
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                            glossa_type: GlossaType::Unknown,
+                        },
+                        GlossaType::Unknown,
+                    )));
+                }
+            }
+            if !asm_stmt.genitives.is_empty() {
+                // If it's used with a genitive property owner, skip undefined check for the property name
+                return Ok(Some((
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                        glossa_type: GlossaType::Unknown,
+                    },
+                    GlossaType::Unknown,
+                )));
+            }
             return Err(GlossaError::undefined(obj_lemma.as_str()));
         }
 
@@ -2072,7 +2180,8 @@ mod tests {
         };
         let mut scope = Scope::new();
         let result = try_print_property_access(&asm_stmt, &mut scope);
-        assert!(result.is_none());
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
     }
 
     #[test]
