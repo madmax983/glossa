@@ -936,10 +936,10 @@ mod tests {
         // A valid sentence but not a value-producing expression
         let clause3 = Clause {
             expressions: vec![Expr::Phrase(vec![
-                Expr::Word(Word::new("δός")), // Return
-                Expr::Word(Word::new("ἄνθρωπος")), // Subject
+                Expr::Word(Word::new("δός")),       // Return
+                Expr::Word(Word::new("ἄνθρωπος")),  // Subject
                 Expr::Word(Word::new("ἀνθρώπους")), // Object
-                Expr::Word(Word::new("τρέχει")), // Verb
+                Expr::Word(Word::new("τρέχει")),    // Verb
             ])],
         };
         let result = parse_return_expression(&clause3, &scope);
