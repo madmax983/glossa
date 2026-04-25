@@ -178,3 +178,85 @@ mod tests {
         assert_eq!(out, r#"{"anyOf": [{"type": "null"}, {"type": "string"}]}"#);
     }
 }
+
+#[test]
+fn test_write_glossa_type_to_json_schema_set_map_result() {
+    let mut out = String::new();
+
+    write_glossa_type_to_json_schema(&GlossaType::Set(Box::new(GlossaType::Number)), &mut out)
+        .unwrap();
+    assert_eq!(
+        out,
+        r#"{"type": "array", "uniqueItems": true, "items": {"type": "integer"}}"#
+    );
+    out.clear();
+
+    write_glossa_type_to_json_schema(
+        &GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number)),
+        &mut out,
+    )
+    .unwrap();
+    assert_eq!(
+        out,
+        r#"{"type": "object", "additionalProperties": {"type": "integer"}}"#
+    );
+    out.clear();
+
+    write_glossa_type_to_json_schema(
+        &GlossaType::Result(Box::new(GlossaType::String), Box::new(GlossaType::Number)),
+        &mut out,
+    )
+    .unwrap();
+    assert_eq!(out, r#"{"type": "string"}"#);
+}
+
+#[test]
+fn test_write_glossa_type_to_json_schema_struct() {
+    let mut out = String::new();
+
+    let struct_type = GlossaType::Struct {
+        name: smol_str::SmolStr::new("User"),
+        gender: crate::morphology::Gender::Masculine,
+        fields: vec![
+            (smol_str::SmolStr::new("id"), GlossaType::Number),
+            (smol_str::SmolStr::new("name"), GlossaType::String),
+            (
+                smol_str::SmolStr::new("age"),
+                GlossaType::Option(Box::new(GlossaType::Number)),
+            ),
+        ],
+    };
+
+    write_glossa_type_to_json_schema(&struct_type, &mut out).unwrap();
+    assert_eq!(
+        out,
+        r#"{"type": "object", "title": "User", "properties": {"id": {"type": "integer"}, "name": {"type": "string"}, "age": {"anyOf": [{"type": "null"}, {"type": "integer"}]}}, "required": ["id", "name"]}"#
+    );
+}
+
+#[test]
+fn test_write_glossa_type_to_json_schema_struct_no_required() {
+    let mut out = String::new();
+
+    let struct_type = GlossaType::Struct {
+        name: smol_str::SmolStr::new("User"),
+        gender: crate::morphology::Gender::Masculine,
+        fields: vec![(
+            smol_str::SmolStr::new("age"),
+            GlossaType::Option(Box::new(GlossaType::Number)),
+        )],
+    };
+
+    write_glossa_type_to_json_schema(&struct_type, &mut out).unwrap();
+    assert_eq!(
+        out,
+        r#"{"type": "object", "title": "User", "properties": {"age": {"anyOf": [{"type": "null"}, {"type": "integer"}]}}}"#
+    );
+}
+
+#[test]
+fn test_write_glossa_type_to_json_schema_fallback() {
+    let mut out = String::new();
+    write_glossa_type_to_json_schema(&GlossaType::Unknown, &mut out).unwrap();
+    assert_eq!(out, r#"{"type": "object"}"#);
+}
