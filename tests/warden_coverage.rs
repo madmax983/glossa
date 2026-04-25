@@ -11,13 +11,17 @@ fn compile(source: &str) {
 
 #[test]
 fn test_coverage_filter_patterns() {
+    // To trigger the filter pattern in expressions:
+    // Filter expects: collection (ξ) + genitive (e.g., θου) + comparative adjective (μείζονα)
+    // We bind it to a variable or use an object to avoid DoubleSubject.
+
     // 1. Suffix "ου" (e.g. θ -> θου)
     compile(
         "
         ξ [1, 2, 3] ἔστω.
         θ 10 ἔστω.
-        // Filter: collection + genitive(ου) + comparative_adj + print
-        ξ θου μείζονα λέγε.
+        // Filter: collection + genitive(ου) + comparative_adj
+        ἀποτέλεσμα ξ θου μείζονα ἔστω.
     ",
     );
 
@@ -26,8 +30,8 @@ fn test_coverage_filter_patterns() {
         "
         ξ [1, 2, 3] ἔστω.
         αγάπη 10 ἔστω.
-        // Filter: collection + genitive(ης) + comparative_adj + print
-        ξ αγάπης μείζονα λέγε.
+        // Filter: collection + genitive(ης) + comparative_adj
+        ἀποτέλεσμα ξ αγάπης μείζονα ἔστω.
     ",
     );
 
@@ -36,8 +40,8 @@ fn test_coverage_filter_patterns() {
         "
         ξ [1, 2, 3] ἔστω.
         μέτρον 10 ἔστω.
-        // Filter: collection + genitive(ων) + comparative_adj + print
-        ξ μέτρων μείζονα λέγε.
+        // Filter: collection + genitive(ων) + comparative_adj
+        ἀποτέλεσμα ξ μέτρων μείζονα ἔστω.
     ",
     );
 
@@ -49,8 +53,8 @@ fn test_coverage_filter_patterns() {
         "
         ξ [1, 2, 3] ἔστω.
         β 10 ἔστω.
-        // Filter: collection + genitive(no suffix) + comparative_adj + print
-        ξ β μείζονα λέγε.
+        // Filter: collection + genitive(no suffix) + comparative_adj
+        ἀποτέλεσμα ξ β μείζονα ἔστω.
     ",
     );
 }

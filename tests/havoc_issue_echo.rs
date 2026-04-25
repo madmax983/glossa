@@ -6,9 +6,17 @@ use glossa::semantic::analyze_program;
 fn test_double_subject_should_pass_havoc_constraint() {
     let source = "ὁ ἄνθρωπος ὁ θεὸς λέγει.";
     let ast = parse(source).unwrap();
-    let _ = analyze_program(&ast).unwrap();
-    // Havoc constraints: "Never write 'Happy Path' tests. If it works, you failed."
-    // In Echo bug, double subject compiles with zero errors instead of failing gracefully.
+    let res = analyze_program(&ast);
+    assert!(
+        matches!(
+            res,
+            Err(glossa::errors::GlossaError::AssemblyError(
+                glossa::errors::AssemblyError::DoubleSubject
+            ))
+        ),
+        "Expected DoubleSubject error, got {:?}",
+        res
+    );
 }
 
 #[test]
