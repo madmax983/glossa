@@ -13,7 +13,7 @@
 //!
 //! # How it works
 //!
-//! The `tell_tale` function takes an [`AnalyzedProgram`] (the output of the semantic analysis phase)
+//! The `tell_tale` function takes an [`crate::semantic::AnalyzedProgram`] (the output of the semantic analysis phase)
 //! and recursively traverses the AST, generating a structured table (using `comfy_table`)
 //! that classifies each statement by its "Act" (Type), "Script" (Description), and "Notes" (Properties).
 

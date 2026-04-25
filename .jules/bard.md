@@ -66,3 +66,7 @@
 ## 2026-03-21 - [Missing Documentation Warnings]
 **Confusion:** Building documentation with `RUSTDOCFLAGS="-W missing_docs" cargo doc` threw warnings for `src/semantic/assembly/mod.rs` regarding the `model` module, and the compiler output warnings for missing intra-doc links.
 **Clarification:** Added module-level documentation `//!` to `src/semantic/assembly/model.rs` and moved the struct documentation for `Assembler` immediately above its definition. Resolved intra-doc links by ensuring they reference paths accessible in scope (e.g. `[`crate::semantic::assembly::Assembler`]`).
+
+## 2026-03-22 - Missing module-level docs for pub mod exports
+**Confusion:** The `cargo doc --no-deps -W missing_docs` tool doesn't always flag `pub mod` exports inside of parent modules that already have `//!` module level docs as missing documentation. Attempting to programmatically "fill in the blanks" with a python script generates generic, useless boilerplate like `/// Module model provides model models and structures`, which violates the Bard persona's rule against "noise" and "auto-generated comments".
+**Clarification:** You should not document a `pub mod` just for the sake of checking a box. If a module's core abstractions, functions, and structs are thoroughly documented, and the parent module explains the subsystem using `//!`, that is considered complete. Do not generate fake/low-effort documentation strings.
