@@ -954,24 +954,30 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
+    if let Some(ref subj) = asm_stmt.subject {
+        let lemma = &subj.lemma;
+        if !scope.is_defined(lemma) {
+            return Err(GlossaError::undefined(lemma.as_str()));
+        }
+        let var_type = scope.lookup(lemma).cloned().unwrap_or(GlossaType::Unknown);
         args.insert(
             0,
             AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
+                expr: AnalyzedExprKind::Variable(lemma.clone()),
+                glossa_type: var_type,
             },
         );
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
+    if let Some(ref obj) = asm_stmt.object {
+        let lemma = &obj.lemma;
+        if !scope.is_defined(lemma) {
+            return Err(GlossaError::undefined(lemma.as_str()));
+        }
+        let var_type = scope.lookup(lemma).cloned().unwrap_or(GlossaType::Unknown);
         args.push(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
+            expr: AnalyzedExprKind::Variable(lemma.clone()),
+            glossa_type: var_type,
         });
     }
 
@@ -1667,14 +1673,15 @@ pub fn extract_value(
         return Ok(res);
     }
 
-    // Default
-    Ok((
-        AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(0),
-            glossa_type: GlossaType::Number,
-        },
-        GlossaType::Number,
-    ))
+    if let Some(ref subj) = asm_stmt.subject {
+        let subj_lemma = &subj.lemma;
+        if !scope.is_defined(subj_lemma) {
+            return Err(GlossaError::undefined(subj_lemma.as_str()));
+        }
+    }
+
+    // Since we're here, we failed to extract a meaningful value
+    Err(GlossaError::semantic("Unable to extract a clear value from the expression."))
 }
 
 #[cfg(test)]

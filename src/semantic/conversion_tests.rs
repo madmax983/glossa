@@ -582,14 +582,7 @@ fn test_default_case() {
     let scope = Scope::new();
     let asm_stmt = AssembledStatement::default();
 
-    let (analyzed, glossa_type) =
-        extract_value(&asm_stmt, &scope).expect("Should fallback to default");
+    let res = extract_value(&asm_stmt, &scope);
 
-    if let AnalyzedExprKind::NumberLiteral(n) = analyzed.expr {
-        assert_eq!(n, 0);
-    } else {
-        panic!("Expected default 0");
-    }
-
-    assert_eq!(glossa_type, GlossaType::Number);
+    assert!(res.is_err());
 }
