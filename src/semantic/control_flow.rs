@@ -523,12 +523,21 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
         }
     }
 
-    // For now, just return a number literal placeholder for complex expressions
-    // TODO: Implement full expression parsing that respects function scope
-    Ok(AnalyzedExpr {
-        expr: AnalyzedExprKind::NumberLiteral(0),
-        glossa_type: GlossaType::Number,
-    })
+    // We perform a minimal fix to parse expressions inside return clauses by using the assembler.
+    // This resolves the bug where complex expressions evaluated silently to 0.
+    let mut asm = crate::semantic::assembly::Assembler::new();
+    let mut ctx = crate::morphology::DisambiguationContext::new();
+    for term in words {
+        crate::semantic::expressions::feed_expr_to_assembler_with_context(&mut asm, term, &mut ctx)?;
+    }
+
+    let asm_stmt = asm.finalize()?;
+
+    // Use the extract_value function to extract an expression from the assembled tokens
+    match crate::semantic::conversion::extract_value(&asm_stmt, scope) {
+        Ok((expr, _)) => Ok(expr),
+        Err(e) => Err(e),
+    }
 }
 
 /// Parse a match pattern expression

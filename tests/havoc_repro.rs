@@ -10,7 +10,6 @@ proptest! {
     // are silently ignored and `0` is returned instead.
     // We expect this test to fail (panic) because the bug is present.
     #[test]
-    #[should_panic(expected = "Bug detected!")]
     fn havoc_return_complex_expression(val in 1i64..1000) {
         // "δός <val> 0 ἄθροισμα." should return <val>.
         // But due to the bug, it returns 0.
