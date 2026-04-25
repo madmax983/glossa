@@ -1,15 +1,14 @@
 1. **Identify Missing Coverage:**
-   - The `codecov/patch` CI check failed because the newly introduced code in `parse_return_expression` (`src/semantic/control_flow.rs`) has error branches that aren't being tested.
-   - Specifically, the `?` operators (on `feed_expr` and `finalize()`) and the `Err(e)` branch of `extract_value` are uncovered.
+   - The `codecov/patch` CI check failed because it remains at 85.71% coverage, meaning the test I added didn't hit the uncovered lines inside `parse_return_expression`.
+   - The uncovered lines are likely the `?` errors on `feed_expr_to_assembler_with_context` or `finalize()`.
+   - If I used `Expr::Word(Word::new("καί"))`, it doesn't fail during `feed_expr` or `finalize`! Conjunctions are valid in assembly, they just don't extract well, but maybe the assembler doesn't error out on them?
+   - Wait, let me check the exact coverage report for `src/semantic/control_flow.rs`.
 
-2. **Add Tests:**
-   - I will add a new test in `src/semantic/control_flow.rs` that explicitly feeds invalid patterns to `parse_return_expression` to ensure these error branches are covered.
-   - For example:
-     - Providing a partial expression (e.g., just an operator without operands) to trigger `extract_value` errors.
+2. **Run `cargo llvm-cov` on `control_flow.rs`:**
+   - I need to see EXACTLY which lines are missed. I will run `cargo llvm-cov --show-missing-lines` or generate an HTML report to see which lines in `control_flow.rs` are red.
 
-3. **Verify:**
-   - I will run `cargo llvm-cov` locally to confirm the coverage metric improves.
+3. **Write Targeted Test:**
+   - Write a test that explicitly triggers the exact error condition missed. E.g. `asm.finalize()?` erroring out if there is no verb, or if the expression recursively exceeds max depth.
 
-4. **Submit:**
-   - Pre-commit checks.
-   - Push code.
+4. **Verify & Submit:**
+   - Fix coverage, run llvm-cov, submit.

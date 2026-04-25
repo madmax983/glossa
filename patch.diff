@@ -1,18 +1,11 @@
 --- src/semantic/control_flow.rs
 +++ src/semantic/control_flow.rs
-@@ -936,6 +936,7 @@
-         }
-     }
+@@ -936,7 +936,7 @@
+         };
 
-+    /*
-     #[test]
-     fn test_parse_return_expression_invalid() {
-         let scope = Scope::new();
-@@ -948,6 +949,7 @@
-         let result = parse_return_expression(&clause, &scope);
-         assert!(result.is_err());
-     }
-+    */
-
-     #[test]
-     fn test_for_iteration_error_not_word() {
+         // Let's create an invalid phrase that fails inside extract_value
+-        // By supplying a verb but no arguments it should be an invalid value
++        // By supplying an empty phrase... wait, extract_value handles verbs if they are variables?
+         let clause2 = Clause {
+             expressions: vec![Expr::Phrase(vec![
+                 Expr::Word(Word::new("δός")),
