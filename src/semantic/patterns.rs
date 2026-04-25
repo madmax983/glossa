@@ -1193,7 +1193,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_try_parse_struct_instantiation_empty_terms() {
         let mut scope = Scope::new();
@@ -1499,6 +1498,4 @@ mod coverage_tests {
             panic!("Expected MethodCall 'find'");
         }
     }
-
-
 }
