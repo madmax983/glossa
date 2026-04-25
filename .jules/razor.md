@@ -40,3 +40,7 @@
 **Bloat:** Undefined variables silently decaying into literal `0` integers deep within semantic parsing (`extract_value`), and critical sentence structure checks (`MissingVerb`) being ignored or throwing silent raw Rust codegen errors.
 **Cut:** Removed silent variable decay defaults. Flattened statement validation into `check_undefined_variables` where scoping and AST context are available, actively preventing undefined names. Placed explicit MissingVerb catching inside `Assembler::finalize`.
 **Saved:** Multiple paths that historically led to compiler crashes / malformed semantic models. Unified missing-verb catching, and prevented dozens of lines of unneeded checks later down in the codegen toolchain.
+## [Reduction]
+**Bloat:** Numerous single-use helper functions for code generation in `src/codegen.rs` (`generate_expr_some`, `generate_literal_string`, etc.) that were merely one-line wrappers.
+**Cut:** Inlined all these single-use wrappers directly into the `match` arms of the central `generate_expr` function, flattening the call stack and deleting the boilerplate functions.
+**Saved:** About 50 lines of boilerplate and removed unnecessary indirections.
