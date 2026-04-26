@@ -84,3 +84,6 @@
 **[Quote Token Spacing in Codegen Tests]**
 **Learning:** When asserting on stringified token streams produced by `quote!` in `src/codegen.rs` unit tests (like `test_generate_collection_index_bounds_check`), `quote!` automatically inserts spaces between certain tokens (e.g., `expect ("...")` instead of `expect("...")`). String containment assertions will fail if they don't account for this spacing.
 **Action:** Always print or inspect the `.to_string()` output of a `TokenStream` when writing exact string containment assertions to avoid brittle test failures caused by macro formatting.
+**[Control Flow Match Pattern Panics]**
+**Learning:** Found critical gaps in match pattern parsing in `src/semantic/control_flow.rs` (`parse_match_pattern`). The fallback parsing logic uses complex branches that are tricky to hit with `cargo llvm-cov` via high-level integration tests due to grammar structure and execution contexts.
+**Action:** When finding coverage gaps in deeply nested matching structures in `control_flow.rs` or `conversion.rs`, create standalone unit tests building `Expr::Phrase` and `Expr::Word` nodes manually under `#[cfg(test)] mod tests` to thoroughly cover wildcard, numeric, bound-variable, undefined-variable, and structure edge cases.

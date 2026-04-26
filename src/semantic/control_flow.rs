@@ -906,6 +906,157 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_return_expression_complex() {
+        let scope = Scope::new();
+        // A complex phrase with 3 words that currently falls back to NumberLiteral(0)
+        let clause = Clause {
+            expressions: vec![Expr::Phrase(vec![
+                Expr::Word(Word::new("δός")),
+                Expr::Word(Word::new("ξ")),
+                Expr::Word(Word::new("δύο")),
+                Expr::Word(Word::new("ἄθροισμα")),
+            ])],
+        };
+
+        let result = parse_return_expression(&clause, &scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::NumberLiteral(0) => (),
+            _ => panic!("Expected NumberLiteral(0) placeholder"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_parse_match_pattern_phrase_empty() {
+        let mut scope = Scope::new();
+        let expr = Expr::Phrase(vec![]);
+        let result = parse_match_pattern(&expr, &mut scope);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            crate::errors::GlossaError::SemanticError { message } => {
+                assert_eq!(message, "Empty match pattern");
+            }
+            _ => panic!("Expected SemanticError"),
+        }
+    }
+
+    #[test]
+    fn test_parse_match_pattern_phrase_wildcard() {
+        let mut scope = Scope::new();
+        let expr = Expr::Phrase(vec![Expr::Word(Word::new("αλλο"))]);
+        let result = parse_match_pattern(&expr, &mut scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::BooleanLiteral(true) => (),
+            _ => panic!("Expected BooleanLiteral(true)"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::Boolean);
+    }
+
+    #[test]
+    fn test_parse_match_pattern_phrase_numeral() {
+        let mut scope = Scope::new();
+        let expr = Expr::Phrase(vec![Expr::Word(Word::new("πεντε"))]);
+        let result = parse_match_pattern(&expr, &mut scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::NumberLiteral(5) => (),
+            _ => panic!("Expected NumberLiteral(5)"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_parse_match_pattern_phrase_variable() {
+        let mut scope = Scope::new();
+        scope.define("ξ".to_string(), GlossaType::String);
+        let expr = Expr::Phrase(vec![Expr::Word(Word::new("ξ"))]);
+        let result = parse_match_pattern(&expr, &mut scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::Variable(ref v) if v == "ξ" => (),
+            _ => panic!("Expected Variable(ξ)"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::String);
+    }
+
+    #[test]
+    fn test_parse_match_pattern_phrase_variable_undefined() {
+        let mut scope = Scope::new();
+        let expr = Expr::Phrase(vec![Expr::Word(Word::new("αγνωστο"))]);
+        let result = parse_match_pattern(&expr, &mut scope);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            crate::errors::GlossaError::UndefinedName { name } => {
+                assert_eq!(name, "αγνωστο");
+            }
+            _ => panic!("Expected UndefinedName error"),
+        }
+    }
+
+    #[test]
+    fn test_parse_match_pattern_word_wildcard() {
+        let mut scope = Scope::new();
+        let expr = Expr::Word(Word::new("αλλο"));
+        let result = parse_match_pattern(&expr, &mut scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::BooleanLiteral(true) => (),
+            _ => panic!("Expected BooleanLiteral(true)"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::Boolean);
+    }
+
+    #[test]
+    fn test_parse_match_pattern_word_numeral() {
+        let mut scope = Scope::new();
+        let expr = Expr::Word(Word::new("ενα"));
+        let result = parse_match_pattern(&expr, &mut scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::NumberLiteral(1) => (),
+            _ => panic!("Expected NumberLiteral(1)"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_parse_match_pattern_word_variable() {
+        let mut scope = Scope::new();
+        scope.define("ψ".to_string(), GlossaType::Number);
+        let expr = Expr::Word(Word::new("ψ"));
+        let result = parse_match_pattern(&expr, &mut scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::Variable(ref v) if v == "ψ" => (),
+            _ => panic!("Expected Variable(ψ)"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::Number);
+    }
+
+    #[test]
+    fn test_parse_match_pattern_word_variable_undefined() {
+        let mut scope = Scope::new();
+        let expr = Expr::Word(Word::new("αγνωστο_ονομα"));
+        let result = parse_match_pattern(&expr, &mut scope);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            crate::errors::GlossaError::UndefinedName { name } => {
+                assert_eq!(name, "αγνωστο_ονομα");
+            }
+            _ => panic!("Expected UndefinedName error"),
+        }
+    }
+
+    #[test]
+    fn test_parse_match_pattern_invalid_type() {
+        let mut scope = Scope::new();
+        let expr = Expr::NumberLiteral(42);
+        let result = parse_match_pattern(&expr, &mut scope);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            crate::errors::GlossaError::SemanticError { message } => {
+                assert_eq!(message, "Invalid match pattern");
+            }
+            _ => panic!("Expected SemanticError"),
+        }
+    }
+
+    #[test]
     fn test_parse_return_statement_empty_clauses() {
         let mut scope = Scope::new();
         let stmt = Statement::Regular {
