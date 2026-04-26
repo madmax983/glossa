@@ -190,6 +190,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Export the semantic AST to a Graphviz DOT diagram (Requires "nova" feature)
+    Haruspex {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Run the Auditor to find code smells (Requires "nova" feature)
     Audit {
         /// Input file (.γλ)

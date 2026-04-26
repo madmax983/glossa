@@ -42,3 +42,8 @@
 **Concept:** A Markdown documentation generator (`glossa scholar`) that uses the compiler's semantic phase to extract and format types, traits, and functions.
 **Fate:** Merged
 **Lesson:** Using the `AnalyzedProgram`'s scope directly allows us to generate accurate API documentation effortlessly, proving the power of a centralized semantic model.
+
+## 🌟 The Haruspex (ὁ Ἱεροσκόπος)
+**Concept:** A CLI tool (`glossa haruspex`) that exports the semantic AST (`AnalyzedProgram`) directly to a Graphviz DOT diagram.
+**Fate:** Merged
+**Lesson:** Provides a fast, dependency-free way (no huge third-party crates needed besides manual text serialization) to visualize exactly how the Assembler routed cases and typed nodes. Proves that the "Exporter" pattern is highly effective for exposing internal compiler phases to external developer tools.
