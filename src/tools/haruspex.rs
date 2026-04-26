@@ -535,19 +535,247 @@ mod tests {
     use crate::semantic::{GlossaType, Scope};
 
     #[test]
-    fn test_dot_generator() {
+    fn test_dot_generator_coverage() {
         let scope = Scope::new();
-        let binding = AnalyzedStatement::Binding {
+
+        let mut statements = Vec::new();
+
+        // Binding
+        statements.push(AnalyzedStatement::Binding {
             name: "test".into(),
             value: AnalyzedExpr {
                 expr: AnalyzedExprKind::NumberLiteral(42),
                 glossa_type: GlossaType::Number,
             },
-            mutable: false,
+            mutable: true,
+        });
+
+        // Assignment
+        statements.push(AnalyzedStatement::Assignment {
+            name: "test".into(),
+            value: AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("val".into()),
+                glossa_type: GlossaType::String,
+            },
+        });
+
+        // Print & Query & Expression
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
         };
+        statements.push(AnalyzedStatement::Print(vec![dummy_expr.clone()]));
+        statements.push(AnalyzedStatement::Query(vec![dummy_expr.clone()]));
+        statements.push(AnalyzedStatement::Expression(vec![dummy_expr.clone()]));
+
+        // If with else
+        statements.push(AnalyzedStatement::If {
+            condition: Box::new(dummy_expr.clone()),
+            then_body: vec![AnalyzedStatement::Break],
+            else_body: Some(vec![AnalyzedStatement::Continue]),
+        });
+
+        // While & For
+        statements.push(AnalyzedStatement::While {
+            condition: Box::new(dummy_expr.clone()),
+            body: vec![AnalyzedStatement::Break],
+        });
+        statements.push(AnalyzedStatement::For {
+            variable: "x".into(),
+            iterator: Box::new(dummy_expr.clone()),
+            body: vec![AnalyzedStatement::Break],
+        });
+
+        // Match
+        statements.push(AnalyzedStatement::Match {
+            scrutinee: Box::new(dummy_expr.clone()),
+            arms: vec![(dummy_expr.clone(), vec![AnalyzedStatement::Break])],
+        });
+
+        // Return
+        statements.push(AnalyzedStatement::Return {
+            value: Some(Box::new(dummy_expr.clone())),
+        });
+
+        // FunctionDef
+        statements.push(AnalyzedStatement::FunctionDef {
+            name: "func".into(),
+            params: vec![("p".into(), Some(GlossaType::Number))],
+            body: vec![],
+            return_type: Some(GlossaType::Number),
+        });
+
+        // TypeDef
+        statements.push(AnalyzedStatement::TypeDefinition {
+            name: "Type".into(),
+            fields: vec![("f".into(), GlossaType::Number)],
+        });
+
+        // TraitDef & TraitImpl
+        let method = crate::semantic::AnalyzedMethod {
+            name: "meth".into(),
+            params: vec![],
+            body: Some(vec![]),
+            return_type: None,
+        };
+        statements.push(AnalyzedStatement::TraitDefinition {
+            name: "Trait".into(),
+            methods: vec![method.clone()],
+        });
+        statements.push(AnalyzedStatement::TraitImplementation {
+            trait_name: "Trait".into(),
+            type_name: "Type".into(),
+            methods: vec![method],
+        });
+
+        // TestDeclaration
+        statements.push(AnalyzedStatement::TestDeclaration {
+            name: "test".into(),
+            body: vec![],
+        });
+
+        // Add all AnalyzedExprKind variants wrapped in an Expression statement
+        let exprs = vec![
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("var".into()),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::PropertyAccess {
+                    owner: Box::new(dummy_expr.clone()),
+                    property: "prop".into(),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::VerbCall {
+                    verb: "verb".into(),
+                    args: vec![dummy_expr.clone()],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::BinOp {
+                    left: Box::new(dummy_expr.clone()),
+                    op: crate::morphology::lexicon::BinaryOp::Add,
+                    right: Box::new(dummy_expr.clone()),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::UnaryOp {
+                    op: crate::morphology::lexicon::UnaryOp::Not,
+                    operand: Box::new(dummy_expr.clone()),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Range {
+                    start: Box::new(dummy_expr.clone()),
+                    end: Box::new(dummy_expr.clone()),
+                    inclusive: true,
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Range {
+                    start: Box::new(dummy_expr.clone()),
+                    end: Box::new(dummy_expr.clone()),
+                    inclusive: false,
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::ArrayLiteral(vec![dummy_expr.clone()]),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Some(Box::new(dummy_expr.clone())),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::None,
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Ok(Box::new(dummy_expr.clone())),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Err(Box::new(dummy_expr.clone())),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Unwrap(Box::new(dummy_expr.clone())),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Try(Box::new(dummy_expr.clone())),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::IndexAccess {
+                    array: Box::new(dummy_expr.clone()),
+                    index: Box::new(dummy_expr.clone()),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::FunctionCall {
+                    func: "func".into(),
+                    args: vec![dummy_expr.clone()],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::MethodCall {
+                    receiver: Box::new(dummy_expr.clone()),
+                    method: "meth".into(),
+                    args: vec![dummy_expr.clone()],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::StructInstantiation {
+                    type_name: "Type".into(),
+                    fields: vec!["f".into()],
+                    args: vec![dummy_expr.clone()],
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Lambda {
+                    params: vec!["p".into()],
+                    body: Box::new(dummy_expr.clone()),
+                    capture_mode: crate::semantic::CaptureMode::Move,
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::CollectionNew {
+                    collection_type: "List".into(),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Assert {
+                    condition: Box::new(dummy_expr.clone()),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::AssertEq {
+                    left: Box::new(dummy_expr.clone()),
+                    right: Box::new(dummy_expr.clone()),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+        ];
+
+        statements.push(AnalyzedStatement::Expression(exprs));
 
         let program = AnalyzedProgram {
-            statements: vec![binding],
+            statements,
             scope,
         };
 
@@ -555,7 +783,10 @@ mod tests {
         let dot = generator.generate(&program);
 
         assert!(dot.contains("digraph AST {"));
-        assert!(dot.contains("Binding\\ntest"));
+        assert!(dot.contains("Binding\\nmut test"));
         assert!(dot.contains("Number\\n42"));
+        assert!(dot.contains("Assignment\\ntest"));
+        assert!(dot.contains("Match"));
+        assert!(dot.contains("StructInstantiation"));
     }
 }
