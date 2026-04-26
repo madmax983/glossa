@@ -838,68 +838,67 @@ mod coverage_tests {
     }
 }
 
-    #[test]
-    fn test_print_results_table_with_failed() {
-        let results = vec![
-            TestResult {
-                name: "test_failed".to_string(),
-                status: TestStatus::Failed,
-            }
-        ];
-        print_results_table(&results);
-    }
+#[test]
+fn test_print_results_table_with_failed() {
+    let results = vec![TestResult {
+        name: "test_failed".to_string(),
+        status: TestStatus::Failed,
+    }];
+    print_results_table(&results);
+}
 
-    #[test]
-    fn test_print_results_table_with_passed() {
-        let results = vec![
-            TestResult {
-                name: "test_passed".to_string(),
-                status: TestStatus::Ok,
-            }
-        ];
-        print_results_table(&results);
-    }
+#[test]
+fn test_print_results_table_with_passed() {
+    let results = vec![TestResult {
+        name: "test_passed".to_string(),
+        status: TestStatus::Ok,
+    }];
+    print_results_table(&results);
+}
 
-    #[test]
-    fn test_print_failure_details_coverage() {
-        #[cfg(unix)]
-        use std::os::unix::process::ExitStatusExt;
-        #[cfg(windows)]
-        use std::os::windows::process::ExitStatusExt;
+#[test]
+fn test_print_failure_details_coverage() {
+    #[cfg(unix)]
+    use std::os::unix::process::ExitStatusExt;
+    #[cfg(windows)]
+    use std::os::windows::process::ExitStatusExt;
 
-        // Mock a failed Output
-        #[cfg(unix)]
-        let status = std::process::ExitStatus::from_raw(256);
-        #[cfg(windows)]
-        let status = std::process::ExitStatus::from_raw(1);
+    // Mock a failed Output
+    #[cfg(unix)]
+    let status = std::process::ExitStatus::from_raw(256);
+    #[cfg(windows)]
+    let status = std::process::ExitStatus::from_raw(1);
 
-        let failed_output = std::process::Output {
-            status,
-            stdout: b"failures:\n\n---- test1 stdout ----\nerr1\n\nfailures:\n    test1\n".to_vec(),
-            stderr: b"Some stderr".to_vec(),
-        };
+    let failed_output = std::process::Output {
+        status,
+        stdout: b"failures:\n\n---- test1 stdout ----\nerr1\n\nfailures:\n    test1\n".to_vec(),
+        stderr: b"Some stderr".to_vec(),
+    };
 
-        print_failure_details(&failed_output, "failures:\n\n---- test1 stdout ----\nerr1\n\nfailures:\n    test1\n");
-    }
+    print_failure_details(
+        &failed_output,
+        "failures:\n\n---- test1 stdout ----\nerr1\n\nfailures:\n    test1\n",
+    );
+}
 
-    #[test]
-    fn test_print_failure_details_fallback_coverage() {
-        #[cfg(unix)]
-        use std::os::unix::process::ExitStatusExt;
-        #[cfg(windows)]
-        use std::os::windows::process::ExitStatusExt;
+#[test]
+fn test_print_failure_details_fallback_coverage() {
+    #[cfg(unix)]
+    use std::os::unix::process::ExitStatusExt;
+    #[cfg(windows)]
+    use std::os::windows::process::ExitStatusExt;
 
-        // Mock a failed Output but with no parsable failures blocks
-        #[cfg(unix)]
-        let status = std::process::ExitStatus::from_raw(256);
-        #[cfg(windows)]
-        let status = std::process::ExitStatus::from_raw(1);
+    // Mock a failed Output but with no parsable failures blocks
+    #[cfg(unix)]
+    let status = std::process::ExitStatus::from_raw(256);
+    #[cfg(windows)]
+    let status = std::process::ExitStatus::from_raw(1);
 
-        let failed_output = std::process::Output {
-            status,
-            stdout: b"just some raw stdout".to_vec(),
-            stderr: b"and some stderr".to_vec(),
-        };
+    let failed_output = std::process::Output {
+        status,
+        stdout: b"just some raw stdout".to_vec(),
+        stderr: b"and some stderr".to_vec(),
+    };
 
-        print_failure_details(&failed_output, "just some raw stdout");
-    }
+    print_failure_details(&failed_output, "just some raw stdout");
+}
