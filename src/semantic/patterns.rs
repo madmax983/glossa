@@ -1418,4 +1418,61 @@ mod coverage_tests {
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
+
+    #[test]
+    fn test_extract_struct_instantiation_prefix_coverage() {
+        use crate::ast::Clause;
+
+        // Test Not Regular Statement
+        let stmt = Statement::TestDeclaration(crate::ast::TestDecl {
+            name: "test".to_string(),
+            body: vec![],
+        });
+        assert!(extract_struct_instantiation_prefix(&stmt).is_none());
+
+        // Test clauses len != 1
+        let stmt_multi_clause = Statement::Regular {
+            clauses: vec![
+                Clause { expressions: vec![] },
+                Clause { expressions: vec![] },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        assert!(extract_struct_instantiation_prefix(&stmt_multi_clause).is_none());
+
+        // Test expressions len != 1
+        let stmt_multi_expr = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        assert!(extract_struct_instantiation_prefix(&stmt_multi_expr).is_none());
+
+        // Test not a Phrase
+        let stmt_not_phrase = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::NumberLiteral(1)],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        assert!(extract_struct_instantiation_prefix(&stmt_not_phrase).is_none());
+
+        // Test Phrase with len < 4
+        let stmt_short_phrase = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Phrase(vec![
+                    Expr::NumberLiteral(1),
+                    Expr::NumberLiteral(2),
+                    Expr::NumberLiteral(3),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        assert!(extract_struct_instantiation_prefix(&stmt_short_phrase).is_none());
+    }
 }
