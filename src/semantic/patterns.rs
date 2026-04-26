@@ -170,7 +170,6 @@ fn extract_struct_instantiation_prefix(
         return None;
     }
 
-    // Verify structural words (0, 1, 2, Last) are Words
     let var_word = &terms[0];
     let adj_word = &terms[1];
     let type_word = &terms[2];
@@ -1433,8 +1432,12 @@ mod coverage_tests {
         // Test clauses len != 1
         let stmt_multi_clause = Statement::Regular {
             clauses: vec![
-                Clause { expressions: vec![] },
-                Clause { expressions: vec![] },
+                Clause {
+                    expressions: vec![],
+                },
+                Clause {
+                    expressions: vec![],
+                },
             ],
             is_query: false,
             is_propagate: false,
