@@ -815,3 +815,27 @@ test name with spaces ... ok
         assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
     }
 }
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+
+    #[test]
+    fn test_print_results_table_empty() {
+        let results: Vec<TestResult> = vec![];
+        // This will print to stdout during test, covering the empty branch
+        print_results_table(&results);
+    }
+
+    #[test]
+    fn test_print_results_table_with_ignored() {
+        let results = vec![
+            TestResult {
+                name: "test_ignored".to_string(),
+                status: TestStatus::Ignored,
+            }
+        ];
+        // This will print to stdout during test, covering the Ignored branch
+        print_results_table(&results);
+    }
+}
