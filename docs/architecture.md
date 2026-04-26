@@ -19,6 +19,16 @@ C4Context
     Rel(rustc, glossa, "Reports Errors", "StdOut/StdErr")
 ```
 
+## Storage Architecture (Decoupled)
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+  %% Removed the circular dependency arrow
+```
+
 ## Compiler Pipeline (C4 Container Level)
 
 The compiler is organized as a pipeline of modules, transforming source text into Rust code.
