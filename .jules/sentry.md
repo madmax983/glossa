@@ -84,3 +84,7 @@
 **[Quote Token Spacing in Codegen Tests]**
 **Learning:** When asserting on stringified token streams produced by `quote!` in `src/codegen.rs` unit tests (like `test_generate_collection_index_bounds_check`), `quote!` automatically inserts spaces between certain tokens (e.g., `expect ("...")` instead of `expect("...")`). String containment assertions will fail if they don't account for this spacing.
 **Action:** Always print or inspect the `.to_string()` output of a `TokenStream` when writing exact string containment assertions to avoid brittle test failures caused by macro formatting.
+
+**[Semantic Patterns Coverage]**
+**Learning:** In `src/semantic/patterns.rs`, the logic for parsing unsupported argument types in struct instantiations (`parse_struct_args`), processing `find` without a predicate (`process_find`), and falling back to unstripped suffix matches during genitive comparisons (`extract_comparison_value`) were missing test coverage. Furthermore, when writing tests targeting `process_find` with no predicate, the code actually transforms it to `.find(|_| true)` instead of `.next()`, so asserting against `"next"` causes a test failure.
+**Action:** When adding missing edge case coverage, carefully review the inner implementations before constructing the test assertions to match the actual, generated `AnalyzedExpr` nodes instead of assuming idealized shortcuts. Also ensure the setup correctly puts the mock values into the `Scope` using the correct key mapping.
