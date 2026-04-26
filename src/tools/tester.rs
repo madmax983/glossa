@@ -272,6 +272,15 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         println!();
     }
 
+    print_results_table(results);
+
+    // If there were failures, try to extract and print them nicely
+    if !test_output.status.success() {
+        print_failure_details(test_output, stdout);
+    }
+}
+
+fn print_results_table(results: &[TestResult]) {
     if !results.is_empty() {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
@@ -315,41 +324,41 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         ]);
         println!("{empty_table}");
     }
+}
 
-    // If there were failures, try to extract and print them nicely
-    if !test_output.status.success() {
-        println!();
-        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+fn print_failure_details(test_output: &std::process::Output, stdout: &str) {
+    println!();
+    println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
 
-        let failures = extract_failures(stdout);
+    let failures = extract_failures(stdout);
 
-        if !failures.is_empty() {
-            for (name, msg) in failures {
-                println!(
-                    "{} {}",
-                    "FAILED:".red().bold(),
-                    name.cyan().bold().underlined()
-                );
-                // Create a box for the error message
-                let border_top =
-                    "╭───────────────────────────────────────────────────────────────────╮".red();
-                let border_bottom =
-                    "╰───────────────────────────────────────────────────────────────────╯".red();
+    if !failures.is_empty() {
+        for (name, msg) in failures {
+            println!(
+                "{} {}",
+                "FAILED:".red().bold(),
+                name.cyan().bold().underlined()
+            );
 
-                println!("{}", border_top);
-                for line in msg.lines() {
-                    // Wrap extremely long lines if needed, but for now simple print
-                    println!("{} {}", "│".red(), line);
-                }
-                println!("{}", border_bottom);
-                println!();
+            // Create a box for the error message
+            let border_top =
+                "╭───────────────────────────────────────────────────────────────────╮".red();
+            let border_bottom =
+                "╰───────────────────────────────────────────────────────────────────╯".red();
+
+            println!("{}", border_top);
+            for line in msg.lines() {
+                // Wrap extremely long lines if needed, but for now simple print
+                println!("{} {}", "│".red(), line);
             }
-        } else {
-            // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
-            if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
-            }
+            println!("{}", border_bottom);
+            println!();
+        }
+    } else {
+        // Fallback to raw output if extraction failed but tests failed
+        println!("{}", stdout);
+        if !test_output.stderr.is_empty() {
+            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
         }
     }
 }

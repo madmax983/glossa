@@ -13,3 +13,11 @@
 **[Auditor Visitor God Functions]**
 **Learning:** The `visit_statement` and `visit_expr` functions in `src/tools/auditor.rs` became "God Functions" containing massive `match` blocks.
 **Action:** Extract complex `match` arms for `If`, `While`, `For`, `Match`, and repetitive logic into private helper functions like `visit_if_statement` and `visit_exprs` to flatten nesting and clarify the match block routing.
+
+**Extracting Prefix Validation to Flatten Logic**
+**Learning:** Functions dealing with heavy pattern matching (like deep AST destructuring) can easily become "God Functions" with towering pyramids of doom or endless guard clauses. Breaking off the prefix-validation component into a separate tuple-returning helper function (`extract_..._prefix`) allows the main function to flatten the extraction into a single clean `if let Some(...)` destructuring binding.
+**Action:** Always scan long functions for large blocks of early-return guard clauses that are just validating and extracting internal structure, and isolate them into a dedicated helper function that returns an `Option` containing the validated parts.
+
+**Centralized Table Styling with `comfy_table`**
+**Learning:** Manual border rendering using hardcoded ASCII strings (like `╭──────────────────╮`) mixed with `println!` loops is fragile and causes issues with multi-line outputs. It creates massive string constants and error-prone loop blocks.
+**Action:** Replace manual terminal border strings with `comfy_table::Table` using `presets::UTF8_FULL`. This guarantees clean multi-line wrapping and robust ASCII styling without writing loops.

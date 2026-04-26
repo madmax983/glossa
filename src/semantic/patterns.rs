@@ -143,45 +143,54 @@ pub fn try_parse_method_call(
 /// ```
 ///
 /// Returns `Some(analyzed_statement)` if this is a struct instantiation, `None` otherwise.
-pub fn try_parse_struct_instantiation(
+fn extract_struct_instantiation_prefix(
     stmt: &Statement,
-    scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+) -> Option<(&Expr, &Expr, &Expr, &Expr, &[Expr])> {
     // Only process Regular statements
     let Statement::Regular { clauses, .. } = stmt else {
-        return Ok(None);
+        return None;
     };
 
     // Should have exactly one clause
     if clauses.len() != 1 {
-        return Ok(None);
+        return None;
     }
 
     let clause = &clauses[0];
     if clause.expressions.len() != 1 {
-        return Ok(None);
+        return None;
     }
 
     // Should be a Phrase with at least 4 terms
     let Expr::Phrase(terms) = &clause.expressions[0] else {
-        return Ok(None);
+        return None;
     };
 
     if terms.len() < 4 {
-        return Ok(None);
+        return None;
     }
 
     // Verify structural words (0, 1, 2, Last) are Words
-    let Expr::Word(var_word) = &terms[0] else {
-        return Ok(None);
-    };
-    let Expr::Word(adj_word) = &terms[1] else {
-        return Ok(None);
-    };
-    let Expr::Word(type_word) = &terms[2] else {
-        return Ok(None);
-    };
-    let Some(Expr::Word(last_word)) = terms.last() else {
+    let var_word = &terms[0];
+    let adj_word = &terms[1];
+    let type_word = &terms[2];
+    let last_word = terms.last()?;
+
+    Some((var_word, adj_word, type_word, last_word, terms.as_slice()))
+}
+
+pub fn try_parse_struct_instantiation(
+    stmt: &Statement,
+    scope: &mut Scope,
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    let Some((
+        Expr::Word(var_word),
+        Expr::Word(adj_word),
+        Expr::Word(type_word),
+        Expr::Word(last_word),
+        terms,
+    )) = extract_struct_instantiation_prefix(stmt)
+    else {
         return Ok(None);
     };
 
