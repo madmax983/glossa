@@ -774,10 +774,7 @@ mod tests {
 
         statements.push(AnalyzedStatement::Expression(exprs));
 
-        let program = AnalyzedProgram {
-            statements,
-            scope,
-        };
+        let program = AnalyzedProgram { statements, scope };
 
         let mut generator = DotGenerator::new();
         let dot = generator.generate(&program);
