@@ -40,3 +40,7 @@
 **Bloat:** Undefined variables silently decaying into literal `0` integers deep within semantic parsing (`extract_value`), and critical sentence structure checks (`MissingVerb`) being ignored or throwing silent raw Rust codegen errors.
 **Cut:** Removed silent variable decay defaults. Flattened statement validation into `check_undefined_variables` where scoping and AST context are available, actively preventing undefined names. Placed explicit MissingVerb catching inside `Assembler::finalize`.
 **Saved:** Multiple paths that historically led to compiler crashes / malformed semantic models. Unified missing-verb catching, and prevented dozens of lines of unneeded checks later down in the codegen toolchain.
+## [Reduction]
+**Bloat:** `TestResult` struct in `src/tools/tester.rs`.
+**Cut:** Replaced the single-use `TestResult` struct with a concrete tuple `(String, TestStatus)`.
+**Saved:** ~15 lines of struct definition boilerplate and struct instantiation syntax in the parsing algorithms.
