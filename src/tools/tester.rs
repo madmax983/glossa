@@ -829,13 +829,61 @@ mod coverage_tests {
 
     #[test]
     fn test_print_results_table_with_ignored() {
-        let results = vec![
-            TestResult {
-                name: "test_ignored".to_string(),
-                status: TestStatus::Ignored,
-            }
-        ];
+        let results = vec![TestResult {
+            name: "test_ignored".to_string(),
+            status: TestStatus::Ignored,
+        }];
         // This will print to stdout during test, covering the Ignored branch
         print_results_table(&results);
     }
 }
+
+    #[test]
+    fn test_print_results_table_with_failed() {
+        let results = vec![
+            TestResult {
+                name: "test_failed".to_string(),
+                status: TestStatus::Failed,
+            }
+        ];
+        print_results_table(&results);
+    }
+
+    #[test]
+    fn test_print_results_table_with_passed() {
+        let results = vec![
+            TestResult {
+                name: "test_passed".to_string(),
+                status: TestStatus::Ok,
+            }
+        ];
+        print_results_table(&results);
+    }
+
+    #[test]
+    fn test_print_failure_details_coverage() {
+        use std::os::unix::process::ExitStatusExt;
+
+        // Mock a failed Output
+        let failed_output = std::process::Output {
+            status: std::process::ExitStatus::from_raw(256), // Exit code 1
+            stdout: b"failures:\n\n---- test1 stdout ----\nerr1\n\nfailures:\n    test1\n".to_vec(),
+            stderr: b"Some stderr".to_vec(),
+        };
+
+        print_failure_details(&failed_output, "failures:\n\n---- test1 stdout ----\nerr1\n\nfailures:\n    test1\n");
+    }
+
+    #[test]
+    fn test_print_failure_details_fallback_coverage() {
+        use std::os::unix::process::ExitStatusExt;
+
+        // Mock a failed Output but with no parsable failures blocks
+        let failed_output = std::process::Output {
+            status: std::process::ExitStatus::from_raw(256), // Exit code 1
+            stdout: b"just some raw stdout".to_vec(),
+            stderr: b"and some stderr".to_vec(),
+        };
+
+        print_failure_details(&failed_output, "just some raw stdout");
+    }
