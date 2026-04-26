@@ -13,3 +13,7 @@
 **[Auditor Visitor God Functions]**
 **Learning:** The `visit_statement` and `visit_expr` functions in `src/tools/auditor.rs` became "God Functions" containing massive `match` blocks.
 **Action:** Extract complex `match` arms for `If`, `While`, `For`, `Match`, and repetitive logic into private helper functions like `visit_if_statement` and `visit_exprs` to flatten nesting and clarify the match block routing.
+
+**[Tester God Function Refactor]**
+**Learning:** `extract_failures` in `src/tools/tester.rs` was a deeply nested function spanning ~75 lines to parse compiler output, hiding multiple concerns (skipping sections, parsing names, capturing multi-line messages, cleaning panic noise).
+**Action:** Extract logic into dedicated helpers (`parse_failure_name`, `capture_failure_message`, `clean_panic_message`) using early returns/guard clauses. This flattens the loop from 4-level deep nesting into a simple orchestrator.
