@@ -241,3 +241,19 @@ mod tests {
         // Let's accept this specific unreachable arm for `index_expr` match fallback.
     }
 }
+
+#[cfg(test)]
+mod tests_coverage {
+    use super::*;
+    use crate::parser::grammar::{GlossaParser, Rule};
+    use pest::Parser;
+
+    #[test]
+    fn test_build_term_empty() {
+        let mut pairs = GlossaParser::parse(Rule::period, ".").unwrap();
+        let pair = pairs.next().unwrap();
+
+        let result = build_term(pair);
+        assert!(matches!(result, Err(ParseError::EmptyTerm)));
+    }
+}

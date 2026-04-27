@@ -259,3 +259,15 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod tests_coverage {
+    use super::*;
+
+    #[test]
+    fn test_parse_invalid_syntax_error() {
+        let source = "this is not greek and will fail to parse ^&*(";
+        let result = parse(source);
+        assert!(result.is_err());
+    }
+}

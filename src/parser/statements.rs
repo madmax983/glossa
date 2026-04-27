@@ -66,3 +66,22 @@ fn parse_statement_end(pair: Pair<'_, Rule>) -> (bool, bool) {
     }
     (is_query, is_propagate)
 }
+
+#[cfg(test)]
+mod tests_coverage {
+    use super::*;
+    use crate::parser::grammar::{GlossaParser, Rule};
+    use pest::Parser;
+
+    #[test]
+    fn test_build_regular_statement_missing_end() {
+        let mut pairs = GlossaParser::parse(Rule::clause_list, "ξ λέγε").unwrap();
+        let clause_list_pair = pairs.next().unwrap();
+
+        let empty_pairs = GlossaParser::parse(Rule::block, "{}").unwrap();
+        let inner_pairs = empty_pairs.into_iter().next().unwrap().into_inner();
+
+        let result = build_regular_statement(clause_list_pair, inner_pairs);
+        assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
+    }
+}

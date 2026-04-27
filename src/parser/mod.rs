@@ -298,3 +298,32 @@ mod tests {
         assert!(result.is_ok());
     }
 }
+
+#[cfg(test)]
+mod tests_coverage {
+    use super::*;
+
+    #[test]
+    fn test_parse_unexpected_error_handling() {
+        use crate::parser::grammar::{GlossaParser, Rule};
+        use pest::Parser;
+
+        let mut pairs = GlossaParser::parse(Rule::string_literal, "«a»").unwrap();
+        let pair = pairs.next().unwrap();
+
+        let result = build_statement(pair);
+        assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
+    }
+
+    #[test]
+    fn test_parse_empty_statement_handling() {
+        use crate::parser::grammar::{GlossaParser, Rule};
+        use pest::Parser;
+
+        let mut pairs = GlossaParser::parse(Rule::period, ".").unwrap();
+        let pair = pairs.next().unwrap();
+
+        let result = build_statement(pair);
+        assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
+    }
+}
