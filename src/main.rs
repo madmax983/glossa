@@ -191,6 +191,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Archivist { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::archivist::run_archivist(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'archivist' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

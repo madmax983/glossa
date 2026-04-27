@@ -47,3 +47,8 @@
 **Concept:** A CLI tool (`glossa haruspex`) that exports the semantic AST (`AnalyzedProgram`) directly to a Graphviz DOT diagram.
 **Fate:** Merged
 **Lesson:** Provides a fast, dependency-free way (no huge third-party crates needed besides manual text serialization) to visualize exactly how the Assembler routed cases and typed nodes. Proves that the "Exporter" pattern is highly effective for exposing internal compiler phases to external developer tools.
+
+## 🌟 The Archivist (ὁ Ἀρχειοφύλαξ)
+**Concept:** A CLI tool (`glossa archivist`) that exports the semantic AST (`AnalyzedProgram`) types directly to a JSON Schema.
+**Fate:** Merged
+**Lesson:** Provides a fast, dependency-free way (using manual text formatting to avoid large `serde` dependencies) to bridge the gap between Glossa semantic typing and external web tools or databases, enabling strong interoperability. Proves that the "Exporter" pattern is highly effective for extending the compiler's utility.

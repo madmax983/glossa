@@ -212,4 +212,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate a JSON Schema from struct definitions (Requires "nova" feature)
+    Archivist {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
