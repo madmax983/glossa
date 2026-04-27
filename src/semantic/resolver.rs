@@ -82,10 +82,10 @@ pub struct Scope {
     levels: Vec<ScopeLevel>,
 }
 
-/// A function signature for tracking defined functions.
+/// A function signature tracking defined operations.
 ///
-/// Functions are tracked across the semantic scope so that they can be
-/// resolved and their types can be validated when called.
+/// Records the expected parameters and return type of a `πρᾶξις` (function)
+/// so the compiler can verify calls against it later.
 #[derive(Debug, Clone)]
 pub struct FunctionSignature {
     /// The normalized Greek name of the function (typically the verb lemma).
@@ -96,11 +96,10 @@ pub struct FunctionSignature {
     pub return_type: Option<GlossaType>,
 }
 
-/// A tracked variable binding with type and metadata.
+/// A tracked variable binding.
 ///
-/// Bindings are resolved when a variable is used (e.g., retrieving its value).
-/// They contain the underlying Rust-compatible [`GlossaType`] for the object
-/// and other mutable flags that power compiler warnings and optimizations.
+/// Contains the underlying Rust-compatible `GlossaType` for the object
+/// and tracks usage to throw warnings if a variable is created but never read.
 #[derive(Debug, Clone)]
 pub struct Binding {
     /// The normalized variable name, acting as the key in the lookup.
@@ -481,7 +480,23 @@ impl Scope {
         self.levels.iter().flat_map(|l| l.variables.iter())
     }
 
-    /// Mark a binding as used
+    /// Mark a variable binding as having been used (read or written).
+    ///
+    /// This prevents the compiler from issuing an unused variable warning
+    /// for this specific binding.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::semantic::{Scope, GlossaType};
+    ///
+    /// let mut scope = Scope::new();
+    /// scope.define("x", GlossaType::Number);
+    /// scope.mark_used("x");
+    ///
+    /// let unused = scope.unused_bindings().count();
+    /// assert_eq!(unused, 0);
+    /// ```
     pub fn mark_used(&mut self, name: &str) {
         for level in self.levels.iter_mut().rev() {
             if let Some(binding) = level.variables.get_mut(name) {

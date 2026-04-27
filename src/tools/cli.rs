@@ -50,7 +50,9 @@ use std::path::PathBuf;
 ///
 /// This struct defines the root of the command line interface, parsing the user's
 /// inputs into understandable commands that the compiler can act upon. We use `clap`
-/// to automatically generate help text and handle argument parsing.
+/// to automatically generate help text and handle argument parsing. It acts as the
+/// gatekeeper, routing the user's intent to the appropriate pipeline tool
+/// (e.g., `tester`, `runner`, `repl`).
 ///
 /// # Examples
 ///
