@@ -535,6 +535,21 @@ mod tests {
     use crate::semantic::{GlossaType, Scope};
 
     #[test]
+    fn test_haruspex_errors() {
+        // Test missing file
+        let not_found = std::path::Path::new("does_not_exist.γλ");
+        let result = run_haruspex(not_found);
+        assert!(result.is_err());
+
+        // Test syntax error parsing via temp file
+        let temp_dir = tempfile::tempdir().unwrap();
+        let invalid_file = temp_dir.path().join("invalid.γλ");
+        std::fs::write(&invalid_file, "this is not valid glossa").unwrap();
+        let result = run_haruspex(&invalid_file);
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn test_dot_generator_coverage() {
         let scope = Scope::new();
 
@@ -596,6 +611,7 @@ mod tests {
         statements.push(AnalyzedStatement::Return {
             value: Some(Box::new(dummy_expr.clone())),
         });
+        statements.push(AnalyzedStatement::Return { value: None });
 
         // FunctionDef
         statements.push(AnalyzedStatement::FunctionDef {
@@ -603,6 +619,12 @@ mod tests {
             params: vec![("p".into(), Some(GlossaType::Number))],
             body: vec![],
             return_type: Some(GlossaType::Number),
+        });
+        statements.push(AnalyzedStatement::FunctionDef {
+            name: "func2".into(),
+            params: vec![("p".into(), None)],
+            body: vec![],
+            return_type: None,
         });
 
         // TypeDef
@@ -637,6 +659,14 @@ mod tests {
         // Add all AnalyzedExprKind variants wrapped in an Expression statement
         let exprs = vec![
             AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral("val".into()),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable("var".into()),
                 glossa_type: GlossaType::Unknown,
             },
@@ -644,6 +674,14 @@ mod tests {
                 expr: AnalyzedExprKind::PropertyAccess {
                     owner: Box::new(dummy_expr.clone()),
                     property: "prop".into(),
+                },
+                glossa_type: GlossaType::Unknown,
+            },
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::Lambda {
+                    params: vec!["p".into()],
+                    body: Box::new(dummy_expr.clone()),
+                    capture_mode: crate::semantic::CaptureMode::Borrow,
                 },
                 glossa_type: GlossaType::Unknown,
             },
