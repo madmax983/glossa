@@ -40,3 +40,12 @@
 **Bloat:** Undefined variables silently decaying into literal `0` integers deep within semantic parsing (`extract_value`), and critical sentence structure checks (`MissingVerb`) being ignored or throwing silent raw Rust codegen errors.
 **Cut:** Removed silent variable decay defaults. Flattened statement validation into `check_undefined_variables` where scoping and AST context are available, actively preventing undefined names. Placed explicit MissingVerb catching inside `Assembler::finalize`.
 **Saved:** Multiple paths that historically led to compiler crashes / malformed semantic models. Unified missing-verb catching, and prevented dozens of lines of unneeded checks later down in the codegen toolchain.
+## [Reduction]
+**Bloat:** `Sanitizer` wrapper struct and its `Display` implementation in `src/codegen.rs` that attempted to provide "Zero-allocation" string generation but was ultimately always allocated via `.to_string()` or `format_ident!{ "{}" }`.
+**Cut:** Replaced `Sanitizer` with a simple `build_sanitized_name(name: &str, capitalize: bool) -> String` function that explicitly allocates the needed capacity once and avoids the unnecessary struct and trait boilerplate.
+**Saved:** Unnecessary wrapper layers and confusing `Display` boilerplate that didn't actually prevent allocations.
+
+## [Reduction]
+**Bloat:** `TraitMethodParts` struct in `src/codegen.rs` used exclusively as a single-use return type for `generate_trait_method_parts` to return three properties.
+**Cut:** Replaced `TraitMethodParts` with a standard unnamed tuple `(Ident, Vec<TokenStream>, Option<TokenStream>)` which is seamlessly destructured by callers.
+**Saved:** 5 lines of boilerplate struct definition and associated named-field access syntax.
