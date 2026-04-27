@@ -356,12 +356,15 @@ pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
 /// Generate Rust code from an Analyzed Program
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
     // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
-    let mut trait_defs = Vec::new();
-    let mut struct_defs = Vec::new();
-    let mut trait_impls = Vec::new();
-    let mut fn_defs = Vec::new();
-    let mut test_defs = Vec::new();
-    let mut main_stmts = Vec::new();
+    // ⚡ Bolt Optimization: Pre-allocate vectors based on statement length.
+    // This reduces internal reallocation overhead during partitioning.
+    let capacity = program.statements.len();
+    let mut trait_defs = Vec::with_capacity(capacity);
+    let mut struct_defs = Vec::with_capacity(capacity);
+    let mut trait_impls = Vec::with_capacity(capacity);
+    let mut fn_defs = Vec::with_capacity(capacity);
+    let mut test_defs = Vec::with_capacity(capacity);
+    let mut main_stmts = Vec::with_capacity(capacity);
 
     for stmt in &program.statements {
         match stmt {
@@ -1649,6 +1652,52 @@ mod tests {
 
             assert!(code.contains("checked_add"));
             assert!(code.contains("expect"));
+        }
+
+        #[test]
+        fn test_generate_rust_large_program() {
+            // Manually construct an AnalyzedProgram with numerous statements
+            // to verify pre-allocation logic doesn't fail under load.
+            let mut statements = Vec::with_capacity(100);
+
+            for i in 0..20 {
+                statements.push(AnalyzedStatement::FunctionDef {
+                    name: SmolStr::new(format!("func_{}", i)),
+                    params: vec![],
+                    body: vec![],
+                    return_type: None,
+                });
+                statements.push(AnalyzedStatement::TypeDefinition {
+                    name: SmolStr::new(format!("type_{}", i)),
+                    fields: vec![],
+                });
+                statements.push(AnalyzedStatement::TraitDefinition {
+                    name: SmolStr::new(format!("trait_{}", i)),
+                    methods: vec![],
+                });
+                statements.push(AnalyzedStatement::TestDeclaration {
+                    name: format!("test_{}", i),
+                    body: vec![],
+                });
+                statements.push(AnalyzedStatement::Return {
+                    value: Some(Box::new(AnalyzedExpr {
+                        expr: AnalyzedExprKind::NumberLiteral(i as i64),
+                        glossa_type: GlossaType::Number,
+                    })),
+                });
+            }
+
+            let program = AnalyzedProgram {
+                statements,
+                scope: crate::semantic::Scope::new(),
+            };
+            let result = generate_rust(&program);
+
+            // Check that it didn't panic and produced some code
+            assert!(!result.is_empty());
+            assert!(result.contains("fn g_func_0"));
+            assert!(result.contains("struct G_type_0"));
+            assert!(result.contains("trait G_trait_0"));
         }
     }
 }
