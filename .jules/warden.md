@@ -127,3 +127,7 @@ Signed,
 **2024-11-20 - [Logic Bug in Passive Optative Lemma Generation]**
 **Threat:** DoS or incorrect translation mapping via stem corruption. The `trim_end_matches` function in `src/morphology/conjugation.rs` over-stripped all trailing `θ` characters from valid stems containing sequential thetas when processing `LemmaStrategy::PassiveOptative`, causing invalid base lemmas (e.g. `αθθ` stripped to `α` instead of `αθ`).
 **Defense:** Replaced the greedy `.trim_end_matches('θ')` approach with safe `.strip_suffix('θ').unwrap_or(stem)` logic. The fix prevents root characters from being destructively eliminated. Validated using `test_trim_end_matches_bug_reproduction` in `tests/warden_logic.rs`.
+
+**2024-05-25 - [Routine Security Scan]**
+**Threat:** None. Routine codebase security scan.
+**Defense:** Validated existing defenses through test suite verification and `cargo audit` checks. Verified that unsafe code is globally denied via `#![deny(unsafe_code)]`.
