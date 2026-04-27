@@ -80,12 +80,6 @@ pub fn run_archivist(input: &Path) -> Result<()> {
         .types()
         .filter_map(|(name, ty)| {
             if let crate::semantic::GlossaType::Struct { fields, .. } = ty {
-                // Type names in scope are normalized (lowercase), we want to use the title casing if available,
-                // but the internal struct name might be normalized too. Let's find the original struct definition.
-                // But since scope.types() is all we have, we'll just use the normalized name for keys,
-                // but capitalize the title.
-                // Oh, wait, the `name` field in `GlossaType::Struct` is NOT normalized?
-                // Let's check. Yes it is, wait, we'll see in the test.
                 Some((name.as_str(), fields))
             } else {
                 None
@@ -163,7 +157,9 @@ mod tests {
     fn test_run_archivist_success() {
         let dir = tempdir().unwrap();
         let input_path = dir.path().join("test_schema.γλ");
-        fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.").unwrap();
+        // "ἀληθοῦς" isn't a type literal recognized in this simple way, use valid Glossa type like "ἀληθές" -> wait, "ἀριθμοῦ" is valid.
+        // Let's stick to base types that parse 100% fine in tests.
+        fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }. \n εἶδος Group ὁρίζειν { }.").unwrap();
 
         let result = run_archivist(&input_path);
         assert!(result.is_ok());
@@ -172,11 +168,11 @@ mod tests {
         assert!(output_path.exists());
 
         let json = fs::read_to_string(&output_path).unwrap();
-        // Since names are normalized internally, "Χρήστης" -> "χρηστης", but we capitalize the title back to "Χρηστης"
         assert!(json.contains("\"title\": \"Χρηστης\"") || json.contains("\"title\": \"Χρήστης\""));
         assert!(json.contains("\"type\": \"object\""));
-        // "ὄνομα" is normalized to "ονομα"
         assert!(json.contains("\"ονομα\"") || json.contains("\"ὄνομα\""));
+        assert!(json.contains("\"ηλικια\"") || json.contains("\"ἡλικία\""));
+        assert!(json.contains("\"group\"") || json.contains("\"Group\""));
     }
 
     #[test]
@@ -184,6 +180,62 @@ mod tests {
         let dir = tempdir().unwrap();
         let input_path = dir.path().join("error_schema.γλ");
         fs::write(&input_path, "invalid syntax").unwrap();
+
+        let result = run_archivist(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_glossa_type_to_json_schema_all_variants() {
+        let mut out = String::new();
+
+        glossa_type_to_json_schema(&crate::semantic::GlossaType::Number, &mut out, 0).unwrap();
+        assert_eq!(out, "{\"type\": \"number\"}");
+        out.clear();
+
+        glossa_type_to_json_schema(&crate::semantic::GlossaType::String, &mut out, 0).unwrap();
+        assert_eq!(out, "{\"type\": \"string\"}");
+        out.clear();
+
+        glossa_type_to_json_schema(&crate::semantic::GlossaType::Boolean, &mut out, 0).unwrap();
+        assert_eq!(out, "{\"type\": \"boolean\"}");
+        out.clear();
+
+        glossa_type_to_json_schema(&crate::semantic::GlossaType::List(Box::new(crate::semantic::GlossaType::Number)), &mut out, 0).unwrap();
+        assert!(out.contains("\"type\": \"array\""));
+        assert!(out.contains("\"type\": \"number\""));
+        out.clear();
+
+        glossa_type_to_json_schema(&crate::semantic::GlossaType::Set(Box::new(crate::semantic::GlossaType::String)), &mut out, 0).unwrap();
+        assert!(out.contains("\"type\": \"array\""));
+        assert!(out.contains("\"type\": \"string\""));
+        out.clear();
+
+        glossa_type_to_json_schema(&crate::semantic::GlossaType::Struct { name: "test".into(), gender: crate::morphology::Gender::Masculine, fields: vec![] }, &mut out, 0).unwrap();
+        assert_eq!(out, "{\"$ref\": \"#/definitions/test\"}");
+        out.clear();
+
+        glossa_type_to_json_schema(&crate::semantic::GlossaType::Unknown, &mut out, 0).unwrap();
+        assert_eq!(out, "{\"type\": \"string\"}");
+        out.clear();
+
+        glossa_type_to_json_schema(&crate::semantic::GlossaType::Option(Box::new(crate::semantic::GlossaType::Number)), &mut out, 0).unwrap();
+        assert_eq!(out, "{\"type\": \"string\"}");
+        out.clear();
+
+        glossa_type_to_json_schema(&crate::semantic::GlossaType::Result(Box::new(crate::semantic::GlossaType::Number), Box::new(crate::semantic::GlossaType::String)), &mut out, 0).unwrap();
+        assert_eq!(out, "{\"type\": \"string\"}");
+        out.clear();
+    }
+
+    #[test]
+    fn test_run_archivist_file_error() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("file_error.γλ");
+        fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { }.").unwrap();
+
+        let output_path = input_path.with_extension("schema.json");
+        fs::create_dir(&output_path).unwrap();
 
         let result = run_archivist(&input_path);
         assert!(result.is_err());
