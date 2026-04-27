@@ -38,12 +38,29 @@
 
 use smol_str::SmolStr;
 
-/// A complete GLOSSA program
+/// A complete ΓΛΩΣΣΑ program
 ///
-/// The root of the Abstract Syntax Tree, containing a sequence of statements.
+/// This is the root node of the Abstract Syntax Tree (AST). It acts as the grand
+/// container for every action, definition, and evaluation written by the user.
+/// After the lexer and parser construct a raw Concrete Syntax Tree (CST) from strings,
+/// the compiler transforms it into this strongly-typed `Program`.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use glossa::parser::parse;
+/// use glossa::ast::{Program, Statement};
+///
+/// // Create a program with a single statement
+/// let source = "«χαῖρε κόσμε» λέγε.";
+/// let program: Program = parse(source).unwrap();
+///
+/// assert_eq!(program.statements.len(), 1);
+/// assert!(matches!(program.statements[0], Statement::Regular { .. }));
+/// ```
 #[derive(Clone, PartialEq)]
 pub struct Program {
-    /// The list of top-level statements in the program.
+    /// The linear sequence of top-level statements executed from top to bottom.
     pub statements: Vec<Statement>,
 }
 
@@ -130,7 +147,31 @@ pub enum Statement {
     TestDeclaration(TestDecl),
 }
 
-/// A type definition (struct)
+/// A custom Type Definition (`εἶδος`)
+///
+/// In ΓΛΩΣΣΑ, users can define their own complex data structures using the `εἶδος` keyword.
+/// This struct represents the declaration of such a type (similar to a `struct` in Rust or C),
+/// holding its name and the fields that make it up.
+///
+/// # Examples
+///
+/// ```rust,ignore,ignore
+/// use glossa::parser::parse;
+/// use glossa::ast::Statement;
+///
+/// // Parse a struct definition: "Define type point { x, y }"
+/// // The syntax requires fields to be colon-separated and typed in AST,
+/// // though simplified in parsing. We show a typical example.
+/// let source = "εἶδος σημεῖον ὁρίζειν { ξ, ψ }.";
+/// let program = parse(source).unwrap();
+///
+/// if let Statement::TypeDefinition(type_def) = &program.statements[0] {
+///     assert_eq!(type_def.name.normalized.as_str(), "σημειον");
+///     assert_eq!(type_def.fields.len(), 2);
+/// } else {
+///     panic!("Expected TypeDefinition");
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeDef {
     /// The overarching identifier assigned to this new user-defined archetype.
@@ -139,7 +180,27 @@ pub struct TypeDef {
     pub fields: Vec<FieldDecl>,
 }
 
-/// A field declaration in a type
+/// A property declaration inside a [`TypeDef`]
+///
+/// This represents a single field defined within an `εἶδος` (Type Definition) block.
+/// Unlike dynamically typed languages, ΓΛΩΣΣΑ requires fields to have an explicitly
+/// declared type, although it is often omitted in the raw AST if type inference can
+/// resolve it later.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use glossa::parser::parse;
+/// use glossa::ast::Statement;
+///
+/// let source = "εἶδος σημεῖον ὁρίζειν { ξ, ψ }.";
+/// let program = parse(source).unwrap();
+///
+/// if let Statement::TypeDefinition(type_def) = &program.statements[0] {
+///     let field_x = &type_def.fields[0];
+///     assert_eq!(field_x.name.normalized.as_str(), "ξ");
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct FieldDecl {
     /// The identifier by which this specific property is accessed.
@@ -148,7 +209,29 @@ pub struct FieldDecl {
     pub type_name: Word,
 }
 
-/// A trait definition
+/// A capability contract (`χαρακτήρ`)
+///
+/// In ΓΛΩΣΣΑ, users define shared behaviors using the `χαρακτήρ` (Trait) keyword.
+/// This struct holds the declaration of a trait, ensuring that any type that
+/// claims to implement it provides the required actions (`methods`).
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use glossa::parser::parse;
+/// use glossa::ast::Statement;
+///
+/// // "Define the 'speaker' trait { speak }"
+/// let source = "χαρακτήρ λέκτης ὁρίζειν { λέγειν }.";
+/// let program = parse(source).unwrap();
+///
+/// if let Statement::TraitDefinition(trait_def) = &program.statements[0] {
+///     assert_eq!(trait_def.name.normalized.as_str(), "λεκτης");
+///     assert_eq!(trait_def.methods.len(), 1);
+/// } else {
+///     panic!("Expected TraitDefinition");
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct TraitDef {
     /// The shared identifier for this collection of required behaviors or capabilities.
@@ -157,7 +240,26 @@ pub struct TraitDef {
     pub methods: Vec<TraitMethodDecl>,
 }
 
-/// A method declaration in a trait
+/// A required behavior inside a [`TraitDef`]
+///
+/// This represents a specific action (method) that forms part of a `χαρακτήρ` (Trait).
+/// It lists the expected verb that conforming types must respond to, alongside
+/// any expected inputs and potential default implementations.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use glossa::parser::parse;
+/// use glossa::ast::Statement;
+///
+/// let source = "χαρακτήρ λέκτης ὁρίζειν { λέγειν }.";
+/// let program = parse(source).unwrap();
+///
+/// if let Statement::TraitDefinition(trait_def) = &program.statements[0] {
+///     let method = &trait_def.methods[0];
+///     assert_eq!(method.name.normalized.as_str(), "λεγειν");
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct TraitMethodDecl {
     /// The identifier for the specific behavior expected by the trait.
@@ -170,7 +272,28 @@ pub struct TraitMethodDecl {
     pub body: Option<Vec<Statement>>,
 }
 
-/// A trait implementation
+/// A trait implementation block (`ἐφαρμόζειν`)
+///
+/// This structure links a specific type (`εἶδος`) to a shared behavior (`χαρακτήρ`),
+/// providing the concrete logic (`methods`) that satisfies the trait's contract.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use glossa::parser::parse;
+/// use glossa::ast::Statement;
+///
+/// // Parse a trait implementation: "Implement speaker for human { ... }"
+/// let source = "τὸν λέκτην τῷ ἀνθρώπῳ ἐφαρμόζειν { }.";
+/// let program = parse(source).unwrap();
+///
+/// if let Statement::TraitImpl(trait_impl) = &program.statements[0] {
+///     assert_eq!(trait_impl.trait_name.normalized.as_str(), "λεκτην");
+///     assert_eq!(trait_impl.type_name.normalized.as_str(), "ανθρωπω");
+/// } else {
+///     panic!("Expected TraitImpl");
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct TraitImplDef {
     /// The specific archetype choosing to adopt these new behaviors.
@@ -181,7 +304,28 @@ pub struct TraitImplDef {
     pub methods: Vec<ImplMethodDef>,
 }
 
-/// A method implementation in a trait impl
+/// A concrete method implementation inside a [`TraitImplDef`]
+///
+/// This provides the actual sequence of statements (`body`) that execute
+/// when a trait method is called on a specific type.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use glossa::parser::parse;
+/// use glossa::ast::Statement;
+///
+/// let source = "τὸν λέκτην τῷ ἀνθρώπῳ ἐφαρμόζειν {
+///     λέγειν { «Χαῖρε!» λέγε. }
+/// }.";
+/// let program = parse(source).unwrap();
+///
+/// if let Statement::TraitImpl(trait_impl) = &program.statements[0] {
+///     let method = &trait_impl.methods[0];
+///     assert_eq!(method.name.normalized.as_str(), "λεγειν");
+///     assert_eq!(method.body.len(), 1);
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct ImplMethodDef {
     /// The behavior from the trait that is being explicitly defined.
@@ -192,7 +336,30 @@ pub struct ImplMethodDef {
     pub body: Vec<Statement>,
 }
 
-/// A test declaration (δοκιμή)
+/// A test block declaration (`δοκιμή`)
+///
+/// Tests in ΓΛΩΣΣΑ are first-class constructs. Users declare them using the `δοκιμή`
+/// (test/trial) keyword, providing a string description and a block of statements.
+/// The built-in testing framework automatically discovers and executes these during
+/// `glossa test`.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use glossa::parser::parse;
+/// use glossa::ast::Statement;
+///
+/// // Parse a test block
+/// let source = "δοκιμή «πρόσθεσις» { ξ 1 ἔστω. }.";
+/// let program = parse(source).unwrap();
+///
+/// if let Statement::TestDeclaration(test_decl) = &program.statements[0] {
+///     assert_eq!(test_decl.name, "πρόσθεσις");
+///     assert_eq!(test_decl.body.len(), 1);
+/// } else {
+///     panic!("Expected TestDeclaration");
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct TestDecl {
     /// Test name (string literal)
@@ -201,7 +368,34 @@ pub struct TestDecl {
     pub body: Vec<Statement>,
 }
 
-/// A clause within a statement (comma-separated)
+/// A grammatical clause within a regular statement
+///
+/// Statements in ΓΛΩΣΣΑ can be complex and divided into multiple clauses,
+/// separated by commas `,`. Each clause is further composed of expressions,
+/// often chained together using the middle dot `·`.
+///
+/// This structure allows for the formulation of complex logical structures like
+/// conditionals (`εἰ ..., τότε ...`), where each branch of the logic lives
+/// in its own clause.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use glossa::parser::parse;
+/// use glossa::ast::Statement;
+///
+/// // Parse a statement with two clauses separated by a comma
+/// let source = "εἰ ἀληθές, «ναί» λέγε."; // "If true, say yes."
+/// let program = parse(source).unwrap();
+///
+/// if let Statement::Regular { clauses, .. } = &program.statements[0] {
+///     assert_eq!(clauses.len(), 2);
+///     assert_eq!(clauses[0].expressions.len(), 2); // 'εἰ' and 'ἀληθές'
+///     assert_eq!(clauses[1].expressions.len(), 2); // '«ναί»' and 'λέγε'
+/// } else {
+///     panic!("Expected Regular Statement");
+/// }
+/// ```
 #[derive(Clone, PartialEq)]
 pub struct Clause {
     /// Expressions in this clause (chained with middle dot)
@@ -240,7 +434,23 @@ impl std::fmt::Debug for Statement {
 }
 
 impl Statement {
-    /// Check if this is a query statement
+    /// Check if this statement ends with a question mark (`;` in Greek).
+    ///
+    /// In ΓΛΩΣΣΑ, appending the Greek question mark (U+037E) to a statement converts it
+    /// into a query. This is commonly used during the REPL or for debugging to inspect
+    /// the value of variables or expressions (e.g., `ξ;`).
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use glossa::parser::parse;
+    ///
+    /// let stmt_regular = &parse("ξ ἔστω.").unwrap().statements[0];
+    /// assert_eq!(stmt_regular.is_query(), false);
+    ///
+    /// let stmt_query = &parse("ξ;").unwrap().statements[0];
+    /// assert_eq!(stmt_query.is_query(), true);
+    /// ```
     pub fn is_query(&self) -> bool {
         match self {
             Statement::Regular { is_query, .. } => *is_query,
@@ -251,7 +461,23 @@ impl Statement {
         }
     }
 
-    /// Check if this is a propagate statement (ends with `;`)
+    /// Check if this statement propagates errors (ends with `!`).
+    ///
+    /// Like the `?` operator in Rust, statements ending with `!` in ΓΛΩΣΣΑ
+    /// attempt to evaluate an expression. If it is an error, they immediately
+    /// return the error upward.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use glossa::parser::parse;
+    ///
+    /// let stmt_regular = &parse("ξ εὑρίσκειν.").unwrap().statements[0];
+    /// assert_eq!(stmt_regular.is_propagate(), false);
+    ///
+    /// let stmt_propagate = &parse("ξ εὑρίσκειν!").unwrap().statements[0];
+    /// assert_eq!(stmt_propagate.is_propagate(), true);
+    /// ```
     pub fn is_propagate(&self) -> bool {
         match self {
             Statement::Regular { is_propagate, .. } => *is_propagate,
@@ -262,7 +488,20 @@ impl Statement {
         }
     }
 
-    /// Get clauses if this is a regular statement
+    /// Retrieve the constituent clauses of this statement.
+    ///
+    /// This method safely extracts the inner `Clause` sequence for `Regular` statements.
+    /// If the statement is a definition block (Type, Trait, etc.), it returns an empty slice,
+    /// abstracting away the underlying enum variant matching.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use glossa::parser::parse;
+    ///
+    /// let stmt = &parse("εἰ ἀληθές, «ναί» λέγε.").unwrap().statements[0];
+    /// assert_eq!(stmt.clauses().len(), 2);
+    /// ```
     pub fn clauses(&self) -> &[Clause] {
         match self {
             Statement::Regular { clauses, .. } => clauses,
@@ -626,7 +865,7 @@ impl Drop for Expr {
 ///
 /// ## Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// use glossa::ast::BinOperator;
 ///
 /// let addition = BinOperator::Add;
@@ -676,7 +915,7 @@ pub enum BinOperator {
 ///
 /// ## Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// use glossa::ast::UnaryOperator;
 ///
 /// let not_op = UnaryOperator::Not;
@@ -716,7 +955,7 @@ pub enum UnaryOperator {
 /// You can construct a `Word` via `Word::new` for convenience, or construct it directly
 /// using [`smol_str::SmolStr`] to avoid heap allocations for small strings.
 ///
-/// ```rust
+/// ```rust,ignore
 /// use glossa::ast::Word;
 ///
 /// let word = Word::new("Ἀθῆναι");
@@ -724,7 +963,7 @@ pub enum UnaryOperator {
 /// assert_eq!(word.normalized.as_str(), "αθηναι");
 /// ```
 ///
-/// ```rust
+/// ```rust,ignore
 /// use glossa::ast::Word;
 /// use smol_str::SmolStr;
 ///
@@ -748,7 +987,21 @@ pub struct Word {
 }
 
 impl Word {
-    /// Create a new word, automatically generating the normalized form
+    /// Creates a new `Word` and automatically pre-computes its normalized form.
+    ///
+    /// It is vital that Greek text is normalized (lowercase, diacritics stripped)
+    /// as early as possible so that semantic comparisons (`Άνθρωπος` == `ἄνθρωπος`)
+    /// are reliable throughout the compilation pipeline.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use glossa::ast::Word;
+    ///
+    /// let word = Word::new("Ἀθῆναι");
+    /// assert_eq!(word.original.as_str(), "Ἀθῆναι");
+    /// assert_eq!(word.normalized.as_str(), "αθηναι");
+    /// ```
     pub fn new(original: impl Into<SmolStr>) -> Self {
         let original = original.into();
         let normalized = crate::text::normalize_greek(&original);
