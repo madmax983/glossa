@@ -64,34 +64,31 @@ struct TestResult {
 }
 
 fn parse_test_output(output: &str) -> Vec<TestResult> {
-    let mut results = Vec::new();
-    for line in output.lines() {
-        // Standard rustc test output line format: "test test_name ... status"
-        if line.starts_with("test ") {
-            #[allow(clippy::collapsible_if)]
-            if let Some(idx) = line.rfind(" ... ") {
-                if idx < 5 {
-                    continue;
-                }
-                let name = line[5..idx].trim();
-                if name.is_empty() {
-                    continue;
-                }
-                let status_str = &line[idx + 5..];
-                let status = match status_str {
-                    "ok" => TestStatus::Ok,
-                    "FAILED" => TestStatus::Failed,
-                    "ignored" => TestStatus::Ignored,
-                    _ => continue,
-                };
-                results.push(TestResult {
-                    name: name.to_string(),
-                    status,
-                });
+    output
+        .lines()
+        .filter_map(|line| {
+            // Standard rustc test output line format: "test test_name ... status"
+            let rest = line.strip_prefix("test ")?;
+            let idx = rest.rfind(" ... ")?;
+
+            let name = rest[..idx].trim();
+            if name.is_empty() {
+                return None;
             }
-        }
-    }
-    results
+
+            let status = match &rest[idx + 5..] {
+                "ok" => TestStatus::Ok,
+                "FAILED" => TestStatus::Failed,
+                "ignored" => TestStatus::Ignored,
+                _ => return None,
+            };
+
+            Some(TestResult {
+                name: name.to_string(),
+                status,
+            })
+        })
+        .collect()
 }
 
 /// Extracts failed tests and their output from `rustc --test` output.
