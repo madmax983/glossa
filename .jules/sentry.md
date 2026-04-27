@@ -88,3 +88,7 @@
 **[Semantic Patterns Coverage]**
 **Learning:** In `src/semantic/patterns.rs`, the logic for parsing unsupported argument types in struct instantiations (`parse_struct_args`), processing `find` without a predicate (`process_find`), and falling back to unstripped suffix matches during genitive comparisons (`extract_comparison_value`) were missing test coverage. Furthermore, when writing tests targeting `process_find` with no predicate, the code actually transforms it to `.find(|_| true)` instead of `.next()`, so asserting against `"next"` causes a test failure.
 **Action:** When adding missing edge case coverage, carefully review the inner implementations before constructing the test assertions to match the actual, generated `AnalyzedExpr` nodes instead of assuming idealized shortcuts. Also ensure the setup correctly puts the mock values into the `Scope` using the correct key mapping.
+
+**[Parser Unexpected Rule Defensive Checks]
+**Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
+**Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.

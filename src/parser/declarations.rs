@@ -335,3 +335,66 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> 
         },
     })
 }
+
+#[cfg(test)]
+mod tests_coverage {
+    use super::*;
+    use crate::parser::grammar::{GlossaParser, Rule};
+    use pest::Parser;
+
+    #[test]
+    fn test_build_type_definition_missing_name() {
+        let mut pairs = GlossaParser::parse(Rule::block, "{}").unwrap();
+        let pair = pairs.next().unwrap();
+        let result = build_type_definition(pair);
+        assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
+    }
+
+    #[test]
+    fn test_build_field_declaration_invalid_words() {
+        let mut pairs = GlossaParser::parse(Rule::block, "{}").unwrap();
+        let pair = pairs.next().unwrap();
+        let result = build_field_declaration(pair);
+        assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
+    }
+
+    #[test]
+    fn test_build_trait_definition_missing_name() {
+        let mut pairs = GlossaParser::parse(Rule::block, "{}").unwrap();
+        let pair = pairs.next().unwrap();
+        let result = build_trait_definition(pair);
+        assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
+    }
+
+    #[test]
+    fn test_build_trait_impl_missing_names() {
+        let mut pairs = GlossaParser::parse(Rule::block, "{}").unwrap();
+        let pair = pairs.next().unwrap();
+        let result = build_trait_impl(pair);
+        assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
+    }
+
+    #[test]
+    fn test_build_test_declaration_missing_name() {
+        let mut pairs = GlossaParser::parse(Rule::block, "{}").unwrap();
+        let pair = pairs.next().unwrap();
+        let result = build_test_declaration(pair);
+        assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
+    }
+
+    #[test]
+    fn test_build_trait_method_missing_name() {
+        let mut pairs = GlossaParser::parse(Rule::block, "{}").unwrap();
+        let pair = pairs.next().unwrap();
+        let result = build_trait_method(pair);
+        assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
+    }
+
+    #[test]
+    fn test_build_impl_method_missing_name() {
+        let mut pairs = GlossaParser::parse(Rule::block, "{}").unwrap();
+        let pair = pairs.next().unwrap();
+        let result = build_impl_method(pair);
+        assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
+    }
+}
