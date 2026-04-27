@@ -347,18 +347,11 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                     "FAILED:".red().bold(),
                     name.cyan().bold().underlined()
                 );
-                // Create a box for the error message
-                let border_top =
-                    "╭───────────────────────────────────────────────────────────────────╮".red();
-                let border_bottom =
-                    "╰───────────────────────────────────────────────────────────────────╯".red();
-
-                println!("{}", border_top);
-                for line in msg.lines() {
-                    // Wrap extremely long lines if needed, but for now simple print
-                    println!("{} {}", "│".red(), line);
-                }
-                println!("{}", border_bottom);
+                // Create a box for the error message using comfy_table
+                let mut error_table = Table::new();
+                error_table.load_preset(presets::UTF8_FULL);
+                error_table.add_row(vec![Cell::new(msg).fg(Color::Red)]);
+                println!("{error_table}");
                 println!();
             }
         } else {
