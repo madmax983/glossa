@@ -124,277 +124,327 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
 /// assert!(cfg.contains("graph TD"));
 /// ```
 pub fn generate_cfg(program: &AnalyzedProgram) -> String {
-    let mut builder = CFGBuilder::new();
-    builder.build_program(program);
-    builder.finish()
+    let mut nodes = Vec::new();
+    let mut edges = Vec::new();
+    let mut node_counter = 0;
+
+    let start_node = add_node("Start", "round", &mut nodes, &mut node_counter);
+    let mut current_node = start_node;
+
+    for stmt in &program.statements {
+        current_node = build_statement(
+            stmt,
+            &current_node,
+            &mut nodes,
+            &mut edges,
+            &mut node_counter,
+        );
+    }
+
+    let end_node = add_node("End", "round", &mut nodes, &mut node_counter);
+    add_edge(&current_node, &end_node, None, &mut edges);
+
+    let mut out = String::from("graph TD\n");
+    for node in nodes {
+        out.push_str(&format!("    {}\n", node));
+    }
+    for edge in edges {
+        out.push_str(&format!("    {}\n", edge));
+    }
+    out
 }
 
-struct CFGBuilder {
-    nodes: Vec<String>,
-    edges: Vec<String>,
-    node_counter: usize,
+fn add_node(label: &str, shape: &str, nodes: &mut Vec<String>, node_counter: &mut usize) -> String {
+    *node_counter += 1;
+    let id = format!("N{}", node_counter);
+    let formatted = match shape {
+        "diamond" => format!("{}{{\"{}\"}}", id, label),
+        "rect" => format!("{}[\"{}\"]", id, label),
+        "round" => format!("{}(\"{}\")", id, label),
+        _ => format!("{}[\"{}\"]", id, label),
+    };
+    nodes.push(formatted);
+    id
 }
 
-impl CFGBuilder {
-    fn new() -> Self {
-        Self {
-            nodes: Vec::new(),
-            edges: Vec::new(),
-            node_counter: 0,
+fn add_edge(from: &str, to: &str, label: Option<&str>, edges: &mut Vec<String>) {
+    if let Some(l) = label {
+        edges.push(format!("{} -- {} --> {}", from, l, to));
+    } else {
+        edges.push(format!("{} --> {}", from, to));
+    }
+}
+
+fn build_statement(
+    stmt: &AnalyzedStatement,
+    prev_node: &str,
+    nodes: &mut Vec<String>,
+    edges: &mut Vec<String>,
+    node_counter: &mut usize,
+) -> String {
+    match stmt {
+        AnalyzedStatement::Binding { name, .. } => build_simple_statement(
+            &format!("Binding: {}", name),
+            prev_node,
+            nodes,
+            edges,
+            node_counter,
+        ),
+        AnalyzedStatement::Assignment { name, .. } => build_simple_statement(
+            &format!("Assignment: {}", name),
+            prev_node,
+            nodes,
+            edges,
+            node_counter,
+        ),
+        AnalyzedStatement::Print(_) => {
+            build_simple_statement("Print", prev_node, nodes, edges, node_counter)
         }
-    }
-
-    fn next_node_id(&mut self) -> String {
-        self.node_counter += 1;
-        format!("N{}", self.node_counter)
-    }
-
-    fn add_node(&mut self, label: &str, shape: &str) -> String {
-        let id = self.next_node_id();
-        let formatted = match shape {
-            "diamond" => format!("{}{{\"{}\"}}", id, label),
-            "rect" => format!("{}[\"{}\"]", id, label),
-            "round" => format!("{}(\"{}\")", id, label),
-            _ => format!("{}[\"{}\"]", id, label),
-        };
-        self.nodes.push(formatted);
-        id
-    }
-
-    fn add_edge(&mut self, from: &str, to: &str, label: Option<&str>) {
-        if let Some(l) = label {
-            self.edges.push(format!("{} -- {} --> {}", from, l, to));
-        } else {
-            self.edges.push(format!("{} --> {}", from, to));
+        AnalyzedStatement::Expression(_) => {
+            build_simple_statement("Expression", prev_node, nodes, edges, node_counter)
         }
-    }
-
-    fn build_program(&mut self, program: &AnalyzedProgram) {
-        let start_node = self.add_node("Start", "round");
-        let mut current_node = start_node;
-
-        for stmt in &program.statements {
-            current_node = self.build_statement(stmt, &current_node);
+        AnalyzedStatement::Query(_) => {
+            build_simple_statement("Query", prev_node, nodes, edges, node_counter)
         }
-
-        let end_node = self.add_node("End", "round");
-        self.add_edge(&current_node, &end_node, None);
-    }
-
-    fn build_statement(&mut self, stmt: &AnalyzedStatement, prev_node: &str) -> String {
-        match stmt {
-            AnalyzedStatement::Binding { name, .. } => {
-                self.build_simple_statement(&format!("Binding: {}", name), prev_node)
-            }
-            AnalyzedStatement::Assignment { name, .. } => {
-                self.build_simple_statement(&format!("Assignment: {}", name), prev_node)
-            }
-            AnalyzedStatement::Print(_) => self.build_simple_statement("Print", prev_node),
-            AnalyzedStatement::Expression(_) => {
-                self.build_simple_statement("Expression", prev_node)
-            }
-            AnalyzedStatement::Query(_) => self.build_simple_statement("Query", prev_node),
-            AnalyzedStatement::If {
-                then_body,
-                else_body,
-                ..
-            } => self.build_if_statement(then_body, else_body, prev_node),
-            AnalyzedStatement::While { body, .. } => self.build_while_statement(body, prev_node),
-            AnalyzedStatement::For { variable, body, .. } => {
-                self.build_for_statement(variable, body, prev_node)
-            }
-            AnalyzedStatement::Match { arms, .. } => self.build_match_statement(arms, prev_node),
-            AnalyzedStatement::Break => self.build_simple_statement("Break", prev_node),
-            AnalyzedStatement::Continue => self.build_simple_statement("Continue", prev_node),
-            AnalyzedStatement::Return { .. } => self.build_simple_statement("Return", prev_node),
-            AnalyzedStatement::FunctionDef { name, .. } => {
-                self.build_simple_statement(&format!("Function: {}", name), prev_node)
-            }
-            AnalyzedStatement::TypeDefinition { name, .. } => {
-                self.build_simple_statement(&format!("Type: {}", name), prev_node)
-            }
-            AnalyzedStatement::TraitDefinition { name, .. } => {
-                self.build_simple_statement(&format!("Trait: {}", name), prev_node)
-            }
-            AnalyzedStatement::TraitImplementation {
-                type_name,
-                trait_name,
-                ..
-            } => self.build_simple_statement(
-                &format!("Impl {} for {}", trait_name, type_name),
-                prev_node,
-            ),
-            AnalyzedStatement::TestDeclaration { name, .. } => {
-                self.build_simple_statement(&format!("Test: {}", name), prev_node)
-            }
+        AnalyzedStatement::If {
+            then_body,
+            else_body,
+            ..
+        } => build_if_statement(then_body, else_body, prev_node, nodes, edges, node_counter),
+        AnalyzedStatement::While { body, .. } => {
+            build_while_statement(body, prev_node, nodes, edges, node_counter)
         }
-    }
-
-    fn build_simple_statement(&mut self, label: &str, prev_node: &str) -> String {
-        let id = self.add_node(label, "rect");
-        self.add_edge(prev_node, &id, None);
-        id
-    }
-
-    fn build_if_statement(
-        &mut self,
-        then_body: &[AnalyzedStatement],
-        else_body: &Option<Vec<AnalyzedStatement>>,
-        prev_node: &str,
-    ) -> String {
-        let cond_id = self.add_node("If Condition", "diamond");
-        self.add_edge(prev_node, &cond_id, None);
-
-        let end_id = self.add_node("End If", "round");
-
-        // Then branch
-        let mut current_then = cond_id.clone();
-        let mut then_has_nodes = false;
-        for sub_stmt in then_body {
-            let next_node = self.build_statement(sub_stmt, &current_then);
-            if !then_has_nodes {
-                // Fix the edge from condition to first statement of then branch
-                // by removing the previously added unconditional edge
-                self.edges.pop();
-                self.add_edge(&cond_id, &next_node, Some("Yes"));
-            }
-            current_then = next_node;
-            then_has_nodes = true;
+        AnalyzedStatement::For { variable, body, .. } => {
+            build_for_statement(variable, body, prev_node, nodes, edges, node_counter)
         }
+        AnalyzedStatement::Match { arms, .. } => {
+            build_match_statement(arms, prev_node, nodes, edges, node_counter)
+        }
+        AnalyzedStatement::Break => {
+            build_simple_statement("Break", prev_node, nodes, edges, node_counter)
+        }
+        AnalyzedStatement::Continue => {
+            build_simple_statement("Continue", prev_node, nodes, edges, node_counter)
+        }
+        AnalyzedStatement::Return { .. } => {
+            build_simple_statement("Return", prev_node, nodes, edges, node_counter)
+        }
+        AnalyzedStatement::FunctionDef { name, .. } => build_simple_statement(
+            &format!("Function: {}", name),
+            prev_node,
+            nodes,
+            edges,
+            node_counter,
+        ),
+        AnalyzedStatement::TypeDefinition { name, .. } => build_simple_statement(
+            &format!("Type: {}", name),
+            prev_node,
+            nodes,
+            edges,
+            node_counter,
+        ),
+        AnalyzedStatement::TraitDefinition { name, .. } => build_simple_statement(
+            &format!("Trait: {}", name),
+            prev_node,
+            nodes,
+            edges,
+            node_counter,
+        ),
+        AnalyzedStatement::TraitImplementation {
+            type_name,
+            trait_name,
+            ..
+        } => build_simple_statement(
+            &format!("Impl {} for {}", trait_name, type_name),
+            prev_node,
+            nodes,
+            edges,
+            node_counter,
+        ),
+        AnalyzedStatement::TestDeclaration { name, .. } => build_simple_statement(
+            &format!("Test: {}", name),
+            prev_node,
+            nodes,
+            edges,
+            node_counter,
+        ),
+    }
+}
 
+fn build_simple_statement(
+    label: &str,
+    prev_node: &str,
+    nodes: &mut Vec<String>,
+    edges: &mut Vec<String>,
+    node_counter: &mut usize,
+) -> String {
+    let id = add_node(label, "rect", nodes, node_counter);
+    add_edge(prev_node, &id, None, edges);
+    id
+}
+
+fn build_if_statement(
+    then_body: &[AnalyzedStatement],
+    else_body: &Option<Vec<AnalyzedStatement>>,
+    prev_node: &str,
+    nodes: &mut Vec<String>,
+    edges: &mut Vec<String>,
+    node_counter: &mut usize,
+) -> String {
+    let cond_id = add_node("If Condition", "diamond", nodes, node_counter);
+    add_edge(prev_node, &cond_id, None, edges);
+
+    let end_id = add_node("End If", "round", nodes, node_counter);
+
+    // Then branch
+    let mut current_then = cond_id.clone();
+    let mut then_has_nodes = false;
+    for sub_stmt in then_body {
+        let next_node = build_statement(sub_stmt, &current_then, nodes, edges, node_counter);
         if !then_has_nodes {
-            self.add_edge(&cond_id, &end_id, Some("Yes"));
-        } else {
-            self.add_edge(&current_then, &end_id, None);
+            edges.pop();
+            add_edge(&cond_id, &next_node, Some("Yes"), edges);
         }
+        current_then = next_node;
+        then_has_nodes = true;
+    }
 
-        // Else branch
-        if let Some(else_b) = else_body {
-            let mut current_else = cond_id.clone();
-            let mut else_has_nodes = false;
-            for sub_stmt in else_b {
-                let next_node = self.build_statement(sub_stmt, &current_else);
-                if !else_has_nodes {
-                    self.edges.pop();
-                    self.add_edge(&cond_id, &next_node, Some("No"));
-                }
-                current_else = next_node;
-                else_has_nodes = true;
-            }
+    if !then_has_nodes {
+        add_edge(&cond_id, &end_id, Some("Yes"), edges);
+    } else {
+        add_edge(&current_then, &end_id, None, edges);
+    }
+
+    // Else branch
+    if let Some(else_b) = else_body {
+        let mut current_else = cond_id.clone();
+        let mut else_has_nodes = false;
+        for sub_stmt in else_b {
+            let next_node = build_statement(sub_stmt, &current_else, nodes, edges, node_counter);
             if !else_has_nodes {
-                self.add_edge(&cond_id, &end_id, Some("No"));
-            } else {
-                self.add_edge(&current_else, &end_id, None);
+                edges.pop();
+                add_edge(&cond_id, &next_node, Some("No"), edges);
             }
-        } else {
-            self.add_edge(&cond_id, &end_id, Some("No"));
+            current_else = next_node;
+            else_has_nodes = true;
         }
-
-        end_id
+        if !else_has_nodes {
+            add_edge(&cond_id, &end_id, Some("No"), edges);
+        } else {
+            add_edge(&current_else, &end_id, None, edges);
+        }
+    } else {
+        add_edge(&cond_id, &end_id, Some("No"), edges);
     }
 
-    fn build_while_statement(&mut self, body: &[AnalyzedStatement], prev_node: &str) -> String {
-        let cond_id = self.add_node("While Condition", "diamond");
-        self.add_edge(prev_node, &cond_id, None);
+    end_id
+}
 
-        let end_id = self.add_node("End While", "round");
+fn build_while_statement(
+    body: &[AnalyzedStatement],
+    prev_node: &str,
+    nodes: &mut Vec<String>,
+    edges: &mut Vec<String>,
+    node_counter: &mut usize,
+) -> String {
+    let cond_id = add_node("While Condition", "diamond", nodes, node_counter);
+    add_edge(prev_node, &cond_id, None, edges);
 
-        let mut current_body = cond_id.clone();
+    let end_id = add_node("End While", "round", nodes, node_counter);
+
+    let mut current_body = cond_id.clone();
+    let mut has_nodes = false;
+    for sub_stmt in body {
+        let next_node = build_statement(sub_stmt, &current_body, nodes, edges, node_counter);
+        if !has_nodes {
+            edges.pop();
+            add_edge(&cond_id, &next_node, Some("Yes"), edges);
+        }
+        current_body = next_node;
+        has_nodes = true;
+    }
+
+    if has_nodes {
+        add_edge(&current_body, &cond_id, None, edges);
+    } else {
+        add_edge(&cond_id, &cond_id, Some("Yes"), edges);
+    }
+    add_edge(&cond_id, &end_id, Some("No"), edges);
+
+    end_id
+}
+
+fn build_for_statement(
+    variable: &str,
+    body: &[AnalyzedStatement],
+    prev_node: &str,
+    nodes: &mut Vec<String>,
+    edges: &mut Vec<String>,
+    node_counter: &mut usize,
+) -> String {
+    let cond_id = add_node(
+        &format!("For: {}", variable),
+        "diamond",
+        nodes,
+        node_counter,
+    );
+    add_edge(prev_node, &cond_id, None, edges);
+
+    let end_id = add_node("End For", "round", nodes, node_counter);
+
+    let mut current_body = cond_id.clone();
+    let mut has_nodes = false;
+    for sub_stmt in body {
+        let next_node = build_statement(sub_stmt, &current_body, nodes, edges, node_counter);
+        if !has_nodes {
+            edges.pop();
+            add_edge(&cond_id, &next_node, Some("Next"), edges);
+        }
+        current_body = next_node;
+        has_nodes = true;
+    }
+
+    if has_nodes {
+        add_edge(&current_body, &cond_id, None, edges);
+    } else {
+        add_edge(&cond_id, &cond_id, Some("Next"), edges);
+    }
+    add_edge(&cond_id, &end_id, Some("Done"), edges);
+
+    end_id
+}
+
+fn build_match_statement(
+    arms: &[(crate::semantic::AnalyzedExpr, Vec<AnalyzedStatement>)],
+    prev_node: &str,
+    nodes: &mut Vec<String>,
+    edges: &mut Vec<String>,
+    node_counter: &mut usize,
+) -> String {
+    let match_id = add_node("Match", "diamond", nodes, node_counter);
+    add_edge(prev_node, &match_id, None, edges);
+    let end_id = add_node("End Match", "round", nodes, node_counter);
+
+    for (i, (_, body)) in arms.iter().enumerate() {
+        let mut current_arm = match_id.clone();
         let mut has_nodes = false;
         for sub_stmt in body {
-            let next_node = self.build_statement(sub_stmt, &current_body);
+            let next_node = build_statement(sub_stmt, &current_arm, nodes, edges, node_counter);
             if !has_nodes {
-                self.edges.pop();
-                self.add_edge(&cond_id, &next_node, Some("Yes"));
+                edges.pop();
+                add_edge(&match_id, &next_node, Some(&format!("Arm {}", i)), edges);
             }
-            current_body = next_node;
+            current_arm = next_node;
             has_nodes = true;
         }
-
         if has_nodes {
-            self.add_edge(&current_body, &cond_id, None);
+            add_edge(&current_arm, &end_id, None, edges);
         } else {
-            self.add_edge(&cond_id, &cond_id, Some("Yes"));
+            add_edge(&match_id, &end_id, Some(&format!("Arm {}", i)), edges);
         }
-        self.add_edge(&cond_id, &end_id, Some("No"));
-
-        end_id
     }
 
-    fn build_for_statement(
-        &mut self,
-        variable: &str,
-        body: &[AnalyzedStatement],
-        prev_node: &str,
-    ) -> String {
-        let cond_id = self.add_node(&format!("For: {}", variable), "diamond");
-        self.add_edge(prev_node, &cond_id, None);
-
-        let end_id = self.add_node("End For", "round");
-
-        let mut current_body = cond_id.clone();
-        let mut has_nodes = false;
-        for sub_stmt in body {
-            let next_node = self.build_statement(sub_stmt, &current_body);
-            if !has_nodes {
-                self.edges.pop();
-                self.add_edge(&cond_id, &next_node, Some("Next"));
-            }
-            current_body = next_node;
-            has_nodes = true;
-        }
-
-        if has_nodes {
-            self.add_edge(&current_body, &cond_id, None);
-        } else {
-            self.add_edge(&cond_id, &cond_id, Some("Next"));
-        }
-        self.add_edge(&cond_id, &end_id, Some("Done"));
-
-        end_id
-    }
-
-    fn build_match_statement(
-        &mut self,
-        arms: &[(crate::semantic::AnalyzedExpr, Vec<AnalyzedStatement>)],
-        prev_node: &str,
-    ) -> String {
-        let match_id = self.add_node("Match", "diamond");
-        self.add_edge(prev_node, &match_id, None);
-        let end_id = self.add_node("End Match", "round");
-
-        for (i, (_, body)) in arms.iter().enumerate() {
-            let mut current_arm = match_id.clone();
-            let mut has_nodes = false;
-            for sub_stmt in body {
-                let next_node = self.build_statement(sub_stmt, &current_arm);
-                if !has_nodes {
-                    self.edges.pop();
-                    self.add_edge(&match_id, &next_node, Some(&format!("Arm {}", i)));
-                }
-                current_arm = next_node;
-                has_nodes = true;
-            }
-            if has_nodes {
-                self.add_edge(&current_arm, &end_id, None);
-            } else {
-                self.add_edge(&match_id, &end_id, Some(&format!("Arm {}", i)));
-            }
-        }
-
-        end_id
-    }
-
-    fn finish(self) -> String {
-        let mut out = String::from("graph TD\n");
-        for node in self.nodes {
-            out.push_str(&format!("    {}\n", node));
-        }
-        for edge in self.edges {
-            out.push_str(&format!("    {}\n", edge));
-        }
-        out
-    }
+    end_id
 }
 
 #[cfg(test)]
