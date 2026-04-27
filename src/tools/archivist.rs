@@ -201,17 +201,36 @@ mod tests {
         assert_eq!(out, "{\"type\": \"boolean\"}");
         out.clear();
 
-        glossa_type_to_json_schema(&crate::semantic::GlossaType::List(Box::new(crate::semantic::GlossaType::Number)), &mut out, 0).unwrap();
+        glossa_type_to_json_schema(
+            &crate::semantic::GlossaType::List(Box::new(crate::semantic::GlossaType::Number)),
+            &mut out,
+            0,
+        )
+        .unwrap();
         assert!(out.contains("\"type\": \"array\""));
         assert!(out.contains("\"type\": \"number\""));
         out.clear();
 
-        glossa_type_to_json_schema(&crate::semantic::GlossaType::Set(Box::new(crate::semantic::GlossaType::String)), &mut out, 0).unwrap();
+        glossa_type_to_json_schema(
+            &crate::semantic::GlossaType::Set(Box::new(crate::semantic::GlossaType::String)),
+            &mut out,
+            0,
+        )
+        .unwrap();
         assert!(out.contains("\"type\": \"array\""));
         assert!(out.contains("\"type\": \"string\""));
         out.clear();
 
-        glossa_type_to_json_schema(&crate::semantic::GlossaType::Struct { name: "test".into(), gender: crate::morphology::Gender::Masculine, fields: vec![] }, &mut out, 0).unwrap();
+        glossa_type_to_json_schema(
+            &crate::semantic::GlossaType::Struct {
+                name: "test".into(),
+                gender: crate::morphology::Gender::Masculine,
+                fields: vec![],
+            },
+            &mut out,
+            0,
+        )
+        .unwrap();
         assert_eq!(out, "{\"$ref\": \"#/definitions/test\"}");
         out.clear();
 
@@ -219,11 +238,24 @@ mod tests {
         assert_eq!(out, "{\"type\": \"string\"}");
         out.clear();
 
-        glossa_type_to_json_schema(&crate::semantic::GlossaType::Option(Box::new(crate::semantic::GlossaType::Number)), &mut out, 0).unwrap();
+        glossa_type_to_json_schema(
+            &crate::semantic::GlossaType::Option(Box::new(crate::semantic::GlossaType::Number)),
+            &mut out,
+            0,
+        )
+        .unwrap();
         assert_eq!(out, "{\"type\": \"string\"}");
         out.clear();
 
-        glossa_type_to_json_schema(&crate::semantic::GlossaType::Result(Box::new(crate::semantic::GlossaType::Number), Box::new(crate::semantic::GlossaType::String)), &mut out, 0).unwrap();
+        glossa_type_to_json_schema(
+            &crate::semantic::GlossaType::Result(
+                Box::new(crate::semantic::GlossaType::Number),
+                Box::new(crate::semantic::GlossaType::String),
+            ),
+            &mut out,
+            0,
+        )
+        .unwrap();
         assert_eq!(out, "{\"type\": \"string\"}");
         out.clear();
     }
