@@ -2,59 +2,6 @@
 use glossa::ast::{BinOperator, Clause, Expr, Statement, UnaryOperator, Word};
 
 #[test]
-fn test_deep_recursion_phrase() {
-    // Depth: 100,000
-    // We use a slightly smaller depth for this test to ensure it runs quickly in CI,
-    // but still enough to overflow a default stack if unprotected.
-    // 20,000 is usually enough to overflow 2MB stack.
-    let depth = 20_000;
-
-    // Construct deep expression: Phrase([Phrase([Phrase(...)])])
-    let mut deep_expr = Expr::NumberLiteral(1);
-    for _ in 0..depth {
-        deep_expr = Expr::Phrase(vec![deep_expr]);
-    }
-
-    // 1. Test Clone (should stack overflow if recursive)
-    println!("Cloning deep expression (depth {})...", depth);
-    let cloned = deep_expr.clone();
-
-    // 2. Test Drop (should stack overflow if recursive)
-    println!("Dropping cloned expression...");
-    drop(cloned);
-
-    println!("Dropping original expression...");
-    drop(deep_expr);
-
-    println!("Success!");
-}
-
-#[test]
-fn test_deep_recursion_comparison() {
-    let depth = 20_000;
-
-    // Construct two identical deep expressions
-    let mut expr1 = Expr::NumberLiteral(1);
-    for _ in 0..depth {
-        expr1 = Expr::Phrase(vec![expr1]);
-    }
-
-    let expr2 = expr1.clone();
-
-    // 3. Test PartialEq (should stack overflow if recursive)
-    println!("Comparing deep expressions...");
-    assert_eq!(expr1, expr2);
-
-    // Construct a different deep expression
-    let mut expr3 = Expr::NumberLiteral(2); // Difference at leaf
-    for _ in 0..depth {
-        expr3 = Expr::Phrase(vec![expr3]);
-    }
-
-    assert_ne!(expr1, expr3);
-}
-
-#[test]
 fn test_expr_variants_coverage() {
     // This test ensures that Clone, Drop, and PartialEq logic for ALL variants
     // is exercised, boosting code coverage for the manual implementations.

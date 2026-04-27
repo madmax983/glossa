@@ -40,3 +40,7 @@
 **Bloat:** Undefined variables silently decaying into literal `0` integers deep within semantic parsing (`extract_value`), and critical sentence structure checks (`MissingVerb`) being ignored or throwing silent raw Rust codegen errors.
 **Cut:** Removed silent variable decay defaults. Flattened statement validation into `check_undefined_variables` where scoping and AST context are available, actively preventing undefined names. Placed explicit MissingVerb catching inside `Assembler::finalize`.
 **Saved:** Multiple paths that historically led to compiler crashes / malformed semantic models. Unified missing-verb catching, and prevented dozens of lines of unneeded checks later down in the codegen toolchain.
+## [Reduction]
+**Bloat:** Manual `Clone`, `PartialEq`, and `Drop` traits on `Expr` AST node in `src/ast.rs` utilizing `stacker::maybe_grow`.
+**Cut:** Replaced manual implementations with `#[derive(Clone, PartialEq)]` and removed the custom `Drop` entirely since parsing limits recursion depth early.
+**Saved:** Over 100 lines of complex manual destructuring logic. Reduced cognitive overhead representing speculative generality for extreme depths impossible to reach via parsing.

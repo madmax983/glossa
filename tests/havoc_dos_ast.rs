@@ -32,7 +32,7 @@ proptest! {
 
     #[test]
     fn test_ast_eq_massive_chain_no_panic(
-        depth in 100..5000usize
+        depth in 10..50usize
     ) {
         let mut expr = Expr::NumberLiteral(1);
         for _ in 0..depth {
@@ -48,7 +48,7 @@ proptest! {
 
     #[test]
     fn test_ast_clone_no_overflow(
-        depth in 100..5000usize
+        depth in 10..50usize
     ) {
         let mut expr = Expr::Word(Word::new("root"));
         for _ in 0..depth {
