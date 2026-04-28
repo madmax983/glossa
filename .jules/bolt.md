@@ -55,3 +55,6 @@
 **[HashMap to FxHashMap in tools/catalog.rs]**
 **Learning:** `std::collections::HashMap` introduces unnecessary hashing overhead for internal keys (`PartOfSpeech` enum variants). Switching to `rustc_hash::FxHashMap` is a safe, zero-cost optimization since the map is entirely internal and does not process unvalidated string inputs that could be vulnerable to HashDoS.
 **Action:** Replaced `std::collections::HashMap` with `rustc_hash::FxHashMap` in `src/tools/catalog.rs` for `entries_by_pos`.
+**[Optimizing String Conversions and Format Macros]**
+**Learning:** Calling `.to_string()` on slices or `&str` references directly causes heap allocations and trips `clippy::str_to_string` lints. Further, utilizing `to_string()` on elements already implementing `Display` inside formatting macros (like `format!()` or inside `Cell::new`) trips `clippy::to_string_in_format_args` and generates unneeded temporary string allocations.
+**Action:** Replace `.to_string()` with `String::from()` or `.to_owned()` on string literals and slices to accurately convey intent. Remove `.to_string()` when passing values to `Cell::new` or within `format!` and simply pass the `Display`-implementing variables directly.
