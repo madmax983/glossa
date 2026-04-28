@@ -47,3 +47,8 @@
 **Concept:** A CLI tool (`glossa haruspex`) that exports the semantic AST (`AnalyzedProgram`) directly to a Graphviz DOT diagram.
 **Fate:** Merged
 **Lesson:** Provides a fast, dependency-free way (no huge third-party crates needed besides manual text serialization) to visualize exactly how the Assembler routed cases and typed nodes. Proves that the "Exporter" pattern is highly effective for exposing internal compiler phases to external developer tools.
+
+## 🌟 The Diplomat (ὁ Διπλωμάτης)
+**Concept:** A TypeScript Definition (`.d.ts`) generator (`glossa diplomat`) that translates Glossa `εἶδος` (structs) and functions to TypeScript `interface` and `declare function` definitions.
+**Fate:** Merged
+**Lesson:** Mapping Ancient Greek structs to TS interfaces bridges the backend with modern web frontends, proving the language's abstractions are decoupled enough from Rust to target dynamic/JS ecosystem types.

@@ -198,6 +198,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate TypeScript definition (.d.ts) (Requires "nova" feature)
+    Diplomat {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Run the Auditor to find code smells (Requires "nova" feature)
     Audit {
         /// Input file (.γλ)
