@@ -1,4 +1,4 @@
 ## [Reduction]
-**Bloat:** `CFGBuilder` in `src/tools/labyrinth.rs` used an object-oriented builder pattern for a simple logic flow.
-**Cut:** Flattened the object into pure functions passing mutable references to `nodes`, `edges`, and `node_counter` state.
-**Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+**Bloat:** `generate_expr_*` wrapper functions in `src/codegen.rs` that wrapped simple `quote!` macro calls.
+**Cut:** Inlined the functions directly into the `generate_expr` match statement.
+**Saved:** Removed 8 unnecessary functions, simplifying the file by reducing 40 lines of abstraction boilerplate.
