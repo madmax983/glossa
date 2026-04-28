@@ -1209,10 +1209,11 @@ fn try_parse_genitive_method_call(
         glossa_type: owner_type.clone(),
     };
 
-    let mut args = Vec::with_capacity(asm_stmt.literals.len());
-    for lit in &asm_stmt.literals {
-        args.push(literal_to_analyzed_expr(lit));
-    }
+    let args: Vec<AnalyzedExpr> = asm_stmt
+        .literals
+        .iter()
+        .map(literal_to_analyzed_expr)
+        .collect();
 
     Some((
         AnalyzedExpr {
@@ -1374,24 +1375,25 @@ fn extract_property_access(
     asm_stmt: &AssembledStatement,
     _scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
-    if let Some((owner, method)) = asm_stmt.property_accesses.first() {
-        let receiver = AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(owner.clone().into()),
-            glossa_type: GlossaType::Unknown,
-        };
-        return Ok(Some((
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(receiver),
-                    method: method.clone().into(),
-                    args: vec![],
-                },
-                glossa_type: GlossaType::Number,
+    let Some((owner, method)) = asm_stmt.property_accesses.first() else {
+        return Ok(None);
+    };
+
+    let receiver = AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(owner.clone().into()),
+        glossa_type: GlossaType::Unknown,
+    };
+    Ok(Some((
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(receiver),
+                method: method.clone().into(),
+                args: vec![],
             },
-            GlossaType::Number,
-        )));
-    }
-    Ok(None)
+            glossa_type: GlossaType::Number,
+        },
+        GlossaType::Number,
+    )))
 }
 
 fn extract_index_access(
@@ -1419,25 +1421,27 @@ fn extract_array(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
-    if let Some(array_elements) = asm_stmt.arrays.first() {
-        let mut analyzed_elements = Vec::with_capacity(array_elements.len());
-        for e in array_elements {
-            analyzed_elements.push(analyze_argument_expr(e, scope)?);
-        }
+    let Some(array_elements) = asm_stmt.arrays.first() else {
+        return Ok(None);
+    };
 
-        let element_type = analyzed_elements
-            .first()
-            .map(|e| e.glossa_type.clone())
-            .unwrap_or(GlossaType::Unknown);
-        return Ok(Some((
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
-                glossa_type: GlossaType::List(Box::new(element_type)),
-            },
-            GlossaType::List(Box::new(GlossaType::Unknown)),
-        )));
-    }
-    Ok(None)
+    let analyzed_elements: Vec<AnalyzedExpr> = array_elements
+        .iter()
+        .map(|e| analyze_argument_expr(e, scope))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let element_type = analyzed_elements
+        .first()
+        .map(|e| e.glossa_type.clone())
+        .unwrap_or(GlossaType::Unknown);
+
+    Ok(Some((
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::ArrayLiteral(analyzed_elements),
+            glossa_type: GlossaType::List(Box::new(element_type)),
+        },
+        GlossaType::List(Box::new(GlossaType::Unknown)),
+    )))
 }
 
 fn extract_binary_op(
@@ -1522,33 +1526,34 @@ fn extract_object_fallback(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
-    if let Some(ref obj) = asm_stmt.object {
-        let obj_lemma = &obj.lemma;
+    let Some(ref obj) = asm_stmt.object else {
+        return Ok(None);
+    };
 
-        // Check if it's a numeral word
-        if let Some(value) = crate::morphology::lexicon::numeral_value(obj_lemma) {
-            return Ok(Some((
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(value),
-                    glossa_type: GlossaType::Number,
-                },
-                GlossaType::Number,
-            )));
-        }
+    let obj_lemma = &obj.lemma;
 
-        if !scope.is_defined(obj_lemma) {
-            return Err(GlossaError::undefined(obj_lemma.as_str()));
-        }
-
+    // Check if it's a numeral word
+    if let Some(value) = crate::morphology::lexicon::numeral_value(obj_lemma) {
         return Ok(Some((
             AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
+                expr: AnalyzedExprKind::NumberLiteral(value),
+                glossa_type: GlossaType::Number,
             },
-            GlossaType::Unknown,
+            GlossaType::Number,
         )));
     }
-    Ok(None)
+
+    if !scope.is_defined(obj_lemma) {
+        return Err(GlossaError::undefined(obj_lemma.as_str()));
+    }
+
+    Ok(Some((
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+            glossa_type: GlossaType::Unknown,
+        },
+        GlossaType::Unknown,
+    )))
 }
 
 /// Extract value from assembled statement
