@@ -833,6 +833,88 @@ mod tests {
     use crate::ast::{Clause, Expr, Statement, Word};
 
     #[test]
+    fn test_parse_match_expression_missing_clauses() {
+        let mut scope = Scope::new();
+        // Statement with empty clauses
+        let stmt = Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        };
+        // We know parse_match_expression just looks at clauses() which is empty here.
+        let err = parse_match_expression(&stmt, &mut scope);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn test_parse_match_pattern_uncovered() {
+        let mut scope = Scope::new();
+
+        // Phrase with boolean literal
+        let phrase_bool = Expr::Phrase(vec![Expr::BooleanLiteral(true)]);
+        let err = parse_match_pattern(&phrase_bool, &mut scope);
+        assert!(err.is_err());
+
+        // Number literal directly
+        let num_expr = Expr::NumberLiteral(5);
+        let err = parse_match_pattern(&num_expr, &mut scope);
+        assert!(err.is_err());
+
+        // Phrase with undefined word
+        let phrase_undef = Expr::Phrase(vec![Expr::Word(Word::new("ἀγνώστου"))]);
+        let err = parse_match_pattern(&phrase_undef, &mut scope);
+        assert!(err.is_err());
+
+        // Phrase with wild-card "ἄλλο"
+        let phrase_wildcard = Expr::Phrase(vec![Expr::Word(Word::new("ἄλλο"))]);
+        let res = parse_match_pattern(&phrase_wildcard, &mut scope).unwrap();
+        if let AnalyzedExprKind::BooleanLiteral(b) = res.expr {
+            assert!(b);
+        } else {
+            panic!("Expected boolean literal");
+        }
+
+        // Phrase with numeral "δύο"
+        let phrase_numeral = Expr::Phrase(vec![Expr::Word(Word::new("δύο"))]);
+        let res = parse_match_pattern(&phrase_numeral, &mut scope).unwrap();
+        if let AnalyzedExprKind::NumberLiteral(n) = res.expr {
+            assert_eq!(n, 2);
+        } else {
+            panic!("Expected number literal");
+        }
+
+        // Undefined variable check
+        let word_undef = Expr::Word(Word::new("ἀγνώστου"));
+        let err = parse_match_pattern(&word_undef, &mut scope);
+        assert!(err.is_err());
+
+        // Phrase with boolean literal at the beginning
+        let phrase_bool = Expr::Phrase(vec![Expr::BooleanLiteral(true)]);
+        let err = parse_match_pattern(&phrase_bool, &mut scope);
+        assert!(err.is_err());
+
+        // Match string literal directly
+        let str_expr = Expr::StringLiteral("test".to_string());
+        let err = parse_match_pattern(&str_expr, &mut scope);
+        assert!(err.is_err());
+
+        // Match phrase with string literal
+        let phrase_str = Expr::Phrase(vec![Expr::StringLiteral("test".to_string())]);
+        let err = parse_match_pattern(&phrase_str, &mut scope);
+        assert!(err.is_err());
+
+        // Match phrase with NumberLiteral
+        let phrase_num = Expr::Phrase(vec![Expr::NumberLiteral(5)]);
+        let err = parse_match_pattern(&phrase_num, &mut scope);
+        assert!(err.is_err());
+
+        // Empty phrase
+        let empty_phrase = Expr::Phrase(vec![]);
+        let err = parse_match_pattern(&empty_phrase, &mut scope);
+        assert!(err.is_err());
+    }
+
+    #[test]
     fn test_parse_return_expression_boolean() {
         let scope = Scope::new();
         let clause = Clause {
