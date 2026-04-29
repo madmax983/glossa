@@ -664,28 +664,29 @@ impl Assembler {
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
+                && !(crate::morphology::lexicon::numeral_value(&subject.lemma).is_some()
+                     && (verb.lemma == "ἄλλο" || verb.lemma == "μηδέν" || verb.lemma == "οὐδέν" || verb.lemma == "τι" || verb.lemma == "ἕν" || crate::morphology::lexicon::numeral_value(&verb.lemma).is_some()))
             {
                 return Err(AssemblyError::DoubleSubject);
             }
-        } else if self.state.subject.is_some()
-            && !self.state.nominatives.is_empty()
-            && self.state.operators.is_empty()
-        {
-            // Unhandled double subject when there's no verb and no operators
-            // Exception: Function definition / pattern calls
-            let is_function_call = !self.state.nested_phrases.is_empty()
-                || !self.state.blocks.is_empty()
-                || !self.state.literals.is_empty();
-            let is_special_pattern =
-                !self.state.property_accesses.is_empty() || self.state.is_query;
-            // Note: If self.state.verb.is_some(), we would have entered the previous block, not this 'else if' block!
-            // Wait, we are in 'else if self.state.subject.is_some()', which means verb is NONE.
-            // Oh, so Double Subject logic wasn't fully firing in the previous block either. Let me adjust.
-            if !is_function_call && !is_special_pattern {
-                // No verb, stacked nominatives...
-                return Err(AssemblyError::DoubleSubject);
+        } else if let Some(subject) = &self.state.subject {
+            #[allow(clippy::collapsible_if)]
+            if !self.state.nominatives.is_empty() && self.state.operators.is_empty() {
+                // Unhandled double subject when there's no verb and no operators
+                // Exception: Function definition / pattern calls
+                let is_function_call = !self.state.nested_phrases.is_empty()
+                    || !self.state.blocks.is_empty()
+                    || !self.state.literals.is_empty();
+                let is_special_pattern =
+                    !self.state.property_accesses.is_empty() || self.state.is_query;
+
+                if !is_function_call && !is_special_pattern {
+                    // No verb, stacked nominatives...
+                    if !(crate::morphology::lexicon::numeral_value(&subject.lemma).is_some()
+                         && self.state.nominatives.iter().any(|n| n.lemma == "ἄλλο" || n.lemma == "μηδέν" || n.lemma == "οὐδέν" || n.lemma == "τι" || n.lemma == "ἕν" || crate::morphology::lexicon::numeral_value(&n.lemma).is_some())) {
+                        return Err(AssemblyError::DoubleSubject);
+                    }
+                }
             }
         }
         // Return the assembled statement
@@ -724,10 +725,11 @@ impl Assembler {
             && self.state.adjectives.is_empty()
             && let Some(subject) = self.state.subject.as_ref()
         {
-            if subject.lemma == "ανθρωπος" {
-                return Err(AssemblyError::MissingVerb);
+            if crate::morphology::lexicon::numeral_value(&subject.lemma).is_some()
+               || subject.lemma == "ἄλλο" || subject.lemma == "μηδέν" || subject.lemma == "οὐδέν" || subject.lemma == "τι" || subject.lemma == "ἕν" {
+                return Ok(());
             }
-            return Ok(());
+            return Err(AssemblyError::MissingVerb);
         }
         Err(AssemblyError::MissingVerb)
     }

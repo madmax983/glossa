@@ -347,7 +347,10 @@ impl ReplContext {
         // 5. Analyze Result
         // We only care about the *last* statement, because previous statements have already
         // been executed/processed in previous turns.
-        let last_stmt = analyzed.statements.last().unwrap();
+        let last_stmt = match analyzed.statements.last() {
+            Some(stmt) => stmt,
+            None => return Ok(ReplOutput::None),
+        };
         match last_stmt {
             AnalyzedStatement::Binding { name, mutable, .. } => {
                 // Lookup type from scope since it's no longer in the binding statement

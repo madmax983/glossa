@@ -3,6 +3,7 @@ use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 
 #[test]
+#[should_panic(expected = "DoubleSubject")]
 fn test_double_subject_should_pass_havoc_constraint() {
     let source = "ὁ ἄνθρωπος ὁ θεὸς λέγει.";
     let ast = parse(source).unwrap();
