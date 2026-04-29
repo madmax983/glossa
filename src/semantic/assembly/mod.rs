@@ -633,9 +633,7 @@ impl Assembler {
         // Check for required verb (unless it's a query or has only literals)
         let has_content = self.state.subject.is_some()
             || self.state.object.is_some()
-            || !self.state.literals.is_empty()
-            || !self.state.adjectives.is_empty()
-            || self.state.has_delimiter_preposition;
+            || !self.state.literals.is_empty();
         if self.state.verb.is_none() && has_content && !self.state.is_query {
             // Exception: pure literal expressions
             let ctx = StatementContext {
@@ -720,7 +718,10 @@ impl Assembler {
         {
             return Ok(());
         }
-        if ctx.is_match_arm && self.state.object.is_none() && self.state.nominatives.is_empty() {
+        if ctx.is_match_arm
+            && self.state.object.is_none()
+            && self.state.nominatives.is_empty()
+        {
             if let Some(subject) = self.state.subject.as_ref() {
                 let raw_lemma = subject.lemma.as_ref();
                 let raw_norm = subject.normalized.as_ref();
