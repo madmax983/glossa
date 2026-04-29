@@ -125,7 +125,8 @@ fn analyze_statement_recursive(
 
     // 5. Check if it's a block statement (regular statement containing a single block expression)
     if let Some(block_stmts) = extract_block_statements(stmt) {
-        let mut analyzed = Vec::new();
+        // ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the block statements length to prevent reallocation.
+        let mut analyzed = Vec::with_capacity(block_stmts.len());
         // Create a child scope for the block
         // This ensures variables defined inside the block don't leak out
         return scope.with_scope(|block_scope| {

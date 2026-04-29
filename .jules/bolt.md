@@ -58,3 +58,10 @@
 **[Optimizing String Conversions and Format Macros]**
 **Learning:** Calling `.to_string()` on slices or `&str` references directly causes heap allocations and trips `clippy::str_to_string` lints. Further, utilizing `to_string()` on elements already implementing `Display` inside formatting macros (like `format!()` or inside `Cell::new`) trips `clippy::to_string_in_format_args` and generates unneeded temporary string allocations.
 **Action:** Replace `.to_string()` with `String::from()` or `.to_owned()` on string literals and slices to accurately convey intent. Remove `.to_string()` when passing values to `Cell::new` or within `format!` and simply pass the `Display`-implementing variables directly.
+**[Vec Allocations Optimization]
+**Learning:** Chained  calls inside mapping closures or aggregating elements into intermediate vectors can lead to unnecessary heap allocations. Using  informed by sequence lengths (e.g.  and combined literal/phrase lengths) along with  entirely eliminates these reallocations.
+**Action:** Always pre-calculate capacity limits when lengths are known and use  instead of relying on default  behavior, particularly inside parsing or semantic phases which recurse deeply.
+
+**[Vec Allocations Optimization]**
+**Learning:** Chained `.collect()` calls inside mapping closures or aggregating elements into intermediate vectors can lead to unnecessary heap allocations. Using `Vec::with_capacity()` informed by sequence lengths (e.g. `block_stmts.len()` and combined literal/phrase lengths) along with `.extend()` entirely eliminates these reallocations.
+**Action:** Always pre-calculate capacity limits when lengths are known and use `.extend()` instead of relying on default `.collect()` behavior, particularly inside parsing or semantic phases which recurse deeply.
