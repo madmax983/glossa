@@ -633,7 +633,9 @@ impl Assembler {
         // Check for required verb (unless it's a query or has only literals)
         let has_content = self.state.subject.is_some()
             || self.state.object.is_some()
-            || !self.state.literals.is_empty();
+            || !self.state.literals.is_empty()
+            || !self.state.adjectives.is_empty()
+            || self.state.has_delimiter_preposition;
         if self.state.verb.is_none() && has_content && !self.state.is_query {
             // Exception: pure literal expressions
             let ctx = StatementContext {
@@ -718,16 +720,51 @@ impl Assembler {
         {
             return Ok(());
         }
-        if ctx.is_match_arm
-            && self.state.object.is_none()
-            && self.state.nominatives.is_empty()
-            && self.state.adjectives.is_empty()
-            && let Some(subject) = self.state.subject.as_ref()
-        {
-            if subject.lemma == "ανθρωπος" {
-                return Err(AssemblyError::MissingVerb);
+        if ctx.is_match_arm && self.state.object.is_none() && self.state.nominatives.is_empty() {
+            if let Some(subject) = self.state.subject.as_ref() {
+                let raw_lemma = subject.lemma.as_ref();
+                let raw_norm = subject.normalized.as_ref();
+
+                let is_numeral = crate::morphology::lexicon::numeral_value(raw_lemma).is_some()
+                    || crate::morphology::lexicon::numeral_value(raw_norm).is_some()
+                    || crate::morphology::lexicon::numeral_value(&crate::text::normalize_greek(
+                        raw_lemma,
+                    ))
+                    .is_some()
+                    || crate::morphology::lexicon::numeral_value(&crate::text::normalize_greek(
+                        raw_norm,
+                    ))
+                    .is_some()
+                    || subject.original.chars().all(char::is_numeric);
+                let is_fallback = matches!(
+                    crate::text::normalize_greek(raw_lemma).as_str(),
+                    "αλλο"
+                        | "μηδεν"
+                        | "ουδεν"
+                        | "τι"
+                        | "εν"
+                        | "ενα"
+                        | "ενος"
+                        | "μια"
+                        | "μιας"
+                );
+
+                if is_numeral
+                    || is_fallback
+                    || ctx.has_delimiter
+                    || self.state.has_delimiter_preposition
+                {
+                    return Ok(());
+                }
+
+                if subject.lemma == "ανθρωπος" {
+                    return Err(AssemblyError::MissingVerb);
+                }
+
+                return Ok(());
+            } else if !self.state.adjectives.is_empty() {
+                return Ok(());
             }
-            return Ok(());
         }
         Err(AssemblyError::MissingVerb)
     }
