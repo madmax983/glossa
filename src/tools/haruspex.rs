@@ -156,76 +156,20 @@ impl DotGenerator {
                 then_body,
                 else_body,
             } => {
-                self.emit_node(id, "If", "lightgreen");
-                let cond_id = self.visit_expr(condition);
-                self.emit_edge(id, cond_id, "condition");
-
-                let then_id = self.next_id();
-                self.emit_node(then_id, "Block (Then)", "white");
-                self.emit_edge(id, then_id, "then");
-                for s in then_body {
-                    let s_id = self.visit_statement(s);
-                    self.emit_edge(then_id, s_id, "");
-                }
-
-                if let Some(else_b) = else_body {
-                    let else_id = self.next_id();
-                    self.emit_node(else_id, "Block (Else)", "white");
-                    self.emit_edge(id, else_id, "else");
-                    for s in else_b {
-                        let s_id = self.visit_statement(s);
-                        self.emit_edge(else_id, s_id, "");
-                    }
-                }
+                self.visit_if_statement(id, condition, then_body, else_body.as_deref());
             }
             AnalyzedStatement::While { condition, body } => {
-                self.emit_node(id, "While", "lightgreen");
-                let cond_id = self.visit_expr(condition);
-                self.emit_edge(id, cond_id, "condition");
-
-                let body_id = self.next_id();
-                self.emit_node(body_id, "Block", "white");
-                self.emit_edge(id, body_id, "body");
-                for s in body {
-                    let s_id = self.visit_statement(s);
-                    self.emit_edge(body_id, s_id, "");
-                }
+                self.visit_while_statement(id, condition, body);
             }
             AnalyzedStatement::For {
                 variable,
                 iterator,
                 body,
             } => {
-                self.emit_node(id, &format!("For\\n{}", variable), "lightgreen");
-                let iter_id = self.visit_expr(iterator);
-                self.emit_edge(id, iter_id, "iterator");
-
-                let body_id = self.next_id();
-                self.emit_node(body_id, "Block", "white");
-                self.emit_edge(id, body_id, "body");
-                for s in body {
-                    let s_id = self.visit_statement(s);
-                    self.emit_edge(body_id, s_id, "");
-                }
+                self.visit_for_statement(id, variable, iterator, body);
             }
             AnalyzedStatement::Match { scrutinee, arms } => {
-                self.emit_node(id, "Match", "lightgreen");
-                let scrutinee_id = self.visit_expr(scrutinee);
-                self.emit_edge(id, scrutinee_id, "scrutinee");
-
-                for (i, (pat, body)) in arms.iter().enumerate() {
-                    let arm_id = self.next_id();
-                    self.emit_node(arm_id, &format!("Arm_{}", i), "white");
-                    self.emit_edge(id, arm_id, "");
-
-                    let pat_id = self.visit_expr(pat);
-                    self.emit_edge(arm_id, pat_id, "pattern");
-
-                    for s in body {
-                        let s_id = self.visit_statement(s);
-                        self.emit_edge(arm_id, s_id, "body");
-                    }
-                }
+                self.visit_match_statement(id, scrutinee, arms);
             }
             AnalyzedStatement::Break => self.emit_node(id, "Break", "lightgreen"),
             AnalyzedStatement::Continue => self.emit_node(id, "Continue", "lightgreen"),
@@ -242,83 +186,23 @@ impl DotGenerator {
                 body,
                 return_type,
             } => {
-                let ret_str = return_type
-                    .as_ref()
-                    .map(|t| t.to_string())
-                    .unwrap_or_else(|| "()".to_string());
-                self.emit_node(
-                    id,
-                    &format!("FunctionDef\\n{} -> {}", name, ret_str),
-                    "lightgreen",
-                );
-
-                for (i, (p_name, p_type)) in params.iter().enumerate() {
-                    let type_str = p_type
-                        .as_ref()
-                        .map(|t| t.to_string())
-                        .unwrap_or_else(|| "?".to_string());
-                    let p_id = self.next_id();
-                    self.emit_node(p_id, &format!("{}: {}", p_name, type_str), "lightyellow");
-                    self.emit_edge(id, p_id, &format!("param_{}", i));
-                }
-
-                let body_id = self.next_id();
-                self.emit_node(body_id, "Block", "white");
-                self.emit_edge(id, body_id, "body");
-                for s in body {
-                    let s_id = self.visit_statement(s);
-                    self.emit_edge(body_id, s_id, "");
-                }
+                self.visit_function_def_statement(id, name, params, body, return_type);
             }
             AnalyzedStatement::TypeDefinition { name, fields } => {
-                self.emit_node(id, &format!("TypeDefinition\\n{}", name), "lightgreen");
-                for (i, (f_name, f_type)) in fields.iter().enumerate() {
-                    let f_id = self.next_id();
-                    self.emit_node(f_id, &format!("{}: {}", f_name, f_type), "lightyellow");
-                    self.emit_edge(id, f_id, &format!("field_{}", i));
-                }
+                self.visit_type_def_statement(id, name, fields);
             }
             AnalyzedStatement::TraitDefinition { name, methods } => {
-                self.emit_node(id, &format!("TraitDefinition\\n{}", name), "lightgreen");
-                for (i, method) in methods.iter().enumerate() {
-                    let m_id = self.next_id();
-                    self.emit_node(
-                        m_id,
-                        &format!("MethodDecl\\n{}", method.name),
-                        "lightyellow",
-                    );
-                    self.emit_edge(id, m_id, &format!("method_{}", i));
-                }
+                self.visit_trait_def_statement(id, name, methods);
             }
             AnalyzedStatement::TraitImplementation {
                 trait_name,
                 type_name,
                 methods,
             } => {
-                self.emit_node(
-                    id,
-                    &format!("TraitImpl\\n{} for {}", trait_name, type_name),
-                    "lightgreen",
-                );
-                for (i, method) in methods.iter().enumerate() {
-                    let m_id = self.next_id();
-                    self.emit_node(
-                        m_id,
-                        &format!("MethodImpl\\n{}", method.name),
-                        "lightyellow",
-                    );
-                    self.emit_edge(id, m_id, &format!("method_{}", i));
-                }
+                self.visit_trait_impl_statement(id, trait_name, type_name, methods);
             }
             AnalyzedStatement::TestDeclaration { name, body } => {
-                self.emit_node(id, &format!("TestDeclaration\\n{}", name), "lightgreen");
-                let body_id = self.next_id();
-                self.emit_node(body_id, "Block", "white");
-                self.emit_edge(id, body_id, "body");
-                for s in body {
-                    let s_id = self.visit_statement(s);
-                    self.emit_edge(body_id, s_id, "");
-                }
+                self.visit_test_decl_statement(id, name, body);
             }
         }
 
@@ -358,22 +242,10 @@ impl DotGenerator {
                 self.emit_edge(id, owner_id, "owner");
             }
             AnalyzedExprKind::VerbCall { verb, args } => {
-                self.emit_node(
-                    id,
-                    &format!("VerbCall\\n{}{}", verb, type_info),
-                    "lightyellow",
-                );
-                for (i, arg) in args.iter().enumerate() {
-                    let arg_id = self.visit_expr(arg);
-                    self.emit_edge(id, arg_id, &format!("arg_{}", i));
-                }
+                self.visit_verb_call_expr(id, verb, args, &type_info);
             }
             AnalyzedExprKind::BinOp { left, op, right } => {
-                self.emit_node(id, &format!("BinOp\\n{:?}{}", op, type_info), "lightyellow");
-                let left_id = self.visit_expr(left);
-                let right_id = self.visit_expr(right);
-                self.emit_edge(id, left_id, "left");
-                self.emit_edge(id, right_id, "right");
+                self.visit_binop_expr(id, left, op, right, &type_info);
             }
             AnalyzedExprKind::UnaryOp { op, operand } => {
                 self.emit_node(
@@ -389,23 +261,10 @@ impl DotGenerator {
                 end,
                 inclusive,
             } => {
-                let range_sym = if *inclusive { "..=" } else { ".." };
-                self.emit_node(
-                    id,
-                    &format!("Range\\n{}{}", range_sym, type_info),
-                    "lightyellow",
-                );
-                let start_id = self.visit_expr(start);
-                let end_id = self.visit_expr(end);
-                self.emit_edge(id, start_id, "start");
-                self.emit_edge(id, end_id, "end");
+                self.visit_range_expr(id, start, end, *inclusive, &type_info);
             }
             AnalyzedExprKind::ArrayLiteral(exprs) => {
-                self.emit_node(id, &format!("ArrayLiteral{}", type_info), "lightyellow");
-                for (i, e) in exprs.iter().enumerate() {
-                    let e_id = self.visit_expr(e);
-                    self.emit_edge(id, e_id, &format!("elem_{}", i));
-                }
+                self.visit_array_literal_expr(id, exprs, &type_info);
             }
             AnalyzedExprKind::Some(e) => {
                 self.emit_node(id, &format!("Some{}", type_info), "lightyellow");
@@ -443,66 +302,28 @@ impl DotGenerator {
                 self.emit_edge(id, index_id, "index");
             }
             AnalyzedExprKind::FunctionCall { func, args } => {
-                self.emit_node(
-                    id,
-                    &format!("FunctionCall\\n{}{}", func, type_info),
-                    "lightyellow",
-                );
-                for (i, arg) in args.iter().enumerate() {
-                    let arg_id = self.visit_expr(arg);
-                    self.emit_edge(id, arg_id, &format!("arg_{}", i));
-                }
+                self.visit_function_call_expr(id, func, args, &type_info);
             }
             AnalyzedExprKind::MethodCall {
                 receiver,
                 method,
                 args,
             } => {
-                self.emit_node(
-                    id,
-                    &format!("MethodCall\\n.{}{}", method, type_info),
-                    "lightyellow",
-                );
-                let rec_id = self.visit_expr(receiver);
-                self.emit_edge(id, rec_id, "receiver");
-                for (i, arg) in args.iter().enumerate() {
-                    let arg_id = self.visit_expr(arg);
-                    self.emit_edge(id, arg_id, &format!("arg_{}", i));
-                }
+                self.visit_method_call_expr(id, receiver, method, args, &type_info);
             }
             AnalyzedExprKind::StructInstantiation {
                 type_name,
                 fields,
                 args,
             } => {
-                self.emit_node(
-                    id,
-                    &format!("StructInstantiation\\n{}{}", type_name, type_info),
-                    "lightyellow",
-                );
-                for (i, arg) in args.iter().enumerate() {
-                    let arg_id = self.visit_expr(arg);
-                    let field_name = fields.get(i).map(|s| s.as_str()).unwrap_or("?");
-                    self.emit_edge(id, arg_id, field_name);
-                }
+                self.visit_struct_instantiation_expr(id, type_name, fields, args, &type_info);
             }
             AnalyzedExprKind::Lambda {
                 params,
                 body,
                 capture_mode,
             } => {
-                let capture_str = match capture_mode {
-                    crate::semantic::CaptureMode::Borrow => "borrow",
-                    crate::semantic::CaptureMode::Move => "move",
-                };
-                let params_str = params.join(", ");
-                self.emit_node(
-                    id,
-                    &format!("Lambda\\n[{}] |{}|{}", capture_str, params_str, type_info),
-                    "lightyellow",
-                );
-                let body_id = self.visit_expr(body);
-                self.emit_edge(id, body_id, "body");
+                self.visit_lambda_expr(id, params, body, capture_mode, &type_info);
             }
             AnalyzedExprKind::CollectionNew { collection_type } => {
                 self.emit_node(
@@ -526,6 +347,345 @@ impl DotGenerator {
         }
 
         id
+    }
+
+    fn visit_if_statement(
+        &mut self,
+        id: usize,
+        condition: &AnalyzedExpr,
+        then_body: &[AnalyzedStatement],
+        else_body: Option<&[AnalyzedStatement]>,
+    ) {
+        self.emit_node(id, "If", "lightgreen");
+        let cond_id = self.visit_expr(condition);
+        self.emit_edge(id, cond_id, "condition");
+
+        let then_id = self.next_id();
+        self.emit_node(then_id, "Block (Then)", "white");
+        self.emit_edge(id, then_id, "then");
+        for s in then_body {
+            let s_id = self.visit_statement(s);
+            self.emit_edge(then_id, s_id, "");
+        }
+
+        if let Some(else_b) = else_body {
+            let else_id = self.next_id();
+            self.emit_node(else_id, "Block (Else)", "white");
+            self.emit_edge(id, else_id, "else");
+            for s in else_b {
+                let s_id = self.visit_statement(s);
+                self.emit_edge(else_id, s_id, "");
+            }
+        }
+    }
+
+    fn visit_while_statement(
+        &mut self,
+        id: usize,
+        condition: &AnalyzedExpr,
+        body: &[AnalyzedStatement],
+    ) {
+        self.emit_node(id, "While", "lightgreen");
+        let cond_id = self.visit_expr(condition);
+        self.emit_edge(id, cond_id, "condition");
+
+        let body_id = self.next_id();
+        self.emit_node(body_id, "Block", "white");
+        self.emit_edge(id, body_id, "body");
+        for s in body {
+            let s_id = self.visit_statement(s);
+            self.emit_edge(body_id, s_id, "");
+        }
+    }
+
+    fn visit_for_statement(
+        &mut self,
+        id: usize,
+        variable: &str,
+        iterator: &AnalyzedExpr,
+        body: &[AnalyzedStatement],
+    ) {
+        self.emit_node(id, &format!("For\\n{}", variable), "lightgreen");
+        let iter_id = self.visit_expr(iterator);
+        self.emit_edge(id, iter_id, "iterator");
+
+        let body_id = self.next_id();
+        self.emit_node(body_id, "Block", "white");
+        self.emit_edge(id, body_id, "body");
+        for s in body {
+            let s_id = self.visit_statement(s);
+            self.emit_edge(body_id, s_id, "");
+        }
+    }
+
+    fn visit_match_statement(
+        &mut self,
+        id: usize,
+        scrutinee: &AnalyzedExpr,
+        arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
+    ) {
+        self.emit_node(id, "Match", "lightgreen");
+        let scrutinee_id = self.visit_expr(scrutinee);
+        self.emit_edge(id, scrutinee_id, "scrutinee");
+
+        for (i, (pat, body)) in arms.iter().enumerate() {
+            let arm_id = self.next_id();
+            self.emit_node(arm_id, &format!("Arm_{}", i), "white");
+            self.emit_edge(id, arm_id, "");
+
+            let pat_id = self.visit_expr(pat);
+            self.emit_edge(arm_id, pat_id, "pattern");
+
+            for s in body {
+                let s_id = self.visit_statement(s);
+                self.emit_edge(arm_id, s_id, "body");
+            }
+        }
+    }
+
+    fn visit_function_def_statement(
+        &mut self,
+        id: usize,
+        name: &str,
+        params: &[(smol_str::SmolStr, Option<crate::semantic::GlossaType>)],
+        body: &[AnalyzedStatement],
+        return_type: &Option<crate::semantic::GlossaType>,
+    ) {
+        let ret_str = return_type
+            .as_ref()
+            .map(|t| t.to_string())
+            .unwrap_or_else(|| "()".to_string());
+        self.emit_node(
+            id,
+            &format!("FunctionDef\\n{} -> {}", name, ret_str),
+            "lightgreen",
+        );
+
+        for (i, (p_name, p_type)) in params.iter().enumerate() {
+            let type_str = p_type
+                .as_ref()
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "?".to_string());
+            let p_id = self.next_id();
+            self.emit_node(p_id, &format!("{}: {}", p_name, type_str), "lightyellow");
+            self.emit_edge(id, p_id, &format!("param_{}", i));
+        }
+
+        let body_id = self.next_id();
+        self.emit_node(body_id, "Block", "white");
+        self.emit_edge(id, body_id, "body");
+        for s in body {
+            let s_id = self.visit_statement(s);
+            self.emit_edge(body_id, s_id, "");
+        }
+    }
+
+    fn visit_type_def_statement(
+        &mut self,
+        id: usize,
+        name: &str,
+        fields: &[(smol_str::SmolStr, crate::semantic::GlossaType)],
+    ) {
+        self.emit_node(id, &format!("TypeDefinition\\n{}", name), "lightgreen");
+        for (i, (f_name, f_type)) in fields.iter().enumerate() {
+            let f_id = self.next_id();
+            self.emit_node(f_id, &format!("{}: {}", f_name, f_type), "lightyellow");
+            self.emit_edge(id, f_id, &format!("field_{}", i));
+        }
+    }
+
+    fn visit_trait_def_statement(
+        &mut self,
+        id: usize,
+        name: &str,
+        methods: &[crate::semantic::AnalyzedMethod],
+    ) {
+        self.emit_node(id, &format!("TraitDefinition\\n{}", name), "lightgreen");
+        for (i, method) in methods.iter().enumerate() {
+            let m_id = self.next_id();
+            self.emit_node(
+                m_id,
+                &format!("MethodDecl\\n{}", method.name),
+                "lightyellow",
+            );
+            self.emit_edge(id, m_id, &format!("method_{}", i));
+        }
+    }
+
+    fn visit_trait_impl_statement(
+        &mut self,
+        id: usize,
+        trait_name: &str,
+        type_name: &str,
+        methods: &[crate::semantic::AnalyzedMethod],
+    ) {
+        self.emit_node(
+            id,
+            &format!("TraitImpl\\n{} for {}", trait_name, type_name),
+            "lightgreen",
+        );
+        for (i, method) in methods.iter().enumerate() {
+            let m_id = self.next_id();
+            self.emit_node(
+                m_id,
+                &format!("MethodImpl\\n{}", method.name),
+                "lightyellow",
+            );
+            self.emit_edge(id, m_id, &format!("method_{}", i));
+        }
+    }
+
+    fn visit_test_decl_statement(&mut self, id: usize, name: &str, body: &[AnalyzedStatement]) {
+        self.emit_node(id, &format!("TestDeclaration\\n{}", name), "lightgreen");
+        let body_id = self.next_id();
+        self.emit_node(body_id, "Block", "white");
+        self.emit_edge(id, body_id, "body");
+        for s in body {
+            let s_id = self.visit_statement(s);
+            self.emit_edge(body_id, s_id, "");
+        }
+    }
+
+    fn visit_verb_call_expr(
+        &mut self,
+        id: usize,
+        verb: &str,
+        args: &[AnalyzedExpr],
+        type_info: &str,
+    ) {
+        self.emit_node(
+            id,
+            &format!("VerbCall\\n{}{}", verb, type_info),
+            "lightyellow",
+        );
+        for (i, arg) in args.iter().enumerate() {
+            let arg_id = self.visit_expr(arg);
+            self.emit_edge(id, arg_id, &format!("arg_{}", i));
+        }
+    }
+
+    fn visit_binop_expr(
+        &mut self,
+        id: usize,
+        left: &AnalyzedExpr,
+        op: &crate::morphology::BinaryOp,
+        right: &AnalyzedExpr,
+        type_info: &str,
+    ) {
+        self.emit_node(id, &format!("BinOp\\n{:?}{}", op, type_info), "lightyellow");
+        let left_id = self.visit_expr(left);
+        let right_id = self.visit_expr(right);
+        self.emit_edge(id, left_id, "left");
+        self.emit_edge(id, right_id, "right");
+    }
+
+    fn visit_range_expr(
+        &mut self,
+        id: usize,
+        start: &AnalyzedExpr,
+        end: &AnalyzedExpr,
+        inclusive: bool,
+        type_info: &str,
+    ) {
+        let range_sym = if inclusive { "..=" } else { ".." };
+        self.emit_node(
+            id,
+            &format!("Range\\n{}{}", range_sym, type_info),
+            "lightyellow",
+        );
+        let start_id = self.visit_expr(start);
+        let end_id = self.visit_expr(end);
+        self.emit_edge(id, start_id, "start");
+        self.emit_edge(id, end_id, "end");
+    }
+
+    fn visit_array_literal_expr(&mut self, id: usize, exprs: &[AnalyzedExpr], type_info: &str) {
+        self.emit_node(id, &format!("ArrayLiteral{}", type_info), "lightyellow");
+        for (i, e) in exprs.iter().enumerate() {
+            let e_id = self.visit_expr(e);
+            self.emit_edge(id, e_id, &format!("elem_{}", i));
+        }
+    }
+
+    fn visit_function_call_expr(
+        &mut self,
+        id: usize,
+        func: &str,
+        args: &[AnalyzedExpr],
+        type_info: &str,
+    ) {
+        self.emit_node(
+            id,
+            &format!("FunctionCall\\n{}{}", func, type_info),
+            "lightyellow",
+        );
+        for (i, arg) in args.iter().enumerate() {
+            let arg_id = self.visit_expr(arg);
+            self.emit_edge(id, arg_id, &format!("arg_{}", i));
+        }
+    }
+
+    fn visit_method_call_expr(
+        &mut self,
+        id: usize,
+        receiver: &AnalyzedExpr,
+        method: &str,
+        args: &[AnalyzedExpr],
+        type_info: &str,
+    ) {
+        self.emit_node(
+            id,
+            &format!("MethodCall\\n.{}{}", method, type_info),
+            "lightyellow",
+        );
+        let rec_id = self.visit_expr(receiver);
+        self.emit_edge(id, rec_id, "receiver");
+        for (i, arg) in args.iter().enumerate() {
+            let arg_id = self.visit_expr(arg);
+            self.emit_edge(id, arg_id, &format!("arg_{}", i));
+        }
+    }
+
+    fn visit_struct_instantiation_expr(
+        &mut self,
+        id: usize,
+        type_name: &str,
+        fields: &[smol_str::SmolStr],
+        args: &[AnalyzedExpr],
+        type_info: &str,
+    ) {
+        self.emit_node(
+            id,
+            &format!("StructInstantiation\\n{}{}", type_name, type_info),
+            "lightyellow",
+        );
+        for (i, arg) in args.iter().enumerate() {
+            let arg_id = self.visit_expr(arg);
+            let field_name = fields.get(i).map(|s| s.as_str()).unwrap_or("?");
+            self.emit_edge(id, arg_id, field_name);
+        }
+    }
+
+    fn visit_lambda_expr(
+        &mut self,
+        id: usize,
+        params: &[smol_str::SmolStr],
+        body: &AnalyzedExpr,
+        capture_mode: &crate::semantic::CaptureMode,
+        type_info: &str,
+    ) {
+        let capture_str = match capture_mode {
+            crate::semantic::CaptureMode::Borrow => "borrow",
+            crate::semantic::CaptureMode::Move => "move",
+        };
+        let params_str = params.join(", ");
+        self.emit_node(
+            id,
+            &format!("Lambda\\n[{}] |{}|{}", capture_str, params_str, type_info),
+            "lightyellow",
+        );
+        let body_id = self.visit_expr(body);
+        self.emit_edge(id, body_id, "body");
     }
 }
 
