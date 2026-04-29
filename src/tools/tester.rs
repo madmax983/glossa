@@ -208,46 +208,47 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
     if !rustc_output.status.success() {
         let raw_stderr = String::from_utf8_lossy(&rustc_output.stderr);
 
-        let mut clean_stderr = String::new();
-        let mut prev_empty = false;
-        for line in raw_stderr.lines() {
-            // Skip file location lines
-            if line.starts_with(" --> ") {
-                continue;
-            }
-
-            let trimmed = line.trim_start();
-
-            // Check if the line starts with a line number followed by |
-            if trimmed.chars().next().is_some_and(|c| c.is_ascii_digit()) && trimmed.contains(" | ")
-            {
-                continue;
-            }
-
-            // Skip the underline carets and empty pipes
-            if trimmed.starts_with('|') {
-                continue;
-            }
-
-            let is_empty = line.trim().is_empty();
-            if is_empty && prev_empty {
-                continue;
-            }
-
-            clean_stderr.push_str(line);
-            clean_stderr.push('\n');
-            prev_empty = is_empty;
-        }
+        let clean_stderr = clean_rustc_stderr(&raw_stderr);
 
         status.error("Σφάλμα μεταγλωττίσεως δοκιμῶν (Test Compilation Error)");
         return Err(miette::miette!(
             "{}\n{}",
             "Rustc Error:".red(),
-            clean_stderr.trim()
+            clean_stderr
         ));
     }
 
     Ok(status)
+}
+
+pub(crate) fn clean_rustc_stderr(raw_stderr: &str) -> String {
+    let mut clean_stderr = String::new();
+    let mut prev_empty = false;
+    for line in raw_stderr.lines() {
+        if line.starts_with(" --> ") {
+            continue;
+        }
+
+        let trimmed = line.trim_start();
+
+        if trimmed.chars().next().is_some_and(|c| c.is_ascii_digit()) && trimmed.contains(" | ") {
+            continue;
+        }
+
+        if trimmed.starts_with('|') {
+            continue;
+        }
+
+        let is_empty = line.trim().is_empty();
+        if is_empty && prev_empty {
+            continue;
+        }
+
+        clean_stderr.push_str(line);
+        clean_stderr.push('\n');
+        prev_empty = is_empty;
+    }
+    clean_stderr.trim().to_string()
 }
 
 fn execute_test_binary(exe_path: &Path, status: &mut Status) -> Result<std::process::Output> {
@@ -460,6 +461,16 @@ pub fn run_tests(input: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_clean_rustc_stderr() {
+        let raw_stderr = "error[E0425]: cannot find value `g_chi` in this scope\n --> /tmp/.tmpWpQWfP/glossa_test_123.rs:5:10\n  |\n5 |     let g_chi = 5;\n  |         ^^^^^ not found in this scope\n  |\n  = help: consider declaring `g_chi` as a mutable variable\n\nerror: aborting due to 1 previous error\n";
+        let clean = clean_rustc_stderr(raw_stderr);
+        assert!(clean.contains("cannot find value"));
+        assert!(clean.contains("help: consider declaring"));
+        assert!(!clean.contains("-->"));
+        assert!(!clean.contains(" | "));
+    }
 
     #[test]
     fn test_run_tests_rustc_missing() {

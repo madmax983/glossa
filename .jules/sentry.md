@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+## [Tester Rustc Error Cleaning Coverage]
+**Learning:** Sometimes an inline logic block is difficult to test because producing the specific environment failure condition via integration tests is extremely hard (e.g. failing a downstream Rust compilation with invalid rust generated from valid glossa AST).
+**Action:** Extracting the logic block into a `pub(crate)` function allows writing explicit unit tests that inject the failure outputs directly, ensuring 100% logic coverage without tricky toolchain exploits. Also, testing `rustc` failure handling via command execution requires a non-zero exit code integration test to hit the error path at all.
