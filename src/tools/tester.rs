@@ -156,6 +156,23 @@ fn capture_failure_message(lines: &mut std::iter::Peekable<std::str::Lines>) -> 
             continue;
         }
 
+        // Stop before stack trace
+        if trimmed.starts_with("stack backtrace:")
+            || current.starts_with("note: Some details are omitted")
+        {
+            lines.next();
+            while let Some(next) = lines.peek() {
+                let next_trimmed = next.trim();
+                if next_trimmed.starts_with("----") && next_trimmed.ends_with("stdout ----")
+                    || next_trimmed == "failures:"
+                {
+                    break;
+                }
+                lines.next();
+            }
+            continue;
+        }
+
         if let Some(clean_panic) = clean_panic_message(current) {
             message.push_str(&clean_panic);
             message.push('\n');
