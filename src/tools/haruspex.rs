@@ -503,7 +503,11 @@ impl DotGenerator {
         self.emit_node(id, &format!("TraitDefinition\\n{}", name), "lightgreen");
         for (i, method) in methods.iter().enumerate() {
             let m_id = self.next_id();
-            self.emit_node(m_id, &format!("MethodDecl\\n{}", method.name), "lightyellow");
+            self.emit_node(
+                m_id,
+                &format!("MethodDecl\\n{}", method.name),
+                "lightyellow",
+            );
             self.emit_edge(id, m_id, &format!("method_{}", i));
         }
     }
@@ -522,7 +526,11 @@ impl DotGenerator {
         );
         for (i, method) in methods.iter().enumerate() {
             let m_id = self.next_id();
-            self.emit_node(m_id, &format!("MethodImpl\\n{}", method.name), "lightyellow");
+            self.emit_node(
+                m_id,
+                &format!("MethodImpl\\n{}", method.name),
+                "lightyellow",
+            );
             self.emit_edge(id, m_id, &format!("method_{}", i));
         }
     }
