@@ -148,7 +148,7 @@ struct StatementContext {
     has_delimiter: bool,
     is_match_arm: bool,
 }
-pub mod model;
+pub(crate) mod model;
 pub use model::*;
 
 /// The `Assembler` orchestrates semantic construction.
