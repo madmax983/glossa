@@ -280,11 +280,10 @@ fn classify_function_call(
         return Ok(None);
     };
 
-    let mut args: Vec<AnalyzedExpr> = asm_stmt
-        .literals
-        .iter()
-        .map(literal_to_analyzed_expr)
-        .collect();
+    // ⚡ Bolt Optimization: Pre-allocate vector capacity to avoid intermediate `.collect()` and reallocations
+    let mut args = Vec::with_capacity(asm_stmt.literals.len() + asm_stmt.nested_phrases.len());
+
+    args.extend(asm_stmt.literals.iter().map(literal_to_analyzed_expr));
 
     for nested_terms in &asm_stmt.nested_phrases {
         let phrase_expr = Expr::Phrase(nested_terms.clone());
