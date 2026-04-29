@@ -17,7 +17,7 @@ use std::fmt::Write;
 use std::path::Path;
 
 /// Recursively translate a GlossaType to a TypeScript type string.
-fn translate_to_ts(t: &GlossaType) -> String {
+pub fn translate_to_ts(t: &GlossaType) -> String {
     match t {
         GlossaType::Number => "number".to_string(),
         GlossaType::String => "string".to_string(),

@@ -308,6 +308,8 @@ pub fn resolve_type_name(name: &str, scope: &Scope) -> Result<GlossaType, Glossa
         "ονοματος" => Ok(GlossaType::String),
         // λιστης (genitive of λίστα) → List
         "λιστης" => Ok(GlossaType::List(Box::new(GlossaType::Unknown))),
+        // ἀληθοῦς (genitive of ἀληθές) → Boolean
+        "αληθους" | "ψευδους" => Ok(GlossaType::Boolean),
         _ => {
             // Check for user-defined types
             // Strip genitive ending and look up the nominative form
