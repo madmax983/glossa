@@ -16,8 +16,8 @@ fn test_coverage_filter_patterns() {
         "
         ξ [1, 2, 3] ἔστω.
         θ 10 ἔστω.
-        // Filter: collection + genitive(ου) + comparative_adj + print
-        ξ θου μείζονα λέγε.
+        // Filter
+        διὰ ξ θου μείζονα, λέγε.
     ",
     );
 
@@ -26,8 +26,8 @@ fn test_coverage_filter_patterns() {
         "
         ξ [1, 2, 3] ἔστω.
         αγάπη 10 ἔστω.
-        // Filter: collection + genitive(ης) + comparative_adj + print
-        ξ αγάπης μείζονα λέγε.
+        // Filter
+        διὰ ξ αγάπης μείζονα, λέγε.
     ",
     );
 
@@ -36,8 +36,8 @@ fn test_coverage_filter_patterns() {
         "
         ξ [1, 2, 3] ἔστω.
         μέτρον 10 ἔστω.
-        // Filter: collection + genitive(ων) + comparative_adj + print
-        ξ μέτρων μείζονα λέγε.
+        // Filter
+        διὰ ξ μέτρων μείζονα, λέγε.
     ",
     );
 
@@ -49,8 +49,8 @@ fn test_coverage_filter_patterns() {
         "
         ξ [1, 2, 3] ἔστω.
         β 10 ἔστω.
-        // Filter: collection + genitive(no suffix) + comparative_adj + print
-        ξ β μείζονα λέγε.
+        // Filter
+        διὰ ξ β μείζονα, λέγε.
     ",
     );
 }

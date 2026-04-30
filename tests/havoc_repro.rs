@@ -15,10 +15,10 @@ proptest! {
         // "δός <val> 0 ἄθροισμα." should return <val>.
         // But due to the bug, it returns 0.
         let source = format!("
-            λείτουργος ὁρίζειν · δός {} 0 ἄθροισμα.
+            λειτουργος ὁρίζειν · δός {} 0 ἄθροισμα.
 
             // Main
-            λείτουργος λέγε.
+            λειτουργος λέγε.
         ", val);
 
         let ast = parse(&source).unwrap();
