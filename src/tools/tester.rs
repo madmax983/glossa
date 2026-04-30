@@ -226,41 +226,37 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
         let raw_stderr = String::from_utf8_lossy(&rustc_output.stderr);
 
         let mut clean_stderr = String::new();
-        let mut prev_empty = false;
         for line in raw_stderr.lines() {
-            // Skip file location lines
-            if line.starts_with(" --> ") {
-                continue;
+            // Extract the core error message and ignore the rest
+            if line.starts_with("error") && !line.starts_with("error: aborting") {
+                if !clean_stderr.is_empty() {
+                    clean_stderr.push('\n');
+                }
+
+                // Keep the error text but maybe strip out the file paths or code
+                let clean_line = if let Some(idx) = line.find("]: ") {
+                    &line[idx + 3..]
+                } else if let Some(idx) = line.find(": ") {
+                    &line[idx + 2..]
+                } else {
+                    line
+                };
+
+                clean_stderr.push_str("• ");
+                clean_stderr.push_str(clean_line);
             }
+        }
 
-            let trimmed = line.trim_start();
-
-            // Check if the line starts with a line number followed by |
-            if trimmed.chars().next().is_some_and(|c| c.is_ascii_digit()) && trimmed.contains(" | ")
-            {
-                continue;
-            }
-
-            // Skip the underline carets and empty pipes
-            if trimmed.starts_with('|') {
-                continue;
-            }
-
-            let is_empty = line.trim().is_empty();
-            if is_empty && prev_empty {
-                continue;
-            }
-
-            clean_stderr.push_str(line);
-            clean_stderr.push('\n');
-            prev_empty = is_empty;
+        if clean_stderr.is_empty() {
+            clean_stderr.push_str("An unknown internal compiler error occurred during test code generation.");
         }
 
         status.error("Σφάλμα μεταγλωττίσεως δοκιμῶν (Test Compilation Error)");
         return Err(miette::miette!(
-            "{}\n{}",
-            "Rustc Error:".red(),
-            clean_stderr.trim()
+            "{}\n{}\n\n{}",
+            "Codegen Error:".red().bold(),
+            "The generated test harness failed to compile. This is likely an internal compiler bug in ΓΛΩΣΣΑ.",
+            clean_stderr.yellow()
         ));
     }
 
@@ -373,10 +369,34 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
             }
         } else {
             // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
-            if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+            let mut error_table = Table::new();
+            error_table.load_preset(presets::UTF8_FULL);
+            error_table.set_header(vec![
+                Cell::new("Raw Error Output")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Red),
+            ]);
+
+            let mut combined_output = String::new();
+            if !stdout.trim().is_empty() {
+                combined_output.push_str(stdout.trim());
             }
+            if !test_output.stderr.is_empty() {
+                if !combined_output.is_empty() {
+                    combined_output.push_str("
+
+");
+                }
+                combined_output.push_str(String::from_utf8_lossy(&test_output.stderr).trim());
+            }
+
+            if combined_output.is_empty() {
+                combined_output.push_str("Test process failed without output.");
+            }
+
+            error_table.add_row(vec![Cell::new(combined_output).fg(Color::DarkGrey)]);
+            println!("{error_table}");
+            println!();
         }
     }
 }
