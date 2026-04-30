@@ -207,6 +207,12 @@ pub enum Commands {
     /// Explore the built-in lexicon (Requires "nova" feature)
     Catalog,
 
+    /// Visualize the Semantic AST as a Tree (Requires "nova" feature)
+    Tree {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Generate an API documentation Markdown file (Requires "nova" feature)
     Scholar {
         /// Input file (.γλ)

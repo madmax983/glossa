@@ -23,6 +23,8 @@ pub mod alchemist;
 /// This experimental tool analyzes Glossa code to detect unused variables,
 /// unnecessary mutable bindings, and other code quality issues.
 #[cfg(feature = "nova")]
+pub mod astronomer;
+#[cfg(feature = "nova")]
 pub mod auditor;
 pub(crate) mod cache;
 pub use cache::Cache;
