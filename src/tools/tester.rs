@@ -248,7 +248,9 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
         }
 
         if clean_stderr.is_empty() {
-            clean_stderr.push_str("An unknown internal compiler error occurred during test code generation.");
+            clean_stderr.push_str(
+                "An unknown internal compiler error occurred during test code generation.",
+            );
         }
 
         status.error("Σφάλμα μεταγλωττίσεως δοκιμῶν (Test Compilation Error)");
@@ -383,9 +385,11 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
             }
             if !test_output.stderr.is_empty() {
                 if !combined_output.is_empty() {
-                    combined_output.push_str("
+                    combined_output.push_str(
+                        "
 
-");
+",
+                    );
                 }
                 combined_output.push_str(String::from_utf8_lossy(&test_output.stderr).trim());
             }
@@ -492,6 +496,60 @@ pub fn run_tests(input: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tester_ui_tests {
+    use super::*;
+
+    #[test]
+    fn test_compile_test_harness_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("error_ui.gl");
+        std::fs::write(&input_path, "δοκιμή «test_err» { 1 2 ἰσοῦται. }.").unwrap();
+
+        // Run tests with invalid syntax that gets through parser but produces invalid rust
+        // Actually, let's directly call compile_test_harness with a bad file
+        let bad_rs = dir.path().join("bad.rs");
+        std::fs::write(&bad_rs, "fn main() { this_is_not_valid_rust; }").unwrap();
+        let exe = dir.path().join("bad_exe");
+
+        let status = Status::start_with_symbol("Δοκιμασία (Testing)", "🧪");
+        let result = compile_test_harness(&bad_rs, &exe, status);
+
+        assert!(result.is_err());
+        let err = match result {
+            Ok(_) => panic!("Expected error"),
+            Err(e) => e,
+        };
+        let err_msg = err.to_string();
+        assert!(err_msg.contains("Codegen Error"));
+        assert!(err_msg.contains("this_is_not_valid_rust"));
+    }
+
+    #[test]
+    fn test_print_test_results_fallback() {
+        // We can't directly intercept stdout easily, but we can call it to ensure it doesn't panic
+        // and provides the fallback branch
+
+        // Mock a failed test output with empty results
+        let results = vec![];
+        let test_output = std::process::Output {
+            status: std::os::unix::process::ExitStatusExt::from_raw(1),
+            stdout: b"Panicked immediately".to_vec(),
+            stderr: b"Runtime error detail".to_vec(),
+        };
+
+        print_test_results(&results, &test_output, "Panicked immediately");
+
+        // Empty output but failed
+        let test_output_empty = std::process::Output {
+            status: std::os::unix::process::ExitStatusExt::from_raw(1),
+            stdout: b"".to_vec(),
+            stderr: b"".to_vec(),
+        };
+        print_test_results(&results, &test_output_empty, "");
+    }
 }
 
 #[cfg(test)]
@@ -848,7 +906,11 @@ test name with spaces ... ok
 
         let result = run_tests(&input_path);
         assert!(result.is_err());
-        let err_msg = result.unwrap_err().to_string();
+        let err = match result {
+            Ok(_) => panic!("Expected error"),
+            Err(e) => e,
+        };
+        let err_msg = err.to_string();
         // The underlying error bubbles up.
         assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
     }
