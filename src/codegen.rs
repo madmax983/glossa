@@ -299,10 +299,15 @@ pub fn to_rust_type(ty: &GlossaType) -> String {
     }
 }
 
-/// Convert a Glossa type to a Rust TokenStream
+/// Generates the Rust token stream for a given `GlossaType`.
 ///
-/// This handles parsing complex generic types (like `HashMap<String, i64>`)
-/// which cannot be represented as a simple Ident.
+/// # Examples
+/// ```
+/// use glossa::semantic::GlossaType;
+/// use glossa::codegen::generate_type_tokens;
+/// let tokens = generate_type_tokens(&GlossaType::Number);
+/// assert_eq!(tokens.to_string(), "i64");
+/// ```
 pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
     match ty {
         GlossaType::Number => quote! { i64 },
@@ -353,7 +358,19 @@ pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
 // RUST CODEGEN
 // ==================================================================================
 
-/// Generate Rust code from an Analyzed Program
+/// Translates an [`AnalyzedProgram`] directly into a raw Rust source code string.
+///
+/// # Examples
+/// ```
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::codegen::generate_rust;
+///
+/// let ast = parse("«χαῖρε» λέγε.").unwrap();
+/// let program = analyze_program(&ast).unwrap();
+/// let rust_code = generate_rust(&program);
+/// assert!(rust_code.contains("println"));
+/// ```
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
     // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
     // ⚡ Bolt Optimization: Pre-allocate vectors based on statement length.
@@ -442,7 +459,19 @@ fn generate_panic_hook() -> TokenStream {
     }
 }
 
-/// Generate a complete Rust file with proper formatting
+/// Transpiles a ΓΛΩΣΣΑ program into a complete, standalone Rust file (`main.rs`).
+///
+/// # Examples
+/// ```
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::codegen::generate_rust_file;
+///
+/// let ast = parse("«χαῖρε» λέγε.").unwrap();
+/// let program = analyze_program(&ast).unwrap();
+/// let rust_file = generate_rust_file(&program);
+/// assert!(rust_file.contains("fn main"));
+/// ```
 pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
     let code = generate_rust(program);
 

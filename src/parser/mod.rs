@@ -36,6 +36,7 @@ use crate::errors::GlossaError;
 use pest::iterators::Pair;
 
 pub use common::ParseError;
+pub use common::parse_number_literal;
 pub use grammar::parse as grammar_parse_public;
 pub use numerals::parse_greek_numeral;
 
