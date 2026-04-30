@@ -633,7 +633,9 @@ impl Assembler {
         // Check for required verb (unless it's a query or has only literals)
         let has_content = self.state.subject.is_some()
             || self.state.object.is_some()
-            || !self.state.literals.is_empty();
+            || !self.state.literals.is_empty()
+            || !self.state.adjectives.is_empty()
+            || self.state.has_delimiter_preposition;
         if self.state.verb.is_none() && has_content && !self.state.is_query {
             // Exception: pure literal expressions
             let ctx = StatementContext {
