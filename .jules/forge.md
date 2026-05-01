@@ -21,3 +21,7 @@
 **[Haruspex AST Node God Functions]**
 **Learning:** `visit_statement` and `visit_expr` inside `DotGenerator` in `src/tools/haruspex.rs` grew exceptionally long (both exceeding 200 lines) by attempting to handle every AST match arm natively within the match block. This obfuscated graph emission logic. When using scripts to refactor GraphViz DOT generators, one must be exceedingly careful about string formatting and escaping `\n`.
 **Action:** Extract the complex `match` branches (e.g., `AnalyzedStatement::If`, `AnalyzedExprKind::FunctionCall`) into individual helper methods (`visit_if_statement`, `visit_function_call_expr`, etc.), leaving the central match blocks as clean router functions. Always ensure `.dot` format literals retain `\\n`.
+
+**[Tester God Function Refactor]**
+**Learning:** `print_test_results` in `src/tools/tester.rs` was a large "God Function" (100 lines) that handled multiple distinct concerns: formatting the header, building the summary table, and parsing/printing detailed failure outputs.
+**Action:** Extract these distinct logical blocks into dedicated private helpers (`print_report_header`, `print_results_table`, `print_failure_details`) to flatten the main function and improve readability.

@@ -281,12 +281,21 @@ fn execute_test_binary(exe_path: &Path, status: &mut Status) -> Result<std::proc
 }
 
 fn print_test_results(results: &[TestResult], test_output: &std::process::Output, stdout: &str) {
+    print_report_header(results, test_output.status.success());
+    print_results_table(results);
+
+    if !test_output.status.success() {
+        print_failure_details(test_output, stdout);
+    }
+}
+
+fn print_report_header(results: &[TestResult], success: bool) {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
     println!("   {}", "Unit Test Results".italic().dim());
     println!();
 
-    if test_output.status.success() {
+    if success {
         if !results.is_empty() {
             println!(
                 "   {}",
@@ -305,7 +314,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         );
         println!();
     }
+}
 
+fn print_results_table(results: &[TestResult]) {
     if !results.is_empty() {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
@@ -327,7 +338,6 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
             };
 
             // Clean up test name (remove module prefix if any)
-            // e.g., "tests::test_name" -> "test_name"
             let display_name = result.name.split("::").last().unwrap_or(&result.name);
 
             table.add_row(vec![Cell::new(display_name), status_cell]);
@@ -349,34 +359,33 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         ]);
         println!("{empty_table}");
     }
+}
 
-    // If there were failures, try to extract and print them nicely
-    if !test_output.status.success() {
-        println!();
-        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+fn print_failure_details(test_output: &std::process::Output, stdout: &str) {
+    println!();
+    println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
 
-        let failures = extract_failures(stdout);
+    let failures = extract_failures(stdout);
 
-        if !failures.is_empty() {
-            for (name, msg) in failures {
-                println!(
-                    "{} {}",
-                    "FAILED:".red().bold(),
-                    name.cyan().bold().underlined()
-                );
-                // Create a box for the error message using comfy_table
-                let mut error_table = Table::new();
-                error_table.load_preset(presets::UTF8_FULL);
-                error_table.add_row(vec![Cell::new(msg).fg(Color::Red)]);
-                println!("{error_table}");
-                println!();
-            }
-        } else {
-            // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
-            if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
-            }
+    if !failures.is_empty() {
+        for (name, msg) in failures {
+            println!(
+                "{} {}",
+                "FAILED:".red().bold(),
+                name.cyan().bold().underlined()
+            );
+            // Create a box for the error message using comfy_table
+            let mut error_table = Table::new();
+            error_table.load_preset(presets::UTF8_FULL);
+            error_table.add_row(vec![Cell::new(msg).fg(Color::Red)]);
+            println!("{error_table}");
+            println!();
+        }
+    } else {
+        // Fallback to raw output if extraction failed but tests failed
+        println!("{}", stdout);
+        if !test_output.stderr.is_empty() {
+            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
         }
     }
 }
