@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[REPL Empty Statement Panic Fix]
+**Learning:** The `.unwrap()` call on `analyzed.statements.last()` panicked on empty or comment-only inputs because the previous check (`new_count <= self.statement_count`) did not catch the case when both values are 0.
+**Action:** When working with potentially empty collections returned by a parser, always use a safe match or `if let` pattern instead of `.unwrap()`, especially in user-facing REPLs where empty inputs are common.
