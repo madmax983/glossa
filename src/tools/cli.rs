@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate C header files from Glossa type definitions (Requires "nova" feature)
+    Diplomat {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
