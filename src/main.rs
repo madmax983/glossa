@@ -6,6 +6,8 @@
 use clap::Parser;
 use miette::Result;
 
+use std::path::Path;
+
 use glossa::tools::cli::{Cli, Commands};
 use glossa::tools::dictionary::lookup_word;
 use glossa::tools::repl::run_repl;
@@ -13,16 +15,36 @@ use glossa::tools::runner::{
     bard_file, build_file, check_file, highlight_file, report_file, run_file,
 };
 
+fn validate_file_extension(path: &Path) -> Result<()> {
+    if path.is_dir() {
+        return Ok(());
+    }
+
+    if path
+        .extension()
+        .is_some_and(|ext| ext == "γλ" || ext == "gl")
+    {
+        return Ok(());
+    }
+
+    miette::bail!(
+        "Invalid file extension for {}. Glossa expects files to end with '.γλ' or '.gl'. Are you trying to compile a Rust or Markdown file by mistake?",
+        path.display()
+    )
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // If a file is provided without a subcommand, run it
     if let Some(file) = cli.file {
+        validate_file_extension(&file)?;
         return run_file(&file);
     }
 
     match cli.command {
         Some(Commands::Run { input }) => {
+            validate_file_extension(&input)?;
             run_file(&input)?;
         }
 
@@ -37,22 +59,27 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Build { input, output }) => {
+            validate_file_extension(&input)?;
             build_file(&input, output.as_deref())?;
         }
 
         Some(Commands::Check { input }) => {
+            validate_file_extension(&input)?;
             check_file(&input)?;
         }
 
         Some(Commands::Report { input }) => {
+            validate_file_extension(&input)?;
             report_file(&input)?;
         }
 
         Some(Commands::Highlight { input }) => {
+            validate_file_extension(&input)?;
             highlight_file(&input)?;
         }
 
         Some(Commands::Bard { input }) => {
+            validate_file_extension(&input)?;
             bard_file(&input)?;
         }
 
@@ -61,10 +88,12 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Test { input }) => {
+            validate_file_extension(&input)?;
             glossa::tools::tester::run_tests(&input)?;
         }
 
         Some(Commands::Mosaic { input }) => {
+            validate_file_extension(&input)?;
             #[cfg(feature = "nova")]
             glossa::tools::mosaic::run_mosaic(&input)?;
 
@@ -78,6 +107,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Map { input }) => {
+            validate_file_extension(&input)?;
             #[cfg(feature = "nova")]
             glossa::tools::cartographer::run_map(&input)?;
 
@@ -91,6 +121,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Labyrinth { input }) => {
+            validate_file_extension(&input)?;
             #[cfg(feature = "nova")]
             glossa::tools::labyrinth::run_labyrinth(&input)?;
 
@@ -104,6 +135,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Weave { input }) => {
+            validate_file_extension(&input)?;
             #[cfg(feature = "nova")]
             glossa::tools::weave::run_weave(&input)?;
 
@@ -117,6 +149,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Alchemist { input }) => {
+            validate_file_extension(&input)?;
             #[cfg(feature = "nova")]
             glossa::tools::alchemist::run_alchemist(&input)?;
 
@@ -130,6 +163,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Papyrus { input }) => {
+            validate_file_extension(&input)?;
             #[cfg(feature = "nova")]
             glossa::tools::papyrus::run_papyrus(&input)?;
 
@@ -143,6 +177,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Haruspex { input }) => {
+            validate_file_extension(&input)?;
             #[cfg(feature = "nova")]
             glossa::tools::haruspex::run_haruspex(&input)?;
 
@@ -156,6 +191,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Audit { input }) => {
+            validate_file_extension(&input)?;
             #[cfg(feature = "nova")]
             glossa::tools::auditor::run_auditor(&input)?;
 
@@ -179,16 +215,21 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Gnomon { input }) => {
+            validate_file_extension(&input)?;
             #[cfg(feature = "nova")]
             glossa::tools::gnomon::run_gnomon(&input)?;
 
             #[cfg(not(feature = "nova"))]
-            miette::bail!(
-                "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
-            );
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
         Some(Commands::Scholar { input }) => {
+            validate_file_extension(&input)?;
             #[cfg(feature = "nova")]
             glossa::tools::scholar::run_scholar(&input)?;
 
