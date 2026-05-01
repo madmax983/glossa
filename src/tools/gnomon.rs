@@ -17,17 +17,29 @@ use crossterm::style::Stylize;
 use miette::Result;
 use std::path::Path;
 
+/// A visitor that traverses the Abstract Syntax Tree to calculate loop depth.
+///
+/// Just as a gnomon casts a shadow to indicate time, this visitor casts a shadow
+/// over the structure of a program to estimate its execution time complexity.
+/// It tracks the maximum nesting depth of `while` and `for` loops.
 #[derive(Default)]
 pub struct GnomonVisitor {
+    /// The current nesting depth of loops during traversal.
     pub current_depth: usize,
+    /// The maximum nesting depth encountered so far.
     pub max_depth: usize,
 }
 
 impl GnomonVisitor {
+    /// Creates a new `GnomonVisitor` starting at depth 0.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Recursively visits a statement and updates loop depth metrics.
+    ///
+    /// Increases depth when entering `While` or `For` loops, and explores
+    /// inner statements in branches (`If`, `Match`, functions).
     pub fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
         match stmt {
             AnalyzedStatement::While { body, .. } => {
@@ -86,6 +98,29 @@ impl GnomonVisitor {
     }
 }
 
+/// Analyzes a ΓΛΩΣΣΑ source file and estimates its Big-O time complexity.
+///
+/// This function coordinates the parsing, semantic analysis, and AST traversal
+/// using the [`GnomonVisitor`]. The result is presented to the user in a
+/// stylized terminal table.
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if:
+/// - The specified file cannot be found.
+/// - The source file contains syntax or semantic errors.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::gnomon::run_gnomon;
+/// use std::path::Path;
+///
+/// let input = Path::new("algorithm.γλ");
+/// if let Err(e) = run_gnomon(&input) {
+///     eprintln!("Failed to estimate complexity: {}", e);
+/// }
+/// ```
 pub fn run_gnomon(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
