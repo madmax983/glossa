@@ -1,6 +1,6 @@
+use std::fs;
 use std::process::Command;
 use tempfile::tempdir;
-use std::fs;
 
 #[test]
 fn test_cli_rejects_invalid_extensions() {
@@ -15,9 +15,23 @@ fn test_cli_rejects_invalid_extensions() {
 
     // Check multiple CLI commands to boost coverage
     let commands = [
-        "run", "build", "check", "report", "highlight", "bard", "test",
-        "mosaic", "map", "labyrinth", "weave", "alchemist", "papyrus",
-        "haruspex", "audit", "gnomon", "scholar"
+        "run",
+        "build",
+        "check",
+        "report",
+        "highlight",
+        "bard",
+        "test",
+        "mosaic",
+        "map",
+        "labyrinth",
+        "weave",
+        "alchemist",
+        "papyrus",
+        "haruspex",
+        "audit",
+        "gnomon",
+        "scholar",
     ];
 
     for cmd in commands {
@@ -29,7 +43,11 @@ fn test_cli_rejects_invalid_extensions() {
 
         assert!(!output_rs.status.success());
         let stderr_rs = String::from_utf8_lossy(&output_rs.stderr);
-        assert!(stderr_rs.contains("Invalid file extension"), "Failed for cmd: {}", cmd);
+        assert!(
+            stderr_rs.contains("Invalid file extension"),
+            "Failed for cmd: {}",
+            cmd
+        );
     }
 }
 
