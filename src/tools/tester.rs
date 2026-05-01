@@ -51,19 +51,19 @@ use std::process::Command;
 use tempfile::Builder;
 
 #[derive(Debug, PartialEq)]
-enum TestStatus {
+pub enum TestStatus {
     Ok,
     Failed,
     Ignored,
 }
 
 #[derive(Debug)]
-struct TestResult {
+pub struct TestResult {
     name: String,
     status: TestStatus,
 }
 
-fn parse_test_output(output: &str) -> Vec<TestResult> {
+pub fn parse_test_output(output: &str) -> Vec<TestResult> {
     output
         .lines()
         .filter_map(|line| {
@@ -840,5 +840,61 @@ test name with spaces ... ok
         let err_msg = result.unwrap_err().to_string();
         // The underlying error bubbles up.
         assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
+    }
+}
+
+#[cfg(test)]
+mod tests_coverage_ui {
+    use super::*;
+
+    #[test]
+    fn test_print_test_results_coverage() {
+        // We just call the function with dummy data to cover the UI formatting code
+        let mut results = Vec::new();
+        let mut output = std::process::Output {
+            status: std::os::unix::process::ExitStatusExt::from_raw(0),
+            stdout: b"running 0 tests\n".to_vec(),
+            stderr: b"".to_vec(),
+        };
+
+        // Empty success
+        print_test_results(&results, &output, "");
+
+        // Empty failure
+        output.status = std::os::unix::process::ExitStatusExt::from_raw(256);
+        print_test_results(&results, &output, "");
+
+        // With results, success
+        results.push(TestResult {
+            name: "test_ok".to_string(),
+            status: TestStatus::Ok,
+        });
+        results.push(TestResult {
+            name: "test_fail".to_string(),
+            status: TestStatus::Failed,
+        });
+        results.push(TestResult {
+            name: "test_ignored".to_string(),
+            status: TestStatus::Ignored,
+        });
+        output.status = std::os::unix::process::ExitStatusExt::from_raw(0);
+        print_test_results(&results, &output, "");
+
+        // With results, failure, dummy stdout
+        output.status = std::os::unix::process::ExitStatusExt::from_raw(256);
+        let stdout = "
+failures:
+
+---- test_fail stdout ----
+Error message here
+
+failures:
+    test_fail
+";
+        print_test_results(&results, &output, stdout);
+
+        // With results, failure, raw fallback
+        output.stderr = b"some stderr".to_vec();
+        print_test_results(&results, &output, "no dash block");
     }
 }
