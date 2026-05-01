@@ -29,8 +29,8 @@ pub fn run_scholar(input: &Path) -> Result<()> {
     writeln!(md, "# API Documentation: `{}`\n", filename).unwrap();
 
     // Document Types (Structs)
-    let types: Vec<_> = program.scope.types().collect();
-    if !types.is_empty() {
+    let mut types = program.scope.types().peekable();
+    if types.peek().is_some() {
         writeln!(md, "## Types (Εἴδη)\n").unwrap();
         for (name, type_def) in types {
             writeln!(md, "### `{}`\n", name).unwrap();
@@ -49,8 +49,8 @@ pub fn run_scholar(input: &Path) -> Result<()> {
     }
 
     // Document Traits (Characters)
-    let traits: Vec<_> = program.scope.traits().collect();
-    if !traits.is_empty() {
+    let mut traits = program.scope.traits().peekable();
+    if traits.peek().is_some() {
         writeln!(md, "## Traits (Χαρακτῆρες)\n").unwrap();
         for (name, trait_def) in traits {
             writeln!(md, "### `{}`\n", name).unwrap();
@@ -66,8 +66,8 @@ pub fn run_scholar(input: &Path) -> Result<()> {
     }
 
     // Document Functions (Verbs)
-    let functions: Vec<_> = program.scope.functions().collect();
-    if !functions.is_empty() {
+    let mut functions = program.scope.functions().peekable();
+    if functions.peek().is_some() {
         writeln!(md, "## Functions (Ἔργα)\n").unwrap();
         for func in functions {
             // ⚡ Bolt Optimization: Use `write!` to build strings dynamically without intermediate `Vec` collections.

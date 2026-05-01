@@ -357,8 +357,8 @@ impl Display for GlossaReport<'_> {
         writeln!(f, "{}", table)?;
 
         // If there are top-level functions, list them
-        let functions: Vec<_> = self.program.scope.functions().collect();
-        if !functions.is_empty() {
+        let mut functions = self.program.scope.functions().peekable();
+        if functions.peek().is_some() {
             writeln!(f, "\n{}", "ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)".bold())?;
             let mut func_table = Table::new();
             func_table.load_preset(presets::UTF8_FULL).set_header(vec![
