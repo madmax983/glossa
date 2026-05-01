@@ -36,6 +36,8 @@ pub mod dictionary;
 ///
 /// This experimental tool exports the analyzed program as a Graphviz DOT diagram.
 #[cfg(feature = "nova")]
+pub mod gnomon;
+#[cfg(feature = "nova")]
 pub mod haruspex;
 pub mod highlight;
 #[cfg(feature = "nova")]
