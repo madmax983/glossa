@@ -81,7 +81,7 @@ fn test_classify_binding_subject_object_swap() {
 
     if let AnalyzedStatement::Binding { name, value, .. } = result {
         assert_eq!(name, "x"); // Should be swapped to x
-        if let AnalyzedExprKind::Variable(v) = value.expr {
+        if let AnalyzedExprKind::Variable(v) = &value.expr {
             assert_eq!(v, "val");
         } else {
             panic!("Expected Variable val");

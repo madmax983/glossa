@@ -254,7 +254,7 @@ fn test_extract_ok() {
 
     let (analyzed, glossa_type) = extract_value(&asm_stmt, &scope).expect("Should extract Ok");
 
-    if let AnalyzedExprKind::Ok(inner) = analyzed.expr {
+    if let AnalyzedExprKind::Ok(inner) = &analyzed.expr {
         if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
             assert_eq!(n, 42);
         } else {
@@ -279,7 +279,7 @@ fn test_extract_err() {
 
     let (analyzed, glossa_type) = extract_value(&asm_stmt, &scope).expect("Should extract Err");
 
-    if let AnalyzedExprKind::Err(inner) = analyzed.expr {
+    if let AnalyzedExprKind::Err(inner) = &analyzed.expr {
         if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
             assert_eq!(n, 1);
         } else {
@@ -342,7 +342,7 @@ fn test_extract_subject_some() {
 
     let (analyzed, glossa_type) = extract_value(&asm_stmt, &scope).expect("Should extract Some");
 
-    if let AnalyzedExprKind::Some(inner) = analyzed.expr {
+    if let AnalyzedExprKind::Some(inner) = &analyzed.expr {
         if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
             assert_eq!(n, 42);
         } else {
@@ -394,15 +394,15 @@ fn test_extract_binary_op_nominative_and_nominative() {
     let (analyzed, glossa_type) =
         extract_value(&asm_stmt, &scope).expect("Should extract binary op for nom+nom");
 
-    match analyzed.expr {
+    match &analyzed.expr {
         AnalyzedExprKind::BinOp { left, op, right } => {
-            assert_eq!(op, BinaryOp::Add);
-            if let AnalyzedExprKind::Variable(name) = left.expr {
+            assert_eq!(*op, BinaryOp::Add);
+            if let AnalyzedExprKind::Variable(name) = &left.expr {
                 assert_eq!(name, "a");
             } else {
                 panic!("Left operand should be variable a");
             }
-            if let AnalyzedExprKind::Variable(name) = right.expr {
+            if let AnalyzedExprKind::Variable(name) = &right.expr {
                 assert_eq!(name, "b");
             } else {
                 panic!("Right operand should be variable b");
@@ -433,10 +433,10 @@ fn test_extract_binary_op_object_and_literal() {
     let (analyzed, glossa_type) =
         extract_value(&asm_stmt, &scope).expect("Should extract binary op for obj+lit");
 
-    match analyzed.expr {
+    match &analyzed.expr {
         AnalyzedExprKind::BinOp { left, op, right } => {
-            assert_eq!(op, BinaryOp::Add);
-            if let AnalyzedExprKind::Variable(name) = left.expr {
+            assert_eq!(*op, BinaryOp::Add);
+            if let AnalyzedExprKind::Variable(name) = &left.expr {
                 assert_eq!(name, "x");
             } else {
                 panic!("Left operand should be variable x");
@@ -473,15 +473,15 @@ fn test_extract_binary_op_object_and_nominative() {
     let (analyzed, glossa_type) =
         extract_value(&asm_stmt, &scope).expect("Should extract binary op");
 
-    match analyzed.expr {
+    match &analyzed.expr {
         AnalyzedExprKind::BinOp { left, op, right } => {
-            assert_eq!(op, BinaryOp::Add);
-            if let AnalyzedExprKind::Variable(name) = left.expr {
+            assert_eq!(*op, BinaryOp::Add);
+            if let AnalyzedExprKind::Variable(name) = &left.expr {
                 assert_eq!(name, "x");
             } else {
                 panic!("Left operand should be variable x");
             }
-            if let AnalyzedExprKind::Variable(name) = right.expr {
+            if let AnalyzedExprKind::Variable(name) = &right.expr {
                 assert_eq!(name, "y");
             } else {
                 panic!("Right operand should be variable y");
@@ -512,7 +512,7 @@ fn test_extract_object_variable() {
     let (analyzed, _) =
         extract_value(&asm_stmt, &scope).expect("Should extract variable from object");
 
-    if let AnalyzedExprKind::Variable(name) = analyzed.expr {
+    if let AnalyzedExprKind::Variable(name) = &analyzed.expr {
         assert_eq!(name, "foo");
     } else {
         panic!("Expected Variable");
@@ -545,7 +545,7 @@ fn test_extract_object_some() {
 
     let (analyzed, _) = extract_value(&asm_stmt, &scope).expect("Should extract Some from object");
 
-    if let AnalyzedExprKind::Some(inner) = analyzed.expr {
+    if let AnalyzedExprKind::Some(inner) = &analyzed.expr {
         if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
             assert_eq!(n, 10);
         } else {

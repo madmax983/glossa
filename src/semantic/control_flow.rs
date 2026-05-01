@@ -943,7 +943,7 @@ mod tests {
         };
 
         let result = parse_return_expression(&clause, &scope).unwrap();
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::StringLiteral(s) if s == "test" => (),
             _ => panic!("Expected StringLiteral"),
         }
@@ -980,7 +980,7 @@ mod tests {
         };
 
         let result = parse_return_expression(&clause, &scope).unwrap();
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::Variable(v) if v == "foo" => (),
             _ => panic!("Expected Variable(foo)"),
         }
