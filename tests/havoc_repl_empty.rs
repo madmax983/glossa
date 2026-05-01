@@ -1,5 +1,7 @@
-use std::process::{Command, Stdio};
+#![allow(missing_docs)]
+
 use std::io::Write;
+use std::process::{Command, Stdio};
 
 // test wrapper for REPL crash
 #[test]
@@ -13,7 +15,9 @@ fn havoc_repl_empty_panic_wrapper() {
         .expect("Failed to spawn glossa");
 
     let mut stdin = child.stdin.take().expect("Failed to open stdin");
-    stdin.write_all(b"  // empty comments \n.exit\n").expect("Failed to write to stdin");
+    stdin
+        .write_all(b"  // empty comments \n.exit\n")
+        .expect("Failed to write to stdin");
     drop(stdin);
 
     let output = child.wait_with_output().expect("Failed to wait on child");
