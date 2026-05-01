@@ -850,9 +850,18 @@ mod tests_coverage_ui {
     #[test]
     fn test_print_test_results_coverage() {
         // We just call the function with dummy data to cover the UI formatting code
+        let output_success = std::process::Command::new("cargo")
+            .arg("--version")
+            .output()
+            .unwrap();
+        let output_fail = std::process::Command::new("cargo")
+            .arg("nonexistent_command")
+            .output()
+            .unwrap();
+
         let mut results = Vec::new();
         let mut output = std::process::Output {
-            status: std::os::unix::process::ExitStatusExt::from_raw(0),
+            status: output_success.status,
             stdout: b"running 0 tests\n".to_vec(),
             stderr: b"".to_vec(),
         };
@@ -861,7 +870,7 @@ mod tests_coverage_ui {
         print_test_results(&results, &output, "");
 
         // Empty failure
-        output.status = std::os::unix::process::ExitStatusExt::from_raw(256);
+        output.status = output_fail.status;
         print_test_results(&results, &output, "");
 
         // With results, success
@@ -877,11 +886,11 @@ mod tests_coverage_ui {
             name: "test_ignored".to_string(),
             status: TestStatus::Ignored,
         });
-        output.status = std::os::unix::process::ExitStatusExt::from_raw(0);
+        output.status = output_success.status;
         print_test_results(&results, &output, "");
 
         // With results, failure, dummy stdout
-        output.status = std::os::unix::process::ExitStatusExt::from_raw(256);
+        output.status = output_fail.status;
         let stdout = "
 failures:
 
@@ -896,5 +905,17 @@ failures:
         // With results, failure, raw fallback
         output.stderr = b"some stderr".to_vec();
         print_test_results(&results, &output, "no dash block");
+    }
+}
+
+#[cfg(test)]
+mod parse_tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_failure_name_none() {
+        assert_eq!(parse_failure_name(""), None);
+        assert_eq!(parse_failure_name("---- "), None);
+        assert_eq!(parse_failure_name(" stdout ----"), None);
     }
 }
