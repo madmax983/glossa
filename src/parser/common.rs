@@ -3,6 +3,17 @@
 use crate::parser::numerals;
 
 /// Parse a number literal or a greek numeral
+///
+/// # Examples
+/// ```
+/// use glossa::parser::parse_number_literal;
+///
+/// let ascii = parse_number_literal("42").unwrap();
+/// assert_eq!(ascii, 42);
+///
+/// let greek = parse_number_literal("ιαʹ").unwrap();
+/// assert_eq!(greek, 11);
+/// ```
 pub fn parse_number_literal(text: &str) -> Result<i64, ParseError> {
     if let Ok(val) = text.parse::<i64>() {
         Ok(val)

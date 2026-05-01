@@ -66,3 +66,7 @@
 ## 2026-03-21 - [Missing Documentation Warnings]
 **Confusion:** Building documentation with `RUSTDOCFLAGS="-W missing_docs" cargo doc` threw warnings for `src/semantic/assembly/mod.rs` regarding the `model` module, and the compiler output warnings for missing intra-doc links.
 **Clarification:** Added module-level documentation `//!` to `src/semantic/assembly/model.rs` and moved the struct documentation for `Assembler` immediately above its definition. Resolved intra-doc links by ensuring they reference paths accessible in scope (e.g. `[`crate::semantic::assembly::Assembler`]`).
+
+## 2026-03-21 - missing_docs in parser
+**Confusion:** The documentation for `parse_number_literal` was missing an `# Examples` section but had no warnings.
+**Clarification:** I added the required `# Examples` section.
