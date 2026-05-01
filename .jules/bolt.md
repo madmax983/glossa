@@ -1,3 +1,12 @@
-**[Optimizing Collections in iterators]**
-**Learning:** Checking for `.is_empty()` after `.collect::<Vec<_>>()` forces an unnecessary heap allocation. We can check if an iterator is empty dynamically using `.peekable()`. Additionally, if strings from `&'a str` need to be converted to `Cow<'static, str>`, we must use `.to_string()` as `.into()` or `Cow::Borrowed` will result in static lifetime compilation errors.
-**Action:** Replace `Vec<_> = iter.collect()` with `.peekable()` for emptiness checking whenever possible, and be mindful of `Cow` lifetimes.
+**[Title] Eliminate Intermediate Iterator Collections**
+**Learning:** Found multiple places in `src/semantic/conversion.rs` and `src/semantic/patterns.rs` where iterators were being fully `.collect()`ed into `Vec` inside functions only to be iterated again, or creating intermediate vecs instead of using `Vec::with_capacity` and extending.
+**Action:** Replace `.collect()` with `Vec::with_capacity` and `.extend()` to save allocations, especially on potentially hot paths like semantic conversion and AST node instantiation.
+
+
+**[Title] Eliminate Intermediate Iterator Collections**
+**Learning:** Found multiple places in `src/semantic/conversion.rs` and `src/semantic/patterns.rs` where iterators were being fully `.collect()`ed into `Vec` inside functions only to be iterated again, or creating intermediate vecs instead of using `Vec::with_capacity` and extending.
+**Action:** Replace `.collect()` with `Vec::with_capacity` and `.extend()` to save allocations, especially on potentially hot paths like semantic conversion and AST node instantiation.
+
+**[Title] Eliminate Intermediate Iterator Collections**
+**Learning:** Found multiple places in `src/semantic/conversion.rs` and `src/semantic/patterns.rs` where iterators were being fully `.collect()`ed into `Vec` inside functions only to be iterated again, or creating intermediate vecs instead of using `Vec::with_capacity` and extending.
+**Action:** Replace `.collect()` with `Vec::with_capacity` and `.extend()` to save allocations, especially on potentially hot paths like semantic conversion and AST node instantiation.

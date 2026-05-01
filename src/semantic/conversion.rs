@@ -1208,11 +1208,9 @@ fn try_parse_genitive_method_call(
         glossa_type: owner_type.clone(),
     };
 
-    let args: Vec<AnalyzedExpr> = asm_stmt
-        .literals
-        .iter()
-        .map(literal_to_analyzed_expr)
-        .collect();
+    // ⚡ Bolt Optimization: Pre-allocate vector capacity to avoid intermediate `.collect()` and reallocations
+    let mut args: Vec<AnalyzedExpr> = Vec::with_capacity(asm_stmt.literals.len());
+    args.extend(asm_stmt.literals.iter().map(literal_to_analyzed_expr));
 
     Some((
         AnalyzedExpr {

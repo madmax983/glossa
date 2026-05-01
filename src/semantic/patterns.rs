@@ -239,7 +239,9 @@ pub fn try_parse_struct_instantiation(
             &[]
         };
 
-    let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
+    // ⚡ Bolt Optimization: Pre-allocate vector capacity to avoid intermediate `.collect()` and reallocations
+    let mut field_names: Vec<SmolStr> = Vec::with_capacity(fields_info.len());
+    field_names.extend(fields_info.iter().map(|(n, _)| n.clone()));
 
     // Collect constructor arguments (everything between type_name and ἔστω)
     let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], fields_info, scope) else {
@@ -471,19 +473,18 @@ pub fn detect_iterator_pattern(
 fn extract_collection(asm_stmt: &AssembledStatement) -> Option<AnalyzedExpr> {
     if !asm_stmt.arrays.is_empty() {
         // Use the first array literal
-        let array_elements: Vec<AnalyzedExpr> = asm_stmt.arrays[0]
-            .iter()
-            .map(|e| match e {
-                crate::ast::Expr::NumberLiteral(n) => AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(*n),
-                    glossa_type: GlossaType::Number,
-                },
-                _ => AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(0),
-                    glossa_type: GlossaType::Number,
-                },
-            })
-            .collect();
+        // ⚡ Bolt Optimization: Pre-allocate vector capacity to avoid intermediate `.collect()` and reallocations
+        let mut array_elements: Vec<AnalyzedExpr> = Vec::with_capacity(asm_stmt.arrays[0].len());
+        array_elements.extend(asm_stmt.arrays[0].iter().map(|e| match e {
+            crate::ast::Expr::NumberLiteral(n) => AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(*n),
+                glossa_type: GlossaType::Number,
+            },
+            _ => AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(0),
+                glossa_type: GlossaType::Number,
+            },
+        }));
 
         Some(AnalyzedExpr {
             expr: AnalyzedExprKind::ArrayLiteral(array_elements),
