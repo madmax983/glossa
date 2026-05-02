@@ -31,6 +31,7 @@ fn test_dos_dev_zero() {
             // or it might just hang.
             // If it returns Ok, that's definitely wrong (it compiled infinite zeros??).
             assert!(res.is_err(), "Should return error for /dev/zero");
+            assert!(res.unwrap_err().to_string().contains("Not a valid file"));
         }
         Err(mpsc::RecvTimeoutError::Timeout) => {
             // It timed out! This means it hung reading the file.

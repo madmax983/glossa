@@ -76,6 +76,9 @@ fn check_file_size(input: &Path) -> Result<()> {
     // Reverted to into_diagnostic() to avoid penalizing coverage for a practically infallible
     // file size check (which occurs strictly after `input.exists()` succeeds).
     let metadata = fs::metadata(input).into_diagnostic()?;
+    if !metadata.is_file() {
+        return Err(miette::miette!("Not a valid file: {}", input.display()));
+    }
     if metadata.len() > MAX_FILE_SIZE {
         return Err(miette::miette!(
             "Ἀρχεῖον λίαν μέγα (File too large): {} > {} bytes",
@@ -603,6 +606,7 @@ mod tests {
                 || err_msg.contains("Is a directory")
                 || err_msg.contains("Access is denied")
                 || err_msg.contains("Permission denied")
+                || err_msg.contains("Not a valid file")
         );
     }
 
