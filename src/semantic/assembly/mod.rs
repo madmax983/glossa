@@ -664,7 +664,7 @@ impl Assembler {
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
+                && !(crate::morphology::lexicon::is_print_verb(&verb.lemma) && !self.state.adjectives.is_empty())
                 && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
             {
                 return Err(AssemblyError::DoubleSubject);
@@ -673,18 +673,12 @@ impl Assembler {
             && !self.state.nominatives.is_empty()
             && self.state.operators.is_empty()
         {
-            // Unhandled double subject when there's no verb and no operators
-            // Exception: Function definition / pattern calls
             let is_function_call = !self.state.nested_phrases.is_empty()
                 || !self.state.blocks.is_empty()
                 || !self.state.literals.is_empty();
             let is_special_pattern =
                 !self.state.property_accesses.is_empty() || self.state.is_query;
-            // Note: If self.state.verb.is_some(), we would have entered the previous block, not this 'else if' block!
-            // Wait, we are in 'else if self.state.subject.is_some()', which means verb is NONE.
-            // Oh, so Double Subject logic wasn't fully firing in the previous block either. Let me adjust.
             if !is_function_call && !is_special_pattern {
-                // No verb, stacked nominatives...
                 return Err(AssemblyError::DoubleSubject);
             }
         }
