@@ -288,21 +288,27 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 
     if test_output.status.success() {
         if !results.is_empty() {
-            println!(
-                "   {}",
-                "✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed)"
-                    .green()
-                    .bold()
-            );
+            let mut success_table = Table::new();
+            success_table.load_preset(presets::UTF8_FULL);
+            success_table.add_row(vec![
+                Cell::new(" ✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed) ")
+                    .bg(Color::DarkGreen)
+                    .fg(Color::White)
+                    .add_attribute(Attribute::Bold)
+            ]);
+            println!("{success_table}");
             println!();
         }
     } else {
-        println!(
-            "   {}",
-            "✕ Τινὲς δοκιμασίαι ἀπέτυχαν (Some tests failed)"
-                .red()
-                .bold()
-        );
+        let mut failure_table = Table::new();
+        failure_table.load_preset(presets::UTF8_FULL);
+        failure_table.add_row(vec![
+            Cell::new(" ✕ Τινὲς δοκιμασίαι ἀπέτυχαν (Some tests failed) ")
+                .bg(Color::DarkRed)
+                .fg(Color::White)
+                .add_attribute(Attribute::Bold)
+        ]);
+        println!("{failure_table}");
         println!();
     }
 
@@ -359,15 +365,20 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 
         if !failures.is_empty() {
             for (name, msg) in failures {
-                println!(
-                    "{} {}",
-                    "FAILED:".red().bold(),
-                    name.cyan().bold().underlined()
-                );
+                let mut header_table = Table::new();
+                header_table.load_preset(presets::UTF8_FULL);
+                header_table.add_row(vec![
+                    Cell::new(format!(" FAILED: {} ", name))
+                        .bg(Color::DarkRed)
+                        .fg(Color::White)
+                        .add_attribute(Attribute::Bold)
+                ]);
+                println!("{header_table}");
+
                 // Create a box for the error message using comfy_table
                 let mut error_table = Table::new();
                 error_table.load_preset(presets::UTF8_FULL);
-                error_table.add_row(vec![Cell::new(msg).fg(Color::Red)]);
+                error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
                 println!("{error_table}");
                 println!();
             }
