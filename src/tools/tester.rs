@@ -294,7 +294,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                 Cell::new(" ✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed) ")
                     .bg(Color::DarkGreen)
                     .fg(Color::White)
-                    .add_attribute(Attribute::Bold)
+                    .add_attribute(Attribute::Bold),
             ]);
             println!("{success_table}");
             println!();
@@ -306,7 +306,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
             Cell::new(" ✕ Τινὲς δοκιμασίαι ἀπέτυχαν (Some tests failed) ")
                 .bg(Color::DarkRed)
                 .fg(Color::White)
-                .add_attribute(Attribute::Bold)
+                .add_attribute(Attribute::Bold),
         ]);
         println!("{failure_table}");
         println!();
@@ -371,7 +371,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                     Cell::new(format!(" FAILED: {} ", name))
                         .bg(Color::DarkRed)
                         .fg(Color::White)
-                        .add_attribute(Attribute::Bold)
+                        .add_attribute(Attribute::Bold),
                 ]);
                 println!("{header_table}");
 
