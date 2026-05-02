@@ -77,6 +77,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Emissary { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::emissary::run_emissary(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'emissary' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Map { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::cartographer::run_map(&input)?;
