@@ -70,3 +70,6 @@
 ## 2026-03-21 - missing_docs in parser
 **Confusion:** The documentation for `parse_number_literal` was missing an `# Examples` section but had no warnings.
 **Clarification:** I added the required `# Examples` section.
+## 2026-03-22 - Missing Documentation in `gnomon.rs`
+**Confusion:** The `src/tools/gnomon.rs` file had a module-level documentation block (`//!`) but the `GnomonVisitor` struct, its methods, and the `run_gnomon` function were completely undocumented, resulting in missing information on what the tool actually did or how it achieved it.
+**Clarification:** Added exhaustive documentation explaining that the visitor casts a "shadow" over the AST to check for max depth of loops (complexity). Wrote an executable doctest for `run_gnomon` to demonstrate its usage.
