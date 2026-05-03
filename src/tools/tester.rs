@@ -804,6 +804,24 @@ test name with spaces ... ok
     }
 
     #[test]
+    fn test_extract_failures_with_stack_backtrace() {
+        let output = "failures:\n\n---- test_1 stdout ----\nstack backtrace:\n  1: std::panicking::begin_panic\n\nfailures:\n    test_1\n";
+        let failures = extract_failures(output);
+        assert_eq!(failures.len(), 1);
+        assert_eq!(failures[0].0, "test_1");
+        assert!(!failures[0].1.contains("stack backtrace:"));
+    }
+
+    #[test]
+    fn test_extract_failures_with_note_omitted() {
+        let output = "failures:\n\n---- test_1 stdout ----\nnote: Some details are omitted\n  1: std::panicking::begin_panic\n\nfailures:\n    test_1\n";
+        let failures = extract_failures(output);
+        assert_eq!(failures.len(), 1);
+        assert_eq!(failures[0].0, "test_1");
+        assert!(!failures[0].1.contains("note: Some details are omitted"));
+    }
+
+    #[test]
     fn test_extract_failures_without_actual_failures() {
         let output = "failures:\n\n\n\n";
         let failures = extract_failures(output);

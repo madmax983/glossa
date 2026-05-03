@@ -2827,4 +2827,57 @@ mod tests {
             panic!("Expected AnalyzedStatement::Expression");
         }
     }
+
+    #[test]
+    fn test_extract_unwrap_with_expr_for_coverage() {
+        let scope = Scope::new();
+
+        let asm_stmt = AssembledStatement {
+            unwraps: vec![crate::ast::Expr::NumberLiteral(42)],
+            ..Default::default()
+        };
+        let result = extract_unwrap(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        let opt = result.unwrap();
+        assert!(opt.is_some());
+
+        let (expr, ty) = opt.unwrap();
+        assert_eq!(ty, GlossaType::Unknown);
+        if let AnalyzedExprKind::Unwrap(inner) = expr.expr {
+            if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
+                assert_eq!(n, 42);
+            } else {
+                panic!("Expected NumberLiteral inside Unwrap");
+            }
+        } else {
+            panic!("Expected Unwrap expr");
+        }
+    }
+
+    #[test]
+    fn test_try_print_unwrap_with_expr_for_coverage() {
+        let mut scope = Scope::new();
+
+        let asm_stmt = AssembledStatement {
+            unwraps: vec![crate::ast::Expr::NumberLiteral(42)],
+            ..Default::default()
+        };
+        let result = try_print_unwrap(&asm_stmt, &mut scope);
+        assert!(result.is_ok());
+        let opt = result.unwrap();
+        assert!(opt.is_some());
+
+        let exprs = opt.unwrap();
+        assert_eq!(exprs.len(), 1);
+
+        if let AnalyzedExprKind::Unwrap(inner) = &exprs[0].expr {
+            if let AnalyzedExprKind::NumberLiteral(n) = &inner.expr {
+                assert_eq!(*n, 42);
+            } else {
+                panic!("Expected NumberLiteral inside Unwrap");
+            }
+        } else {
+            panic!("Expected Unwrap expr");
+        }
+    }
 }
