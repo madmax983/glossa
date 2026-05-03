@@ -1,7 +1,23 @@
 //! The Scholar (ὁ Σχολαστικός) - API Doc Generator
 //!
-//! This module implements the "Scholar" tool, which generates Markdown documentation
-//! for a ΓΛΩΣΣΑ program's APIs, including its defined structs, traits, and functions.
+//! This module implements the "Scholar" tool, which parses a ΓΛΩΣΣΑ program
+//! and automatically generates comprehensive Markdown API documentation (`doc.md`).
+//!
+//! # The "Missing" Link
+//!
+//! Why does this module exist? In the modern software era, if a library isn't
+//! documented, it doesn't exist. The Scholar bridges the gap between raw semantic
+//! analysis (the Abstract Syntax Tree) and human-readable references. Instead of
+//! forcing developers to read Ancient Greek source files to understand an API's
+//! shape, the Scholar distills the program's defined structures (`εἴδη`), traits
+//! (`χαρακτῆρες`), and functions (`ἔργα`) into a clean, GitHub-flavored Markdown file.
+//!
+//! # How it Works
+//!
+//! 1. Parses the target `.γλ` file.
+//! 2. Extracts type definitions (Structs), traits (Interfaces), and verbs (Functions).
+//! 3. Formats them into standardized Markdown tables and headers.
+//! 4. Saves the result alongside the original file.
 
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
@@ -11,6 +27,22 @@ use std::fmt::Write;
 use std::path::Path;
 
 /// Runs the Scholar tool to generate Markdown documentation from Glossa code.
+///
+/// This function acts as the entry point for the documentation generator. It takes
+/// the path to a source file, triggers the semantic analyzer, and writes the
+/// resulting API documentation to `{input_filename}.doc.md`.
+///
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::scholar::run_scholar;
+/// use std::path::Path;
+///
+/// let input = Path::new("library.γλ");
+/// if let Err(e) = run_scholar(&input) {
+///     eprintln!("Documentation generation failed: {}", e);
+/// }
+/// ```
 pub fn run_scholar(input: &Path) -> Result<()> {
     let source = load_source(input)?;
     let status = Status::start_with_symbol("Συγγραφή (Generating Docs)", "📜");
