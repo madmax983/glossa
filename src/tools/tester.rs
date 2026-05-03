@@ -487,6 +487,12 @@ pub fn run_tests(input: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+
+    struct TestCase {
+        name: &'static str,
+        input: &'static str,
+        expected_count: usize,
+    }
     use super::*;
 
     #[test]
@@ -624,12 +630,6 @@ failures:
 
     #[test]
     fn test_extract_failures_edge_cases() {
-        struct TestCase {
-            name: &'static str,
-            input: &'static str,
-            expected_count: usize,
-        }
-
         let test_cases = vec![
             TestCase {
                 name: "No failures block",
@@ -704,12 +704,6 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
     #[test]
     fn test_parse_test_output_edge_cases() {
-        struct TestCase {
-            name: &'static str,
-            input: &'static str,
-            expected_count: usize,
-        }
-
         let test_cases = vec![
             TestCase {
                 name: "Empty parts (less than 4)",
