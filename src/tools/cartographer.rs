@@ -118,30 +118,35 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     // where HashDoS isn't a concern, `FxHashSet` avoids unnecessary hashing overhead.
     let mut dependencies = FxHashSet::default();
 
-    use std::fmt::Write;
+    format_structs(&mut map, program, &mut dependencies);
+    format_traits(&mut map, program);
+    format_dependencies(&mut map, program, dependencies);
+    format_trait_impls(&mut map, program);
 
-    // 1. Iterate over types (structs)
-    // We sort by name to ensure deterministic output
+    map
+}
+
+fn format_structs(
+    map: &mut String,
+    program: &AnalyzedProgram,
+    dependencies: &mut FxHashSet<(String, String)>,
+) {
+    use std::fmt::Write;
     let mut types: Vec<_> = program.scope.types().collect();
     types.sort_by(|a, b| a.0.cmp(b.0));
 
-    // ⚡ Bolt Optimization: Reuse a single buffer to avoid allocating a new Vec for every field
     let mut deps_buffer = Vec::new();
 
     for (_key, ty) in types {
         if let GlossaType::Struct { name, fields, .. } = ty {
             let _ = writeln!(map, "    class {} {{", name);
             for (field_name, field_type) in fields {
-                // Format type for display
                 let _ = writeln!(map, "        +{}: {}", field_name, field_type);
 
-                // Extract dependencies (associations)
                 deps_buffer.clear();
                 extract_dependencies(field_type, &mut deps_buffer);
                 for dep in deps_buffer.drain(..) {
                     if dep != *name {
-                        // Avoid self-reference arrows if desired (or keep them?)
-                        // We only want arrows to other defined structs
                         dependencies.insert((name.to_string(), dep));
                     }
                 }
@@ -149,8 +154,10 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
             map.push_str("    }\n");
         }
     }
+}
 
-    // 2. Iterate over traits
+fn format_traits(map: &mut String, program: &AnalyzedProgram) {
+    use std::fmt::Write;
     let mut traits: Vec<_> = program.scope.traits().collect();
     traits.sort_by(|a, b| a.0.cmp(b.0));
 
@@ -159,9 +166,6 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
         let _ = writeln!(map, "    class {} {{", name);
         map.push_str("        <<interface>>\n");
         for method in &trait_def.methods {
-            // ⚡ Bolt Optimization: Replace `.collect::<Vec<String>>().join(", ")` with
-            // iterative formatting directly into a `String` buffer to avoid
-            // intermediate heap allocations for the Vec and the individual parameter strings.
             let mut params_str = String::new();
             for (i, (n, t)) in method.params.iter().enumerate() {
                 if i > 0 {
@@ -178,10 +182,14 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
         }
         map.push_str("    }\n");
     }
+}
 
-    // 3. Add dependencies (struct field usage)
-    // Only include dependencies if the target is actually a defined type/trait in the diagram
-    // to avoid arrows to "Unknown" or external things if not modeled.
+fn format_dependencies(
+    map: &mut String,
+    program: &AnalyzedProgram,
+    dependencies: FxHashSet<(String, String)>,
+) {
+    use std::fmt::Write;
     let defined_types: FxHashSet<String> = program
         .scope
         .types()
@@ -202,9 +210,10 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
             let _ = writeln!(map, "    {} --> {}", source, target);
         }
     }
+}
 
-    // 4. Add trait implementations
-    // Iterate statements to find implementations
+fn format_trait_impls(map: &mut String, program: &AnalyzedProgram) {
+    use std::fmt::Write;
     for stmt in &program.statements {
         if let AnalyzedStatement::TraitImplementation {
             trait_name,
@@ -215,8 +224,6 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
             let _ = writeln!(map, "    {} <|.. {} : implements", trait_name, type_name);
         }
     }
-
-    map
 }
 
 /// Helper to recursively extract struct names from a type

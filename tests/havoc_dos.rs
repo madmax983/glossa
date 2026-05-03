@@ -14,7 +14,9 @@ fn test_dos_dev_zero() {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let path = Path::new("/dev/zero");
+        let path_str = if cfg!(windows) { "NUL" } else { "/dev/zero" };
+        let path = Path::new(path_str);
+
         // We expect run_file to fail either due to file size check (if fixed) or some other error.
         // If it hangs, it won't return.
         let result = glossa::tools::runner::run_file(path);
@@ -30,7 +32,13 @@ fn test_dos_dev_zero() {
             // Note: If the fix is NOT implemented, it might return OOM error if memory is small enough,
             // or it might just hang.
             // If it returns Ok, that's definitely wrong (it compiled infinite zeros??).
-            assert!(res.is_err(), "Should return error for /dev/zero");
+            assert!(res.is_err(), "Should return error for device file");
+            let err_msg = res.unwrap_err().to_string();
+            assert!(
+                err_msg.contains("Not a valid file") || err_msg.contains("οὐχ εὑρέθη"),
+                "Expected 'Not a valid file' or 'not found', got: {}",
+                err_msg
+            );
         }
         Err(mpsc::RecvTimeoutError::Timeout) => {
             // It timed out! This means it hung reading the file.
