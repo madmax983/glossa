@@ -12,7 +12,7 @@
 use crate::ast::*;
 use crate::parser::build_statement;
 use crate::parser::common::ParseError;
-use crate::parser::grammar::Rule;
+use crate::parser::core::Rule;
 use pest::iterators::Pair;
 
 /// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
@@ -339,7 +339,7 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> 
 #[cfg(test)]
 mod tests_coverage {
     use super::*;
-    use crate::parser::grammar::{GlossaParser, Rule};
+    use crate::parser::core::{GlossaParser, Rule};
     use pest::Parser;
 
     #[test]
