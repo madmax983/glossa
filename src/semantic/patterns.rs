@@ -1479,6 +1479,83 @@ mod coverage_tests {
     }
 
     #[test]
+    fn test_parse_struct_args_coverage() {
+        let mut scope = Scope::new();
+        scope.define("def_var", GlossaType::Number);
+
+        let fields = vec![
+            ("f1".into(), GlossaType::Number),
+            ("f2".into(), GlossaType::Number),
+        ];
+
+        let terms = vec![
+            crate::ast::Expr::Word(crate::ast::Word::new("42")),
+            crate::ast::Expr::Word(crate::ast::Word::new("πέντε")),
+            crate::ast::Expr::Word(crate::ast::Word::new("def_var")),
+            crate::ast::Expr::Word(crate::ast::Word::new("undef_var")),
+            crate::ast::Expr::NumberLiteral(10),
+            crate::ast::Expr::BooleanLiteral(true),
+            crate::ast::Expr::StringLiteral("test".into()),
+        ];
+
+        let result = parse_struct_args(&terms, &fields, &scope);
+        assert!(result.is_some());
+        let args = result.unwrap();
+        assert_eq!(args.len(), 7);
+
+        // Word parsing to i64
+        if let AnalyzedExprKind::NumberLiteral(n) = args[0].expr {
+            assert_eq!(n, 42);
+        } else {
+            panic!("Expected NumberLiteral(42)");
+        }
+
+        // Word parsing numeral
+        if let AnalyzedExprKind::NumberLiteral(n) = args[1].expr {
+            assert_eq!(n, 5);
+        } else {
+            panic!("Expected NumberLiteral(5)");
+        }
+
+        // Word mapping to defined var
+        if let AnalyzedExprKind::Variable(ref name) = args[2].expr {
+            assert_eq!(name, "def_var");
+            assert_eq!(args[2].glossa_type, GlossaType::Number);
+        } else {
+            panic!("Expected Variable('def_var')");
+        }
+
+        // Word mapping to undefined var
+        if let AnalyzedExprKind::Variable(ref name) = args[3].expr {
+            assert_eq!(name, "undef_var");
+            assert_eq!(args[3].glossa_type, GlossaType::Unknown);
+        } else {
+            panic!("Expected Variable('undef_var')");
+        }
+
+        // NumberLiteral
+        if let AnalyzedExprKind::NumberLiteral(n) = args[4].expr {
+            assert_eq!(n, 10);
+        } else {
+            panic!("Expected NumberLiteral(10)");
+        }
+
+        // BooleanLiteral
+        if let AnalyzedExprKind::BooleanLiteral(b) = args[5].expr {
+            assert!(b);
+        } else {
+            panic!("Expected BooleanLiteral(true)");
+        }
+
+        // StringLiteral
+        if let AnalyzedExprKind::StringLiteral(ref s) = args[6].expr {
+            assert_eq!(s, "test");
+        } else {
+            panic!("Expected StringLiteral('test')");
+        }
+    }
+
+    #[test]
     fn test_process_find_no_predicate_coverage() {
         let scope = Scope::new();
         let asm_stmt = AssembledStatement::default();
