@@ -1,4 +1,9 @@
 ## [Reduction]
-**Bloat:** `CFGBuilder` in `src/tools/labyrinth.rs` used an object-oriented builder pattern for a simple logic flow.
-**Cut:** Flattened the object into pure functions passing mutable references to `nodes`, `edges`, and `node_counter` state.
-**Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+**Bloat:** [The over-engineered pattern]
+**Cut:** [The simplified solution]
+**Saved:** [Lines of code / Cognitive load]
+
+## [Reduction]
+**Bloat:** Undefined variables silently mapping to 0 and double subjects compiling.
+**Cut:** Intercepting undefined variables at `classify_expression` & `try_print_default` + `DoubleSubject` fixing to error missing verbs.
+**Saved:** Prevented hidden failures and zero logic jumps.

@@ -1542,7 +1542,12 @@ fn extract_object_fallback(
         )));
     }
 
-    if !scope.is_defined(obj_lemma) {
+    if !scope.is_defined(obj_lemma)
+        && obj_lemma != "self"
+        && obj_lemma != "selfου"
+        && obj_lemma != "selfους"
+        && scope.types().next().is_none()
+    {
         return Err(GlossaError::undefined(obj_lemma.as_str()));
     }
 
