@@ -21,7 +21,11 @@ fn main() -> Result<()> {
         return run_file(&file);
     }
 
-    match cli.command {
+    execute_command(cli.command)
+}
+
+fn execute_command(command: Option<Commands>) -> Result<()> {
+    match command {
         Some(Commands::Run { input }) => {
             run_file(&input)?;
         }
@@ -183,9 +187,12 @@ fn main() -> Result<()> {
             glossa::tools::gnomon::run_gnomon(&input)?;
 
             #[cfg(not(feature = "nova"))]
-            miette::bail!(
-                "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
-            );
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
         Some(Commands::Scholar { input }) => {
@@ -205,6 +212,5 @@ fn main() -> Result<()> {
             run_repl()?;
         }
     }
-
     Ok(())
 }

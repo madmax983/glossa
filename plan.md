@@ -1,4 +1,4 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. **Refactor `src/main.rs` (God Function)**: Extract the large `match` statement from `main` into a helper function `execute_command(command: Commands) -> miette::Result<()>`. This flattens `main` and separates parsing from execution.
+2. **Refactor `test_analyze_article_all_forms`**: As explicitly noted in memory, split the large 239-line test function `test_analyze_article_all_forms` in `src/morphology/disambiguation.rs` into smaller, grouped tests (`test_analyze_article_masculine`, `test_analyze_article_feminine`, `test_analyze_article_neuter`, `test_analyze_article_plural_common`) to resolve `clippy::too_many_lines` cleanly without suppressing warnings.
+3. Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+4. Submit PR following the Forge formatting: "⚒️ Forge: [refactor name]".
