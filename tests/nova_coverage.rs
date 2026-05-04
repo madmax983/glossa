@@ -334,3 +334,30 @@ fn test_run_diplomat_analysis_error() {
     let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
     assert!(result.is_err());
 }
+
+#[test]
+fn test_run_diplomat_function_def() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "
+    προσθεσις ὁρίζειν τῷ ξ ἀριθμοῦ τῷ ψ ἀριθμοῦ· δός ξ ψ ἄθροισμα.
+    ";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
+    assert!(result.is_ok(), "Diplomat failed: {:?}", result.err());
+
+    let output_path = temp_file.path().with_extension("d.ts");
+    assert!(output_path.exists());
+
+    let mut f = std::fs::File::open(&output_path).unwrap();
+    let mut ts = String::new();
+    std::io::Read::take(&mut f, 1024 * 1024 + 1)
+        .read_to_string(&mut ts)
+        .unwrap();
+
+    assert!(ts.contains("export declare function προσθεσις(ξ: number, ψ: number): number;"));
+}
