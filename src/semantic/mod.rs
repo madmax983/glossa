@@ -35,6 +35,8 @@ pub(crate) mod analyzer;
 #[cfg(test)]
 mod assembler_tests;
 pub mod assembly;
+pub mod visitor;
+pub use visitor::{Visitor, walk_expr, walk_statement};
 #[cfg(test)]
 mod classification_tests;
 pub(crate) mod control_flow;
