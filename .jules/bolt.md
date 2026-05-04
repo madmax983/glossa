@@ -5,3 +5,9 @@
 **[Optimizing AST Node Cloning with `std::mem::replace`]**
 **Learning:** During iterative AST tree building (e.g., when wrapping an expression in successive `MethodCall`s like `.iter().map().filter().collect()`), the previous expression `current_expr` had to be passed into the new node. Because it's stored in a `Box`, using `Box::new(current_expr.clone())` causes an expensive deep clone of the entire recursive AST structure for each method in the chain. However, since the old node is entirely moved into the new node (and we overwrite `current_expr` immediately after), we can use `std::mem::replace(&mut current_expr, AnalyzedExpr { expr: AnalyzedExprKind::None, glossa_type: GlossaType::Unknown })` to safely extract the old tree without a single allocation, effectively a zero-cost transfer of ownership.
 **Action:** Use `std::mem::replace` to avoid deep cloning of AST nodes when building recursive or iterative tree structures in place.
+**[Remove Intermediate Allocs]
+**Learning:**  strings create intermediate heap allocations which drop immediately after pushing/writing them to a buffer.
+**Action:** Use  to write formatted text directly into a string buffer without intermediate allocations.
+**[Remove Intermediate Allocs]
+**Learning:** `format!()` strings create intermediate heap allocations which drop immediately after pushing/writing them to a buffer.
+**Action:** Use `writeln!(out, ...)` to write formatted text directly into a string buffer without intermediate allocations.
