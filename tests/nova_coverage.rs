@@ -404,6 +404,7 @@ fn test_run_diplomat_write_error() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_run_diplomat_load_source_error() {
     let mut temp_file = tempfile::Builder::new()
         .suffix(".γλ")
@@ -420,13 +421,9 @@ fn test_run_diplomat_load_source_error() {
 
     // Remove read permissions from the file to cause load_source to fail
     let mut perms = std::fs::metadata(temp_file.path()).unwrap().permissions();
-    perms.set_readonly(true); // actually need to make it unreadable
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        perms.set_mode(0o000);
-        std::fs::set_permissions(temp_file.path(), perms).unwrap();
-    }
+    use std::os::unix::fs::PermissionsExt;
+    perms.set_mode(0o000);
+    std::fs::set_permissions(temp_file.path(), perms).unwrap();
 
     let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
     assert!(result.is_err());
@@ -434,13 +431,9 @@ fn test_run_diplomat_load_source_error() {
     assert!(err_msg.contains("Permission denied") || err_msg.contains("could not read"));
 
     // Restore permissions so it can be deleted
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(temp_file.path()).unwrap().permissions();
-        perms.set_mode(0o644);
-        std::fs::set_permissions(temp_file.path(), perms).unwrap();
-    }
+    let mut perms = std::fs::metadata(temp_file.path()).unwrap().permissions();
+    perms.set_mode(0o644);
+    std::fs::set_permissions(temp_file.path(), perms).unwrap();
 }
 
 #[test]
