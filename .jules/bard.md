@@ -73,3 +73,6 @@
 ## 2026-03-22 - Missing Documentation in `gnomon.rs`
 **Confusion:** The `src/tools/gnomon.rs` file had a module-level documentation block (`//!`) but the `GnomonVisitor` struct, its methods, and the `run_gnomon` function were completely undocumented, resulting in missing information on what the tool actually did or how it achieved it.
 **Clarification:** Added exhaustive documentation explaining that the visitor casts a "shadow" over the AST to check for max depth of loops (complexity). Wrote an executable doctest for `run_gnomon` to demonstrate its usage.
+## 2026-05-03 - The Scholar Tool's Missing Link
+**Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
+**Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
