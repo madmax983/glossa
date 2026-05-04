@@ -157,16 +157,23 @@ mod tests {
         );
         assert_eq!(glossa_type_to_ts(&GlossaType::Unknown), "any");
     }
-}
 
     #[test]
     fn test_glossa_type_to_ts_extra() {
         assert_eq!(
-            glossa_type_to_ts(&GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String))),
+            glossa_type_to_ts(&GlossaType::Result(
+                Box::new(GlossaType::Number),
+                Box::new(GlossaType::String)
+            )),
             "number"
         );
         assert_eq!(
-            glossa_type_to_ts(&GlossaType::Struct { name: "Χρήστης".into(), fields: vec![], gender: crate::morphology::models::Gender::Masculine }),
+            glossa_type_to_ts(&GlossaType::Struct {
+                name: "Χρήστης".into(),
+                fields: vec![],
+                gender: crate::morphology::models::Gender::Masculine
+            }),
             "Χρήστης"
         );
     }
+}

@@ -361,3 +361,17 @@ fn test_run_diplomat_function_def() {
 
     assert!(ts.contains("export declare function προσθεσις(ξ: number, ψ: number): number;"));
 }
+
+#[test]
+fn test_run_diplomat_unsupported_statement() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "«χαῖρε κόσμε» λέγε.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
+    assert!(result.is_ok(), "Diplomat failed: {:?}", result.err());
+}
