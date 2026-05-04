@@ -20,9 +20,7 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::semantic::{
-    AnalyzedExpr, AnalyzedProgram, AnalyzedStatement, Visitor, walk_expr, walk_statement,
-};
+use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 
 /// Statistics for an analyzed program
 ///
@@ -45,8 +43,6 @@ pub struct ProgramStats {
     pub conditional_count: usize,
     /// Maximum nesting depth of statements
     pub max_depth: usize,
-    #[doc(hidden)]
-    pub current_depth: usize,
 }
 
 impl ProgramStats {
@@ -76,71 +72,193 @@ impl ProgramStats {
 
         // Traverse statements to count structural elements
         for stmt in &program.statements {
-            stats.visit_statement(stmt);
+            stats.visit_statement(stmt, 0);
         }
 
         stats
     }
-}
 
-impl Visitor for ProgramStats {
-    fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
-        self.statement_count += 1;
-        self.max_depth = self.max_depth.max(self.current_depth);
-
-        match stmt {
-            AnalyzedStatement::Binding { .. } => {
-                self.binding_count += 1;
-            }
-            AnalyzedStatement::If { .. } | AnalyzedStatement::Match { .. } => {
-                self.conditional_count += 1;
-            }
-            AnalyzedStatement::While { .. } | AnalyzedStatement::For { .. } => {
-                self.loop_count += 1;
-            }
-            _ => {}
+    fn visit_if_statement(
+        &mut self,
+        condition: &AnalyzedExpr,
+        then_body: &[AnalyzedStatement],
+        else_body: &Option<Vec<AnalyzedStatement>>,
+        depth: usize,
+    ) {
+        self.conditional_count += 1;
+        self.visit_expr(condition);
+        for s in then_body {
+            self.visit_statement(s, depth + 1);
         }
+        if let Some(else_body) = else_body {
+            for s in else_body {
+                self.visit_statement(s, depth + 1);
+            }
+        }
+    }
+
+    fn visit_match_statement(
+        &mut self,
+        scrutinee: &AnalyzedExpr,
+        arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
+        depth: usize,
+    ) {
+        self.conditional_count += 1;
+        self.visit_expr(scrutinee);
+        for (pat, body) in arms {
+            self.visit_expr(pat);
+            for s in body {
+                self.visit_statement(s, depth + 1);
+            }
+        }
+    }
+
+    fn visit_loop_body(
+        &mut self,
+        condition: &AnalyzedExpr,
+        body: &[AnalyzedStatement],
+        depth: usize,
+    ) {
+        self.loop_count += 1;
+        self.visit_expr(condition);
+        for s in body {
+            self.visit_statement(s, depth + 1);
+        }
+    }
+
+    fn visit_statement(&mut self, stmt: &AnalyzedStatement, depth: usize) {
+        self.statement_count += 1;
+        self.max_depth = self.max_depth.max(depth);
 
         match stmt {
-            AnalyzedStatement::If { .. }
-            | AnalyzedStatement::While { .. }
-            | AnalyzedStatement::For { .. }
-            | AnalyzedStatement::Match { .. } => {
-                self.current_depth += 1;
-                walk_statement(self, stmt);
-                self.current_depth -= 1;
+            AnalyzedStatement::Binding { value, .. } => {
+                self.binding_count += 1;
+                self.visit_expr(value);
             }
-            AnalyzedStatement::FunctionDef { body, .. }
-            | AnalyzedStatement::TestDeclaration { body, .. } => {
-                // Functions/Tests reset the nesting depth relative to their body
-                let previous_depth = self.current_depth;
-                self.current_depth = 1; // Body is depth 1 relative to function
-                for s in body {
-                    self.visit_statement(s);
+            AnalyzedStatement::Assignment { value, .. } => {
+                self.visit_expr(value);
+            }
+            AnalyzedStatement::Print(exprs)
+            | AnalyzedStatement::Expression(exprs)
+            | AnalyzedStatement::Query(exprs) => {
+                for expr in exprs {
+                    self.visit_expr(expr);
                 }
-                self.current_depth = previous_depth;
             }
+            AnalyzedStatement::If {
+                condition,
+                then_body,
+                else_body,
+            } => {
+                self.visit_if_statement(condition, then_body, else_body, depth);
+            }
+            AnalyzedStatement::While { condition, body } => {
+                self.visit_loop_body(condition, body, depth);
+            }
+            AnalyzedStatement::For { iterator, body, .. } => {
+                self.visit_loop_body(iterator, body, depth);
+            }
+            AnalyzedStatement::Match { scrutinee, arms } => {
+                self.visit_match_statement(scrutinee, arms, depth);
+            }
+            AnalyzedStatement::FunctionDef { body, .. } => {
+                // Function definitions in statements (if any) are already counted in scope?
+                // `analyze_statement` returns FunctionDef for control flow analysis
+                // But it also adds to scope.
+                // We shouldn't double count. Scope count is authoritative for "defined functions".
+                // But we should traverse the body for complexity stats.
+                for s in body {
+                    self.visit_statement(s, depth + 1);
+                }
+            }
+            AnalyzedStatement::TestDeclaration { body, .. } => {
+                for s in body {
+                    self.visit_statement(s, depth + 1);
+                }
+            }
+            AnalyzedStatement::Return { value } => {
+                if let Some(v) = value {
+                    self.visit_expr(v);
+                }
+            }
+            AnalyzedStatement::Break | AnalyzedStatement::Continue => {}
+            AnalyzedStatement::TypeDefinition { .. } => {} // Already counted in scope
+            AnalyzedStatement::TraitDefinition { .. } => {} // Already counted in scope
             AnalyzedStatement::TraitImplementation { methods, .. } => {
-                let previous_depth = self.current_depth;
-                self.current_depth = 1;
+                // Visit trait method implementations to get complete expression coverage
                 for method in methods {
                     if let Some(body) = &method.body {
                         for s in body {
-                            self.visit_statement(s);
+                            self.visit_statement(s, depth + 1);
                         }
                     }
                 }
-                self.current_depth = previous_depth;
             }
-            _ => walk_statement(self, stmt),
+        }
+    }
+
+    fn visit_exprs(&mut self, exprs: &[AnalyzedExpr]) {
+        for expr in exprs {
+            self.visit_expr(expr);
         }
     }
 
     fn visit_expr(&mut self, expr: &AnalyzedExpr) {
         self.expression_count += 1;
-        walk_expr(self, expr);
+        match &expr.expr {
+            AnalyzedExprKind::PropertyAccess { owner, .. } => self.visit_expr(owner),
+            AnalyzedExprKind::VerbCall { args, .. } => {
+                self.visit_exprs(args);
+            }
+            AnalyzedExprKind::BinOp { left, right, .. } => {
+                self.visit_expr(left);
+                self.visit_expr(right);
+            }
+            AnalyzedExprKind::UnaryOp { operand, .. } => self.visit_expr(operand),
+            AnalyzedExprKind::Range { start, end, .. } => {
+                self.visit_expr(start);
+                self.visit_expr(end);
+            }
+            AnalyzedExprKind::ArrayLiteral(exprs) => {
+                self.visit_exprs(exprs);
+            }
+            AnalyzedExprKind::Some(e)
+            | AnalyzedExprKind::Ok(e)
+            | AnalyzedExprKind::Err(e)
+            | AnalyzedExprKind::Unwrap(e)
+            | AnalyzedExprKind::Try(e) => {
+                self.visit_expr(e);
+            }
+            AnalyzedExprKind::IndexAccess { array, index } => {
+                self.visit_expr(array);
+                self.visit_expr(index);
+            }
+            AnalyzedExprKind::FunctionCall { args, .. }
+            | AnalyzedExprKind::StructInstantiation { args, .. } => {
+                self.visit_exprs(args);
+            }
+            AnalyzedExprKind::MethodCall { receiver, args, .. } => {
+                self.visit_expr(receiver);
+                self.visit_exprs(args);
+            }
+            AnalyzedExprKind::Lambda { body, .. } => {
+                self.visit_expr(body);
+            }
+            AnalyzedExprKind::Assert { condition } => self.visit_expr(condition),
+            AnalyzedExprKind::AssertEq { left, right } => {
+                self.visit_expr(left);
+                self.visit_expr(right);
+            }
+            AnalyzedExprKind::StringLiteral(_)
+            | AnalyzedExprKind::NumberLiteral(_)
+            | AnalyzedExprKind::BooleanLiteral(_)
+            | AnalyzedExprKind::None
+            | AnalyzedExprKind::CollectionNew { .. }
+            | AnalyzedExprKind::Variable(_) => {} // Leaf nodes
+        }
     }
 }
+
 /// A human-readable report for an analyzed program
 pub struct GlossaReport<'a> {
     program: &'a AnalyzedProgram,

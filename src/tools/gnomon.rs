@@ -8,7 +8,7 @@
 //! A gnomon is the part of a sundial that casts a shadow, used to indicate the time.
 //! This tool casts a shadow over the program's AST to estimate its execution time complexity.
 
-use crate::semantic::{AnalyzedStatement, Visitor, walk_statement};
+use crate::semantic::AnalyzedStatement;
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use comfy_table::presets::UTF8_FULL;
@@ -35,20 +35,65 @@ impl GnomonVisitor {
     pub fn new() -> Self {
         Self::default()
     }
-}
 
-impl Visitor for GnomonVisitor {
-    fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
+    /// Recursively visits a statement and updates loop depth metrics.
+    ///
+    /// Increases depth when entering `While` or `For` loops, and explores
+    /// inner statements in branches (`If`, `Match`, functions).
+    pub fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
         match stmt {
-            AnalyzedStatement::While { .. } | AnalyzedStatement::For { .. } => {
+            AnalyzedStatement::While { body, .. } => {
                 self.current_depth += 1;
                 if self.current_depth > self.max_depth {
                     self.max_depth = self.current_depth;
                 }
-                walk_statement(self, stmt);
+                for s in body {
+                    self.visit_statement(s);
+                }
                 self.current_depth -= 1;
             }
-            _ => walk_statement(self, stmt),
+            AnalyzedStatement::For { body, .. } => {
+                self.current_depth += 1;
+                if self.current_depth > self.max_depth {
+                    self.max_depth = self.current_depth;
+                }
+                for s in body {
+                    self.visit_statement(s);
+                }
+                self.current_depth -= 1;
+            }
+            AnalyzedStatement::If {
+                then_body,
+                else_body,
+                ..
+            } => {
+                for s in then_body {
+                    self.visit_statement(s);
+                }
+                if let Some(else_stmts) = else_body {
+                    for s in else_stmts {
+                        self.visit_statement(s);
+                    }
+                }
+            }
+            AnalyzedStatement::Match { arms, .. } => {
+                for (_, stmts) in arms {
+                    for s in stmts {
+                        self.visit_statement(s);
+                    }
+                }
+            }
+            AnalyzedStatement::FunctionDef { body, .. } => {
+                for s in body {
+                    self.visit_statement(s);
+                }
+            }
+            AnalyzedStatement::TestDeclaration { body, .. } => {
+                for s in body {
+                    self.visit_statement(s);
+                }
+            }
+            _ => {}
         }
     }
 }
