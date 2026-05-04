@@ -55,6 +55,12 @@ pub mod narrator;
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
 pub mod papyrus;
+
+/// The Diplomat (ὁ Διπλωμάτης) tool for TypeScript declaration generation.
+///
+/// This experimental tool exports Glossa types and traits into a `.d.ts` file.
+#[cfg(feature = "nova")]
+pub mod diplomat;
 pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs

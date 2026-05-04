@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Diplomat (ὁ Διπλωμάτης)
+**Concept:** A TypeScript declaration generator (`glossa diplomat`) that converts Glossa types (`εἴδη`), traits (`χαρακτῆρες`), and standalone functions (`ἔργα`) into a `.d.ts` definitions file based on semantic AST output.
+**Fate:** Merged
+**Lesson:** Iterating over `Scope::types()` and `Scope::functions()` enables easy, reliable introspection without needing an entire separate traversal pipeline, proving the Semantic AST is robust enough to act as an intermediate representation for frontend languages like TypeScript.
