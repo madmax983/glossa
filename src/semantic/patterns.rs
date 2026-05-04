@@ -582,7 +582,13 @@ fn process_adjectives(
             // Wrap current expr
             let new_expr = AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(current_expr.clone()),
+                    receiver: Box::new(std::mem::replace(
+                        current_expr,
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::None,
+                            glossa_type: GlossaType::Unknown,
+                        },
+                    )),
                     method: method.into(),
                     args: vec![filter_closure],
                 },
@@ -656,7 +662,13 @@ fn process_fold_participle(
 
         let new_expr = AnalyzedExpr {
             expr: AnalyzedExprKind::MethodCall {
-                receiver: Box::new(current_expr.clone()),
+                receiver: Box::new(std::mem::replace(
+                    current_expr,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: GlossaType::Unknown,
+                    },
+                )),
                 method: "fold".into(),
                 args: vec![init_expr, fold_closure],
             },
@@ -726,7 +738,13 @@ fn process_map_participle(
 
         let new_expr = AnalyzedExpr {
             expr: AnalyzedExprKind::MethodCall {
-                receiver: Box::new(current_expr.clone()),
+                receiver: Box::new(std::mem::replace(
+                    current_expr,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: GlossaType::Unknown,
+                    },
+                )),
                 method: "map".into(),
                 args: vec![closure],
             },
@@ -796,7 +814,13 @@ fn process_explicit_quantifiers(
 
             let new_expr = AnalyzedExpr {
                 expr: AnalyzedExprKind::MethodCall {
-                    receiver: Box::new(current_expr.clone()),
+                    receiver: Box::new(std::mem::replace(
+                        current_expr,
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::None,
+                            glossa_type: GlossaType::Unknown,
+                        },
+                    )),
                     method: method.into(),
                     args: vec![any_all_closure],
                 },
@@ -826,7 +850,13 @@ fn process_find(asm_stmt: &AssembledStatement, scope: &Scope, current_expr: &mut
 
                 let new_expr = AnalyzedExpr {
                     expr: AnalyzedExprKind::MethodCall {
-                        receiver: Box::new(current_expr.clone()),
+                        receiver: Box::new(std::mem::replace(
+                            current_expr,
+                            AnalyzedExpr {
+                                expr: AnalyzedExprKind::None,
+                                glossa_type: GlossaType::Unknown,
+                            },
+                        )),
                         method: "find".into(),
                         args: vec![find_closure],
                     },
@@ -862,7 +892,13 @@ fn process_find(asm_stmt: &AssembledStatement, scope: &Scope, current_expr: &mut
 
         let new_expr = AnalyzedExpr {
             expr: AnalyzedExprKind::MethodCall {
-                receiver: Box::new(current_expr.clone()),
+                receiver: Box::new(std::mem::replace(
+                    current_expr,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: GlossaType::Unknown,
+                    },
+                )),
                 method: "find".into(),
                 args: vec![find_first_closure],
             },
@@ -877,7 +913,13 @@ fn finalize_iterator_chain(current_expr: &mut AnalyzedExpr) {
     // Add .collect() at the end
     let new_expr = AnalyzedExpr {
         expr: AnalyzedExprKind::MethodCall {
-            receiver: Box::new(current_expr.clone()),
+            receiver: Box::new(std::mem::replace(
+                current_expr,
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::None,
+                    glossa_type: GlossaType::Unknown,
+                },
+            )),
             method: "collect".into(),
             args: vec![],
         },
