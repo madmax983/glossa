@@ -375,3 +375,95 @@ fn test_run_diplomat_unsupported_statement() {
     let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
     assert!(result.is_ok(), "Diplomat failed: {:?}", result.err());
 }
+
+#[test]
+fn test_run_diplomat_write_error() {
+    let mut temp_file = tempfile::Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "
+    εἶδος Χρήστης ὁρίζειν {
+        ὄνομα ὀνόματος.
+    }.
+    ";
+    use std::io::Write;
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let output_path = temp_file.path().with_extension("d.ts");
+
+    // Create a directory where the file should be to cause a write error
+    std::fs::create_dir(&output_path).unwrap();
+
+    let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
+    assert!(result.is_err());
+
+    // Clean up
+    std::fs::remove_dir(&output_path).unwrap();
+}
+
+#[test]
+fn test_run_diplomat_load_source_error() {
+    let mut temp_file = tempfile::Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "
+    εἶδος Χρήστης ὁρίζειν {
+        ὄνομα ὀνόματος.
+    }.
+    ";
+    use std::io::Write;
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    // Remove read permissions from the file to cause load_source to fail
+    let mut perms = std::fs::metadata(temp_file.path()).unwrap().permissions();
+    perms.set_readonly(true); // actually need to make it unreadable
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        perms.set_mode(0o000);
+        std::fs::set_permissions(temp_file.path(), perms).unwrap();
+    }
+
+    let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(err_msg.contains("Permission denied") || err_msg.contains("could not read"));
+
+    // Restore permissions so it can be deleted
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(temp_file.path()).unwrap().permissions();
+        perms.set_mode(0o644);
+        std::fs::set_permissions(temp_file.path(), perms).unwrap();
+    }
+}
+
+#[test]
+fn test_run_diplomat_load_source_io_error() {
+    let mut temp_file = tempfile::Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "
+    εἶδος Χρήστης ὁρίζειν {
+        ὄνομα ὀνόματος.
+    }.
+    ";
+    use std::io::Write;
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    // create a directory with the same name as the file
+    let dir_path = temp_file.path().with_extension("dir");
+    std::fs::create_dir(&dir_path).unwrap();
+
+    let result = glossa::tools::diplomat::run_diplomat(&dir_path);
+    assert!(result.is_err());
+
+    std::fs::remove_dir(&dir_path).unwrap();
+}
