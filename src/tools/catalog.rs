@@ -11,6 +11,24 @@ use crossterm::style::Stylize;
 use miette::Result;
 
 /// Run the catalog explorer
+///
+/// This interactive CLI tool prints a categorized, tabular view of all words
+/// natively built into the compiler's static dictionary. It is used to quickly
+/// explore available Ancient Greek vocabulary and their expected rust equivalents.
+///
+/// ## Examples
+///
+/// Since this function outputs directly to standard out and is meant to be run
+/// from the CLI, it can be invoked without arguments.
+///
+/// ```rust,no_run
+/// use glossa::tools::catalog::run_catalog;
+///
+/// // In a CLI context, simply call the tool:
+/// if let Err(e) = run_catalog() {
+///     eprintln!("Failed to display the catalog: {}", e);
+/// }
+/// ```
 pub fn run_catalog() -> Result<()> {
     // ⚡ Bolt Optimization: Uses `rustc_hash::FxHashMap` instead of the standard `HashMap`
     // since the keys are internal `PartOfSpeech` enums and are not exposed to HashDoS attacks.

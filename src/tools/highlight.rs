@@ -49,6 +49,25 @@ use crate::parser::parse;
 /// This function parses the source code into an AST and then walks the AST to
 /// apply ANSI color codes based on the semantic role of each element.
 ///
+/// Semantically highlights a given ΓΛΩΣΣΑ source string.
+///
+/// This function parses the source and applies ANSI escape codes to colorize
+/// words based on their semantic and grammatical roles (e.g. subjects in blue,
+/// verbs in green, objects in red).
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::tools::highlight::highlight;
+///
+/// let source = "ξ 5 ἔστω.";
+/// let highlighted = highlight(source).unwrap();
+///
+/// // The output contains the original text along with ANSI color codes.
+/// assert!(highlighted.contains("ξ"));
+/// assert!(highlighted.contains("\x1b["));
+/// ```
+///
 /// # Errors
 ///
 /// Returns a [`GlossaError`] if the source code cannot be parsed.
