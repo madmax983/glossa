@@ -193,10 +193,10 @@ impl Visitor for AuditorVisitor {
     }
 
     fn visit_expr(&mut self, expr: &AnalyzedExpr) {
-        if let AnalyzedExprKind::Variable(name) = &expr.expr {
-            if let Some(count) = self.usage_count.get_mut(name) {
-                *count += 1;
-            }
+        if let AnalyzedExprKind::Variable(name) = &expr.expr
+            && let Some(count) = self.usage_count.get_mut(name)
+        {
+            *count += 1;
         }
 
         walk_expr(self, expr);

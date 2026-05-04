@@ -120,6 +120,18 @@ impl Visitor for ProgramStats {
                 }
                 self.current_depth = previous_depth;
             }
+            AnalyzedStatement::TraitImplementation { methods, .. } => {
+                let previous_depth = self.current_depth;
+                self.current_depth = 1;
+                for method in methods {
+                    if let Some(body) = &method.body {
+                        for s in body {
+                            self.visit_statement(s);
+                        }
+                    }
+                }
+                self.current_depth = previous_depth;
+            }
             _ => walk_statement(self, stmt),
         }
     }
