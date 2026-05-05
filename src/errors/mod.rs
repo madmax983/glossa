@@ -1,40 +1,27 @@
 //! Error handling for ΓΛΩΣΣΑ
-//!
 //! This module implements the "Errors as Dialogue" philosophy. In ΓΛΩΣΣΑ, errors are not
 //! just debug traces; they are the compiler speaking to you in Ancient Greek.
-//!
 //! # Philosophy: The Strict Grammaticus
-//!
 //! The compiler acts as a strict Ancient Greek teacher ("Grammaticus"). When you make a mistake,
 //! it doesn't just say "Type Error". It says:
-//!
 //! > *«Τὸ «ἄνθρωπος» (ὀνομαστική) οὐ συμφωνεῖ τῷ «λέγουσι» (πληθυντικός)»*
 //! > (The "man" (nominative) does not agree with "they say" (plural))
-//!
-//! This immersion helps users internalize the grammar of the language.
-//!
+//! > This immersion helps users internalize the grammar of the language.
 //! # Error Categories
-//!
 //! Errors are categorized by the phase of compilation:
-//!
 //! 1. **Σύνταξις (Syntax)**: The words are not in a valid order (Parsing).
 //! 2. **Σημασία (Semantics)**: The words make sense individually but not together (Analysis).
 //! 3. **Συναρμογή (Assembly)**: The Subject, Verb, and Object do not agree (Agreement).
 //! 4. **Ὄνομα (Name)**: A variable or function name is unknown.
 //! 5. **Κῶδιξ (Codegen)**: An error occurred while generating Rust code.
-//!
 //! # Recovery Guide
-//!
 //! If you encounter an error, here is how to interpret it:
-//!
 //! * **Ἀσυμφωνία (Disagreement)**: Check your Case and Number.
 //!   - Did you use a Plural Verb with a Singular Subject?
 //!   - Did you use an Adjective that doesn't match the Gender of the Noun?
-//!
 //! * **Διπλοῦν ... (Double ...)**: You have too many words for one slot.
 //!   - `Διπλοῦν ὑποκείμενον`: You have two Subjects (Nominative nouns).
 //!   - `Διπλοῦν ῥῆμα`: You have two Verbs.
-//!
 //! * **Οὐκ οἶδα τὸ ὄνομα**: You are using a variable that hasn't been defined with `ἔστω`.
 
 #![allow(unused_assignments)]
@@ -310,8 +297,7 @@ impl GlossaError {
 /// Result type for ΓΛΩΣΣΑ operations
 pub type GlossaResult<T> = Result<T, GlossaError>;
 
-pub(crate) mod assembly;
-pub use assembly::AssemblyError;
+
 
 #[cfg(test)]
 mod tests {
@@ -354,4 +340,89 @@ mod tests {
             panic!("Expected ParseError");
         }
     }
+}
+
+
+use crate::morphology::{Number, Person};
+
+/// Errors that can occur during assembly
+///
+/// ## Examples
+///
+/// Attempting to use two objects in the same sentence causes an error:
+///
+/// ```rust
+/// use glossa::errors::AssemblyError;
+///
+/// let error = AssemblyError::DoubleObject;
+/// assert!(error.to_string().contains("Διπλοῦν ἀντικείμενον"));
+/// ```
+///
+#[derive(Debug, Clone, Error, Diagnostic)]
+pub enum AssemblyError {
+    /// Two subjects found in the same statement (Nominative collision)
+    ///
+    /// # Example
+    /// `ὁ ἄνθρωπος ὁ θεὸς λέγει` (The man the god says)
+    #[error("Διπλοῦν ὑποκείμενον! Δύο βασιλεῖς οὐ δύνανται μιᾶς πόλεως ἄρχειν.")]
+    #[diagnostic(code(glossa::assembly::double_subject))]
+    DoubleSubject,
+
+    /// Two objects found in the same statement (Accusative collision)
+    ///
+    /// # Example
+    /// `τὸν λόγον τὴν πόλιν βλέπω` (I see the word the city)
+    #[error("Διπλοῦν ἀντικείμενον! Ἓν μόνον κατηγορεῖς.")]
+    #[diagnostic(code(glossa::assembly::double_object))]
+    DoubleObject,
+
+    /// Two indirect objects found in the same statement (Dative collision)
+    ///
+    /// # Example
+    /// `τῷ ἀνθρώπῳ τῷ θεῷ δίδωμι` (I give to the man to the god)
+    #[error("Διπλοῦν ἔμμεσον αντικείμενον! Ἓν μόνον παραλήπτην ἔχεις.")]
+    #[diagnostic(code(glossa::assembly::double_indirect))]
+    DoubleIndirect,
+
+    /// Two verbs found in the same statement
+    ///
+    /// # Example
+    /// `λέγει γράφει ὁ ἄνθρωπος` (The man says writes)
+    #[error("Διπλοῦν ῥῆμα! Μία πρᾶξις ἑκάστοτε.")]
+    #[diagnostic(code(glossa::assembly::double_verb))]
+    DoubleVerb,
+
+    /// Missing verb in a statement
+    ///
+    /// # Example
+    /// `ὁ ἄνθρωπος.` (The man.)
+    #[error("Ῥῆμα οὐχ εὑρέθη! ἄνευ ῥήματος πρᾶξις οὐκ ἔστιν.")]
+    #[diagnostic(code(glossa::assembly::missing_verb))]
+    MissingVerb,
+
+    /// Subject and Verb do not agree in number/person
+    ///
+    /// # Example
+    /// `ὁ ἄνθρωπος (Singular) λέγουσιν (Plural)`
+    #[error("Ἀσυμφωνία: ὑποκείμενον {subject:?} ἀλλὰ ῥῆμα {verb:?}")]
+    #[diagnostic(code(glossa::assembly::subject_verb_disagreement))]
+    SubjectVerbDisagreement {
+        /// The extracted morphological traits (Person and Number) of the subject in the sentence.
+        subject: (Option<Person>, Option<Number>),
+        /// The extracted morphological traits (Person and Number) of the verb that failed to agree with the subject.
+        verb: (Option<Person>, Option<Number>),
+    },
+
+    /// Resource limit exceeded to prevent denial of service
+    ///
+    /// # Example
+    /// Too many adjectives in a single sentence
+    #[error("Ὑπέρβασις ὁρίου: {resource} > {max}. Μηδὲν ἄγαν!")]
+    #[diagnostic(code(glossa::assembly::limit_exceeded))]
+    LimitExceeded {
+        /// The specific grammatical element (like adjectives) whose count exceeded the allowed threshold.
+        resource: String,
+        /// The hard limit for this resource type, enforced to prevent runaway complexity.
+        max: usize,
+    },
 }
