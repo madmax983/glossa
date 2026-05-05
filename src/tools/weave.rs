@@ -15,6 +15,7 @@ use crate::tools::mosaic::run_mosaic_inner;
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
+use comfy_table::{Attribute, Cell, Color, Table, presets};
 use miette::{IntoDiagnostic, Result};
 use std::fs;
 use std::path::Path;
@@ -97,12 +98,32 @@ pub fn run_weave(input: &Path) -> Result<()> {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   W E A V E".bold().cyan());
     println!("   {}", "Rosetta Stone Document Generated".italic().dim());
-    println!();
-    println!(
-        "   {} {}",
-        "Saved to:".bold(),
-        output_path.display().to_string().cyan()
-    );
+
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL);
+    table.set_header(vec![
+        Cell::new("Property")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
+        Cell::new("Value")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
+    ]);
+
+    table.add_row(vec![
+        Cell::new("Input File (ΓΛΩΣΣΑ)").add_attribute(Attribute::Bold),
+        Cell::new(input.display().to_string()),
+    ]);
+    table.add_row(vec![
+        Cell::new("Output File (Markdown)").add_attribute(Attribute::Bold),
+        Cell::new(output_path.display().to_string()).fg(Color::Green),
+    ]);
+    table.add_row(vec![
+        Cell::new("Status").add_attribute(Attribute::Bold),
+        Cell::new("✓ Success").fg(Color::Green),
+    ]);
+
+    println!("{table}");
     println!();
 
     Ok(())
