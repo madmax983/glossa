@@ -664,7 +664,7 @@ impl Assembler {
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
+                && !(crate::morphology::lexicon::is_print_verb(&verb.lemma) && !self.state.adjectives.is_empty())
                 && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
             {
                 return Err(AssemblyError::DoubleSubject);
@@ -724,7 +724,27 @@ impl Assembler {
             && self.state.adjectives.is_empty()
             && let Some(subject) = self.state.subject.as_ref()
         {
-            if subject.lemma == "ανθρωπος" {
+            let normalized_lemma = crate::text::normalize_greek(&subject.lemma);
+            let normalized_subject = crate::text::normalize_greek(&subject.normalized);
+            let is_valid_match_arm = crate::morphology::lexicon::numeral_value(&subject.lemma).is_some()
+                || crate::morphology::lexicon::numeral_value(&normalized_lemma).is_some()
+                || crate::morphology::lexicon::numeral_value(&subject.normalized).is_some()
+                || crate::morphology::lexicon::numeral_value(&normalized_subject).is_some()
+                || matches!(
+                    subject.lemma.as_str(),
+                    "ἄλλο" | "αλλο" | "μηδέν" | "μηδεν" | "τίποτα" | "τιποτα"
+                )
+                || matches!(
+                    subject.normalized.as_str(),
+                    "αλλο" | "μηδεν" | "τιποτα"
+                )
+                || matches!(
+                    normalized_lemma.as_str(),
+                    "αλλο" | "μηδεν" | "τιποτα"
+                )
+                || ctx.has_delimiter;
+
+            if !is_valid_match_arm {
                 return Err(AssemblyError::MissingVerb);
             }
             return Ok(());
