@@ -297,8 +297,6 @@ impl GlossaError {
 /// Result type for ΓΛΩΣΣΑ operations
 pub type GlossaResult<T> = Result<T, GlossaError>;
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -341,7 +339,6 @@ mod tests {
         }
     }
 }
-
 
 use crate::morphology::{Number, Person};
 
