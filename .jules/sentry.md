@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Resolver is_defined_locally Empty Levels Coverage]**
+**Learning:** `is_defined_locally` has an `unwrap_or(false)` that is hard to hit because `Scope` instances always start with 1 level and typical code only pushes/pops. A direct modification (`scope.levels.clear()`) inside a unit test was required to hit this boundary condition explicitly.
+**Action:** Always write an explicit test to clear standard internal buffers when trying to cover default/fallback branches like `unwrap_or` for defensive boundary coverage.

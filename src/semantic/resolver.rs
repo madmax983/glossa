@@ -845,4 +845,15 @@ mod tests {
         assert!(scope.is_function(name));
         assert!(scope.lookup(name).is_some());
     }
+
+    #[test]
+    fn test_is_defined_locally_empty_levels() {
+        let mut scope = Scope::new();
+        scope.levels.clear(); // Force levels to be empty directly since exit() pops to 1 minimum usually
+        assert_eq!(scope.levels.len(), 0, "Scope should have no levels");
+        assert!(
+            !scope.is_defined_locally("any_name"),
+            "Should return false safely without panic"
+        );
+    }
 }
