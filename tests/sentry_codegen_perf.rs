@@ -84,7 +84,7 @@ fn test_codegen_runtime_unwrap_panic() {
     assert!(!output.status.success(), "Executable should have panicked");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("attempted to unwrap an empty value") || stderr.contains("Unknown error"),
+        stderr.contains("Προσπάθεια ἀποκαλύψεως κενοῦ") || stderr.contains("Unknown error"),
         "Missing panic message: {}",
         stderr
     );

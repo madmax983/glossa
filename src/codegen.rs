@@ -447,6 +447,8 @@ fn generate_panic_hook() -> TokenStream {
                     ("Δείκτης ἐκτὸς ὁρίων", "Index out of bounds"),
                 s if s.starts_with("index out of bounds") =>
                     ("Δείκτης ἐκτὸς ὁρίων", "Index out of bounds"),
+                "attempted to unwrap an empty value" =>
+                    ("Προσπάθεια ἀποκαλύψεως κενοῦ", "Attempted to unwrap an empty value"),
                 _ => ("Σφάλμα ἐκτελέσεως", msg),
             };
 
