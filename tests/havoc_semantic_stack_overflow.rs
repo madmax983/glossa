@@ -1,7 +1,6 @@
 #![allow(missing_docs)]
-use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
 use glossa::morphology::BinaryOp;
-use std::thread;
+use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
 use std::env;
 use std::process::Command;
 
@@ -68,5 +67,8 @@ fn havoc_semantic_clone_drop_stack_overflow() {
     // Actually, we want to deliver the test itself that proves it panics.
     // If the process crashes, `status.success()` is false.
     // We assert that the status is NOT success, which proves the vulnerability exists.
-    assert!(!status.success(), "Subprocess should have crashed due to stack overflow!");
+    assert!(
+        !status.success(),
+        "Subprocess should have crashed due to stack overflow!"
+    );
 }
