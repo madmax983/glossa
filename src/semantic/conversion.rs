@@ -49,6 +49,17 @@ use crate::semantic::resolver::Scope;
 use crate::semantic::types::GlossaType;
 use crate::semantic::{Constituent, Literal};
 
+fn is_known_field(lemma: &str, scope: &Scope) -> bool {
+    for (_, ty) in scope.types() {
+        if let GlossaType::Struct { fields, .. } = ty
+            && fields.iter().any(|(name, _)| name == lemma)
+        {
+            return true;
+        }
+    }
+    false
+}
+
 /// Convert an AssembledStatement to an AnalyzedStatement
 ///
 /// This is the main entry point for lowering the "Assembled" semantic model (slot-based)
@@ -367,9 +378,12 @@ fn classify_subjunctive_comparison(
             glossa_type: var_type.clone(),
         }
     } else {
+        if subject.lemma != "self" && subject.lemma != "τω" && subject.lemma != "τῷ" && !is_known_field(&subject.lemma, scope) {
+            return Err(GlossaError::undefined(subject.lemma.as_str()));
+        }
         AnalyzedExpr {
-            expr: AnalyzedExprKind::BooleanLiteral(false),
-            glossa_type: GlossaType::Boolean,
+            expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
+            glossa_type: GlossaType::Unknown,
         }
     };
 
@@ -953,24 +967,28 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
+    if let Some(ref subj) = asm_stmt.subject {
+        if !scope.is_defined(&subj.lemma) && subj.lemma != "self" && subj.lemma != "τω" && subj.lemma != "τῷ" && !is_known_field(&subj.lemma, scope) {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
+        let var_type = scope.lookup(&subj.lemma).unwrap_or(&GlossaType::Unknown).clone();
         args.insert(
             0,
             AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
+                glossa_type: var_type,
             },
         );
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
+    if let Some(ref obj) = asm_stmt.object {
+        if !scope.is_defined(&obj.lemma) && obj.lemma != "self" && obj.lemma != "τω" && obj.lemma != "τῷ" && !is_known_field(&obj.lemma, scope) {
+            return Err(GlossaError::undefined(obj.lemma.as_str()));
+        }
+        let var_type = scope.lookup(&obj.lemma).unwrap_or(&GlossaType::Unknown).clone();
         args.push(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
+            glossa_type: var_type,
         });
     }
 
@@ -1128,24 +1146,39 @@ fn classify_expression(
     if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2 {
         let op = asm_stmt.operators[0];
 
-        let left = asm_stmt.subject.as_ref().map(|subj| AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-            glossa_type: GlossaType::Unknown,
-        });
+        let left = if let Some(ref subj) = asm_stmt.subject {
+            if !scope.is_defined(&subj.lemma) && subj.lemma != "self" && subj.lemma != "τω" && subj.lemma != "τῷ" && !is_known_field(&subj.lemma, scope) {
+                return Err(GlossaError::undefined(subj.lemma.as_str()));
+            }
+            Some(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                glossa_type: GlossaType::Unknown,
+            })
+        } else {
+            None
+        };
 
         // Try to get right operand from exprs (literal) or object or nominatives
         let right = if let Some(lit_expr) = exprs.first() {
             Some(lit_expr.clone())
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) && obj.lemma != "self" && obj.lemma != "τω" && obj.lemma != "τῷ" && !is_known_field(&obj.lemma, scope) {
+                return Err(GlossaError::undefined(obj.lemma.as_str()));
+            }
             Some(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             })
-        } else {
-            asm_stmt.nominatives.first().map(|nom| AnalyzedExpr {
+        } else if let Some(nom) = asm_stmt.nominatives.first() {
+            if !scope.is_defined(&nom.lemma) && nom.lemma != "self" && nom.lemma != "τω" && nom.lemma != "τῷ" && !is_known_field(&nom.lemma, scope) {
+                return Err(GlossaError::undefined(nom.lemma.as_str()));
+            }
+            Some(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             })
+        } else {
+            None
         };
 
         if let (Some(l), Some(r)) = (left, right) {
@@ -1157,11 +1190,17 @@ fn classify_expression(
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            if !scope.is_defined(&subj.lemma) && subj.lemma != "self" && subj.lemma != "τω" && subj.lemma != "τῷ" && !is_known_field(&subj.lemma, scope) {
+                return Err(GlossaError::undefined(subj.lemma.as_str()));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             });
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) && obj.lemma != "self" && obj.lemma != "τω" && obj.lemma != "τῷ" && !is_known_field(&obj.lemma, scope) {
+                return Err(GlossaError::undefined(obj.lemma.as_str()));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
@@ -1542,7 +1581,7 @@ fn extract_object_fallback(
         )));
     }
 
-    if !scope.is_defined(obj_lemma) {
+    if !scope.is_defined(obj_lemma) && !is_known_field(obj_lemma, scope) {
         return Err(GlossaError::undefined(obj_lemma.as_str()));
     }
 

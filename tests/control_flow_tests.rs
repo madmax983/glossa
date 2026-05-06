@@ -176,7 +176,7 @@ fn test_match_wildcard() {
 #[test]
 fn test_break() {
     // παῦε means "stop" - translates to break
-    let source = "ἀπὸ μηδενὸς μέχρι δέκα, εἰ ι πέντε μεῖζον ᾖ, παῦε.";
+    let source = "ι μηδέν ἔστω. ἀπὸ μηδενὸς μέχρι δέκα, εἰ ι πέντε μεῖζον ᾖ, παῦε.";
     let output = compile_to_rust(source);
 
     eprintln!("Generated output:\n{}", output);
@@ -186,7 +186,7 @@ fn test_break() {
 #[test]
 fn test_continue() {
     // συνέχιζε means "continue" - translates to continue
-    let source = "ἀπὸ μηδενὸς μέχρι δέκα, εἰ ι τρία ἔλαττον ᾖ, συνέχιζε.";
+    let source = "ι μηδέν ἔστω. ἀπὸ μηδενὸς μέχρι δέκα, εἰ ι τρία ἔλαττον ᾖ, συνέχιζε.";
     let output = compile_to_rust(source);
 
     assert!(output.contains("continue"), "Expected continue statement");
