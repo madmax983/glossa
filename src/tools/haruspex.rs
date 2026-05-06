@@ -759,6 +759,21 @@ mod tests {
     }
 
     #[test]
+    fn test_run_haruspex_success() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let valid_file = temp_dir.path().join("valid.γλ");
+        std::fs::write(&valid_file, "ξ 10 ἔστω.").unwrap();
+        let result = run_haruspex(&valid_file);
+        assert!(result.is_ok());
+
+        // Also test empty program to cover the "empty statements" branch
+        let empty_file = temp_dir.path().join("empty.γλ");
+        std::fs::write(&empty_file, "").unwrap();
+        let result = run_haruspex(&empty_file);
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn test_dot_generator_coverage() {
         let scope = Scope::new();
 
