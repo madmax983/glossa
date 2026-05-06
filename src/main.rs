@@ -21,12 +21,22 @@ fn main() -> Result<()> {
         return run_file(&file);
     }
 
-    match cli.command {
-        Some(Commands::Run { input }) => {
+    if let Some(command) = cli.command {
+        execute_command(command)?;
+    } else {
+        run_repl()?;
+    }
+
+    Ok(())
+}
+
+fn execute_command(command: Commands) -> Result<()> {
+    match command {
+        Commands::Run { input } => {
             run_file(&input)?;
         }
 
-        Some(Commands::Mentor) => {
+        Commands::Mentor => {
             #[cfg(feature = "nova")]
             glossa::tools::mentor::run_mentor()?;
 
@@ -36,35 +46,35 @@ fn main() -> Result<()> {
             );
         }
 
-        Some(Commands::Build { input, output }) => {
+        Commands::Build { input, output } => {
             build_file(&input, output.as_deref())?;
         }
 
-        Some(Commands::Check { input }) => {
+        Commands::Check { input } => {
             check_file(&input)?;
         }
 
-        Some(Commands::Report { input }) => {
+        Commands::Report { input } => {
             report_file(&input)?;
         }
 
-        Some(Commands::Highlight { input }) => {
+        Commands::Highlight { input } => {
             highlight_file(&input)?;
         }
 
-        Some(Commands::Bard { input }) => {
+        Commands::Bard { input } => {
             bard_file(&input)?;
         }
 
-        Some(Commands::Lookup { word }) => {
+        Commands::Lookup { word } => {
             lookup_word(&word)?;
         }
 
-        Some(Commands::Test { input }) => {
+        Commands::Test { input } => {
             glossa::tools::tester::run_tests(&input)?;
         }
 
-        Some(Commands::Mosaic { input }) => {
+        Commands::Mosaic { input } => {
             #[cfg(feature = "nova")]
             glossa::tools::mosaic::run_mosaic(&input)?;
 
@@ -77,7 +87,7 @@ fn main() -> Result<()> {
             }
         }
 
-        Some(Commands::Map { input }) => {
+        Commands::Map { input } => {
             #[cfg(feature = "nova")]
             glossa::tools::cartographer::run_map(&input)?;
 
@@ -90,7 +100,7 @@ fn main() -> Result<()> {
             }
         }
 
-        Some(Commands::Labyrinth { input }) => {
+        Commands::Labyrinth { input } => {
             #[cfg(feature = "nova")]
             glossa::tools::labyrinth::run_labyrinth(&input)?;
 
@@ -103,7 +113,7 @@ fn main() -> Result<()> {
             }
         }
 
-        Some(Commands::Weave { input }) => {
+        Commands::Weave { input } => {
             #[cfg(feature = "nova")]
             glossa::tools::weave::run_weave(&input)?;
 
@@ -116,7 +126,7 @@ fn main() -> Result<()> {
             }
         }
 
-        Some(Commands::Alchemist { input }) => {
+        Commands::Alchemist { input } => {
             #[cfg(feature = "nova")]
             glossa::tools::alchemist::run_alchemist(&input)?;
 
@@ -129,7 +139,7 @@ fn main() -> Result<()> {
             }
         }
 
-        Some(Commands::Papyrus { input }) => {
+        Commands::Papyrus { input } => {
             #[cfg(feature = "nova")]
             glossa::tools::papyrus::run_papyrus(&input)?;
 
@@ -142,7 +152,7 @@ fn main() -> Result<()> {
             }
         }
 
-        Some(Commands::Haruspex { input }) => {
+        Commands::Haruspex { input } => {
             #[cfg(feature = "nova")]
             glossa::tools::haruspex::run_haruspex(&input)?;
 
@@ -155,7 +165,7 @@ fn main() -> Result<()> {
             }
         }
 
-        Some(Commands::Audit { input }) => {
+        Commands::Audit { input } => {
             #[cfg(feature = "nova")]
             glossa::tools::auditor::run_auditor(&input)?;
 
@@ -168,7 +178,7 @@ fn main() -> Result<()> {
             }
         }
 
-        Some(Commands::Catalog) => {
+        Commands::Catalog => {
             #[cfg(feature = "nova")]
             glossa::tools::catalog::run_catalog()?;
 
@@ -178,17 +188,20 @@ fn main() -> Result<()> {
             );
         }
 
-        Some(Commands::Gnomon { input }) => {
+        Commands::Gnomon { input } => {
             #[cfg(feature = "nova")]
             glossa::tools::gnomon::run_gnomon(&input)?;
 
             #[cfg(not(feature = "nova"))]
-            miette::bail!(
-                "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
-            );
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
-        Some(Commands::Scholar { input }) => {
+        Commands::Scholar { input } => {
             #[cfg(feature = "nova")]
             glossa::tools::scholar::run_scholar(&input)?;
 
@@ -201,10 +214,9 @@ fn main() -> Result<()> {
             }
         }
 
-        Some(Commands::Repl) | None => {
+        Commands::Repl => {
             run_repl()?;
         }
     }
-
     Ok(())
 }
