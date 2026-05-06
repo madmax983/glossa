@@ -19,6 +19,7 @@ use crate::semantic::{AnalyzedProgram, AnalyzedStatement};
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
+use std::fmt::Write;
 use std::path::Path;
 
 /// Run the Labyrinth tool on a file
@@ -123,6 +124,7 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
 /// let cfg = generate_cfg(&program);
 /// assert!(cfg.contains("graph TD"));
 /// ```
+/// ⚡ Bolt Optimization: Replaced `.push_str(&format!(...))` with `writeln!(out, ...)` to eliminate unnecessary intermediate String allocations.
 pub fn generate_cfg(program: &AnalyzedProgram) -> String {
     let mut nodes = Vec::new();
     let mut edges = Vec::new();
@@ -146,10 +148,10 @@ pub fn generate_cfg(program: &AnalyzedProgram) -> String {
 
     let mut out = String::from("graph TD\n");
     for node in nodes {
-        out.push_str(&format!("    {}\n", node));
+        let _ = writeln!(out, "    {}", node);
     }
     for edge in edges {
-        out.push_str(&format!("    {}\n", edge));
+        let _ = writeln!(out, "    {}", edge);
     }
     out
 }

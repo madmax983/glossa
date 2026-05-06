@@ -18,10 +18,12 @@ use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
 use std::path::Path;
+use std::fmt::Write;
 
 /// Run the Weave tool on a file
 ///
 /// Reads the source file, compiles it, generates the mosaic, and writes out a Markdown file.
+/// ⚡ Bolt Optimization: Replaced `.push_str(&format!(...))` with `writeln!(md, ...)` to avoid temporary `String` allocations.
 pub fn run_weave(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
@@ -62,7 +64,7 @@ pub fn run_weave(input: &Path) -> Result<()> {
 
     let filename = input.file_name().unwrap_or_default().to_string_lossy();
 
-    md.push_str(&format!("# Rosetta Stone: `{}`\n\n", filename));
+    let _ = writeln!(md, "# Rosetta Stone: `{}`\n", filename);
 
     md.push_str("## 📜 ΓΛΩΣΣΑ Source\n\n");
     md.push_str("```glossa\n");
