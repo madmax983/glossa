@@ -43,7 +43,22 @@ use std::path::Path;
 
 /// Run the Cartographer tool on a file
 ///
-/// Reads the source file, parses it, and prints the architectural map to stdout.
+/// This function acts as the programmatic entry point for the "Cartographer" tool.
+/// It parses and analyzes the provided ΓΛΩΣΣΑ file, and prints the architectural
+/// map (a Mermaid.js class diagram) to stdout. It exists to provide a high-level
+/// overview of the module structures and interfaces in a codebase.
+///
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::cartographer::run_map;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_map(&input) {
+///     eprintln!("Cartographer failed: {}", e);
+/// }
+/// ```
 pub fn run_map(input: &Path) -> Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
@@ -109,6 +124,26 @@ pub fn run_map(input: &Path) -> Result<()> {
 }
 
 /// Generate a Mermaid class diagram from an analyzed program
+///
+/// This function is the core string-generation engine for the Cartographer.
+/// It iterates over all defined types (Structs) and traits (Interfaces) within
+/// the parsed scope, and formats them according to Mermaid class diagram syntax.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::tools::cartographer::generate_map;
+///
+/// let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.";
+/// let ast = parse(source).unwrap();
+/// let program = analyze_program(&ast).unwrap();
+///
+/// let mermaid_code = generate_map(&program);
+/// assert!(mermaid_code.contains("class Χρήστης"));
+/// assert!(mermaid_code.contains("+ὄνομα: String"));
+/// ```
 pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut map = String::from("classDiagram\n");
 

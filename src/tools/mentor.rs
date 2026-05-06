@@ -107,8 +107,20 @@ const LESSONS: &[Lesson] = &[
 
 /// Start the interactive Mentor session
 ///
-/// This function enters a loop where it presents lessons to the user and waits
-/// for them to type code that satisfies the lesson's requirements.
+/// This function acts as the programmatic entry point for the "Mentor" tool.
+/// It enters an interactive loop where it presents lessons to the user via stdout
+/// and waits for them to type code via stdin that satisfies the lesson's requirements.
+/// It exists to provide an interactive educational experience for learning ΓΛΩΣΣΑ.
+///
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::mentor::run_mentor;
+///
+/// if let Err(e) = run_mentor() {
+///     eprintln!("Mentor session failed: {}", e);
+/// }
+/// ```
 pub fn run_mentor() -> Result<()> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();

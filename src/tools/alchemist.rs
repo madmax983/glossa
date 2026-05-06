@@ -18,6 +18,23 @@ use std::fmt::Write;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
+///
+/// This function acts as the programmatic entry point for transpiling a ΓΛΩΣΣΑ
+/// file into a Python script. It handles reading the file, performing semantic analysis,
+/// and outputting the transpiled code to stdout. It exists to provide an alternative
+/// execution environment for ΓΛΩΣΣΑ logic.
+///
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::alchemist::run_alchemist;
+/// use std::path::Path;
+///
+/// let input = Path::new("script.γλ");
+/// if let Err(e) = run_alchemist(&input) {
+///     eprintln!("Transpilation failed: {}", e);
+/// }
+/// ```
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
@@ -60,6 +77,25 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
 }
 
 /// Transpile an AnalyzedProgram to Python source code
+///
+/// This function is the core transpilation engine of the Alchemist. It traverses
+/// the semantically analyzed abstract syntax tree and generates equivalent Python
+/// syntax, proving that ΓΛΩΣΣΑ's semantics can map to dynamic languages.
+///
+/// ## Examples
+///
+/// ```rust
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::tools::alchemist::transpile_to_python;
+///
+/// let source = "ξ 5 ἔστω.";
+/// let ast = parse(source).unwrap();
+/// let program = analyze_program(&ast).unwrap();
+///
+/// let python_code = transpile_to_python(&program);
+/// assert!(python_code.contains("x = 5"));
+/// ```
 pub fn transpile_to_python(program: &AnalyzedProgram) -> String {
     let mut out = String::new();
     out.push_str("from typing import Any\n");

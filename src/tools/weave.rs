@@ -21,7 +21,23 @@ use std::path::Path;
 
 /// Run the Weave tool on a file
 ///
-/// Reads the source file, compiles it, generates the mosaic, and writes out a Markdown file.
+/// This function acts as the programmatic entry point for the "Weave" tool.
+/// It reads the source file, parses its AST, computes the semantic assembly logic
+/// via `run_mosaic_inner`, generates the Rust transpilation via `generate_rust_file`,
+/// and weaves all three (source, mosaic, generated code) into a Markdown file. It exists
+/// to automatically produce 'Rosetta Stone' style educational documents from raw code.
+///
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::weave::run_weave;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_weave(&input) {
+///     eprintln!("Weave failed: {}", e);
+/// }
+/// ```
 pub fn run_weave(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));

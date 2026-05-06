@@ -22,6 +22,23 @@ use crossterm::style::Stylize;
 use std::path::Path;
 
 /// Run the Labyrinth tool on a file
+///
+/// This function acts as the programmatic entry point for the "Labyrinth" tool.
+/// It parses and analyzes the provided ΓΛΩΣΣΑ file, constructing a Mermaid flowchart
+/// diagram to represent the program's control flow logic, and prints it to stdout.
+/// It exists to provide a clear, visual representation of execution paths.
+///
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::labyrinth::run_labyrinth;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_labyrinth(&input) {
+///     eprintln!("Labyrinth failed: {}", e);
+/// }
+/// ```
 pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
     let mut buffer = Vec::new();

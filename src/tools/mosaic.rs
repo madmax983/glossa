@@ -36,7 +36,23 @@ use std::path::Path;
 
 /// Run the Mosaic tool on a file
 ///
-/// Reads the source file, parses it, and prints the semantic assembly table to stdout.
+/// This function acts as the programmatic entry point for the "Mosaic" tool.
+/// It reads the provided ΓΛΩΣΣΑ file, parses its contents, and constructs a
+/// colorful table visualizing how the compiler's morphological assembler maps
+/// individual words into syntactic slots (Subject, Verb, Object, etc.). It exists
+/// to demystify the assembler and help users understand free word order semantics.
+///
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::mosaic::run_mosaic;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_mosaic(&input) {
+///     eprintln!("Mosaic failed: {}", e);
+/// }
+/// ```
 pub fn run_mosaic(input_path: &Path) -> Result<()> {
     let source = crate::tools::runner::load_source(input_path)?;
 

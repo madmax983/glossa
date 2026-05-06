@@ -11,6 +11,20 @@ use crossterm::style::Stylize;
 use miette::Result;
 
 /// Run the catalog explorer
+///
+/// This function acts as the programmatic entry point for the "Catalog" tool,
+/// which enumerates and visually prints all known words in the compiler's built-in lexicon.
+/// It exists to help users explore the core vocabulary of ΓΛΩΣΣΑ by their parts of speech.
+///
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::catalog::run_catalog;
+///
+/// if let Err(e) = run_catalog() {
+///     eprintln!("Failed to run catalog: {}", e);
+/// }
+/// ```
 pub fn run_catalog() -> Result<()> {
     // ⚡ Bolt Optimization: Uses `rustc_hash::FxHashMap` instead of the standard `HashMap`
     // since the keys are internal `PartOfSpeech` enums and are not exposed to HashDoS attacks.

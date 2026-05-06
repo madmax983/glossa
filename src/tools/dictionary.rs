@@ -53,6 +53,21 @@ use crate::morphology::{analyze_all, lexicon};
 use crate::text::normalize_greek;
 
 /// Lookup a word in the dictionary
+///
+/// This function acts as the programmatic entry point for the "Lexicon" tool,
+/// looking up a provided Ancient Greek word using both the static internal lexicon
+/// and dynamic morphological analysis. It exists to provide interactive debugging
+/// of the compiler's morphological phase.
+///
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::dictionary::lookup_word;
+///
+/// if let Err(e) = lookup_word("λόγον") {
+///     eprintln!("Lookup failed: {}", e);
+/// }
+/// ```
 pub fn lookup_word(word: &str) -> Result<()> {
     let normalized = normalize_greek(word);
 
