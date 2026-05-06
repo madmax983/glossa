@@ -13,10 +13,11 @@
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
-use comfy_table::{presets, Attribute, Cell, Color, Table};
+use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Runs the Haruspex tool to generate a Graphviz DOT representation of the AST.
@@ -48,52 +49,54 @@ pub fn run_haruspex(input: &Path) -> Result<()> {
     let mut generator = DotGenerator::new();
     let dot = generator.generate(&program);
 
-    println!();
-    println!(
-        "   {}",
-        "Γ Λ Ω Σ Σ Α   H A R U S P E X".bold().cyan()
-    );
-    println!("   {}", "Semantic AST Graphviz DOT".italic().dim());
-    println!();
-
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
-
-    if program.statements.is_empty() {
-        table.set_header(vec![
-            Cell::new("Status")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
-        ]);
-        table.add_row(vec![
-            Cell::new("No AST structures found.")
-                .fg(Color::DarkGrey)
-                .add_attribute(Attribute::Italic),
-        ]);
-        println!("{table}");
-        println!();
+    if !std::io::stdout().is_terminal() {
+        // Golden Path: If we are being piped, output the raw DOT.
+        println!("{}", dot);
     } else {
-        table.set_header(vec![
-            Cell::new("Graphviz DOT Graph")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-        ]);
-
-        let formatted_dot = format!("```dot\n{}\n```", dot.trim());
-        table.add_row(vec![Cell::new(formatted_dot)]);
-
-        println!("{table}");
+        // UI Mode: Display the styled dashboard.
         println!();
-        println!(
-            "   {}",
-            "📋 Usage Instructions:".bold().underlined()
-        );
-        println!("   1. Copy the code block above.");
-        println!(
-            "   2. Paste it into {}",
-            "https://dreampuf.github.io/GraphvizOnline/".cyan().underlined()
-        );
+        println!("   {}", "Γ Λ Ω Σ Σ Α   H A R U S P E X".bold().cyan());
+        println!("   {}", "Semantic AST Graphviz DOT".italic().dim());
         println!();
+
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
+
+        if program.statements.is_empty() {
+            table.set_header(vec![
+                Cell::new("Status")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Yellow),
+            ]);
+            table.add_row(vec![
+                Cell::new("No AST structures found.")
+                    .fg(Color::DarkGrey)
+                    .add_attribute(Attribute::Italic),
+            ]);
+            println!("{table}");
+            println!();
+        } else {
+            table.set_header(vec![
+                Cell::new("Graphviz DOT Graph")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Cyan),
+            ]);
+
+            let formatted_dot = format!("```dot\n{}\n```", dot.trim());
+            table.add_row(vec![Cell::new(formatted_dot)]);
+
+            println!("{table}");
+            println!();
+            println!("   {}", "📋 Usage Instructions:".bold().underlined());
+            println!("   1. Copy the code block above.");
+            println!(
+                "   2. Paste it into {}",
+                "https://dreampuf.github.io/GraphvizOnline/"
+                    .cyan()
+                    .underlined()
+            );
+            println!();
+        }
     }
 
     Ok(())
