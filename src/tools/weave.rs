@@ -16,9 +16,9 @@ use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
+use std::fmt::Write;
 use std::fs;
 use std::path::Path;
-use std::fmt::Write;
 
 /// Run the Weave tool on a file
 ///
