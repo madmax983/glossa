@@ -18,6 +18,12 @@
 
 #[cfg(feature = "nova")]
 pub mod alchemist;
+/// The Ambassador (ὁ Πρέσβυς) tool for TypeScript declaration generation.
+///
+/// This experimental tool reads Glossa type definitions and functions and automatically
+/// generates corresponding TypeScript `.d.ts` definition files.
+#[cfg(feature = "nova")]
+pub mod ambassador;
 /// The Auditor (Λογιστής) tool for static analysis.
 ///
 /// This experimental tool analyzes Glossa code to detect unused variables,
