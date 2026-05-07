@@ -380,6 +380,17 @@ fn classify_subjunctive_comparison(
     Ok(Some(AnalyzedStatement::Expression(vec![comparison])))
 }
 
+/// Helper: Check if a name is a known field of any struct defined in the current scope
+fn is_known_field(name: &str, scope: &Scope) -> bool {
+    scope.types().any(|(_, t)| {
+        if let GlossaType::Struct { fields, .. } = t {
+            fields.iter().any(|(f_name, _)| f_name == name)
+        } else {
+            false
+        }
+    })
+}
+
 /// Helper: Resolve the target variable name and the effective assembled statement for binding
 ///
 /// ⚡ Bolt Optimization: Returns a `std::borrow::Cow<'_, AssembledStatement>` instead of
@@ -953,24 +964,34 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
+    if let Some(ref subj) = asm_stmt.subject {
+        if !scope.is_defined(&subj.lemma) && !is_known_field(&subj.lemma, scope) {
+            return Err(GlossaError::undefined(&*subj.lemma));
+        }
+        let var_type = scope
+            .lookup(&subj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         args.insert(
             0,
             AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
+                glossa_type: var_type,
             },
         );
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
+    if let Some(ref obj) = asm_stmt.object {
+        if !scope.is_defined(&obj.lemma) && !is_known_field(&obj.lemma, scope) {
+            return Err(GlossaError::undefined(&*obj.lemma));
+        }
+        let var_type = scope
+            .lookup(&obj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         args.push(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
+            glossa_type: var_type,
         });
     }
 
@@ -1157,14 +1178,26 @@ fn classify_expression(
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            if !scope.is_defined(&subj.lemma) && !is_known_field(&subj.lemma, scope) {
+                return Err(GlossaError::undefined(&*subj.lemma));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
+                glossa_type: scope
+                    .lookup(&subj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown),
             });
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) && !is_known_field(&obj.lemma, scope) {
+                return Err(GlossaError::undefined(&*obj.lemma));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
+                glossa_type: scope
+                    .lookup(&obj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown),
             });
         }
     }
@@ -1542,16 +1575,20 @@ fn extract_object_fallback(
         )));
     }
 
-    if !scope.is_defined(obj_lemma) {
+    if !scope.is_defined(obj_lemma) && !is_known_field(obj_lemma, scope) {
         return Err(GlossaError::undefined(obj_lemma.as_str()));
     }
 
+    let glossa_type = scope
+        .lookup(obj_lemma)
+        .cloned()
+        .unwrap_or(GlossaType::Unknown);
     Ok(Some((
         AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: GlossaType::Unknown,
+            glossa_type: glossa_type.clone(),
         },
-        GlossaType::Unknown,
+        glossa_type,
     )))
 }
 

@@ -664,7 +664,8 @@ impl Assembler {
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
+                && (!crate::morphology::lexicon::is_print_verb(&verb.lemma)
+                    || self.state.adjectives.is_empty())
                 && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
             {
                 return Err(AssemblyError::DoubleSubject);
@@ -724,7 +725,9 @@ impl Assembler {
             && self.state.adjectives.is_empty()
             && let Some(subject) = self.state.subject.as_ref()
         {
-            if subject.lemma == "ανθρωπος" {
+            if crate::morphology::lexicon::is_find_verb(&subject.lemma)
+                || subject.lemma == "ανθρωπος"
+            {
                 return Err(AssemblyError::MissingVerb);
             }
             return Ok(());
