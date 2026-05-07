@@ -3,155 +3,157 @@ use glossa::morphology::{Case, Gender, Number, Tense, Voice, analyze_participle}
 
 #[test]
 fn test_participle_analysis_coverage() {
-    struct TestCase {
-        word: &'static str,
-        expected_stem: &'static str,
-        expected_tense: Tense,
-        expected_voice: Voice,
-        expected_case: Case,
-        expected_gender: Gender,
-        expected_number: Number,
-    }
-
     let cases = vec![
         // Present Active (Singular)
-        TestCase {
-            word: "γραφων",
-            expected_stem: "γραφ",
-            expected_tense: Tense::Present,
-            expected_voice: Voice::Active,
-            expected_case: Case::Nominative,
-            expected_gender: Gender::Masculine,
-            expected_number: Number::Singular,
-        },
-        TestCase {
-            word: "γραφουσα",
-            expected_stem: "γραφ",
-            expected_tense: Tense::Present,
-            expected_voice: Voice::Active,
-            expected_case: Case::Nominative,
-            expected_gender: Gender::Feminine,
-            expected_number: Number::Singular,
-        },
-        TestCase {
-            word: "γραφον",
-            expected_stem: "γραφ",
-            expected_tense: Tense::Present,
-            expected_voice: Voice::Active,
-            expected_case: Case::Nominative, // or Accusative (ambiguous, but checks first match)
-            expected_gender: Gender::Neuter,
-            expected_number: Number::Singular,
-        },
+        (
+            "γραφων",
+            "γραφ",
+            Tense::Present,
+            Voice::Active,
+            Case::Nominative,
+            Gender::Masculine,
+            Number::Singular,
+        ),
+        (
+            "γραφουσα",
+            "γραφ",
+            Tense::Present,
+            Voice::Active,
+            Case::Nominative,
+            Gender::Feminine,
+            Number::Singular,
+        ),
+        (
+            "γραφον",
+            "γραφ",
+            Tense::Present,
+            Voice::Active,
+            Case::Nominative, // or Accusative (ambiguous, but checks first match)
+            Gender::Neuter,
+            Number::Singular,
+        ),
         // Present Active (Plural)
-        TestCase {
-            word: "γραφοντες",
-            expected_stem: "γραφ",
-            expected_tense: Tense::Present,
-            expected_voice: Voice::Active,
-            expected_case: Case::Nominative,
-            expected_gender: Gender::Masculine,
-            expected_number: Number::Plural,
-        },
+        (
+            "γραφοντες",
+            "γραφ",
+            Tense::Present,
+            Voice::Active,
+            Case::Nominative,
+            Gender::Masculine,
+            Number::Plural,
+        ),
         // Present Middle/Passive
-        TestCase {
-            word: "λυομενος",
-            expected_stem: "λυ",
-            expected_tense: Tense::Present,
-            expected_voice: Voice::Middle,
-            expected_case: Case::Nominative,
-            expected_gender: Gender::Masculine,
-            expected_number: Number::Singular,
-        },
-        TestCase {
-            word: "λυομενη",
-            expected_stem: "λυ",
-            expected_tense: Tense::Present,
-            expected_voice: Voice::Middle,
-            expected_case: Case::Nominative,
-            expected_gender: Gender::Feminine,
-            expected_number: Number::Singular,
-        },
-        TestCase {
-            word: "λυομενον",
-            expected_stem: "λυ",
-            expected_tense: Tense::Present,
-            expected_voice: Voice::Middle,
-            expected_case: Case::Nominative, // or Accusative, Neuter
-            expected_gender: Gender::Neuter, // or Masculine Accusative
-            expected_number: Number::Singular,
-        },
+        (
+            "λυομενος",
+            "λυ",
+            Tense::Present,
+            Voice::Middle,
+            Case::Nominative,
+            Gender::Masculine,
+            Number::Singular,
+        ),
+        (
+            "λυομενη",
+            "λυ",
+            Tense::Present,
+            Voice::Middle,
+            Case::Nominative,
+            Gender::Feminine,
+            Number::Singular,
+        ),
+        (
+            "λυομενον",
+            "λυ",
+            Tense::Present,
+            Voice::Middle,
+            Case::Nominative, // or Accusative, Neuter
+            Gender::Neuter,   // or Masculine Accusative
+            Number::Singular,
+        ),
         // Overlapping suffixes check: λυομενον ends in "ον"
         // If sorting is broken, it might match "ον" (Present Active) -> stem "λυομεν"
         // Correct behavior: matches "ομενον" (Present Middle) -> stem "λυ"
-        TestCase {
-            word: "λυομενον",
-            expected_stem: "λυ",
-            expected_tense: Tense::Present,
-            expected_voice: Voice::Middle,
-            expected_case: Case::Nominative,
-            expected_gender: Gender::Neuter,
-            expected_number: Number::Singular,
-        },
+        (
+            "λυομενον",
+            "λυ",
+            Tense::Present,
+            Voice::Middle,
+            Case::Nominative,
+            Gender::Neuter,
+            Number::Singular,
+        ),
         // Aorist Active
-        TestCase {
-            word: "λυσας", // stem λυσ -> lemma λυσω (not strictly true lemma which is λυω, but analyze_participle uses stem+ω)
+        (
+            "λυσας", // stem λυσ -> lemma λυσω (not strictly true lemma which is λυω, but analyze_participle uses stem+ω)
             // Actually, analyze_participle returns stem as-is.
             // For aorist "λυσας", stem is "λυσ". verb_lemma() -> "λυσω".
             // The existing code doesn't strip sigmatic aorist suffix "σ" from participle stem.
             // Let's check what the code does.
             // analyze_participle("γραψας") -> stem "γραψ"
-            expected_stem: "λυσ",
-            expected_tense: Tense::Aorist,
-            expected_voice: Voice::Active,
-            expected_case: Case::Nominative,
-            expected_gender: Gender::Masculine,
-            expected_number: Number::Singular,
-        },
-        TestCase {
-            word: "λυσαντος",
-            expected_stem: "λυσ",
-            expected_tense: Tense::Aorist,
-            expected_voice: Voice::Active,
-            expected_case: Case::Genitive,
-            expected_gender: Gender::Masculine,
-            expected_number: Number::Singular,
-        },
+            "λυσ",
+            Tense::Aorist,
+            Voice::Active,
+            Case::Nominative,
+            Gender::Masculine,
+            Number::Singular,
+        ),
+        (
+            "λυσαντος",
+            "λυσ",
+            Tense::Aorist,
+            Voice::Active,
+            Case::Genitive,
+            Gender::Masculine,
+            Number::Singular,
+        ),
         // Perfect Passive
-        TestCase {
-            word: "λελυμενος",
-            expected_stem: "λελυ",
-            expected_tense: Tense::Perfect,
-            expected_voice: Voice::Passive,
-            expected_case: Case::Nominative,
-            expected_gender: Gender::Masculine,
-            expected_number: Number::Singular,
-        },
+        (
+            "λελυμενος",
+            "λελυ",
+            Tense::Perfect,
+            Voice::Passive,
+            Case::Nominative,
+            Gender::Masculine,
+            Number::Singular,
+        ),
     ];
 
-    for (i, test) in cases.iter().enumerate() {
-        let result = analyze_participle(test.word);
+    for (
+        i,
+        (
+            word,
+            expected_stem,
+            expected_tense,
+            expected_voice,
+            expected_case,
+            expected_gender,
+            expected_number,
+        ),
+    ) in cases.into_iter().enumerate()
+    {
+        let result = analyze_participle(word);
         assert!(
             result.is_some(),
             "TestCase #{}: Failed to analyze participle '{}'",
             i,
-            test.word
+            word
         );
 
         let analysis = result.unwrap();
         assert_eq!(
-            analysis.stem, test.expected_stem,
+            analysis.stem, expected_stem,
             "TestCase #{}: Incorrect stem for '{}'",
-            i, test.word
+            i, word
         );
         assert_eq!(
-            analysis.tense, test.expected_tense,
+            analysis.tense, expected_tense,
             "TestCase #{}: Incorrect tense for '{}'",
-            i, test.word
+            i, word
         );
         assert_eq!(
-            analysis.voice, test.expected_voice,
+            analysis.voice, expected_voice,
             "TestCase #{}: Incorrect voice for '{}'",
-            i, test.word
+            i, word
         );
         // Note: For ambiguous cases (like neuter nom/acc), we check what the parser returns first.
         // The implementation sorts patterns by length, but identical length order depends on declaration order.
@@ -164,19 +166,19 @@ fn test_participle_analysis_coverage() {
         // And Neuter comes before Masculine Accusative.
         // So expected values in test cases above (Nominative, Neuter) are correct based on source order.
         assert_eq!(
-            analysis.case, test.expected_case,
+            analysis.case, expected_case,
             "TestCase #{}: Incorrect case for '{}'",
-            i, test.word
+            i, word
         );
         assert_eq!(
-            analysis.gender, test.expected_gender,
+            analysis.gender, expected_gender,
             "TestCase #{}: Incorrect gender for '{}'",
-            i, test.word
+            i, word
         );
         assert_eq!(
-            analysis.number, test.expected_number,
+            analysis.number, expected_number,
             "TestCase #{}: Incorrect number for '{}'",
-            i, test.word
+            i, word
         );
     }
 }
