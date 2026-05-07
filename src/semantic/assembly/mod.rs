@@ -651,7 +651,13 @@ impl Assembler {
                 is_array: !self.state.arrays.is_empty(),
                 has_delimiter: self.state.has_delimiter_preposition,
                 is_match_arm: !self.state.adjectives.is_empty()
-                    || (self.state.subject.is_some()
+                    || self
+                        .state
+                        .subject
+                        .as_ref()
+                        .map_or(false, |s| s.lemma == "αλλο" || s.lemma == "αλλα")
+                    || (self.state.verb.is_none()
+                        && self.state.subject.is_some()
                         && self.state.object.is_none()
                         && self.state.literals.is_empty()),
             };
@@ -664,7 +670,8 @@ impl Assembler {
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
+                && (!crate::morphology::lexicon::is_print_verb(&verb.lemma)
+                    || self.state.adjectives.is_empty())
                 && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
             {
                 return Err(AssemblyError::DoubleSubject);
