@@ -20,3 +20,8 @@
 **Tangle:** Several modules under `src/tools/` (specifically `cache`, `report`, and `ui`) and `src/semantic/assembly/` (`model`) were exposed as `pub mod`, breaking encapsulation by exposing internal implementation details to the public API.
 **Blueprint:** Modified `src/tools/mod.rs` and `src/semantic/assembly/mod.rs` to restrict these modules with `pub(crate) mod`.
 **Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
+
+## [Feature Flag Fallback Consumption]
+**Tangle:** Experimental CLI commands (like `gnomon`) under the `nova` feature flag failed to consume their parsed `input` argument in the fallback branch `#[cfg(not(feature = "nova"))]`, causing an unused variable compiler warning.
+**Blueprint:** Encapsulated the fallback `miette::bail!` in a block and explicitly consumed `input` with `let _ = input;` to suppress the warning and satisfy compiler checks.
+**Stability:** Eliminates compiler warnings across feature flag configurations, maintaining a clean build without altering runtime behavior.
