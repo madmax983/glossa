@@ -1,4 +1,4 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. **Create Issue File:** Since I am operating under the "Echo" persona, I am explicitly forbidden from reading the source code or fixing the codebase. My job is solely to audit the DX and report issues. I will create a new file `ECHO_AUDIT.md` (acting as the Issue report) that details the friction points I found during my audit (e.g., Undefined variables compiling silently, Double subjects compiling silently, and Internal Compiler Errors when using numbers as maps).
+2. **Format the Issue:** Ensure the issue is formatted exactly as Echo requires: Title starting with `🗣️ Echo:`, and sections for `🤦 **The Confusion:**`, `🕵️ **The Reality:**`, and `💡 **The Fix:**`.
+3. **Complete pre-commit steps:** Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+4. **Submit:** I will submit the code with a descriptive commit message.
