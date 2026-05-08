@@ -1,4 +1,6 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. **Run Tests:**
+   - Run tests using `cargo test --all-targets --all-features` to ensure my changes have not broken existing functionality.
+2. **Pre-commit Steps:**
+   - Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+3. **Submit PR:**
+   - Once verified, I will submit the PR to encapsulate the `semantic::assembly` module and record my findings about `src/tools` and the overall structure in `.jules/atlas.md`.
