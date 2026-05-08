@@ -47,7 +47,12 @@ pub fn run_haruspex(input: &Path) -> Result<()> {
 
     let dot = generate_dot(&program);
 
-    if std::io::stdout().is_terminal() {
+    print_dashboard(&dot, std::io::stdout().is_terminal());
+    Ok(())
+}
+
+fn print_dashboard(dot: &str, is_tty: bool) {
+    if is_tty {
         println!();
         println!("   {}", "Γ Λ Ω Σ Σ Α   H A R U S P E X".cyan().bold());
         println!(
@@ -78,7 +83,6 @@ pub fn run_haruspex(input: &Path) -> Result<()> {
     } else {
         println!("{}", dot);
     }
-    Ok(())
 }
 
 fn generate_dot(program: &AnalyzedProgram) -> String {
@@ -822,6 +826,30 @@ fn visit_lambda_expr(
 mod tests {
     use super::*;
     use crate::semantic::{GlossaType, Scope};
+
+    #[test]
+    fn test_print_dashboard_tty() {
+        // Just verify it doesn't panic
+        print_dashboard(
+            "digraph AST { node_0 [label=\"Program\"]; node_0 -> node_1; }",
+            true,
+        );
+    }
+
+    #[test]
+    fn test_print_dashboard_no_tty() {
+        print_dashboard("digraph AST { node_0 [label=\"Program\"]; }", false);
+    }
+
+    #[test]
+    fn test_run_haruspex_success() {
+        // Need to test the actual success path
+        let temp_dir = tempfile::tempdir().unwrap();
+        let valid_file = temp_dir.path().join("valid.γλ");
+        std::fs::write(&valid_file, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.").unwrap();
+        let result = run_haruspex(&valid_file);
+        assert!(result.is_ok());
+    }
 
     #[test]
     fn test_haruspex_errors() {
