@@ -953,25 +953,31 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
-        args.insert(
-            0,
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
-            },
-        );
+    if let Some(ref subj) = asm_stmt.subject {
+        if !scope.is_defined(&subj.lemma) && !is_known_field(scope, &subj.lemma) {
+            return Err(GlossaError::undefined(&*subj.lemma));
+        }
+        if let Some(var_type) = scope.lookup(&subj.lemma) {
+            args.insert(
+                0,
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                },
+            );
+        }
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
-        args.push(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
-        });
+    if let Some(ref obj) = asm_stmt.object {
+        if !scope.is_defined(&obj.lemma) && !is_known_field(scope, &obj.lemma) {
+            return Err(GlossaError::undefined(&*obj.lemma));
+        }
+        if let Some(var_type) = scope.lookup(&obj.lemma) {
+            args.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: var_type.clone(),
+            });
+        }
     }
 
     Ok(args)
@@ -1103,6 +1109,18 @@ fn classify_containment_query(
 
 /// Helper: Default expression
 #[allow(unused_variables)]
+fn is_known_field(scope: &Scope, lemma: &str) -> bool {
+    for (_, ty) in scope.types() {
+        if let GlossaType::Struct { fields, .. } = ty
+            && fields.iter().any(|(name, _)| name == lemma)
+        {
+            return true;
+        }
+    }
+    false
+}
+
+#[allow(unused_variables)]
 fn classify_expression(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
@@ -1157,14 +1175,26 @@ fn classify_expression(
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            if !scope.is_defined(&subj.lemma) && !is_known_field(scope, &subj.lemma) {
+                return Err(GlossaError::undefined(&*subj.lemma));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
+                glossa_type: scope
+                    .lookup(&subj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown),
             });
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) && !is_known_field(scope, &obj.lemma) {
+                return Err(GlossaError::undefined(&*obj.lemma));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
+                glossa_type: scope
+                    .lookup(&obj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown),
             });
         }
     }
@@ -1542,8 +1572,8 @@ fn extract_object_fallback(
         )));
     }
 
-    if !scope.is_defined(obj_lemma) {
-        return Err(GlossaError::undefined(obj_lemma.as_str()));
+    if !scope.is_defined(obj_lemma) && !is_known_field(scope, obj_lemma) {
+        return Err(GlossaError::undefined(&**obj_lemma));
     }
 
     Ok(Some((
