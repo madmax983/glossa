@@ -532,6 +532,41 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
 }
 
 /// Parse a match pattern expression
+fn parse_word_pattern(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
+    let normalized = &w.normalized;
+
+    // Check for wildcard (ἄλλο)
+    if normalized == "αλλο" {
+        return Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
+        });
+    }
+
+    // Check for numeral
+    if let Some(val) = lexicon::numeral_value(normalized) {
+        return Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(val),
+            glossa_type: GlossaType::Number,
+        });
+    }
+
+    // Otherwise, treat as variable reference
+    let var_type = scope
+        .lookup(normalized)
+        .cloned()
+        .unwrap_or(GlossaType::Unknown);
+
+    if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
+        return Err(GlossaError::undefined(normalized.clone()));
+    }
+
+    Ok(AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(normalized.clone()),
+        glossa_type: var_type,
+    })
+}
+
 fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, GlossaError> {
     // Pattern is typically: value ᾖ
     if let Expr::Phrase(terms) = expr {
@@ -541,68 +576,10 @@ fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, G
 
         // Get first word (the pattern value)
         if let Expr::Word(w) = &terms[0] {
-            let normalized = &w.normalized;
-
-            // Check if it's ἄλλο (wildcard)
-            if normalized == "αλλο" {
-                return Ok(AnalyzedExpr {
-                    expr: AnalyzedExprKind::BooleanLiteral(true),
-                    glossa_type: GlossaType::Boolean,
-                });
-            }
-
-            // Check if it's a numeral
-            if let Some(val) = lexicon::numeral_value(normalized) {
-                return Ok(AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(val),
-                    glossa_type: GlossaType::Number,
-                });
-            }
-
-            // Otherwise, treat as variable reference
-            let var_type = scope
-                .lookup(normalized)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown);
-            if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
-                return Err(GlossaError::undefined(normalized.clone()));
-            }
-            return Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(normalized.clone()),
-                glossa_type: var_type,
-            });
+            return parse_word_pattern(w, scope);
         }
     } else if let Expr::Word(w) = expr {
-        let normalized = &w.normalized;
-
-        // Check for wildcard
-        if normalized == "αλλο" {
-            return Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::BooleanLiteral(true),
-                glossa_type: GlossaType::Boolean,
-            });
-        }
-
-        // Check for numeral
-        if let Some(val) = lexicon::numeral_value(normalized) {
-            return Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(val),
-                glossa_type: GlossaType::Number,
-            });
-        }
-
-        let var_type = scope
-            .lookup(normalized)
-            .cloned()
-            .unwrap_or(GlossaType::Unknown);
-        if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
-            return Err(GlossaError::undefined(normalized.clone()));
-        }
-
-        return Ok(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(normalized.clone()),
-            glossa_type: var_type,
-        });
+        return parse_word_pattern(w, scope);
     }
 
     Err(GlossaError::semantic("Invalid match pattern"))
