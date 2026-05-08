@@ -121,6 +121,17 @@ impl GnomonVisitor {
 ///     eprintln!("Failed to estimate complexity: {}", e);
 /// }
 /// ```
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::gnomon::run_gnomon;
+/// use std::path::Path;
+///
+/// let input = Path::new("algorithm.γλ");
+/// if let Err(e) = run_gnomon(&input) {
+///     eprintln!("Execution failed: {}", e);
+/// }
+/// ```
 pub fn run_gnomon(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));

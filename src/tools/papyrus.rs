@@ -46,6 +46,17 @@ use std::path::Path;
 ///
 /// Returns a [`miette::Result`] if the file cannot be read, or if there is a parsing
 /// or semantic analysis error during compilation.
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::papyrus::run_papyrus;
+/// use std::path::Path;
+///
+/// let input = Path::new("schema.γλ");
+/// if let Err(e) = run_papyrus(&input) {
+///     eprintln!("Execution failed: {}", e);
+/// }
+/// ```
 pub fn run_papyrus(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));

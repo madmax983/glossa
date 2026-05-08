@@ -56,6 +56,16 @@ const MAX_REPL_SOURCE_LEN: usize = 50_000;
 /// ✓ Ἐκτελέσθη
 ///   println!("{}", ξ);
 /// ```
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::repl::run_repl;
+///
+/// if let Err(e) = run_repl() {
+///     eprintln!("REPL failed: {}", e);
+/// }
+/// ```
 pub fn run_repl() -> Result<()> {
     print_banner();
     let stdin = std::io::stdin();

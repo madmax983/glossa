@@ -41,7 +41,19 @@ use miette::Result;
 use rustc_hash::FxHashSet;
 use std::path::Path;
 
-/// Run the Cartographer tool on a file
+/// Runs the Cartographer tool to generate a Mermaid.js class diagram.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::cartographer::run_map;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_map(&input) {
+///     eprintln!("Mapping failed: {}", e);
+/// }
+/// ```
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
 pub fn run_map(input: &Path) -> Result<()> {

@@ -17,7 +17,19 @@ use crossterm::style::Stylize;
 use std::fmt::Write;
 use std::path::Path;
 
-/// Run the Alchemist tool on a file
+/// Runs the Alchemist tool to transpile a Glossa source file into Python.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::alchemist::run_alchemist;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_alchemist(&input) {
+///     eprintln!("Transpilation failed: {}", e);
+/// }
+/// ```
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 

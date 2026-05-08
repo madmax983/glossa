@@ -10,7 +10,17 @@ use comfy_table::{Cell, Color, Table};
 use crossterm::style::Stylize;
 use miette::Result;
 
-/// Run the catalog explorer
+/// Runs the Catalog tool to explore the compiler vocabulary.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::catalog::run_catalog;
+///
+/// if let Err(e) = run_catalog() {
+///     eprintln!("Catalog failed: {}", e);
+/// }
+/// ```
 pub fn run_catalog() -> Result<()> {
     // ⚡ Bolt Optimization: Uses `rustc_hash::FxHashMap` instead of the standard `HashMap`
     // since the keys are internal `PartOfSpeech` enums and are not exposed to HashDoS attacks.

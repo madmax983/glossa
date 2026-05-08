@@ -34,7 +34,19 @@ use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::path::Path;
 
-/// Run the Mosaic tool on a file
+/// Runs the Mosaic tool to visualize the assembled statement structure.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::mosaic::run_mosaic;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_mosaic(&input) {
+///     eprintln!("Mosaic failed: {}", e);
+/// }
+/// ```
 ///
 /// Reads the source file, parses it, and prints the semantic assembly table to stdout.
 pub fn run_mosaic(input_path: &Path) -> Result<()> {

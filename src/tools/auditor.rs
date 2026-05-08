@@ -51,6 +51,17 @@ use std::path::Path;
 ///
 /// Returns a [`miette::Result`] if the file cannot be read, or if there is a parsing
 /// or semantic analysis error during compilation.
+/// ## Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::auditor::run_auditor;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_auditor(&input) {
+///     eprintln!("Execution failed: {}", e);
+/// }
+/// ```
 pub fn run_auditor(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));

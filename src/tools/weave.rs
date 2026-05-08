@@ -19,7 +19,19 @@ use miette::{IntoDiagnostic, Result};
 use std::fs;
 use std::path::Path;
 
-/// Run the Weave tool on a file
+/// Runs the Weave tool to generate a Rosetta Stone Markdown document.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::weave::run_weave;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_weave(&input) {
+///     eprintln!("Weaving failed: {}", e);
+/// }
+/// ```
 ///
 /// Reads the source file, compiles it, generates the mosaic, and writes out a Markdown file.
 pub fn run_weave(input: &Path) -> Result<()> {
