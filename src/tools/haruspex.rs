@@ -13,8 +13,10 @@
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
+use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Runs the Haruspex tool to generate a Graphviz DOT representation of the AST.
@@ -45,7 +47,37 @@ pub fn run_haruspex(input: &Path) -> Result<()> {
 
     let dot = generate_dot(&program);
 
-    println!("{}", dot);
+    if std::io::stdout().is_terminal() {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   H A R U S P E X".cyan().bold());
+        println!(
+            "   {}",
+            "AST Graphviz DOT Representation Generated".italic().dim()
+        );
+        println!();
+
+        let actual_nodes = dot.lines().filter(|l| l.contains("[label=")).count();
+        let edges = dot.matches("->").count();
+
+        println!("   {} {}", "Nodes:".bold(), actual_nodes.to_string().cyan());
+        println!("   {} {}", "Edges:".bold(), edges.to_string().cyan());
+        println!();
+        println!(
+            "   {}",
+            "To view the graph, pipe this command to a file or tool:".dim()
+        );
+        println!(
+            "   {}",
+            "cargo run --features nova --bin glossa -- haruspex <file> > ast.dot".dim()
+        );
+        println!(
+            "   {}",
+            "cargo run --features nova --bin glossa -- haruspex <file> | dot -Tpng > ast.png".dim()
+        );
+        println!();
+    } else {
+        println!("{}", dot);
+    }
     Ok(())
 }
 
