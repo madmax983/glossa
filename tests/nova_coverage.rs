@@ -281,3 +281,79 @@ fn test_run_scholar_syntax_error() {
 }
 
 // removed test_run_tests_rustc_error because of environment variable pollution causing intermittent failures in parallel execution and it being redundant to runner tests
+
+#[test]
+fn test_run_hermes_success() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }. ξ 5 ἔστω.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::hermes::run_hermes(temp_file.path());
+    assert!(result.is_ok(), "Hermes failed: {:?}", result.err());
+}
+
+#[test]
+fn test_run_hermes_file_not_found() {
+    let path = PathBuf::from("non_existent_file.gl");
+    let result = glossa::tools::hermes::run_hermes(&path);
+    assert!(result.is_err());
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Ἀρχεῖον οὐχ εὑρέθη")
+    );
+}
+
+#[test]
+fn test_run_hermes_file_too_large() {
+    let dir = Builder::new().prefix("hermes_large").tempdir().unwrap();
+    let input_path = dir.path().join("too_large.γλ");
+
+    let max_size = 1024 * 1024;
+    {
+        use std::io::Write;
+        let mut f = std::fs::File::create(&input_path).unwrap();
+        let data = vec![0u8; max_size + 1];
+        f.write_all(&data).unwrap();
+    }
+
+    let result = glossa::tools::hermes::run_hermes(&input_path);
+    assert!(result.is_err());
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Ἀρχεῖον λίαν μέγα")
+    );
+}
+
+#[test]
+fn test_run_hermes_syntax_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "invalid syntax").expect("Failed to write");
+
+    let result = glossa::tools::hermes::run_hermes(temp_file.path());
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_hermes_semantic_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "ψ πέντε γίγνεται.").expect("Failed to write");
+
+    let result = glossa::tools::hermes::run_hermes(temp_file.path());
+    assert!(result.is_err());
+}
