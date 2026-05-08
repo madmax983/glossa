@@ -744,6 +744,15 @@ mod tests {
     }
 
     #[test]
+    fn test_run_haruspex_success() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let valid_file = temp_dir.path().join("valid.γλ");
+        std::fs::write(&valid_file, "ὁ χρόνος φεύγει.").unwrap();
+        let result = run_haruspex(&valid_file);
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn test_dot_generator_coverage() {
         let scope = Scope::new();
 
