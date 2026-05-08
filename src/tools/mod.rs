@@ -39,6 +39,12 @@ pub mod dictionary;
 pub mod gnomon;
 #[cfg(feature = "nova")]
 pub mod haruspex;
+/// The Hermes (ὁ Ἑρμῆς) tool for TypeScript generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding TypeScript interfaces.
+#[cfg(feature = "nova")]
+pub mod hermes;
 pub mod highlight;
 #[cfg(feature = "nova")]
 pub mod interpreter;
