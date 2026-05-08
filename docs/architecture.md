@@ -39,6 +39,7 @@ C4Container
         Container(cartographer, "Cartographer", "src/tools/cartographer.rs", "Generates Mermaid Class Diagrams")
         Container(catalog, "The Catalog", "src/tools/catalog.rs", "Lexicon Explorer (CLI)")
         Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
+        Container(haruspex, "Haruspex", "src/tools/haruspex.rs", "Graphviz AST Visualizer")
         Container(dictionary, "The Lexicon", "src/tools/dictionary.rs", "The Source of Truth for Words (Dictionary)")
         Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
         Container(interpreter, "Interpreter", "src/tools/interpreter.rs", "In-memory tree-walk simulator")
