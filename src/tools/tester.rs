@@ -624,26 +624,20 @@ failures:
 
     #[test]
     fn test_extract_failures_edge_cases() {
-        struct TestCase {
-            name: &'static str,
-            input: &'static str,
-            expected_count: usize,
-        }
-
         let test_cases = vec![
-            TestCase {
-                name: "No failures block",
-                input: "
+            (
+                "No failures block",
+                "
 running 1 test
 test my_test ... FAILED
 
 test result: FAILED...
 ",
-                expected_count: 0,
-            },
-            TestCase {
-                name: "Malformed stdout block",
-                input: "
+                0,
+            ),
+            (
+                "Malformed stdout block",
+                "
 failures:
 
 ---- my_test_without_end_block
@@ -652,21 +646,21 @@ Error message here
 failures:
     my_test_without_end_block
 ",
-                expected_count: 0,
-            },
-            TestCase {
-                name: "Missing end of test details block",
-                input: "
+                0,
+            ),
+            (
+                "Missing end of test details block",
+                "
 failures:
 
 ---- my_test_missing_end stdout ----
 Error message here
 ",
-                expected_count: 1,
-            },
-            TestCase {
-                name: "Missing next test block",
-                input: "
+                1,
+            ),
+            (
+                "Missing next test block",
+                "
 failures:
 
 ---- my_test_next stdout ----
@@ -674,11 +668,11 @@ Error 1
 ---- my_test_next_missing stdout ----
 Error 2
 ",
-                expected_count: 2,
-            },
-            TestCase {
-                name: "Thread panicked internal rust string stripped",
-                input: "
+                2,
+            ),
+            (
+                "Thread panicked internal rust string stripped",
+                "
 failures:
 
 ---- test_panicked stdout ----
@@ -687,68 +681,40 @@ thread 'test_panicked' panicked at 'internal panic message', src/lib.rs:1:1
    1: core::panicking::panic_fmt
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 ",
-                expected_count: 1, // It should still capture the failure but strip some internal messages
-            },
+                1, // It should still capture the failure but strip some internal messages
+            ),
         ];
 
-        for case in test_cases {
-            let failures = extract_failures(case.input);
-            assert_eq!(
-                failures.len(),
-                case.expected_count,
-                "Failed case: {}",
-                case.name
-            );
+        for (name, input, expected_count) in test_cases {
+            let failures = extract_failures(input);
+            assert_eq!(failures.len(), expected_count, "Failed case: {}", name);
         }
     }
 
     #[test]
     fn test_parse_test_output_edge_cases() {
-        struct TestCase {
-            name: &'static str,
-            input: &'static str,
-            expected_count: usize,
-        }
-
         let test_cases = vec![
-            TestCase {
-                name: "Empty parts (less than 4)",
-                input: "
+            (
+                "Empty parts (less than 4)",
+                "
 running 1 test
 test ... ok
 ",
-                expected_count: 0,
-            },
-            TestCase {
-                name: "Missing test prefix",
-                input: "my_test ... ok",
-                expected_count: 0,
-            },
-            TestCase {
-                name: "Unknown status",
-                input: "test my_test ... WEIRD_STATUS",
-                expected_count: 0,
-            },
-            TestCase {
-                name: "Just test prefix",
-                input: "test ",
-                expected_count: 0,
-            },
-            TestCase {
-                name: "Extraneous info but valid format",
-                input: "test my_test has extra words before ... ok",
-                expected_count: 1,
-            },
+                0,
+            ),
+            ("Missing test prefix", "my_test ... ok", 0),
+            ("Unknown status", "test my_test ... WEIRD_STATUS", 0),
+            ("Just test prefix", "test ", 0),
+            (
+                "Extraneous info but valid format",
+                "test my_test has extra words before ... ok",
+                1,
+            ),
         ];
 
-        for case in test_cases {
-            let results = parse_test_output(case.input);
-            assert_eq!(
-                results.len(),
-                case.expected_count,
-                "Failed case: {}",
-                case.name
-            );
+        for (name, input, expected_count) in test_cases {
+            let results = parse_test_output(input);
+            assert_eq!(results.len(), expected_count, "Failed case: {}", name);
         }
     }
 }
