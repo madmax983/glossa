@@ -273,29 +273,65 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// );
 /// assert_eq!(to_rust_type(&result_type), "Result<i64, String>");
 /// ```
+/// Generates the Rust type string for a given `GlossaType`.
+///
+/// **Optimization:** To avoid recursive heap allocations via `format!` calls on deeply nested types
+/// (like `Vec<HashMap<String, Result<i64, bool>>>`), we pass a mutable pre-allocated `String`
+/// buffer down the recursive calls and build the string in place.
 pub fn to_rust_type(ty: &GlossaType) -> String {
+    let mut out = String::with_capacity(32);
+    // Ignore the error as writing to a String cannot fail
+    let _ = write_rust_type(ty, &mut out);
+    out
+}
+
+fn write_rust_type(ty: &GlossaType, out: &mut String) -> std::fmt::Result {
+    use std::fmt::Write;
     match ty {
-        GlossaType::Number => "i64".to_string(),
-        GlossaType::String => "String".to_string(),
-        GlossaType::Boolean => "bool".to_string(),
-        GlossaType::List(inner) => format!("Vec<{}>", to_rust_type(inner)),
-        GlossaType::Set(inner) => format!("HashSet<{}>", to_rust_type(inner)),
+        GlossaType::Number => write!(out, "i64"),
+        GlossaType::String => write!(out, "String"),
+        GlossaType::Boolean => write!(out, "bool"),
+        GlossaType::List(inner) => {
+            write!(out, "Vec<")?;
+            write_rust_type(inner, out)?;
+            write!(out, ">")
+        }
+        GlossaType::Set(inner) => {
+            write!(out, "HashSet<")?;
+            write_rust_type(inner, out)?;
+            write!(out, ">")
+        }
         GlossaType::Map(key, value) => {
-            format!("HashMap<{}, {}>", to_rust_type(key), to_rust_type(value))
+            write!(out, "HashMap<")?;
+            write_rust_type(key, out)?;
+            write!(out, ", ")?;
+            write_rust_type(value, out)?;
+            write!(out, ">")
         }
-        GlossaType::Option(inner) => format!("Option<{}>", to_rust_type(inner)),
+        GlossaType::Option(inner) => {
+            write!(out, "Option<")?;
+            write_rust_type(inner, out)?;
+            write!(out, ">")
+        }
         GlossaType::Result(ok, err) => {
-            format!("Result<{}, {}>", to_rust_type(ok), to_rust_type(err))
+            write!(out, "Result<")?;
+            write_rust_type(ok, out)?;
+            write!(out, ", ")?;
+            write_rust_type(err, out)?;
+            write!(out, ">")
         }
-        GlossaType::Unit => "()".to_string(),
-        GlossaType::Struct { name, .. } => Sanitizer {
-            name,
-            capitalize: true,
-        }
-        .to_string(),
+        GlossaType::Unit => write!(out, "()"),
+        GlossaType::Struct { name, .. } => write!(
+            out,
+            "{}",
+            Sanitizer {
+                name,
+                capitalize: true,
+            }
+        ),
         // TODO: Better representation for function types if they appear in type signatures
-        GlossaType::Function { .. } => "fn".to_string(),
-        GlossaType::Unknown => "_".to_string(),
+        GlossaType::Function { .. } => write!(out, "fn"),
+        GlossaType::Unknown => write!(out, "_"),
     }
 }
 
