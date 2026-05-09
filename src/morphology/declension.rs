@@ -640,120 +640,104 @@ mod tests {
     #[test]
     fn test_decline_table() {
         // Table-driven test for decline() covering multiple declensions and cases
-        struct TestCase {
-            stem: &'static str,
-            declension: Declension,
-            gender: Gender,
-            case: Case,
-            number: Number,
-            expected: &'static str,
-            description: &'static str,
-        }
-
         let cases = vec![
             // First Declension - Eta type (stem ending in consonant other than rho)
-            TestCase {
-                stem: "τιμ",
-                declension: Declension::First,
-                gender: Gender::Feminine,
-                case: Case::Nominative,
-                number: Number::Singular,
-                expected: "τιμη",
-                description: "First Declension Eta Nominative Singular",
-            },
-            TestCase {
-                stem: "τιμ",
-                declension: Declension::First,
-                gender: Gender::Feminine,
-                case: Case::Genitive,
-                number: Number::Singular,
-                expected: "τιμης",
-                description: "First Declension Eta Genitive Singular",
-            },
+            (
+                "τιμ",
+                Declension::First,
+                Gender::Feminine,
+                Case::Nominative,
+                Number::Singular,
+                "τιμη",
+                "First Declension Eta Nominative Singular",
+            ),
+            (
+                "τιμ",
+                Declension::First,
+                Gender::Feminine,
+                Case::Genitive,
+                Number::Singular,
+                "τιμης",
+                "First Declension Eta Genitive Singular",
+            ),
             // First Declension - Alpha type (stem ending in rho)
-            TestCase {
-                stem: "χωρ",
-                declension: Declension::First,
-                gender: Gender::Feminine,
-                case: Case::Nominative,
-                number: Number::Singular,
-                expected: "χωρα",
-                description: "First Declension Alpha (rho) Nominative Singular",
-            },
-            TestCase {
-                stem: "χωρ",
-                declension: Declension::First,
-                gender: Gender::Feminine,
-                case: Case::Genitive,
-                number: Number::Singular,
-                expected: "χωρας",
-                description: "First Declension Alpha (rho) Genitive Singular",
-            },
+            (
+                "χωρ",
+                Declension::First,
+                Gender::Feminine,
+                Case::Nominative,
+                Number::Singular,
+                "χωρα",
+                "First Declension Alpha (rho) Nominative Singular",
+            ),
+            (
+                "χωρ",
+                Declension::First,
+                Gender::Feminine,
+                Case::Genitive,
+                Number::Singular,
+                "χωρας",
+                "First Declension Alpha (rho) Genitive Singular",
+            ),
             // First Declension - Alpha type (stem ending in iota)
-            TestCase {
-                stem: "οικι",
-                declension: Declension::First,
-                gender: Gender::Feminine,
-                case: Case::Genitive,
-                number: Number::Singular,
-                expected: "οικιας",
-                description: "First Declension Alpha (iota) Genitive Singular",
-            },
+            (
+                "οικι",
+                Declension::First,
+                Gender::Feminine,
+                Case::Genitive,
+                Number::Singular,
+                "οικιας",
+                "First Declension Alpha (iota) Genitive Singular",
+            ),
             // First Declension - Alpha type (stem ending in epsilon)
             // e.g. γενεά -> γενε
-            TestCase {
-                stem: "γενε",
-                declension: Declension::First,
-                gender: Gender::Feminine,
-                case: Case::Genitive,
-                number: Number::Singular,
-                expected: "γενεας",
-                description: "First Declension Alpha (epsilon) Genitive Singular",
-            },
+            (
+                "γενε",
+                Declension::First,
+                Gender::Feminine,
+                Case::Genitive,
+                Number::Singular,
+                "γενεας",
+                "First Declension Alpha (epsilon) Genitive Singular",
+            ),
             // Second Declension - Masculine
-            TestCase {
-                stem: "λογ",
-                declension: Declension::Second,
-                gender: Gender::Masculine,
-                case: Case::Accusative,
-                number: Number::Plural,
-                expected: "λογους",
-                description: "Second Declension Masculine Accusative Plural",
-            },
+            (
+                "λογ",
+                Declension::Second,
+                Gender::Masculine,
+                Case::Accusative,
+                Number::Plural,
+                "λογους",
+                "Second Declension Masculine Accusative Plural",
+            ),
             // Second Declension - Neuter
-            TestCase {
-                stem: "δωρ",
-                declension: Declension::Second,
-                gender: Gender::Neuter,
-                case: Case::Nominative,
-                number: Number::Plural,
-                expected: "δωρα",
-                description: "Second Declension Neuter Nominative Plural",
-            },
+            (
+                "δωρ",
+                Declension::Second,
+                Gender::Neuter,
+                Case::Nominative,
+                Number::Plural,
+                "δωρα",
+                "Second Declension Neuter Nominative Plural",
+            ),
             // Third Declension - Neuter (-μα type)
-            TestCase {
-                stem: "σω", // σῶμα -> σώματος
-                declension: Declension::Third,
-                gender: Gender::Neuter,
-                case: Case::Genitive,
-                number: Number::Singular,
-                expected: "σωματος",
-                description: "Third Declension Neuter Genitive Singular",
-            },
+            (
+                "σω", // σῶμα -> σώματος
+                Declension::Third,
+                Gender::Neuter,
+                Case::Genitive,
+                Number::Singular,
+                "σωματος",
+                "Third Declension Neuter Genitive Singular",
+            ),
         ];
 
-        for test in cases {
-            let result = decline(
-                test.stem,
-                test.declension,
-                test.gender,
-                test.case,
-                test.number,
-            );
+        for (stem, declension, gender, case, number, expected, description) in cases {
+            let result = decline(stem, declension, gender, case, number);
             assert_eq!(
-                result, test.expected,
+                result, expected,
                 "Failed test: {}. Stem: {}, Decl: {:?}, Gender: {:?}, Case: {:?}, Num: {:?}",
-                test.description, test.stem, test.declension, test.gender, test.case, test.number
+                description, stem, declension, gender, case, number
             );
         }
     }
