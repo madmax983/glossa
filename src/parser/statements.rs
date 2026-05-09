@@ -3,8 +3,8 @@
 //! Handles parsing of grammatical clauses into regular statements.
 use crate::ast::*;
 use crate::parser::common::ParseError;
+use crate::parser::core::Rule;
 use crate::parser::expressions::build_expression;
-use crate::parser::grammar::Rule;
 use pest::iterators::Pair;
 
 pub(crate) fn build_regular_statement(
@@ -70,7 +70,7 @@ fn parse_statement_end(pair: Pair<'_, Rule>) -> (bool, bool) {
 #[cfg(test)]
 mod tests_coverage {
     use super::*;
-    use crate::parser::grammar::{GlossaParser, Rule};
+    use crate::parser::core::{GlossaParser, Rule};
     use pest::Parser;
 
     #[test]

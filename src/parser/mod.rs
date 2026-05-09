@@ -23,21 +23,21 @@
 //! recursive descent parsing phase.
 
 pub(crate) mod common;
+pub(crate) mod core;
 pub(crate) mod declarations;
 pub(crate) mod expressions;
-pub(crate) mod grammar;
 pub(crate) mod numerals;
 pub(crate) mod recursion;
 pub(crate) mod statements;
 
-use self::grammar::{Rule, parse as grammar_parse};
+use self::core::{Rule, parse as grammar_parse};
 use crate::ast::*;
 use crate::errors::GlossaError;
 use pest::iterators::Pair;
 
 pub use common::ParseError;
 pub use common::parse_number_literal;
-pub use grammar::parse as grammar_parse_public;
+pub use core::parse as grammar_parse_public;
 pub use numerals::parse_greek_numeral;
 
 impl From<ParseError> for GlossaError {
@@ -306,7 +306,7 @@ mod tests_coverage {
 
     #[test]
     fn test_parse_unexpected_error_handling() {
-        use crate::parser::grammar::{GlossaParser, Rule};
+        use crate::parser::core::{GlossaParser, Rule};
         use pest::Parser;
 
         let mut pairs = GlossaParser::parse(Rule::string_literal, "«a»").unwrap();
@@ -318,7 +318,7 @@ mod tests_coverage {
 
     #[test]
     fn test_parse_empty_statement_handling() {
-        use crate::parser::grammar::{GlossaParser, Rule};
+        use crate::parser::core::{GlossaParser, Rule};
         use pest::Parser;
 
         let mut pairs = GlossaParser::parse(Rule::period, ".").unwrap();

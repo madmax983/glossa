@@ -74,7 +74,7 @@ use pest_derive::Parser;
 /// assert!(pairs.is_ok());
 /// ```
 #[derive(Parser)]
-#[grammar = "parser/grammar.pest"]
+#[grammar = "parser/core/grammar.pest"]
 #[doc(hidden)]
 #[allow(missing_docs)]
 pub struct GlossaParser;

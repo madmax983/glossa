@@ -4,7 +4,7 @@
 use crate::ast::*;
 use crate::parser::build_statement;
 use crate::parser::common::{ParseError, parse_number_literal};
-use crate::parser::grammar::Rule;
+use crate::parser::core::Rule;
 use pest::iterators::Pair;
 
 /// Builds an expression from a grammar pair.
@@ -174,7 +174,7 @@ fn build_literal(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::grammar::GlossaParser;
+    use crate::parser::core::GlossaParser;
     use pest::Parser;
 
     #[test]
@@ -245,7 +245,7 @@ mod tests {
 #[cfg(test)]
 mod tests_coverage {
     use super::*;
-    use crate::parser::grammar::{GlossaParser, Rule};
+    use crate::parser::core::{GlossaParser, Rule};
     use pest::Parser;
 
     #[test]
