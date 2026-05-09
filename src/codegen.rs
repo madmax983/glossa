@@ -273,30 +273,63 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// );
 /// assert_eq!(to_rust_type(&result_type), "Result<i64, String>");
 /// ```
-pub fn to_rust_type(ty: &GlossaType) -> String {
+use std::fmt::Write;
+
+fn write_rust_type(ty: &GlossaType, buf: &mut String) -> std::fmt::Result {
     match ty {
-        GlossaType::Number => "i64".to_string(),
-        GlossaType::String => "String".to_string(),
-        GlossaType::Boolean => "bool".to_string(),
-        GlossaType::List(inner) => format!("Vec<{}>", to_rust_type(inner)),
-        GlossaType::Set(inner) => format!("HashSet<{}>", to_rust_type(inner)),
+        GlossaType::Number => buf.write_str("i64"),
+        GlossaType::String => buf.write_str("String"),
+        GlossaType::Boolean => buf.write_str("bool"),
+        GlossaType::List(inner) => {
+            buf.write_str("Vec<")?;
+            write_rust_type(inner, buf)?;
+            buf.write_str(">")
+        }
+        GlossaType::Set(inner) => {
+            buf.write_str("HashSet<")?;
+            write_rust_type(inner, buf)?;
+            buf.write_str(">")
+        }
         GlossaType::Map(key, value) => {
-            format!("HashMap<{}, {}>", to_rust_type(key), to_rust_type(value))
+            buf.write_str("HashMap<")?;
+            write_rust_type(key, buf)?;
+            buf.write_str(", ")?;
+            write_rust_type(value, buf)?;
+            buf.write_str(">")
         }
-        GlossaType::Option(inner) => format!("Option<{}>", to_rust_type(inner)),
+        GlossaType::Option(inner) => {
+            buf.write_str("Option<")?;
+            write_rust_type(inner, buf)?;
+            buf.write_str(">")
+        }
         GlossaType::Result(ok, err) => {
-            format!("Result<{}, {}>", to_rust_type(ok), to_rust_type(err))
+            buf.write_str("Result<")?;
+            write_rust_type(ok, buf)?;
+            buf.write_str(", ")?;
+            write_rust_type(err, buf)?;
+            buf.write_str(">")
         }
-        GlossaType::Unit => "()".to_string(),
-        GlossaType::Struct { name, .. } => Sanitizer {
-            name,
-            capitalize: true,
+        GlossaType::Unit => buf.write_str("()"),
+        GlossaType::Struct { name, .. } => {
+            write!(
+                buf,
+                "{}",
+                Sanitizer {
+                    name,
+                    capitalize: true
+                }
+            )
         }
-        .to_string(),
         // TODO: Better representation for function types if they appear in type signatures
-        GlossaType::Function { .. } => "fn".to_string(),
-        GlossaType::Unknown => "_".to_string(),
+        GlossaType::Function { .. } => buf.write_str("fn"),
+        GlossaType::Unknown => buf.write_str("_"),
     }
+}
+
+pub fn to_rust_type(ty: &GlossaType) -> String {
+    let mut buf = String::with_capacity(32);
+    write_rust_type(ty, &mut buf).expect("writing to String buffer failed");
+    buf
 }
 
 /// Generates the Rust token stream for a given `GlossaType`.
