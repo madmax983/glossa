@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Hermes (ὁ Ἑρμῆς)
+**Concept:** A CLI tool (`glossa hermes`) that exports Glossa type definitions (`εἶδος`) directly to TypeScript interfaces.
+**Fate:** Merged
+**Lesson:** The semantic AST struct representation (`εἶδος`) maps cleanly to TypeScript interfaces without needing complex intermediate representation schemas or heavy serialization dependencies. Proved the viability of the Exporter pattern for modern web integration.

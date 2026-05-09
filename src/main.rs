@@ -201,6 +201,19 @@ fn main() -> Result<()> {
             }
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Hermes { input }) => {
+            glossa::tools::hermes::run_hermes(&input)?;
+        }
+
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Hermes { input }) => {
+            let _ = input;
+            miette::bail!(
+                "The 'hermes' command is experimental. Recompile glossa with '--features nova' to enable it."
+            );
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

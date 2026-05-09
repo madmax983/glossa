@@ -218,4 +218,11 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Export structs to TypeScript interfaces (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Hermes {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
