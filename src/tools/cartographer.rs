@@ -48,11 +48,11 @@ use std::path::Path;
 ///
 /// ```rust,no_run
 /// use std::path::Path;
-/// use glossa::tools::cartographer::run_cartographer;
+/// use glossa::tools::cartographer::run_map;
 ///
 /// # fn main() -> miette::Result<()> {
 /// let path = Path::new("examples/quickstart.γλ");
-/// run_cartographer(path)?;
+/// run_map(path)?;
 /// # Ok(())
 /// # }
 /// ```
