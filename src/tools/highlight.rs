@@ -52,6 +52,14 @@ use crate::parser::parse;
 /// # Errors
 ///
 /// Returns a [`GlossaError`] if the source code cannot be parsed.
+/// # Examples
+///
+/// ```rust
+/// use glossa::tools::highlight::highlight;
+///
+/// let source = "ὁ ἄνθρωπος λέγει.";
+/// let colored = highlight(source).unwrap();
+/// ```
 pub fn highlight(source: &str) -> Result<String, GlossaError> {
     let program = parse(source)?;
     let mut highlighter = Highlighter::new();

@@ -37,6 +37,18 @@ use std::path::Path;
 /// Run the Mosaic tool on a file
 ///
 /// Reads the source file, parses it, and prints the semantic assembly table to stdout.
+/// # Examples
+///
+/// ```rust,no_run
+/// use std::path::Path;
+/// use glossa::tools::mosaic::run_mosaic;
+///
+/// # fn main() -> miette::Result<()> {
+/// let path = Path::new("examples/quickstart.γλ");
+/// run_mosaic(path)?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn run_mosaic(input_path: &Path) -> Result<()> {
     let source = crate::tools::runner::load_source(input_path)?;
 
@@ -64,6 +76,17 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
 /// Internal implementation of Mosaic logic
 ///
 /// Separated for testing purposes (allows injecting a writer).
+/// # Examples
+///
+/// ```rust
+/// use glossa::tools::mosaic::run_mosaic_inner;
+///
+/// let source = "ὁ ἄνθρωπος τὸν λόγον λέγει.";
+/// let mut buffer = Vec::new();
+/// run_mosaic_inner(source, &mut buffer).unwrap();
+/// let output = String::from_utf8(buffer).unwrap();
+/// assert!(output.contains("ἄνθρωπος"));
+/// ```
 pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Result<()> {
     let program = parse(source)?;
 

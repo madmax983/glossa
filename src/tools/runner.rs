@@ -432,6 +432,18 @@ pub fn check_file(input: &Path) -> Result<()> {
 ///
 /// Returns an error if the input file does not exist, exceeds the size limit,
 /// or contains any syntax or semantic errors.
+/// # Examples
+///
+/// ```rust,no_run
+/// use std::path::Path;
+/// use glossa::tools::runner::report_file;
+///
+/// # fn main() -> miette::Result<()> {
+/// let path = Path::new("examples/quickstart.γλ");
+/// report_file(path)?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn report_file(input: &Path) -> Result<()> {
     let source = load_source(input)?;
     let status = Status::start_with_symbol("Ἀναφορά (Reporting)", "📊");

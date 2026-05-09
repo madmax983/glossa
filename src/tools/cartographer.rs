@@ -44,6 +44,18 @@ use std::path::Path;
 /// Run the Cartographer tool on a file
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
+/// # Examples
+///
+/// ```rust,no_run
+/// use std::path::Path;
+/// use glossa::tools::cartographer::run_cartographer;
+///
+/// # fn main() -> miette::Result<()> {
+/// let path = Path::new("examples/quickstart.γλ");
+/// run_cartographer(path)?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn run_map(input: &Path) -> Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
@@ -109,6 +121,19 @@ pub fn run_map(input: &Path) -> Result<()> {
 }
 
 /// Generate a Mermaid class diagram from an analyzed program
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::cartographer::generate_map;
+/// use glossa::tools::runner::analyze_source;
+///
+/// # fn main() -> miette::Result<()> {
+/// let program = analyze_source("εἶδος Χρήστης ὁρίζειν { x ἀριθμοῦ. }.")?;
+/// let mermaid = generate_map(&program);
+/// assert!(mermaid.contains("class Χρήστης"));
+/// # Ok(())
+/// # }
+/// ```
 pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut map = String::from("classDiagram\n");
 

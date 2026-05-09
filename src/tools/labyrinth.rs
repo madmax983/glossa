@@ -22,6 +22,18 @@ use crossterm::style::Stylize;
 use std::path::Path;
 
 /// Run the Labyrinth tool on a file
+/// # Examples
+///
+/// ```rust,no_run
+/// use std::path::Path;
+/// use glossa::tools::labyrinth::run_labyrinth;
+///
+/// # fn main() -> miette::Result<()> {
+/// let path = Path::new("examples/quickstart.γλ");
+/// run_labyrinth(path)?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
     let mut buffer = Vec::new();
@@ -32,6 +44,17 @@ pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
 }
 
 /// Internal implementation of Labyrinth logic for testing
+/// # Examples
+///
+/// ```rust
+/// use glossa::tools::labyrinth::run_labyrinth_inner;
+///
+/// let source = "εἰ ξ 5 μεῖζον ᾖ, «χαῖρε» λέγε.";
+/// let mut buffer = Vec::new();
+/// run_labyrinth_inner(source, &mut buffer).unwrap();
+/// let output = String::from_utf8(buffer).unwrap();
+/// assert!(output.contains("digraph"));
+/// ```
 pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> miette::Result<()> {
     use miette::IntoDiagnostic;
     let status = Status::start_with_symbol("Λαβύρινθος (Control Flow Graph)", "🔀");

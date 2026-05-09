@@ -109,6 +109,16 @@ const LESSONS: &[Lesson] = &[
 ///
 /// This function enters a loop where it presents lessons to the user and waits
 /// for them to type code that satisfies the lesson's requirements.
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::mentor::run_mentor;
+///
+/// # fn main() -> miette::Result<()> {
+/// run_mentor()?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn run_mentor() -> Result<()> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();

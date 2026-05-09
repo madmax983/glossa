@@ -18,6 +18,18 @@ use std::fmt::Write;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
+/// # Examples
+///
+/// ```rust,no_run
+/// use std::path::Path;
+/// use glossa::tools::alchemist::run_alchemist;
+///
+/// # fn main() -> miette::Result<()> {
+/// let path = Path::new("examples/quickstart.γλ");
+/// run_alchemist(path)?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
@@ -60,6 +72,19 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
 }
 
 /// Transpile an AnalyzedProgram to Python source code
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::alchemist::transpile_to_python;
+/// use glossa::tools::runner::analyze_source;
+///
+/// # fn main() -> miette::Result<()> {
+/// let program = analyze_source("ξ 5 ἔστω.")?;
+/// let py_code = transpile_to_python(&program);
+/// assert!(py_code.contains("xi = 5"));
+/// # Ok(())
+/// # }
+/// ```
 pub fn transpile_to_python(program: &AnalyzedProgram) -> String {
     let mut out = String::new();
     out.push_str("from typing import Any\n");

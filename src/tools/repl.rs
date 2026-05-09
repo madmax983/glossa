@@ -56,6 +56,16 @@ const MAX_REPL_SOURCE_LEN: usize = 50_000;
 /// ✓ Ἐκτελέσθη
 ///   println!("{}", ξ);
 /// ```
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::repl::run_repl;
+///
+/// # fn main() -> miette::Result<()> {
+/// run_repl()?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn run_repl() -> Result<()> {
     print_banner();
     let stdin = std::io::stdin();

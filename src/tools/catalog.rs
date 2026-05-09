@@ -11,6 +11,16 @@ use crossterm::style::Stylize;
 use miette::Result;
 
 /// Run the catalog explorer
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::catalog::run_catalog;
+///
+/// # fn main() -> miette::Result<()> {
+/// run_catalog()?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn run_catalog() -> Result<()> {
     // ⚡ Bolt Optimization: Uses `rustc_hash::FxHashMap` instead of the standard `HashMap`
     // since the keys are internal `PartOfSpeech` enums and are not exposed to HashDoS attacks.

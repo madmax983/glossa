@@ -76,3 +76,7 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+
+## 2026-05-18 - Missing Examples in Public Fns
+**Confusion:** Many public functions exposed in `src/tools/*.rs` were missing `# Examples` sections in their documentation. As a result, the user did not have a copy-pasteable context for how to interact with these CLI tools programmatically.
+**Clarification:** I added `/// # Examples` executable doc blocks to all top-level public functions under `src/tools/` (e.g. `run_mosaic`, `run_haruspex`, `run_alchemist`, `transpile_to_python`, `run_weave`, `run_map`, `generate_map`, `run_catalog`, `run_repl`, `lookup_word`, `highlight`, `run_labyrinth`, `run_labyrinth_inner`, `run_mentor`, `report_file`, and `run_mosaic_inner`). This satisfies the Bard core directive that every public struct/fn should have an `# Examples` header.

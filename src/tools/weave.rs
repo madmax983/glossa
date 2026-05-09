@@ -22,6 +22,18 @@ use std::path::Path;
 /// Run the Weave tool on a file
 ///
 /// Reads the source file, compiles it, generates the mosaic, and writes out a Markdown file.
+/// # Examples
+///
+/// ```rust,no_run
+/// use std::path::Path;
+/// use glossa::tools::weave::run_weave;
+///
+/// # fn main() -> miette::Result<()> {
+/// let path = Path::new("examples/quickstart.γλ");
+/// run_weave(path)?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn run_weave(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));

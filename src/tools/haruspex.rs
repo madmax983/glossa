@@ -18,6 +18,18 @@ use std::fmt::Write;
 use std::path::Path;
 
 /// Runs the Haruspex tool to generate a Graphviz DOT representation of the AST.
+/// # Examples
+///
+/// ```rust,no_run
+/// use std::path::Path;
+/// use glossa::tools::haruspex::run_haruspex;
+///
+/// # fn main() -> miette::Result<()> {
+/// let path = Path::new("examples/quickstart.γλ");
+/// run_haruspex(path)?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn run_haruspex(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));

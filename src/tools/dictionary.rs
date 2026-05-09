@@ -53,6 +53,16 @@ use crate::morphology::{analyze_all, lexicon};
 use crate::text::normalize_greek;
 
 /// Lookup a word in the dictionary
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::dictionary::lookup_word;
+///
+/// # fn main() -> miette::Result<()> {
+/// lookup_word("λέγει")?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn lookup_word(word: &str) -> Result<()> {
     let normalized = normalize_greek(word);
 
