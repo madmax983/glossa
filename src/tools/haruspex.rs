@@ -13,8 +13,12 @@
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::{Attribute, Cell, Color, Table};
+use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Runs the Haruspex tool to generate a Graphviz DOT representation of the AST.
@@ -45,7 +49,60 @@ pub fn run_haruspex(input: &Path) -> Result<()> {
 
     let dot = generate_dot(&program);
 
-    println!("{}", dot);
+    if std::io::stdout().is_terminal() {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   H A R U S P E X".cyan().bold());
+        println!(
+            "   {}",
+            format!("AST Visualization Dashboard for {}", input.display())
+                .italic()
+                .dim()
+        );
+        println!();
+
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL);
+        table.set_header(vec![
+            Cell::new("AST Summary")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("Count").add_attribute(Attribute::Bold),
+        ]);
+
+        table.add_row(vec![
+            Cell::new("Total Statements"),
+            Cell::new(program.statements.len().to_string()),
+        ]);
+
+        let nodes_count = dot.matches("node_").count();
+        if nodes_count > 0 {
+            // Count edges (lines with ->)
+            let edges_count = dot.matches("->").count();
+            table.add_row(vec![
+                Cell::new("Graph Nodes"),
+                Cell::new((nodes_count / 2).to_string()), // node_ is referenced in both definition and edges, so approximate
+            ]);
+            table.add_row(vec![
+                Cell::new("Graph Edges"),
+                Cell::new(edges_count.to_string()),
+            ]);
+        }
+
+        println!("{table}");
+        println!();
+        println!(
+            "   {}",
+            "💡 Tip: Pipe to Graphviz to render the graph:".yellow()
+        );
+        println!(
+            "   {}",
+            "   glossa haruspex <file.γλ> | dot -Tpng > ast.png".dim()
+        );
+        println!();
+    } else {
+        println!("{}", dot);
+    }
+
     Ok(())
 }
 
