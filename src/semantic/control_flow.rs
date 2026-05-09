@@ -1179,6 +1179,131 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_for_range_success() {
+        let mut scope = Scope::new();
+
+        // ἀπὸ 1 μέχρι 5, λεγε "γεια"
+        // Note: range expressions require words, not literal numbers!
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("απο")),
+                        Expr::Word(Word::new("ενα")),
+                        Expr::Word(Word::new("μεχρι")),
+                        Expr::Word(Word::new("πεντε")),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("ι")),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope);
+        assert!(result.is_ok());
+        let analyzed = result.unwrap().unwrap();
+
+        match analyzed {
+            AnalyzedStatement::For {
+                variable,
+                iterator,
+                body,
+            } => {
+                assert_eq!(variable, "ι");
+                // check iterator is Range
+                if let AnalyzedExprKind::Range {
+                    start: _,
+                    end: _,
+                    inclusive,
+                } = iterator.expr
+                {
+                    assert!(!inclusive);
+                } else {
+                    panic!("Expected Range iterator");
+                }
+                assert!(!body.is_empty());
+            }
+            _ => panic!("Expected For statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_for_iteration_success() {
+        let mut scope = Scope::new();
+        let lemma = crate::morphology::analyze("στοιχειων").lemma.to_string();
+        scope.define(lemma, GlossaType::Unknown);
+
+        // διὰ στοιχείων, i λέγε
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("δια")),
+                        Expr::Word(Word::new("στοιχειων")),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("ι")),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope);
+        assert!(result.is_ok());
+        let analyzed = result.unwrap().unwrap();
+
+        match analyzed {
+            AnalyzedStatement::For {
+                variable,
+                iterator,
+                body,
+            } => {
+                assert_eq!(variable, "ι");
+                assert_eq!(iterator.glossa_type, GlossaType::Unknown);
+                assert!(!body.is_empty());
+            }
+            _ => panic!("Expected For statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_for_iteration_missing_body() {
+        let mut scope = Scope::new();
+
+        // διὰ στοιχείων
+        let stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Phrase(vec![
+                    Expr::Word(Word::new("δια")),
+                    Expr::Word(Word::new("στοιχειων")),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = analyze_control_flow(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("For loop needs at least 2 clauses: collection and body")
+        );
+    }
+
+    #[test]
     fn test_parse_for_range_missing_body() {
         let mut scope = Scope::new();
 
