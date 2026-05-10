@@ -23,6 +23,7 @@ use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Runs the Papyrus tool to generate SQL schemas from Glossa types.
@@ -87,6 +88,11 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
             }
             output.push_str(");\n\n");
         }
+    }
+
+    if !std::io::stdout().is_terminal() {
+        println!("{}", output.trim());
+        return Ok(());
     }
 
     println!();
