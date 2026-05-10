@@ -703,6 +703,34 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
     }
 
     #[test]
+    fn test_clean_panic_message() {
+        // Test ignoring irrelevant lines
+        assert_eq!(clean_panic_message("just a normal line"), None);
+        assert_eq!(clean_panic_message("panicked at src/main.rs"), None);
+
+        // Test missing "panicked at"
+        assert_eq!(clean_panic_message("thread 'main' failed"), None);
+
+        // Test normal panic without thread PID
+        assert_eq!(
+            clean_panic_message("thread 'main' panicked at 'error', src/main.rs:1:1"),
+            Some("thread 'main' panicked".to_string())
+        );
+
+        // Test panic with thread PID to ensure `.replace_range()` indexing logic works perfectly
+        assert_eq!(
+            clean_panic_message("thread 'main' (1234) panicked at 'error', src/main.rs:1:1"),
+            Some("thread 'main' panicked".to_string())
+        );
+
+        // Edge case: empty PID
+        assert_eq!(
+            clean_panic_message("thread 'main' () panicked at 'error', src/main.rs:1:1"),
+            Some("thread 'main' panicked".to_string())
+        );
+    }
+
+    #[test]
     fn test_parse_test_output_edge_cases() {
         struct TestCase {
             name: &'static str,

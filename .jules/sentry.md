@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**Testing clean_panic_message logic**
+**Learning:** Found coverage gaps in `src/tools/tester.rs` for `clean_panic_message`, specifically the logic stripping out Thread IDs. Writing tests for logic parsing dynamically formatted logs like rustc error streams helps guarantee formatting safeguards works correctly.
+**Action:** Wrote an isolated unit test `test_clean_panic_message` that explicitly inputs mocked rustc test failure messages containing PID representations and verifying the fallback conditions do not trigger false-positive panics.
