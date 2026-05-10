@@ -175,6 +175,53 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
 mod tests {
     use super::*;
 
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_run_hermes_success() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("schema.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.\n".as_bytes())
+                .unwrap();
+        }
+        let result = run_hermes(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_hermes_empty_structs() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("empty.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("«χαῖρε» λέγε.\n".as_bytes()).unwrap();
+        }
+        let result = run_hermes(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_hermes_file_not_found() {
+        let result = run_hermes(std::path::Path::new("non_existent_file.γλ"));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_run_hermes_parse_error() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("error.γλ");
+        {
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("invalid syntax\n".as_bytes()).unwrap();
+        }
+        let result = run_hermes(&input_path);
+        assert!(result.is_err());
+    }
+
     #[test]
     fn test_glossa_type_to_ts() {
         assert_eq!(glossa_type_to_ts(&GlossaType::Number), "number");
