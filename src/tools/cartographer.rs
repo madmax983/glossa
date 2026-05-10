@@ -39,6 +39,7 @@ use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
 use rustc_hash::FxHashSet;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Run the Cartographer tool on a file
@@ -60,6 +61,11 @@ pub fn run_map(input: &Path) -> Result<()> {
     let map = generate_map(&program);
 
     status.success();
+
+    if !std::io::stdout().is_terminal() {
+        println!("{}", map.trim());
+        return Ok(());
+    }
 
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   M A P".bold().cyan());

@@ -15,6 +15,7 @@ use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedS
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use std::fmt::Write;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
@@ -35,6 +36,11 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let python_code = transpile_to_python(&program);
 
     status.success();
+
+    if !std::io::stdout().is_terminal() {
+        println!("{}", python_code.trim());
+        return Ok(());
+    }
 
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   A L C H E M I S T".bold().cyan());
