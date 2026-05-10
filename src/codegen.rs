@@ -614,13 +614,11 @@ fn generate_statement_expression(exprs: &[AnalyzedExpr]) -> TokenStream {
 }
 
 fn generate_statement_return(value: &Option<Box<AnalyzedExpr>>) -> TokenStream {
-    match value {
-        Some(e) => {
-            let value_tokens = generate_expr(e);
-            quote! { return #value_tokens; }
-        }
-        None => quote! { return; },
-    }
+    let Some(e) = value else {
+        return quote! { return; };
+    };
+    let value_tokens = generate_expr(e);
+    quote! { return #value_tokens; }
 }
 
 fn generate_let(name: &str, value: &AnalyzedExpr, mutable: bool) -> TokenStream {
@@ -662,22 +660,19 @@ fn generate_if(
     let cond = generate_expr(condition);
     let then_stmts = generate_statements(then_body);
 
-    match else_body {
-        Some(else_stmts) => {
-            let else_tokens = generate_statements(else_stmts);
-            quote! {
-                if #cond {
-                    #(#then_stmts)*
-                } else {
-                    #(#else_tokens)*
-                }
+    if let Some(else_stmts) = else_body {
+        let else_tokens = generate_statements(else_stmts);
+        quote! {
+            if #cond {
+                #(#then_stmts)*
+            } else {
+                #(#else_tokens)*
             }
         }
-        None => {
-            quote! {
-                if #cond {
-                    #(#then_stmts)*
-                }
+    } else {
+        quote! {
+            if #cond {
+                #(#then_stmts)*
             }
         }
     }
@@ -753,18 +748,16 @@ fn generate_fn_def(
     });
 
     // Generate return type
-    if let Some(ret_type) = return_type {
-        let ret_tokens = generate_type_tokens(ret_type);
-        quote! {
-            fn #fn_name(#(#param_tokens),*) -> #ret_tokens {
-                #(#body_stmts)*
-            }
-        }
+    let ret_tokens = if let Some(ret_type) = return_type {
+        let ty_tokens = generate_type_tokens(ret_type);
+        quote! { -> #ty_tokens }
     } else {
-        quote! {
-            fn #fn_name(#(#param_tokens),*) {
-                #(#body_stmts)*
-            }
+        quote! {}
+    };
+
+    quote! {
+        fn #fn_name(#(#param_tokens),*) #ret_tokens {
+            #(#body_stmts)*
         }
     }
 }
@@ -844,29 +837,22 @@ fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
         let method_name = parts.name;
         let param_tokens = parts.params;
 
-        if let Some(ret_ty) = parts.return_type {
-            if let Some(body) = &method.body {
-                let body_stmts = generate_statements(body);
-                quote! {
-                    fn #method_name(#(#param_tokens),*) -> #ret_ty {
-                        #(#body_stmts)*
-                    }
-                }
-            } else {
-                quote! {
-                    fn #method_name(#(#param_tokens),*) -> #ret_ty;
-                }
-            }
-        } else if let Some(body) = &method.body {
+        let ret_ty_tokens = if let Some(ret_ty) = parts.return_type {
+            quote! { -> #ret_ty }
+        } else {
+            quote! {}
+        };
+
+        if let Some(body) = &method.body {
             let body_stmts = generate_statements(body);
             quote! {
-                fn #method_name(#(#param_tokens),*) {
+                fn #method_name(#(#param_tokens),*) #ret_ty_tokens {
                     #(#body_stmts)*
                 }
             }
         } else {
             quote! {
-                fn #method_name(#(#param_tokens),*);
+                fn #method_name(#(#param_tokens),*) #ret_ty_tokens;
             }
         }
     });
@@ -914,17 +900,15 @@ fn generate_trait_impl(
             Vec::new()
         };
 
-        if let Some(ret_ty) = parts.return_type {
-            quote! {
-                fn #method_name(#(#param_tokens),*) -> #ret_ty {
-                    #(#body_stmts)*
-                }
-            }
+        let ret_ty_tokens = if let Some(ret_ty) = parts.return_type {
+            quote! { -> #ret_ty }
         } else {
-            quote! {
-                fn #method_name(#(#param_tokens),*) {
-                    #(#body_stmts)*
-                }
+            quote! {}
+        };
+
+        quote! {
+            fn #method_name(#(#param_tokens),*) #ret_ty_tokens {
+                #(#body_stmts)*
             }
         }
     });
