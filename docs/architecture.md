@@ -45,6 +45,7 @@ C4Container
         Container(labyrinth, "Labyrinth", "src/tools/labyrinth.rs", "Visualizes the control flow graph as a Mermaid flowchart")
         Container(mentor, "Mentor", "src/tools/mentor.rs", "Interactive Tutorial Mode")
         Container(mosaic, "Mosaic", "src/tools/mosaic.rs", "Visualizes Semantic Assembly")
+        Container(hermes, "Hermes", "src/tools/hermes.rs", "TypeScript Interface Exporter")
         Container(narrator, "The Bard", "src/tools/narrator.rs", "Generates English narrative ('Scroll of Logic') from AST")
         Container(papyrus, "Papyrus", "src/tools/papyrus.rs", "Generates SQL CREATE TABLE schemas")
         Container(repl, "REPL", "src/tools/repl.rs", "Interactive Read-Eval-Print Loop")
@@ -73,6 +74,7 @@ C4Container
     Rel(semantic, labyrinth, "Analyzed Program")
     Rel(semantic, weave, "Analyzed Program")
     Rel(semantic, papyrus, "Analyzed Program")
+    Rel(semantic, hermes, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
 
     Rel(morphology, dictionary, "Lexicon Data")
