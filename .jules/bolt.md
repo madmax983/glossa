@@ -8,3 +8,6 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+**Avoid String Allocation via &str in HashSets**
+**Learning:** Extracting string-like wrappers like `SmolStr` or `String` from AST node structures (like `GlossaType`) directly into a `FxHashSet<String>` incurs an unnecessary heap allocation (via `.to_string()`). Using `FxHashSet<&str>` alongside `.as_str()` and querying via references eliminates this cost.
+**Action:** When filtering and collecting unique names for validation or tracking dependency structures, bind to their string references (`&str`) within `FxHashSet<&str>` rather than owning new heap Strings, as long as lifetimes permit.
