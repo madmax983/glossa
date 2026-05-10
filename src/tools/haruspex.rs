@@ -13,8 +13,10 @@
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
+use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Runs the Haruspex tool to generate a Graphviz DOT representation of the AST.
@@ -45,8 +47,42 @@ pub fn run_haruspex(input: &Path) -> Result<()> {
 
     let dot = generate_dot(&program);
 
-    println!("{}", dot);
+    print_dashboard(&dot, std::io::stdout().is_terminal());
     Ok(())
+}
+
+fn print_dashboard(dot: &str, is_tty: bool) {
+    if is_tty {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   H A R U S P E X".cyan().bold());
+        println!(
+            "   {}",
+            "AST Graphviz DOT Representation Generated".italic().dim()
+        );
+        println!();
+
+        let actual_nodes = dot.lines().filter(|l| l.contains("[label=")).count();
+        let edges = dot.matches("->").count();
+
+        println!("   {} {}", "Nodes:".bold(), actual_nodes.to_string().cyan());
+        println!("   {} {}", "Edges:".bold(), edges.to_string().cyan());
+        println!();
+        println!(
+            "   {}",
+            "To view the graph, pipe this command to a file or tool:".dim()
+        );
+        println!(
+            "   {}",
+            "cargo run --features nova --bin glossa -- haruspex <file> > ast.dot".dim()
+        );
+        println!(
+            "   {}",
+            "cargo run --features nova --bin glossa -- haruspex <file> | dot -Tpng > ast.png".dim()
+        );
+        println!();
+    } else {
+        println!("{}", dot);
+    }
 }
 
 fn generate_dot(program: &AnalyzedProgram) -> String {
@@ -790,6 +826,30 @@ fn visit_lambda_expr(
 mod tests {
     use super::*;
     use crate::semantic::{GlossaType, Scope};
+
+    #[test]
+    fn test_print_dashboard_tty() {
+        // Just verify it doesn't panic
+        print_dashboard(
+            "digraph AST { node_0 [label=\"Program\"]; node_0 -> node_1; }",
+            true,
+        );
+    }
+
+    #[test]
+    fn test_print_dashboard_no_tty() {
+        print_dashboard("digraph AST { node_0 [label=\"Program\"]; }", false);
+    }
+
+    #[test]
+    fn test_run_haruspex_success() {
+        // Need to test the actual success path
+        let temp_dir = tempfile::tempdir().unwrap();
+        let valid_file = temp_dir.path().join("valid.γλ");
+        std::fs::write(&valid_file, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.").unwrap();
+        let result = run_haruspex(&valid_file);
+        assert!(result.is_ok());
+    }
 
     #[test]
     fn test_haruspex_errors() {
