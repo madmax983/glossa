@@ -97,7 +97,7 @@ C4Component
         Component(resolver, "Resolver", "src/semantic/resolver.rs", "Manages Scope and Bindings")
         Component(assembly, "Assembly", "src/semantic/assembly/mod.rs", "Routes words to grammatical slots")
         Component(assembly_model, "Assembly Model", "src/semantic/assembly/model.rs", "Data Transfer Objects (DTOs)")
-        Component(conversion, "Conversion", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
+        Component(conversion, "Conversion", "src/semantic/conversion/mod.rs", "Interprets assembled slots into statements")
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
         Component(types, "Type System", "src/semantic/types.rs", "GlossaType definitions and utilities")
