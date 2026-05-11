@@ -60,6 +60,31 @@ pub fn run_scholar(input: &Path) -> Result<()> {
 
     writeln!(md, "# API Documentation: `{}`\n", filename).unwrap();
 
+    document_types(&mut md, &program);
+    document_traits(&mut md, &program);
+    document_functions(&mut md, &program);
+    let output_path = input.with_extension("doc.md");
+    if let Err(e) = std::fs::write(&output_path, &md) {
+        status.error("Σφάλμα ἀρχείου (File Error)");
+        return Err(miette::miette!("Failed to write documentation file: {}", e));
+    }
+
+    status.success();
+
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   S C H O L A R".bold().cyan());
+    println!("   {}", "API Documentation Generated".italic().dim());
+    println!();
+    println!(
+        "   {} {}",
+        "Saved to:".bold(),
+        output_path.display().to_string().cyan()
+    );
+    println!();
+
+    Ok(())
+}
+fn document_types(md: &mut String, program: &crate::semantic::AnalyzedProgram) {
     // Document Types (Structs)
     let mut types = program.scope.types().peekable();
     if types.peek().is_some() {
@@ -79,7 +104,9 @@ pub fn run_scholar(input: &Path) -> Result<()> {
             }
         }
     }
+}
 
+fn document_traits(md: &mut String, program: &crate::semantic::AnalyzedProgram) {
     // Document Traits (Characters)
     let mut traits = program.scope.traits().peekable();
     if traits.peek().is_some() {
@@ -96,7 +123,9 @@ pub fn run_scholar(input: &Path) -> Result<()> {
             }
         }
     }
+}
 
+fn document_functions(md: &mut String, program: &crate::semantic::AnalyzedProgram) {
     // Document Functions (Verbs)
     let mut functions = program.scope.functions().peekable();
     if functions.peek().is_some() {
@@ -119,27 +148,6 @@ pub fn run_scholar(input: &Path) -> Result<()> {
             writeln!(md, "`\n").unwrap();
         }
     }
-
-    let output_path = input.with_extension("doc.md");
-    if let Err(e) = std::fs::write(&output_path, &md) {
-        status.error("Σφάλμα ἀρχείου (File Error)");
-        return Err(miette::miette!("Failed to write documentation file: {}", e));
-    }
-
-    status.success();
-
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   S C H O L A R".bold().cyan());
-    println!("   {}", "API Documentation Generated".italic().dim());
-    println!();
-    println!(
-        "   {} {}",
-        "Saved to:".bold(),
-        output_path.display().to_string().cyan()
-    );
-    println!();
-
-    Ok(())
 }
 
 #[cfg(test)]

@@ -435,8 +435,47 @@ mod tests {
         assert_eq!(ctx.expected_number, Some(Number::Plural));
     }
 
+    #[allow(clippy::type_complexity)]
+    fn run_article_tests(test_cases: Vec<(&str, Option<Case>, Option<Number>, Option<Gender>)>) {
+        for (word, expected_case, expected_number, expected_gender) in test_cases {
+            let ctx_opt = analyze_article(word);
+
+            if expected_case.is_none() && expected_number.is_none() && expected_gender.is_none() {
+                assert!(
+                    ctx_opt.is_none(),
+                    "Expected no context for '{}', but got {:?}",
+                    word,
+                    ctx_opt
+                );
+            } else {
+                let ctx = ctx_opt
+                    .unwrap_or_else(|| panic!("Expected context for '{}', but got None", word));
+                assert_eq!(
+                    ctx.expected_case, expected_case,
+                    "Mismatched case for '{}'",
+                    word
+                );
+                assert_eq!(
+                    ctx.expected_number, expected_number,
+                    "Mismatched number for '{}'",
+                    word
+                );
+                assert_eq!(
+                    ctx.expected_gender, expected_gender,
+                    "Mismatched gender for '{}'",
+                    word
+                );
+                assert_eq!(
+                    ctx.expected_person, None,
+                    "Person should always be None for articles ('{}')",
+                    word
+                );
+            }
+        }
+    }
+
     #[test]
-    fn test_analyze_article_all_forms() {
+    fn test_analyze_article_masculine() {
         let test_cases = vec![
             // Masculine
             (
@@ -537,6 +576,13 @@ mod tests {
                 Some(Number::Plural),
                 Some(Gender::Masculine),
             ),
+        ];
+        run_article_tests(test_cases);
+    }
+
+    #[test]
+    fn test_analyze_article_feminine() {
+        let test_cases = vec![
             // Feminine
             (
                 "ἡ",
@@ -628,6 +674,13 @@ mod tests {
                 Some(Number::Plural),
                 Some(Gender::Feminine),
             ),
+        ];
+        run_article_tests(test_cases);
+    }
+
+    #[test]
+    fn test_analyze_article_neuter_and_invalid() {
+        let test_cases = vec![
             // Neuter
             ("τό", None, Some(Number::Singular), Some(Gender::Neuter)), // Neuter is case-ambiguous (Nom/Acc)
             ("τὸ", None, Some(Number::Singular), Some(Gender::Neuter)),
@@ -638,41 +691,6 @@ mod tests {
             // Invalid
             ("not_an_article", None, None, None),
         ];
-
-        for (word, expected_case, expected_number, expected_gender) in test_cases {
-            let ctx_opt = analyze_article(word);
-
-            if expected_case.is_none() && expected_number.is_none() && expected_gender.is_none() {
-                assert!(
-                    ctx_opt.is_none(),
-                    "Expected no context for '{}', but got {:?}",
-                    word,
-                    ctx_opt
-                );
-            } else {
-                let ctx = ctx_opt
-                    .unwrap_or_else(|| panic!("Expected context for '{}', but got None", word));
-                assert_eq!(
-                    ctx.expected_case, expected_case,
-                    "Mismatched case for '{}'",
-                    word
-                );
-                assert_eq!(
-                    ctx.expected_number, expected_number,
-                    "Mismatched number for '{}'",
-                    word
-                );
-                assert_eq!(
-                    ctx.expected_gender, expected_gender,
-                    "Mismatched gender for '{}'",
-                    word
-                );
-                assert_eq!(
-                    ctx.expected_person, None,
-                    "Person should always be None for articles ('{}')",
-                    word
-                );
-            }
-        }
+        run_article_tests(test_cases);
     }
 }
