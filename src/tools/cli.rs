@@ -104,6 +104,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Transpile a .γλ struct to a TypeScript interface (Requires "nova" feature)
+    Hermes {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Generate a language metrics dashboard
     Report {
         /// Input file (.γλ)
