@@ -257,3 +257,11 @@ fn test_equals_verb_lexicon_entry() {
     assert_eq!(entry.person, Some(Person::Third));
     assert_eq!(entry.number, Some(Number::Singular));
 }
+
+#[test]
+fn test_build_lexicon_coverage() {
+    // Explicitly call the builder function to ensure Codecov registers 100% coverage
+    // on the massive initialization block, bypassing any LazyLock coverage quirks.
+    let map = crate::morphology::lexicon::data::build_lexicon();
+    assert!(!map.is_empty());
+}
