@@ -3,6 +3,7 @@ use glossa::morphology::{Case, Gender, Number, Tense, Voice, analyze_participle}
 
 #[test]
 fn test_participle_analysis_coverage() {
+    #[allow(clippy::type_complexity)]
     struct TestCase {
         word: &'static str,
         expected_stem: &'static str,
