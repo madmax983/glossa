@@ -77,6 +77,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Hermes { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::hermes::run_hermes(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'hermes' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Map { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::cartographer::run_map(&input)?;
