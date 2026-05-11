@@ -15,6 +15,7 @@ use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, Table};
 use crossterm::style::Stylize;
 use miette::Result;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// A visitor that traverses the Abstract Syntax Tree to calculate loop depth.
@@ -151,25 +152,6 @@ pub fn run_gnomon(input: &Path) -> Result<()> {
         visitor.visit_statement(stmt);
     }
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   G N O M O N".cyan().bold());
-    println!(
-        "   {}",
-        format!("Complexity Estimate for {}", input.display())
-            .italic()
-            .dim()
-    );
-    println!();
-
-    let mut table = Table::new();
-    table.load_preset(UTF8_FULL);
-    table.set_header(vec![
-        Cell::new("Metric")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-        Cell::new("Value").add_attribute(Attribute::Bold),
-    ]);
-
     let complexity = if visitor.max_depth == 0 {
         "O(1)".to_string()
     } else if visitor.max_depth == 1 {
@@ -178,23 +160,47 @@ pub fn run_gnomon(input: &Path) -> Result<()> {
         format!("O(N^{})", visitor.max_depth)
     };
 
-    table.add_row(vec![
-        Cell::new("Max Loop Depth"),
-        Cell::new(visitor.max_depth.to_string()),
-    ]);
-    table.add_row(vec![
-        Cell::new("Estimated Big-O"),
-        Cell::new(complexity).fg(if visitor.max_depth > 2 {
-            Color::Red
-        } else if visitor.max_depth == 2 {
-            Color::Yellow
-        } else {
-            Color::Green
-        }),
-    ]);
+    if std::io::stdout().is_terminal() {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   G N O M O N".cyan().bold());
+        println!(
+            "   {}",
+            format!("Complexity Estimate for {}", input.display())
+                .italic()
+                .dim()
+        );
+        println!();
 
-    println!("{table}");
-    println!();
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL);
+        table.set_header(vec![
+            Cell::new("Metric")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("Value").add_attribute(Attribute::Bold),
+        ]);
+
+        table.add_row(vec![
+            Cell::new("Max Loop Depth"),
+            Cell::new(visitor.max_depth.to_string()),
+        ]);
+        table.add_row(vec![
+            Cell::new("Estimated Big-O"),
+            Cell::new(complexity).fg(if visitor.max_depth > 2 {
+                Color::Red
+            } else if visitor.max_depth == 2 {
+                Color::Yellow
+            } else {
+                Color::Green
+            }),
+        ]);
+
+        println!("{table}");
+        println!();
+    } else {
+        println!("Max Loop Depth: {}", visitor.max_depth);
+        println!("Estimated Big-O: {}", complexity);
+    }
 
     Ok(())
 }

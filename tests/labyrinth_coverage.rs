@@ -8,7 +8,7 @@ fn test_run_labyrinth_comfy_table_output() {
     let source = "ξ 10 ἔστω.\n";
     let mut buffer = Vec::new();
 
-    let result = run_labyrinth_inner(source, &mut buffer);
+    let result = run_labyrinth_inner(source, &mut buffer, true);
     assert!(result.is_ok());
 
     let output = String::from_utf8(buffer).unwrap();
@@ -26,7 +26,7 @@ fn test_run_labyrinth_empty_output() {
     let source = "";
     let mut buffer = Vec::new();
 
-    let result = run_labyrinth_inner(source, &mut buffer);
+    let result = run_labyrinth_inner(source, &mut buffer, true);
     assert!(result.is_ok());
 
     let output = String::from_utf8(buffer).unwrap();
