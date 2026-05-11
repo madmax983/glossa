@@ -624,6 +624,7 @@ failures:
 
     #[test]
     fn test_extract_failures_edge_cases() {
+        #[allow(clippy::type_complexity)]
         struct TestCase {
             name: &'static str,
             input: &'static str,
@@ -704,6 +705,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
     #[test]
     fn test_parse_test_output_edge_cases() {
+        #[allow(clippy::type_complexity)]
         struct TestCase {
             name: &'static str,
             input: &'static str,

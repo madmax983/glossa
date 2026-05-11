@@ -1,0 +1,24 @@
+/// Analyzes a ΓΛΩΣΣΑ source file and estimates its Big-O time complexity.
+///
+/// This function coordinates the parsing, semantic analysis, and AST traversal
+/// using the `visit_statement` function. The result is presented to the user in a
+/// stylized terminal table.
+///
+/// # Errors
+///
+/// Returns a `miette::Result` if:
+/// - The specified file cannot be found.
+/// - The source file contains syntax or semantic errors.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::gnomon::run_gnomon;
+/// use std::path::Path;
+///
+/// let input = Path::new("algorithm.γλ");
+/// if let Err(e) = run_gnomon(&input) {
+///     eprintln!("Failed to estimate complexity: {}", e);
+/// }
+/// ```
+pub fn run_gnomon

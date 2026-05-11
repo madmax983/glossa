@@ -640,6 +640,7 @@ mod tests {
     #[test]
     fn test_decline_table() {
         // Table-driven test for decline() covering multiple declensions and cases
+        #[allow(clippy::type_complexity)]
         struct TestCase {
             stem: &'static str,
             declension: Declension,
