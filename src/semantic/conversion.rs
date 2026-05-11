@@ -70,7 +70,7 @@ use crate::semantic::{Constituent, Literal};
 ///
 /// ```rust,ignore
 /// // Example cannot be run as a doctest because this module is pub(crate)
-/// use glossa::semantic::assembly::AssembledStatement;
+/// use glossa::semantic::AssembledStatement;
 /// use glossa::semantic::conversion::convert_assembled_to_analyzed;
 /// use glossa::semantic::resolver::Scope;
 /// use glossa::ast::{Expr, Word};
@@ -110,7 +110,7 @@ pub fn convert_assembled_to_analyzed(
 ///
 /// ```rust,ignore
 /// // Example cannot be run as a doctest because this module is pub(crate)
-/// use glossa::semantic::assembly::AssembledStatement;
+/// use glossa::semantic::AssembledStatement;
 /// use glossa::semantic::conversion::classify_assembled_statement;
 /// use glossa::semantic::resolver::Scope;
 /// use glossa::ast::{Expr, Word};
@@ -1588,7 +1588,7 @@ fn extract_object_fallback(
 ///
 /// ```rust,ignore
 /// // Example cannot be run as a doctest because this module is pub(crate)
-/// use glossa::semantic::assembly::AssembledStatement;
+/// use glossa::semantic::AssembledStatement;
 /// use glossa::semantic::conversion::extract_value;
 /// use glossa::semantic::resolver::Scope;
 /// use glossa::semantic::types::GlossaType;

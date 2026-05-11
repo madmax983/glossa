@@ -21,11 +21,7 @@
 **Blueprint:** Modified `src/tools/mod.rs` and `src/semantic/assembly/mod.rs` to restrict these modules with `pub(crate) mod`.
 **Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
 
-## [Splitting The Blob: Lexicon]
-**Tangle:** `src/morphology/lexicon.rs` was a monolithic file (~2800 lines) mixing DTOs/logic (`LexiconEntry`, lookups) with a massive `LEXICON` data initialization block.
-**Blueprint:**
-1. Created `src/morphology/lexicon/` module.
-2. Extracted the large `LEXICON` initialization function to `src/morphology/lexicon/data.rs`.
-3. Moved logic to `src/morphology/lexicon/mod.rs` and referenced `data::build_lexicon`.
-4. Extracted tests to `src/morphology/lexicon/tests.rs`.
-**Stability:** Improves separation of concerns (Data vs Logic) and reduces file size significantly.
+## [Encapsulating Assembly Module]
+**Tangle:** `src/semantic/assembly/` was exposed as a public module (`pub mod assembly`) when its internal struct models are meant to be an implementation detail hidden behind the facade at `src/semantic/mod.rs`.
+**Blueprint:** Modified `src/semantic/mod.rs` to restrict `assembly` to `pub(crate) mod assembly`, routing all test and internal imports through the facade export `glossa::semantic::*`.
+**Stability:** Achieves stricter boundary enforcement and hides the inner `assembly` directory layout from public consumers.
