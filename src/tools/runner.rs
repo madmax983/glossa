@@ -29,10 +29,12 @@ use crate::tools::highlight::highlight;
 use crate::tools::narrator::tell_tale;
 use crate::tools::report::{CompilationReport, GlossaReport, ProgramStats};
 use crate::tools::ui::Status;
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::{Attribute, Cell, Color, Table};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
-use std::io::Read;
+use std::io::{IsTerminal, Read};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -336,24 +338,23 @@ fn invoke_rustc(cached_rs: &Path, cached_exe: &Path) -> Result<()> {
     if !rustc_output.status.success() {
         let stderr = String::from_utf8_lossy(&rustc_output.stderr);
 
-        // Format the error nicely
-        let error_msg = format!(
-            "\n{}\n{}\n{}\n",
-            "╔══════════════════════════════════════════════════════════════╗".red(),
-            "║  INTERNAL COMPILER ERROR (Codegen Failed)                    ║"
-                .red()
-                .bold(),
-            "╚══════════════════════════════════════════════════════════════╝".red()
-        );
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL);
+        table.set_header(vec![
+            Cell::new("INTERNAL COMPILER ERROR (Codegen Failed)")
+                .bg(Color::DarkRed)
+                .fg(Color::White)
+                .add_attribute(Attribute::Bold),
+        ]);
 
-        let help_msg = format!(
-            "{}\n{}",
-            "This indicates a bug in the Glossa compiler's code generation.",
-            "Please report this issue with the following details:"
-        )
-        .yellow();
+        table.add_row(vec![
+            Cell::new("This indicates a bug in the Glossa compiler's code generation.\nPlease report this issue with the following details:")
+                .fg(Color::Yellow),
+        ]);
 
-        return Err(miette::miette!("{}\n{}\n\n{}", error_msg, help_msg, stderr));
+        table.add_row(vec![Cell::new(stderr).fg(Color::Red)]);
+
+        return Err(miette::miette!("\n{}\n", table));
     }
 
     Ok(())
@@ -452,7 +453,20 @@ pub fn report_file(input: &Path) -> Result<()> {
     let report = GlossaReport::new(&analyzed, filename);
 
     status.success();
-    println!("{}", report);
+
+    if std::io::stdout().is_terminal() {
+        println!("{}", report);
+    } else {
+        let stats = ProgramStats::new(&analyzed);
+        println!("File: {}", input.display());
+        println!("Statements: {}", stats.statement_count);
+        println!("Expressions: {}", stats.expression_count);
+        println!("Bindings: {}", stats.binding_count);
+        println!("Functions: {}", stats.function_count);
+        println!("Types: {}", stats.type_count);
+        println!("Loops: {}", stats.loop_count);
+        println!("Max Depth: {}", stats.max_depth);
+    }
 
     Ok(())
 }
