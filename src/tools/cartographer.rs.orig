@@ -116,7 +116,7 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     // Standard `HashSet` uses SipHash, which is cryptographically secure but slower.
     // For internal tracking of predictable short type names in the cartographer,
     // where HashDoS isn't a concern, `FxHashSet` avoids unnecessary hashing overhead.
-    let mut dependencies: FxHashSet<(&str, &str)> = FxHashSet::default();
+    let mut dependencies = FxHashSet::default();
 
     format_structs(&mut map, program, &mut dependencies);
     format_traits(&mut map, program);
@@ -126,12 +126,10 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     map
 }
 
-/// Formats the structs into plantuml text and extracts dependencies.
-/// ⚡ Bolt Optimization: Uses `&'a str` to avoid allocating `String`s for dependency tracking.
-fn format_structs<'a>(
+fn format_structs(
     map: &mut String,
-    program: &'a AnalyzedProgram,
-    dependencies: &mut FxHashSet<(&'a str, &'a str)>,
+    program: &AnalyzedProgram,
+    dependencies: &mut FxHashSet<(String, String)>,
 ) {
     use std::fmt::Write;
     let mut types: Vec<_> = program.scope.types().collect();
@@ -148,8 +146,8 @@ fn format_structs<'a>(
                 deps_buffer.clear();
                 extract_dependencies(field_type, &mut deps_buffer);
                 for dep in deps_buffer.drain(..) {
-                    if dep != name.as_str() {
-                        dependencies.insert((name.as_str(), dep));
+                    if dep != *name {
+                        dependencies.insert((name.to_string(), dep));
                     }
                 }
             }
@@ -186,20 +184,18 @@ fn format_traits(map: &mut String, program: &AnalyzedProgram) {
     }
 }
 
-/// Formats the final dependency relations.
-/// ⚡ Bolt Optimization: Avoids intermediate `String` allocations by comparing with `&str`.
-fn format_dependencies<'a>(
+fn format_dependencies(
     map: &mut String,
-    program: &'a AnalyzedProgram,
-    dependencies: FxHashSet<(&'a str, &'a str)>,
+    program: &AnalyzedProgram,
+    dependencies: FxHashSet<(String, String)>,
 ) {
     use std::fmt::Write;
-    let defined_types: FxHashSet<&'a str> = program
+    let defined_types: FxHashSet<String> = program
         .scope
         .types()
         .filter_map(|(_, ty)| {
             if let GlossaType::Struct { name, .. } = ty {
-                Some(name.as_str())
+                Some(name.to_string())
             } else {
                 None
             }
@@ -210,7 +206,7 @@ fn format_dependencies<'a>(
     sorted_deps.sort();
 
     for (source, target) in sorted_deps {
-        if defined_types.contains(target) {
+        if defined_types.contains(&target) {
             let _ = writeln!(map, "    {} --> {}", source, target);
         }
     }
@@ -231,10 +227,9 @@ fn format_trait_impls(map: &mut String, program: &AnalyzedProgram) {
 }
 
 /// Helper to recursively extract struct names from a type
-/// ⚡ Bolt Optimization: Uses `&'a str` instead of `String` to avoid O(N) heap allocations.
-fn extract_dependencies<'a>(ty: &'a GlossaType, buffer: &mut Vec<&'a str>) {
+fn extract_dependencies(ty: &GlossaType, buffer: &mut Vec<String>) {
     match ty {
-        GlossaType::Struct { name, .. } => buffer.push(name.as_str()),
+        GlossaType::Struct { name, .. } => buffer.push(name.to_string()),
         GlossaType::List(inner) | GlossaType::Set(inner) | GlossaType::Option(inner) => {
             extract_dependencies(inner, buffer);
         }
