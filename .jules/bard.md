@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-03-24 - The Missing Test Stories
+**Confusion:** Many `#[cfg(test)]` modules in the codebase (like `src/semantic/conversion_tests.rs` or `src/semantic/assembler_tests.rs`) did not have `//!` module-level documentation, treating them as afterthoughts.
+**Clarification:** Even test modules should have a high-level summary that explains what core behavior they verify. Added `//!` to all major test files in `src/semantic/` to adhere to "every module tells a story", ensuring the documentation accurately reflects the module's testing goals (e.g., "The Assembly Line" or "The Shield Wall").

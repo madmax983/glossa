@@ -7,6 +7,27 @@ use crate::parser::expressions::build_expression;
 use crate::parser::grammar::Rule;
 use pest::iterators::Pair;
 
+/// Constructs a `Statement::Regular` from a parsed `clause_list` PEG pair.
+///
+/// This function acts as the bridge between the raw grammar token stream and the structured
+/// Abstract Syntax Tree for standard declarative sentences. It extracts individual grammatical
+/// clauses and parses any trailing punctuation markers (like query `?` or propagate `;`)
+/// to determine the statement's control flow behavior.
+///
+/// ## Examples
+///
+/// ```text
+/// use crate::parser::grammar::{GlossaParser, Rule};
+/// use pest::Parser;
+///
+/// // Parse "ξ πέντε ἔστω." (Let x be 5)
+/// let mut pairs = GlossaParser::parse(Rule::statement, "ξ πέντε ἔστω.").unwrap();
+/// let statement_pair = pairs.next().unwrap();
+/// let mut inner_pairs = statement_pair.into_inner();
+///
+/// let clause_list = inner_pairs.next().unwrap();
+/// let stmt = build_regular_statement(clause_list, inner_pairs).unwrap();
+/// ```
 pub(crate) fn build_regular_statement(
     clause_list_pair: Pair<'_, Rule>,
     mut statement_pairs: pest::iterators::Pairs<'_, Rule>,

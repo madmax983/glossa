@@ -1,3 +1,9 @@
+//! The Edge Case Defenses (Δοκιμασία τῆς Φρουρᾶς)
+//!
+//! This module acts as the "Sentry", guarding against edge cases in the semantic
+//! conversion layer. It tests how `extract_value` handles unexpected overlaps
+//! (like multiple object/literal combinations) to ensure robustness.
+
 use super::conversion::{convert_assembled_to_analyzed, extract_value};
 use crate::morphology::lexicon::BinaryOp;
 use crate::morphology::{Case, Mood, Number, Person, Tense};

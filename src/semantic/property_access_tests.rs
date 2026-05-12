@@ -1,3 +1,10 @@
+//! The Property Proving Grounds (Δοκιμασία τῆς Ἰδιοκτησίας)
+//!
+//! This module verifies the assembler's handling of property accesses via the
+//! genitive case (e.g. `χρήστου ὄνομα` -> `user.name`). It ensures that properties
+//! inherit the grammatical case of their owners, allowing them to function correctly
+//! as subjects or objects in the wider sentence.
+
 use crate::ast::Expr;
 use crate::semantic::expressions::feed_expr_to_assembler_with_context;
 use crate::semantic::{Assembler, DisambiguationContext};

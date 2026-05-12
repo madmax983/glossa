@@ -1,3 +1,10 @@
+//! The Assembly Line (Δοκιμασία τῆς Συναρμολογήσεως)
+//!
+//! This module verifies the behavior of the `Assembler`, the core component that
+//! consumes stream of morphologically analyzed words and categorizes them into their
+//! proper syntactical slots (Subjects, Objects, Verbs, Modifiers) based on their
+//! grammatical case rather than their position.
+
 use crate::ast::{Expr, Word};
 use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person, analyze};
 use crate::semantic::AssemblyError;

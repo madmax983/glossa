@@ -89,6 +89,26 @@ fn parse_source(source: &str) -> Result<Program, ParseError> {
     Ok(Program { statements })
 }
 
+/// Extracts a higher-level AST `Statement` from a PEG statement pair.
+///
+/// Statements represent the major structural boundaries of a ΓΛΩΣΣΑ program. They can be
+/// structural definitions (like traits or types), logic tests, or standard declarative
+/// sentences (`Statement::Regular`). This function acts as the primary dispatch router,
+/// inspecting the initial rule of the statement and delegating to specialized builders.
+///
+/// ## Examples
+///
+/// ```text
+/// use crate::parser::grammar::{GlossaParser, Rule};
+/// use pest::Parser;
+///
+/// // Parse an entire statement "ξ πέντε ἔστω." (Let x be 5)
+/// let mut pairs = GlossaParser::parse(Rule::statement, "ξ πέντε ἔστω.").unwrap();
+/// let statement_pair = pairs.next().unwrap();
+///
+/// let stmt = build_statement(statement_pair).unwrap();
+/// assert!(matches!(stmt, crate::ast::Statement::Regular { .. }));
+/// ```
 pub(crate) fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
     let mut pairs = pair.into_inner();
     let first = pairs

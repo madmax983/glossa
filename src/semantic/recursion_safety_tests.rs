@@ -1,3 +1,10 @@
+//! The Shield Wall (Ἀσπίς) against Stack Overflows
+//!
+//! This module verifies the memory safety of the semantic analyzer. Compilers are
+//! notoriously prone to stack overflows when parsing deeply nested structures (like
+//! `((((1))))`). These tests ensure that the AST-to-IR lowering phase respects
+//! strict depth bounds and correctly drops large trees without crashing the process.
+
 use crate::ast::{Expr, Word};
 use crate::limits::MAX_AST_DEPTH;
 use crate::semantic::expressions::feed_expr_to_assembler_with_context;
