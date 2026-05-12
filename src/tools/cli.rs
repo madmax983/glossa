@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Transpile a .γλ file to TypeScript interfaces (Requires "nova" feature)
+    Hermes {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
