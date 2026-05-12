@@ -1,3 +1,10 @@
+//! The Conversion Crucible (Δοκιμασία τῆς Μετατροπῆς)
+//!
+//! This module verifies the transformation of intermediate `AssembledStatement` objects
+//! into fully typed `AnalyzedStatement` structures. It tests that the compiler correctly
+//! deduces semantic meaning (like bindings, assignments, and expressions) from
+//! syntactically valid but structurally loose assembled sentences.
+
 use super::conversion::{convert_assembled_to_analyzed, extract_value};
 use crate::ast::Expr;
 use crate::morphology::lexicon::BinaryOp;

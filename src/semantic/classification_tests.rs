@@ -1,3 +1,10 @@
+//! The Classification Chamber (Δοκιμασία τῆς Ταξινομήσεως)
+//!
+//! This module verifies the algorithm that decides the overarching intent of a sentence.
+//! Once the assembler builds a bag of words (Subject, Object, Verb), `classify_assembled_statement`
+//! examines the contents to decide if the statement is a Variable Binding, an Assignment,
+//! a Function Call, or a Loop.
+
 use super::conversion::classify_assembled_statement;
 use crate::ast::Expr;
 use crate::morphology::Case;

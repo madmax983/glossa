@@ -1,3 +1,9 @@
+//! The Paths of Execution (Δοκιμασία τῆς Ῥοῆς)
+//!
+//! This module verifies the semantic analysis of control flow statements
+//! (If, While, For, Match). It ensures that loops properly manage their iteration variables
+//! and that conditional branches deduce correct boolean logic.
+
 use crate::ast::{Clause, Expr, Statement, Word};
 use crate::semantic::Scope;
 use crate::semantic::analyze_statement;

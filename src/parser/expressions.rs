@@ -31,6 +31,25 @@ pub(crate) fn build_expression(pair: Pair<'_, Rule>) -> Result<Expr, ParseError>
     }
 }
 
+/// Extracts a single grammatical unit (`Expr`) from a parsed term.
+///
+/// A "term" in ΓΛΩΣΣΑ's grammar is the smallest distinct part of speech before they
+/// are assembled into phrases. This function maps PEG `term` rules (like blocks, array
+/// literals, variable lookups, and basic literals) into their corresponding AST `Expr` types.
+///
+/// ## Examples
+///
+/// ```text
+/// use crate::parser::grammar::{GlossaParser, Rule};
+/// use pest::Parser;
+///
+/// // Parse a simple number literal as a term
+/// let mut pairs = GlossaParser::parse(Rule::term, "42").unwrap();
+/// let term_pair = pairs.next().unwrap();
+///
+/// let expr = build_term(term_pair).unwrap();
+/// assert!(matches!(expr, crate::ast::Expr::NumberLiteral(42)));
+/// ```
 pub(crate) fn build_term(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
     let inner = pair.into_inner().next().ok_or(ParseError::EmptyTerm)?;
 
