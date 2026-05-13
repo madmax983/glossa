@@ -1,4 +1,6 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. Review the memory on `The Blob` files. It mentions converting large files like `src/semantic/conversion.rs` and `src/morphology/lexicon.rs` into directories to improve cohesion and reduce file size.
+2. We moved `lexicon.rs` to `src/morphology/lexicon/` and split its `LEXICON` initialization into `data.rs` and its tests into `tests.rs`.
+3. We moved `conversion.rs` to `src/semantic/conversion/` and moved its tests into `tests.rs`.
+4. We verified that tests still pass and the architecture is preserved.
+5. All tests run perfectly and no dead code was found.
+6. Commit the changes following Atlas's PR format, updating the `.jules/atlas.md` log.
