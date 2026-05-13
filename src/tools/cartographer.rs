@@ -190,12 +190,13 @@ fn format_dependencies(
     dependencies: FxHashSet<(String, String)>,
 ) {
     use std::fmt::Write;
-    let defined_types: FxHashSet<String> = program
+    // ⚡ Bolt Optimization: Uses FxHashSet<&str> to avoid heap allocations from .to_string()
+    let defined_types: FxHashSet<&str> = program
         .scope
         .types()
         .filter_map(|(_, ty)| {
             if let GlossaType::Struct { name, .. } = ty {
-                Some(name.to_string())
+                Some(name.as_str())
             } else {
                 None
             }
@@ -206,7 +207,7 @@ fn format_dependencies(
     sorted_deps.sort();
 
     for (source, target) in sorted_deps {
-        if defined_types.contains(&target) {
+        if defined_types.contains(target.as_str()) {
             let _ = writeln!(map, "    {} --> {}", source, target);
         }
     }
