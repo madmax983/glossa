@@ -41,7 +41,7 @@
 
 use crate::codegen::generate_rust_file;
 use crate::tools::ui::Status;
-use comfy_table::{Attribute, Cell, CellAlignment, Color, Table, presets};
+use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
@@ -340,20 +340,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         }
         println!("{table}");
     } else {
-        let mut empty_table = Table::new();
-        empty_table.load_preset(presets::UTF8_FULL);
-        empty_table.set_header(vec![
-            Cell::new("Status")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
-        ]);
-        empty_table.add_row(vec![
-            Cell::new("No tests found.")
-                .fg(Color::DarkGrey)
-                .add_attribute(Attribute::Italic)
-                .set_alignment(CellAlignment::Center),
-        ]);
-        println!("{empty_table}");
+        println!("   {}", "No tests found.".yellow().dim());
     }
 
     // If there were failures, try to extract and print them nicely
