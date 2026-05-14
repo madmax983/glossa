@@ -55,6 +55,10 @@ pub mod narrator;
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
 pub mod papyrus;
+
+/// Export semantic AST to TypeScript interfaces (Requires "nova" feature)
+#[cfg(feature = "nova")]
+pub mod hermes;
 pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
