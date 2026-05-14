@@ -213,12 +213,6 @@ pub enum Commands {
     /// Explore the built-in lexicon (Requires "nova" feature)
     Catalog,
 
-    /// Export type definitions to TypeScript interfaces (Requires "nova" feature)
-    Hermes {
-        /// Input file (.γλ)
-        input: PathBuf,
-    },
-
     /// Generate an API documentation Markdown file (Requires "nova" feature)
     Scholar {
         /// Input file (.γλ)
