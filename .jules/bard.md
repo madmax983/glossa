@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2025-02-12 - Fix Philosophy Document Examples
+**Confusion:** The free word order examples in the Philosophy documentation failed to compile because they used variables (`χρήστης` and `δεδομένα`) that were never defined.
+**Clarification:** Added explicit `ἔστω` definitions for the variables before the examples to ensure the doc code is executable and tests pass.
