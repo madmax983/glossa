@@ -47,11 +47,16 @@ pub fn run_haruspex(input: &Path) -> Result<()> {
 
     let dot = generate_dot(&program);
 
-    print_dashboard(&dot, std::io::stdout().is_terminal());
+    let output_path = input.with_extension("dot");
+    if let Err(e) = std::fs::write(&output_path, &dot) {
+        return Err(miette::miette!("Σφάλμα ἐγγραφῆς (Write Error): {}", e));
+    }
+
+    print_dashboard(&dot, &output_path, std::io::stdout().is_terminal());
     Ok(())
 }
 
-fn print_dashboard(dot: &str, is_tty: bool) {
+fn print_dashboard(dot: &str, output_path: &Path, is_tty: bool) {
     if is_tty {
         println!();
         println!("   {}", "Γ Λ Ω Σ Σ Α   H A R U S P E X".cyan().bold());
@@ -68,20 +73,11 @@ fn print_dashboard(dot: &str, is_tty: bool) {
         println!("   {} {}", "Edges:".bold(), edges.to_string().cyan());
         println!();
         println!(
-            "   {}",
-            "To view the graph, pipe this command to a file or tool:".dim()
-        );
-        println!(
-            "   {}",
-            "cargo run --features nova --bin glossa -- haruspex <file> > ast.dot".dim()
-        );
-        println!(
-            "   {}",
-            "cargo run --features nova --bin glossa -- haruspex <file> | dot -Tpng > ast.png".dim()
+            "   {} {}",
+            "Saved to:".bold(),
+            output_path.display().to_string().cyan()
         );
         println!();
-    } else {
-        println!("{}", dot);
     }
 }
 
@@ -832,13 +828,18 @@ mod tests {
         // Just verify it doesn't panic
         print_dashboard(
             "digraph AST { node_0 [label=\"Program\"]; node_0 -> node_1; }",
+            std::path::Path::new("dummy.dot"),
             true,
         );
     }
 
     #[test]
     fn test_print_dashboard_no_tty() {
-        print_dashboard("digraph AST { node_0 [label=\"Program\"]; }", false);
+        print_dashboard(
+            "digraph AST { node_0 [label=\"Program\"]; }",
+            std::path::Path::new("dummy.dot"),
+            false,
+        );
     }
 
     #[test]
