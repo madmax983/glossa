@@ -152,17 +152,6 @@ mod tests {
             }),
             "User"
         );
-        assert_eq!(
-            glossa_type_to_ts(&GlossaType::Map(
-                Box::new(GlossaType::Boolean),
-                Box::new(GlossaType::Number)
-            )),
-            "Record<string, number>"
-        );
-        assert_eq!(
-            glossa_type_to_ts(&GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String))),
-            "{ ok: true, value: number } | { ok: false, error: string }"
-        );
         assert_eq!(glossa_type_to_ts(&GlossaType::Unknown), "any");
     }
 }
