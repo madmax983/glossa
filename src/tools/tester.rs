@@ -141,7 +141,8 @@ fn parse_failure_name(line: &str) -> Option<String> {
 }
 
 fn capture_failure_message(lines: &mut std::iter::Peekable<std::str::Lines>) -> String {
-    let mut message = String::new();
+    // ⚡ Bolt Optimization: Pre-allocate reasonable capacity for panic messages to avoid intermediate heap reallocations.
+    let mut message = String::with_capacity(1024);
     while let Some(current) = lines.peek() {
         let trimmed = current.trim();
         if (trimmed.starts_with("----") && trimmed.ends_with("stdout ----"))
@@ -225,7 +226,8 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
     if !rustc_output.status.success() {
         let raw_stderr = String::from_utf8_lossy(&rustc_output.stderr);
 
-        let mut clean_stderr = String::new();
+        // ⚡ Bolt Optimization: Pre-allocate exact required capacity to avoid multiple heap reallocations.
+        let mut clean_stderr = String::with_capacity(raw_stderr.len());
         let mut prev_empty = false;
         for line in raw_stderr.lines() {
             // Skip file location lines
