@@ -8,3 +8,7 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+
+## Optimize String allocation in tester.rs
+**Learning:** When capturing raw standard error or failure outputs line by line in testing tools, using `String::new()` forces the string to undergo multiple heap reallocations as it expands. `String::with_capacity()` can eliminate these intermediate allocations. Even for unpredictable sizes like panic stack traces, estimating a small but reasonable capacity (e.g., 1024 bytes) prevents early micro-allocations, and when an upper bound is exactly known (e.g., `raw_stderr.len()`), it provides an exact O(1) allocation.
+**Action:** Always prefer `String::with_capacity()` when aggregating string parts inside a loop, especially in critical paths or output parsers.
