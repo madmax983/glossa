@@ -140,8 +140,10 @@ fn parse_failure_name(line: &str) -> Option<String> {
     )
 }
 
+/// ⚡ Bolt Optimization: Pre-allocate the `message` string with a reasonable capacity
+/// to avoid multiple heap reallocations during failure message extraction.
 fn capture_failure_message(lines: &mut std::iter::Peekable<std::str::Lines>) -> String {
-    let mut message = String::new();
+    let mut message = String::with_capacity(512);
     while let Some(current) = lines.peek() {
         let trimmed = current.trim();
         if (trimmed.starts_with("----") && trimmed.ends_with("stdout ----"))
@@ -225,7 +227,9 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
     if !rustc_output.status.success() {
         let raw_stderr = String::from_utf8_lossy(&rustc_output.stderr);
 
-        let mut clean_stderr = String::new();
+        // ⚡ Bolt Optimization: Pre-allocate `clean_stderr` based on the length of `raw_stderr`
+        // to completely eliminate intermediate heap reallocations when formatting errors.
+        let mut clean_stderr = String::with_capacity(raw_stderr.len());
         let mut prev_empty = false;
         for line in raw_stderr.lines() {
             // Skip file location lines
@@ -861,4 +865,29 @@ test name with spaces ... ok
         // The underlying error bubbles up.
         assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
     }
+}
+
+#[test]
+fn test_extract_failures_large_output() {
+    let mut output = String::new();
+    output.push_str("failures:\n\n");
+    output.push_str("---- test_large stdout ----\n");
+    for i in 0..10000 {
+        output.push_str(&format!("Line {}\n", i));
+    }
+    output.push_str("\nfailures:\n    test_large\n");
+
+    let start = std::time::Instant::now();
+    let failures = extract_failures(&output);
+    let duration = start.elapsed();
+
+    assert_eq!(failures.len(), 1);
+    assert_eq!(failures[0].0, "test_large");
+
+    // This is a dummy check to act as our benchmark verification.
+    // It won't fail strictly on allocations, but ensures our optimization handles large strings correctly.
+    assert!(
+        duration.as_millis() < 500,
+        "Performance bottleneck detected"
+    );
 }

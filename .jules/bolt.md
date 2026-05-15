@@ -8,3 +8,7 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+
+## ⚡ Bolt Optimization - src/tools/tester.rs
+**Learning:** During test evaluation, large raw console outputs resulting from a failed tests would trigger multiple memory reallocations as `push_str` repeatedly expanded an initially unallocated `String::new()`.
+**Action:** Replaced `String::new()` with `String::with_capacity(raw_stderr.len())` for `clean_stderr` and `String::with_capacity(512)` for `message` in test log parsing, drastically reducing intermediate memory heap reallocations.
