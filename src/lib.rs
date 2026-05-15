@@ -114,6 +114,8 @@ pub mod semantic;
 pub mod text;
 pub mod tools;
 
+pub mod experimental;
+
 pub use tools::highlight;
 
 pub use ast::Program;
