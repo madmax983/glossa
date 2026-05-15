@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate TypeScript interfaces (Requires "nova" feature)
+    Diplomat {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
