@@ -362,21 +362,7 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
             type_name,
             fields,
             args,
-        } => {
-            let mut kw_args_buf = String::with_capacity(fields.len() * 16);
-            for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
-                if i > 0 {
-                    kw_args_buf.push_str(", ");
-                }
-                let _ = write!(
-                    &mut kw_args_buf,
-                    "{}={}",
-                    sanitize_ident(f),
-                    transpile_expr(a)
-                );
-            }
-            format!("{}({})", sanitize_ident(type_name), kw_args_buf)
-        }
+        } => transpile_struct_instantiation(type_name, fields, args),
         AnalyzedExprKind::Range {
             start,
             end,
@@ -393,26 +379,7 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
         AnalyzedExprKind::ArrayLiteral(exprs) => {
             format!("[{}]", format_transpiled_exprs(exprs))
         }
-        AnalyzedExprKind::BinOp { left, op, right } => {
-            let l = transpile_expr(left);
-            let r = transpile_expr(right);
-            let op_str = match op {
-                BinaryOp::Add => "+",
-                BinaryOp::Sub => "-",
-                BinaryOp::Mul => "*",
-                BinaryOp::Div => "//", // Integer division in Python
-                BinaryOp::Mod => "%",
-                BinaryOp::Eq => "==",
-                BinaryOp::Ne => "!=",
-                BinaryOp::Lt => "<",
-                BinaryOp::Le => "<=",
-                BinaryOp::Gt => ">",
-                BinaryOp::Ge => ">=",
-                BinaryOp::And => "and",
-                BinaryOp::Or => "or",
-            };
-            format!("({} {} {})", l, op_str, r)
-        }
+        AnalyzedExprKind::BinOp { left, op, right } => transpile_bin_op(left, op, right),
         AnalyzedExprKind::UnaryOp { op, operand } => {
             let o = transpile_expr(operand);
             match op {
@@ -427,6 +394,47 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
             crate::tools::narrator::tell_expr(expr)
         ),
     }
+}
+
+fn transpile_struct_instantiation(
+    type_name: &str,
+    fields: &[smol_str::SmolStr],
+    args: &[AnalyzedExpr],
+) -> String {
+    let mut kw_args_buf = String::with_capacity(fields.len() * 16);
+    for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
+        if i > 0 {
+            kw_args_buf.push_str(", ");
+        }
+        let _ = write!(
+            &mut kw_args_buf,
+            "{}={}",
+            sanitize_ident(f),
+            transpile_expr(a)
+        );
+    }
+    format!("{}({})", sanitize_ident(type_name), kw_args_buf)
+}
+
+fn transpile_bin_op(left: &AnalyzedExpr, op: &BinaryOp, right: &AnalyzedExpr) -> String {
+    let l = transpile_expr(left);
+    let r = transpile_expr(right);
+    let op_str = match op {
+        BinaryOp::Add => "+",
+        BinaryOp::Sub => "-",
+        BinaryOp::Mul => "*",
+        BinaryOp::Div => "//", // Integer division in Python
+        BinaryOp::Mod => "%",
+        BinaryOp::Eq => "==",
+        BinaryOp::Ne => "!=",
+        BinaryOp::Lt => "<",
+        BinaryOp::Le => "<=",
+        BinaryOp::Gt => ">",
+        BinaryOp::Ge => ">=",
+        BinaryOp::And => "and",
+        BinaryOp::Or => "or",
+    };
+    format!("({} {} {})", l, op_str, r)
 }
 
 fn sanitize_ident(name: &str) -> String {

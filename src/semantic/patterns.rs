@@ -230,16 +230,7 @@ pub fn try_parse_struct_instantiation(
         return Err(GlossaError::undefined(type_name.to_string()));
     };
 
-    // Extract fields from struct type
-    // ⚡ Bolt Optimization: Use slice instead of cloning `fields` to prevent unnecessary heap allocations
-    let fields_info: &[(SmolStr, GlossaType)] =
-        if let GlossaType::Struct { fields, .. } = &struct_type {
-            fields.as_slice()
-        } else {
-            &[]
-        };
-
-    let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
+    let (fields_info, field_names) = extract_struct_type_info(&struct_type);
 
     // Collect constructor arguments (everything between type_name and ἔστω)
     let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], fields_info, scope) else {
@@ -264,6 +255,20 @@ pub fn try_parse_struct_instantiation(
         value: struct_inst,
         mutable: false,
     }))
+}
+
+fn extract_struct_type_info(struct_type: &GlossaType) -> (&[(SmolStr, GlossaType)], Vec<SmolStr>) {
+    // Extract fields from struct type
+    // ⚡ Bolt Optimization: Use slice instead of cloning `fields` to prevent unnecessary heap allocations
+    let fields_info: &[(SmolStr, GlossaType)] =
+        if let GlossaType::Struct { fields, .. } = struct_type {
+            fields.as_slice()
+        } else {
+            &[]
+        };
+
+    let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
+    (fields_info, field_names)
 }
 
 fn parse_struct_args(
@@ -929,77 +934,86 @@ fn finalize_iterator_chain(current_expr: &mut AnalyzedExpr) {
 }
 
 /// Helper: Extract comparison value for filter/find/any/all
+fn get_variable_from_genitive(
+    genitive: &crate::semantic::assembly::Constituent,
+    scope: &Scope,
+) -> AnalyzedExpr {
+    // Strategy 1: Use the lemma from morphological analysis (handles known irregulars like ὀνόματος -> ὄνομα)
+    let lemma = normalize_greek(&genitive.lemma);
+    if scope.is_defined(&lemma) {
+        return AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(lemma),
+            glossa_type: GlossaType::Number,
+        };
+    }
+
+    // Strategy 2: Fallback to manual stripping for unknown words (handles implicit variables)
+    let normalized = normalize_greek(&genitive.original);
+    let stripped_name = if let Some(stem) = normalized.strip_suffix("ου") {
+        // Strip -ου genitive ending (θου → θ)
+        stem.to_string()
+    } else if let Some(stem) = normalized.strip_suffix("ης") {
+        // Strip -ης genitive ending
+        stem.to_string()
+    } else if let Some(stem) = normalized.strip_suffix("ων") {
+        // Strip -ων genitive plural ending
+        stem.to_string()
+    } else {
+        // Use as-is
+        normalized.to_string()
+    };
+
+    // If stripped name exists, use it
+    if scope.is_defined(&stripped_name) {
+        return AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(stripped_name.into()),
+            glossa_type: GlossaType::Number,
+        };
+    }
+
+    // Strategy 3: Check if original name exists (maybe variable IS the genitive form?)
+    if scope.is_defined(&normalized) {
+        return AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(normalized),
+            glossa_type: GlossaType::Number,
+        };
+    }
+
+    // Default: use stripped name if we found one, or lemma as fallback
+    // This maintains backward compatibility and provides reasonable error messages
+    let final_name = if stripped_name != normalized {
+        stripped_name
+    } else {
+        lemma.to_string()
+    };
+
+    AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(final_name.into()),
+        glossa_type: GlossaType::Number,
+    }
+}
+
 fn extract_comparison_value(asm_stmt: &AssembledStatement, scope: &Scope) -> AnalyzedExpr {
     if let Some(genitive) = asm_stmt.genitives.first() {
-        // Strategy 1: Use the lemma from morphological analysis (handles known irregulars like ὀνόματος -> ὄνομα)
-        let lemma = normalize_greek(&genitive.lemma);
-        if scope.is_defined(&lemma) {
-            return AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(lemma),
-                glossa_type: GlossaType::Number,
-            };
-        }
+        return get_variable_from_genitive(genitive, scope);
+    }
 
-        // Strategy 2: Fallback to manual stripping for unknown words (handles implicit variables)
-        let normalized = normalize_greek(&genitive.original);
-        let stripped_name = if let Some(stem) = normalized.strip_suffix("ου") {
-            // Strip -ου genitive ending (θου → θ)
-            stem.to_string()
-        } else if let Some(stem) = normalized.strip_suffix("ης") {
-            // Strip -ης genitive ending
-            stem.to_string()
-        } else if let Some(stem) = normalized.strip_suffix("ων") {
-            // Strip -ων genitive plural ending
-            stem.to_string()
-        } else {
-            // Use as-is
-            normalized.to_string()
-        };
-
-        // If stripped name exists, use it
-        if scope.is_defined(&stripped_name) {
-            return AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(stripped_name.into()),
-                glossa_type: GlossaType::Number,
-            };
-        }
-
-        // Strategy 3: Check if original name exists (maybe variable IS the genitive form?)
-        if scope.is_defined(&normalized) {
-            return AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(normalized),
-                glossa_type: GlossaType::Number,
-            };
-        }
-
-        // Default: use stripped name if we found one, or lemma as fallback
-        // This maintains backward compatibility and provides reasonable error messages
-        let final_name = if stripped_name != normalized {
-            stripped_name
-        } else {
-            lemma.to_string()
-        };
-
-        AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(final_name.into()),
-            glossa_type: GlossaType::Number,
-        }
-    } else if let Some(literal) = asm_stmt.literals.first() {
+    if let Some(literal) = asm_stmt.literals.first() {
         // Literal comparison: πέντε μείζονα = "greater than five"
         let value = match literal {
             crate::semantic::Literal::Number(n) => *n,
             _ => 0,
         };
-        AnalyzedExpr {
+        return AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(value),
             glossa_type: GlossaType::Number,
-        }
-    } else {
-        // Implicit zero: θετικά = "positive" = greater than 0
-        AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(0),
-            glossa_type: GlossaType::Number,
-        }
+        };
+    }
+
+    // Implicit zero: θετικά = "positive" = greater than 0
+    AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(0),
+        glossa_type: GlossaType::Number,
     }
 }
 
