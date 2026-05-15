@@ -131,3 +131,30 @@ C4Component
 
     Rel(model, types, "Uses")
 ```
+
+## Decoupled Storage Architecture
+
+The persistence logic has been isolated into a dedicated `storage` crate to prevent circular dependencies and clarify domain boundaries.
+
+### Class Diagram
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+```
+
+### Persistence Sequence Flow
+
+```mermaid
+sequenceDiagram
+    participant Core
+    participant StorageTrait as Storage (Trait)
+    participant DB as Storage Implementation
+
+    Core->>StorageTrait: save(data)
+    StorageTrait->>DB: persist_to_disk(data)
+    DB-->>StorageTrait: Result<Success, Error>
+    StorageTrait-->>Core: Result<Success, Error>
+```
