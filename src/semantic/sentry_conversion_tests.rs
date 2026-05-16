@@ -1,4 +1,4 @@
-use super::conversion::{convert_assembled_to_analyzed, extract_value};
+use super::conversion::{convert_assembled_to_analyzed, values::extract_value};
 use crate::morphology::lexicon::BinaryOp;
 use crate::morphology::{Case, Mood, Number, Person, Tense};
 use crate::semantic::{
