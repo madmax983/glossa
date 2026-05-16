@@ -26,11 +26,12 @@ fn main() -> Result<()> {
             run_file(&input)?;
         }
 
+        #[cfg(feature = "nova")]
         Some(Commands::Mentor) => {
-            #[cfg(feature = "nova")]
             glossa::tools::mentor::run_mentor()?;
-
-            #[cfg(not(feature = "nova"))]
+        }
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Mentor) => {
             miette::bail!(
                 "The 'mentor' command is experimental. Recompile glossa with '--features nova' to enable it."
             );
@@ -168,21 +169,23 @@ fn main() -> Result<()> {
             }
         }
 
+        #[cfg(feature = "nova")]
         Some(Commands::Catalog) => {
-            #[cfg(feature = "nova")]
             glossa::tools::catalog::run_catalog()?;
-
-            #[cfg(not(feature = "nova"))]
+        }
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Catalog) => {
             miette::bail!(
                 "The 'catalog' command is experimental. Recompile glossa with '--features nova' to enable it."
             );
         }
 
+        #[cfg(feature = "nova")]
         Some(Commands::Gnomon { input }) => {
-            #[cfg(feature = "nova")]
             glossa::tools::gnomon::run_gnomon(&input)?;
-
-            #[cfg(not(feature = "nova"))]
+        }
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Gnomon { .. }) => {
             miette::bail!(
                 "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
             );
