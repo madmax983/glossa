@@ -79,6 +79,12 @@ pub mod runner;
 #[cfg(feature = "nova")]
 pub mod scholar;
 pub mod tester;
+/// The Typos (ὁ Τύπος) tool for generating TypeScript interfaces.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding TypeScript `interface` statements.
+#[cfg(feature = "nova")]
+pub mod typos;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
 pub mod weave;
