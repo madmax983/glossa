@@ -104,6 +104,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate TypeScript interfaces from a .γλ file (Requires "nova" feature)
+    Typos {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Generate a language metrics dashboard
     Report {
         /// Input file (.γλ)

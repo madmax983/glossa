@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Typos (ὁ Τύπος)
+**Concept:** A CLI tool (`glossa typos`) that transpiles Glossa struct definitions (`εἶδος`) directly to TypeScript `interface` statements.
+**Fate:** Proposed
+**Lesson:** Treating Glossa as a generic Definition Language bridges ancient syntax with modern web frameworks. Generating TypeScript typings makes Glossa more viable in a full-stack environment where interfaces are needed across language boundaries.

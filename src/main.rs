@@ -77,6 +77,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Typos { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::typos::run_typos(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'typos' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Map { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::cartographer::run_map(&input)?;
