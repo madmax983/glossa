@@ -2353,8 +2353,6 @@ pub enum BinaryOp {
     Or,
 }
 
-impl BinaryOp {}
-
 /// Unary operator type for code generation
 ///
 /// Modifies a single expression's existential state or reference.
@@ -2377,8 +2375,6 @@ pub enum UnaryOp {
     /// Establishes an indirect relationship to an entity, denoting a view rather than ownership.
     Ref,
 }
-
-impl UnaryOp {}
 
 /// Check if a word is a comparison adjective and return the operator
 pub fn comparison_operator(normalized_word: &str) -> Option<BinaryOp> {
