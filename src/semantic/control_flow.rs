@@ -1167,17 +1167,227 @@ mod tests {
         assert!(result.is_ok());
         let analyzed = result.unwrap().unwrap();
 
-        match analyzed {
-            AnalyzedStatement::While { condition, body } => {
-                // Assert condition
-                assert_eq!(condition.glossa_type, GlossaType::Boolean);
-                // Assert body
-                assert!(!body.is_empty());
-            }
-            _ => panic!("Expected While statement"),
-        }
+        let AnalyzedStatement::While { condition, body } = analyzed else {
+            panic!("Expected While statement");
+        };
+        // Assert condition
+        assert_eq!(condition.glossa_type, GlossaType::Boolean);
+        // Assert body
+        assert!(!body.is_empty());
     }
 
+    #[test]
+    fn test_parse_for_range_missing_body_words() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("απο")),
+                        Expr::NumberLiteral(1),
+                        Expr::Word(Word::new("εως")),
+                        Expr::NumberLiteral(5),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::NumberLiteral(42)], // Not a phrase or word for variable binding
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_for_range_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_for_iteration_empty_body_clause() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("δια")),
+                        Expr::Word(Word::new("ξ")),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![], // Empty clause triggering line 335 fallback
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_for_iteration_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_for_iteration_body_clause_number() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("δια")),
+                        Expr::Word(Word::new("ξ")),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::NumberLiteral(42)], // Trigger line 340 fallback
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_for_iteration_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_for_range_empty_clause() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![],
+            }], // Empty expressions! Line 196 trigger
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_for_range_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Σφάλμα σημασίας: For loop needs at least 2 clauses: range and body"
+        );
+    }
+
+    #[test]
+    fn test_parse_for_range_missing_words() {
+        let mut scope = Scope::new();
+        // Phrase with fewer than 4 words. Lines 221, 240, 249 trigger
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("απο")),
+                        Expr::NumberLiteral(1),
+                        Expr::Word(Word::new("μεχρι")), // Missing end!
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("λεγε"))],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_for_range_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_for_iteration_missing_body() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Phrase(vec![
+                    Expr::Word(Word::new("δια")),
+                    Expr::Word(Word::new("ξ")),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_for_iteration_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Σφάλμα σημασίας: For loop needs at least 2 clauses: collection and body"
+        );
+    }
+
+    #[test]
+    fn test_parse_match_expression_empty_arms() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Phrase(vec![
+                    Expr::Word(Word::new("αντιστοιχιζε")),
+                    Expr::Word(Word::new("ξ")),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_match_expression(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Match expression needs at least one arm")
+        );
+    }
+
+    #[test]
+    fn test_parse_conditional_missing_clauses() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_conditional(&stmt, &mut scope, 0);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Σφάλμα σημασίας: Conditional needs at least 2 clauses: condition and body"
+        );
+    }
+
+    #[test]
+    fn test_parse_conditional_missing_condition() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Phrase(vec![Expr::Word(Word::new("εαν"))])], // Missing actual condition
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_conditional(&stmt, &mut scope, 0);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Σφάλμα σημασίας: Conditional needs at least 2 clauses: condition and body"
+        );
+    }
+
+    #[test]
+    fn test_parse_conditional_missing_body() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Phrase(vec![
+                    Expr::Word(Word::new("εαν")),
+                    Expr::Word(Word::new("αληθες")),
+                ])],
+            }], // Missing body clauses
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_conditional(&stmt, &mut scope, 0);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Σφάλμα σημασίας: Conditional needs at least 2 clauses: condition and body"
+        );
+    }
     #[test]
     fn test_parse_for_range_missing_body() {
         let mut scope = Scope::new();
