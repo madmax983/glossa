@@ -1,13 +1,12 @@
-
 #[cfg(test)]
 #[allow(clippy::module_inception)]
 mod tests {
 
-use crate::semantic::conversion::statements::*;
-use crate::semantic::{Constituent, Literal, model::AnalyzedExprKind, assembly::AssembledStatement, resolver::Scope, AnalyzedStatement, types::GlossaType};
-
-
-
+    use crate::semantic::conversion::statements::*;
+    use crate::semantic::{
+        AnalyzedStatement, Constituent, Literal, assembly::AssembledStatement,
+        model::AnalyzedExprKind, resolver::Scope, types::GlossaType,
+    };
 
     #[test]
     fn test_classify_pop_wrong_verb() {

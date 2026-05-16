@@ -1,7 +1,7 @@
-use crate::semantic::expressions::analyze_argument_expr;
 use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::semantic::assembly::AssembledStatement;
+use crate::semantic::expressions::analyze_argument_expr;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
 use crate::semantic::resolver::Scope;
 use crate::semantic::types::GlossaType;
