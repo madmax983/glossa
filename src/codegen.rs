@@ -275,6 +275,29 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// ```
 use std::fmt::Write;
 
+/// Translates a `GlossaType` AST node into its equivalent stringified Rust code representation.
+///
+/// This function acts as the core mapping between Glossa's semantic types (e.g., `Number`, `String`,
+/// `List`, user-defined structures) and the concrete Rust types emitted by the code generator
+/// (e.g., `i64`, `String`, `Vec<T>`). It is primarily used during the AST-to-Rust transcription phase
+/// for typing variable declarations, function parameters, and struct fields.
+///
+/// ## Performance
+/// Pre-allocates a string of 32 bytes and recursively formats complex generic types (like `Map` and `List`)
+/// without intermediate allocations.
+///
+/// ## Examples
+///
+/// ```
+/// use glossa::semantic::GlossaType;
+/// use glossa::codegen::to_rust_type;
+///
+/// let number_type = GlossaType::Number;
+/// assert_eq!(to_rust_type(&number_type), "i64");
+///
+/// let list_type = GlossaType::List(Box::new(GlossaType::String));
+/// assert_eq!(to_rust_type(&list_type), "Vec<String>");
+/// ```
 pub fn to_rust_type(ty: &GlossaType) -> String {
     let mut result = String::with_capacity(32);
     write_rust_type(ty, &mut result).unwrap();

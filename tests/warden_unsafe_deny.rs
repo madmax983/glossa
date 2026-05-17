@@ -1,3 +1,8 @@
+//! Tests for the `#![deny(unsafe_code)]` directive.
+//!
+//! This module ensures that all generated Rust code from the Glossa compiler
+//! strictly denies the use of `unsafe` code at the crate level.
+
 use glossa::codegen::generate_rust_file;
 use glossa::semantic::{AnalyzedProgram, Scope};
 
