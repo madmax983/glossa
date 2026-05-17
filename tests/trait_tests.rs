@@ -723,3 +723,27 @@ fn test_repro_trait_impl_return_type() {
         "Impl signature should contain return type"
     );
 }
+#[test]
+fn test_codegen_trait_def_no_return_no_body() {
+    let source = r#"
+        χαρακτήρ Sayable ὁρίζειν {
+            δεῖ say τῷ self.
+        }.
+    "#;
+    let code = compile(source);
+    assert!(code.contains("fn g_say"));
+}
+#[test]
+fn test_codegen_trait_with_body_no_return_method_only_def() {
+    let source = r#"
+        χαρακτήρ Sayable ὁρίζειν {
+            ἤδη say τῷ self· «hi» λέγε.
+        }.
+        εἶδος Person ὁρίζειν { ξ ἀριθμοῦ. }.
+        εἶδος Person τῷ Sayable ἐμπίπτειν {
+            say τῷ self.
+        }.
+    "#;
+    let code = compile(source);
+    assert!(code.contains("fn g_say"));
+}
