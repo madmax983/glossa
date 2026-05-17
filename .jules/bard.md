@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-05-17 - The Missing Link and Black Box Tests
+**Confusion:** The `to_rust_type` function in `src/codegen.rs` was completely undocumented ("The Missing Link"), and several test files like `havoc_proptest_unicode_fuzz.rs` and `sentry_codegen_perf.rs` lacked module-level documentation ("The Black Box"), causing `missing_docs` compiler warnings.
+**Clarification:** Added a comprehensive doc comment with executable examples to `to_rust_type` explaining its role in the code generation pipeline. Added module-level `//!` comments to `tests/havoc_proptest_unicode_fuzz.rs`, `tests/sentry_codegen_perf.rs`, `tests/havoc_repl_empty.rs`, `tests/warden_unsafe_deny.rs`, and `tests/havoc_clone_drop.rs` to clarify what specific constraints or edge cases each test suite targets.

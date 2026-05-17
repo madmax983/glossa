@@ -1,3 +1,8 @@
+//! Tests for preventing stack overflows during AST cloning and dropping.
+//!
+//! Deeply nested recursive structures (like `Expr`) can easily blow the stack when cloned
+//! or dropped. This module tests that `stacker` or manual recursion-handling mitigates these crashes.
+
 use glossa::ast::{Expr, Word};
 use std::thread;
 
