@@ -525,8 +525,10 @@ where
 /// For example, "-ε" could be:
 /// - 2nd person singular present imperative (λέγε!)
 /// - 3rd person singular aorist indicative (ἔλυσε)
+///
+/// Uses `Vec::with_capacity(8)` to prevent intermediate heap re-allocations on hot paths.
 pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
-    let mut analyses = Vec::new();
+    let mut analyses = Vec::with_capacity(8);
     analyze_verb_all_into(word, &mut analyses);
     analyses
 }
@@ -882,6 +884,16 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_analyze_verb_all_capacity() {
+        let analyses = analyze_verb_all("testcapacity");
+        assert!(
+            analyses.capacity() >= 8,
+            "Expected analyze_verb_all to pre-allocate vector capacity to at least 8 to prevent intermediate heap re-allocations on hot paths, found {}",
+            analyses.capacity()
+        );
     }
 
     #[test]

@@ -203,8 +203,10 @@ where
 /// - Vocative singular (O sea!)
 ///
 /// The caller should use syntactic context to pick the right one.
+///
+/// Uses `Vec::with_capacity(8)` to prevent intermediate heap re-allocations on hot paths.
 pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
-    let mut analyses = Vec::new();
+    let mut analyses = Vec::with_capacity(8);
     analyze_noun_all_into(word, &mut analyses);
     analyses
 }
@@ -560,6 +562,16 @@ mod tests {
         assert_eq!(get_stem("λογος", Declension::Second), "λογ");
         assert_eq!(get_stem("τιμη", Declension::First), "τιμ");
         assert_eq!(get_stem("ονομα", Declension::Third), "ονο");
+    }
+
+    #[test]
+    fn test_analyze_noun_all_capacity() {
+        let analyses = analyze_noun_all("testcapacity");
+        assert!(
+            analyses.capacity() >= 8,
+            "Expected analyze_noun_all to pre-allocate vector capacity to at least 8 to prevent intermediate heap re-allocations on hot paths, found {}",
+            analyses.capacity()
+        );
     }
 
     #[test]
