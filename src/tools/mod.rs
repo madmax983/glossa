@@ -55,6 +55,12 @@ pub mod narrator;
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
 pub mod papyrus;
+/// The Proteus (ὁ Πρωτεύς) tool for TypeScript interface generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding TypeScript `interface` definitions.
+#[cfg(feature = "nova")]
+pub mod proteus;
 pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
