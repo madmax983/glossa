@@ -28,7 +28,7 @@ use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::io::{BufRead, Write};
 
-use crate::codegen::generate_statement_code;
+use crate::codegen::generate_statement;
 use crate::errors::GlossaError;
 use crate::semantic::{AnalyzedStatement, GlossaType, Scope};
 
@@ -383,7 +383,7 @@ impl ReplContext {
                 }
 
                 Ok(ReplOutput::Statement {
-                    code: generate_statement_code(last_stmt),
+                    code: generate_statement(last_stmt).to_string(),
                 })
             }
         }

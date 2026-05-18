@@ -522,35 +522,11 @@ pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
 /// structure provided by the `quote` crate (which handles things like syntactic validation and
 /// hygiene internally), it is sometimes necessary to obtain a raw `String` representation of a
 /// translated statement, such as when embedding fragments or writing out to a file.
-///
-/// ## Examples
-///
-/// ```rust
-/// use glossa::semantic::{AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType};
-/// use smol_str::SmolStr;
-/// use glossa::codegen::generate_statement_code;
-///
-/// let stmt = AnalyzedStatement::Binding {
-///     name: SmolStr::new("ξ"),
-///     value: AnalyzedExpr {
-///         expr: AnalyzedExprKind::NumberLiteral(5),
-///         glossa_type: GlossaType::Number,
-///     },
-///     mutable: false,
-/// };
-///
-/// let rust_code = generate_statement_code(&stmt);
-/// // The resulting code string is `let g__u3be_ = 5i64 ;`
-/// ```
-pub fn generate_statement_code(stmt: &AnalyzedStatement) -> String {
-    generate_statement(stmt).to_string()
-}
-
 fn generate_statements(stmts: &[AnalyzedStatement]) -> Vec<TokenStream> {
     stmts.iter().map(generate_statement).collect()
 }
 
-fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
+pub fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
     match stmt {
         AnalyzedStatement::Binding {
             name,
@@ -1572,11 +1548,11 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_statement_code() {
+    fn test_generate_statement() {
         let ast = parse("«χαῖρε» λέγε.").unwrap();
         let analyzed = analyze_program(&ast).unwrap();
         let stmt = &analyzed.statements[0];
-        let code = generate_statement_code(stmt);
+        let code = generate_statement(stmt).to_string();
         assert!(code.contains("println"));
         assert!(code.contains("χαῖρε"));
     }
