@@ -7,3 +7,7 @@
 **Bloat:** `DotGenerator` in `src/tools/haruspex.rs` used an object-oriented builder pattern for graph generation.
 **Cut:** Flattened the object into pure procedural functions passing mutable references to `next_id` and `output` state.
 **Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+## [Reduction]
+**Bloat:** Layer lasagna in `generate_statement_code` passing through to `generate_statement(stmt).to_string()`.
+**Cut:** Removed wrapper function, made `generate_statement` public, updated callers.
+**Saved:** 5 lines of code, 1 useless layer of abstraction

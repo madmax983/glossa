@@ -9,7 +9,7 @@ fn test_generate_statement_expression_optimization() {
         glossa_type: GlossaType::Number,
     }];
     let stmt = AnalyzedStatement::Expression(exprs);
-    let code = glossa::codegen::generate_statement_code(&stmt);
+    let code = glossa::codegen::generate_statement(&stmt).to_string();
     assert!(code.contains("42i64"));
 }
 
@@ -20,7 +20,7 @@ fn test_generate_print_optimization() {
         glossa_type: GlossaType::String,
     }];
     let stmt = AnalyzedStatement::Print(args);
-    let code = glossa::codegen::generate_statement_code(&stmt);
+    let code = glossa::codegen::generate_statement(&stmt).to_string();
     assert!(code.contains("println ! (\"{}\" , \"hello\")"));
 }
 
@@ -36,7 +36,7 @@ fn test_generate_collection_array_optimization() {
         expr,
         glossa_type: GlossaType::Unknown,
     }]);
-    let code = glossa::codegen::generate_statement_code(&stmt);
+    let code = glossa::codegen::generate_statement(&stmt).to_string();
     assert!(code.contains("vec ! [10i64]"));
 }
 
@@ -59,7 +59,7 @@ fn test_generate_method_call_optimization() {
         expr,
         glossa_type: GlossaType::Number,
     }]);
-    let code = glossa::codegen::generate_statement_code(&stmt);
+    let code = glossa::codegen::generate_statement(&stmt).to_string();
     assert!(code.contains("g_abs (10i64)"));
 }
 
@@ -82,7 +82,7 @@ fn test_generate_trait_method_call_optimization() {
         expr,
         glossa_type: GlossaType::Number,
     }]);
-    let code = glossa::codegen::generate_statement_code(&stmt);
+    let code = glossa::codegen::generate_statement(&stmt).to_string();
     assert!(code.contains("g_add (10i64)"));
 }
 
@@ -100,7 +100,7 @@ fn test_generate_function_call_optimization() {
         expr,
         glossa_type: GlossaType::Number,
     }]);
-    let code = glossa::codegen::generate_statement_code(&stmt);
+    let code = glossa::codegen::generate_statement(&stmt).to_string();
     assert!(code.contains("g_add (10i64)"));
 }
 
@@ -118,7 +118,7 @@ fn test_generate_closure_optimization() {
         expr,
         glossa_type: GlossaType::Unknown,
     }]);
-    let code = glossa::codegen::generate_statement_code(&stmt);
+    let code = glossa::codegen::generate_statement(&stmt).to_string();
     assert!(code.contains("| g_x | 10i64"));
 }
 
@@ -134,6 +134,6 @@ fn test_generate_unary_op_optimization() {
         },
         glossa_type: GlossaType::Number,
     }]);
-    let code = glossa::codegen::generate_statement_code(&stmt);
+    let code = glossa::codegen::generate_statement(&stmt).to_string();
     assert!(code.contains("checked_neg ()"));
 }
