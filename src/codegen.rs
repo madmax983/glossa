@@ -275,6 +275,31 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// ```
 use std::fmt::Write;
 
+/// Translates a Glossa semantic type into its exact Rust string representation.
+///
+/// # Why it exists
+///
+/// When the code generator (`codegen`) is translating variables, function signatures,
+/// or structures, it needs a way to map ΓΛΩΣΣΑ's semantic model (`GlossaType`)
+/// into literal Rust source code (e.g., mapping `GlossaType::Number` to `"i64"`).
+/// This function converts the structured, recursive semantic types into flat
+/// string tokens ready to be injected into a `.rs` file. It differs from
+/// `generate_type_tokens` by returning a raw `String` rather than a `TokenStream`,
+/// making it useful for string-based code formatting (like struct field definitions)
+/// where macro evaluation is not strictly needed.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::GlossaType;
+/// use glossa::codegen::to_rust_type;
+///
+/// let num_type = GlossaType::Number;
+/// assert_eq!(to_rust_type(&num_type), "i64");
+///
+/// let list_type = GlossaType::List(Box::new(GlossaType::String));
+/// assert_eq!(to_rust_type(&list_type), "Vec<String>");
+/// ```
 pub fn to_rust_type(ty: &GlossaType) -> String {
     let mut result = String::with_capacity(32);
     write_rust_type(ty, &mut result).unwrap();
