@@ -1,0 +1,1022 @@
+warning: unused variable: `input`
+   --> src/main.rs:181:33
+    |
+181 |         Some(Commands::Gnomon { input }) => {
+    |                                 ^^^^^ help: try ignoring the field: `input: _`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `glossa` (bin "glossa") generated 1 warning (run `cargo fix --bin "glossa" -p glossa` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.22s
+     Running tests/alchemist_coverage.rs (target/debug/deps/alchemist_coverage-00792f93a5521043)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ast_coverage_tests.rs (target/debug/deps/ast_coverage_tests-1ec1c608a361e6bb)
+
+running 9 tests
+test test_expr_clone ... ok
+test test_expr_debug_formatting ... ok
+test test_expr_drop ... ok
+test test_expr_eq_different_types ... ok
+test test_expr_eq_same_variants_different_data ... ok
+test test_program_debug_formatting ... ok
+test test_statement_debug_formatting ... ok
+test test_statement_methods ... ok
+test test_deep_expr_drop ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/codegen_coverage.rs (target/debug/deps/codegen_coverage-1a5f44c2778378fa)
+
+running 8 tests
+test test_generate_closure_optimization ... ok
+test test_generate_collection_array_optimization ... ok
+test test_generate_function_call_optimization ... ok
+test test_generate_method_call_optimization ... ok
+test test_generate_print_optimization ... ok
+test test_generate_statement_expression_optimization ... ok
+test test_generate_trait_method_call_optimization ... ok
+test test_generate_unary_op_optimization ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/codegen_optimizations.rs (target/debug/deps/codegen_optimizations-99463cf3b1a9b235)
+
+running 1 test
+test test_print_optimization_compile_time_format ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/collection_tests.rs (target/debug/deps/collection_tests-50226bc55f6e18e8)
+
+running 27 tests
+test test_codegen_array_literal ... ok
+test test_codegen_empty_array ... ok
+test test_array_iteration_with_body ... ok
+test test_array_iteration ... ok
+test test_hashmap_contains_key ... ok
+test test_hashmap_insert ... ok
+test test_hashset_contains ... ok
+test test_hashmap_get ... ok
+test test_hashset_insert ... ok
+test test_hashset_insert_string ... ok
+test test_length_multiple ... ok
+test test_length_property ... ok
+test test_numeric_index ... ok
+test test_numeric_index_expression ... ok
+test test_ordinal_index_first ... ok
+test test_ordinal_index_second ... ok
+test test_ordinal_index_third ... ok
+test test_parse_array_literal ... ok
+test test_parse_array_with_variables ... ok
+test test_parse_empty_array ... ok
+test test_pop_multiple ... ok
+test test_pop_operation ... ok
+test test_push_multiple ... ok
+test test_push_operation ... ok
+test test_string_contains ... ok
+test test_string_join ... ok
+test test_string_split ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/compile_tests.rs (target/debug/deps/compile_tests-b571a7f006143f0a)
+
+running 14 tests
+test test_assignment_missing_value_error ... ok
+test test_greek_numeral_word ... ok
+test test_assignment_codegen ... ok
+test test_array_index_codegen ... ok
+test test_hello_cosmos ... ok
+test test_immutable_assignment_error ... ok
+test test_mutable_binding ... ok
+test test_multiple_statements ... ok
+test test_mutable_binding_and_reassignment ... ok
+test test_preserves_greek_in_strings ... ok
+test test_number_literal ... ok
+test test_undefined_assignment_error ... ok
+test test_variable_binding ... ok
+test test_variable_binding_and_use ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/control_flow_tests.rs (target/debug/deps/control_flow_tests-f20ec3d971b79e41)
+
+running 21 tests
+test test_comparison_with_genitive ... ok
+test test_continue ... ok
+test test_break ... ok
+test test_block_in_while_loop ... ok
+test test_for_iteration_errors ... ok
+test test_for_range_exclusive ... ok
+test test_for_iteration ... ok
+test test_ean_conditional ... ok
+test test_for_range_inclusive ... ok
+test test_lexicon_conditional_particles ... ok
+test test_lexicon_else_particle ... ok
+test test_lexicon_loop_control ... ok
+test test_lexicon_loop_particles ... ok
+test test_lexicon_match_particle ... ok
+test test_if_else ... ok
+test test_if_elif_else ... ok
+test test_match_wildcard ... ok
+test test_match_basic ... ok
+test test_subjunctive_verb_form ... ok
+test test_simple_if ... ok
+test test_while_loop ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/coverage_perfect_fold.rs (target/debug/deps/coverage_perfect_fold-a7c2f953e3b90a31)
+
+running 1 test
+test test_perfect_fold_coverage ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/coverage_perfect_participle.rs (target/debug/deps/coverage_perfect_participle-4f7854146a7af794)
+
+running 1 test
+test test_perfect_passive_map_coverage ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/expression_coverage.rs (target/debug/deps/expression_coverage-e981ce5013200efb)
+
+running 10 tests
+test test_excess_operators_error - should panic ... ok
+test test_dangling_operator_ignored ... ok
+test test_dangling_propagation ... ok
+test test_checked_arithmetic_codegen ... ok
+test test_expression_propagation ... ok
+test test_operator_only_ignored ... ok
+test test_operator_without_subject_ignored ... ok
+test test_standalone_subject_op_literal ... ok
+test test_standalone_subject_op_nominative ... ok
+test test_standalone_subject_op_object ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/forge_control_flow_coverage.rs (target/debug/deps/forge_control_flow_coverage-e1ede519873f3ee6)
+
+running 4 tests
+test test_parse_for_range_loop_missing_word ... ok
+test test_parse_for_range_loop_missing_word_end ... ok
+test test_parse_for_range_loop_empty_range_clause_proper ... ok
+test test_parse_for_range_loop_variable_resolution ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/function_tests.rs (target/debug/deps/function_tests-d3c5c6e61f9e1c55)
+
+running 11 tests
+test test_empty_return ... ok
+test test_codegen_function_keyword ... ok
+test test_function_local_variables ... ok
+test test_function_call ... ok
+test test_function_with_two_params ... ok
+test test_function_typed_params ... ok
+test test_nested_calls ... ok
+test test_parameter_shadowing ... ok
+test test_parse_simple_function_no_params ... ok
+test test_return_type_inference ... ok
+test test_simple_return ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/havoc.rs (target/debug/deps/havoc-a610d29f610a3e80)
+
+running 3 tests
+test test_huge_numeral_overflow_attempt ... ok
+test fuzz_numerals ... ok
+test fuzz_parser ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests/havoc_clone_drop.rs (target/debug/deps/havoc_clone_drop-e93d413ccd9c7cbd)
+
+running 1 test
+test test_clone_stack_overflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/havoc_codegen_stack_overflow.rs (target/debug/deps/havoc_codegen_stack_overflow-8762ac645d823776)
+
+running 1 test
+
+running 1 test
+Generating rust code for deep expression (depth 50000)...
+
+thread 'havoc_codegen_stack_overflow' (232723) has overflowed its stack
+fatal runtime error: stack overflow, aborting
+test havoc_codegen_stack_overflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/havoc_coverage.rs (target/debug/deps/havoc_coverage-e2dacf160a904214)
+
+running 6 tests
+test test_binop_recursion_coverage ... ok
+test test_phrase_recursion_coverage ... ok
+test test_binding_recursion_coverage ... ok
+test test_call_recursion_coverage ... ok
+test test_property_access_recursion_happy_path ... ok
+test test_unaryop_recursion_coverage ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/havoc_debug_crash.rs (target/debug/deps/havoc_debug_crash-709f9cdf43a222c7)
+
+running 1 test
+
+running 1 test
+Formatting deep expression (depth 50000)...
+Survived and mitigated!
+test havoc_crash_debug_stack_overflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/havoc_debug_crash_type.rs (target/debug/deps/havoc_debug_crash_type-67e420e2ea4de8ff)
+
+running 2 tests
+test test_glossa_type_debug_coverage ... ok
+
+running 1 test
+Formatting deep expression (depth 50000)...
+Survived and mitigated!
+test havoc_crash_debug_stack_overflow_glossa_type ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/havoc_disambiguation_panic.rs (target/debug/deps/havoc_disambiguation_panic-a2493325a062ffe1)
+
+running 1 test
+test test_disambiguate_nan_panic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/havoc_dos.rs (target/debug/deps/havoc_dos-f9167e8603aa4ae2)
+
+running 1 test
+test test_dos_dev_zero ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/havoc_dos_ast.rs (target/debug/deps/havoc_dos_ast-de50d9de481371a7)
+
+running 3 tests
+test test_ast_semantic_massive_chain_no_panic ... ok
+test test_ast_eq_massive_chain_no_panic ... ok
+test test_ast_clone_no_overflow ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.35s
+
+     Running tests/havoc_dos_unicode.rs (target/debug/deps/havoc_dos_unicode-be96861e121a775d)
+
+running 3 tests
+test test_normalize_greek_fuzz_sigma ... ok
+test test_normalize_greek_heavy_normalization ... ok
+test test_normalize_greek_massive_string ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.97s
+
+     Running tests/havoc_elif_overflow.rs (target/debug/deps/havoc_elif_overflow-5ee836cd540b0254)
+
+running 1 test
+test test_elif_chain_stack_overflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+
+     Running tests/havoc_feed_recursion.rs (target/debug/deps/havoc_feed_recursion-a6222305815ac5d4)
+
+running 1 test
+test test_property_access_stack_overflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/havoc_fuzz.rs (target/debug/deps/havoc_fuzz-7b88a546f9426d65)
+
+running 3 tests
+test fuzz_parser_structured ... ok
+test fuzz_parser ... ok
+test fuzz_semantic_validish_source ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/havoc_fuzz_assembler.rs (target/debug/deps/havoc_fuzz_assembler-f810f29100126271)
+
+running 2 tests
+test test_assembler_no_panic ... ok
+test test_assembler_full_panic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+
+     Running tests/havoc_issue_echo.rs (target/debug/deps/havoc_issue_echo-c56ad3d9e40ed0f8)
+
+running 3 tests
+test test_undefined_variable_evaluates_to_zero_silently ... ok
+test test_missing_verb_compiler_panic - should panic ... ok
+test test_double_subject_should_pass_havoc_constraint ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/havoc_limits.rs (target/debug/deps/havoc_limits-bf8baa2677c2f6a1)
+
+running 12 tests
+test test_limit_arrays ... ok
+test test_limit_blocks ... ok
+test test_limit_literals ... ok
+test test_limit_nested_phrases ... ok
+test test_limit_genitives ... ok
+test test_limit_adjectives ... ok
+test test_limit_nominatives ... ok
+test test_limit_operators ... ok
+test test_limit_unwraps ... ok
+test test_limit_participles ... ok
+test test_limit_index_accesses_via_ordinals ... ok
+test test_limit_property_accesses ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/havoc_nested_tests.rs (target/debug/deps/havoc_nested_tests-0ab1891beb1e2c6b)
+
+running 1 test
+test tests::test_deeply_nested_tests_dos ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/havoc_operator_stress.rs (target/debug/deps/havoc_operator_stress-1ad7ad615af3f772)
+
+running 1 test
+test test_stack_overflow_in_drop ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 33.49s
+
+     Running tests/havoc_overflow.rs (target/debug/deps/havoc_overflow-a56db5ea90037b9d)
+
+running 1 test
+test test_stack_overflow_mitigation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/havoc_pest_recursion_depth.rs (target/debug/deps/havoc_pest_recursion_depth-b88845e48f075bd2)
+
+running 2 tests
+test havoc_does_not_crash_on_extreme_paren_nesting ... ok
+test havoc_does_not_crash_on_extreme_block_nesting ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/havoc_proptest_lexicon.rs (target/debug/deps/havoc_proptest_lexicon-93a2a9dc5d2e756b)
+
+running 1 test
+test test_lexicon_lookup_no_panic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/havoc_proptest_limits.rs (target/debug/deps/havoc_proptest_limits-aa7c5ff5044a4b35)
+
+running 2 tests
+test test_deep_ast_index_access_no_overflow ... ok
+test test_deep_ast_no_overflow ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.46s
+
+     Running tests/havoc_proptest_normalization.rs (target/debug/deps/havoc_proptest_normalization-0b8bf880d560d3f0)
+
+running 12 tests
+test test_analyze_article_no_panic ... ok
+test test_analyze_noun_no_panic ... ok
+test test_analyze_participle_no_panic ... ok
+test test_analyze_verb_no_panic ... ok
+test test_assembler_feed_string_no_panic ... ok
+test test_get_stem_no_panic ... ok
+test test_detect_collection_type_no_panic ... ok
+test test_highlight_no_panic ... ok
+test test_morphology_analyze_all_no_panic ... ok
+test test_morphology_analyze_no_panic ... ok
+test test_normalize_greek_no_panic ... ok
+test test_transliterate_no_panic ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/havoc_proptest_pest.rs (target/debug/deps/havoc_proptest_pest-94c91d3e4d632815)
+
+running 1 test
+test test_pest_parse_no_panic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/havoc_proptest_tools.rs (target/debug/deps/havoc_proptest_tools-3ecb38a5588bcf15)
+
+running 2 tests
+test test_highlight_fuzz ... ok
+test test_tell_tale_fuzz ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/havoc_proptest_unicode_fuzz.rs (target/debug/deps/havoc_proptest_unicode_fuzz-2e1bc28d26dc44e6)
+
+running 1 test
+test test_weird_unicode_fuzz ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/havoc_recursion.rs (target/debug/deps/havoc_recursion-4ec2fe55aecdfc6d)
+
+running 2 tests
+test test_deep_phrase_recursion ... ok
+test test_wide_phrase_limit ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/havoc_recursion_drop.rs (target/debug/deps/havoc_recursion_drop-4295b95f43b5e941)
+
+running 3 tests
+test test_expr_variants_coverage ... ok
+test test_deep_recursion_phrase ... ok
+test test_deep_recursion_comparison ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/havoc_repl_empty.rs (target/debug/deps/havoc_repl_empty-b0164e2a46dd7e85)
+
+running 1 test
+test havoc_repl_empty_panic_wrapper ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/havoc_repro.rs (target/debug/deps/havoc_repro-7d1727b07b1ff459)
+
+running 1 test
+test havoc_return_complex_expression - should panic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/havoc_semantic_stack_overflow.rs (target/debug/deps/havoc_semantic_stack_overflow-7c595dbe7a544c4b)
+
+running 1 test
+
+running 1 test
+Cloning deep expression (depth 50000)...
+
+thread 'havoc_semantic_clone_drop_stack_overflow' (232829) has overflowed its stack
+fatal runtime error: stack overflow, aborting
+test havoc_semantic_clone_drop_stack_overflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/havoc_transliteration.rs (target/debug/deps/havoc_transliteration-7392c22ab38788bb)
+
+running 1 test
+test test_type_identifier_collision ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/labyrinth_coverage.rs (target/debug/deps/labyrinth_coverage-54aed3103ec3860a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/lambda_tests.rs (target/debug/deps/lambda_tests-55993fe7800406a0)
+
+running 38 tests
+test cycle12_aorist_participles::test_aorist_participle_detection ... ok
+test cycle12_aorist_participles::test_aorist_participle_in_ast ... ok
+test cycle12_aorist_participles::test_present_vs_aorist_capture_mode ... ok
+test cycle11_variable_capture::test_no_capture_with_literal ... ok
+test cycle13_perfect_participles::test_memoization_codegen ... ok
+test cycle11_variable_capture::test_capture_in_any ... ok
+test cycle11_variable_capture::test_capture_in_filter ... ok
+test cycle13_perfect_participles::test_perfect_participle_detection ... ok
+test cycle13_perfect_participles::test_tense_capture_mode_mapping ... ok
+test cycle1_participle_morphology::test_aorist_active_participle_feminine ... ok
+test cycle1_participle_morphology::test_aorist_active_participle_masculine ... ok
+test cycle1_participle_morphology::test_aorist_active_participle_neuter ... ok
+test cycle13_perfect_participles::test_perfect_generates_memoized_closure ... ok
+test cycle1_participle_morphology::test_perfect_passive_participle ... ok
+test cycle1_participle_morphology::test_present_active_participle ... ok
+test cycle1_participle_morphology::test_present_middle_participle ... ok
+test cycle1_participle_morphology::test_verb_lemma_extraction ... ok
+test cycle4_map_operation::test_participle_word_detection ... ok
+test cycle4_map_operation::test_map_with_participle_simple ... ok
+test cycle4_map_operation::test_map_with_participle ... ok
+test cycle5_filter_operation::test_filter_less_than ... ok
+test cycle5_filter_operation::test_comparative_adjective_detection ... ok
+test cycle5_filter_operation::test_filter_with_comparative ... ok
+test cycle6_find_operation::test_find_verb_detection ... ok
+test cycle6_find_operation::test_find_first_element ... ok
+test cycle6_find_operation::test_find_with_comparative ... ok
+test cycle7_fold_operation::test_fold_verb_detection ... ok
+test cycle7_fold_operation::test_fold_with_product ... ok
+test cycle7_fold_operation::test_fold_with_sum ... ok
+test cycle8_any_all_operations::test_all_quantifier ... ok
+test cycle8_any_all_operations::test_any_quantifier_detection ... ok
+test cycle9_combined_operations::test_filter_then_any ... ok
+test cycle8_any_all_operations::test_all_with_predicate ... ok
+test cycle8_any_all_operations::test_any_less_than ... ok
+test cycle8_any_all_operations::test_any_with_predicate ... ok
+test cycle9_combined_operations::test_filter_then_map ... ok
+test cycle9_combined_operations::test_triple_chain ... ok
+test cycle9_combined_operations::test_map_then_fold ... ok
+
+test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/morphology_models_test.rs (target/debug/deps/morphology_models_test-a24755fab18d90c8)
+
+running 5 tests
+test test_analyses_compatible ... ok
+test test_enum_variants ... ok
+test test_display_impls ... ok
+test test_morph_analysis_creation ... ok
+test test_morph_analysis_with_confidence ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/mosaic_coverage.rs (target/debug/deps/mosaic_coverage-6f67c90d06f0b808)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/narrator_coverage.rs (target/debug/deps/narrator_coverage-eca76643853120aa)
+
+running 17 tests
+test test_bard_assignment ... ok
+test test_bard_binding_mutable ... ok
+test test_bard_expression_stmt ... ok
+test test_bard_break_continue ... ok
+test test_bard_function_def ... ok
+test test_bard_print_multiple ... ok
+test test_bard_for ... ok
+test test_bard_match ... ok
+test test_bard_return ... ok
+test test_bard_query ... ok
+test test_bard_trait_def ... ok
+test test_bard_test_decl ... ok
+test test_bard_trait_impl ... ok
+test test_bard_type_def ... ok
+test test_bard_exprs ... ok
+test test_bard_while ... ok
+test test_bard_types ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/nova_coverage.rs (target/debug/deps/nova_coverage-9d3a362e4f0084fe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/nova_numerals.rs (target/debug/deps/nova_numerals-2bd03795e2122cdc)
+
+running 6 tests
+test test_arabic_fallback ... ok
+test test_greek_numerals_assignment ... ok
+test test_greek_numerals_index ... ok
+test test_greek_numerals_array ... ok
+test test_greek_numerals_mixed ... ok
+test test_invalid_greek_logic ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/operator_tests.rs (target/debug/deps/operator_tests-6ab52614e3792236)
+
+running 13 tests
+test test_arithmetic_product ... ok
+test test_arithmetic_quotient ... ok
+test test_arithmetic_difference ... ok
+test test_arithmetic_in_binding ... ok
+test test_arithmetic_remainder ... ok
+test test_boolean_not ... ok
+test test_boolean_and ... ok
+test test_boolean_or ... ok
+test test_arithmetic_sum ... ok
+test test_comparison_in_binding ... ok
+test test_comparison_greater_than ... ok
+test test_comparison_equal ... ok
+test test_comparison_less_than ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/option_result_tests.rs (target/debug/deps/option_result_tests-8ef8b921702c85b3)
+
+running 59 tests
+test test_epitychia_is_ok ... ok
+test test_err_expression_analyzed ... ok
+test test_err_codegen ... ok
+test test_err_expression_exact_output ... ok
+test test_chained_propagation ... ok
+test test_is_err_word_helper ... ok
+test test_is_none_word_helper ... ok
+test test_is_ok_word_helper ... ok
+test test_is_some_word_helper ... ok
+test test_err_with_string_literal ... ok
+test test_err_with_different_types ... ok
+test test_nested_option ... ok
+test test_multiple_results_in_sequence ... ok
+test test_mixed_option_result ... ok
+test test_none_codegen ... ok
+test test_multiple_unwraps_sequence ... ok
+test test_none_expression_analyzed ... ok
+test test_ok_codegen ... ok
+test test_none_handling ... ok
+test test_optative_aorist_passive ... ok
+test test_optative_present_active ... ok
+test test_ok_expression_analyzed ... ok
+test test_ok_expression_exact_output ... ok
+test test_option_none_generates_correctly ... ok
+test test_option_to_rust ... ok
+test test_option_type_compatibility ... ok
+test test_option_in_print ... ok
+test test_option_type_exists ... ok
+test test_ouden_is_none ... ok
+test test_option_with_string ... ok
+test test_propagation_early_return ... ok
+test test_propagation_generates_question_mark ... ok
+test test_option_workflow ... ok
+test test_propagation_operator_detection ... ok
+test test_propagation_in_workflow ... ok
+test test_propagation_with_result ... ok
+test test_propagation_vs_unwrap ... ok
+test test_realistic_error_handling ... ok
+test test_result_ok_generates_correctly ... ok
+test test_result_err_generates_correctly ... ok
+test test_result_to_rust ... ok
+test test_result_type_compatibility ... ok
+test test_result_type_exists ... ok
+test test_result_parallels_option ... ok
+test test_result_print_directly ... ok
+test test_result_unwrap ... ok
+test test_result_with_number_error ... ok
+test test_result_with_number_value ... ok
+test test_result_workflow ... ok
+test test_separate_option_and_variable ... ok
+test test_sphalma_is_err ... ok
+test test_some_with_different_types ... ok
+test test_ti_is_some ... ok
+test test_some_expression_analyzed ... ok
+test test_statement_end_with_semicolon ... ok
+test test_some_codegen ... ok
+test test_unwrap_operator_codegen ... ok
+test test_unwrap_in_expression ... ok
+test test_unwrap_preserves_value ... ok
+
+test result: ok. 59 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/parser_error_tests.rs (target/debug/deps/parser_error_tests-05ab33fd81a54cbd)
+
+running 1 test
+test tests::test_empty_term_handling ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/razor_coverage.rs (target/debug/deps/razor_coverage-8e74a88d6ebab984)
+
+running 3 tests
+test test_assembly_errors_display_impls ... ok
+test test_assembler_structs_derive_coverage ... ok
+test test_errors_display_impls ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/regression_codegen_complex.rs (target/debug/deps/regression_codegen_complex-056e818c595549f4)
+
+running 1 test
+test test_complex_types_panic_and_import ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/repro_codegen_perf.rs (target/debug/deps/repro_codegen_perf-dc2a684d098e4a7a)
+
+running 3 tests
+test test_generate_type_tokens_coverage ... ok
+test test_sanitizer_edge_cases ... ok
+test test_allocations ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/repro_ignored_block.rs (target/debug/deps/repro_ignored_block-ecd175462a97b0f9)
+
+running 2 tests
+test test_multi_statement_block_ignored ... ok
+test test_block_in_binding_ignored ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/reproduce_silent_failure.rs (target/debug/deps/reproduce_silent_failure-6df4cf5a05d07b1f)
+
+running 1 test
+test test_undefined_struct_type_error ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/security_dos_file_size.rs (target/debug/deps/security_dos_file_size-3a22c5d9a261a3c2)
+
+running 1 test
+test test_file_size_limit_cli ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/security_tests.rs (target/debug/deps/security_tests-5c6eac6b4625f3d8)
+
+running 2 tests
+test test_diacritic_only_variable_panic ... ok
+test test_stack_overflow_nested_parens ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/semantic_model_coverage_tests.rs (target/debug/deps/semantic_model_coverage_tests-8bef647871755a00)
+
+running 13 tests
+test test_analyzed_expr_debug ... ok
+test test_analyzed_expr_kind_debug ... ok
+test test_analyzed_statement_debug ... ok
+test test_analyzed_method_debug ... ok
+test test_analyzed_expr_kind_debug_all_variants ... ok
+test test_constituent_debug ... ok
+test test_assembled_statement_debug ... ok
+test test_deep_recursion_debug ... ok
+test test_literal_debug ... ok
+test test_participle_constituent_debug ... ok
+test test_trait_def_debug ... ok
+test test_verb_constituent_debug ... ok
+test test_trait_impl_debug ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sentry_assembler_coverage_tests.rs (target/debug/deps/sentry_assembler_coverage_tests-9c32fb70c250b84e)
+
+running 3 tests
+test test_assembler_arithmetic_operator ... ok
+test test_assembler_numeral_value ... ok
+test test_assembler_comparison_operator ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sentry_codegen_perf.rs (target/debug/deps/sentry_codegen_perf-8122f1a69e65f6e8)
+
+running 7 tests
+test test_codegen_runtime_add_overflow_panic ... ok
+test test_codegen_runtime_div_by_zero_panic ... ok
+test test_codegen_runtime_large_index_panic ... ok
+test test_codegen_runtime_index_panic ... ok
+test test_codegen_runtime_neg_panic ... ok
+test test_codegen_runtime_unwrap_panic ... ok
+test test_codegen_runtime_negative_index_panic ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running tests/sentry_morphology_empty_string.rs (target/debug/deps/sentry_morphology_empty_string-9e74f112d128e19b)
+
+running 2 tests
+test test_morphology_empty_string_does_not_panic ... ok
+test test_morphology_invalid_unicode ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sentry_participle_tests.rs (target/debug/deps/sentry_participle_tests-4646228aca735331)
+
+running 3 tests
+test test_invalid_participles ... ok
+test test_participle_analysis_coverage ... ok
+test test_participle_lemma_generation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sentry_tester_tests.rs (target/debug/deps/sentry_tester_tests-25507c37c4aa9dc0)
+
+running 5 tests
+test test_run_tests_compilation_error ... ok
+test test_run_tests_invalid_input_path ... ok
+test test_run_tests_empty_test_file ... ok
+test test_run_tests_integration ... ok
+test test_run_tests_failing_integration ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/struct_instantiation.rs (target/debug/deps/struct_instantiation-082a3f4a97fd57fb)
+
+running 1 test
+test test_struct_instantiation_with_variable_args ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/test_assertions_test.rs (target/debug/deps/test_assertions_test-76e2274f4940d0d0)
+
+running 6 tests
+test test_empty_test_body ... ok
+test test_assert_eq_compiles ... ok
+test test_assert_containment_compiles ... ok
+test test_hashset_assertion ... ok
+test test_multiple_assertions_in_one_test ... ok
+test test_test_function_name_sanitization ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/test_declaration_test.rs (target/debug/deps/test_declaration_test-433a6ee26729bd2a)
+
+running 4 tests
+test test_parse_test_declaration ... ok
+test test_parse_test_unaccented_keywords ... ok
+test test_parse_multiple_tests ... ok
+test test_parse_test_with_body ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/trait_tests.rs (target/debug/deps/trait_tests-b80039ef33b2ec32)
+
+running 32 tests
+test test_analyze_trait_definition ... ok
+test test_analyze_trait_impl ... ok
+test test_call_default_method ... ok
+test test_call_both_trait_methods_on_same_type ... ok
+test test_call_trait_method ... ok
+test test_call_trait_method_with_args ... ok
+test test_codegen_trait_definition ... ok
+test test_codegen_trait_impl ... ok
+test test_codegen_full_example ... ok
+test test_default_method_body_analysis ... ok
+test test_codegen_trait_with_default ... ok
+test test_duplicate_trait_error ... ok
+test test_impl_for_undefined_trait_error ... ok
+test test_codegen_trait_method_call_genitive ... ok
+test test_impl_for_undefined_type_error ... ok
+test test_missing_required_method_error ... ok
+test test_impl_with_default_method_not_required ... ok
+test test_parse_empty_trait ... ok
+test test_parse_empty_trait_impl ... ok
+test test_parse_trait_impl_with_method ... ok
+test test_override_default_method ... ok
+test test_parse_impl_multiple_methods ... ok
+test test_multiple_types_implement_same_trait ... ok
+test test_parse_trait_multiple_methods ... ok
+test test_parse_trait_with_required_method ... ok
+test test_parse_trait_with_default_method ... ok
+test test_repro_trait_default_method_return_type ... ok
+test test_repro_trait_impl_return_type ... ok
+test test_trait_stored_in_scope ... ok
+test test_trait_method_call_error_not_implemented ... ok
+test test_standalone_method_call ... ok
+test test_type_implements_multiple_traits ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/type_tests.rs (target/debug/deps/type_tests-d7e5359eda81eb27)
+
+running 12 tests
+test test_analyze_type_definition ... ok
+test test_analyze_type_with_multiple_fields ... ok
+test test_field_access ... ok
+test test_field_access_multiple_fields ... ok
+test test_instantiation_multiple_fields ... ok
+test test_instantiation ... ok
+test test_instantiation_with_explicit_numeric_word ... ok
+test test_instantiation_with_boolean ... ok
+test test_parse_empty_type ... ok
+test test_parse_type_with_field ... ok
+test test_instantiation_with_literals ... ok
+test test_instantiation_with_word_number ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_coverage.rs (target/debug/deps/warden_coverage-25915939ddd4febd)
+
+running 3 tests
+test test_coverage_find_patterns ... ok
+test test_coverage_filter_patterns ... ok
+test test_coverage_any_all_patterns ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_exploit.rs (target/debug/deps/warden_exploit-a9231c726c6b28fd)
+
+running 1 test
+test test_exploit_unicode_panic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_hashdos.rs (target/debug/deps/warden_hashdos-aa033a870f7c1dfb)
+
+running 5 tests
+test test_cache_key_canonicalization ... ok
+test test_cache_key_canonicalization_fallback ... ok
+test test_cache_key_format ... ok
+test test_cache_key_determinism ... ok
+test test_cache_key_uniqueness ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_index_overflow.rs (target/debug/deps/warden_index_overflow-17bbbecee3cee5bd)
+
+running 1 test
+test test_index_truncation_simulation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_index_tryfrom.rs (target/debug/deps/warden_index_tryfrom-76543692668d7a9c)
+
+running 1 test
+test test_warden_index_tryfrom_in_scope ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/warden_limits.rs (target/debug/deps/warden_limits-c8f34de61d8b195c)
+
+running 2 tests
+test test_recursion_limit ... ok
+test test_operator_limit ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/warden_logic.rs (target/debug/deps/warden_logic-b18291202616bcec)
+
+running 1 test
+test tests::test_trim_end_matches_bug_reproduction ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_missing_verb.rs (target/debug/deps/warden_missing_verb-5ef8bf1bea847a8c)
+
+running 1 test
+test test_missing_verb_returns_semantic_error_instead_of_ice ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_neg_overflow.rs (target/debug/deps/warden_neg_overflow-8fcf72cbc1ba23da)
+
+running 2 tests
+test test_warden_neg_overflow_non_number_fallback ... ok
+test test_warden_neg_overflow_defense ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_nested_phrase.rs (target/debug/deps/warden_nested_phrase-4db65c52c1fb8e0f)
+
+running 3 tests
+test test_nested_phrase_binding_error ... ok
+test test_function_definition_scope ... ok
+test test_nested_phrase_valid_function ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_overflow_sim.rs (target/debug/deps/warden_overflow_sim-978855c42f583b4e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_recursion_bypass.rs (target/debug/deps/warden_recursion_bypass-46289870bb0212d1)
+
+running 1 test
+test test_exploit_recursion_bypass ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_recursive_struct.rs (target/debug/deps/warden_recursive_struct-c8325dfcd4bcbff7)
+
+running 1 test
+test test_recursive_struct_fails ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_recursive_struct_mutual.rs (target/debug/deps/warden_recursive_struct_mutual-709f3d3aee26efa1)
+
+running 2 tests
+test test_mutual_recursive_struct_fails ... ok
+test test_unknown_type_fails ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_text_dos.rs (target/debug/deps/warden_text_dos-3dc1f9e46af0b9eb)
+
+running 1 test
+test test_dos_sigma_normalization ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/warden_unsafe_deny.rs (target/debug/deps/warden_unsafe_deny-8a1e04cd86ea2868)
+
+running 1 test
+test test_warden_unsafe_deny ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/word_order_tests.rs (target/debug/deps/word_order_tests-0b8ab1b5308e3a7b)
+
+running 9 tests
+test test_article_disambiguation_context ... ok
+test test_binding_word_order_independence ... ok
+test test_multiple_statement_scope ... ok
+test test_assembler_consistency ... ok
+test test_number_binding_variations ... ok
+test test_print_word_order_independence ... ok
+test test_string_binding ... ok
+test test_query_produces_output ... ok
+test test_variable_binding_and_reference ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
