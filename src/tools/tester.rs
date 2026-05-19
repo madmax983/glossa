@@ -225,7 +225,7 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
     if !rustc_output.status.success() {
         let raw_stderr = String::from_utf8_lossy(&rustc_output.stderr);
 
-        let mut clean_stderr = String::new();
+        let mut clean_stderr = String::with_capacity(raw_stderr.len());
         let mut prev_empty = false;
         for line in raw_stderr.lines() {
             // Skip file location lines
