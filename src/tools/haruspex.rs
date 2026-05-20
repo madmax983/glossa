@@ -16,7 +16,6 @@ use crate::tools::ui::Status;
 use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
-use std::io::IsTerminal;
 use std::path::Path;
 
 /// Runs the Haruspex tool to generate a Graphviz DOT representation of the AST.
@@ -46,43 +45,42 @@ pub fn run_haruspex(input: &Path) -> Result<()> {
     status.success();
 
     let dot = generate_dot(&program);
+    let out_path = input.with_extension("dot");
 
-    print_dashboard(&dot, std::io::stdout().is_terminal());
+    if let Err(e) = std::fs::write(&out_path, &dot) {
+        return Err(miette::miette!("Σφάλμα ἐγγραφῆς (Write Error): {}", e));
+    }
+
+    print_dashboard(&dot, &out_path);
     Ok(())
 }
 
-fn print_dashboard(dot: &str, is_tty: bool) {
-    if is_tty {
-        println!();
-        println!("   {}", "Γ Λ Ω Σ Σ Α   H A R U S P E X".cyan().bold());
-        println!(
-            "   {}",
-            "AST Graphviz DOT Representation Generated".italic().dim()
-        );
-        println!();
+fn print_dashboard(dot: &str, out_path: &Path) {
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   H A R U S P E X".cyan().bold());
+    println!(
+        "   {}",
+        "AST Graphviz DOT Representation Generated".italic().dim()
+    );
+    println!();
 
-        let actual_nodes = dot.lines().filter(|l| l.contains("[label=")).count();
-        let edges = dot.matches("->").count();
+    let actual_nodes = dot.lines().filter(|l| l.contains("[label=")).count();
+    let edges = dot.matches("->").count();
 
-        println!("   {} {}", "Nodes:".bold(), actual_nodes.to_string().cyan());
-        println!("   {} {}", "Edges:".bold(), edges.to_string().cyan());
-        println!();
-        println!(
-            "   {}",
-            "To view the graph, pipe this command to a file or tool:".dim()
-        );
-        println!(
-            "   {}",
-            "cargo run --features nova --bin glossa -- haruspex <file> > ast.dot".dim()
-        );
-        println!(
-            "   {}",
-            "cargo run --features nova --bin glossa -- haruspex <file> | dot -Tpng > ast.png".dim()
-        );
-        println!();
-    } else {
-        println!("{}", dot);
-    }
+    println!("   {} {}", "Nodes:".bold(), actual_nodes.to_string().cyan());
+    println!("   {} {}", "Edges:".bold(), edges.to_string().cyan());
+    println!();
+
+    let display_path = out_path.display().to_string();
+    println!("   {} {}", "Saved to:".bold(), display_path.as_str().dim());
+
+    println!();
+    println!("   {}", "To view the graph, run:".dim());
+    println!(
+        "   {}",
+        format!("dot -Tpng {} > ast.png", display_path).dim()
+    );
+    println!();
 }
 
 fn generate_dot(program: &AnalyzedProgram) -> String {
@@ -828,17 +826,13 @@ mod tests {
     use crate::semantic::{GlossaType, Scope};
 
     #[test]
-    fn test_print_dashboard_tty() {
+    fn test_print_dashboard() {
         // Just verify it doesn't panic
+        let p = std::path::Path::new("dummy.dot");
         print_dashboard(
             "digraph AST { node_0 [label=\"Program\"]; node_0 -> node_1; }",
-            true,
+            p,
         );
-    }
-
-    #[test]
-    fn test_print_dashboard_no_tty() {
-        print_dashboard("digraph AST { node_0 [label=\"Program\"]; }", false);
     }
 
     #[test]

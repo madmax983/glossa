@@ -89,6 +89,11 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
         }
     }
 
+    let out_path = input.with_extension("sql");
+    if let Err(e) = std::fs::write(&out_path, &output) {
+        return Err(miette::miette!("Σφάλμα ἐγγραφῆς (Write Error): {}", e));
+    }
+
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   P A P Y R U S".bold().cyan());
     println!("   {}", "SQL Schema".italic().dim());
@@ -103,8 +108,9 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
             .fg(Color::Cyan),
     ]);
 
-    let formatted_code = format!("```sql\n{}\n```", output.trim());
-    table.add_row(vec![Cell::new(formatted_code)]);
+    let display_path = out_path.display().to_string();
+    let saved_msg = format!("Saved to {}", display_path.dim());
+    table.add_row(vec![Cell::new(saved_msg)]);
 
     println!("{table}");
     println!();
