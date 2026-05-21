@@ -27,6 +27,8 @@ pub mod auditor;
 pub(crate) mod cache;
 pub use cache::Cache;
 #[cfg(feature = "nova")]
+pub mod architect;
+#[cfg(feature = "nova")]
 pub mod cartographer;
 #[cfg(feature = "nova")]
 pub mod catalog;
