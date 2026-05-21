@@ -192,6 +192,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate TypeScript interfaces from Glossa structs (Requires "nova" feature)
+    Architect {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Export the semantic AST to a Graphviz DOT diagram (Requires "nova" feature)
     Haruspex {
         /// Input file (.γλ)
