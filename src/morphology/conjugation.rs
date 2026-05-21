@@ -526,7 +526,7 @@ where
 /// - 2nd person singular present imperative (λέγε!)
 /// - 3rd person singular aorist indicative (ἔλυσε)
 pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
-    let mut analyses = Vec::new();
+    let mut analyses = Vec::with_capacity(8);
     analyze_verb_all_into(word, &mut analyses);
     analyses
 }
@@ -567,7 +567,7 @@ fn try_analyze_infinitive(
 /// ## Examples
 ///
 /// ```text
-/// let mut analyses = Vec::new();
+/// let mut analyses = Vec::with_capacity(8);
 /// // Append all analyses of "γράφω" into our vector
 /// analyze_verb_all_into("γραφω", &mut analyses);
 /// assert!(!analyses.is_empty());
