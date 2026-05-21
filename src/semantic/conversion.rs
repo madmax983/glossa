@@ -953,25 +953,29 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
-        args.insert(
-            0,
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
-            },
-        );
+    if let Some(ref subj) = asm_stmt.subject {
+        if let Some(var_type) = scope.lookup(&subj.lemma) {
+            args.insert(
+                0,
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                },
+            );
+        } else if crate::morphology::lexicon::numeral_value(&subj.lemma).is_none() {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
-        args.push(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
-        });
+    if let Some(ref obj) = asm_stmt.object {
+        if let Some(var_type) = scope.lookup(&obj.lemma) {
+            args.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: var_type.clone(),
+            });
+        } else if crate::morphology::lexicon::numeral_value(&obj.lemma).is_none() {
+            return Err(GlossaError::undefined(obj.lemma.as_str()));
+        }
     }
 
     Ok(args)
@@ -1157,11 +1161,17 @@ fn classify_expression(
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            if !scope.is_defined(&subj.lemma) && crate::morphology::lexicon::numeral_value(&subj.lemma).is_none() {
+                return Err(GlossaError::undefined(subj.lemma.as_str()));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             });
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) && crate::morphology::lexicon::numeral_value(&obj.lemma).is_none() {
+                return Err(GlossaError::undefined(obj.lemma.as_str()));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
@@ -1555,6 +1565,41 @@ fn extract_object_fallback(
     )))
 }
 
+
+fn extract_subject_fallback(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
+    let Some(ref subj) = asm_stmt.subject else {
+        return Ok(None);
+    };
+
+    let subj_lemma = &subj.lemma;
+
+    // Check if it's a numeral word
+    if let Some(value) = crate::morphology::lexicon::numeral_value(subj_lemma) {
+        return Ok(Some((
+            AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(value),
+                glossa_type: GlossaType::Number,
+            },
+            GlossaType::Number,
+        )));
+    }
+
+    if !scope.is_defined(subj_lemma) {
+        return Err(GlossaError::undefined(subj_lemma.as_str()));
+    }
+
+    Ok(Some((
+        AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+            glossa_type: GlossaType::Unknown,
+        },
+        GlossaType::Unknown,
+    )))
+}
+
 /// Extract value from assembled statement
 ///
 /// This function looks at the fields of the [`AssembledStatement`] and tries
@@ -1668,6 +1713,9 @@ pub fn extract_value(
         return Ok(res);
     }
     if let Some(res) = extract_object_fallback(asm_stmt, scope)? {
+        return Ok(res);
+    }
+    if let Some(res) = extract_subject_fallback(asm_stmt, scope)? {
         return Ok(res);
     }
 
