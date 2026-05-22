@@ -89,24 +89,45 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
         }
     }
 
+    let out_path = input.with_extension("sql");
+    std::fs::write(&out_path, &output)
+        .map_err(|e| miette::miette!("Failed to write SQL file: {}", e))?;
+
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   P A P Y R U S".bold().cyan());
-    println!("   {}", "SQL Schema".italic().dim());
+    println!("   {}", "SQL Schema generated".italic().dim());
     println!();
 
     let mut table = Table::new();
     table.load_preset(presets::UTF8_FULL);
 
     table.set_header(vec![
-        Cell::new("SQL Schema")
+        Cell::new("Table Name")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
+        Cell::new("Columns")
             .add_attribute(Attribute::Bold)
             .fg(Color::Cyan),
     ]);
 
-    let formatted_code = format!("```sql\n{}\n```", output.trim());
-    table.add_row(vec![Cell::new(formatted_code)]);
+    let mut count = 0;
+    for stmt in &program.statements {
+        if let AnalyzedStatement::TypeDefinition { name, fields } = stmt {
+            table.add_row(vec![
+                Cell::new(name.to_string()),
+                Cell::new(fields.len().to_string()),
+            ]);
+            count += 1;
+        }
+    }
+
+    if count == 0 {
+        table.add_row(vec![Cell::new("No tables generated."), Cell::new("0")]);
+    }
 
     println!("{table}");
+    println!();
+    println!("   {} {}", "Saved schema to:".bold(), out_path.display());
     println!();
 
     Ok(())
