@@ -1102,7 +1102,19 @@ mod tests {
         let mut scope = Scope::new();
         scope.define("αγαπ", GlossaType::Number);
 
-        let mut stmt = AssembledStatement::default();
+        let mut stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "dummy".into(),
+                normalized: "dummy".into(),
+                original: "dummy".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
         stmt.genitives.push(Constituent {
             lemma: "dummy".into(),
             original: "αγαπης".into(),
@@ -1130,7 +1142,19 @@ mod tests {
         let mut scope = Scope::new();
         scope.define("μετρ", GlossaType::Number);
 
-        let mut stmt = AssembledStatement::default();
+        let mut stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "dummy".into(),
+                normalized: "dummy".into(),
+                original: "dummy".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
         stmt.genitives.push(Constituent {
             lemma: "dummy".into(),
             original: "μετρων".into(),
@@ -1159,7 +1183,19 @@ mod tests {
         scope.define("θ", GlossaType::Number);
 
         // 'thou' (θου) -> 'th' (θ)
-        let mut stmt = AssembledStatement::default();
+        let mut stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "dummy".into(),
+                normalized: "dummy".into(),
+                original: "dummy".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
         stmt.genitives.push(Constituent {
             lemma: "dummy".into(), // Lemma lookup fails (not 'θ')
             original: "θου".into(),
@@ -1184,7 +1220,19 @@ mod tests {
         // Define 'myos' (μυός) as a variable directly (maybe it's a genitive variable?)
         scope.define("μυος", GlossaType::Number);
 
-        let mut stmt = AssembledStatement::default();
+        let mut stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "dummy".into(),
+                normalized: "dummy".into(),
+                original: "dummy".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
         stmt.genitives.push(Constituent {
             lemma: "mys".into(), // Lemma lookup fails (not 'μυος')
             original: "μυός".into(),
@@ -1212,7 +1260,19 @@ mod tests {
         let scope = Scope::new();
         // Nothing defined in scope. Should default to stripped name.
 
-        let mut stmt = AssembledStatement::default();
+        let mut stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "dummy".into(),
+                normalized: "dummy".into(),
+                original: "dummy".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
+            ..Default::default()
+        };
         stmt.genitives.push(Constituent {
             lemma: "dummy".into(),
             original: "θου".into(),
@@ -1297,6 +1357,16 @@ mod coverage_tests {
         scope.define("x", GlossaType::Number);
 
         let mut stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "dummy".into(),
+                normalized: "dummy".into(),
+                original: "dummy".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
             subject: Some(Constituent {
                 lemma: "list".into(),
                 original: "list".into(),
@@ -1374,6 +1444,16 @@ mod coverage_tests {
         scope.define("target", GlossaType::Number);
 
         let mut stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "dummy".into(),
+                normalized: "dummy".into(),
+                original: "dummy".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
             subject: Some(Constituent {
                 lemma: "list".into(),
                 original: "list".into(),
@@ -1435,6 +1515,16 @@ mod coverage_tests {
         scope.define("threshold", GlossaType::Number);
 
         let mut stmt = AssembledStatement {
+            verb: Some(crate::semantic::assembly::VerbConstituent {
+                lemma: "dummy".into(),
+                normalized: "dummy".into(),
+                original: "dummy".into(),
+                person: None,
+                number: None,
+                tense: None,
+                mood: None,
+                voice: None,
+            }),
             subject: Some(Constituent {
                 lemma: "list".into(),
                 original: "list".into(),
