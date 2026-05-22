@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Artisan (ὁ Τεχνίτης)
+**Concept:** A CLI tool (`glossa artisan`) that transpiles Glossa code directly to JavaScript, wrapped in an HTML file with an interactive browser-based terminal UI to run the code.
+**Fate:** Merged
+**Lesson:** Adding an HTML UI on top of transpiled JavaScript proves that the semantic assembler phase translates cleanly across execution environments, taking ΓΛΩΣΣΑ from Rust backend to browser frontend seamlessly.

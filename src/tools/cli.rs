@@ -181,6 +181,12 @@ pub enum Commands {
     },
 
     /// Transpile a .γλ file to Python (Requires "nova" feature)
+    /// Transpile a .γλ file to JavaScript and HTML (Requires "nova" feature)
+    Artisan {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     Alchemist {
         /// Input file (.γλ)
         input: PathBuf,
