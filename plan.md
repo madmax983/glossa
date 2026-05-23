@@ -1,4 +1,4 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. **Explore potential coverage gaps for Sentry**. Sentry wants untested edge cases or panic points.
+2. I successfully wrote tests for `src/tools/auditor.rs` dealing with non-existent files and directories (`tests/sentry_tools_coverage.rs`). Sentry replaced `.unwrap()` with `?` across several integration test files (`tests/sentry_tester_tests.rs`, `tests/sentry_participle_tests.rs`) to prevent test runner aborts on file I/O failures.
+3. Everything passed tests and is linted.
+4. I will call `request_code_review` then `submit`.
