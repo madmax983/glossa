@@ -492,6 +492,9 @@ mod tests {
     use crate::semantic::analyze_program;
 
     #[test]
+
+
+    #[test]
     fn test_scribe_basic() {
         let source = "ξ πέντε ἔστω.";
         let ast = parse(source).unwrap();
