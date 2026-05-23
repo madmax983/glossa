@@ -2,7 +2,7 @@
 use glossa::morphology::{Case, Gender, Number, Tense, Voice, analyze_participle};
 
 #[test]
-fn test_participle_analysis_coverage() {
+fn test_participle_analysis_coverage() -> Result<(), Box<dyn std::error::Error>> {
     struct TestCase {
         word: &'static str,
         expected_stem: &'static str,
@@ -137,7 +137,7 @@ fn test_participle_analysis_coverage() {
             test.word
         );
 
-        let analysis = result.unwrap();
+        let analysis = result.ok_or("Missing analysis")?;
         assert_eq!(
             analysis.stem, test.expected_stem,
             "TestCase #{}: Incorrect stem for '{}'",
@@ -179,15 +179,16 @@ fn test_participle_analysis_coverage() {
             i, test.word
         );
     }
+    Ok(())
 }
 
 #[test]
-fn test_participle_lemma_generation() {
+fn test_participle_lemma_generation() -> Result<(), Box<dyn std::error::Error>> {
     // Lemma generation is just format!("{}ω", stem)
     // But it's good to verify behavior for stems ending in vowels/consonants
 
     // Consonant stem
-    let p = analyze_participle("γραφων").unwrap();
+    let p = analyze_participle("γραφων").ok_or("Missing")?;
     assert_eq!(p.verb_lemma(), "γραφω");
 
     // Vowel stem
@@ -202,12 +203,13 @@ fn test_participle_lemma_generation() {
     // Note: The true dictionary lemma is "λυω". The current implementation of `verb_lemma`
     // just appends 'ω' to the stem found. It does NOT strip aorist markers (sigma).
     // This is documented behavior ("The verb stem (without participle suffix)").
-    let p = analyze_participle("λυσας").unwrap();
+    let p = analyze_participle("λυσας").ok_or("Missing")?;
     assert_eq!(p.verb_lemma(), "λυσω");
+    Ok(())
 }
 
 #[test]
-fn test_invalid_participles() {
+fn test_invalid_participles() -> Result<(), Box<dyn std::error::Error>> {
     // Random words that shouldn't match
     assert!(analyze_participle("λογος").is_none());
 
@@ -217,4 +219,5 @@ fn test_invalid_participles() {
 
     // "ων" -> stem "".
     assert!(analyze_participle("ων").is_none());
+    Ok(())
 }

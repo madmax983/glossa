@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Fixing Codegen Stack Overflow and Missing Test Error Handlings]
+**Learning:** `unwrap()` is a ticking time bomb—test the explosion or remove the fuse! Also `stacker::maybe_grow` on deeply nested expressions is absolutely vital for recursive descent compilation steps, since parsing isn't the only limit bottleneck.
+**Action:** Replaced `.unwrap()` with `?` across several integration test files (`tests/sentry_tester_tests.rs`, `tests/sentry_participle_tests.rs`) to prevent test runner aborts on file I/O failures. Added `tests/sentry_tools_coverage.rs` to audit missing branches.

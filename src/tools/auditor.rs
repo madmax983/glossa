@@ -361,29 +361,31 @@ mod tests {
     use std::io::Write;
 
     #[test]
-    fn test_auditor_unused_var() {
-        let dir = tempfile::tempdir().unwrap();
+    fn test_auditor_unused_var() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = tempfile::tempdir()?;
         let input_path = dir.path().join("unused.γλ");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("ξ 10 ἔστω.\n".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&input_path)?;
+            f.write_all("ξ 10 ἔστω.\n".as_bytes())?;
         }
 
         let result = run_auditor(&input_path);
         assert!(result.is_ok());
+        Ok(())
     }
 
     #[test]
-    fn test_auditor_unused_mut() {
-        let dir = tempfile::tempdir().unwrap();
+    fn test_auditor_unused_mut() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = tempfile::tempdir()?;
         let input_path = dir.path().join("mut.γλ");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("μετά ξ 10 ἔστω. ξ λέγε.\n".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&input_path)?;
+            f.write_all("μετά ξ 10 ἔστω. ξ λέγε.\n".as_bytes())?;
         }
 
         let result = run_auditor(&input_path);
         assert!(result.is_ok());
+        Ok(())
     }
 
     fn dummy_expr() -> AnalyzedExpr {
@@ -394,7 +396,7 @@ mod tests {
     }
 
     #[test]
-    fn test_auditor_visitor_coverage_statements() {
+    fn test_auditor_visitor_coverage_statements() -> Result<(), Box<dyn std::error::Error>> {
         let mut visitor = AuditorVisitor::new();
 
         let statements = vec![
@@ -505,10 +507,11 @@ mod tests {
         for stmt in statements {
             visitor.visit_statement(&stmt);
         }
+        Ok(())
     }
 
     #[test]
-    fn test_auditor_visitor_coverage_expressions() {
+    fn test_auditor_visitor_coverage_expressions() -> Result<(), Box<dyn std::error::Error>> {
         let mut visitor = AuditorVisitor::new();
 
         let exprs = vec![
@@ -607,35 +610,36 @@ mod tests {
             };
             visitor.visit_expr(&expr);
         }
+        Ok(())
     }
 
     #[test]
-    fn test_auditor_error_paths() {
+    fn test_auditor_error_paths() -> Result<(), Box<dyn std::error::Error>> {
         // Test file not found error path
         let result = run_auditor(Path::new("nonexistent.gl"));
         assert!(result.is_err());
 
         // Test syntax/semantic error path
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir()?;
         let input_path = dir.path().join("error.γλ");
         {
-            let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("invalid syntax that fails analysis\n".as_bytes())
-                .unwrap();
+            let mut f = std::fs::File::create(&input_path)?;
+            f.write_all("invalid syntax that fails analysis\n".as_bytes())?;
         }
         let result = run_auditor(&input_path);
         assert!(result.is_err());
+        Ok(())
     }
 
     #[test]
-    fn test_auditor_output_success_and_issues() {
-        let dir = tempfile::tempdir().unwrap();
+    fn test_auditor_output_success_and_issues() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = tempfile::tempdir()?;
 
         // 1. Test code with NO issues (pure)
         let pure_path = dir.path().join("pure.γλ");
         {
-            let mut f = std::fs::File::create(&pure_path).unwrap();
-            f.write_all("«pure» λέγε.\n".as_bytes()).unwrap();
+            let mut f = std::fs::File::create(&pure_path)?;
+            f.write_all("«pure» λέγε.\n".as_bytes())?;
         }
         let result = run_auditor(&pure_path);
         assert!(result.is_ok());
@@ -643,8 +647,8 @@ mod tests {
         // 2. Test code with unused variable issue
         let issue_path = dir.path().join("issue.γλ");
         {
-            let mut f = std::fs::File::create(&issue_path).unwrap();
-            f.write_all("ξ 5 ἔστω.\n".as_bytes()).unwrap(); // declared, unused
+            let mut f = std::fs::File::create(&issue_path)?;
+            f.write_all("ξ 5 ἔστω.\n".as_bytes())?; // declared, unused
         }
         let result = run_auditor(&issue_path);
         assert!(result.is_ok());
@@ -652,11 +656,12 @@ mod tests {
         // 3. Test code with unnecessary mutation issue
         let mut_path = dir.path().join("mut.γλ");
         {
-            let mut f = std::fs::File::create(&mut_path).unwrap();
+            let mut f = std::fs::File::create(&mut_path)?;
             // Declared mutable but never reassigned, though used
-            f.write_all("μετὰ ξ 5 ἔστω.\nξ λέγε.\n".as_bytes()).unwrap();
+            f.write_all("μετὰ ξ 5 ἔστω.\nξ λέγε.\n".as_bytes())?;
         }
         let result = run_auditor(&mut_path);
         assert!(result.is_ok());
+        Ok(())
     }
 }
