@@ -213,6 +213,12 @@ pub enum Commands {
     /// Explore the built-in lexicon (Requires "nova" feature)
     Catalog,
 
+    /// Export the semantic AST to a JSON file (Requires "nova" feature)
+    Scribe {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Generate an API documentation Markdown file (Requires "nova" feature)
     Scholar {
         /// Input file (.γλ)
