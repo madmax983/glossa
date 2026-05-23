@@ -526,7 +526,7 @@ where
 /// - 2nd person singular present imperative (λέγε!)
 /// - 3rd person singular aorist indicative (ἔλυσε)
 pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
-    let mut analyses = Vec::new();
+    let mut analyses = Vec::with_capacity(8);
     analyze_verb_all_into(word, &mut analyses);
     analyses
 }
@@ -918,5 +918,20 @@ mod tests {
 
         let found = analyses.iter().find(|a| a.mood == Some(Mood::Subjunctive));
         assert!(found.is_some(), "analyze_verb_all should find Subjunctive");
+    }
+}
+
+#[cfg(test)]
+mod capacity_tests {
+    use super::*;
+
+    #[test]
+    fn test_analyze_verb_all_capacity() {
+        let analyses = analyze_verb_all("λυω");
+        assert!(
+            analyses.capacity() >= 8,
+            "Expected pre-allocation of capacity 8, found {}",
+            analyses.capacity()
+        );
     }
 }

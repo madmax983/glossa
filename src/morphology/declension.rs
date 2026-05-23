@@ -204,7 +204,7 @@ where
 ///
 /// The caller should use syntactic context to pick the right one.
 pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
-    let mut analyses = Vec::new();
+    let mut analyses = Vec::with_capacity(8);
     analyze_noun_all_into(word, &mut analyses);
     analyses
 }
@@ -775,5 +775,20 @@ mod tests {
         );
 
         assert_eq!(result, stem);
+    }
+}
+
+#[cfg(test)]
+mod capacity_tests {
+    use super::*;
+
+    #[test]
+    fn test_analyze_noun_all_capacity() {
+        let analyses = analyze_noun_all("λογος");
+        assert!(
+            analyses.capacity() >= 8,
+            "Expected pre-allocation of capacity 8, found {}",
+            analyses.capacity()
+        );
     }
 }
