@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Scribe (ὁ Γραμματεύς)
+**Concept:** A JSON AST exporter (`glossa scribe`) that takes a parsed and analyzed ΓΛΩΣΣΑ program and exports its semantic Abstract Syntax Tree (AST) to a structured JSON format.
+**Fate:** Merged
+**Lesson:** Manually constructing the JSON string provides a universal format for external tools to interact with the compiler's internal state without needing to pollute the core structs with `serde` derive macros.
