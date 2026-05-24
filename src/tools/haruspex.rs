@@ -13,6 +13,7 @@
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
+use comfy_table::{Cell, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
@@ -80,6 +81,10 @@ fn print_dashboard(dot: &str, is_tty: bool) {
             "cargo run --features nova --bin glossa -- haruspex <file> | dot -Tpng > ast.png".dim()
         );
         println!();
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
+        table.add_row(vec![Cell::new(dot)]);
+        println!("{table}");
     } else {
         println!("{}", dot);
     }
