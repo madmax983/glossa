@@ -1450,4 +1450,12 @@ mod regression_tests {
             err
         );
     }
+
+    #[test]
+    fn test_analyze_literal_error_sentry() {
+        let expr = Expr::Word(crate::ast::Word::new("not_a_literal"));
+        let result = super::analyze_literal(&expr);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Not a literal expression"));
+    }
 }
