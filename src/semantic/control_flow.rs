@@ -1406,4 +1406,73 @@ mod tests {
         let expr = Expr::Word(Word::new("εαν"));
         assert!(check_conditional_start(&expr));
     }
+
+    #[test]
+    fn test_parse_for_range_empty_clause_sentry() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause { expressions: vec![] },
+                Clause { expressions: vec![Expr::NumberLiteral(1)] },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_for_range_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Empty range clause in for loop"));
+    }
+
+    #[test]
+    fn test_parse_for_range_not_phrase_sentry() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause { expressions: vec![Expr::NumberLiteral(1)] },
+                Clause { expressions: vec![Expr::NumberLiteral(1)] },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_for_range_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Expected phrase in for range"));
+    }
+
+    #[test]
+    fn test_parse_while_loop_missing_body_sentry() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause { expressions: vec![Expr::Phrase(vec![
+                    Expr::Word(Word::new("εως")),
+                    Expr::NumberLiteral(1),
+                ])] },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_while_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("While loop needs at least 2 clauses: condition and body"));
+    }
+
+    #[test]
+    fn test_parse_conditional_empty_then_body_sentry() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause { expressions: vec![Expr::Phrase(vec![
+                    Expr::Word(Word::new("εαν")),
+                    Expr::NumberLiteral(1),
+                ])] },
+                Clause { expressions: vec![] }, // Empty then body
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_conditional(&stmt, &mut scope, 0);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Empty then-body in conditional"));
+    }
 }
