@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Diplomat (ὁ Πρέσβυς)
+**Concept:** An experimental C Header generator (`glossa diplomat`) that bridges Glossa's Ancient Greek structs (`εἶδος`) and functions (`ἔργον`) to C/C++ FFI by exporting a `.h` header file.
+**Fate:** Merged
+**Lesson:** By mapping Glossa's semantic types to C types (`Number` to `int64_t`, `String` to `char*`), we can enable Foreign Function Interface interoperability. This proves the language can generate robust systems-level glue code beyond just Rust targets.
