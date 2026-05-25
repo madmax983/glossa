@@ -26,7 +26,7 @@
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
 
 use crate::codegen::generate_statement_code;
 use crate::errors::GlossaError;
@@ -36,6 +36,8 @@ use crate::semantic::{AnalyzedStatement, GlossaType, Scope};
 const MAX_REPL_BINDINGS: usize = 50;
 /// Maximum total source size for REPL history
 const MAX_REPL_SOURCE_LEN: usize = 50_000;
+/// Maximum length of a single input line in the REPL
+const MAX_REPL_LINE_LEN: u64 = 10_000;
 
 /// Entry point for the REPL using stdin/stdout
 ///
@@ -64,7 +66,7 @@ pub fn run_repl() -> Result<()> {
 }
 
 /// Internal REPL loop that can be tested with arbitrary streams
-fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
+pub fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
     let mut context = ReplContext::new();
 
     loop {
@@ -73,7 +75,10 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
         let _ = output.flush();
 
         let mut line = String::new();
-        let bytes = input.read_line(&mut line).into_diagnostic()?;
+
+        // Use a capped reader to prevent DoS via unbounded input streams (like /dev/zero)
+        let mut handle = input.by_ref().take(MAX_REPL_LINE_LEN);
+        let bytes = handle.read_line(&mut line).into_diagnostic()?;
 
         // Handle EOF
         if bytes == 0 {
