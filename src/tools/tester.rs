@@ -174,8 +174,41 @@ fn capture_failure_message(lines: &mut std::iter::Peekable<std::str::Lines>) -> 
         }
 
         if let Some(clean_panic) = clean_panic_message(current) {
+            // Include the panic message but skip the "thread 'test_name' panicked at..." prefix
+            // if we are about to hit an assertion failure to keep it clean.
+            // However, we can't lookahead easily for all assertions.
+            // Instead we append the clean panic. If it's just an assertion, it adds a bit of context.
+            // If it's a custom panic, we MUST include it.
             message.push_str(&clean_panic);
             message.push('\n');
+            lines.next();
+            continue;
+        }
+
+        if current.starts_with("assertion `left == right` failed")
+            || current.starts_with("assertion failed: `(left == right)`")
+        {
+            message.push_str("Assertion Failed: Values are not equal\n");
+            lines.next();
+            continue;
+        }
+        if current.starts_with("assertion failed:") {
+            message.push_str("Assertion Failed: Condition is not true\n");
+            lines.next();
+            continue;
+        }
+
+        if trimmed.starts_with("left:") {
+            let val = trimmed.strip_prefix("left:").unwrap().trim();
+            // In Rust `assert_eq!(actual, expected)`, `left` is actual.
+            message.push_str(&format!("  Actual:   {}\n", val));
+            lines.next();
+            continue;
+        }
+        if trimmed.starts_with("right:") {
+            let val = trimmed.strip_prefix("right:").unwrap().trim();
+            // `right` is expected.
+            message.push_str(&format!("  Expected: {}\n", val));
             lines.next();
             continue;
         }
@@ -377,6 +410,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 
                 // Create a box for the error message using comfy_table
                 let mut error_table = Table::new();
+                // We use a clean modern preset and enforce a red border for failures
                 error_table.load_preset(presets::UTF8_FULL);
                 error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
                 println!("{error_table}");
