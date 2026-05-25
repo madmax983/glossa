@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Export the semantic AST to JSON (Requires "nova" feature)
+    Ambassador {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
