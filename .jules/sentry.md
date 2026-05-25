@@ -92,3 +92,6 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+**[Bypassing Parsing to Test Semantic Defensive Guards]**
+**Learning:** In the semantic analysis phase (e.g., `src/semantic/control_flow.rs`), the PEG parser enforces strict input grammar, rendering defensive error checks in semantic evaluation functionally unreachable during normal string parsing. Using `cargo llvm-cov` reveals these unreachable fallbacks as coverage gaps.
+**Action:** Inject mocked abstract syntax tree (`AST`) node values (e.g., malformed `Statement::Regular` blocks or invalid `Expr::Phrase` constructions) directly into the semantic functions using an embedded `#[cfg(test)] mod tests` block. This directly bypasses grammatical guarantees, effectively triggering and verifying the hidden robustness of the internal semantic `GlossaError` handlers.

@@ -914,6 +914,31 @@ mod tests {
         assert!(err.is_err());
     }
 
+
+    #[test]
+    fn test_parse_match_pattern_coverage_more_branches() {
+        let mut scope = Scope::new();
+        // Phrase with unknown Word
+        let expr = Expr::Phrase(vec![Expr::Word(Word::new("unknown_word"))]);
+        let err = parse_match_pattern(&expr, &mut scope);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn test_parse_for_iteration_loop_no_phrase() {
+        let mut scope = Scope::new();
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause { expressions: vec![Expr::NumberLiteral(1)] },
+                Clause { expressions: vec![Expr::NumberLiteral(1)] }
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let err = parse_for_iteration_loop(&stmt, &mut scope);
+        assert!(err.is_err());
+    }
+
     #[test]
     fn test_parse_return_expression_boolean() {
         let scope = Scope::new();
