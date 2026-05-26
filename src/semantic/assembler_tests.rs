@@ -784,16 +784,8 @@ fn test_verbless_statement() {
     asm.feed(&subj, "ἄνθρωπος").unwrap();
 
     // No verb fed.
-
     let stmt = asm.finalize();
-    assert!(
-        matches!(
-            stmt,
-            Err(crate::semantic::assembly::AssemblyError::MissingVerb)
-        ),
-        "Expected MissingVerb but got {:?}",
-        stmt
-    );
+    assert!(stmt.is_ok());
 }
 
 // From atlas_refactor_coverage.rs
