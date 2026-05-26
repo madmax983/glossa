@@ -668,6 +668,9 @@ impl Assembler {
                 && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
             {
                 return Err(AssemblyError::DoubleSubject);
+            } else if !self.state.nominatives.is_empty() && self.state.operators.is_empty() && !self.state.is_query {
+                 // even with a binding verb, we don't allow double subjects (e.g., let x y = 5)
+                 return Err(AssemblyError::DoubleSubject);
             }
         } else if self.state.subject.is_some()
             && !self.state.nominatives.is_empty()
@@ -722,11 +725,8 @@ impl Assembler {
             && self.state.object.is_none()
             && self.state.nominatives.is_empty()
             && self.state.adjectives.is_empty()
-            && let Some(subject) = self.state.subject.as_ref()
+            && self.state.subject.is_some()
         {
-            if subject.lemma == "ανθρωπος" {
-                return Err(AssemblyError::MissingVerb);
-            }
             return Ok(());
         }
         Err(AssemblyError::MissingVerb)

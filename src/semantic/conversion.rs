@@ -1157,11 +1157,17 @@ fn classify_expression(
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            if !scope.is_defined(&subj.lemma) && asm_stmt.verb.as_ref().map_or(true, |v| !crate::morphology::lexicon::is_binding_verb(&v.lemma)) {
+                return Err(GlossaError::undefined(subj.lemma.as_str()));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             });
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) && asm_stmt.verb.as_ref().map_or(true, |v| !crate::morphology::lexicon::is_binding_verb(&v.lemma)) {
+                return Err(GlossaError::undefined(obj.lemma.as_str()));
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
