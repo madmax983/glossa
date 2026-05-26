@@ -45,6 +45,7 @@ use crate::morphology::{self};
 use crate::semantic::assembly::AssembledStatement;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
 use crate::semantic::resolver::Scope;
+use crate::semantic::types::GlossaType;
 
 use crate::semantic::{Constituent, Literal};
 
@@ -2884,8 +2885,9 @@ mod tests {
 #[cfg(test)]
 mod tests_sentry_conversion_extract {
     use super::*;
+    use crate::semantic::assembly::AssembledStatement;
+    use crate::semantic::Constituent;
     use crate::semantic::resolver::Scope;
-    use crate::semantic::assembly::model::{AssembledStatement, Constituent};
     use smol_str::SmolStr;
 
     #[test]
@@ -2928,7 +2930,9 @@ mod tests_sentry_conversion_extract {
     #[test]
     fn test_try_print_property_access_some() {
         let mut asm_stmt = AssembledStatement::default();
-        asm_stmt.property_accesses.push(("owner".into(), "len".into()));
+        asm_stmt
+            .property_accesses
+            .push(("owner".into(), "len".into()));
         let mut scope = Scope::new();
         let result = try_print_property_access(&asm_stmt, &mut scope);
         assert!(result.is_some());
@@ -2936,11 +2940,14 @@ mod tests_sentry_conversion_extract {
 
     #[test]
     fn test_extract_value_nominative_fallback() {
-        let mut asm_stmt = AssembledStatement { operators: vec![crate::morphology::lexicon::BinaryOp::Add], ..Default::default() };
+        let mut asm_stmt = AssembledStatement {
+            operators: vec![crate::morphology::lexicon::BinaryOp::Add],
+            ..Default::default()
+        };
         let nominative = Constituent {
-            lemma: SmolStr::new("right_var").to_string().into(),
-            original: SmolStr::new("right_var").to_string().into(),
-            normalized: SmolStr::new("right_var").to_string().into(),
+            lemma: SmolStr::new("right_var"),
+            original: SmolStr::new("right_var"),
+            normalized: SmolStr::new("right_var"),
             case: crate::morphology::Case::Nominative,
             number: Some(crate::morphology::Number::Singular),
             gender: Some(crate::morphology::Gender::Masculine),
