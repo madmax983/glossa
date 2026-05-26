@@ -92,3 +92,6 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+**Testing AST Edge Cases in Parser & Semantic Modules**
+**Learning:** Some private helper functions and "catch-all" match arm logic in Pest parsers or semantic conversion layers are inherently difficult or impossible to test via integration tests parsing complete code blocks due to strict grammar boundaries.
+**Action:** When trying to increase coverage for semantic logic or internal parser rules, construct and instantiate the intermediate models (e.g. `AssembledStatement`) directly within a module-level `#[cfg(test)]` block. This bypasses structural grammar restrictions and allows testing fallback branches (e.g. "empty/missing" properties) explicitly.

@@ -46,7 +46,6 @@ use crate::semantic::assembly::AssembledStatement;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
 use crate::semantic::resolver::Scope;
 
-use crate::semantic::types::GlossaType;
 use crate::semantic::{Constituent, Literal};
 
 /// Convert an AssembledStatement to an AnalyzedStatement
@@ -2879,5 +2878,78 @@ mod tests {
         } else {
             panic!("Expected Unwrap expr");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests_sentry_conversion_extract {
+    use super::*;
+    use crate::semantic::resolver::Scope;
+    use crate::semantic::assembly::model::{AssembledStatement, Constituent};
+    use smol_str::SmolStr;
+
+    #[test]
+    fn test_extract_value_empty_fallback() {
+        let asm_stmt = AssembledStatement::default();
+        let scope = Scope::new();
+        let result = extract_value(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        let (val, _ty) = result.unwrap();
+        assert!(matches!(val.expr, AnalyzedExprKind::NumberLiteral(0)));
+    }
+
+    #[test]
+    fn test_extract_unwrap_none() {
+        let asm_stmt = AssembledStatement::default();
+        let scope = Scope::new();
+        let result = extract_unwrap(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_object_fallback_none() {
+        let asm_stmt = AssembledStatement::default();
+        let scope = Scope::new();
+        let result = extract_object_fallback(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_extract_enum_from_nominatives_none() {
+        let asm_stmt = AssembledStatement::default();
+        let scope = Scope::new();
+        let result = extract_enum_from_nominatives(&asm_stmt, &scope);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_try_print_property_access_some() {
+        let mut asm_stmt = AssembledStatement::default();
+        asm_stmt.property_accesses.push(("owner".into(), "len".into()));
+        let mut scope = Scope::new();
+        let result = try_print_property_access(&asm_stmt, &mut scope);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_extract_value_nominative_fallback() {
+        let mut asm_stmt = AssembledStatement { operators: vec![crate::morphology::lexicon::BinaryOp::Add], ..Default::default() };
+        let nominative = Constituent {
+            lemma: SmolStr::new("right_var").to_string().into(),
+            original: SmolStr::new("right_var").to_string().into(),
+            normalized: SmolStr::new("right_var").to_string().into(),
+            case: crate::morphology::Case::Nominative,
+            number: Some(crate::morphology::Number::Singular),
+            gender: Some(crate::morphology::Gender::Masculine),
+            person: None,
+        };
+        asm_stmt.nominatives = vec![nominative];
+
+        let scope = Scope::new();
+        let value_result = extract_value(&asm_stmt, &scope);
+        assert!(value_result.is_ok());
     }
 }
