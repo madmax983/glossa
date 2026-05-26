@@ -1,26 +1,21 @@
-use glossa::ast::{Expr, Word};
-use std::thread;
+use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
 
 #[test]
-fn test_clone_stack_overflow() {
-    let child = thread::Builder::new()
-        .stack_size(1024 * 1024 * 10) // generous but still droppable
-        .spawn(|| {
-            let depth = 50000;
-            let mut expr = Expr::Word(Word::new("root"));
-            for _ in 0..depth {
-                expr = Expr::PropertyAccess {
-                    owner: Box::new(expr),
-                    property: Box::new(Expr::Word(Word::new("prop"))),
-                };
-            }
-
-            // Stacker should protect Clone according to ast.rs
-            let expr2 = expr.clone();
-            // Also test dropping it
-            drop(expr2);
-            drop(expr);
-        })
-        .unwrap();
-    child.join().unwrap();
+fn test_havoc_semantic_drop_stack_overflow() {
+    let mut expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::BooleanLiteral(true),
+        glossa_type: GlossaType::Boolean,
+    };
+    // Deep recursion
+    for _ in 0..100_000 {
+        expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::PropertyAccess {
+                owner: Box::new(expr),
+                property: "a".into(),
+            },
+            glossa_type: GlossaType::Boolean,
+        };
+    }
+    // When expr is dropped at the end of the scope, the implicit recursive
+    // Drop implementation of `AnalyzedExpr` will overflow the stack.
 }
