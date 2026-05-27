@@ -52,8 +52,14 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
-## 🌟 The Historian (ὁ Ἱστορικός)\n**Concept:** A CLI tool (`glossa trace`) that adds execution tracing by injecting logging statements into the Rust codegen so developers can see the execution flow of their Glossa program.\n**Fate:** Discarded\n**Lesson:** Too complex to implement reliably and modifies the codegen output in non-standard ways.
-## 🌟 The Cryptographer (ὁ Κρυπτογράφος)\n**Concept:** A CLI tool (`glossa encrypt`) that converts Glossa programs into an obfuscated/encrypted string, taking advantage of the compiler's semantic phase.\n**Fate:** Discarded\n**Lesson:** Doesn't provide enough value for normal development workflows.
+## 🌟 The Historian (ὁ Ἱστορικός)
+**Concept:** A CLI tool (`glossa trace`) that adds execution tracing by injecting logging statements into the Rust codegen so developers can see the execution flow of their Glossa program.
+**Fate:** Discarded
+**Lesson:** Too complex to implement reliably and modifies the codegen output in non-standard ways.
+## 🌟 The Cryptographer (ὁ Κρυπτογράφος)
+**Concept:** A CLI tool (`glossa encrypt`) that converts Glossa programs into an obfuscated/encrypted string, taking advantage of the compiler's semantic phase.
+**Fate:** Discarded
+**Lesson:** Doesn't provide enough value for normal development workflows.
 ## 🌟 The Sculptor (ὁ Γλύπτης)
 **Concept:** A CLI tool (`glossa sculptor`) that reads a Glossa program and generates TypeScript `interface` definitions from any defined Glossa structs (`εἶδος`).
 **Fate:** Merged

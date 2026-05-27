@@ -160,4 +160,48 @@ mod tests {
             "User"
         );
     }
+
+    #[test]
+    fn test_run_sculptor_success() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_sculptor.γλ");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&input_path).unwrap();
+            f.write_all("εἶδος Χρήστης ὁρίζειν {\n    ὄνομα ὀνόματος.\n}.\n".as_bytes())
+                .unwrap();
+        }
+
+        let result = run_sculptor(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_sculptor_file_not_found() {
+        let path = Path::new("non_existent_file.γλ");
+        let result = run_sculptor(path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_run_sculptor_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_sculptor_parse_error.γλ");
+        std::fs::write(&input_path, b"invalid syntax").unwrap();
+
+        let result = run_sculptor(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_sculptor_semantic_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("test_sculptor_semantic_error.γλ");
+        // Valid syntax, semantic error (reassigning undefined variable)
+        std::fs::write(&input_path, "ψ 10 γίγνεται.").unwrap();
+
+        let result = run_sculptor(&input_path);
+        assert!(result.is_err());
+    }
 }
