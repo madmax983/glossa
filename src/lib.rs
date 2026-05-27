@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 #![deny(unsafe_code)]
 //! ΓΛΩΣΣΑ (GLOSSA) - A compiler where Ancient Greek morphology encodes programming semantics
 //!
