@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate TypeScript interfaces from struct definitions (Requires "nova" feature)
+    Sculptor {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
