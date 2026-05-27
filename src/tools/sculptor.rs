@@ -205,3 +205,20 @@ mod tests {
         assert!(result.is_err());
     }
 }
+
+#[cfg(test)]
+mod additional_coverage_tests {
+    use super::*;
+    use crate::semantic::GlossaType;
+
+    #[test]
+    fn test_glossa_type_to_ts_function() {
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Function {
+                params: vec![GlossaType::Number, GlossaType::String],
+                returns: Box::new(GlossaType::Boolean)
+            }),
+            "(arg0: number, arg1: string) => boolean"
+        );
+    }
+}
