@@ -17,6 +17,8 @@ C4Context
     Rel(programmer, glossa, "Writes Source (.γλ)", "File System")
     Rel(glossa, rustc, "Generates Rust Code", "File System")
     Rel(rustc, glossa, "Reports Errors", "StdOut/StdErr")
+    System_Ext(storage, "Storage", "Persistence logic")
+    Rel(glossa, storage, "Uses (Trait Bound)")
 ```
 
 ## Compiler Pipeline (C4 Container Level)
@@ -130,4 +132,28 @@ C4Component
     Rel(expressions, types, "Uses")
 
     Rel(model, types, "Uses")
+```
+
+## Core and Storage Class Diagram
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+  %% Removed the circular dependency arrow
+```
+
+## Storage Sequence Flow
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant Core
+  participant Storage
+
+  Client->>Core: Process Data
+  Core->>Storage: Save State (via Trait)
+  Storage-->>Core: Acknowledge
+  Core-->>Client: Success
 ```
