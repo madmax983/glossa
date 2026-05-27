@@ -143,66 +143,73 @@ pub fn try_parse_method_call(
 /// ```
 ///
 /// Returns `Some(analyzed_statement)` if this is a struct instantiation, `None` otherwise.
-pub fn try_parse_struct_instantiation(
-    stmt: &Statement,
-    scope: &mut Scope,
-) -> Result<Option<AnalyzedStatement>, GlossaError> {
+fn extract_instantiation_components<'a>(
+    stmt: &'a Statement,
+) -> Option<(&'a str, &'a str, &'a [Expr])> {
     // Only process Regular statements
     let Statement::Regular { clauses, .. } = stmt else {
-        return Ok(None);
+        return None;
     };
 
     // Should have exactly one clause
     if clauses.len() != 1 {
-        return Ok(None);
+        return None;
     }
 
     let clause = &clauses[0];
     if clause.expressions.len() != 1 {
-        return Ok(None);
+        return None;
     }
 
     // Should be a Phrase with at least 4 terms
     let Expr::Phrase(terms) = &clause.expressions[0] else {
-        return Ok(None);
+        return None;
     };
 
     if terms.len() < 4 {
-        return Ok(None);
+        return None;
     }
 
     // Verify structural words (0, 1, 2, Last) are Words
     let Expr::Word(var_word) = &terms[0] else {
-        return Ok(None);
+        return None;
     };
     let Expr::Word(adj_word) = &terms[1] else {
-        return Ok(None);
+        return None;
     };
     let Expr::Word(type_word) = &terms[2] else {
-        return Ok(None);
+        return None;
     };
     let Some(Expr::Word(last_word)) = terms.last() else {
-        return Ok(None);
+        return None;
     };
 
     // Check pattern: var_name νέον TypeName args... ἔστω
     // Last word should be ἔστω (binding verb)
     if !crate::morphology::lexicon::is_binding_verb(&last_word.normalized) {
-        return Ok(None);
+        return None;
     }
 
     // Second word should be νέον (new) - check both normalized form and if it's "new" via morphology
     let normalized_adj = crate::text::normalize_greek(&adj_word.normalized);
     // Check if it's "new" - could be νέον, νεον, etc.
     if normalized_adj != "νεον" && normalized_adj != "νεος" {
-        return Ok(None);
+        return None;
     }
 
     // Extract components
     let var_name = &var_word.normalized;
     let type_name = &type_word.normalized;
+    let args_slice = &terms[3..terms.len() - 1];
 
-    // Check for built-in collection types first (HashSet, HashMap)
+    Some((var_name.as_str(), type_name.as_str(), args_slice))
+}
+
+fn handle_collection_instantiation(
+    var_name: &str,
+    type_name: &str,
+    scope: &mut Scope,
+) -> Option<AnalyzedStatement> {
     if let Some((rust_type, glossa_type)) =
         crate::semantic::types::detect_collection_type(type_name)
     {
@@ -214,13 +221,28 @@ pub fn try_parse_struct_instantiation(
         };
 
         // Register variable in scope (collections are implicitly mutable for insert)
-        scope.define_mut(var_name.clone(), glossa_type.clone());
+        scope.define_mut(var_name, glossa_type.clone());
 
-        return Ok(Some(AnalyzedStatement::Binding {
-            name: var_name.clone(),
+        return Some(AnalyzedStatement::Binding {
+            name: var_name.into(),
             value: collection_new,
             mutable: true,
-        }));
+        });
+    }
+    None
+}
+
+pub fn try_parse_struct_instantiation(
+    stmt: &Statement,
+    scope: &mut Scope,
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    let Some((var_name, type_name, args_slice)) = extract_instantiation_components(stmt) else {
+        return Ok(None);
+    };
+
+    // Check for built-in collection types first (HashSet, HashMap)
+    if let Some(stmt) = handle_collection_instantiation(var_name, type_name, scope) {
+        return Ok(Some(stmt));
     }
 
     // Check if type exists as a user-defined struct
@@ -242,14 +264,14 @@ pub fn try_parse_struct_instantiation(
     let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
 
     // Collect constructor arguments (everything between type_name and ἔστω)
-    let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], fields_info, scope) else {
+    let Some(args) = parse_struct_args(args_slice, fields_info, scope) else {
         return Ok(None);
     };
 
     // Build struct instantiation
     let struct_inst = AnalyzedExpr {
         expr: AnalyzedExprKind::StructInstantiation {
-            type_name: type_name.clone(),
+            type_name: type_name.into(),
             fields: field_names,
             args,
         },
@@ -257,10 +279,10 @@ pub fn try_parse_struct_instantiation(
     };
 
     // Register variable in scope with correct type
-    scope.define(var_name.clone(), struct_type.clone());
+    scope.define(var_name, struct_type.clone());
 
     Ok(Some(AnalyzedStatement::Binding {
-        name: var_name.clone(),
+        name: var_name.into(),
         value: struct_inst,
         mutable: false,
     }))
