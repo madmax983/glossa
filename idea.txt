@@ -1,0 +1,5 @@
+I will create the "Chronicle" (ὁ Χρονογράφος) - A timeline visualizer tool.
+Concept: A CLI tool (`glossa chronicle`) that tracks variables state changes (mutations) throughout the program.
+We can add a new tool `chronicle` that will statically analyze the AST for variable definitions (`Binding`) and assignments (`Assignment`). For each variable, it tracks its history (where it was created, where it was modified, and its potential values if they are literals). This gives the user a view of how data flows and changes over time in the program.
+
+Since we are acting as Nova, we can create this feature from scratch.

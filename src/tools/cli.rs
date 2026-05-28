@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Track the lifecycle and mutations of variables (Requires "nova" feature)
+    Chronicle {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

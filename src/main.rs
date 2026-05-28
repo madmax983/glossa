@@ -201,6 +201,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Chronicle { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::chronicle::run_chronicle(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'chronicle' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
