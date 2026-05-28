@@ -15,6 +15,7 @@ use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedS
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use std::fmt::Write;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
@@ -36,25 +37,31 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
 
     status.success();
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   A L C H E M I S T".bold().cyan());
-    println!("   {}", "Python Transpilation Result".italic().dim());
-    println!();
+    let is_tty = std::io::stdout().is_terminal();
 
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
+    if is_tty {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   A L C H E M I S T".bold().cyan());
+        println!("   {}", "Python Transpilation Result".italic().dim());
+        println!();
 
-    table.set_header(vec![
-        Cell::new("Python Source Code")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-    ]);
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
 
-    let formatted_code = format!("```python\n{}\n```", python_code.trim());
-    table.add_row(vec![Cell::new(formatted_code)]);
+        table.set_header(vec![
+            Cell::new("Python Source Code")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+        ]);
 
-    println!("{table}");
-    println!();
+        let formatted_code = format!("```python\n{}\n```", python_code.trim());
+        table.add_row(vec![Cell::new(formatted_code)]);
+
+        println!("{table}");
+        println!();
+    } else {
+        println!("{}", python_code.trim());
+    }
 
     Ok(())
 }

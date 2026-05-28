@@ -28,7 +28,7 @@ fn test_mosaic_comprehensive_coverage() {
     ";
 
     let mut buffer = Vec::new();
-    match run_mosaic_inner(source, &mut buffer) {
+    match run_mosaic_inner(source, &mut buffer, true) {
         Ok(_) => {}
         Err(e) => panic!("Mosaic failed: {:?}", e),
     }

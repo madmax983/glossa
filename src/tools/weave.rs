@@ -51,7 +51,7 @@ pub fn run_weave(input: &Path) -> Result<()> {
 
     // 3. Generate Mosaic Table
     let mut mosaic_buffer = Vec::new();
-    if let Err(e) = run_mosaic_inner(&source, &mut mosaic_buffer) {
+    if let Err(e) = run_mosaic_inner(&source, &mut mosaic_buffer, true) {
         status.error("Σφάλμα (Error)");
         return Err(e);
     }
