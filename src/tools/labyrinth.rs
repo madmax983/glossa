@@ -22,6 +22,21 @@ use crossterm::style::Stylize;
 use std::path::Path;
 
 /// Run the Labyrinth tool on a file
+///
+/// Reads the source file, compiles it, and prints the Mermaid.js flowchart
+/// to standard output.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::labyrinth::run_labyrinth;
+/// use std::path::Path;
+///
+/// let input = Path::new("maze.γλ");
+/// if let Err(e) = run_labyrinth(&input) {
+///     eprintln!("Failed to generate CFG map: {}", e);
+/// }
+/// ```
 pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
     let mut buffer = Vec::new();

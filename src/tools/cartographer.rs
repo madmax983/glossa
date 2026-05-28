@@ -44,6 +44,18 @@ use std::path::Path;
 /// Run the Cartographer tool on a file
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::cartographer::run_map;
+/// use std::path::Path;
+///
+/// let input = Path::new("models.γλ");
+/// if let Err(e) = run_map(&input) {
+///     eprintln!("Failed to generate architectural map: {}", e);
+/// }
+/// ```
 pub fn run_map(input: &Path) -> Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
