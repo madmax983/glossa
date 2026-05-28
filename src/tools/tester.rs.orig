@@ -576,13 +576,6 @@ test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; fini
     }
 
     #[test]
-    fn test_parse_output_edge_cases() {
-        let output = "\nrunning 3 tests\ntest  ... ok\ntest test_unknown ... unknown\njust some random text\n";
-        let results = parse_test_output(output);
-        assert_eq!(results.len(), 0);
-    }
-
-    #[test]
     fn test_extract_failures_basic() {
         let output = "
 running 1 test

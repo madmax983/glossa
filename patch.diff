@@ -1,0 +1,16 @@
+--- src/tools/tester.rs
++++ src/tools/tester.rs
+@@ -574,6 +574,13 @@
+         assert_eq!(results[0].status, TestStatus::Ignored);
+     }
+
++    #[test]
++    fn test_parse_output_edge_cases() {
++        let output = "\nrunning 3 tests\ntest  ... ok\ntest test_unknown ... unknown\njust some random text\n";
++        let results = parse_test_output(output);
++        assert_eq!(results.len(), 0);
++    }
++
+     #[test]
+     fn test_extract_failures_basic() {
+         let output = "
