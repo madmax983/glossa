@@ -502,39 +502,38 @@ fn classify_assignment(
 
     let var_name = subject.normalized.clone();
 
-    match scope.lookup_binding(&var_name) {
-        None => Err(GlossaError::semantic(format!(
-            "Τὸ «{}» οὐχ ὡρίσθη — πρῶτον ὅρισον αὐτό",
-            var_name
-        ))),
-        Some(b) if !b.mutable => Err(GlossaError::semantic(format!(
+    let binding = scope.lookup_binding(&var_name).ok_or_else(|| {
+        GlossaError::semantic(format!("Τὸ «{}» οὐχ ὡρίσθη — πρῶτον ὅρισον αὐτό", var_name))
+    })?;
+
+    if !binding.mutable {
+        return Err(GlossaError::semantic(format!(
             "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
             &var_name
-        ))),
-        Some(_) => {
-            let has_value = !asm_stmt.literals.is_empty()
-                || asm_stmt.object.is_some()
-                || !asm_stmt.arrays.is_empty()
-                || !asm_stmt.unwraps.is_empty()
-                || !asm_stmt.index_accesses.is_empty()
-                || !asm_stmt.property_accesses.is_empty()
-                || !asm_stmt.nested_phrases.is_empty();
-
-            if !has_value {
-                return Err(GlossaError::semantic(format!(
-                    "Τῇ πράξει «{} γίγνεται» δεῖ τιμῆς (Assignment requires a value)",
-                    var_name
-                )));
-            }
-
-            let (value_expr, _) = extract_value(asm_stmt, scope)?;
-            scope.mark_used(&var_name);
-            Ok(Some(AnalyzedStatement::Assignment {
-                name: var_name.clone(),
-                value: value_expr,
-            }))
-        }
+        )));
     }
+
+    let has_value = !asm_stmt.literals.is_empty()
+        || asm_stmt.object.is_some()
+        || !asm_stmt.arrays.is_empty()
+        || !asm_stmt.unwraps.is_empty()
+        || !asm_stmt.index_accesses.is_empty()
+        || !asm_stmt.property_accesses.is_empty()
+        || !asm_stmt.nested_phrases.is_empty();
+
+    if !has_value {
+        return Err(GlossaError::semantic(format!(
+            "Τῇ πράξει «{} γίγνεται» δεῖ τιμῆς (Assignment requires a value)",
+            var_name
+        )));
+    }
+
+    let (value_expr, _) = extract_value(asm_stmt, scope)?;
+    scope.mark_used(&var_name);
+    Ok(Some(AnalyzedStatement::Assignment {
+        name: var_name.clone(),
+        value: value_expr,
+    }))
 }
 
 /// Helper: Detect collection mutation (pop, push, insert)
