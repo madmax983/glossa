@@ -201,6 +201,7 @@ fn main() -> Result<()> {
             }
         }
 
+        #[allow(unused_variables)]
         Some(Commands::Chronicle { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::chronicle::run_chronicle(&input)?;

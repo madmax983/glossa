@@ -269,3 +269,233 @@ mod tests {
         assert_eq!(hist[2], "Read");
     }
 }
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+    use crate::semantic::GlossaType;
+
+    #[test]
+    fn test_chronicle_coverage() {
+        let mut visitor = ChronicleVisitor::new();
+
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(1),
+            glossa_type: GlossaType::Number,
+        };
+
+        // Expression
+        visitor.visit_statement(&AnalyzedStatement::Expression(vec![dummy_expr.clone()]));
+
+        // If
+        visitor.visit_statement(&AnalyzedStatement::If {
+            condition: Box::new(dummy_expr.clone()),
+            then_body: vec![AnalyzedStatement::Break],
+            else_body: Some(vec![AnalyzedStatement::Continue]),
+        });
+
+        // While
+        visitor.visit_statement(&AnalyzedStatement::While {
+            condition: Box::new(dummy_expr.clone()),
+            body: vec![AnalyzedStatement::Break],
+        });
+
+        // For
+        visitor.visit_statement(&AnalyzedStatement::For {
+            variable: "v".into(),
+            iterator: Box::new(dummy_expr.clone()),
+            body: vec![AnalyzedStatement::Break],
+        });
+
+        // Match
+        visitor.visit_statement(&AnalyzedStatement::Match {
+            scrutinee: Box::new(dummy_expr.clone()),
+            arms: vec![(dummy_expr.clone(), vec![AnalyzedStatement::Break])],
+        });
+
+        // Return
+        visitor.visit_statement(&AnalyzedStatement::Return {
+            value: Some(Box::new(dummy_expr.clone())),
+        });
+
+        // FunctionDef
+        visitor.visit_statement(&AnalyzedStatement::FunctionDef {
+            name: "f".into(),
+            params: vec![],
+            return_type: None,
+            body: vec![AnalyzedStatement::Break],
+        });
+
+        // TraitImplementation
+        visitor.visit_statement(&AnalyzedStatement::TraitImplementation {
+            trait_name: "T".into(),
+            type_name: "X".into(),
+            methods: vec![
+                crate::semantic::AnalyzedMethod {
+                    name: "m".into(),
+                    params: vec![],
+                    return_type: None,
+                    body: Some(vec![AnalyzedStatement::Break]),
+                }
+            ],
+        });
+
+        // TestDeclaration
+        visitor.visit_statement(&AnalyzedStatement::TestDeclaration {
+            name: "test".into(),
+            body: vec![AnalyzedStatement::Break],
+        });
+
+        // UnaryOp
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::UnaryOp {
+                op: crate::morphology::lexicon::UnaryOp::Not,
+                operand: Box::new(dummy_expr.clone()),
+            },
+            glossa_type: GlossaType::Boolean,
+        });
+
+        // BinOp
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::BinOp {
+                left: Box::new(dummy_expr.clone()),
+                op: crate::morphology::lexicon::BinaryOp::Add,
+                right: Box::new(dummy_expr.clone()),
+            },
+            glossa_type: GlossaType::Number,
+        });
+
+        // PropertyAccess
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::PropertyAccess {
+                owner: Box::new(dummy_expr.clone()),
+                property: "prop".into(),
+            },
+            glossa_type: GlossaType::Number,
+        });
+
+        // MethodCall
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::MethodCall {
+                receiver: Box::new(dummy_expr.clone()),
+                method: "m".into(),
+                args: vec![dummy_expr.clone()],
+            },
+            glossa_type: GlossaType::Number,
+        });
+
+        // FunctionCall
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::FunctionCall {
+                func: "f".into(),
+                args: vec![dummy_expr.clone()],
+            },
+            glossa_type: GlossaType::Number,
+        });
+
+        // StructInstantiation
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::StructInstantiation {
+                type_name: "X".into(),
+                fields: vec!["f".into()],
+                args: vec![dummy_expr.clone()],
+            },
+            glossa_type: GlossaType::Number,
+        });
+
+        // ArrayLiteral
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::ArrayLiteral(vec![dummy_expr.clone()]),
+            glossa_type: GlossaType::Number,
+        });
+
+        // IndexAccess
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::IndexAccess {
+                array: Box::new(dummy_expr.clone()),
+                index: Box::new(dummy_expr.clone()),
+            },
+            glossa_type: GlossaType::Number,
+        });
+
+        // Lambda
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::Lambda {
+                params: vec!["p".into()],
+                body: Box::new(dummy_expr.clone()),
+                capture_mode: crate::semantic::CaptureMode::Borrow,
+            },
+            glossa_type: GlossaType::Number,
+        });
+
+        // VerbCall
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::VerbCall {
+                verb: "v".into(),
+                args: vec![dummy_expr.clone()],
+            },
+            glossa_type: GlossaType::Number,
+        });
+
+        // Range
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::Range {
+                start: Box::new(dummy_expr.clone()),
+                end: Box::new(dummy_expr.clone()),
+                inclusive: false,
+            },
+            glossa_type: GlossaType::Number,
+        });
+
+        // Try
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::Try(Box::new(dummy_expr.clone())),
+            glossa_type: GlossaType::Number,
+        });
+
+        // Assert
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::Assert {
+                condition: Box::new(dummy_expr.clone()),
+            },
+            glossa_type: GlossaType::Number,
+        });
+
+        // AssertEq
+        visitor.visit_expr(&AnalyzedExpr {
+            expr: AnalyzedExprKind::AssertEq {
+                left: Box::new(dummy_expr.clone()),
+                right: Box::new(dummy_expr.clone()),
+            },
+            glossa_type: GlossaType::Number,
+        });
+    }
+
+    #[test]
+    fn test_run_chronicle() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_chronicle.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            f.write_all("ξ 1 ἔστω.".as_bytes()).unwrap();
+        }
+
+        let result = run_chronicle(&file_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_chronicle_error() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_error.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            f.write_all(b"invalid syntax").unwrap();
+        }
+
+        let result = run_chronicle(&file_path);
+        assert!(result.is_err());
+    }
+}
