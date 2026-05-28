@@ -27,6 +27,7 @@ use crossterm::style::Stylize;
 use miette::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Runs the Auditor tool on a given Glossa source file.
@@ -83,15 +84,19 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 
     let mut issues = 0;
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   A U D I T O R".cyan().bold());
-    println!(
-        "   {}",
-        format!("Audit Report for {}", input.display())
-            .italic()
-            .dim()
-    );
-    println!();
+    let is_tty = std::io::stdout().is_terminal();
+
+    if is_tty {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   A U D I T O R".cyan().bold());
+        println!(
+            "   {}",
+            format!("Audit Report for {}", input.display())
+                .italic()
+                .dim()
+        );
+        println!();
+    }
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
@@ -101,6 +106,8 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         Cell::new("Message").add_attribute(Attribute::Bold),
     ]);
 
+    let mut raw_output = String::new();
+
     for (var, count) in &visitor.usage_count {
         if *count == 0 {
             table.add_row(vec![
@@ -108,6 +115,12 @@ pub fn run_auditor(input: &Path) -> Result<()> {
                 Cell::new(var),
                 Cell::new("Declared but never used"),
             ]);
+            if !is_tty {
+                raw_output.push_str(&format!(
+                    "Unused Variable\t{}\tDeclared but never used\n",
+                    var
+                ));
+            }
             issues += 1;
         }
     }
@@ -122,19 +135,31 @@ pub fn run_auditor(input: &Path) -> Result<()> {
                 Cell::new(var),
                 Cell::new("Declared mutable ('μετά') but never changed"),
             ]);
+            if !is_tty {
+                raw_output.push_str(&format!(
+                    "Unnecessary Mutation\t{}\tDeclared mutable ('μετά') but never changed\n",
+                    var
+                ));
+            }
             issues += 1;
         }
     }
 
-    if issues == 0 {
-        println!(
-            "   {}",
-            "✨ No issues found. The code is pure.".green().bold()
-        );
-        println!();
+    if is_tty {
+        if issues == 0 {
+            println!(
+                "   {}",
+                "✨ No issues found. The code is pure.".green().bold()
+            );
+            println!();
+        } else {
+            println!("{table}");
+            println!("\n   Total issues found: {}", issues);
+        }
     } else {
-        println!("{table}");
-        println!("\n   Total issues found: {}", issues);
+        if issues > 0 {
+            print!("{}", raw_output);
+        }
     }
 
     Ok(())

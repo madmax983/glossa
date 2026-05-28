@@ -23,6 +23,7 @@ use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Runs the Papyrus tool to generate SQL schemas from Glossa types.
@@ -89,25 +90,31 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
         }
     }
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   P A P Y R U S".bold().cyan());
-    println!("   {}", "SQL Schema".italic().dim());
-    println!();
+    let is_tty = std::io::stdout().is_terminal();
 
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
+    if is_tty {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   P A P Y R U S".bold().cyan());
+        println!("   {}", "SQL Schema".italic().dim());
+        println!();
 
-    table.set_header(vec![
-        Cell::new("SQL Schema")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-    ]);
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
 
-    let formatted_code = format!("```sql\n{}\n```", output.trim());
-    table.add_row(vec![Cell::new(formatted_code)]);
+        table.set_header(vec![
+            Cell::new("SQL Schema")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+        ]);
 
-    println!("{table}");
-    println!();
+        let formatted_code = format!("```sql\n{}\n```", output.trim());
+        table.add_row(vec![Cell::new(formatted_code)]);
+
+        println!("{table}");
+        println!();
+    } else {
+        println!("{}", output.trim());
+    }
 
     Ok(())
 }
