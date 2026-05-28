@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-05-18 - Missing tool docs
+**Confusion:** Many tools in `src/tools/` lacked `# Examples` and detailed descriptions for their `run_*` functions, triggering warnings or failing the Bard directive.
+**Clarification:** Added `# Examples` with `rust,no_run` to prevent execution of dummy paths while ensuring compilation, and removed throwaway scripts before review.

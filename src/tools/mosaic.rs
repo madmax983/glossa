@@ -37,6 +37,18 @@ use std::path::Path;
 /// Run the Mosaic tool on a file
 ///
 /// Reads the source file, parses it, and prints the semantic assembly table to stdout.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::mosaic::run_mosaic;
+/// use std::path::Path;
+///
+/// let input = Path::new("sentence.γλ");
+/// if let Err(e) = run_mosaic(&input) {
+///     eprintln!("Failed to generate mosaic: {}", e);
+/// }
+/// ```
 pub fn run_mosaic(input_path: &Path) -> Result<()> {
     let source = crate::tools::runner::load_source(input_path)?;
 

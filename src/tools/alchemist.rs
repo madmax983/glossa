@@ -18,6 +18,20 @@ use std::fmt::Write;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
+///
+/// Converts the Glossa program to Python and prints the transpiled code.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::alchemist::run_alchemist;
+/// use std::path::Path;
+///
+/// let input = Path::new("script.γλ");
+/// if let Err(e) = run_alchemist(&input) {
+///     eprintln!("Failed to transpile to Python: {}", e);
+/// }
+/// ```
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 

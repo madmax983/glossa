@@ -20,6 +20,21 @@ use std::io::IsTerminal;
 use std::path::Path;
 
 /// Runs the Haruspex tool to generate a Graphviz DOT representation of the AST.
+///
+/// This function reads the specified file, runs semantic analysis to construct the AST,
+/// and then prints the DOT format to stdout so it can be piped into Graphviz.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::haruspex::run_haruspex;
+/// use std::path::Path;
+///
+/// let input = Path::new("ast.γλ");
+/// if let Err(e) = run_haruspex(&input) {
+///     eprintln!("Failed to generate DOT graph: {}", e);
+/// }
+/// ```
 pub fn run_haruspex(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));

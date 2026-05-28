@@ -11,6 +11,20 @@ use crossterm::style::Stylize;
 use miette::Result;
 
 /// Run the catalog explorer
+///
+/// This function outputs a detailed breakdown of the internal compiler dictionary
+/// (the `lexicon`) to the terminal. It groups words by their part of speech and
+/// displays their meaning and mapping to Rust constructs.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::catalog::run_catalog;
+///
+/// if let Err(e) = run_catalog() {
+///     eprintln!("Failed to display the lexicon catalog: {}", e);
+/// }
+/// ```
 pub fn run_catalog() -> Result<()> {
     // ⚡ Bolt Optimization: Uses `rustc_hash::FxHashMap` instead of the standard `HashMap`
     // since the keys are internal `PartOfSpeech` enums and are not exposed to HashDoS attacks.
