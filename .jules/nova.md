@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Chronicle (ὁ Χρονογράφος)
+**Concept:** A CLI tool (`glossa chronicle`) that statically analyzes the AST to track variable lifecycles (creation, mutation, read).
+**Fate:** Merged
+**Lesson:** Statically tracing variable history provides a simple and fast way to understand data flow without a debugger, and proves the Semantic AST is rich enough to do static analysis.

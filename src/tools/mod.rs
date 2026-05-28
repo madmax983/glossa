@@ -30,6 +30,8 @@ pub use cache::Cache;
 pub mod cartographer;
 #[cfg(feature = "nova")]
 pub mod catalog;
+#[cfg(feature = "nova")]
+pub mod chronicle;
 pub mod cli;
 pub mod dictionary;
 /// The Haruspex (ὁ Ἱεροσκόπος) tool for visualizing the Semantic AST.
