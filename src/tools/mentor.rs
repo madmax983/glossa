@@ -18,7 +18,7 @@ use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType};
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
 
 /// A self-contained chapter in the interactive ΓΛΩΣΣΑ tutorial.
 ///
@@ -127,7 +127,11 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
             output.flush().into_diagnostic()?;
 
             let mut line = String::new();
-            let bytes = input.read_line(&mut line).into_diagnostic()?;
+            let bytes = input
+                .by_ref()
+                .take(50000)
+                .read_line(&mut line)
+                .into_diagnostic()?;
 
             if bytes == 0 {
                 return Ok(()); // EOF
@@ -155,7 +159,7 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
                             .into_diagnostic()?;
                         writeln!(output, "{}", "Press Enter to continue...".dim())
                             .into_diagnostic()?;
-                        let _ = input.read_line(&mut String::new());
+                        let _ = input.by_ref().take(50000).read_line(&mut String::new());
                         break; // Next lesson
                     } else {
                         writeln!(

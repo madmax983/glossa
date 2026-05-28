@@ -26,7 +26,7 @@
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
 
 use crate::codegen::generate_statement_code;
 use crate::errors::GlossaError;
@@ -64,7 +64,7 @@ pub fn run_repl() -> Result<()> {
 }
 
 /// Internal REPL loop that can be tested with arbitrary streams
-fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
+pub fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
     let mut context = ReplContext::new();
 
     loop {
@@ -73,7 +73,11 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
         let _ = output.flush();
 
         let mut line = String::new();
-        let bytes = input.read_line(&mut line).into_diagnostic()?;
+        let bytes = input
+            .by_ref()
+            .take(50000)
+            .read_line(&mut line)
+            .into_diagnostic()?;
 
         // Handle EOF
         if bytes == 0 {
