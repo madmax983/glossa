@@ -46,6 +46,19 @@ use crate::errors::GlossaError;
 use crate::text::normalize_greek;
 use smol_str::SmolStr;
 
+fn extract_single_phrase(stmt: &Statement) -> Option<&[Expr]> {
+    let Statement::Regular { clauses, .. } = stmt else {
+        return None;
+    };
+    if clauses.len() != 1 || clauses[0].expressions.len() != 1 {
+        return None;
+    }
+    let Expr::Phrase(terms) = &clauses[0].expressions[0] else {
+        return None;
+    };
+    Some(terms)
+}
+
 /// Try to parse a standalone method call: `method_name receiver`
 ///
 /// This looks for a specific phrase pattern where a method name is immediately
@@ -65,26 +78,13 @@ pub fn try_parse_method_call(
     stmt: &Statement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    // Only process Regular statements
-    let Statement::Regular { clauses, .. } = stmt else {
+    let Some(terms) = extract_single_phrase(stmt) else {
         return Ok(None);
     };
-
-    // Should have exactly one clause with one expression
-    if clauses.len() != 1 || clauses[0].expressions.len() != 1 {
-        return Ok(None);
-    }
-
-    // Should be a Phrase with exactly 2 words
-    let Expr::Phrase(terms) = &clauses[0].expressions[0] else {
-        return Ok(None);
-    };
-
     if terms.len() != 2 {
         return Ok(None);
     }
 
-    // Extract words
     let (Expr::Word(method_word), Expr::Word(receiver_word)) = (&terms[0], &terms[1]) else {
         return Ok(None);
     };
@@ -92,11 +92,9 @@ pub fn try_parse_method_call(
     let method_name = &method_word.normalized;
     let receiver_name = &receiver_word.normalized;
 
-    // Check if receiver is a variable in scope
     let Some(receiver_type) = scope.lookup(receiver_name) else {
         return Ok(None);
     };
-
     let GlossaType::Struct {
         name: type_name, ..
     } = receiver_type
@@ -104,8 +102,6 @@ pub fn try_parse_method_call(
         return Ok(None);
     };
 
-    // Since we're parsing standalone method calls, we must verify the method exists
-    // to disambiguate from other two-word combinations (like a function call followed by a variable).
     if !scope.has_method(type_name, method_name) {
         return Ok(None);
     }
@@ -125,6 +121,99 @@ pub fn try_parse_method_call(
     };
 
     Ok(Some(AnalyzedStatement::Expression(vec![method_call])))
+}
+
+fn validate_struct_pattern(terms: &[Expr]) -> Option<(&SmolStr, &SmolStr)> {
+    if terms.len() < 4 {
+        return None;
+    }
+
+    let Expr::Word(var_word) = &terms[0] else {
+        return None;
+    };
+    let Expr::Word(adj_word) = &terms[1] else {
+        return None;
+    };
+    let Expr::Word(type_word) = &terms[2] else {
+        return None;
+    };
+    let Some(Expr::Word(last_word)) = terms.last() else {
+        return None;
+    };
+
+    if !crate::morphology::lexicon::is_binding_verb(&last_word.normalized) {
+        return None;
+    }
+
+    let normalized_adj = crate::text::normalize_greek(&adj_word.normalized);
+    if normalized_adj != "νεον" && normalized_adj != "νεος" {
+        return None;
+    }
+
+    Some((&var_word.normalized, &type_word.normalized))
+}
+
+fn build_collection_instantiation(
+    var_name: &SmolStr,
+    rust_type: &str,
+    glossa_type: GlossaType,
+    scope: &mut Scope,
+) -> AnalyzedStatement {
+    let collection_new = AnalyzedExpr {
+        expr: AnalyzedExprKind::CollectionNew {
+            collection_type: rust_type.to_string(),
+        },
+        glossa_type: glossa_type.clone(),
+    };
+
+    scope.define_mut(var_name.clone(), glossa_type);
+
+    AnalyzedStatement::Binding {
+        name: var_name.clone(),
+        value: collection_new,
+        mutable: true,
+    }
+}
+
+fn build_user_struct_instantiation(
+    var_name: &SmolStr,
+    type_name: &SmolStr,
+    terms: &[Expr],
+    scope: &mut Scope,
+) -> Result<Option<AnalyzedStatement>, GlossaError> {
+    let Some(struct_type) = scope.lookup_type(type_name).cloned() else {
+        return Err(GlossaError::undefined(type_name.to_string()));
+    };
+
+    let fields_info: &[(SmolStr, GlossaType)] =
+        if let GlossaType::Struct { fields, .. } = &struct_type {
+            fields.as_slice()
+        } else {
+            &[]
+        };
+
+    let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
+
+    let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], fields_info, scope) else {
+        return Ok(None);
+    };
+
+    let struct_inst = AnalyzedExpr {
+        expr: AnalyzedExprKind::StructInstantiation {
+            type_name: type_name.clone(),
+            fields: field_names,
+            args,
+        },
+        glossa_type: struct_type.clone(),
+    };
+
+    scope.define(var_name.clone(), struct_type);
+
+    Ok(Some(AnalyzedStatement::Binding {
+        name: var_name.clone(),
+        value: struct_inst,
+        mutable: false,
+    }))
 }
 
 /// Try to parse a struct instantiation
@@ -147,125 +236,26 @@ pub fn try_parse_struct_instantiation(
     stmt: &Statement,
     scope: &mut Scope,
 ) -> Result<Option<AnalyzedStatement>, GlossaError> {
-    // Only process Regular statements
-    let Statement::Regular { clauses, .. } = stmt else {
+    let Some(terms) = extract_single_phrase(stmt) else {
+        return Ok(None);
+    };
+    let Some((var_name, type_name)) = validate_struct_pattern(terms) else {
         return Ok(None);
     };
 
-    // Should have exactly one clause
-    if clauses.len() != 1 {
-        return Ok(None);
-    }
-
-    let clause = &clauses[0];
-    if clause.expressions.len() != 1 {
-        return Ok(None);
-    }
-
-    // Should be a Phrase with at least 4 terms
-    let Expr::Phrase(terms) = &clause.expressions[0] else {
-        return Ok(None);
-    };
-
-    if terms.len() < 4 {
-        return Ok(None);
-    }
-
-    // Verify structural words (0, 1, 2, Last) are Words
-    let Expr::Word(var_word) = &terms[0] else {
-        return Ok(None);
-    };
-    let Expr::Word(adj_word) = &terms[1] else {
-        return Ok(None);
-    };
-    let Expr::Word(type_word) = &terms[2] else {
-        return Ok(None);
-    };
-    let Some(Expr::Word(last_word)) = terms.last() else {
-        return Ok(None);
-    };
-
-    // Check pattern: var_name νέον TypeName args... ἔστω
-    // Last word should be ἔστω (binding verb)
-    if !crate::morphology::lexicon::is_binding_verb(&last_word.normalized) {
-        return Ok(None);
-    }
-
-    // Second word should be νέον (new) - check both normalized form and if it's "new" via morphology
-    let normalized_adj = crate::text::normalize_greek(&adj_word.normalized);
-    // Check if it's "new" - could be νέον, νεον, etc.
-    if normalized_adj != "νεον" && normalized_adj != "νεος" {
-        return Ok(None);
-    }
-
-    // Extract components
-    let var_name = &var_word.normalized;
-    let type_name = &type_word.normalized;
-
-    // Check for built-in collection types first (HashSet, HashMap)
     if let Some((rust_type, glossa_type)) =
         crate::semantic::types::detect_collection_type(type_name)
     {
-        let collection_new = AnalyzedExpr {
-            expr: AnalyzedExprKind::CollectionNew {
-                collection_type: rust_type.to_string(),
-            },
-            glossa_type: glossa_type.clone(),
-        };
-
-        // Register variable in scope (collections are implicitly mutable for insert)
-        scope.define_mut(var_name.clone(), glossa_type.clone());
-
-        return Ok(Some(AnalyzedStatement::Binding {
-            name: var_name.clone(),
-            value: collection_new,
-            mutable: true,
-        }));
+        return Ok(Some(build_collection_instantiation(
+            var_name,
+            rust_type,
+            glossa_type.clone(),
+            scope,
+        )));
     }
 
-    // Check if type exists as a user-defined struct
-    let Some(struct_type) = scope.lookup_type(type_name).cloned() else {
-        // If it looks like a struct instantiation (var νέον Type ... ἔστω)
-        // but the type is unknown, return an error instead of falling back.
-        return Err(GlossaError::undefined(type_name.to_string()));
-    };
-
-    // Extract fields from struct type
-    // ⚡ Bolt Optimization: Use slice instead of cloning `fields` to prevent unnecessary heap allocations
-    let fields_info: &[(SmolStr, GlossaType)] =
-        if let GlossaType::Struct { fields, .. } = &struct_type {
-            fields.as_slice()
-        } else {
-            &[]
-        };
-
-    let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
-
-    // Collect constructor arguments (everything between type_name and ἔστω)
-    let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], fields_info, scope) else {
-        return Ok(None);
-    };
-
-    // Build struct instantiation
-    let struct_inst = AnalyzedExpr {
-        expr: AnalyzedExprKind::StructInstantiation {
-            type_name: type_name.clone(),
-            fields: field_names,
-            args,
-        },
-        glossa_type: struct_type.clone(),
-    };
-
-    // Register variable in scope with correct type
-    scope.define(var_name.clone(), struct_type.clone());
-
-    Ok(Some(AnalyzedStatement::Binding {
-        name: var_name.clone(),
-        value: struct_inst,
-        mutable: false,
-    }))
+    build_user_struct_instantiation(var_name, type_name, terms, scope)
 }
-
 fn parse_struct_args(
     args_terms: &[Expr],
     fields_info: &[(SmolStr, GlossaType)],
