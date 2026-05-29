@@ -51,6 +51,7 @@ C4Container
         Container(report, "Reporter", "src/tools/report.rs", "Generates statistics and structured reports")
         Container(runner, "Runner", "src/tools/runner.rs", "Orchestrates the compilation pipeline")
         Container(tester, "The Judge", "src/tools/tester.rs", "Verifies Correctness (Test Runner)")
+        Container(haruspex, "Haruspex", "src/tools/haruspex.rs", "Graphviz AST Visualizer")
         Container(ui, "The Stage", "src/tools/ui.rs", "Presentation Layer & UI Helpers")
         Container(weave, "Weave", "src/tools/weave.rs", "Rosetta Stone Markdown Exporter")
     }
@@ -71,6 +72,7 @@ C4Container
     Rel(semantic, alchemist, "Analyzed Program")
     Rel(semantic, auditor, "Analyzed Program")
     Rel(semantic, labyrinth, "Analyzed Program")
+    Rel(semantic, haruspex, "Analyzed Program")
     Rel(semantic, weave, "Analyzed Program")
     Rel(semantic, papyrus, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
