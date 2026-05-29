@@ -186,6 +186,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Export the semantic AST to JSON (Requires "nova" feature)
+    Herald {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Transpile a .γλ file to SQL CREATE TABLE schema (Requires "nova" feature)
     Papyrus {
         /// Input file (.γλ)

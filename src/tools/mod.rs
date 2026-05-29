@@ -39,6 +39,8 @@ pub mod dictionary;
 pub mod gnomon;
 #[cfg(feature = "nova")]
 pub mod haruspex;
+#[cfg(feature = "nova")]
+pub mod herald;
 pub mod highlight;
 #[cfg(feature = "nova")]
 pub mod interpreter;
