@@ -545,4 +545,160 @@ mod tests {
             r#"{"statements":[{"type":"Binding","name":"x","value":{"expr":{"type":"NumberLiteral","value":42},"glossa_type":{"type":"Number"}},"mutable":false}]}"#
         );
     }
+
+    #[test]
+    fn test_serialize_types() {
+        assert_eq!(serialize_type(&GlossaType::Number), r#"{"type":"Number"}"#);
+        assert_eq!(serialize_type(&GlossaType::String), r#"{"type":"String"}"#);
+        assert_eq!(serialize_type(&GlossaType::Boolean), r#"{"type":"Boolean"}"#);
+        assert_eq!(serialize_type(&GlossaType::Unit), r#"{"type":"Unit"}"#);
+        assert_eq!(serialize_type(&GlossaType::Unknown), r#"{"type":"Unknown"}"#);
+        assert_eq!(serialize_type(&GlossaType::List(Box::new(GlossaType::Number))), r#"{"type":"List","inner":{"type":"Number"}}"#);
+        assert_eq!(serialize_type(&GlossaType::Set(Box::new(GlossaType::Number))), r#"{"type":"Set","inner":{"type":"Number"}}"#);
+        assert_eq!(serialize_type(&GlossaType::Map(Box::new(GlossaType::String), Box::new(GlossaType::Number))), r#"{"type":"Map","key":{"type":"String"},"value":{"type":"Number"}}"#);
+        assert_eq!(serialize_type(&GlossaType::Option(Box::new(GlossaType::Number))), r#"{"type":"Option","inner":{"type":"Number"}}"#);
+        assert_eq!(serialize_type(&GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String))), r#"{"type":"Result","ok":{"type":"Number"},"err":{"type":"String"}}"#);
+        assert_eq!(serialize_type(&GlossaType::Struct { name: SmolStr::new("User"), gender: crate::morphology::Gender::Masculine, fields: vec![] }), r#"{"type":"Struct","name":"User"}"#);
+        assert_eq!(serialize_type(&GlossaType::Function { params: vec![GlossaType::Number], returns: Box::new(GlossaType::Boolean) }), r#"{"type":"Function","params":[{"type":"Number"}],"returns":{"type":"Boolean"}}"#);
+    }
+
+    #[test]
+    fn test_serialize_exprs() {
+        let dummy_type = GlossaType::Number;
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::StringLiteral("test".to_string()), glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"StringLiteral","value":"test"},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::BooleanLiteral(true), glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"BooleanLiteral","value":true},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::Variable(SmolStr::new("x")), glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"Variable","name":"x"},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::PropertyAccess { owner: Box::new(expr.clone()), property: SmolStr::new("y") }, glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"PropertyAccess","owner":{"expr":{"type":"Variable","name":"x"},"glossa_type":{"type":"Number"}},"property":"y"},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::VerbCall { verb: SmolStr::new("run"), args: vec![] }, glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"VerbCall","verb":"run","args":[]},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::BinOp { left: Box::new(expr.clone()), op: crate::morphology::lexicon::BinaryOp::Add, right: Box::new(expr.clone()) }, glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"BinOp","left":{"expr":{"type":"VerbCall","verb":"run","args":[]},"glossa_type":{"type":"Number"}},"op":"Add","right":{"expr":{"type":"VerbCall","verb":"run","args":[]},"glossa_type":{"type":"Number"}}},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::UnaryOp { op: crate::morphology::lexicon::UnaryOp::Not, operand: Box::new(expr.clone()) }, glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"UnaryOp","op":"Not""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::Range { start: Box::new(expr.clone()), end: Box::new(expr.clone()), inclusive: true }, glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"Range""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::ArrayLiteral(vec![]), glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"ArrayLiteral","elements":[]},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::Some(Box::new(expr.clone())), glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"Some""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::None, glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"None"},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::Ok(Box::new(expr.clone())), glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"Ok""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::Err(Box::new(expr.clone())), glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"Err""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::Unwrap(Box::new(expr.clone())), glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"Unwrap""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::Try(Box::new(expr.clone())), glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"Try""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::IndexAccess { array: Box::new(expr.clone()), index: Box::new(expr.clone()) }, glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"IndexAccess""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::FunctionCall { func: SmolStr::new("f"), args: vec![] }, glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"FunctionCall","func":"f","args":[]},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::MethodCall { receiver: Box::new(expr.clone()), method: SmolStr::new("m"), args: vec![] }, glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"MethodCall""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::StructInstantiation { type_name: SmolStr::new("User"), fields: vec![], args: vec![] }, glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"StructInstantiation","type_name":"User","fields":[],"args":[]},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::Lambda { params: vec![], body: Box::new(expr.clone()), capture_mode: CaptureMode::Borrow }, glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"Lambda""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::CollectionNew { collection_type: "List".to_string() }, glossa_type: dummy_type.clone() };
+        assert_eq!(serialize_expr(&expr), r#"{"expr":{"type":"CollectionNew","collection_type":"List"},"glossa_type":{"type":"Number"}}"#);
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::Assert { condition: Box::new(expr.clone()) }, glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"Assert""#));
+
+        let expr = AnalyzedExpr { expr: AnalyzedExprKind::AssertEq { left: Box::new(expr.clone()), right: Box::new(expr.clone()) }, glossa_type: dummy_type.clone() };
+        assert!(serialize_expr(&expr).contains(r#"{"type":"AssertEq""#));
+    }
+
+    #[test]
+    fn test_serialize_statements() {
+        let dummy_expr = AnalyzedExpr { expr: AnalyzedExprKind::None, glossa_type: GlossaType::Unknown };
+
+        let stmt = AnalyzedStatement::Assignment { name: SmolStr::new("x"), value: dummy_expr.clone() };
+        assert!(serialize_statement(&stmt).contains(r#"{"type":"Assignment""#));
+
+        let stmt = AnalyzedStatement::Print(vec![]);
+        assert_eq!(serialize_statement(&stmt), r#"{"type":"Print","exprs":[]}"#);
+
+        let stmt = AnalyzedStatement::Expression(vec![]);
+        assert_eq!(serialize_statement(&stmt), r#"{"type":"Expression","exprs":[]}"#);
+
+        let stmt = AnalyzedStatement::Query(vec![]);
+        assert_eq!(serialize_statement(&stmt), r#"{"type":"Query","exprs":[]}"#);
+
+        let stmt = AnalyzedStatement::If { condition: Box::new(dummy_expr.clone()), then_body: vec![], else_body: None };
+        assert!(serialize_statement(&stmt).contains(r#"{"type":"If""#));
+
+        let stmt = AnalyzedStatement::If { condition: Box::new(dummy_expr.clone()), then_body: vec![], else_body: Some(vec![]) };
+        assert!(serialize_statement(&stmt).contains(r#"else_body":[]"#));
+
+        let stmt = AnalyzedStatement::While { condition: Box::new(dummy_expr.clone()), body: vec![] };
+        assert!(serialize_statement(&stmt).contains(r#"{"type":"While""#));
+
+        let stmt = AnalyzedStatement::For { variable: SmolStr::new("x"), iterator: dummy_expr.clone(), body: vec![] };
+        assert!(serialize_statement(&stmt).contains(r#"{"type":"For""#));
+
+        let stmt = AnalyzedStatement::Match { scrutinee: dummy_expr.clone(), arms: vec![(dummy_expr.clone(), vec![])] };
+        assert!(serialize_statement(&stmt).contains(r#"{"type":"Match""#));
+
+        let stmt = AnalyzedStatement::Break;
+        assert_eq!(serialize_statement(&stmt), r#"{"type":"Break"}"#);
+
+        let stmt = AnalyzedStatement::Continue;
+        assert_eq!(serialize_statement(&stmt), r#"{"type":"Continue"}"#);
+
+        let stmt = AnalyzedStatement::Return { value: None };
+        assert_eq!(serialize_statement(&stmt), r#"{"type":"Return","value":null}"#);
+
+        let stmt = AnalyzedStatement::Return { value: Some(dummy_expr.clone()) };
+        assert!(serialize_statement(&stmt).contains(r#"{"type":"Return""#));
+
+        let stmt = AnalyzedStatement::FunctionDef { name: SmolStr::new("f"), params: vec![], return_type: None, body: vec![] };
+        assert_eq!(serialize_statement(&stmt), r#"{"type":"FunctionDef","name":"f","params":[],"return_type":null,"body":[]}"#);
+
+        let stmt = AnalyzedStatement::FunctionDef { name: SmolStr::new("f"), params: vec![(SmolStr::new("x"), Some(GlossaType::Number))], return_type: Some(GlossaType::Unit), body: vec![] };
+        assert!(serialize_statement(&stmt).contains(r#"{"type":"FunctionDef""#));
+
+        let stmt = AnalyzedStatement::TypeDefinition { name: SmolStr::new("User"), fields: vec![(SmolStr::new("x"), GlossaType::Number)] };
+        assert_eq!(serialize_statement(&stmt), r#"{"type":"TypeDefinition","name":"User","fields":[{"name":"x","type":{"type":"Number"}}]}"#);
+
+        let method = AnalyzedMethod { name: SmolStr::new("m"), params: vec![], body: None, return_type: None };
+        let method2 = AnalyzedMethod { name: SmolStr::new("m2"), params: vec![(SmolStr::new("x"), GlossaType::Number)], body: Some(vec![]), return_type: Some(GlossaType::Unit) };
+        let stmt = AnalyzedStatement::TraitDefinition { name: SmolStr::new("Tr"), methods: vec![method, method2] };
+        assert!(serialize_statement(&stmt).contains(r#"{"type":"TraitDefinition""#));
+
+        let method = AnalyzedMethod { name: SmolStr::new("m"), params: vec![], body: None, return_type: None };
+        let stmt = AnalyzedStatement::TraitImplementation { trait_name: SmolStr::new("Tr"), type_name: SmolStr::new("User"), methods: vec![method] };
+        assert!(serialize_statement(&stmt).contains(r#"{"type":"TraitImplementation""#));
+
+        let stmt = AnalyzedStatement::TestDeclaration { name: SmolStr::new("t"), body: vec![] };
+        assert_eq!(serialize_statement(&stmt), r#"{"type":"TestDeclaration","name":"t","body":[]}"#);
+    }
+
 }
