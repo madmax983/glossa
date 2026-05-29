@@ -64,7 +64,7 @@ pub fn run_repl() -> Result<()> {
 }
 
 /// Internal REPL loop that can be tested with arbitrary streams
-fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
+pub fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
     let mut context = ReplContext::new();
 
     loop {
