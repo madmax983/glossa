@@ -33,6 +33,7 @@ use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::path::Path;
+use std::io::IsTerminal;
 
 /// Run the Mosaic tool on a file
 ///
@@ -44,7 +45,7 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
 
     // Create a buffer for the table
     let mut buffer = Vec::new();
-    if let Err(e) = run_mosaic_inner(&source, &mut buffer) {
+    if let Err(e) = run_mosaic_inner(&source, &mut buffer, std::io::stdout().is_terminal()) {
         status.error("Σφάλμα (Error)");
         return Err(e);
     }
@@ -52,11 +53,16 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
 
     status.success();
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   M O S A I C".bold().cyan());
-    println!("   {}", "Semantic Sentence Structure".italic().dim());
-    println!();
-    println!("{}", output);
+    let is_tty = std::io::stdout().is_terminal();
+    if is_tty {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   M O S A I C".bold().cyan());
+        println!("   {}", "Semantic Sentence Structure".italic().dim());
+        println!();
+        println!("{}", output);
+    } else {
+        print!("{}", output);
+    }
 
     Ok(())
 }
@@ -64,7 +70,7 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
 /// Internal implementation of Mosaic logic
 ///
 /// Separated for testing purposes (allows injecting a writer).
-pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Result<()> {
+pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W, is_tty: bool) -> Result<()> {
     let program = parse(source)?;
 
     let mut table = Table::new();
@@ -90,48 +96,74 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                 .fg(Color::DarkGrey),
         ]);
 
-    for (i, stmt) in program.statements.iter().enumerate() {
-        // Only assemble regular statements (others like TypeDef don't go through Assembler in the same way)
-        // Check if it's a regular statement
-        if let crate::ast::Statement::Regular { .. } = stmt {
-            match assemble_statement(stmt) {
-                Ok(assembled) => {
-                    add_row(&mut table, i + 1, &assembled);
+    if is_tty {
+        for (i, stmt) in program.statements.iter().enumerate() {
+            if let crate::ast::Statement::Regular { .. } = stmt {
+                match assemble_statement(stmt) {
+                    Ok(assembled) => {
+                        add_row(&mut table, i + 1, &assembled);
+                    }
+                    Err(e) => {
+                        table.add_row(vec![
+                            Cell::new(i + 1),
+                            Cell::new(format!("Error: {}", e)).fg(Color::Red),
+                            Cell::new(""),
+                            Cell::new(""),
+                            Cell::new(""),
+                            Cell::new(""),
+                        ]);
+                    }
                 }
-                Err(e) => {
-                    table.add_row(vec![
-                        Cell::new(i + 1),
-                        Cell::new(format!("Error: {}", e)).fg(Color::Red),
-                        Cell::new(""),
-                        Cell::new(""),
-                        Cell::new(""),
-                        Cell::new(""),
-                    ]);
-                }
+            } else {
+                let type_name = match stmt {
+                    crate::ast::Statement::TypeDefinition(_) => "Type Definition",
+                    crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
+                    crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
+                    crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
+                    _ => "Unknown",
+                };
+                table.add_row(vec![
+                    Cell::new(i + 1),
+                    Cell::new(type_name)
+                        .fg(Color::Blue)
+                        .add_attribute(Attribute::Italic),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                ]);
             }
-        } else {
-            // For non-regular statements, just print the type
-            let type_name = match stmt {
-                crate::ast::Statement::TypeDefinition(_) => "Type Definition",
-                crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
-                crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
-                crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
-                _ => "Unknown",
-            };
-            table.add_row(vec![
-                Cell::new(i + 1),
-                Cell::new(type_name)
-                    .fg(Color::Blue)
-                    .add_attribute(Attribute::Italic),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-            ]);
+        }
+        writeln!(writer, "{}", table).into_diagnostic()?;
+    } else {
+        for (i, stmt) in program.statements.iter().enumerate() {
+            if let crate::ast::Statement::Regular { .. } = stmt {
+                match assemble_statement(stmt) {
+                    Ok(assembled) => {
+                        let full_subject = format_subject(&assembled);
+                        let verb = assembled.verb.as_ref().map(|v| v.original.to_string()).unwrap_or_default();
+                        let object = assembled.object.as_ref().map(fmt_constituent).unwrap_or_default();
+                        let indirect = assembled.indirect.as_ref().map(fmt_constituent).unwrap_or_default();
+                        let other_column = format_other_column(&assembled).replace("\n", " ");
+
+                        writeln!(writer, "{}\t{}\t{}\t{}\t{}\t{}", i + 1, full_subject, verb, object, indirect, other_column).into_diagnostic()?;
+                    }
+                    Err(e) => {
+                        writeln!(writer, "{}\tError: {}\t\t\t\t", i + 1, e).into_diagnostic()?;
+                    }
+                }
+            } else {
+                let type_name = match stmt {
+                    crate::ast::Statement::TypeDefinition(_) => "Type Definition",
+                    crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
+                    crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
+                    crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
+                    _ => "Unknown",
+                };
+                writeln!(writer, "{}\t{}\t\t\t\t", i + 1, type_name).into_diagnostic()?;
+            }
         }
     }
-
-    writeln!(writer, "{}", table).into_diagnostic()?;
     Ok(())
 }
 
@@ -380,7 +412,7 @@ mod tests {
     fn test_mosaic_output() {
         let source = "ὁ ἄνθρωπος τὸν λόγον λέγει.";
         let mut buffer = Vec::new();
-        run_mosaic_inner(source, &mut buffer).unwrap();
+        run_mosaic_inner(source, &mut buffer, true).unwrap();
         let output = String::from_utf8(buffer).unwrap();
 
         assert!(output.contains("ἄνθρωπος")); // Subject
@@ -392,7 +424,7 @@ mod tests {
     fn test_mosaic_non_regular() {
         let source = "εἶδος Χ ὁρίζειν { x ἀριθμοῦ. }.";
         let mut buffer = Vec::new();
-        run_mosaic_inner(source, &mut buffer).unwrap();
+        run_mosaic_inner(source, &mut buffer, true).unwrap();
         let output = String::from_utf8(buffer).unwrap();
 
         assert!(output.contains("Type Definition"));
@@ -416,7 +448,7 @@ mod tests {
             τέλος.
         ";
         let mut buffer = Vec::new();
-        run_mosaic_inner(source, &mut buffer).unwrap();
+        run_mosaic_inner(source, &mut buffer, true).unwrap();
         let output = String::from_utf8(buffer).unwrap();
 
         // Assert we hit the commas for multiple adjectives, genitives, and participles
@@ -495,7 +527,7 @@ mod tests {
         // Let's create an invalid assembled statement error inside `run_mosaic_inner`
         let source = "πέντε πέντε ἔστω."; // Left side of assignment must be a word.
         let mut buffer = Vec::new();
-        let _ = run_mosaic_inner(source, &mut buffer);
+        let _ = run_mosaic_inner(source, &mut buffer, true);
         let output = String::from_utf8(buffer).unwrap();
 
         if output.contains("Error: ") {
