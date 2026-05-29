@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Test Coverage for Codegen AST Branches]**
+**Learning:** Certain deeply nested AST nodes and experimental operator variants (like `VerbCall` vs `FunctionCall`, and specific binary operator matches) were entirely lacking unit test coverage in `codegen.rs`. This meant breakages in how expressions are lowered to Rust could go entirely unnoticed by `cargo test`.
+**Action:** Constructed direct programmatic instances of `AnalyzedProgram` containing manually constructed `AnalyzedStatement` / `AnalyzedExpr` trees, and ran them directly through `codegen::generate_rust`. This bypasses parser limitations and thoroughly verifies the `generate_expr` output stream matches assumptions.
