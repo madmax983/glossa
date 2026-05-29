@@ -1,10 +1,10 @@
-1.  **Analyze the CI Failure**: The CI failure is from Codecov. `8.88% of diff hit (target 93.77%)`. This means the new code added in `src/tools/herald.rs` is almost completely untested.
-2.  **The Fix**: "Nova" usually doesn't focus heavily on massive tests, but the codebase enforces a strict coverage requirement (likely via Sentry's rules, though I'm acting as Nova). I need to write extensive tests for `src/tools/herald.rs` to reach >93% coverage on the new file.
+1.  **Analyze the CI Failure**: The CI failures indicate `error[E0308]: mismatched types` in `src/tools/herald.rs`. Specifically, the tests use `AnalyzedStatement::For`, `Match`, and `Return` without properly boxing the `AnalyzedExpr` inner values. E.g., `let stmt = AnalyzedStatement::Return { value: Some(dummy_expr.clone()) };` needs `value: Some(Box::new(dummy_expr.clone()))`. Also `TestDeclaration` has `name` expected as `String` but `SmolStr` was provided.
+2.  **The Fix**: I need to update the mock test definitions in `src/tools/herald.rs` around line 664 to correctly use `Box::new()` for AST node composition where the enums expect boxed values, and use `.to_string()` for `name` in `TestDeclaration`.
 3.  **Strategy**:
-    *   Write a test suite in `src/tools/herald.rs` that generates dummy `AnalyzedStatement`, `AnalyzedExpr`, and `GlossaType` variants and calls `serialize_statement`, `serialize_expr`, and `serialize_type` on them.
-    *   I'll construct a mock `AnalyzedProgram` containing all statement variants and serialize it.
-    *   Run `cargo llvm-cov -- tests_herald` (if available) to verify coverage.
-4.  **Implementation**:
-    *   Add comprehensive tests covering every variant of `AnalyzedStatement`, `AnalyzedExprKind`, and `GlossaType` in `src/tools/herald.rs`.
-    *   Verify the build.
+    *   Find the exact failing tests block in `src/tools/herald.rs`.
+    *   Fix `AnalyzedStatement::For` iterator from `dummy_expr` to `Box::new(dummy_expr)`.
+    *   Fix `AnalyzedStatement::Match` scrutinee from `dummy_expr` to `Box::new(dummy_expr)`.
+    *   Fix `AnalyzedStatement::Return` value from `Some(dummy_expr)` to `Some(Box::new(dummy_expr))`.
+    *   Fix `AnalyzedStatement::TestDeclaration` name from `SmolStr::new("t")` to `"t".to_string()`.
+    *   Run `cargo test` and `cargo check` locally.
     *   Submit the fix.

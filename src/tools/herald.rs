@@ -661,10 +661,10 @@ mod tests {
         let stmt = AnalyzedStatement::While { condition: Box::new(dummy_expr.clone()), body: vec![] };
         assert!(serialize_statement(&stmt).contains(r#"{"type":"While""#));
 
-        let stmt = AnalyzedStatement::For { variable: SmolStr::new("x"), iterator: dummy_expr.clone(), body: vec![] };
+        let stmt = AnalyzedStatement::For { variable: SmolStr::new("x"), iterator: Box::new(dummy_expr.clone()), body: vec![] };
         assert!(serialize_statement(&stmt).contains(r#"{"type":"For""#));
 
-        let stmt = AnalyzedStatement::Match { scrutinee: dummy_expr.clone(), arms: vec![(dummy_expr.clone(), vec![])] };
+        let stmt = AnalyzedStatement::Match { scrutinee: Box::new(dummy_expr.clone()), arms: vec![(dummy_expr.clone(), vec![])] };
         assert!(serialize_statement(&stmt).contains(r#"{"type":"Match""#));
 
         let stmt = AnalyzedStatement::Break;
@@ -676,7 +676,7 @@ mod tests {
         let stmt = AnalyzedStatement::Return { value: None };
         assert_eq!(serialize_statement(&stmt), r#"{"type":"Return","value":null}"#);
 
-        let stmt = AnalyzedStatement::Return { value: Some(dummy_expr.clone()) };
+        let stmt = AnalyzedStatement::Return { value: Some(Box::new(dummy_expr.clone())) };
         assert!(serialize_statement(&stmt).contains(r#"{"type":"Return""#));
 
         let stmt = AnalyzedStatement::FunctionDef { name: SmolStr::new("f"), params: vec![], return_type: None, body: vec![] };
@@ -697,7 +697,7 @@ mod tests {
         let stmt = AnalyzedStatement::TraitImplementation { trait_name: SmolStr::new("Tr"), type_name: SmolStr::new("User"), methods: vec![method] };
         assert!(serialize_statement(&stmt).contains(r#"{"type":"TraitImplementation""#));
 
-        let stmt = AnalyzedStatement::TestDeclaration { name: SmolStr::new("t"), body: vec![] };
+        let stmt = AnalyzedStatement::TestDeclaration { name: "t".to_string(), body: vec![] };
         assert_eq!(serialize_statement(&stmt), r#"{"type":"TestDeclaration","name":"t","body":[]}"#);
     }
 
