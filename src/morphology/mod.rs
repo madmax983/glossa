@@ -64,7 +64,7 @@ pub fn analyze(word: &str) -> MorphAnalysis {
     analyze_all_from_normalized(&normalized)
         .into_iter()
         .next()
-        .unwrap()
+        .unwrap_or_else(|| MorphAnalysis::new(normalized.to_string(), PartOfSpeech::Unknown))
 }
 
 /// Analyze a Greek word and return ALL possible morphological analyses

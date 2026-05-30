@@ -170,7 +170,6 @@ const DECLENSION_PATTERNS: &[DeclensionPattern] = &[
 /// ```
 pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
     let mut analyses = analyze_noun_all(word);
-
     // Sort by confidence (highest first)
     // analyze_noun_all sorts by (case, number, gender, lemma) but NOT confidence.
     // So we sort by confidence here. Since sort_by is stable, it preserves the
