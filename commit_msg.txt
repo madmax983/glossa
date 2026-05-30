@@ -1,0 +1,6 @@
+⚒️ Forge: Replace unwraps with safe fallbacks and expect
+
+🚮 Smell: Several instances of `.unwrap()` were used in `src/morphology/lexicon.rs`, `src/morphology/mod.rs`, `src/tools/repl.rs`, and `src/morphology/declension.rs`, which could lead to panics on unexpected input or if internal assumptions were violated.
+✨ Solution: Replaced `.unwrap()` with `.expect("Missing ...")` for static lexicon lookups, used a fallback `MorphAnalysis` for unknown words in `analyze`, and applied a guard clause `let Some(last_stmt) = ... else { return Ok(ReplOutput::None); }` in the REPL.
+🧼 Benefit: Prevents unexpected runtime panics and improves code robustness without changing behavior.
+🛡️ Verification: Tests passed. No logic changed.

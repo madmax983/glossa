@@ -2614,21 +2614,21 @@ mod tests {
 
     #[test]
     fn test_lookup_verb() {
-        let entry = lookup("λεγε").unwrap();
+        let entry = lookup("λεγε").expect("Missing λεγε");
         assert_eq!(entry.pos, PartOfSpeech::Verb);
         assert_eq!(entry.mood, Some(Mood::Imperative));
     }
 
     #[test]
     fn test_lookup_binding() {
-        let entry = lookup("εστω").unwrap();
+        let entry = lookup("εστω").expect("Missing εστω");
         assert_eq!(entry.pos, PartOfSpeech::Verb);
         assert!(is_binding_verb("εστω"));
     }
 
     #[test]
     fn test_lookup_type() {
-        let entry = lookup("αριθμος").unwrap();
+        let entry = lookup("αριθμος").expect("Missing αριθμος");
         assert_eq!(entry.pos, PartOfSpeech::Noun);
         assert_eq!(entry.rust_equiv, Some("i64"));
     }
@@ -2649,10 +2649,10 @@ mod tests {
 
     #[test]
     fn test_boolean_lookup() {
-        let entry = lookup("αληθες").unwrap();
+        let entry = lookup("αληθες").expect("Missing αληθες");
         assert_eq!(entry.rust_equiv, Some("true"));
 
-        let entry = lookup("ψευδος").unwrap();
+        let entry = lookup("ψευδος").expect("Missing ψευδος");
         assert_eq!(entry.rust_equiv, Some("false"));
     }
 
@@ -2686,17 +2686,17 @@ mod tests {
     #[test]
     fn test_operator_lexicon_entries() {
         // Comparison adjectives
-        let entry = lookup("μειζον").unwrap();
+        let entry = lookup("μειζον").expect("Missing μειζον");
         assert_eq!(entry.rust_equiv, Some(">"));
         assert_eq!(entry.pos, PartOfSpeech::Adjective);
 
         // Boolean particles
-        let entry = lookup("και").unwrap();
+        let entry = lookup("και").expect("Missing και");
         assert_eq!(entry.rust_equiv, Some("&&"));
         assert_eq!(entry.pos, PartOfSpeech::Conjunction);
 
         // Arithmetic nouns
-        let entry = lookup("αθροισμα").unwrap();
+        let entry = lookup("αθροισμα").expect("Missing αθροισμα");
         assert_eq!(entry.rust_equiv, Some("+"));
         assert_eq!(entry.pos, PartOfSpeech::Noun);
     }
@@ -2708,7 +2708,7 @@ mod tests {
 
     #[test]
     fn test_meta_lexicon_entry() {
-        let entry = lookup("μετα").unwrap();
+        let entry = lookup("μετα").expect("Missing μετα");
         assert_eq!(entry.pos, PartOfSpeech::Preposition);
         assert_eq!(entry.rust_equiv, Some("mut"));
     }
@@ -2727,7 +2727,7 @@ mod tests {
 
     #[test]
     fn test_gignetai_lexicon_entry() {
-        let entry = lookup("γιγνεται").unwrap();
+        let entry = lookup("γιγνεται").expect("Missing γιγνεται");
         assert_eq!(entry.pos, PartOfSpeech::Verb);
         assert_eq!(entry.voice, Some(Voice::Middle));
         assert_eq!(entry.lemma, "γιγνομαι");
@@ -2785,18 +2785,18 @@ mod tests {
 
     #[test]
     fn test_insert_verb_lexicon_entries() {
-        let entry = lookup("τιθησι").unwrap();
+        let entry = lookup("τιθησι").expect("Missing τιθησι");
         assert_eq!(entry.pos, PartOfSpeech::Verb);
         assert_eq!(entry.rust_equiv, Some(".insert"));
         assert_eq!(entry.lemma, "τιθημι");
 
-        let entry = lookup("θες").unwrap();
+        let entry = lookup("θες").expect("Missing θες");
         assert_eq!(entry.mood, Some(Mood::Imperative));
     }
 
     #[test]
     fn test_split_verb_lexicon_entries() {
-        let entry = lookup("σχιζεται").unwrap();
+        let entry = lookup("σχιζεται").expect("Missing σχιζεται");
         assert_eq!(entry.pos, PartOfSpeech::Verb);
         assert_eq!(entry.rust_equiv, Some(".split"));
         assert_eq!(entry.voice, Some(Voice::Middle));
@@ -2804,7 +2804,7 @@ mod tests {
 
     #[test]
     fn test_join_verb_lexicon_entries() {
-        let entry = lookup("ενουνται").unwrap();
+        let entry = lookup("ενουνται").expect("Missing ενουνται");
         assert_eq!(entry.pos, PartOfSpeech::Verb);
         assert_eq!(entry.rust_equiv, Some(".join"));
         assert_eq!(entry.voice, Some(Voice::Middle));
@@ -2813,20 +2813,20 @@ mod tests {
     #[test]
     fn test_declined_collection_nouns() {
         // HashMap declined forms
-        let entry = lookup("χαρτη").unwrap();
+        let entry = lookup("χαρτη").expect("Missing χαρτη");
         assert_eq!(entry.case, Some(Case::Dative));
         assert_eq!(entry.lemma, "χαρτης");
 
-        let entry = lookup("χαρτου").unwrap();
+        let entry = lookup("χαρτου").expect("Missing χαρτου");
         assert_eq!(entry.case, Some(Case::Genitive));
 
         // HashSet declined forms
-        let entry = lookup("συνολω").unwrap();
+        let entry = lookup("συνολω").expect("Missing συνολω");
         assert_eq!(entry.case, Some(Case::Dative));
         assert_eq!(entry.lemma, "συνολον");
 
         // String declined forms
-        let entry = lookup("λογω").unwrap();
+        let entry = lookup("λογω").expect("Missing λογω");
         assert_eq!(entry.case, Some(Case::Dative));
         assert_eq!(entry.lemma, "λογος");
     }
@@ -2851,7 +2851,7 @@ mod tests {
 
     #[test]
     fn test_assert_verb_lexicon_entry() {
-        let entry = lookup("δει").unwrap();
+        let entry = lookup("δει").expect("Missing δει");
         assert_eq!(entry.pos, PartOfSpeech::Verb);
         assert_eq!(entry.rust_equiv, Some("assert!"));
         assert_eq!(entry.lemma, "δει");
@@ -2861,7 +2861,7 @@ mod tests {
 
     #[test]
     fn test_equals_verb_lexicon_entry() {
-        let entry = lookup("ισουται").unwrap();
+        let entry = lookup("ισουται").expect("Missing ισουται");
         assert_eq!(entry.pos, PartOfSpeech::Verb);
         assert_eq!(entry.rust_equiv, Some("assert_eq!"));
         assert_eq!(entry.lemma, "ισοω");
