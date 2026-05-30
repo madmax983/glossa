@@ -46,6 +46,12 @@ pub mod interpreter;
 pub mod labyrinth;
 #[cfg(feature = "nova")]
 pub mod mentor;
+/// The Merchant (ὁ Ἔμπορος) tool for TypeScript interface generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding TypeScript `export interface` statements.
+#[cfg(feature = "nova")]
+pub mod merchant;
 #[cfg(feature = "nova")]
 pub mod mosaic;
 pub mod narrator;
