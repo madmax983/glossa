@@ -1,4 +1,3 @@
-#![deny(unsafe_code)]
 //! ΓΛΩΣΣΑ (GLOSSA) - A compiler where Ancient Greek morphology encodes programming semantics
 //!
 //! # The Philosophy
@@ -103,6 +102,7 @@
 //! * [`tools::narrator`]: **The Bard** - Code-to-story translator for debugging and learning.
 //! * [`semantic`]: **The Assembler** - The slot-based engine that assembles sentences from words.
 //! * [`text`]: **The Sizer** - Text utilities and normalization (polytonic -> monotonic).
+#![deny(unsafe_code)]
 
 pub mod ast;
 pub mod codegen;

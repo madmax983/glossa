@@ -89,6 +89,15 @@ fn parse_source(source: &str) -> Result<Program, ParseError> {
     Ok(Program { statements })
 }
 
+/// Build an AST Statement from a `pest` parse pair.
+///
+/// This function serves as a router, taking a `statement` pair from the CST
+/// and delegating to specific builder functions based on the inner rule
+/// (e.g., `test_declaration`, `type_definition`, or standard `clause` sequences).
+///
+/// # Errors
+/// Returns a `ParseError` if the underlying rule does not match any known statement type,
+/// or if an inner builder encounters an error while constructing the AST nodes.
 pub(crate) fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
     let mut pairs = pair.into_inner();
     let first = pairs
