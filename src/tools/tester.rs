@@ -41,7 +41,7 @@
 
 use crate::codegen::generate_rust_file;
 use crate::tools::ui::Status;
-use comfy_table::{Attribute, Cell, CellAlignment, Color, Table, presets};
+use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
@@ -340,20 +340,12 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         }
         println!("{table}");
     } else {
-        let mut empty_table = Table::new();
-        empty_table.load_preset(presets::UTF8_FULL);
-        empty_table.set_header(vec![
-            Cell::new("Status")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
-        ]);
-        empty_table.add_row(vec![
-            Cell::new("No tests found.")
-                .fg(Color::DarkGrey)
-                .add_attribute(Attribute::Italic)
-                .set_alignment(CellAlignment::Center),
-        ]);
-        println!("{empty_table}");
+        println!(
+            "  {}",
+            "Οὐδεμία δοκιμασία ηὑρέθη (No tests found.)"
+                .yellow()
+                .italic()
+        );
     }
 
     // If there were failures, try to extract and print them nicely
@@ -365,21 +357,16 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 
         if !failures.is_empty() {
             for (name, msg) in failures {
-                let mut header_table = Table::new();
-                header_table.load_preset(presets::UTF8_FULL);
-                header_table.add_row(vec![
+                let mut combined_table = Table::new();
+                combined_table.load_preset(presets::UTF8_FULL);
+                combined_table.set_header(vec![
                     Cell::new(format!(" FAILED: {} ", name))
                         .bg(Color::DarkRed)
                         .fg(Color::White)
                         .add_attribute(Attribute::Bold),
                 ]);
-                println!("{header_table}");
-
-                // Create a box for the error message using comfy_table
-                let mut error_table = Table::new();
-                error_table.load_preset(presets::UTF8_FULL);
-                error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
-                println!("{error_table}");
+                combined_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
+                println!("{combined_table}");
                 println!();
             }
         } else {
