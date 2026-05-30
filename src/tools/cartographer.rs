@@ -38,7 +38,7 @@ use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
-use rustc_hash::FxHashSet;
+use std::collections::HashSet;
 use std::path::Path;
 
 /// Run the Cartographer tool on a file
@@ -112,11 +112,7 @@ pub fn run_map(input: &Path) -> Result<()> {
 pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut map = String::from("classDiagram\n");
 
-    // ⚡ Bolt Optimization: Swapped `HashSet` for `FxHashSet` for performance.
-    // Standard `HashSet` uses SipHash, which is cryptographically secure but slower.
-    // For internal tracking of predictable short type names in the cartographer,
-    // where HashDoS isn't a concern, `FxHashSet` avoids unnecessary hashing overhead.
-    let mut dependencies = FxHashSet::default();
+    let mut dependencies = HashSet::default();
 
     format_structs(&mut map, program, &mut dependencies);
     format_traits(&mut map, program);
@@ -129,7 +125,7 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
 fn format_structs(
     map: &mut String,
     program: &AnalyzedProgram,
-    dependencies: &mut FxHashSet<(String, String)>,
+    dependencies: &mut HashSet<(String, String)>,
 ) {
     use std::fmt::Write;
     let mut types: Vec<_> = program.scope.types().collect();
@@ -187,10 +183,10 @@ fn format_traits(map: &mut String, program: &AnalyzedProgram) {
 fn format_dependencies(
     map: &mut String,
     program: &AnalyzedProgram,
-    dependencies: FxHashSet<(String, String)>,
+    dependencies: HashSet<(String, String)>,
 ) {
     use std::fmt::Write;
-    let defined_types: FxHashSet<String> = program
+    let defined_types: HashSet<String> = program
         .scope
         .types()
         .filter_map(|(_, ty)| {

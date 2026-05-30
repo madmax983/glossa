@@ -25,8 +25,8 @@ use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, Table};
 use crossterm::style::Stylize;
 use miette::Result;
-use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 /// Runs the Auditor tool on a given Glossa source file.
@@ -141,19 +141,17 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 }
 
 struct AuditorVisitor {
-    /// ⚡ Bolt Optimization: Uses `FxHashMap` instead of the standard `HashMap`
-    /// to reduce cryptographic hashing overhead for small string keys (`SmolStr`).
-    usage_count: FxHashMap<SmolStr, usize>,
-    mutation_count: FxHashMap<SmolStr, usize>,
-    mutable_vars: FxHashSet<SmolStr>,
+    usage_count: HashMap<SmolStr, usize>,
+    mutation_count: HashMap<SmolStr, usize>,
+    mutable_vars: HashSet<SmolStr>,
 }
 
 impl AuditorVisitor {
     fn new() -> Self {
         Self {
-            usage_count: FxHashMap::default(),
-            mutation_count: FxHashMap::default(),
-            mutable_vars: FxHashSet::default(),
+            usage_count: HashMap::default(),
+            mutation_count: HashMap::default(),
+            mutable_vars: HashSet::default(),
         }
     }
 

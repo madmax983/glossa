@@ -8,7 +8,7 @@
 //!
 //! The resolver uses a stack-based lexical environment:
 //! * **[`Scope`]**: The entire environment, containing a stack of [`ScopeLevel`]s.
-//! * **[`ScopeLevel`]**: A single dictionary (using `FxHashMap` for speed) mapping names to [`Binding`]s.
+//! * **[`ScopeLevel`]**: A single dictionary (using `HashMap` for speed) mapping names to [`Binding`]s.
 //! * **`ScopeGuard`**: An RAII (Resource Acquisition Is Initialization) guard returned by `Scope::enter_scope`.
 //!   When the guard goes out of scope, it automatically drops the deepest `ScopeLevel`.
 //!
@@ -33,22 +33,20 @@
 //! ```
 
 use crate::semantic::GlossaType;
-use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
+use std::collections::HashMap;
 
 /// A scope level containing symbol bindings
 #[derive(Debug, Clone, Default)]
 struct ScopeLevel {
     /// Variables defined in this scope.
-    /// ⚡ Bolt Optimization: Uses `FxHashMap` instead of the standard `HashMap`
-    /// to avoid cryptographic hashing overhead for fast, deterministic lookups of interned strings.
-    variables: FxHashMap<SmolStr, Binding>,
+    variables: HashMap<SmolStr, Binding>,
     /// Functions defined in this scope.
-    functions: FxHashMap<SmolStr, FunctionSignature>,
+    functions: HashMap<SmolStr, FunctionSignature>,
     /// Types defined in this scope.
-    types: FxHashMap<SmolStr, GlossaType>,
+    types: HashMap<SmolStr, GlossaType>,
     /// Traits defined in this scope.
-    traits: FxHashMap<SmolStr, crate::semantic::model::TraitDef>,
+    traits: HashMap<SmolStr, crate::semantic::model::TraitDef>,
     /// Trait implementations in this scope
     trait_impls: Vec<crate::semantic::model::TraitImpl>,
 }
