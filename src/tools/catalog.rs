@@ -12,12 +12,10 @@ use miette::Result;
 
 /// Run the catalog explorer
 pub fn run_catalog() -> Result<()> {
-    // ⚡ Bolt Optimization: Uses `rustc_hash::FxHashMap` instead of the standard `HashMap`
-    // since the keys are internal `PartOfSpeech` enums and are not exposed to HashDoS attacks.
-    let mut entries_by_pos: rustc_hash::FxHashMap<
+    let mut entries_by_pos: std::collections::HashMap<
         PartOfSpeech,
         Vec<(&str, &crate::morphology::lexicon::LexiconEntry)>,
-    > = rustc_hash::FxHashMap::default();
+    > = std::collections::HashMap::default();
 
     for (word, entry) in crate::morphology::lexicon::entries() {
         entries_by_pos

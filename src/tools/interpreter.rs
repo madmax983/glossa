@@ -16,7 +16,7 @@
 
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
-use rustc_hash::FxHashMap;
+use std::collections::HashMap;
 use std::fmt;
 
 /// The fundamental unit of data in the Simulator's runtime environment.
@@ -142,8 +142,8 @@ pub enum EvalError {
 /// ```
 pub struct Interpreter {
     // Stack of scopes. For now, just one global scope for simplicity.
-    // In a real implementation, this would be `Vec<FxHashMap<String, Value>>`.
-    env: Vec<FxHashMap<String, Value>>,
+    // In a real implementation, this would be `Vec<HashMap<String, Value>>`.
+    env: Vec<HashMap<String, Value>>,
 
     // Output buffer for capturing print statements (useful for testing/WASM)
     output: Vec<String>,
@@ -170,7 +170,7 @@ impl Interpreter {
     /// ```
     pub fn new() -> Self {
         Self {
-            env: vec![FxHashMap::default()],
+            env: vec![HashMap::default()],
             output: Vec::new(),
         }
     }

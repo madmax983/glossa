@@ -56,8 +56,8 @@
 use crate::morphology::models::{
     Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person, Tense, Voice,
 };
-use rustc_hash::FxHashMap;
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::sync::LazyLock;
 
 /// A lexicon entry with full morphological information
@@ -133,8 +133,8 @@ impl LexiconEntry {
 }
 
 /// The built-in lexicon
-static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(|| {
-    let mut m = FxHashMap::default();
+static LEXICON: LazyLock<HashMap<&'static str, LexiconEntry>> = LazyLock::new(|| {
+    let mut m = HashMap::default();
 
     // =========================================================================
     // Built-in verbs
