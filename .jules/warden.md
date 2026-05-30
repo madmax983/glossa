@@ -131,3 +131,7 @@ Signed,
 **2026-04-30 - [Infinite Stream DoS Vulnerability in File Loading]
 **Threat:** The `load_source` function in `src/tools/runner.rs` relied on `fs::metadata().len()` to enforce the `MAX_FILE_SIZE` limit. However, special device files like `/dev/zero` report a length of 0 while producing an infinite stream of bytes when read. Reading these files with `fs::read_to_string` causes a thread hang or Out-Of-Memory (OOM) Denial-of-Service condition.
 **Defense:** Added an explicit `metadata.is_file()` check in `check_file_size` to guarantee that the input path points to a regular file and explicitly reject non-regular file types like directories and device streams. Updated `tests/havoc_dos.rs` and `test_load_source_directory_error` to assert the "Not a valid file" error and pass cleanly without timeouts.
+
+**2023-11-20 - [Unbounded File Read DoS in REPL and Mentor Tools]**
+**Threat:** The `run_repl_inner` and `run_mentor_inner` loops used `input.read_line()` without upper bounds. An attacker or anomalous input stream (e.g. `/dev/zero`) lacking newlines could cause the application to endlessly buffer characters, exhausting memory and resulting in a Denial of Service.
+**Defense:** Added `Read` import and bounded the stream reads using `input.by_ref().take(LIMIT)`. The REPL is capped at `MAX_REPL_SOURCE_LEN as u64` and the Mentor is capped at 50,000 bytes.
