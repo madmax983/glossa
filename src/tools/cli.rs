@@ -180,6 +180,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Transpile a .γλ file to TypeScript interfaces (Requires "nova" feature)
+    Merchant {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Transpile a .γλ file to Python (Requires "nova" feature)
     Alchemist {
         /// Input file (.γλ)
