@@ -921,6 +921,30 @@ mod tests {
     use super::*;
     use crate::morphology::{Tense, Voice, analyze};
     #[test]
+    fn test_missing_verb_match_arm_no_object() {
+        let mut asm = Assembler::new();
+        let subj = make_analysis(
+            "ανθρωπος",
+            PartOfSpeech::Noun,
+            Some(Case::Nominative),
+            Some(Number::Singular),
+        );
+        asm.feed(&subj, "ἄνθρωπος").unwrap();
+        let result = asm.finalize();
+        assert!(matches!(result, Err(AssemblyError::MissingVerb)));
+
+        let mut asm2 = Assembler::new();
+        let subj2 = make_analysis(
+            "δωρον",
+            PartOfSpeech::Noun,
+            Some(Case::Nominative),
+            Some(Number::Singular),
+        );
+        asm2.feed(&subj2, "δῶρον").unwrap();
+        let result2 = asm2.finalize();
+        assert!(result2.is_ok());
+    }
+    #[test]
     fn test_try_create_string_method_invalid_literal_fallback() {
         let mut asm = Assembler::new();
         asm.state.has_delimiter_preposition = true;
@@ -1552,6 +1576,7 @@ mod tests {
             result
         );
     }
+
     #[test]
     fn test_neuter_plural_subject_first_person_verb() {
         let mut asm = Assembler::new();
