@@ -115,7 +115,7 @@ pub fn run_mentor() -> Result<()> {
     run_mentor_inner(&mut stdin.lock(), &mut stdout)
 }
 
-fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
+pub fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
     print_banner(output)?;
 
     for (i, lesson) in LESSONS.iter().enumerate() {
