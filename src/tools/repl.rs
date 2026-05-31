@@ -64,7 +64,7 @@ pub fn run_repl() -> Result<()> {
 }
 
 /// Internal REPL loop that can be tested with arbitrary streams
-fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
+pub fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
     let mut context = ReplContext::new();
 
     loop {
@@ -73,7 +73,11 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
         let _ = output.flush();
 
         let mut line = String::new();
-        let bytes = input.read_line(&mut line).into_diagnostic()?;
+        let mut handle = std::io::Read::take(input.by_ref(), MAX_REPL_SOURCE_LEN as u64);
+        let bytes = handle.read_line(&mut line).into_diagnostic()?;
+        if bytes > 0 && !line.ends_with("\n") {
+            miette::bail!("Line exceeded limit");
+        }
 
         // Handle EOF
         if bytes == 0 {
