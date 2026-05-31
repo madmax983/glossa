@@ -574,12 +574,26 @@ fn classify_pop(
         return Ok(None);
     };
 
+    let subj_name = &subject.normalized;
+    let subj_type = scope
+        .lookup(subj_name)
+        .cloned()
+        .unwrap_or(GlossaType::Unknown);
+
+    if matches!(
+        subj_type,
+        GlossaType::Number | GlossaType::String | GlossaType::Boolean
+    ) {
+        return Err(GlossaError::semantic(format!(
+            "Τὸ «{}» ἔστιν {}, οὐχὶ συλλογή. Οὐ δύναται ἕλκειν.",
+            subj_name,
+            subj_type.to_greek()
+        )));
+    }
+
     let receiver = AnalyzedExpr {
-        expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
-        glossa_type: scope
-            .lookup(&subject.lemma)
-            .cloned()
-            .unwrap_or(GlossaType::Unknown),
+        expr: AnalyzedExprKind::Variable(subj_name.clone()),
+        glossa_type: subj_type.clone(),
     };
 
     let method_call = AnalyzedExpr {
@@ -607,12 +621,26 @@ fn classify_push(
         return Ok(None);
     };
 
+    let subj_name = &subject.normalized;
+    let subj_type = scope
+        .lookup(subj_name)
+        .cloned()
+        .unwrap_or(GlossaType::Unknown);
+
+    if matches!(
+        subj_type,
+        GlossaType::Number | GlossaType::String | GlossaType::Boolean
+    ) {
+        return Err(GlossaError::semantic(format!(
+            "Τὸ «{}» ἔστιν {}, οὐχὶ συλλογή. Οὐ δύναται ὠθεῖν.",
+            subj_name,
+            subj_type.to_greek()
+        )));
+    }
+
     let receiver = AnalyzedExpr {
-        expr: AnalyzedExprKind::Variable(subject.lemma.clone()),
-        glossa_type: scope
-            .lookup(&subject.lemma)
-            .cloned()
-            .unwrap_or(GlossaType::Unknown),
+        expr: AnalyzedExprKind::Variable(subj_name.clone()),
+        glossa_type: subj_type.clone(),
     };
 
     let arg = if let Some(lit) = asm_stmt.literals.first() {
@@ -662,6 +690,17 @@ fn classify_insert(
         .lookup(subj_name)
         .cloned()
         .unwrap_or(GlossaType::Unknown);
+
+    if matches!(
+        subj_type,
+        GlossaType::Number | GlossaType::String | GlossaType::Boolean
+    ) {
+        return Err(GlossaError::semantic(format!(
+            "Τὸ «{}» ἔστιν {}, οὐχὶ συλλογή. Οὐ δύναται τιθέναι.",
+            subj_name,
+            subj_type.to_greek()
+        )));
+    }
 
     let receiver = AnalyzedExpr {
         expr: AnalyzedExprKind::Variable(subj_name.clone()),
