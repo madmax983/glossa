@@ -76,9 +76,15 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 
     status.success();
 
-    let mut visitor = AuditorVisitor::new();
+    let mut usage_count = FxHashMap::default();
+    #[allow(unused_mut, unused_variables)]
+        let mut mutation_count: FxHashMap<smol_str::SmolStr, usize> = FxHashMap::default();
+        #[allow(unused_variables)]
+    #[allow(unused_mut, unused_variables)]
+        let mut mutable_vars: FxHashSet<smol_str::SmolStr> = FxHashSet::default();
+        #[allow(unused_variables)]
     for stmt in &program.statements {
-        visitor.visit_statement(stmt);
+        visit_statement(stmt, &mut usage_count, &mut mutation_count, &mut mutable_vars);
     }
 
     let mut issues = 0;
@@ -101,7 +107,7 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         Cell::new("Message").add_attribute(Attribute::Bold),
     ]);
 
-    for (var, count) in &visitor.usage_count {
+    for (var, count) in &usage_count {
         if *count == 0 {
             table.add_row(vec![
                 Cell::new("⚠️ Unused Variable").fg(Color::Yellow),
@@ -112,10 +118,10 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         }
     }
 
-    for (var, count) in &visitor.mutation_count {
+    for (var, count) in &mutation_count {
         if *count == 0
-            && visitor.mutable_vars.contains(var)
-            && visitor.usage_count.get(var).unwrap_or(&0) > &0
+            && mutable_vars.contains(var)
+            && usage_count.get(var).unwrap_or(&0) > &0
         {
             table.add_row(vec![
                 Cell::new("💡 Unnecessary Mutation").fg(Color::Blue),
@@ -140,123 +146,126 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     Ok(())
 }
 
-struct AuditorVisitor {
-    /// ⚡ Bolt Optimization: Uses `FxHashMap` instead of the standard `HashMap`
-    /// to reduce cryptographic hashing overhead for small string keys (`SmolStr`).
-    usage_count: FxHashMap<SmolStr, usize>,
-    mutation_count: FxHashMap<SmolStr, usize>,
-    mutable_vars: FxHashSet<SmolStr>,
+
+fn visit_if_statement(
+    condition: &AnalyzedExpr,
+    then_body: &[AnalyzedStatement],
+    else_body: &Option<Vec<AnalyzedStatement>>,
+    usage_count: &mut FxHashMap<SmolStr, usize>,
+    mutation_count: &mut FxHashMap<SmolStr, usize>,
+    mutable_vars: &mut FxHashSet<SmolStr>,
+) {
+    visit_expr(condition, usage_count);
+    for s in then_body {
+        visit_statement(s, usage_count, mutation_count, mutable_vars);
+    }
+    if let Some(else_stmts) = else_body {
+        for s in else_stmts {
+            visit_statement(s, usage_count, mutation_count, mutable_vars);
+        }
+    }
 }
 
-impl AuditorVisitor {
-    fn new() -> Self {
-        Self {
-            usage_count: FxHashMap::default(),
-            mutation_count: FxHashMap::default(),
-            mutable_vars: FxHashSet::default(),
+fn visit_while_loop(
+    condition: &AnalyzedExpr,
+    body: &[AnalyzedStatement],
+    usage_count: &mut FxHashMap<SmolStr, usize>,
+    mutation_count: &mut FxHashMap<SmolStr, usize>,
+    mutable_vars: &mut FxHashSet<SmolStr>,
+) {
+    visit_expr(condition, usage_count);
+    for s in body {
+        visit_statement(s, usage_count, mutation_count, mutable_vars);
+    }
+}
+
+fn visit_for_loop(
+    variable: &smol_str::SmolStr,
+    iterator: &AnalyzedExpr,
+    body: &[AnalyzedStatement],
+    usage_count: &mut FxHashMap<SmolStr, usize>,
+    mutation_count: &mut FxHashMap<SmolStr, usize>,
+    mutable_vars: &mut FxHashSet<SmolStr>,
+) {
+    usage_count.insert(variable.clone(), 0);
+    visit_expr(iterator, usage_count);
+    for s in body {
+        visit_statement(s, usage_count, mutation_count, mutable_vars);
+    }
+}
+
+fn visit_match_statement(
+    scrutinee: &AnalyzedExpr,
+    arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
+    usage_count: &mut FxHashMap<SmolStr, usize>,
+    mutation_count: &mut FxHashMap<SmolStr, usize>,
+    mutable_vars: &mut FxHashSet<SmolStr>,
+) {
+    visit_expr(scrutinee, usage_count);
+    for (expr, stmts) in arms {
+        visit_expr(expr, usage_count);
+        for s in stmts {
+            visit_statement(s, usage_count, mutation_count, mutable_vars);
         }
     }
+}
 
-    fn visit_if_statement(
-        &mut self,
-        condition: &AnalyzedExpr,
-        then_body: &[AnalyzedStatement],
-        else_body: &Option<Vec<AnalyzedStatement>>,
-    ) {
-        self.visit_expr(condition);
-        for s in then_body {
-            self.visit_statement(s);
-        }
-        if let Some(else_stmts) = else_body {
-            for s in else_stmts {
-                self.visit_statement(s);
-            }
-        }
+fn visit_function_def(
+    params: &[(smol_str::SmolStr, Option<crate::semantic::GlossaType>)],
+    body: &[AnalyzedStatement],
+    usage_count: &mut FxHashMap<SmolStr, usize>,
+    mutation_count: &mut FxHashMap<SmolStr, usize>,
+    mutable_vars: &mut FxHashSet<SmolStr>,
+) {
+    for (param_name, _) in params {
+        usage_count.insert(param_name.clone(), 0);
     }
-
-    fn visit_while_loop(&mut self, condition: &AnalyzedExpr, body: &[AnalyzedStatement]) {
-        self.visit_expr(condition);
-        for s in body {
-            self.visit_statement(s);
-        }
+    for s in body {
+        visit_statement(s, usage_count, mutation_count, mutable_vars);
     }
+}
 
-    fn visit_for_loop(
-        &mut self,
-        variable: &smol_str::SmolStr,
-        iterator: &AnalyzedExpr,
-        body: &[AnalyzedStatement],
-    ) {
-        self.usage_count.insert(variable.clone(), 0);
-        self.visit_expr(iterator);
-        for s in body {
-            self.visit_statement(s);
-        }
-    }
-
-    fn visit_match_statement(
-        &mut self,
-        scrutinee: &AnalyzedExpr,
-        arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
-    ) {
-        self.visit_expr(scrutinee);
-        for (expr, stmts) in arms {
-            self.visit_expr(expr);
-            for s in stmts {
-                self.visit_statement(s);
-            }
-        }
-    }
-
-    fn visit_function_def(
-        &mut self,
-        params: &[(smol_str::SmolStr, Option<crate::semantic::GlossaType>)],
-        body: &[AnalyzedStatement],
-    ) {
-        for (param_name, _) in params {
-            self.usage_count.insert(param_name.clone(), 0);
-        }
-        for s in body {
-            self.visit_statement(s);
-        }
-    }
-
-    fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
+fn visit_statement(
+    stmt: &AnalyzedStatement,
+    usage_count: &mut FxHashMap<SmolStr, usize>,
+    mutation_count: &mut FxHashMap<SmolStr, usize>,
+    mutable_vars: &mut FxHashSet<SmolStr>,
+) {
         match stmt {
             AnalyzedStatement::Binding {
                 name,
                 value,
                 mutable,
             } => {
-                self.usage_count.insert(name.clone(), 0);
-                self.mutation_count.insert(name.clone(), 0);
+                usage_count.insert(name.clone(), 0);
+                mutation_count.insert(name.clone(), 0);
                 if *mutable {
-                    self.mutable_vars.insert(name.clone());
+                    mutable_vars.insert(name.clone());
                 }
-                self.visit_expr(value);
+                visit_expr(value, usage_count);
             }
             AnalyzedStatement::Assignment { name, value } => {
-                if let Some(count) = self.mutation_count.get_mut(name) {
+                if let Some(count) = mutation_count.get_mut(name) {
                     *count += 1;
                 }
-                if let Some(count) = self.usage_count.get_mut(name) {
+                if let Some(count) = usage_count.get_mut(name) {
                     *count += 1;
                 }
-                self.visit_expr(value);
+                visit_expr(value, usage_count);
             }
             AnalyzedStatement::Print(exprs) => {
                 for expr in exprs {
-                    self.visit_expr(expr);
+                    visit_expr(expr, usage_count);
                 }
             }
             AnalyzedStatement::Expression(exprs) => {
                 for expr in exprs {
-                    self.visit_expr(expr);
+                    visit_expr(expr, usage_count);
                 }
             }
             AnalyzedStatement::Query(exprs) => {
                 for expr in exprs {
-                    self.visit_expr(expr);
+                    visit_expr(expr, usage_count);
                 }
             }
             AnalyzedStatement::If {
@@ -264,32 +273,32 @@ impl AuditorVisitor {
                 then_body,
                 else_body,
             } => {
-                self.visit_if_statement(condition, then_body, else_body);
+                visit_if_statement(condition, then_body, else_body, usage_count, mutation_count, mutable_vars);
             }
             AnalyzedStatement::While { condition, body } => {
-                self.visit_while_loop(condition, body);
+                visit_while_loop(condition, body, usage_count, mutation_count, mutable_vars);
             }
             AnalyzedStatement::For {
                 variable,
                 iterator,
                 body,
             } => {
-                self.visit_for_loop(variable, iterator, body);
+                visit_for_loop(variable, iterator, body, usage_count, mutation_count, mutable_vars);
             }
             AnalyzedStatement::Match { scrutinee, arms } => {
-                self.visit_match_statement(scrutinee, arms);
+                visit_match_statement(scrutinee, arms, usage_count, mutation_count, mutable_vars);
             }
             AnalyzedStatement::FunctionDef { params, body, .. } => {
-                self.visit_function_def(params, body);
+                visit_function_def(params, body, usage_count, mutation_count, mutable_vars);
             }
             AnalyzedStatement::Return { value } => {
                 if let Some(v) = value {
-                    self.visit_expr(v);
+                    visit_expr(v, usage_count);
                 }
             }
             AnalyzedStatement::TestDeclaration { body, .. } => {
                 for s in body {
-                    self.visit_statement(s);
+                    visit_statement(s, usage_count, mutation_count, mutable_vars);
                 }
             }
             AnalyzedStatement::Break
@@ -300,58 +309,57 @@ impl AuditorVisitor {
         }
     }
 
-    fn visit_exprs(&mut self, exprs: &[AnalyzedExpr]) {
+fn visit_exprs(exprs: &[AnalyzedExpr], usage_count: &mut FxHashMap<SmolStr, usize>) {
         for expr in exprs {
-            self.visit_expr(expr);
+            visit_expr(expr, usage_count);
         }
     }
 
-    fn visit_expr(&mut self, expr: &AnalyzedExpr) {
+fn visit_expr(expr: &AnalyzedExpr, usage_count: &mut FxHashMap<SmolStr, usize>) {
         match &expr.expr {
             AnalyzedExprKind::Variable(name) => {
-                if let Some(count) = self.usage_count.get_mut(name) {
+                if let Some(count) = usage_count.get_mut(name) {
                     *count += 1;
                 }
             }
             AnalyzedExprKind::BinOp { left, right, .. } => {
-                self.visit_expr(left);
-                self.visit_expr(right);
+                visit_expr(left, usage_count);
+                visit_expr(right, usage_count);
             }
-            AnalyzedExprKind::UnaryOp { operand, .. } => self.visit_expr(operand),
-            AnalyzedExprKind::StructInstantiation { args, .. } => self.visit_exprs(args),
-            AnalyzedExprKind::PropertyAccess { owner, .. } => self.visit_expr(owner),
+            AnalyzedExprKind::UnaryOp { operand, .. } => visit_expr(operand, usage_count),
+            AnalyzedExprKind::StructInstantiation { args, .. } => visit_exprs(args, usage_count),
+            AnalyzedExprKind::PropertyAccess { owner, .. } => visit_expr(owner, usage_count),
             AnalyzedExprKind::MethodCall { receiver, args, .. } => {
-                self.visit_expr(receiver);
-                self.visit_exprs(args);
+                visit_expr(receiver, usage_count);
+                visit_exprs(args, usage_count);
             }
-            AnalyzedExprKind::FunctionCall { args, .. } => self.visit_exprs(args),
-            AnalyzedExprKind::VerbCall { args, .. } => self.visit_exprs(args),
-            AnalyzedExprKind::ArrayLiteral(exprs) => self.visit_exprs(exprs),
+            AnalyzedExprKind::FunctionCall { args, .. } => visit_exprs(args, usage_count),
+            AnalyzedExprKind::VerbCall { args, .. } => visit_exprs(args, usage_count),
+            AnalyzedExprKind::ArrayLiteral(exprs) => visit_exprs(exprs, usage_count),
             AnalyzedExprKind::IndexAccess { array, index } => {
-                self.visit_expr(array);
-                self.visit_expr(index);
+                visit_expr(array, usage_count);
+                visit_expr(index, usage_count);
             }
-            AnalyzedExprKind::Lambda { body, .. } => self.visit_expr(body),
-            AnalyzedExprKind::Some(inner) => self.visit_expr(inner),
-            AnalyzedExprKind::Ok(inner) => self.visit_expr(inner),
-            AnalyzedExprKind::Err(inner) => self.visit_expr(inner),
-            AnalyzedExprKind::Unwrap(inner) => self.visit_expr(inner),
-            AnalyzedExprKind::Try(inner) => self.visit_expr(inner),
-            AnalyzedExprKind::Assert { condition } => self.visit_expr(condition),
+            AnalyzedExprKind::Lambda { body, .. } => visit_expr(body, usage_count),
+            AnalyzedExprKind::Some(inner) => visit_expr(inner, usage_count),
+            AnalyzedExprKind::Ok(inner) => visit_expr(inner, usage_count),
+            AnalyzedExprKind::Err(inner) => visit_expr(inner, usage_count),
+            AnalyzedExprKind::Unwrap(inner) => visit_expr(inner, usage_count),
+            AnalyzedExprKind::Try(inner) => visit_expr(inner, usage_count),
+            AnalyzedExprKind::Assert { condition } => visit_expr(condition, usage_count),
             AnalyzedExprKind::AssertEq { left, right } => {
-                self.visit_expr(left);
-                self.visit_expr(right);
+                visit_expr(left, usage_count);
+                visit_expr(right, usage_count);
             }
             AnalyzedExprKind::Range { start, end, .. } => {
-                self.visit_expr(start);
-                self.visit_expr(end);
+                visit_expr(start, usage_count);
+                visit_expr(end, usage_count);
             }
             AnalyzedExprKind::NumberLiteral(_)
             | AnalyzedExprKind::StringLiteral(_)
             | AnalyzedExprKind::BooleanLiteral(_)
             | AnalyzedExprKind::None
             | AnalyzedExprKind::CollectionNew { .. } => {}
-        }
     }
 }
 
@@ -395,7 +403,13 @@ mod tests {
 
     #[test]
     fn test_auditor_visitor_coverage_statements() {
-        let mut visitor = AuditorVisitor::new();
+        let mut usage_count = FxHashMap::default();
+    #[allow(unused_mut, unused_variables)]
+        let mut mutation_count: FxHashMap<smol_str::SmolStr, usize> = FxHashMap::default();
+        #[allow(unused_variables)]
+    #[allow(unused_mut, unused_variables)]
+        let mut mutable_vars: FxHashSet<smol_str::SmolStr> = FxHashSet::default();
+        #[allow(unused_variables)]
 
         let statements = vec![
             AnalyzedStatement::Binding {
@@ -503,13 +517,19 @@ mod tests {
         ];
 
         for stmt in statements {
-            visitor.visit_statement(&stmt);
+            visit_statement(&stmt, &mut usage_count, &mut mutation_count, &mut mutable_vars);
         }
     }
 
     #[test]
     fn test_auditor_visitor_coverage_expressions() {
-        let mut visitor = AuditorVisitor::new();
+        let mut usage_count = FxHashMap::default();
+    #[allow(unused_mut, unused_variables)]
+        let mut mutation_count: FxHashMap<smol_str::SmolStr, usize> = FxHashMap::default();
+        #[allow(unused_variables)]
+    #[allow(unused_mut, unused_variables)]
+        let mut mutable_vars: FxHashSet<smol_str::SmolStr> = FxHashSet::default();
+        #[allow(unused_variables)]
 
         let exprs = vec![
             AnalyzedExprKind::Variable("x".into()),
@@ -605,7 +625,7 @@ mod tests {
                 expr: kind,
                 glossa_type: crate::semantic::GlossaType::Boolean,
             };
-            visitor.visit_expr(&expr);
+            visit_expr(&expr, &mut usage_count);
         }
     }
 
