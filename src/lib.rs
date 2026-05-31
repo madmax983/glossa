@@ -114,7 +114,7 @@ pub mod semantic;
 pub mod text;
 pub mod tools;
 
-pub use tools::highlight;
+pub use tools::highlight::highlight;
 
 pub use ast::Program;
 pub use codegen::generate_rust;
