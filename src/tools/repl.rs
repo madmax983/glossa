@@ -73,7 +73,8 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
         let _ = output.flush();
 
         let mut line = String::new();
-        let bytes = input.read_line(&mut line).into_diagnostic()?;
+        let mut chunk = std::io::Read::take(input.by_ref(), 50000);
+        let bytes = std::io::BufRead::read_line(&mut chunk, &mut line).into_diagnostic()?;
 
         // Handle EOF
         if bytes == 0 {
@@ -648,4 +649,16 @@ mod tests {
         // Our formatting prints "× error_string".
         // We just want to ensure it printed.
     }
+}
+
+#[test]
+fn test_repl_dos_unbounded_read() {
+    use std::io::Read;
+    let raw = std::io::repeat(b' ').take(100_000);
+    let mut input = std::io::BufReader::new(raw);
+    let mut output = Vec::new();
+    let result = run_repl_inner(&mut input, &mut output);
+    assert!(result.is_ok());
+    let output_str = String::from_utf8(output).unwrap();
+    assert!(output_str.contains("Χαῖρε!"));
 }

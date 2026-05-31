@@ -127,7 +127,8 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
             output.flush().into_diagnostic()?;
 
             let mut line = String::new();
-            let bytes = input.read_line(&mut line).into_diagnostic()?;
+            let mut chunk = std::io::Read::take(input.by_ref(), 50000);
+            let bytes = std::io::BufRead::read_line(&mut chunk, &mut line).into_diagnostic()?;
 
             if bytes == 0 {
                 return Ok(()); // EOF
@@ -155,7 +156,8 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
                             .into_diagnostic()?;
                         writeln!(output, "{}", "Press Enter to continue...".dim())
                             .into_diagnostic()?;
-                        let _ = input.read_line(&mut String::new());
+                        let mut chunk = std::io::Read::take(input.by_ref(), 50000);
+                        let _ = std::io::BufRead::read_line(&mut chunk, &mut String::new());
                         break; // Next lesson
                     } else {
                         writeln!(
@@ -351,5 +353,20 @@ mod tests {
 
         run_mentor_inner(&mut input, &mut output).unwrap();
         // Should just continue loop and then exit
+    }
+}
+
+#[cfg(test)]
+mod additional_tests {
+    use super::*;
+
+    #[test]
+    fn test_mentor_dos_unbounded_read() {
+        use std::io::Read;
+        let raw = std::io::repeat(b' ').take(100_000);
+        let mut input = std::io::BufReader::new(raw);
+        let mut output = Vec::new();
+        let result = run_mentor_inner(&mut input, &mut output);
+        assert!(result.is_ok());
     }
 }

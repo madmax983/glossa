@@ -30,3 +30,8 @@ stacker = "0.1"
 insta = "1"
 pretty_assertions = "1"
 proptest = "1.6.0"
+
+
+[[bin]]
+name = "glossa"
+path = "src/main.rs"
