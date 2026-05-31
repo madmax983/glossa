@@ -23,71 +23,73 @@ pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
     // » is [0xC2, 0xBB]
     while i < bytes.len() {
         let b = bytes[i];
+
         if in_string {
             // Check for » [0xC2, 0xBB]
             if b == 0xC2 && i + 1 < bytes.len() && bytes[i + 1] == 0xBB {
                 in_string = false;
                 i += 2;
-            } else {
-                i += 1;
+                continue;
             }
-        } else {
-            // Check for keywords first if byte matches start of UTF-8 sequence
-            // δοκιμή (test): starts with \xCE\xB4 (δ)
-            // τέλος (end): starts with \xCF\x84 (τ)
+            i += 1;
+            continue;
+        }
 
-            // Check for "δοκιμή" or "δοκιμη" (test declaration start)
-            if b == 0xCE && (source[i..].starts_with("δοκιμή") || source[i..].starts_with("δοκιμη"))
-            {
+        // Check for keywords first if byte matches start of UTF-8 sequence
+        // δοκιμή (test): starts with \xCE\xB4 (δ)
+        // τέλος (end): starts with \xCF\x84 (τ)
+
+        // Check for "δοκιμή" or "δοκιμη" (test declaration start)
+        if b == 0xCE && (source[i..].starts_with("δοκιμή") || source[i..].starts_with("δοκιμη"))
+        {
+            depth += 1;
+            if depth > MAX_PARSE_DEPTH {
+                return Err(ParseError::RecursionLimitExceeded(MAX_PARSE_DEPTH));
+            }
+            // Both versions have length 12 bytes
+            i += "δοκιμή".len();
+            continue;
+        }
+
+        // Check for "τέλος" or "τελος" (test declaration end)
+        if b == 0xCF && (source[i..].starts_with("τέλος") || source[i..].starts_with("τελος"))
+        {
+            depth = depth.saturating_sub(1);
+            // Both versions have length 10 bytes
+            i += "τέλος".len();
+            continue;
+        }
+
+        match b {
+            // Check for « [0xC2, 0xAB]
+            0xC2 if i + 1 < bytes.len() && bytes[i + 1] == 0xAB => {
+                in_string = true;
+                i += 2;
+            }
+            b'(' | b'{' | b'[' => {
                 depth += 1;
                 if depth > MAX_PARSE_DEPTH {
                     return Err(ParseError::RecursionLimitExceeded(MAX_PARSE_DEPTH));
                 }
-                // Both versions have length 12 bytes
-                i += "δοκιμή".len();
-                continue;
+                i += 1;
             }
-
-            // Check for "τέλος" or "τελος" (test declaration end)
-            if b == 0xCF && (source[i..].starts_with("τέλος") || source[i..].starts_with("τελος"))
-            {
+            b')' | b'}' | b']' => {
                 depth = depth.saturating_sub(1);
-                // Both versions have length 10 bytes
-                i += "τέλος".len();
-                continue;
+                i += 1;
             }
-
-            match b {
-                // Check for « [0xC2, 0xAB]
-                0xC2 if i + 1 < bytes.len() && bytes[i + 1] == 0xAB => {
-                    in_string = true;
-                    i += 2;
-                }
-                b'(' | b'{' | b'[' => {
-                    depth += 1;
-                    if depth > MAX_PARSE_DEPTH {
-                        return Err(ParseError::RecursionLimitExceeded(MAX_PARSE_DEPTH));
-                    }
+            b'/' if i + 1 < bytes.len() && bytes[i + 1] == b'/' => {
+                // Skip comment
+                i += 2;
+                while i < bytes.len() {
+                    let c = bytes[i];
                     i += 1;
-                }
-                b')' | b'}' | b']' => {
-                    depth = depth.saturating_sub(1);
-                    i += 1;
-                }
-                b'/' if i + 1 < bytes.len() && bytes[i + 1] == b'/' => {
-                    // Skip comment
-                    i += 2;
-                    while i < bytes.len() {
-                        let c = bytes[i];
-                        i += 1;
-                        if c == b'\n' || c == b'\r' {
-                            break;
-                        }
+                    if c == b'\n' || c == b'\r' {
+                        break;
                     }
                 }
-                _ => {
-                    i += 1;
-                }
+            }
+            _ => {
+                i += 1;
             }
         }
     }
