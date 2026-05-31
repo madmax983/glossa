@@ -188,6 +188,16 @@ fn main() -> Result<()> {
             );
         }
 
+        Some(Commands::Astrolabe { input: _input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::astrolabe::run_astrolabe(&_input)?;
+
+            #[cfg(not(feature = "nova"))]
+            miette::bail!(
+                "The 'astrolabe' command is experimental. Recompile glossa with '--features nova' to enable it."
+            );
+        }
+
         Some(Commands::Scholar { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::scholar::run_scholar(&input)?;
