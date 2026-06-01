@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate JSON Schema from type definitions (Requires "nova" feature)
+    Architect {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

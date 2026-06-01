@@ -281,3 +281,43 @@ fn test_run_scholar_syntax_error() {
 }
 
 // removed test_run_tests_rustc_error because of environment variable pollution causing intermittent failures in parallel execution and it being redundant to runner tests
+
+#[test]
+fn test_run_architect_success() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }. ξ 5 ἔστω.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::architect::run_architect(temp_file.path());
+    assert!(result.is_ok(), "Architect failed: {:?}", result.err());
+}
+
+#[test]
+fn test_run_architect_file_not_found() {
+    let path = PathBuf::from("non_existent_file.gl");
+    let result = glossa::tools::architect::run_architect(&path);
+    assert!(result.is_err());
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Ἀρχεῖον οὐχ εὑρέθη")
+    );
+}
+
+#[test]
+fn test_run_architect_syntax_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "invalid syntax").expect("Failed to write");
+
+    let result = glossa::tools::architect::run_architect(temp_file.path());
+    assert!(result.is_err());
+}
