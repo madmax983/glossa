@@ -115,7 +115,7 @@ pub fn run_mentor() -> Result<()> {
     run_mentor_inner(&mut stdin.lock(), &mut stdout)
 }
 
-fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
+pub fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
     print_banner(output)?;
 
     for (i, lesson) in LESSONS.iter().enumerate() {
@@ -127,7 +127,13 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
             output.flush().into_diagnostic()?;
 
             let mut line = String::new();
-            let bytes = input.read_line(&mut line).into_diagnostic()?;
+            let mut input_take = std::io::Read::take(&mut *input, 50_000 + 1);
+            let bytes = input_take.read_line(&mut line).into_diagnostic()?;
+            if bytes > 50_000 {
+                return Err(miette::miette!(
+                    "Input line exceeded maximum allowed length"
+                ));
+            }
 
             if bytes == 0 {
                 return Ok(()); // EOF
@@ -155,7 +161,8 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
                             .into_diagnostic()?;
                         writeln!(output, "{}", "Press Enter to continue...".dim())
                             .into_diagnostic()?;
-                        let _ = input.read_line(&mut String::new());
+                        let mut input_take = std::io::Read::take(&mut *input, 50_000 + 1);
+                        let _ = input_take.read_line(&mut String::new());
                         break; // Next lesson
                     } else {
                         writeln!(
