@@ -129,3 +129,26 @@ mod tests {
         );
     }
 }
+
+    #[test]
+    fn test_glossa_type_to_json_schema_complex() {
+        assert_eq!(
+            glossa_type_to_json_schema(&GlossaType::List(Box::new(GlossaType::Number))),
+            "\"type\": \"array\", \"items\": { \"type\": \"integer\" }"
+        );
+        assert_eq!(
+            glossa_type_to_json_schema(&GlossaType::Set(Box::new(GlossaType::String))),
+            "\"type\": \"array\", \"uniqueItems\": true, \"items\": { \"type\": \"string\" }"
+        );
+        assert_eq!(
+            glossa_type_to_json_schema(&GlossaType::Map(
+                Box::new(GlossaType::String),
+                Box::new(GlossaType::Number)
+            )),
+            "\"type\": \"object\""
+        );
+        assert_eq!(
+            glossa_type_to_json_schema(&GlossaType::Option(Box::new(GlossaType::Boolean))),
+            "\"type\": \"boolean\""
+        );
+    }
