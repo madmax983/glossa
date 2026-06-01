@@ -1,3 +1,4 @@
+#![cfg(feature = "nova")]
 #![allow(missing_docs)]
 use std::io::{BufReader, Read};
 use std::sync::mpsc;
@@ -41,4 +42,15 @@ fn test_mentor_dos_unbounded_readline() {
             panic!("Thread disconnected unexpectedly");
         }
     }
+}
+
+#[test]
+fn test_mentor_dos_second_prompt() {
+    let mut data = String::from("ξ 10 ἔστω.\n");
+    data.push_str(&"A".repeat(50_005));
+
+    let mut input = std::io::Cursor::new(data);
+    let mut output = Vec::new();
+
+    let _ = glossa::tools::mentor::run_mentor_inner(&mut input, &mut output);
 }
