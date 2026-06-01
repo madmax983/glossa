@@ -21,7 +21,11 @@ fn main() -> Result<()> {
         return run_file(&file);
     }
 
-    match cli.command {
+    handle_command(cli.command)
+}
+
+fn handle_command(command: Option<Commands>) -> Result<()> {
+    match command {
         Some(Commands::Run { input }) => {
             run_file(&input)?;
         }
@@ -178,9 +182,9 @@ fn main() -> Result<()> {
             );
         }
 
-        Some(Commands::Gnomon { input }) => {
+        Some(Commands::Gnomon { input: _input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::gnomon::run_gnomon(&input)?;
+            glossa::tools::gnomon::run_gnomon(&_input)?;
 
             #[cfg(not(feature = "nova"))]
             miette::bail!(
