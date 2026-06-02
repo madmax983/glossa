@@ -1,4 +1,3 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. **Change module boundary in `src/semantic/mod.rs`**: Change `pub mod assembly` to `pub(crate) mod assembly`. This encapsulates the internal assembler implementation while making it available throughout the crate, effectively hiding it from the public API and satisfying the "Atlas" boundary goals.
+2. **Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.**
+3. **Report the findings and completion**: The architecture is sound overall. No circular dependencies exist. However, the change restricts `assembly` to `pub(crate)` improving the internal structure to follow the rules from `.jules/atlas.md`. Provide a formatted PR message.
