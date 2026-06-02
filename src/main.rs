@@ -178,14 +178,27 @@ fn main() -> Result<()> {
             );
         }
 
-        Some(Commands::Gnomon { input }) => {
+        Some(Commands::Gnomon { input: _input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::gnomon::run_gnomon(&input)?;
+            glossa::tools::gnomon::run_gnomon(&_input)?;
 
             #[cfg(not(feature = "nova"))]
             miette::bail!(
                 "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
             );
+        }
+
+        Some(Commands::Astrolabe { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::astrolabe::run_astrolabe(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'astrolabe' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
         Some(Commands::Scholar { input }) => {

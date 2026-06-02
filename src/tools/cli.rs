@@ -204,6 +204,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Extract all string literals for i18n (Requires "nova" feature)
+    Astrolabe {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Run the Auditor to find code smells (Requires "nova" feature)
     Audit {
         /// Input file (.γλ)
