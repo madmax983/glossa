@@ -126,8 +126,10 @@ fn extract_strings_from_stmt(stmt: &AnalyzedStatement, strings: &mut Vec<String>
         AnalyzedStatement::TraitDefinition { .. } => {}
         AnalyzedStatement::TraitImplementation { methods, .. } => {
             for method in methods {
-                for s in &method.body {
-                    extract_strings_from_stmt(s, strings);
+                if let Some(body) = &method.body {
+                    for s in body {
+                        extract_strings_from_stmt(s, strings);
+                    }
                 }
             }
         }
