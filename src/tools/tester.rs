@@ -281,11 +281,20 @@ fn execute_test_binary(exe_path: &Path, status: &mut Status) -> Result<std::proc
 }
 
 fn print_test_results(results: &[TestResult], test_output: &std::process::Output, stdout: &str) {
+    print_header();
+    print_summary(results, test_output);
+    print_results_table(results);
+    print_failures(test_output, stdout);
+}
+
+fn print_header() {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
     println!("   {}", "Unit Test Results".italic().dim());
     println!();
+}
 
+fn print_summary(results: &[TestResult], test_output: &std::process::Output) {
     if test_output.status.success() {
         if !results.is_empty() {
             let mut success_table = Table::new();
@@ -311,7 +320,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         println!("{failure_table}");
         println!();
     }
+}
 
+fn print_results_table(results: &[TestResult]) {
     if !results.is_empty() {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
@@ -355,8 +366,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         ]);
         println!("{empty_table}");
     }
+}
 
-    // If there were failures, try to extract and print them nicely
+fn print_failures(test_output: &std::process::Output, stdout: &str) {
     if !test_output.status.success() {
         println!();
         println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
@@ -378,7 +390,15 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                 // Create a box for the error message using comfy_table
                 let mut error_table = Table::new();
                 error_table.load_preset(presets::UTF8_FULL);
-                error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
+                error_table.add_row(vec![
+                    Cell::new(format!(
+                        "
+{}
+",
+                        msg
+                    ))
+                    .fg(Color::Red),
+                ]);
                 println!("{error_table}");
                 println!();
             }
