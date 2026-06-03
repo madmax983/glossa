@@ -178,9 +178,9 @@ fn main() -> Result<()> {
             );
         }
 
-        Some(Commands::Gnomon { input }) => {
+        Some(Commands::Gnomon { input: _input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::gnomon::run_gnomon(&input)?;
+            glossa::tools::gnomon::run_gnomon(&_input)?;
 
             #[cfg(not(feature = "nova"))]
             miette::bail!(
