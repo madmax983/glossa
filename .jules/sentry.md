@@ -92,3 +92,6 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+**[Semantic Patterns Coverage]**
+**Learning:** In `src/semantic/patterns.rs`, `try_parse_struct_instantiation` handles the pattern `var νέον Type ... ἔστω`. It previously had a test `test_try_parse_struct_instantiation_non_struct_type` that covered the case where the type exists in scope but is not a struct. It lacked test coverage for the branch where the type name is completely unknown, which returns an `Err(GlossaError::undefined(type_name))`.
+**Action:** Added `test_try_parse_struct_instantiation_unknown_type` inside a `#[cfg(test)] mod sentry_tests` block to instantiate an `UnknownType`, covering the `Err` return and bringing the parser safety checks to 100% coverage for this function.
