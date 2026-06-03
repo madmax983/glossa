@@ -228,4 +228,75 @@ mod tests {
         visit_statement(&outer_loop, 0, &mut max_depth);
         assert_eq!(max_depth, 2);
     }
+
+    #[test]
+    fn test_gnomon_if_statement() {
+        let mut max_depth = 0;
+        let inner_loop = AnalyzedStatement::While {
+            condition: dummy_expr(),
+            body: vec![],
+        };
+        let stmt = AnalyzedStatement::If {
+            condition: dummy_expr(),
+            then_body: vec![inner_loop.clone()],
+            else_body: Some(vec![inner_loop]),
+        };
+        visit_statement(&stmt, 0, &mut max_depth);
+        assert_eq!(max_depth, 1);
+    }
+
+    #[test]
+    fn test_gnomon_match_statement() {
+        let mut max_depth = 0;
+        let inner_loop = AnalyzedStatement::While {
+            condition: dummy_expr(),
+            body: vec![],
+        };
+        let stmt = AnalyzedStatement::Match {
+            scrutinee: dummy_expr(),
+            arms: vec![(*dummy_expr(), vec![inner_loop])],
+        };
+        visit_statement(&stmt, 0, &mut max_depth);
+        assert_eq!(max_depth, 1);
+    }
+
+    #[test]
+    fn test_gnomon_function_def() {
+        let mut max_depth = 0;
+        let inner_loop = AnalyzedStatement::While {
+            condition: dummy_expr(),
+            body: vec![],
+        };
+        let stmt = AnalyzedStatement::FunctionDef {
+            name: SmolStr::new("f"),
+            params: vec![],
+            return_type: None,
+            body: vec![inner_loop],
+        };
+        visit_statement(&stmt, 0, &mut max_depth);
+        assert_eq!(max_depth, 1);
+    }
+
+    #[test]
+    fn test_gnomon_test_decl() {
+        let mut max_depth = 0;
+        let inner_loop = AnalyzedStatement::While {
+            condition: dummy_expr(),
+            body: vec![],
+        };
+        let stmt = AnalyzedStatement::TestDeclaration {
+            name: "t".to_string(),
+            body: vec![inner_loop],
+        };
+        visit_statement(&stmt, 0, &mut max_depth);
+        assert_eq!(max_depth, 1);
+    }
+
+    #[test]
+    fn test_gnomon_other_statement() {
+        let mut max_depth = 0;
+        let stmt = AnalyzedStatement::Print(vec![]);
+        visit_statement(&stmt, 0, &mut max_depth);
+        assert_eq!(max_depth, 0);
+    }
 }

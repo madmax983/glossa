@@ -9,6 +9,6 @@
 **Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
 
 ## [Reduction]
-**Bloat:** `GnomonVisitor` in `src/tools/gnomon.rs` used an object-oriented builder pattern for AST traversal.
-**Cut:** Flattened the object into pure procedural functions passing mutable references to state.
-**Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+**Bloat:** Uncovered branches in Gnomon AST traversal due to test suite gaps after flattening the `GnomonVisitor` struct.
+**Cut:** Eliminated coverage gaps by injecting direct unit tests for branching AST nodes (If, Match, FunctionDef, TestDeclaration) to exercise the recursive pure function `visit_statement`.
+**Saved:** Restored diff coverage to 100% and ensured AST traversal correctness.
