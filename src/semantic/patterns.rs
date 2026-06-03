@@ -1257,6 +1257,25 @@ mod tests {
     }
 
     #[test]
+    fn test_try_parse_struct_instantiation_unknown_type() {
+        let mut scope = Scope::new();
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![crate::ast::Expr::Phrase(vec![
+                    crate::ast::Expr::Word(crate::ast::Word::new("var")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("νεον")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("UnknownType")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("ἔστω")),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = try_parse_struct_instantiation(&stmt, &mut scope);
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn test_try_parse_struct_instantiation_non_struct_type() {
         let mut scope = Scope::new();
         // Define a type that is NOT a Struct
