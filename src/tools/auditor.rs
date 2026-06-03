@@ -14,8 +14,8 @@
 //!
 //! The [`run_auditor`](crate::tools::auditor::run_auditor) function drives the analysis:
 //! 1. The code is parsed and semantically analyzed.
-//! 2. A custom visitor (`AuditorVisitor`) traverses every statement and expression in the AST.
-//! 3. The visitor tracks variable declarations, usages, and reassignments using HashMaps and HashSets.
+//! 2. A simple `visit_statement` function traverses every statement and expression in the AST.
+//! 3. The traversal tracks variable declarations, usages, and reassignments using HashMaps and HashSets.
 //! 4. After traversal, the findings are cross-referenced to produce a final report,
 //!    which is displayed in a stylized terminal table.
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
@@ -28,6 +28,159 @@ use miette::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 use std::path::Path;
+
+struct AuditorState {
+    usage_count: FxHashMap<SmolStr, usize>,
+    mutation_count: FxHashMap<SmolStr, usize>,
+    mutable_vars: FxHashSet<SmolStr>,
+}
+
+fn visit_expr(expr: &AnalyzedExpr, state: &mut AuditorState) {
+    match &expr.expr {
+        AnalyzedExprKind::Variable(name) => {
+            if let Some(count) = state.usage_count.get_mut(name) {
+                *count += 1;
+            }
+        }
+        AnalyzedExprKind::BinOp { left, right, .. } => {
+            visit_expr(left, state);
+            visit_expr(right, state);
+        }
+        AnalyzedExprKind::UnaryOp { operand, .. } => visit_expr(operand, state),
+        AnalyzedExprKind::StructInstantiation { args, .. } => visit_exprs(args, state),
+        AnalyzedExprKind::PropertyAccess { owner, .. } => visit_expr(owner, state),
+        AnalyzedExprKind::MethodCall { receiver, args, .. } => {
+            visit_expr(receiver, state);
+            visit_exprs(args, state);
+        }
+        AnalyzedExprKind::FunctionCall { args, .. } => visit_exprs(args, state),
+        AnalyzedExprKind::VerbCall { args, .. } => visit_exprs(args, state),
+        AnalyzedExprKind::ArrayLiteral(exprs) => visit_exprs(exprs, state),
+        AnalyzedExprKind::IndexAccess { array, index } => {
+            visit_expr(array, state);
+            visit_expr(index, state);
+        }
+        AnalyzedExprKind::Lambda { body, .. } => visit_expr(body, state),
+        AnalyzedExprKind::Some(inner) => visit_expr(inner, state),
+        AnalyzedExprKind::Ok(inner) => visit_expr(inner, state),
+        AnalyzedExprKind::Err(inner) => visit_expr(inner, state),
+        AnalyzedExprKind::Unwrap(inner) => visit_expr(inner, state),
+        AnalyzedExprKind::Try(inner) => visit_expr(inner, state),
+        AnalyzedExprKind::Assert { condition } => visit_expr(condition, state),
+        AnalyzedExprKind::AssertEq { left, right } => {
+            visit_expr(left, state);
+            visit_expr(right, state);
+        }
+        AnalyzedExprKind::Range { start, end, .. } => {
+            visit_expr(start, state);
+            visit_expr(end, state);
+        }
+        AnalyzedExprKind::NumberLiteral(_)
+        | AnalyzedExprKind::StringLiteral(_)
+        | AnalyzedExprKind::BooleanLiteral(_)
+        | AnalyzedExprKind::None
+        | AnalyzedExprKind::CollectionNew { .. } => {}
+    }
+}
+
+fn visit_exprs(exprs: &[AnalyzedExpr], state: &mut AuditorState) {
+    for expr in exprs {
+        visit_expr(expr, state);
+    }
+}
+
+fn visit_statement(stmt: &AnalyzedStatement, state: &mut AuditorState) {
+    match stmt {
+        AnalyzedStatement::Binding {
+            name,
+            value,
+            mutable,
+        } => {
+            state.usage_count.insert(name.clone(), 0);
+            state.mutation_count.insert(name.clone(), 0);
+            if *mutable {
+                state.mutable_vars.insert(name.clone());
+            }
+            visit_expr(value, state);
+        }
+        AnalyzedStatement::Assignment { name, value } => {
+            if let Some(count) = state.mutation_count.get_mut(name) {
+                *count += 1;
+            }
+            if let Some(count) = state.usage_count.get_mut(name) {
+                *count += 1;
+            }
+            visit_expr(value, state);
+        }
+        AnalyzedStatement::Print(exprs) => visit_exprs(exprs, state),
+        AnalyzedStatement::Expression(exprs) => visit_exprs(exprs, state),
+        AnalyzedStatement::Query(exprs) => visit_exprs(exprs, state),
+        AnalyzedStatement::If {
+            condition,
+            then_body,
+            else_body,
+        } => {
+            visit_expr(condition, state);
+            for s in then_body {
+                visit_statement(s, state);
+            }
+            if let Some(else_stmts) = else_body {
+                for s in else_stmts {
+                    visit_statement(s, state);
+                }
+            }
+        }
+        AnalyzedStatement::While { condition, body } => {
+            visit_expr(condition, state);
+            for s in body {
+                visit_statement(s, state);
+            }
+        }
+        AnalyzedStatement::For {
+            variable,
+            iterator,
+            body,
+        } => {
+            state.usage_count.insert(variable.clone(), 0);
+            visit_expr(iterator, state);
+            for s in body {
+                visit_statement(s, state);
+            }
+        }
+        AnalyzedStatement::Match { scrutinee, arms } => {
+            visit_expr(scrutinee, state);
+            for (expr, stmts) in arms {
+                visit_expr(expr, state);
+                for s in stmts {
+                    visit_statement(s, state);
+                }
+            }
+        }
+        AnalyzedStatement::FunctionDef { params, body, .. } => {
+            for (param_name, _) in params {
+                state.usage_count.insert(param_name.clone(), 0);
+            }
+            for s in body {
+                visit_statement(s, state);
+            }
+        }
+        AnalyzedStatement::Return { value } => {
+            if let Some(v) = value {
+                visit_expr(v, state);
+            }
+        }
+        AnalyzedStatement::TestDeclaration { body, .. } => {
+            for s in body {
+                visit_statement(s, state);
+            }
+        }
+        AnalyzedStatement::Break
+        | AnalyzedStatement::Continue
+        | AnalyzedStatement::TypeDefinition { .. }
+        | AnalyzedStatement::TraitDefinition { .. }
+        | AnalyzedStatement::TraitImplementation { .. } => {}
+    }
+}
 
 /// Runs the Auditor tool on a given Glossa source file.
 ///
@@ -76,9 +229,13 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 
     status.success();
 
-    let mut visitor = AuditorVisitor::new();
+    let mut state = AuditorState {
+        usage_count: FxHashMap::default(),
+        mutation_count: FxHashMap::default(),
+        mutable_vars: FxHashSet::default(),
+    };
     for stmt in &program.statements {
-        visitor.visit_statement(stmt);
+        visit_statement(stmt, &mut state);
     }
 
     let mut issues = 0;
@@ -101,7 +258,7 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         Cell::new("Message").add_attribute(Attribute::Bold),
     ]);
 
-    for (var, count) in &visitor.usage_count {
+    for (var, count) in &state.usage_count {
         if *count == 0 {
             table.add_row(vec![
                 Cell::new("⚠️ Unused Variable").fg(Color::Yellow),
@@ -112,10 +269,10 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         }
     }
 
-    for (var, count) in &visitor.mutation_count {
+    for (var, count) in &state.mutation_count {
         if *count == 0
-            && visitor.mutable_vars.contains(var)
-            && visitor.usage_count.get(var).unwrap_or(&0) > &0
+            && state.mutable_vars.contains(var)
+            && state.usage_count.get(var).unwrap_or(&0) > &0
         {
             table.add_row(vec![
                 Cell::new("💡 Unnecessary Mutation").fg(Color::Blue),
@@ -140,233 +297,19 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     Ok(())
 }
 
-struct AuditorVisitor {
-    /// ⚡ Bolt Optimization: Uses `FxHashMap` instead of the standard `HashMap`
-    /// to reduce cryptographic hashing overhead for small string keys (`SmolStr`).
-    usage_count: FxHashMap<SmolStr, usize>,
-    mutation_count: FxHashMap<SmolStr, usize>,
-    mutable_vars: FxHashSet<SmolStr>,
-}
-
-impl AuditorVisitor {
-    fn new() -> Self {
-        Self {
-            usage_count: FxHashMap::default(),
-            mutation_count: FxHashMap::default(),
-            mutable_vars: FxHashSet::default(),
-        }
-    }
-
-    fn visit_if_statement(
-        &mut self,
-        condition: &AnalyzedExpr,
-        then_body: &[AnalyzedStatement],
-        else_body: &Option<Vec<AnalyzedStatement>>,
-    ) {
-        self.visit_expr(condition);
-        for s in then_body {
-            self.visit_statement(s);
-        }
-        if let Some(else_stmts) = else_body {
-            for s in else_stmts {
-                self.visit_statement(s);
-            }
-        }
-    }
-
-    fn visit_while_loop(&mut self, condition: &AnalyzedExpr, body: &[AnalyzedStatement]) {
-        self.visit_expr(condition);
-        for s in body {
-            self.visit_statement(s);
-        }
-    }
-
-    fn visit_for_loop(
-        &mut self,
-        variable: &smol_str::SmolStr,
-        iterator: &AnalyzedExpr,
-        body: &[AnalyzedStatement],
-    ) {
-        self.usage_count.insert(variable.clone(), 0);
-        self.visit_expr(iterator);
-        for s in body {
-            self.visit_statement(s);
-        }
-    }
-
-    fn visit_match_statement(
-        &mut self,
-        scrutinee: &AnalyzedExpr,
-        arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
-    ) {
-        self.visit_expr(scrutinee);
-        for (expr, stmts) in arms {
-            self.visit_expr(expr);
-            for s in stmts {
-                self.visit_statement(s);
-            }
-        }
-    }
-
-    fn visit_function_def(
-        &mut self,
-        params: &[(smol_str::SmolStr, Option<crate::semantic::GlossaType>)],
-        body: &[AnalyzedStatement],
-    ) {
-        for (param_name, _) in params {
-            self.usage_count.insert(param_name.clone(), 0);
-        }
-        for s in body {
-            self.visit_statement(s);
-        }
-    }
-
-    fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
-        match stmt {
-            AnalyzedStatement::Binding {
-                name,
-                value,
-                mutable,
-            } => {
-                self.usage_count.insert(name.clone(), 0);
-                self.mutation_count.insert(name.clone(), 0);
-                if *mutable {
-                    self.mutable_vars.insert(name.clone());
-                }
-                self.visit_expr(value);
-            }
-            AnalyzedStatement::Assignment { name, value } => {
-                if let Some(count) = self.mutation_count.get_mut(name) {
-                    *count += 1;
-                }
-                if let Some(count) = self.usage_count.get_mut(name) {
-                    *count += 1;
-                }
-                self.visit_expr(value);
-            }
-            AnalyzedStatement::Print(exprs) => {
-                for expr in exprs {
-                    self.visit_expr(expr);
-                }
-            }
-            AnalyzedStatement::Expression(exprs) => {
-                for expr in exprs {
-                    self.visit_expr(expr);
-                }
-            }
-            AnalyzedStatement::Query(exprs) => {
-                for expr in exprs {
-                    self.visit_expr(expr);
-                }
-            }
-            AnalyzedStatement::If {
-                condition,
-                then_body,
-                else_body,
-            } => {
-                self.visit_if_statement(condition, then_body, else_body);
-            }
-            AnalyzedStatement::While { condition, body } => {
-                self.visit_while_loop(condition, body);
-            }
-            AnalyzedStatement::For {
-                variable,
-                iterator,
-                body,
-            } => {
-                self.visit_for_loop(variable, iterator, body);
-            }
-            AnalyzedStatement::Match { scrutinee, arms } => {
-                self.visit_match_statement(scrutinee, arms);
-            }
-            AnalyzedStatement::FunctionDef { params, body, .. } => {
-                self.visit_function_def(params, body);
-            }
-            AnalyzedStatement::Return { value } => {
-                if let Some(v) = value {
-                    self.visit_expr(v);
-                }
-            }
-            AnalyzedStatement::TestDeclaration { body, .. } => {
-                for s in body {
-                    self.visit_statement(s);
-                }
-            }
-            AnalyzedStatement::Break
-            | AnalyzedStatement::Continue
-            | AnalyzedStatement::TypeDefinition { .. }
-            | AnalyzedStatement::TraitDefinition { .. }
-            | AnalyzedStatement::TraitImplementation { .. } => {}
-        }
-    }
-
-    fn visit_exprs(&mut self, exprs: &[AnalyzedExpr]) {
-        for expr in exprs {
-            self.visit_expr(expr);
-        }
-    }
-
-    fn visit_expr(&mut self, expr: &AnalyzedExpr) {
-        match &expr.expr {
-            AnalyzedExprKind::Variable(name) => {
-                if let Some(count) = self.usage_count.get_mut(name) {
-                    *count += 1;
-                }
-            }
-            AnalyzedExprKind::BinOp { left, right, .. } => {
-                self.visit_expr(left);
-                self.visit_expr(right);
-            }
-            AnalyzedExprKind::UnaryOp { operand, .. } => self.visit_expr(operand),
-            AnalyzedExprKind::StructInstantiation { args, .. } => self.visit_exprs(args),
-            AnalyzedExprKind::PropertyAccess { owner, .. } => self.visit_expr(owner),
-            AnalyzedExprKind::MethodCall { receiver, args, .. } => {
-                self.visit_expr(receiver);
-                self.visit_exprs(args);
-            }
-            AnalyzedExprKind::FunctionCall { args, .. } => self.visit_exprs(args),
-            AnalyzedExprKind::VerbCall { args, .. } => self.visit_exprs(args),
-            AnalyzedExprKind::ArrayLiteral(exprs) => self.visit_exprs(exprs),
-            AnalyzedExprKind::IndexAccess { array, index } => {
-                self.visit_expr(array);
-                self.visit_expr(index);
-            }
-            AnalyzedExprKind::Lambda { body, .. } => self.visit_expr(body),
-            AnalyzedExprKind::Some(inner) => self.visit_expr(inner),
-            AnalyzedExprKind::Ok(inner) => self.visit_expr(inner),
-            AnalyzedExprKind::Err(inner) => self.visit_expr(inner),
-            AnalyzedExprKind::Unwrap(inner) => self.visit_expr(inner),
-            AnalyzedExprKind::Try(inner) => self.visit_expr(inner),
-            AnalyzedExprKind::Assert { condition } => self.visit_expr(condition),
-            AnalyzedExprKind::AssertEq { left, right } => {
-                self.visit_expr(left);
-                self.visit_expr(right);
-            }
-            AnalyzedExprKind::Range { start, end, .. } => {
-                self.visit_expr(start);
-                self.visit_expr(end);
-            }
-            AnalyzedExprKind::NumberLiteral(_)
-            | AnalyzedExprKind::StringLiteral(_)
-            | AnalyzedExprKind::BooleanLiteral(_)
-            | AnalyzedExprKind::None
-            | AnalyzedExprKind::CollectionNew { .. } => {}
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::semantic::{AnalyzedExpr, AnalyzedExprKind};
     use std::io::Write;
 
     #[test]
-    fn test_auditor_unused_var() {
+    fn test_auditor_unused_variable() {
         let dir = tempfile::tempdir().unwrap();
         let input_path = dir.path().join("unused.γλ");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("ξ 10 ἔστω.\n".as_bytes()).unwrap();
+            f.write_all("ξ 5 ἔστω.\n".as_bytes()).unwrap();
         }
 
         let result = run_auditor(&input_path);
@@ -379,7 +322,7 @@ mod tests {
         let input_path = dir.path().join("mut.γλ");
         {
             let mut f = std::fs::File::create(&input_path).unwrap();
-            f.write_all("μετά ξ 10 ἔστω. ξ λέγε.\n".as_bytes()).unwrap();
+            f.write_all("μετὰ ξ 5 ἔστω.\nξ λέγε.\n".as_bytes()).unwrap();
         }
 
         let result = run_auditor(&input_path);
@@ -394,8 +337,12 @@ mod tests {
     }
 
     #[test]
-    fn test_auditor_visitor_coverage_statements() {
-        let mut visitor = AuditorVisitor::new();
+    fn test_auditor_coverage_statements() {
+        let mut state = AuditorState {
+            usage_count: FxHashMap::default(),
+            mutation_count: FxHashMap::default(),
+            mutable_vars: FxHashSet::default(),
+        };
 
         let statements = vec![
             AnalyzedStatement::Binding {
@@ -503,13 +450,17 @@ mod tests {
         ];
 
         for stmt in statements {
-            visitor.visit_statement(&stmt);
+            visit_statement(&stmt, &mut state);
         }
     }
 
     #[test]
-    fn test_auditor_visitor_coverage_expressions() {
-        let mut visitor = AuditorVisitor::new();
+    fn test_auditor_coverage_expressions() {
+        let mut state = AuditorState {
+            usage_count: FxHashMap::default(),
+            mutation_count: FxHashMap::default(),
+            mutable_vars: FxHashSet::default(),
+        };
 
         let exprs = vec![
             AnalyzedExprKind::Variable("x".into()),
@@ -605,7 +556,7 @@ mod tests {
                 expr: kind,
                 glossa_type: crate::semantic::GlossaType::Boolean,
             };
-            visitor.visit_expr(&expr);
+            visit_expr(&expr, &mut state);
         }
     }
 
