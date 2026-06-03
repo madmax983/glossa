@@ -69,3 +69,57 @@ fn test_astrolabe_more_expressions() {
     let res = run_astrolabe(&file_path);
     assert!(res.is_ok());
 }
+
+#[cfg(feature = "nova")]
+#[test]
+fn test_astrolabe_loops_and_match() {
+    use glossa::tools::astrolabe::run_astrolabe;
+    let _code = "
+    ἕως ἀληθές, παῦε.
+    ";
+
+    let dir = tempfile::tempdir().unwrap();
+    let file_path = dir.path().join("astrolabe_loops_test.gl");
+    std::fs::write(&file_path, _code).unwrap();
+
+    let res = run_astrolabe(&file_path);
+    assert!(res.is_ok());
+}
+
+#[cfg(feature = "nova")]
+#[cfg(feature = "nova")]
+#[test]
+fn test_astrolabe_match() {
+    use glossa::tools::astrolabe::run_astrolabe;
+    let _code = "
+    x 1 ἔστω.
+    ";
+
+    let dir = tempfile::tempdir().unwrap();
+    let file_path = dir.path().join("astrolabe_match_test.gl");
+    std::fs::write(&file_path, _code).unwrap();
+
+    let _res = run_astrolabe(&file_path);
+}
+
+#[cfg(feature = "nova")]
+#[test]
+fn test_astrolabe_extract_expressions_full() {
+    use glossa::tools::astrolabe::run_astrolabe;
+    let _code = r#"
+    πρόσθεσις ὁρίζειν τῷ α ἀριθμοῦ τῷ β ἀριθμοῦ · α β ἄθροισμα δός.
+    «χαῖρε»!
+    «κόσμε»;
+    τί «value».
+    οὐδέν.
+    ἐπιτυχία «success».
+    σφάλμα «error».
+    [«1», «2»].
+    "#;
+
+    let dir = tempfile::tempdir().unwrap();
+    let file_path = dir.path().join("astrolabe_expr_full.gl");
+    std::fs::write(&file_path, _code).unwrap();
+
+    let _res = run_astrolabe(&file_path);
+}
