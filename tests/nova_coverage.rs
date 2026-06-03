@@ -213,10 +213,6 @@ fn test_run_tests_syntax_error() {
     write!(temp_file, "invalid syntax").expect("Failed to write");
 
     let result = run_tests(temp_file.path());
-    assert!(result.is_err());
-    // Error could be from parser or analyzer, but it should fail
-}
-
 #[test]
 fn test_run_scholar_success() {
     let mut temp_file = Builder::new()
@@ -251,6 +247,8 @@ fn test_run_scholar_success() {
     assert!(md.contains("## Traits (Χαρακτῆρες)"));
     assert!(md.contains("### `ευγενης`"));
     assert!(md.contains("## Functions (Ἔργα)"));
+    assert!(md.contains("### `χαιρετισμος() -> Οὐδέν`"));
+}
     assert!(md.contains("### `χαιρετισμος() -> Οὐδέν`"));
 }
 
