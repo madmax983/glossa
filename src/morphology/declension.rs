@@ -234,7 +234,11 @@ pub fn analyze_noun_all_into(word: &str, analyses: &mut Vec<MorphAnalysis>) {
             {
                 Cow::Owned(word.to_string())
             } else {
-                Cow::Owned(format!("{}{}", stem, decl.nom_ending))
+                // ⚡ Bolt Optimization: Use `String::with_capacity` and `push_str` instead of `format!` to avoid macro overhead.
+                let mut s = String::with_capacity(stem.len() + decl.nom_ending.len());
+                s.push_str(stem);
+                s.push_str(decl.nom_ending);
+                Cow::Owned(s)
             };
 
             analyses.push(MorphAnalysis {

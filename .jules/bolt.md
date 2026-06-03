@@ -8,3 +8,6 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+**Optimize lemma allocation in declension analysis
+**Learning:** Modern Rust (1.62+) is often good at optimizing `format!` for simple concatenations, but manually allocating a String with `String::with_capacity` and using `push_str` guarantees we bypass the formatting macro machinery overhead entirely.
+**Action:** Use manual String allocation and push for highly-executed hot paths (like morphology analysis) instead of `format!`.
