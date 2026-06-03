@@ -13,8 +13,7 @@ use std::path::Path;
 /// Run the Astrolabe string extractor
 pub fn run_astrolabe(input: &Path) -> Result<()> {
     let source = crate::tools::runner::load_source(input)?;
-    let status =
-        crate::tools::ui::Status::start_with_symbol("Ἀστρολάβος (Extracting Strings)", "🧭");
+    let status = crate::tools::ui::Status::start_with_symbol("Ἀστρολάβος (Extracting Strings)", "🧭");
 
     let program = match crate::tools::runner::analyze_source(&source) {
         Ok(p) => p,
@@ -76,11 +75,7 @@ fn extract_strings_from_stmt(stmt: &AnalyzedStatement, strings: &mut Vec<String>
                 extract_strings_from_expr(e, strings);
             }
         }
-        AnalyzedStatement::If {
-            condition,
-            then_body,
-            else_body,
-        } => {
+        AnalyzedStatement::If { condition, then_body, else_body } => {
             extract_strings_from_expr(condition, strings);
             for s in then_body {
                 extract_strings_from_stmt(s, strings);

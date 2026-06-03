@@ -26,11 +26,6 @@ pub mod alchemist;
 pub mod auditor;
 pub(crate) mod cache;
 pub use cache::Cache;
-/// The Astrolabe (ὁ Ἀστρολάβος) tool for extracting translatable strings.
-///
-/// This experimental tool traverses the AST and outputs all String literals.
-#[cfg(feature = "nova")]
-pub mod astrolabe;
 #[cfg(feature = "nova")]
 pub mod cartographer;
 #[cfg(feature = "nova")]
@@ -41,7 +36,13 @@ pub mod dictionary;
 ///
 /// This experimental tool exports the analyzed program as a Graphviz DOT diagram.
 #[cfg(feature = "nova")]
+#[cfg(feature = "nova")]
 pub mod gnomon;
+/// The Astrolabe (ὁ Ἀστρολάβος) tool for extracting translatable strings.
+///
+/// This experimental tool traverses the AST and outputs all String literals.
+#[cfg(feature = "nova")]
+pub mod astrolabe;
 #[cfg(feature = "nova")]
 pub mod haruspex;
 pub mod highlight;
