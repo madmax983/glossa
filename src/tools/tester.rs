@@ -257,10 +257,15 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
         }
 
         status.error("Σφάλμα μεταγλωττίσεως δοκιμῶν (Test Compilation Error)");
+
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
+        table.add_row(vec![Cell::new(clean_stderr.trim()).fg(Color::Red)]);
+
         return Err(miette::miette!(
             "{}\n{}",
-            "Rustc Error:".red(),
-            clean_stderr.trim()
+            "Rustc Error:".red().bold(),
+            table
         ));
     }
 
@@ -384,10 +389,15 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
             }
         } else {
             // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
+            let mut fallback_table = Table::new();
+            fallback_table.load_preset(presets::UTF8_FULL);
+            fallback_table.add_row(vec![Cell::new(stdout.trim()).fg(Color::Yellow)]);
+
             if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+                let stderr_str = String::from_utf8_lossy(&test_output.stderr);
+                fallback_table.add_row(vec![Cell::new(stderr_str.trim()).fg(Color::Red)]);
             }
+            println!("{}\n{}", "Raw Output:".yellow().bold(), fallback_table);
         }
     }
 }
