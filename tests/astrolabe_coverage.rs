@@ -123,3 +123,19 @@ fn test_astrolabe_extract_expressions_full() {
 
     let _res = run_astrolabe(&file_path);
 }
+
+#[cfg(feature = "nova")]
+#[test]
+fn test_astrolabe_various_constructs_coverage() {
+    use glossa::tools::astrolabe::run_astrolabe;
+    let _code = r#"
+    «loop»?
+    ξ «1» γίγνεται.
+    "#;
+
+    let dir = tempfile::tempdir().unwrap();
+    let file_path = dir.path().join("astrolabe_various_coverage.gl");
+    std::fs::write(&file_path, _code).unwrap();
+
+    let _res = run_astrolabe(&file_path);
+}
