@@ -307,7 +307,6 @@ fn visit_expr(expr: &AnalyzedExpr, usage_count: &mut FxHashMap<SmolStr, usize>) 
 }
 
 #[cfg(test)]
-#[allow(unused_mut, unused_variables)]
 mod tests {
     use super::*;
     use std::io::Write;
@@ -469,8 +468,6 @@ mod tests {
     #[test]
     fn test_auditor_visitor_coverage_expressions() {
         let mut usage_count: FxHashMap<SmolStr, usize> = FxHashMap::default();
-        let mut mutation_count: FxHashMap<SmolStr, usize> = FxHashMap::default();
-        let mut mutable_vars: FxHashSet<SmolStr> = FxHashSet::default();
 
         let exprs = vec![
             AnalyzedExprKind::Variable("x".into()),
