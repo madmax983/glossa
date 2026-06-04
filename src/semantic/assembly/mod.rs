@@ -833,6 +833,7 @@ impl Assembler {
     fn check_special_properties(&mut self, normalized: &str) -> Result<bool, AssemblyError> {
         // Numeral words
         if let Some(value) = crate::morphology::lexicon::numeral_value(normalized) {
+            Self::check_limit(self.state.literals.len(), MAX_LITERALS, "Literals")?;
             self.state.literals.push(Literal::Number(value));
             return Ok(true);
         }

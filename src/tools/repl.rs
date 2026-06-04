@@ -64,7 +64,7 @@ pub fn run_repl() -> Result<()> {
 }
 
 /// Internal REPL loop that can be tested with arbitrary streams
-fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
+pub fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result<()> {
     let mut context = ReplContext::new();
 
     loop {
@@ -73,7 +73,10 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
         let _ = output.flush();
 
         let mut line = String::new();
-        let bytes = input.read_line(&mut line).into_diagnostic()?;
+        // Prevent unbounded memory growth by limiting read to slightly more than MAX_REPL_SOURCE_LEN
+        let mut limit_reader =
+            std::io::Read::take(input.by_ref(), MAX_REPL_SOURCE_LEN as u64 + 1024);
+        let bytes = limit_reader.read_line(&mut line).into_diagnostic()?;
 
         // Handle EOF
         if bytes == 0 {
