@@ -152,7 +152,11 @@ impl Status {
 
         let msg = self.message.as_str().bold().to_string();
         self.print_done("✕".red(), &msg);
-        eprintln!("{}", err);
+
+        let err_str = err.to_string();
+        if !err_str.is_empty() {
+            eprintln!("{}", err_str.dim());
+        }
         self.active = false;
     }
 

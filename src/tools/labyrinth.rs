@@ -39,7 +39,7 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
     let program = match crate::tools::runner::analyze_source(source) {
         Ok(p) => p,
         Err(e) => {
-            status.error("Σφάλμα (Error)");
+            status.error("Σφάλμα ἀναλύσεως (Analysis Error)");
             return Err(e);
         }
     };
