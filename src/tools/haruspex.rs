@@ -13,6 +13,7 @@
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
+use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
@@ -64,20 +65,36 @@ fn print_dashboard(dot: &str, is_tty: bool) {
         let actual_nodes = dot.lines().filter(|l| l.contains("[label=")).count();
         let edges = dot.matches("->").count();
 
-        println!("   {} {}", "Nodes:".bold(), actual_nodes.to_string().cyan());
-        println!("   {} {}", "Edges:".bold(), edges.to_string().cyan());
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
+        table.set_header(vec![
+            Cell::new("Metric")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("Count")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+        ]);
+        table.add_row(vec![
+            Cell::new("Nodes"),
+            Cell::new(actual_nodes.to_string()),
+        ]);
+        table.add_row(vec![Cell::new("Edges"), Cell::new(edges.to_string())]);
+        println!("{}", table);
         println!();
+        println!("   {}", "📋 Usage Instructions:".bold().underlined());
         println!(
             "   {}",
             "To view the graph, pipe this command to a file or tool:".dim()
         );
         println!(
             "   {}",
-            "cargo run --features nova --bin glossa -- haruspex <file> > ast.dot".dim()
+            "cargo run --features nova --bin glossa -- haruspex <file> > ast.dot".cyan()
         );
         println!(
             "   {}",
-            "cargo run --features nova --bin glossa -- haruspex <file> | dot -Tpng > ast.png".dim()
+            "cargo run --features nova --bin glossa -- haruspex <file> | dot -Tpng > ast.png"
+                .cyan()
         );
         println!();
     } else {
