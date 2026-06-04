@@ -296,7 +296,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                     .fg(Color::White)
                     .add_attribute(Attribute::Bold),
             ]);
-            println!("{success_table}");
+            let success_table_str = success_table.to_string();
+            let indented_table = success_table_str.replace("\n", "\n   ");
+            println!("   {indented_table}");
             println!();
         }
     } else {
@@ -308,7 +310,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                 .fg(Color::White)
                 .add_attribute(Attribute::Bold),
         ]);
-        println!("{failure_table}");
+        let failure_table_str = failure_table.to_string();
+        let indented_table = failure_table_str.replace("\n", "\n   ");
+        println!("   {indented_table}");
         println!();
     }
 
@@ -338,7 +342,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
-        println!("{table}");
+        let table_str = table.to_string();
+        let indented_table = table_str.replace("\n", "\n   ");
+        println!("   {indented_table}");
     } else {
         let mut empty_table = Table::new();
         empty_table.load_preset(presets::UTF8_FULL);
@@ -353,13 +359,15 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                 .add_attribute(Attribute::Italic)
                 .set_alignment(CellAlignment::Center),
         ]);
-        println!("{empty_table}");
+        let empty_table_str = empty_table.to_string();
+        let indented_table = empty_table_str.replace("\n", "\n   ");
+        println!("   {indented_table}");
     }
 
     // If there were failures, try to extract and print them nicely
     if !test_output.status.success() {
         println!();
-        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+        println!("   {}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
 
         let failures = extract_failures(stdout);
 
@@ -373,20 +381,29 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                         .fg(Color::White)
                         .add_attribute(Attribute::Bold),
                 ]);
-                println!("{header_table}");
+                println!("   {header_table}");
 
                 // Create a box for the error message using comfy_table
                 let mut error_table = Table::new();
                 error_table.load_preset(presets::UTF8_FULL);
                 error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
-                println!("{error_table}");
+
+                // Indent the table by replacing newlines
+                let error_table_str = error_table.to_string();
+                let indented_table = error_table_str.replace("\n", "\n   ");
+                println!("   {indented_table}");
                 println!();
             }
         } else {
             // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
+            println!("   {}", stdout.replace("\n", "\n   "));
             if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+                println!(
+                    "   {}",
+                    String::from_utf8_lossy(&test_output.stderr)
+                        .replace("\n", "\n   ")
+                        .red()
+                );
             }
         }
     }
@@ -426,7 +443,7 @@ pub fn run_tests(input: &Path) -> Result<()> {
     let analyzed = match crate::tools::runner::analyze_source(&source) {
         Ok(a) => a,
         Err(e) => {
-            status.error("Σφάλμα (Error)");
+            status.error("Σφάλμα ἀναλύσεως (Analysis Error)");
             return Err(e);
         }
     };

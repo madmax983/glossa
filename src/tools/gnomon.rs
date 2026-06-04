@@ -139,7 +139,7 @@ pub fn run_gnomon(input: &Path) -> Result<()> {
     let program = match crate::tools::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
-            status.error("Σφάλμα (Error)");
+            status.error("Σφάλμα ἀναλύσεως (Analysis Error)");
             return Err(e);
         }
     };

@@ -413,7 +413,7 @@ pub fn check_file(input: &Path) -> Result<()> {
     let _analyzed = match analyze_source(&source) {
         Ok(a) => a,
         Err(e) => {
-            status.error("Σφάλμα (Error)");
+            status.error("Σφάλμα ἀναλύσεως (Analysis Error)");
             return Err(e);
         }
     };
@@ -439,7 +439,7 @@ pub fn report_file(input: &Path) -> Result<()> {
     let analyzed = match analyze_source(&source) {
         Ok(a) => a,
         Err(e) => {
-            status.error("Σφάλμα (Error)");
+            status.error("Σφάλμα ἀναλύσεως (Analysis Error)");
             return Err(e);
         }
     };
@@ -540,7 +540,7 @@ pub fn bard_file(input: &Path) -> Result<()> {
     let analyzed = match analyze_source(&source) {
         Ok(a) => a,
         Err(e) => {
-            status.error("Σφάλμα (Error)");
+            status.error("Σφάλμα ἀναλύσεως (Analysis Error)");
             return Err(e);
         }
     };
