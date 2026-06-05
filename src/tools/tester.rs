@@ -184,12 +184,43 @@ fn capture_failure_message(lines: &mut std::iter::Peekable<std::str::Lines>) -> 
         message.push('\n');
         lines.next();
     }
-    message.trim().to_string()
+
+    // Polish the assertion error if it's there
+    let formatted_message = message.trim().to_string();
+    if formatted_message.contains("assertion `left == right` failed") {
+        let mut clean = String::new();
+        clean.push_str("💥 Ἀποτυχία Ἰσότητος (Equality Failure)\n");
+        let mut left = "Unknown";
+        let mut right = "Unknown";
+
+        for line in formatted_message.lines() {
+            let line = line.trim();
+            if line.starts_with("left:") {
+                left = line.trim_start_matches("left:").trim();
+                // strip backticks if they exist
+                left = left.trim_matches('`');
+            } else if line.starts_with("right:") {
+                right = line.trim_start_matches("right:").trim();
+                // strip backticks if they exist
+                right = right.trim_matches('`');
+            }
+        }
+        clean.push_str(&format!("Ἀναμενόμενον (Expected): {}\n", right));
+        clean.push_str(&format!("Εὑρέθη (Found):        {}", left));
+        return clean;
+    }
+
+    formatted_message
 }
 
 fn clean_panic_message(current: &str) -> Option<String> {
     if !current.starts_with("thread '") {
         return None;
+    }
+
+    // Since we are parsing out the equality failure we don't want to show the thread panicked message
+    if current.contains("assertion `left == right` failed") {
+        return Some("".to_string());
     }
 
     let panicked_idx = current.find("panicked at")?;
