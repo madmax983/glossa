@@ -54,299 +54,309 @@ use crate::parser::parse;
 /// Returns a [`GlossaError`] if the source code cannot be parsed.
 pub fn highlight(source: &str) -> Result<String, GlossaError> {
     let program = parse(source)?;
-    let mut highlighter = Highlighter::new();
-    highlighter
-        .highlight_program(&program)
+    let mut output = String::new();
+    let mut context = DisambiguationContext::new();
+    highlight_program(&mut output, &mut context, &program)
         .map_err(|e| crate::errors::GlossaError::semantic(format!("Format error: {}", e)))?;
-    Ok(highlighter.output)
+    Ok(output)
 }
 
-struct Highlighter {
-    output: String,
-    context: DisambiguationContext,
+fn highlight_program(
+    output: &mut String,
+    context: &mut DisambiguationContext,
+    program: &Program,
+) -> std::fmt::Result {
+    for (i, stmt) in program.statements.iter().enumerate() {
+        if i > 0 {
+            output.push('\n');
+        }
+        highlight_statement(output, context, stmt)?;
+    }
+    Ok(())
 }
 
-impl Highlighter {
-    fn new() -> Self {
-        Self {
-            output: String::new(),
-            context: DisambiguationContext::new(),
-        }
-    }
-
-    fn highlight_program(&mut self, program: &Program) -> std::fmt::Result {
-        for (i, stmt) in program.statements.iter().enumerate() {
-            if i > 0 {
-                self.output.push('\n');
-            }
-            self.highlight_statement(stmt)?;
-        }
-        Ok(())
-    }
-
-    fn highlight_statement(&mut self, stmt: &Statement) -> std::fmt::Result {
-        match stmt {
-            Statement::Regular {
-                clauses,
-                is_query,
-                is_propagate,
-            } => {
-                for (i, clause) in clauses.iter().enumerate() {
-                    if i > 0 {
-                        self.output.push_str(", ");
-                    }
-                    self.highlight_clause(clause)?;
+fn highlight_statement(
+    output: &mut String,
+    context: &mut DisambiguationContext,
+    stmt: &Statement,
+) -> std::fmt::Result {
+    match stmt {
+        Statement::Regular {
+            clauses,
+            is_query,
+            is_propagate,
+        } => {
+            for (i, clause) in clauses.iter().enumerate() {
+                if i > 0 {
+                    output.push_str(", ");
                 }
-
-                if *is_query {
-                    self.output.push('?');
-                } else if *is_propagate {
-                    self.output.push(';');
-                } else {
-                    self.output.push('.');
-                }
+                highlight_clause(output, context, clause)?;
             }
-            Statement::TypeDefinition(def) => self.highlight_type_def(def)?,
-            Statement::TraitDefinition(def) => self.highlight_trait_def(def)?,
-            Statement::TraitImpl(def) => self.highlight_trait_impl(def)?,
-            Statement::TestDeclaration(decl) => self.highlight_test_decl(decl)?,
+
+            if *is_query {
+                output.push('?');
+            } else if *is_propagate {
+                output.push(';');
+            } else {
+                output.push('.');
+            }
         }
-        Ok(())
+        Statement::TypeDefinition(def) => highlight_type_def(output, def)?,
+        Statement::TraitDefinition(def) => highlight_trait_def(output, def)?,
+        Statement::TraitImpl(def) => highlight_trait_impl(output, def)?,
+        Statement::TestDeclaration(decl) => highlight_test_decl(output, context, decl)?,
     }
+    Ok(())
+}
 
-    fn highlight_clause(&mut self, clause: &Clause) -> std::fmt::Result {
-        for (i, expr) in clause.expressions.iter().enumerate() {
-            if i > 0 {
-                self.output.push(' ');
-            }
-            self.highlight_expr(expr)?;
+fn highlight_clause(
+    output: &mut String,
+    context: &mut DisambiguationContext,
+    clause: &Clause,
+) -> std::fmt::Result {
+    for (i, expr) in clause.expressions.iter().enumerate() {
+        if i > 0 {
+            output.push(' ');
         }
-        Ok(())
+        highlight_expr(output, context, expr)?;
     }
+    Ok(())
+}
 
-    fn highlight_expr(&mut self, expr: &Expr) -> std::fmt::Result {
-        match expr {
-            Expr::StringLiteral(s) => {
-                // Sanitize string to prevent terminal injection
-                let sanitized: String = s.chars().flat_map(|c| c.escape_debug()).collect();
-                write!(self.output, "«{}»", sanitized.as_str().italic())?;
-            }
-            Expr::NumberLiteral(n) => {
-                write!(self.output, "{}", n.to_string().italic())?;
-            }
-            Expr::BooleanLiteral(b) => {
-                let s = if *b { "ἀληθές" } else { "ψεῦδος" };
-                write!(self.output, "{}", s.italic())?;
-            }
-            Expr::Word(w) => self.highlight_word(w)?,
-            Expr::Phrase(terms) => {
-                for (i, term) in terms.iter().enumerate() {
-                    if i > 0 {
-                        self.output.push(' ');
-                    }
-                    self.highlight_expr(term)?;
+fn highlight_expr(
+    output: &mut String,
+    context: &mut DisambiguationContext,
+    expr: &Expr,
+) -> std::fmt::Result {
+    match expr {
+        Expr::StringLiteral(s) => {
+            // Sanitize string to prevent terminal injection
+            let sanitized: String = s.chars().flat_map(|c| c.escape_debug()).collect();
+            write!(output, "«{}»", sanitized.as_str().italic())?;
+        }
+        Expr::NumberLiteral(n) => {
+            write!(output, "{}", n.to_string().italic())?;
+        }
+        Expr::BooleanLiteral(b) => {
+            let s = if *b { "ἀληθές" } else { "ψεῦδος" };
+            write!(output, "{}", s.italic())?;
+        }
+        Expr::Word(w) => highlight_word(output, context, w)?,
+        Expr::Phrase(terms) => {
+            for (i, term) in terms.iter().enumerate() {
+                if i > 0 {
+                    output.push(' ');
                 }
+                highlight_expr(output, context, term)?;
             }
-            Expr::PropertyAccess { owner, property } => {
-                self.highlight_expr(owner)?;
-                self.output.push(' ');
-                self.highlight_expr(property)?;
+        }
+        Expr::PropertyAccess { owner, property } => {
+            highlight_expr(output, context, owner)?;
+            output.push(' ');
+            highlight_expr(output, context, property)?;
+        }
+        Expr::Call { verb, arguments } => {
+            // Highlight verb
+            highlight_word(output, context, verb)?;
+            // Arguments
+            for arg in arguments {
+                output.push(' ');
+                highlight_expr(output, context, arg)?;
             }
-            Expr::Call { verb, arguments } => {
-                // Highlight verb
-                self.highlight_word(verb)?;
-                // Arguments
-                for arg in arguments {
-                    self.output.push(' ');
-                    self.highlight_expr(arg)?;
+        }
+        Expr::Binding { name, value } => {
+            highlight_word(output, context, name)?;
+            output.push(' ');
+            highlight_expr(output, context, value)?;
+            output.push(' ');
+            write!(output, "{}", "ἔστω".bold())?;
+        }
+        Expr::BinOp { left, op, right } => {
+            highlight_expr(output, context, left)?;
+            output.push(' ');
+            highlight_binop(output, op)?;
+            output.push(' ');
+            highlight_expr(output, context, right)?;
+        }
+        Expr::UnaryOp { op, operand } => {
+            match op {
+                UnaryOperator::Unwrap => {
+                    highlight_expr(output, context, operand)?;
+                    write!(output, "{}", "!".bold().red())?;
                 }
-            }
-            Expr::Binding { name, value } => {
-                self.highlight_word(name)?;
-                self.output.push(' ');
-                self.highlight_expr(value)?;
-                self.output.push(' ');
-                write!(self.output, "{}", "ἔστω".bold())?;
-            }
-            Expr::BinOp { left, op, right } => {
-                self.highlight_expr(left)?;
-                self.output.push(' ');
-                self.highlight_binop(op)?;
-                self.output.push(' ');
-                self.highlight_expr(right)?;
-            }
-            Expr::UnaryOp { op, operand } => {
-                match op {
-                    UnaryOperator::Unwrap => {
-                        self.highlight_expr(operand)?;
-                        write!(self.output, "{}", "!".bold().red())?;
-                    }
-                    UnaryOperator::Not => {
-                        write!(self.output, "{}", "οὐ".bold())?; // Simplified
-                        self.output.push(' ');
-                        self.highlight_expr(operand)?;
-                    }
-                    UnaryOperator::Neg => {
-                        write!(self.output, "-")?;
-                        self.highlight_expr(operand)?;
-                    }
+                UnaryOperator::Not => {
+                    write!(output, "{}", "οὐ".bold())?; // Simplified
+                    output.push(' ');
+                    highlight_expr(output, context, operand)?;
+                }
+                UnaryOperator::Neg => {
+                    write!(output, "-")?;
+                    highlight_expr(output, context, operand)?;
                 }
             }
-            Expr::Block(stmts) => {
-                self.output.push_str("{ ");
-                for (i, stmt) in stmts.iter().enumerate() {
-                    if i > 0 {
-                        self.output.push(' ');
-                    }
-                    self.highlight_statement(stmt)?;
+        }
+        Expr::Block(stmts) => {
+            output.push_str("{ ");
+            for (i, stmt) in stmts.iter().enumerate() {
+                if i > 0 {
+                    output.push(' ');
                 }
-                self.output.push_str(" }");
+                highlight_statement(output, context, stmt)?;
             }
-            Expr::ArrayLiteral(elements) => {
-                self.output.push('[');
-                for (i, el) in elements.iter().enumerate() {
-                    if i > 0 {
-                        self.output.push_str(", ");
-                    }
-                    self.highlight_expr(el)?;
+            output.push_str(" }");
+        }
+        Expr::ArrayLiteral(elements) => {
+            output.push('[');
+            for (i, el) in elements.iter().enumerate() {
+                if i > 0 {
+                    output.push_str(", ");
                 }
-                self.output.push(']');
+                highlight_expr(output, context, el)?;
             }
-            Expr::IndexAccess { array, index } => {
-                self.highlight_expr(array)?;
-                self.output.push('[');
-                self.highlight_expr(index)?;
-                self.output.push(']');
-            }
+            output.push(']');
         }
-        Ok(())
-    }
-
-    fn highlight_word(&mut self, w: &Word) -> std::fmt::Result {
-        // 1. Check for article (sets context)
-        if let Some(ctx) = analyze_article(&w.original) {
-            self.context = ctx;
-            write!(self.output, "{}", w.original)?; // Articles plain or dim? Let's leave plain
-            return Ok(());
+        Expr::IndexAccess { array, index } => {
+            highlight_expr(output, context, array)?;
+            output.push('[');
+            highlight_expr(output, context, index)?;
+            output.push(']');
         }
+    }
+    Ok(())
+}
 
-        // 2. Check for participle
-        let in_lexicon = crate::morphology::lexicon::lookup(&w.normalized).is_some();
-        let is_numeral = crate::morphology::lexicon::numeral_value(&w.normalized).is_some();
-
-        if !in_lexicon && !is_numeral && analyze_participle(&w.normalized).is_some() {
-            write!(self.output, "{}", w.original.cyan())?; // Participles as cyan (adjectival)
-            return Ok(());
-        }
-
-        // 3. Analyze and disambiguate
-        let analyses = crate::morphology::analyze_all(&w.normalized);
-        let best = resolve_best(analyses, &self.context);
-
-        // Update context if it's a verb
-        if best.part_of_speech == PartOfSpeech::Verb {
-            self.context = DisambiguationContext::from_verb(&best);
-        } else {
-            // Consume context for nouns
-            self.context = DisambiguationContext::new();
-        }
-
-        // 4. Apply Color
-        let styled = match best.part_of_speech {
-            PartOfSpeech::Verb => w.original.green().bold(),
-            PartOfSpeech::Noun | PartOfSpeech::Pronoun => match best.case {
-                Some(Case::Nominative) => w.original.blue().bold(),
-                Some(Case::Accusative) => w.original.red(),
-                Some(Case::Dative) => w.original.yellow(),
-                Some(Case::Genitive) => w.original.magenta(),
-                Some(Case::Vocative) => w.original.blue().italic(), // Vocative as blue italic
-                None => w.original.white(),
-            },
-            PartOfSpeech::Adjective => w.original.cyan(),
-            PartOfSpeech::Preposition => w.original.white().bold(),
-            PartOfSpeech::Conjunction => w.original.white().bold(),
-            PartOfSpeech::Numeral => w.original.italic(),
-            _ => w.original.white(), // Default
-        };
-
-        write!(self.output, "{}", styled)?;
-        Ok(())
+fn highlight_word(
+    output: &mut String,
+    context: &mut DisambiguationContext,
+    w: &Word,
+) -> std::fmt::Result {
+    // 1. Check for article (sets context)
+    if let Some(ctx) = analyze_article(&w.original) {
+        *context = ctx;
+        write!(output, "{}", w.original)?; // Articles plain or dim? Let's leave plain
+        return Ok(());
     }
 
-    fn highlight_binop(&mut self, op: &BinOperator) -> std::fmt::Result {
-        let s = match op {
-            BinOperator::Add => "+",
-            BinOperator::Sub => "-",
-            BinOperator::Mul => "*",
-            BinOperator::Div => "/",
-            BinOperator::Mod => "%",
-            BinOperator::Eq => "==",
-            BinOperator::Ne => "!=",
-            BinOperator::Lt => "<",
-            BinOperator::Le => "<=",
-            BinOperator::Gt => ">",
-            BinOperator::Ge => ">=",
-            BinOperator::And => "&&",
-            BinOperator::Or => "||",
-        };
-        write!(self.output, "{}", s.bold())?;
-        Ok(())
+    // 2. Check for participle
+    let in_lexicon = crate::morphology::lexicon::lookup(&w.normalized).is_some();
+    let is_numeral = crate::morphology::lexicon::numeral_value(&w.normalized).is_some();
+
+    if !in_lexicon && !is_numeral && analyze_participle(&w.normalized).is_some() {
+        write!(output, "{}", w.original.cyan())?; // Participles as cyan (adjectival)
+        return Ok(());
     }
 
-    // --- Definitions (Simplified highlighting for now) ---
+    // 3. Analyze and disambiguate
+    let analyses = crate::morphology::analyze_all(&w.normalized);
+    let best = resolve_best(analyses, &*context);
 
-    fn highlight_type_def(&mut self, def: &TypeDef) -> std::fmt::Result {
-        write!(
-            self.output,
-            "{} {} {} {{ ... }}",
-            "εἶδος".bold(),
-            def.name.original.blue().bold(),
-            "ὁρίζειν".bold()
-        )?;
-        Ok(())
+    // Update context if it's a verb
+    if best.part_of_speech == PartOfSpeech::Verb {
+        *context = DisambiguationContext::from_verb(&best);
+    } else {
+        // Consume context for nouns
+        *context = DisambiguationContext::new();
     }
 
-    fn highlight_trait_def(&mut self, def: &TraitDef) -> std::fmt::Result {
-        write!(
-            self.output,
-            "{} {} {} {{ ... }}",
-            "χαρακτήρ".bold(),
-            def.name.original.blue().bold(),
-            "ὁρίζειν".bold()
-        )?;
-        Ok(())
+    // 4. Apply Color
+    let styled = match best.part_of_speech {
+        PartOfSpeech::Verb => w.original.green().bold(),
+        PartOfSpeech::Noun | PartOfSpeech::Pronoun => match best.case {
+            Some(Case::Nominative) => w.original.blue().bold(),
+            Some(Case::Accusative) => w.original.red(),
+            Some(Case::Dative) => w.original.yellow(),
+            Some(Case::Genitive) => w.original.magenta(),
+            Some(Case::Vocative) => w.original.blue().italic(), // Vocative as blue italic
+            None => w.original.white(),
+        },
+        PartOfSpeech::Adjective => w.original.cyan(),
+        PartOfSpeech::Preposition => w.original.white().bold(),
+        PartOfSpeech::Conjunction => w.original.white().bold(),
+        PartOfSpeech::Numeral => w.original.italic(),
+        _ => w.original.white(), // Default
+    };
+
+    write!(output, "{}", styled)?;
+    Ok(())
+}
+
+fn highlight_binop(output: &mut String, op: &BinOperator) -> std::fmt::Result {
+    let s = match op {
+        BinOperator::Add => "+",
+        BinOperator::Sub => "-",
+        BinOperator::Mul => "*",
+        BinOperator::Div => "/",
+        BinOperator::Mod => "%",
+        BinOperator::Eq => "==",
+        BinOperator::Ne => "!=",
+        BinOperator::Lt => "<",
+        BinOperator::Le => "<=",
+        BinOperator::Gt => ">",
+        BinOperator::Ge => ">=",
+        BinOperator::And => "&&",
+        BinOperator::Or => "||",
+    };
+    write!(output, "{}", s.bold())?;
+    Ok(())
+}
+
+// --- Definitions (Simplified highlighting for now) ---
+
+fn highlight_type_def(output: &mut String, def: &TypeDef) -> std::fmt::Result {
+    write!(
+        output,
+        "{} {} {} {{ ... }}",
+        "εἶδος".bold(),
+        def.name.original.blue().bold(),
+        "ὁρίζειν".bold()
+    )?;
+    Ok(())
+}
+
+fn highlight_trait_def(output: &mut String, def: &TraitDef) -> std::fmt::Result {
+    write!(
+        output,
+        "{} {} {} {{ ... }}",
+        "χαρακτήρ".bold(),
+        def.name.original.blue().bold(),
+        "ὁρίζειν".bold()
+    )?;
+    Ok(())
+}
+
+fn highlight_trait_impl(output: &mut String, def: &TraitImplDef) -> std::fmt::Result {
+    write!(
+        output,
+        "{} {} {} {} {{ ... }}",
+        "εἶδος".bold(),
+        def.type_name.original.blue().bold(),
+        "τῷ".white(),
+        def.trait_name.original.cyan(),
+        // Missing implementation keyword? Syntax is `εἶδος Type τῷ Trait ἐμπίπτειν`
+    )?;
+    Ok(())
+}
+
+fn highlight_test_decl(
+    output: &mut String,
+    context: &mut DisambiguationContext,
+    decl: &TestDecl,
+) -> std::fmt::Result {
+    writeln!(
+        output,
+        "{} «{}»",
+        "δοκιμή".bold().green(),
+        decl.name.as_str().italic()
+    )?;
+
+    for stmt in &decl.body {
+        output.push_str("  ");
+        highlight_statement(output, context, stmt)?;
+        output.push('\n');
     }
 
-    fn highlight_trait_impl(&mut self, def: &TraitImplDef) -> std::fmt::Result {
-        write!(
-            self.output,
-            "{} {} {} {} {{ ... }}",
-            "εἶδος".bold(),
-            def.type_name.original.blue().bold(),
-            "τῷ".white(),
-            def.trait_name.original.cyan(),
-            // Missing implementation keyword? Syntax is `εἶδος Type τῷ Trait ἐμπίπτειν`
-        )?;
-        Ok(())
-    }
-
-    fn highlight_test_decl(&mut self, decl: &TestDecl) -> std::fmt::Result {
-        writeln!(
-            self.output,
-            "{} «{}»",
-            "δοκιμή".bold().green(),
-            decl.name.as_str().italic()
-        )?;
-
-        for stmt in &decl.body {
-            self.output.push_str("  ");
-            self.highlight_statement(stmt)?;
-            self.output.push('\n');
-        }
-
-        write!(self.output, "{}", "τέλος".bold())?;
-        Ok(())
-    }
+    write!(output, "{}", "τέλος".bold())?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -638,7 +648,8 @@ mod tests {
     fn test_manual_ast_nodes() {
         // These nodes are not currently produced by the parser but exist in the AST.
         // We test them manually to ensure the highlighter handles them (future-proofing).
-        let mut h = Highlighter::new();
+        let mut output = String::new();
+        let mut context = DisambiguationContext::new();
 
         // 1. BinOp
         let binop = Expr::BinOp {
@@ -646,90 +657,91 @@ mod tests {
             op: BinOperator::Add,
             right: Box::new(Expr::NumberLiteral(2)),
         };
-        h.highlight_expr(&binop).unwrap();
-        assert!(h.output.contains("+"));
-        h.output.clear();
+        highlight_expr(&mut output, &mut context, &binop).unwrap();
+        assert!(output.contains("+"));
+        output.clear();
 
         // 2. Call
         let call = Expr::Call {
             verb: Word::new("λέγε"),
             arguments: vec![Expr::StringLiteral("test".to_string())],
         };
-        h.highlight_expr(&call).unwrap();
-        assert!(h.output.contains("λέγε"));
-        assert!(h.output.contains("test"));
-        h.output.clear();
+        highlight_expr(&mut output, &mut context, &call).unwrap();
+        assert!(output.contains("λέγε"));
+        assert!(output.contains("test"));
+        output.clear();
 
         // 3. Binding
         let binding = Expr::Binding {
             name: Word::new("χ"),
             value: Box::new(Expr::NumberLiteral(10)),
         };
-        h.highlight_expr(&binding).unwrap();
-        assert!(h.output.contains("χ"));
-        assert!(h.output.contains("ἔστω"));
-        h.output.clear();
+        highlight_expr(&mut output, &mut context, &binding).unwrap();
+        assert!(output.contains("χ"));
+        assert!(output.contains("ἔστω"));
+        output.clear();
 
         // 4. PropertyAccess
         let prop = Expr::PropertyAccess {
             owner: Box::new(Expr::Word(Word::new("χρήστου"))),
             property: Box::new(Expr::Word(Word::new("ὄνομα"))),
         };
-        h.highlight_expr(&prop).unwrap();
-        assert!(h.output.contains("χρήστου"));
-        assert!(h.output.contains("ὄνομα"));
-        h.output.clear();
+        highlight_expr(&mut output, &mut context, &prop).unwrap();
+        assert!(output.contains("χρήστου"));
+        assert!(output.contains("ὄνομα"));
+        output.clear();
 
         // 5. UnaryOp (Not)
         let not_op = Expr::UnaryOp {
             op: UnaryOperator::Not,
             operand: Box::new(Expr::BooleanLiteral(true)),
         };
-        h.highlight_expr(&not_op).unwrap();
-        assert!(h.output.contains("οὐ"));
-        h.output.clear();
+        highlight_expr(&mut output, &mut context, &not_op).unwrap();
+        assert!(output.contains("οὐ"));
+        output.clear();
 
         // 6. UnaryOp (Neg)
         let neg_op = Expr::UnaryOp {
             op: UnaryOperator::Neg,
             operand: Box::new(Expr::NumberLiteral(5)),
         };
-        h.highlight_expr(&neg_op).unwrap();
-        assert!(h.output.contains("-"));
-        h.output.clear();
+        highlight_expr(&mut output, &mut context, &neg_op).unwrap();
+        assert!(output.contains("-"));
+        output.clear();
     }
 
     #[test]
     fn test_highlight_pos_variants() {
         // Test PartOfSpeech variants explicitly
-        let mut h = Highlighter::new();
+        let mut output = String::new();
+        let mut context = DisambiguationContext::new();
 
         // Preposition (white bold)
         let prep = Word::new("μετά");
-        h.highlight_word(&prep).unwrap();
+        highlight_word(&mut output, &mut context, &prep).unwrap();
         // Since we can't easily check ANSI codes for specific colors without fragile tests,
         // we assume the logic works if we exercise the code path.
         // We can check it's not empty.
-        assert!(!h.output.is_empty());
-        h.output.clear();
+        assert!(!output.is_empty());
+        output.clear();
 
         // Conjunction (white bold)
         let conj = Word::new("καί");
-        h.highlight_word(&conj).unwrap();
-        assert!(!h.output.is_empty());
-        h.output.clear();
+        highlight_word(&mut output, &mut context, &conj).unwrap();
+        assert!(!output.is_empty());
+        output.clear();
 
         // Numeral (italic)
         let num = Word::new("πέντε");
-        h.highlight_word(&num).unwrap();
-        assert!(!h.output.is_empty());
-        h.output.clear();
+        highlight_word(&mut output, &mut context, &num).unwrap();
+        assert!(!output.is_empty());
+        output.clear();
 
         // Unknown (white)
         let unknown = Word::new("ἀγνωστον");
-        h.highlight_word(&unknown).unwrap();
-        assert!(!h.output.is_empty());
-        h.output.clear();
+        highlight_word(&mut output, &mut context, &unknown).unwrap();
+        assert!(!output.is_empty());
+        output.clear();
     }
 
     #[test]
@@ -759,7 +771,8 @@ mod tests {
 
     #[test]
     fn test_highlight_all_binops() {
-        let mut h = Highlighter::new();
+        let mut output = String::new();
+        let mut context = DisambiguationContext::new();
         let ops = [
             BinOperator::Add,
             BinOperator::Sub,
@@ -782,10 +795,10 @@ mod tests {
                 op,
                 right: Box::new(Expr::NumberLiteral(2)),
             };
-            h.output.clear();
-            h.highlight_expr(&expr).unwrap();
+            output.clear();
+            highlight_expr(&mut output, &mut context, &expr).unwrap();
             // Verify output is not empty (logic ran)
-            assert!(!h.output.is_empty());
+            assert!(!output.is_empty());
         }
     }
 

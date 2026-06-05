@@ -7,3 +7,8 @@
 **Bloat:** `DotGenerator` in `src/tools/haruspex.rs` used an object-oriented builder pattern for graph generation.
 **Cut:** Flattened the object into pure procedural functions passing mutable references to `next_id` and `output` state.
 **Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+
+## [Reduction]
+**Bloat:** `Highlighter` in `src/tools/highlight.rs` used an object-oriented builder pattern for outputting colored text strings.
+**Cut:** Flattened the object into pure procedural functions passing mutable references to `output` and `context` state.
+**Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
