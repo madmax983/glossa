@@ -275,6 +275,21 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// ```
 use std::fmt::Write;
 
+/// Converts a `GlossaType` into its corresponding Rust type representation as a String.
+///
+/// This function maps the semantic types used in the Glossa AST to concrete Rust
+/// types used during code generation.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::semantic::GlossaType;
+/// use glossa::codegen::to_rust_type;
+///
+/// assert_eq!(to_rust_type(&GlossaType::Number), "i64");
+/// assert_eq!(to_rust_type(&GlossaType::String), "String");
+/// assert_eq!(to_rust_type(&GlossaType::Boolean), "bool");
+/// ```
 pub fn to_rust_type(ty: &GlossaType) -> String {
     let mut result = String::with_capacity(32);
     write_rust_type(ty, &mut result).unwrap();

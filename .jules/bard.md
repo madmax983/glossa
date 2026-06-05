@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-03-24 - Documenting codegen::to_rust_type
+**Confusion:** The `to_rust_type` function in `src/codegen.rs` was missing documentation and examples. This led to warnings when building docs with `-W missing-docs` and obscured how Glossa semantic types mapped to Rust types during code generation.
+**Clarification:** I added comprehensive rustdoc comments including an `# Examples` section with executable doc-tests. I also fixed the doc-tests to use `use glossa::semantic::GlossaType` to resolve private module errors since the `types` module is private but the enum is exported.
