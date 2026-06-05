@@ -13,6 +13,7 @@ use std::process::Command;
 /// constructed programmatically, generating Rust code for it will immediately crash
 /// the thread with a stack overflow.
 #[test]
+#[ignore = "Demonstrates DoS"]
 fn havoc_codegen_stack_overflow() {
     if env::var("HAVOC_DETONATE_CODEGEN_OVERFLOW").is_ok() {
         let depth = 50_000;
