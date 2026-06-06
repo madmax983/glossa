@@ -18,6 +18,21 @@ use std::fmt::Write;
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
+///
+/// This function loads the source file, analyzes it, and then transpiles
+/// the generated AST into Python code, displaying the result in a formatted table.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::alchemist::run_alchemist;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_alchemist(&input) {
+///     eprintln!("Alchemist failed: {}", e);
+/// }
+/// ```
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
@@ -60,6 +75,19 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
 }
 
 /// Transpile an AnalyzedProgram to Python source code
+///
+/// This is the core engine of the Alchemist. It takes a complete semantic
+/// `AnalyzedProgram` and recursively walks the AST, converting each statement
+/// and expression into its Python equivalent.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use glossa::tools::alchemist::transpile_to_python;
+/// // Assuming `program` is an AnalyzedProgram
+/// let python_code = transpile_to_python(&program);
+/// println!("{}", python_code);
+/// ```
 pub fn transpile_to_python(program: &AnalyzedProgram) -> String {
     let mut out = String::new();
     out.push_str("from typing import Any\n");

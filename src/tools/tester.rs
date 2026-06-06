@@ -416,7 +416,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 ///
 /// // Execute the test harness
 /// run_tests(&input).unwrap();
-/// ```
+///     eprintln!("Test execution failed: {}", e);
 pub fn run_tests(input: &Path) -> Result<()> {
     // 1 & 2. Validation & Compilation (Lex -> Parse -> Analyze -> Codegen)
     let source = crate::tools::runner::load_source(input)?;
