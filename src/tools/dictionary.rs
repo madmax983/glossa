@@ -53,6 +53,20 @@ use crate::morphology::{analyze_all, lexicon};
 use crate::text::normalize_greek;
 
 /// Lookup a word in the dictionary
+///
+/// This is the main entry point for the `glossa lookup` tool. It normalizes the
+/// input word, attempts to find it in the built-in lexicon, and then performs a
+/// full morphological analysis, displaying all results in a formatted table.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::dictionary::lookup_word;
+///
+/// if let Err(e) = lookup_word("λόγον") {
+///     eprintln!("Lookup failed: {}", e);
+/// }
+/// ```
 pub fn lookup_word(word: &str) -> Result<()> {
     let normalized = normalize_greek(word);
 
