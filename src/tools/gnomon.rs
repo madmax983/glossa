@@ -219,4 +219,64 @@ mod tests {
         };
         assert_eq!(calculate_max_depth(&outer_loop, 0), 2);
     }
+
+    #[test]
+    fn test_gnomon_calculate_max_depth_coverage() {
+        // Test If and Match statements which should be covered
+        let stmt = AnalyzedStatement::If {
+            condition: dummy_expr(),
+            then_body: vec![AnalyzedStatement::While {
+                condition: dummy_expr(),
+                body: vec![],
+            }],
+            else_body: Some(vec![AnalyzedStatement::For {
+                variable: SmolStr::new("x"),
+                iterator: dummy_expr(),
+                body: vec![],
+            }]),
+        };
+        assert_eq!(calculate_max_depth(&stmt, 0), 1);
+
+        let match_stmt = AnalyzedStatement::Match {
+            scrutinee: dummy_expr(),
+            arms: vec![
+                (*dummy_expr(), vec![AnalyzedStatement::While {
+                    condition: dummy_expr(),
+                    body: vec![],
+                }]),
+            ],
+        };
+        assert_eq!(calculate_max_depth(&match_stmt, 0), 1);
+
+        let fn_stmt = AnalyzedStatement::FunctionDef {
+            name: SmolStr::new("f"),
+            params: vec![],
+            body: vec![AnalyzedStatement::While {
+                condition: dummy_expr(),
+                body: vec![],
+            }],
+            return_type: None,
+        };
+        assert_eq!(calculate_max_depth(&fn_stmt, 0), 1);
+
+        let trait_stmt = AnalyzedStatement::TraitDefinition {
+            name: SmolStr::new("T"),
+            methods: vec![
+                crate::semantic::AnalyzedMethod {
+                    name: SmolStr::new("m"),
+                    params: vec![],
+                    body: Some(vec![AnalyzedStatement::While {
+                        condition: dummy_expr(),
+                        body: vec![],
+                    }]),
+                    return_type: None,
+                }
+            ],
+        };
+        assert_eq!(calculate_max_depth(&trait_stmt, 0), 1);
+
+        // Also a quick coverage of the no-op fallback
+        let break_stmt = AnalyzedStatement::Break;
+        assert_eq!(calculate_max_depth(&break_stmt, 0), 0);
+    }
 }
