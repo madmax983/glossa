@@ -8,6 +8,10 @@
 **Cut:** Flattened the object into pure procedural functions passing mutable references to `next_id` and `output` state.
 **Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
 
+
+
+
+
 ## [Reduction]
 **Bloat:** `GnomonVisitor` and `AuditorVisitor` in `src/tools/` used object-oriented builder/visitor patterns for traversing the AST and accumulating state.
 **Cut:** Flattened both objects into pure procedural functions that take mutable references to state.
