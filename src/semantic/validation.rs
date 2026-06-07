@@ -30,10 +30,28 @@ fn check_ast_statement_depth(stmt: &Statement, depth: usize) -> Result<(), Gloss
                 check_ast_clause_depth(clause, depth + 1)?;
             }
         }
-        Statement::TypeDefinition(_)
-        | Statement::TraitDefinition(_)
-        | Statement::TraitImpl(_)
-        | Statement::TestDeclaration(_) => {}
+        Statement::TypeDefinition(_) => {}
+        Statement::TraitDefinition(trait_def) => {
+            for method in &trait_def.methods {
+                if let Some(body) = &method.body {
+                    for s in body {
+                        check_ast_statement_depth(s, depth + 1)?;
+                    }
+                }
+            }
+        }
+        Statement::TraitImpl(trait_impl) => {
+            for method in &trait_impl.methods {
+                for s in &method.body {
+                    check_ast_statement_depth(s, depth + 1)?;
+                }
+            }
+        }
+        Statement::TestDeclaration(test_decl) => {
+            for s in &test_decl.body {
+                check_ast_statement_depth(s, depth + 1)?;
+            }
+        }
     }
     Ok(())
 }
@@ -247,7 +265,83 @@ fn check_expr_depth(expr: &AnalyzedExpr, depth: usize) -> Result<(), GlossaError
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ast::{
+        Clause, ImplMethodDef, TestDecl, TraitDef, TraitImplDef, TraitMethodDecl, Word,
+    };
     use crate::semantic::GlossaType;
+
+    fn create_deep_stmt(depth: usize) -> Statement {
+        let mut stmt = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Word(Word::new("x"))],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        for _ in 0..depth {
+            stmt = Statement::Regular {
+                clauses: vec![Clause {
+                    expressions: vec![Expr::Block(vec![stmt])],
+                }],
+                is_query: false,
+                is_propagate: false,
+            };
+        }
+        stmt
+    }
+
+    #[test]
+    fn test_trait_impl_depth_limit() {
+        let deep_stmt = create_deep_stmt(MAX_AST_DEPTH + 1);
+        let trait_impl = Statement::TraitImpl(TraitImplDef {
+            trait_name: Word::new("Trait"),
+            type_name: Word::new("Type"),
+            methods: vec![ImplMethodDef {
+                name: Word::new("method"),
+                params: vec![],
+                body: vec![deep_stmt],
+            }],
+        });
+
+        let result = check_program_depth(&Program {
+            statements: vec![trait_impl],
+        });
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_test_decl_depth_limit() {
+        let deep_stmt = create_deep_stmt(MAX_AST_DEPTH + 1);
+        let test_decl = Statement::TestDeclaration(TestDecl {
+            name: "test".to_string(),
+            body: vec![deep_stmt],
+        });
+
+        let result = check_program_depth(&Program {
+            statements: vec![test_decl],
+        });
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_trait_def_depth_limit() {
+        let deep_stmt = create_deep_stmt(MAX_AST_DEPTH + 1);
+        let trait_def = Statement::TraitDefinition(TraitDef {
+            name: Word::new("Trait"),
+            methods: vec![TraitMethodDecl {
+                name: Word::new("method"),
+                params: vec![],
+                is_default: true,
+                body: Some(vec![deep_stmt]),
+            }],
+        });
+
+        let result = check_program_depth(&Program {
+            statements: vec![trait_def],
+        });
+        assert!(result.is_err());
+    }
 
     #[test]
     fn test_statement_depth_limit() {

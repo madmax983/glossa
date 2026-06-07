@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Trait and Test Recursion Limits]**
+**Learning:** Found an omission in `check_ast_statement_depth` in `src/semantic/validation.rs` where the parser did not check the recursion depth limit for `TraitDefinition`, `TraitImpl`, and `TestDeclaration` nodes, allowing a possible stack overflow DoS.
+**Action:** Added proper depth-limit checks for the bodies inside those statement types, to ensure they abide by `MAX_AST_DEPTH`.
