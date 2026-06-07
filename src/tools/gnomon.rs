@@ -80,8 +80,8 @@ pub fn visit_statement(stmt: &AnalyzedStatement, current_depth: &mut usize, max_
 
 /// Analyzes a ΓΛΩΣΣΑ source file and estimates its Big-O time complexity.
 ///
-/// This function coordinates the parsing, semantic analysis, and AST traversal
-/// using the [`GnomonVisitor`]. The result is presented to the user in a
+/// This function coordinates the parsing, semantic analysis, and AST traversal.
+/// The result is presented to the user in a
 /// stylized terminal table.
 ///
 /// # Errors
