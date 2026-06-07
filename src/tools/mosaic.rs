@@ -53,8 +53,17 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
     status.success();
 
     println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   M O S A I C".bold().cyan());
-    println!("   {}", "Semantic Sentence Structure".italic().dim());
+    println!(
+        "   {}",
+        "✨ 🧩 🏛️   Γ Λ Ω Σ Σ Α   M O S A I C   🏛️ 🧩 ✨"
+            .bold()
+            .cyan()
+            .on_dark_grey()
+    );
+    println!(
+        "   {}",
+        "      ~ Semantic Sentence Structure ~".italic().yellow()
+    );
     println!();
     println!("{}", output);
 
