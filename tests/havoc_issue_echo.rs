@@ -12,6 +12,7 @@ fn test_double_subject_should_pass_havoc_constraint() {
 }
 
 #[test]
+#[should_panic(expected = "UndefinedName { name: \"ἄγνωστος\" }")]
 fn test_undefined_variable_evaluates_to_zero_silently() {
     let source = "ἄγνωστος λέγε."; // 'unknown say' -> undefined variable
     let ast = parse(source).unwrap();
