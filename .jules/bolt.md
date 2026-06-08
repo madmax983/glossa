@@ -8,3 +8,7 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+
+**Refactoring narrator formatting**
+**Learning:** Formatting tree structures recursively using `format!` or string concatenation allocates a new String for every node traversal.
+**Action:** Use a mutable string buffer (`&mut String`) and `fmt::Write` or `push_str` to build the string in-place without generating intermediate allocations.
