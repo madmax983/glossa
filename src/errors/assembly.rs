@@ -22,8 +22,18 @@ use thiserror::Error;
 pub enum AssemblyError {
     /// Two subjects found in the same statement (Nominative collision)
     ///
+    /// This error prevents ambiguity in sentences by ensuring there is only ever one
+    /// active subject (nominative noun) driving the action of the verb.
+    ///
     /// # Example
     /// `ὁ ἄνθρωπος ὁ θεὸς λέγει` (The man the god says)
+    ///
+    /// ```rust
+    /// use glossa::errors::AssemblyError;
+    ///
+    /// let error = AssemblyError::DoubleSubject;
+    /// assert!(error.to_string().contains("Διπλοῦν ὑποκείμενον"));
+    /// ```
     #[error("Διπλοῦν ὑποκείμενον! Δύο βασιλεῖς οὐ δύνανται μιᾶς πόλεως ἄρχειν.")]
     #[diagnostic(code(glossa::assembly::double_subject))]
     DoubleSubject,
@@ -54,8 +64,18 @@ pub enum AssemblyError {
 
     /// Missing verb in a statement
     ///
+    /// This error ensures that all complete thoughts and actions have a driving force.
+    /// Without a verb, the compiler cannot determine the semantic intent of the statement.
+    ///
     /// # Example
     /// `ὁ ἄνθρωπος.` (The man.)
+    ///
+    /// ```rust
+    /// use glossa::errors::AssemblyError;
+    ///
+    /// let error = AssemblyError::MissingVerb;
+    /// assert!(error.to_string().contains("Ῥῆμα οὐχ εὑρέθη"));
+    /// ```
     #[error("Ῥῆμα οὐχ εὑρέθη! ἄνευ ῥήματος πρᾶξις οὐκ ἔστιν.")]
     #[diagnostic(code(glossa::assembly::missing_verb))]
     MissingVerb,
