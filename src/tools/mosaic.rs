@@ -29,7 +29,7 @@ use crate::parser::parse;
 use crate::semantic::{AssembledStatement, Constituent, assemble_statement};
 use crate::tools::ui::Status;
 use comfy_table::presets::UTF8_FULL;
-use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
+use comfy_table::{Cell, ContentArrangement, Table};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::path::Path;
@@ -72,22 +72,12 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("Line").add_attribute(Attribute::Bold),
-            Cell::new("Subject (Nom)")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("Verb (Action)")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
-            Cell::new("Object (Acc)")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Green),
-            Cell::new("Indirect (Dat)")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Magenta),
-            Cell::new("Other")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::DarkGrey),
+            Cell::new("Line"),
+            Cell::new("Subject (Nom)"),
+            Cell::new("Verb (Action)"),
+            Cell::new("Object (Acc)"),
+            Cell::new("Indirect (Dat)"),
+            Cell::new("Other"),
         ]);
 
     for (i, stmt) in program.statements.iter().enumerate() {
@@ -101,7 +91,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                 Err(e) => {
                     table.add_row(vec![
                         Cell::new(i + 1),
-                        Cell::new(format!("Error: {}", e)).fg(Color::Red),
+                        Cell::new(format!("Error: {}", e)),
                         Cell::new(""),
                         Cell::new(""),
                         Cell::new(""),
@@ -120,9 +110,7 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
             };
             table.add_row(vec![
                 Cell::new(i + 1),
-                Cell::new(type_name)
-                    .fg(Color::Blue)
-                    .add_attribute(Attribute::Italic),
+                Cell::new(type_name),
                 Cell::new(""),
                 Cell::new(""),
                 Cell::new(""),
@@ -364,7 +352,7 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
         Cell::new(verb),
         Cell::new(object),
         Cell::new(indirect),
-        Cell::new(other_column).fg(Color::DarkGrey),
+        Cell::new(other_column),
     ]);
 }
 
