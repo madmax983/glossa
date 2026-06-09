@@ -8,3 +8,7 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+
+**[Optimized heap allocations in interpreter, semantic tools, and test runner]**
+**Learning:** Multiple operations in the codebase created temporary heap allocations such as using `.clone()` on struct instantiations, collecting values into intermediate `Vec` arrays without setting initial capacity (or allocating `Vec` where slice references work), or collecting `String` streams before `join`ing them.
+**Action:** Replaced `.collect::<Vec<_>>().join()` loops with direct writing into `String::with_capacity()`, swapped `HashMap` with `FxHashMap` or used the `get_mut` pattern to avoid redundant allocation on update.

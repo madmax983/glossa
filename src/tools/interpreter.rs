@@ -328,8 +328,10 @@ impl Interpreter {
     fn assign_var(&mut self, name: &str, value: Value) -> Result<(), EvalError> {
         // Walk up the scopes to find the variable
         for scope in self.env.iter_mut().rev() {
-            if scope.contains_key(name) {
-                scope.insert(name.to_string(), value);
+            // ⚡ Bolt Optimization: Use get_mut to avoid allocating a new String key
+            // and rehashing when assigning to an existing variable.
+            if let Some(val_ref) = scope.get_mut(name) {
+                *val_ref = value;
                 return Ok(());
             }
         }
