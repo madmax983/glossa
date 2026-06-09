@@ -64,31 +64,30 @@ struct TestResult {
 }
 
 fn parse_test_output(output: &str) -> Vec<TestResult> {
-    output
-        .lines()
-        .filter_map(|line| {
-            // Standard rustc test output line format: "test test_name ... status"
-            let rest = line.strip_prefix("test ")?;
-            let idx = rest.rfind(" ... ")?;
-
-            let name = rest[..idx].trim();
-            if name.is_empty() {
-                return None;
+    // ⚡ Bolt Optimization: Use an approximate capacity to reduce reallocations
+    let mut results = Vec::with_capacity(16);
+    for line in output.lines() {
+        #[allow(clippy::collapsible_if)]
+        if let Some(rest) = line.strip_prefix("test ") {
+            if let Some(idx) = rest.rfind(" ... ") {
+                let name = rest[..idx].trim();
+                if name.is_empty() {
+                    continue;
+                }
+                let status = match &rest[idx + 5..] {
+                    "ok" => TestStatus::Ok,
+                    "FAILED" => TestStatus::Failed,
+                    "ignored" => TestStatus::Ignored,
+                    _ => continue,
+                };
+                results.push(TestResult {
+                    name: name.to_string(),
+                    status,
+                });
             }
-
-            let status = match &rest[idx + 5..] {
-                "ok" => TestStatus::Ok,
-                "FAILED" => TestStatus::Failed,
-                "ignored" => TestStatus::Ignored,
-                _ => return None,
-            };
-
-            Some(TestResult {
-                name: name.to_string(),
-                status,
-            })
-        })
-        .collect()
+        }
+    }
+    results
 }
 
 /// Extracts failed tests and their output from `rustc --test` output.
@@ -97,7 +96,8 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
 /// This parses the output stream in-place using a `Peekable` iterator, reducing memory
 /// allocations when test outputs are large.
 fn extract_failures(output: &str) -> Vec<(String, String)> {
-    let mut failures = Vec::new();
+    // ⚡ Bolt Optimization: Use an approximate capacity to reduce reallocations
+    let mut failures = Vec::with_capacity(4);
     let mut lines = output.lines().peekable();
 
     // Skip until "failures:"
@@ -141,7 +141,8 @@ fn parse_failure_name(line: &str) -> Option<String> {
 }
 
 fn capture_failure_message(lines: &mut std::iter::Peekable<std::str::Lines>) -> String {
-    let mut message = String::new();
+    // ⚡ Bolt Optimization: Use String::with_capacity
+    let mut message = String::with_capacity(128);
     while let Some(current) = lines.peek() {
         let trimmed = current.trim();
         if (trimmed.starts_with("----") && trimmed.ends_with("stdout ----"))

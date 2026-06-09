@@ -224,6 +224,7 @@ pub fn try_parse_struct_instantiation(
     }
 
     // Check if type exists as a user-defined struct
+    // Check if type exists as a user-defined struct
     let Some(struct_type) = scope.lookup_type(type_name).cloned() else {
         // If it looks like a struct instantiation (var νέον Type ... ἔστω)
         // but the type is unknown, return an error instead of falling back.
@@ -239,8 +240,6 @@ pub fn try_parse_struct_instantiation(
             &[]
         };
 
-    let field_names: Vec<SmolStr> = fields_info.iter().map(|(n, _)| n.clone()).collect();
-
     // Collect constructor arguments (everything between type_name and ἔστω)
     let Some(args) = parse_struct_args(&terms[3..terms.len() - 1], fields_info, scope) else {
         return Ok(None);
@@ -250,7 +249,8 @@ pub fn try_parse_struct_instantiation(
     let struct_inst = AnalyzedExpr {
         expr: AnalyzedExprKind::StructInstantiation {
             type_name: type_name.clone(),
-            fields: field_names,
+            // ⚡ Bolt Optimization: Pre-allocate vector capacity to avoid intermediate `.collect()` and reallocations
+            fields: fields_info.iter().map(|(n, _)| n.clone()).collect(),
             args,
         },
         glossa_type: struct_type.clone(),

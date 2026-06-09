@@ -50,7 +50,7 @@ pub fn run_weave(input: &Path) -> Result<()> {
     let rust_code = generate_rust_file(&program);
 
     // 3. Generate Mosaic Table
-    let mut mosaic_buffer = Vec::new();
+    let mut mosaic_buffer = Vec::with_capacity(1024);
     if let Err(e) = run_mosaic_inner(&source, &mut mosaic_buffer) {
         status.error("Σφάλμα (Error)");
         return Err(e);

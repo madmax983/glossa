@@ -375,14 +375,15 @@ impl Display for GlossaReport<'_> {
                     if i > 0 {
                         params.push_str(", ");
                     }
-                    params.push_str(&t.to_string());
+                    // Avoid allocating intermediate strings in to_string() if possible
+                    use std::fmt::Write;
+                    let _ = write!(params, "{}", t);
                 }
 
-                let ret = func
-                    .return_type
-                    .as_ref()
-                    .map(|t| t.to_string())
-                    .unwrap_or_else(|| "Οὐδέν".to_string());
+                let ret = match &func.return_type {
+                    Some(t) => t.to_string(),
+                    None => "Οὐδέν".to_string(),
+                };
 
                 func_table.add_row(vec![
                     Cell::new(&func.name).fg(Color::Cyan),
@@ -397,6 +398,7 @@ impl Display for GlossaReport<'_> {
     }
 }
 
+/// A comprehensive report for the compilation process
 /// A comprehensive report for the compilation process
 ///
 /// ## Examples
