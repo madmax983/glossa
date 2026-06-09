@@ -235,6 +235,18 @@ impl GlossaError {
 
     /// Creates a new `GlossaError::UndefinedName`.
     ///
+    /// This error is returned when you try to use a variable or function that has not
+    /// been explicitly defined (e.g. using `ἔστω` for bindings or `ὁρίζειν` for functions).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use glossa::errors::GlossaError;
+    ///
+    /// let error = GlossaError::undefined("ἄγνωστος");
+    /// assert!(matches!(error, GlossaError::UndefinedName { .. }));
+    /// ```
+    ///
     /// This specific semantic error is thrown when code attempts to reference a variable,
     /// type, or function that hasn't been defined in the current or parent [`Scope`].
     ///
