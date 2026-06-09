@@ -92,7 +92,7 @@ A guide for travelers from other lands.
 | **Variable** | `let x = 5;` | `ξ 5 ἔστω.` | "Let x be 5." |
 | **Print** | `println!("Hi");` | `«χαῖρε» λέγε.` | "Say 'Hi'." |
 | **If** | `if x > 0 { ... }` | `εἰ ξ 0 μεῖζον ᾖ, ...` | "If x [is] greater than 0..." |
-| **Loop** | `for n in numbers { ... }` | `ἀριθμός [1, 2, 3] ἔστω. διὰ ἀριθμοῦ, ν λέγε.` | "Through numbers, say n." |
+| **Loop** | `for n in numbers { ... }` | `ἀριθμός [1, 2, 3] ἔστω. διὰ ἀριθμοῦ, ν λέγε.` | "Through numbers, let n be implicitly declared and say n." |
 | **Function** | `fn foo() { ... }` | `... ὁρίζειν ...` | "To define..." |
 | **Struct** | `struct User { ... }` | `εἶδος Χρήστης ...` | "Form User..." |
 

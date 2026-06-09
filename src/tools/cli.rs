@@ -12,6 +12,7 @@
 //! * **Testing**: `test` runs unit tests defined in the source file.
 //! * **Compilation**: `build` only compiles to a binary.
 //! * **Development**: `check` verifies syntax/semantics, `highlight` shows colors.
+//! * **Testing**: `test` runs unit tests defined in the source file.
 //! * **Learning**: `lookup` explains words, `bard` tells the story of the code.
 //! * **Interactive**: `repl` starts the Read-Eval-Print Loop.
 //!
@@ -22,7 +23,7 @@
 //!
 //! * **Mentor**: `mentor` starts an interactive tutorial.
 //! * **Mosaic**: `mosaic` visualizes the sentence structure assembly.
-//! * **Map**: `map` generates architecture diagrams.
+//! * **Map**: `map` visualizes the program architecture as a map.
 //!
 //! # Example Usage
 //!
