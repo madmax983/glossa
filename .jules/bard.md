@@ -76,3 +76,7 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+
+## 2026-03-22 - [Rustdoc missing_docs due to intermediate use statements]
+**Confusion:** Placing a `use` statement (like `use std::fmt::Write;`) directly between a `///` doc comment and the function signature it documents (e.g., `pub fn to_rust_type(...)`) breaks the linkage. Rustdoc attaches the documentation to the `use` statement instead of the function, triggering a `missing_docs` warning for the function.
+**Clarification:** To fix this, moved the `use` statement above the documentation block. This successfully resolves the `missing_docs` warning by correctly linking the documentation to the function.
