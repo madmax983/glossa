@@ -22,7 +22,7 @@ fn test_undefined_struct_type_error() {
             assert!(
                 msg.contains("Χρήστος")
                     || msg.contains("undefined")
-                    || msg.contains("Ἄγνωστον")
+                    || msg.contains("Οὐκ οἶδα τὸ")
                     || msg.contains("Άγνωστον")
             );
         }
