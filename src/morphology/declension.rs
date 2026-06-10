@@ -204,7 +204,8 @@ where
 ///
 /// The caller should use syntactic context to pick the right one.
 pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
-    let mut analyses = Vec::new();
+    // ⚡ Bolt Optimization: Pre-allocate capacity to prevent reallocation on hot path
+    let mut analyses = Vec::with_capacity(4);
     analyze_noun_all_into(word, &mut analyses);
     analyses
 }
