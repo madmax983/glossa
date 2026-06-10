@@ -7,3 +7,8 @@
 **Bloat:** `DotGenerator` in `src/tools/haruspex.rs` used an object-oriented builder pattern for graph generation.
 **Cut:** Flattened the object into pure procedural functions passing mutable references to `next_id` and `output` state.
 **Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+
+## [Reduction] Fix unused variable warning in Gnomon
+**Bloat:** Unused variable `input` warning for `Commands::Gnomon` without `nova` feature.
+**Cut:** Bound the variable explicitly using `let _ = input;` to avoid the clippy warning.
+**Saved:** 0 lines, but eliminates noise and cognitive load on CI.
