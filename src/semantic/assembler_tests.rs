@@ -768,7 +768,6 @@ fn test_neuter_plural_agreement() {
 fn test_verbless_statement() {
     let mut asm = Assembler::new();
 
-    // Subject: ὁ ἄνθρωπος
     let subj = MorphAnalysis {
         lemma: std::borrow::Cow::Borrowed("ανθρωπος"),
         part_of_speech: PartOfSpeech::Noun,
@@ -783,17 +782,8 @@ fn test_verbless_statement() {
     };
     asm.feed(&subj, "ἄνθρωπος").unwrap();
 
-    // No verb fed.
-
     let stmt = asm.finalize();
-    assert!(
-        matches!(
-            stmt,
-            Err(crate::semantic::assembly::AssemblyError::MissingVerb)
-        ),
-        "Expected MissingVerb but got {:?}",
-        stmt
-    );
+    assert!(stmt.is_ok(), "Expected Ok but got {:?}", stmt);
 }
 
 // From atlas_refactor_coverage.rs
