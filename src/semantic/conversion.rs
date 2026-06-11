@@ -958,12 +958,16 @@ fn try_print_default(
     ];
 
     if let Some(ref subj) = asm_stmt.subject {
-        if let Some(var_type) = scope.lookup(&subj.lemma) {
+        if scope.is_defined(&subj.lemma) {
+            let var_type = scope
+                .lookup(&subj.lemma)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown);
             args.insert(
                 0,
                 AnalyzedExpr {
                     expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                    glossa_type: var_type.clone(),
+                    glossa_type: var_type,
                 },
             );
         } else if !allowed_fallbacks.contains(&subj.lemma.as_str()) {
@@ -974,10 +978,14 @@ fn try_print_default(
     }
 
     if let Some(ref obj) = asm_stmt.object {
-        if let Some(var_type) = scope.lookup(&obj.lemma) {
+        if scope.is_defined(&obj.lemma) {
+            let var_type = scope
+                .lookup(&obj.lemma)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown);
             args.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: var_type.clone(),
+                glossa_type: var_type,
             });
         } else if !allowed_fallbacks.contains(&obj.lemma.as_str()) {
             return Err(GlossaError::UndefinedName {
@@ -1173,10 +1181,14 @@ fn classify_expression(
         ];
 
         if let Some(ref subj) = asm_stmt.subject {
-            if let Some(var_type) = scope.lookup(&subj.lemma) {
+            if scope.is_defined(&subj.lemma) {
+                let var_type = scope
+                    .lookup(&subj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
                 exprs.push(AnalyzedExpr {
                     expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                    glossa_type: var_type.clone(),
+                    glossa_type: var_type,
                 });
             } else if !allowed_fallbacks.contains(&subj.lemma.as_str()) {
                 return Err(GlossaError::UndefinedName {
@@ -1189,10 +1201,14 @@ fn classify_expression(
                 });
             }
         } else if let Some(ref obj) = asm_stmt.object {
-            if let Some(var_type) = scope.lookup(&obj.lemma) {
+            if scope.is_defined(&obj.lemma) {
+                let var_type = scope
+                    .lookup(&obj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
                 exprs.push(AnalyzedExpr {
                     expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                    glossa_type: var_type.clone(),
+                    glossa_type: var_type,
                 });
             } else if !allowed_fallbacks.contains(&obj.lemma.as_str()) {
                 return Err(GlossaError::UndefinedName {
