@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-06-11 - [Doc Block Binding Interference]
+**Confusion:** Running `RUSTDOCFLAGS="-W missing_docs" cargo doc` threw a `missing_docs` warning for `to_rust_type` even though it clearly had a `///` documentation block right above it.
+**Clarification:** Placing a statement (such as a `use std::fmt::Write;` import) between a `///` doc comment and a function signature causes the documentation to incorrectly bind to the intermediate statement instead of the function, resulting in a `missing_docs` warning. Imports must be placed either before the doc block or inside the function body.
