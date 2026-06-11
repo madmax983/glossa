@@ -185,14 +185,18 @@ impl ProgramStats {
             AnalyzedStatement::TypeDefinition { .. } => {} // Already counted in scope
             AnalyzedStatement::TraitDefinition { .. } => {} // Already counted in scope
             AnalyzedStatement::TraitImplementation { methods, .. } => {
-                // Visit trait method implementations to get complete expression coverage
-                for method in methods {
-                    if let Some(body) = &method.body {
-                        for s in body {
-                            self.visit_statement(s, depth + 1);
-                        }
-                    }
-                }
+                self.visit_methods_body(methods, depth);
+            }
+        }
+    }
+
+    fn visit_methods_body(&mut self, methods: &[crate::semantic::AnalyzedMethod], depth: usize) {
+        for method in methods {
+            let Some(body) = &method.body else {
+                continue;
+            };
+            for s in body {
+                self.visit_statement(s, depth + 1);
             }
         }
     }
