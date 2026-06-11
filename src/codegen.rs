@@ -273,8 +273,6 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// );
 /// assert_eq!(to_rust_type(&result_type), "Result<i64, String>");
 /// ```
-use std::fmt::Write;
-
 pub fn to_rust_type(ty: &GlossaType) -> String {
     let mut result = String::with_capacity(32);
     write_rust_type(ty, &mut result).unwrap();
@@ -282,6 +280,7 @@ pub fn to_rust_type(ty: &GlossaType) -> String {
 }
 
 fn write_rust_type(ty: &GlossaType, out: &mut String) -> std::fmt::Result {
+    use std::fmt::Write;
     match ty {
         GlossaType::Number => write!(out, "i64"),
         GlossaType::String => write!(out, "String"),
@@ -431,7 +430,8 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
     // We always import collections because they might be used in type definitions
     // even if not explicitly constructed in the code.
     // Unused imports are suppressed by #![allow(unused_imports)] in the file header.
-    let imports = quote! { use std::collections::{HashMap, HashSet}; };
+    let imports = quote! { use std::collections::{HashMap, HashSet};
+use std::fmt::Write; };
 
     let panic_hook = generate_panic_hook();
 
