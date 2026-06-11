@@ -183,16 +183,6 @@ fn add_assignment(table: &mut Table, prefix: &str, name: &str, value: &AnalyzedE
     ]);
 }
 
-fn format_exprs(exprs: &[AnalyzedExpr]) -> String {
-    let mut buf = String::with_capacity(exprs.len() * 16);
-    for (i, expr) in exprs.iter().enumerate() {
-        if i > 0 {
-            buf.push_str(", ");
-        }
-        buf.push_str(&tell_expr(expr));
-    }
-    buf
-}
 
 fn format_types(types: &[GlossaType]) -> String {
     let mut buf = String::with_capacity(types.len() * 16);
@@ -206,7 +196,9 @@ fn format_types(types: &[GlossaType]) -> String {
 }
 
 fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let script = format!("Proclaim: {}", format_exprs(exprs));
+            let mut exprs_buf = String::with_capacity(exprs.len() * 16);
+            write_exprs(exprs, &mut exprs_buf);
+    let script = format!("Proclaim: {}", exprs_buf);
     table.add_row(vec![
         Cell::new("PRINT").fg(Color::Green),
         Cell::new(format!("{}{}", prefix, script)),
@@ -215,7 +207,9 @@ fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
 }
 
 fn add_expression(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let script = format!("Do: {}", format_exprs(exprs));
+            let mut exprs_buf = String::with_capacity(exprs.len() * 16);
+            write_exprs(exprs, &mut exprs_buf);
+    let script = format!("Do: {}", exprs_buf);
     table.add_row(vec![
         Cell::new("EXPR").fg(Color::DarkGrey),
         Cell::new(format!("{}{}", prefix, script)),
@@ -224,7 +218,9 @@ fn add_expression(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
 }
 
 fn add_query(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let script = format!("Query oracle: {}", format_exprs(exprs));
+            let mut exprs_buf = String::with_capacity(exprs.len() * 16);
+            write_exprs(exprs, &mut exprs_buf);
+    let script = format!("Query oracle: {}", exprs_buf);
     table.add_row(vec![
         Cell::new("QUERY").fg(Color::Magenta),
         Cell::new(format!("{}{}", prefix, script)),
@@ -452,109 +448,132 @@ fn add_test_decl(
 /// into linear, human-readable strings. Unlike a standard `Debug` representation
 /// which outputs nested structs, this formats operations in a pseudo-code style
 /// that is immediately recognizable to developers.
+/// ⚡ Bolt Optimization: Uses a mutable `String` buffer to avoid O(n) heap allocations during recursive AST formatting.
 pub(crate) fn tell_expr(expr: &AnalyzedExpr) -> String {
+    let mut buf = String::with_capacity(64);
+    write_expr(expr, &mut buf);
+    buf
+}
+
+fn write_expr(expr: &AnalyzedExpr, buf: &mut String) {
+    use std::fmt::Write;
     match &expr.expr {
-        AnalyzedExprKind::StringLiteral(s) => format!("\"{}\"", s),
-        AnalyzedExprKind::NumberLiteral(n) => format!("{}", n),
-        AnalyzedExprKind::BooleanLiteral(b) => format!("{}", b),
-        AnalyzedExprKind::Variable(name) => format!("`{}`", name),
-        AnalyzedExprKind::VerbCall { verb, args } => tell_verb_call(verb, args),
+        AnalyzedExprKind::StringLiteral(s) => { let _ = write!(buf, "\"{}\"", s); }
+        AnalyzedExprKind::NumberLiteral(n) => { let _ = write!(buf, "{}", n); }
+        AnalyzedExprKind::BooleanLiteral(b) => { let _ = write!(buf, "{}", b); }
+        AnalyzedExprKind::Variable(name) => { let _ = write!(buf, "`{}`", name); }
+        AnalyzedExprKind::VerbCall { verb, args } => {
+            let _ = write!(buf, "{}(", verb);
+            write_exprs(args, buf);
+            buf.push(')');
+        }
         AnalyzedExprKind::BinOp { left, op, right } => {
-            format!("({} {:?} {})", tell_expr(left), op, tell_expr(right))
+            buf.push('(');
+            write_expr(left, buf);
+            let _ = write!(buf, " {:?} ", op);
+            write_expr(right, buf);
+            buf.push(')');
         }
         AnalyzedExprKind::UnaryOp { op, operand } => {
-            format!("({:?} {})", op, tell_expr(operand))
+            let _ = write!(buf, "({:?} ", op);
+            write_expr(operand, buf);
+            buf.push(')');
         }
-        AnalyzedExprKind::Range {
-            start,
-            end,
-            inclusive,
-        } => {
-            let range_op = if *inclusive { "..=" } else { ".." };
-            format!("{}{}{}", tell_expr(start), range_op, tell_expr(end))
+        AnalyzedExprKind::Range { start, end, inclusive } => {
+            write_expr(start, buf);
+            buf.push_str(if *inclusive { "..=" } else { ".." });
+            write_expr(end, buf);
         }
-        AnalyzedExprKind::ArrayLiteral(exprs) => tell_array_literal(exprs),
-        AnalyzedExprKind::Some(e) => format!("Some({})", tell_expr(e)),
-        AnalyzedExprKind::None => "None".to_string(),
-        AnalyzedExprKind::Ok(e) => format!("Ok({})", tell_expr(e)),
-        AnalyzedExprKind::Err(e) => format!("Err({})", tell_expr(e)),
-        AnalyzedExprKind::Unwrap(e) => format!("{}!", tell_expr(e)),
-        AnalyzedExprKind::Try(e) => format!("{}?", tell_expr(e)),
+        AnalyzedExprKind::ArrayLiteral(exprs) => {
+            buf.push('[');
+            write_exprs(exprs, buf);
+            buf.push(']');
+        }
+        AnalyzedExprKind::Some(e) => {
+            buf.push_str("Some(");
+            write_expr(e, buf);
+            buf.push(')');
+        }
+        AnalyzedExprKind::None => buf.push_str("None"),
+        AnalyzedExprKind::Ok(e) => {
+            buf.push_str("Ok(");
+            write_expr(e, buf);
+            buf.push(')');
+        }
+        AnalyzedExprKind::Err(e) => {
+            buf.push_str("Err(");
+            write_expr(e, buf);
+            buf.push(')');
+        }
+        AnalyzedExprKind::Unwrap(e) => {
+            write_expr(e, buf);
+            buf.push('!');
+        }
+        AnalyzedExprKind::Try(e) => {
+            write_expr(e, buf);
+            buf.push('?');
+        }
         AnalyzedExprKind::IndexAccess { array, index } => {
-            format!("{}[{}]", tell_expr(array), tell_expr(index))
+            write_expr(array, buf);
+            buf.push('[');
+            write_expr(index, buf);
+            buf.push(']');
         }
-        AnalyzedExprKind::FunctionCall { func, args } => tell_function_call(func, args),
-        AnalyzedExprKind::MethodCall {
-            receiver,
-            method,
-            args,
-        } => tell_method_call(receiver, method, args),
-        AnalyzedExprKind::StructInstantiation {
-            type_name,
-            fields,
-            args,
-        } => tell_struct_instantiation(type_name, fields, args),
-        AnalyzedExprKind::Lambda {
-            params,
-            body,
-            capture_mode,
-        } => tell_lambda(params, body, capture_mode),
+        AnalyzedExprKind::FunctionCall { func, args } => {
+            let _ = write!(buf, "{}(", func);
+            write_exprs(args, buf);
+            buf.push(')');
+        }
+        AnalyzedExprKind::MethodCall { receiver, method, args } => {
+            write_expr(receiver, buf);
+            let _ = write!(buf, ".{}(", method);
+            write_exprs(args, buf);
+            buf.push(')');
+        }
+        AnalyzedExprKind::StructInstantiation { type_name, fields, args } => {
+            let _ = write!(buf, "{} {{ ", type_name);
+            for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
+                if i > 0 { buf.push_str(", "); }
+                let _ = write!(buf, "{}: ", f);
+                write_expr(a, buf);
+            }
+            buf.push_str(" }");
+        }
+        AnalyzedExprKind::Lambda { params, body, capture_mode } => {
+            let mode = match capture_mode {
+                CaptureMode::Borrow => "",
+                CaptureMode::Move => "move ",
+            };
+            let _ = write!(buf, "{}|{}| ", mode, params.join(", "));
+            write_expr(body, buf);
+        }
         AnalyzedExprKind::CollectionNew { collection_type } => {
-            format!("{}::new()", collection_type)
+            let _ = write!(buf, "{}::new()", collection_type);
         }
         AnalyzedExprKind::Assert { condition } => {
-            format!("assert({})", tell_expr(condition))
+            buf.push_str("assert(");
+            write_expr(condition, buf);
+            buf.push(')');
         }
         AnalyzedExprKind::AssertEq { left, right } => {
-            format!("assert_eq({}, {})", tell_expr(left), tell_expr(right))
+            buf.push_str("assert_eq(");
+            write_expr(left, buf);
+            buf.push_str(", ");
+            write_expr(right, buf);
+            buf.push(')');
         }
         AnalyzedExprKind::PropertyAccess { owner, property } => {
-            format!("{}.{}", tell_expr(owner), property)
+            write_expr(owner, buf);
+            let _ = write!(buf, ".{}", property);
         }
     }
 }
 
-fn tell_verb_call(verb: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}({})", verb, format_exprs(args))
-}
-
-fn tell_array_literal(exprs: &[AnalyzedExpr]) -> String {
-    format!("[{}]", format_exprs(exprs))
-}
-
-fn tell_function_call(func: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}({})", func, format_exprs(args))
-}
-
-fn tell_method_call(receiver: &AnalyzedExpr, method: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}.{}({})", tell_expr(receiver), method, format_exprs(args))
-}
-
-fn tell_struct_instantiation(
-    type_name: &str,
-    fields: &[smol_str::SmolStr],
-    args: &[AnalyzedExpr],
-) -> String {
-    let mut buf = String::with_capacity(fields.len() * 16);
-    for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
-        if i > 0 {
-            buf.push_str(", ");
-        }
-        let _ = write!(&mut buf, "{}: {}", f, tell_expr(a));
+fn write_exprs(exprs: &[AnalyzedExpr], buf: &mut String) {
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 { buf.push_str(", "); }
+        write_expr(expr, buf);
     }
-    format!("{} {{ {} }}", type_name, buf)
-}
-
-fn tell_lambda(
-    params: &[smol_str::SmolStr],
-    body: &AnalyzedExpr,
-    capture_mode: &CaptureMode,
-) -> String {
-    let mode = match capture_mode {
-        CaptureMode::Borrow => "",
-        CaptureMode::Move => "move ",
-    };
-    format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
 }
 
 /// Converts a semantic type into a familiar Rust-like type signature string.

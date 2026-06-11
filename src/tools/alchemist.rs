@@ -14,7 +14,7 @@ use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
-use std::fmt::Write;
+
 use std::path::Path;
 
 /// Run the Alchemist tool on a file
@@ -71,16 +71,6 @@ pub fn transpile_to_python(program: &AnalyzedProgram) -> String {
     out
 }
 
-fn format_transpiled_exprs(exprs: &[AnalyzedExpr]) -> String {
-    let mut buf = String::with_capacity(exprs.len() * 16);
-    for (i, expr) in exprs.iter().enumerate() {
-        if i > 0 {
-            buf.push_str(", ");
-        }
-        buf.push_str(&transpile_expr(expr));
-    }
-    buf
-}
 
 fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
     let ind = "    ".repeat(indent);
@@ -95,7 +85,9 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             )
         }
         AnalyzedStatement::Query(exprs) => {
-            format!("{}print({})", ind, format_transpiled_exprs(exprs))
+            let mut exprs_buf = String::with_capacity(exprs.len() * 16);
+            write_format_transpiled_exprs(exprs, &mut exprs_buf);
+            format!("{}print({})", ind, exprs_buf)
         }
         AnalyzedStatement::Assignment { name, value } => {
             format!(
@@ -126,7 +118,9 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             }
         }
         AnalyzedStatement::Print(exprs) => {
-            format!("{}print({})", ind, format_transpiled_exprs(exprs))
+            let mut exprs_buf = String::with_capacity(exprs.len() * 16);
+            write_format_transpiled_exprs(exprs, &mut exprs_buf);
+            format!("{}print({})", ind, exprs_buf)
         }
         AnalyzedStatement::Expression(exprs) => {
             let mut out = String::new();
@@ -334,98 +328,105 @@ fn transpile_match(
     out.trim_end().to_string()
 }
 
+/// ⚡ Bolt Optimization: Uses a mutable `String` buffer to avoid O(n) heap allocations during recursive AST formatting.
 fn transpile_expr(expr: &AnalyzedExpr) -> String {
+    let mut buf = String::with_capacity(64);
+    write_transpiled_expr(expr, &mut buf);
+    buf
+}
+
+fn write_transpiled_expr(expr: &AnalyzedExpr, buf: &mut String) {
+    use std::fmt::Write;
+
     match &expr.expr {
-        AnalyzedExprKind::NumberLiteral(n) => n.to_string(),
-        AnalyzedExprKind::StringLiteral(s) => format!("\"{}\"", s),
-        AnalyzedExprKind::BooleanLiteral(b) => (if *b { "True" } else { "False" }).to_string(),
-        AnalyzedExprKind::Variable(name) => sanitize_ident(name),
+        AnalyzedExprKind::NumberLiteral(n) => { let _ = write!(buf, "{}", n); }
+        AnalyzedExprKind::StringLiteral(s) => { let _ = write!(buf, "\"{}\"", s); }
+        AnalyzedExprKind::BooleanLiteral(b) => { buf.push_str(if *b { "True" } else { "False" }); }
+        AnalyzedExprKind::Variable(name) => { buf.push_str(&sanitize_ident(name)); }
         AnalyzedExprKind::PropertyAccess { owner, property } => {
-            format!("{}.{}", transpile_expr(owner), sanitize_ident(property))
+            write_transpiled_expr(owner, buf);
+            let _ = write!(buf, ".{}", sanitize_ident(property));
         }
         AnalyzedExprKind::VerbCall { verb, args } => {
             // Map certain known verbs to Python built-ins if applicable. For now, general function call.
-            format!(
-                "{}({})",
-                sanitize_ident(verb),
-                format_transpiled_exprs(args)
-            )
+            let _ = write!(buf, "{}(", sanitize_ident(verb));
+            write_format_transpiled_exprs(args, buf);
+            buf.push(')');
         }
         AnalyzedExprKind::FunctionCall { func, args } => {
-            format!(
-                "{}({})",
-                sanitize_ident(func),
-                format_transpiled_exprs(args)
-            )
+            let _ = write!(buf, "{}(", sanitize_ident(func));
+            write_format_transpiled_exprs(args, buf);
+            buf.push(')');
         }
-        AnalyzedExprKind::StructInstantiation {
-            type_name,
-            fields,
-            args,
-        } => {
-            let mut kw_args_buf = String::with_capacity(fields.len() * 16);
+        AnalyzedExprKind::StructInstantiation { type_name, fields, args } => {
+            let _ = write!(buf, "{}(", sanitize_ident(type_name));
             for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
-                if i > 0 {
-                    kw_args_buf.push_str(", ");
-                }
-                let _ = write!(
-                    &mut kw_args_buf,
-                    "{}={}",
-                    sanitize_ident(f),
-                    transpile_expr(a)
-                );
+                if i > 0 { buf.push_str(", "); }
+                let _ = write!(buf, "{}=", sanitize_ident(f));
+                write_transpiled_expr(a, buf);
             }
-            format!("{}({})", sanitize_ident(type_name), kw_args_buf)
+            buf.push(')');
         }
-        AnalyzedExprKind::Range {
-            start,
-            end,
-            inclusive,
-        } => {
-            let s = transpile_expr(start);
-            let e = transpile_expr(end);
-            if *inclusive {
-                format!("range({}, {} + 1)", s, e)
-            } else {
-                format!("range({}, {})", s, e)
-            }
+        AnalyzedExprKind::Range { start, end, inclusive } => {
+            buf.push_str("range(");
+            write_transpiled_expr(start, buf);
+            buf.push_str(", ");
+            write_transpiled_expr(end, buf);
+            if *inclusive { buf.push_str(" + 1"); }
+            buf.push(')');
         }
         AnalyzedExprKind::ArrayLiteral(exprs) => {
-            format!("[{}]", format_transpiled_exprs(exprs))
+            buf.push('[');
+            write_format_transpiled_exprs(exprs, buf);
+            buf.push(']');
         }
         AnalyzedExprKind::BinOp { left, op, right } => {
-            let l = transpile_expr(left);
-            let r = transpile_expr(right);
+            buf.push('(');
+            write_transpiled_expr(left, buf);
             let op_str = match op {
-                BinaryOp::Add => "+",
-                BinaryOp::Sub => "-",
-                BinaryOp::Mul => "*",
-                BinaryOp::Div => "//", // Integer division in Python
-                BinaryOp::Mod => "%",
-                BinaryOp::Eq => "==",
-                BinaryOp::Ne => "!=",
-                BinaryOp::Lt => "<",
-                BinaryOp::Le => "<=",
-                BinaryOp::Gt => ">",
-                BinaryOp::Ge => ">=",
-                BinaryOp::And => "and",
-                BinaryOp::Or => "or",
+                BinaryOp::Add => " + ",
+                BinaryOp::Sub => " - ",
+                BinaryOp::Mul => " * ",
+                BinaryOp::Div => " // ",
+                BinaryOp::Mod => " % ",
+                BinaryOp::Eq => " == ",
+                BinaryOp::Ne => " != ",
+                BinaryOp::Lt => " < ",
+                BinaryOp::Le => " <= ",
+                BinaryOp::Gt => " > ",
+                BinaryOp::Ge => " >= ",
+                BinaryOp::And => " and ",
+                BinaryOp::Or => " or ",
             };
-            format!("({} {} {})", l, op_str, r)
+            buf.push_str(op_str);
+            write_transpiled_expr(right, buf);
+            buf.push(')');
         }
         AnalyzedExprKind::UnaryOp { op, operand } => {
-            let o = transpile_expr(operand);
             match op {
-                UnaryOp::Neg => format!("-{}", o),
-                UnaryOp::Not => format!("not {}", o),
-                UnaryOp::Ref => o, // Python does not have explicit references
+                UnaryOp::Neg => {
+                    buf.push('-');
+                    write_transpiled_expr(operand, buf);
+                }
+                UnaryOp::Not => {
+                    buf.push_str("not ");
+                    write_transpiled_expr(operand, buf);
+                }
+                UnaryOp::Ref => {
+                    write_transpiled_expr(operand, buf);
+                }
             }
         }
-        // Fallback for unsupported complex expressions like Try, Option variants, etc.
-        _ => format!(
-            "/* Unimplemented expr: {} */",
-            crate::tools::narrator::tell_expr(expr)
-        ),
+        _ => {
+            let _ = write!(buf, "/* Unimplemented expr: {} */", crate::tools::narrator::tell_expr(expr));
+        }
+    }
+}
+
+fn write_format_transpiled_exprs(exprs: &[AnalyzedExpr], buf: &mut String) {
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 { buf.push_str(", "); }
+        write_transpiled_expr(expr, buf);
     }
 }
 
