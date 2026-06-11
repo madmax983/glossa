@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[GlossaType::Unknown as Fallback]**
+**Learning:** `unwrap_or(GlossaType::Unknown)` is heavily used as a fallback when looking up variables and functions in the scope (`src/semantic/conversion.rs` and others). The codebase intentionally defers to `Unknown` rather than erroring immediately during assembly conversion. Since Glossa uses `Unknown` as a wildcard (matching any type during `is_compatible`), this makes the language dynamically typed or highly tolerant of untyped bindings in certain passes. Trying to "fix" these by returning `Err(UndefinedVariable)` breaks tests that rely on implicit fallback variables or loosely typed definitions.
+**Action:** Do not forcefully replace `unwrap_or(GlossaType::Unknown)` with `unwrap()` or `ok_or_else(...)` unless the context explicitly demands strict validation (e.g. `validation.rs`).
