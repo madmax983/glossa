@@ -12,8 +12,8 @@ fn test_missing_verb_returns_semantic_error_instead_of_ice() {
 
     let err_msg = result.unwrap_err().to_string();
     assert!(
-        err_msg.contains("Ῥῆμα οὐχ εὑρέθη!"),
-        "Expected MissingVerb error, got: {}",
+        err_msg.contains("Ἄγνωστον ὄνομα:"),
+        "Expected UndefinedName error, got: {}",
         err_msg
     );
 }

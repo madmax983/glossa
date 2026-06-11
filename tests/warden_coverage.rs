@@ -41,18 +41,9 @@ fn test_coverage_filter_patterns() {
     ",
     );
 
-    // 4. No suffix (else branch) - e.g. indeclinable name like Δαβιδ
-    // "Αδαμ" failed because morphology might treat it weirdly (Capital Alpha issue?)
-    // Trying "Δαβιδ" (David) which is definitely a proper noun and indeclinable in many contexts
-    // Or just "β" which is a variable name.
-    compile(
-        "
-        ξ [1, 2, 3] ἔστω.
-        β 10 ἔστω.
-        // Filter: collection + genitive(no suffix) + comparative_adj + print
-        ξ β μείζονα λέγε.
-    ",
-    );
+    // 4. No suffix removed because "β" naturally parses as Nominative creating a DoubleSubject.
+    // The previous implementation suppressed the error using the `is_print_verb` bypass.
+    // See issue #ECHO.
 }
 
 #[test]

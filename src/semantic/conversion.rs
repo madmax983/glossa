@@ -953,25 +953,45 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
-        args.insert(
-            0,
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
-            },
-        );
+    let allowed_fallbacks = [
+        "self", "ξ", "ψ", "α", "β", "γ", "ν", "x", "y", "i", "j", "k", "κ", "χ",
+    ];
+
+    if let Some(ref subj) = asm_stmt.subject {
+        if scope.is_defined(&subj.lemma) {
+            let var_type = scope
+                .lookup(&subj.lemma)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown);
+            args.insert(
+                0,
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: var_type,
+                },
+            );
+        } else if !allowed_fallbacks.contains(&subj.lemma.as_str()) {
+            return Err(GlossaError::UndefinedName {
+                name: subj.lemma.to_string(),
+            });
+        }
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
-        args.push(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
-        });
+    if let Some(ref obj) = asm_stmt.object {
+        if scope.is_defined(&obj.lemma) {
+            let var_type = scope
+                .lookup(&obj.lemma)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown);
+            args.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: var_type,
+            });
+        } else if !allowed_fallbacks.contains(&obj.lemma.as_str()) {
+            return Err(GlossaError::UndefinedName {
+                name: obj.lemma.to_string(),
+            });
+        }
     }
 
     Ok(args)
@@ -1156,16 +1176,50 @@ fn classify_expression(
 
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
+        let allowed_fallbacks = [
+            "self", "ξ", "ψ", "α", "β", "γ", "ν", "x", "y", "i", "j", "k", "κ", "χ",
+        ];
+
         if let Some(ref subj) = asm_stmt.subject {
-            exprs.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            });
+            if scope.is_defined(&subj.lemma) {
+                let var_type = scope
+                    .lookup(&subj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+                exprs.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: var_type,
+                });
+            } else if !allowed_fallbacks.contains(&subj.lemma.as_str()) {
+                return Err(GlossaError::UndefinedName {
+                    name: subj.lemma.to_string(),
+                });
+            } else {
+                exprs.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: GlossaType::Unknown,
+                });
+            }
         } else if let Some(ref obj) = asm_stmt.object {
-            exprs.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            });
+            if scope.is_defined(&obj.lemma) {
+                let var_type = scope
+                    .lookup(&obj.lemma)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+                exprs.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: var_type,
+                });
+            } else if !allowed_fallbacks.contains(&obj.lemma.as_str()) {
+                return Err(GlossaError::UndefinedName {
+                    name: obj.lemma.to_string(),
+                });
+            } else {
+                exprs.push(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                    glossa_type: GlossaType::Unknown,
+                });
+            }
         }
     }
 

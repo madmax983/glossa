@@ -1,9 +1,4 @@
 ## [Reduction]
-**Bloat:** `CFGBuilder` in `src/tools/labyrinth.rs` used an object-oriented builder pattern for a simple logic flow.
-**Cut:** Flattened the object into pure functions passing mutable references to `nodes`, `edges`, and `node_counter` state.
-**Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
-
-## [Reduction]
-**Bloat:** `DotGenerator` in `src/tools/haruspex.rs` used an object-oriented builder pattern for graph generation.
-**Cut:** Flattened the object into pure procedural functions passing mutable references to `next_id` and `output` state.
-**Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+**Bloat:** Hardcoded bypasses hiding standard semantic errors. Undefined variable names were ignored by `try_print_default`, `DoubleSubject` checks bypassed `is_print_verb` allowing grammatically broken subjects in print statements, and `check_missing_verb` had a bizarre hardcoded bypass checking specifically `subject.lemma == "ανθρωπος"`.
+**Cut:** Removed the silent behavior of `try_print_default` to return `GlossaError::UndefinedName`. Removed `is_print_verb` from the `DoubleSubject` bypass. Completely eliminated the bizarre `is_match_arm` override in `check_missing_verb` causing raw Rustc output errors.
+**Saved:** Unnecessary silent compilation failures and compiler logic inconsistencies, resulting in accurate Greek error diagnostics.

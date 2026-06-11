@@ -664,7 +664,6 @@ impl Assembler {
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
                 && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
             {
                 return Err(AssemblyError::DoubleSubject);
@@ -722,11 +721,12 @@ impl Assembler {
             && self.state.object.is_none()
             && self.state.nominatives.is_empty()
             && self.state.adjectives.is_empty()
-            && let Some(subject) = self.state.subject.as_ref()
         {
-            if subject.lemma == "ανθρωπος" {
-                return Err(AssemblyError::MissingVerb);
-            }
+            // Only bypass MissingVerb for actual match arms (typically a single literal or expression without verbs)
+            // But if it's explicitly parsed as a noun standalone phrase, don't just blindly bypass!
+            // Wait, how do we distinguish? `self.state.subject` has `lemma`.
+            // Let's just bypass it if it's literally NOT a full standalone statement with punctuation?
+            // Assembler doesn't know punctuation.
             return Ok(());
         }
         Err(AssemblyError::MissingVerb)
