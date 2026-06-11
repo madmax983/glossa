@@ -132,6 +132,22 @@ pub fn run_scholar(input: &Path) -> Result<()> {
     println!("   {}", "Γ Λ Ω Σ Σ Α   S C H O L A R".bold().cyan());
     println!("   {}", "API Documentation Generated".italic().dim());
     println!();
+
+    let mut table = comfy_table::Table::new();
+    table
+        .load_preset(comfy_table::presets::UTF8_FULL)
+        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
+        .set_header(vec![
+            comfy_table::Cell::new("Markdown Preview").add_attribute(comfy_table::Attribute::Bold),
+        ]);
+
+    // Format the markdown preview into the table
+    // Using a single cell with the full markdown content to maintain formatting
+    table.add_row(vec![comfy_table::Cell::new(&md)]);
+
+    println!("{table}");
+
+    println!();
     println!(
         "   {} {}",
         "Saved to:".bold(),

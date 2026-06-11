@@ -345,7 +345,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         empty_table.set_header(vec![
             Cell::new("Status")
                 .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
+                .fg(Color::DarkGrey),
         ]);
         empty_table.add_row(vec![
             Cell::new("No tests found.")
@@ -354,6 +354,7 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                 .set_alignment(CellAlignment::Center),
         ]);
         println!("{empty_table}");
+        println!();
     }
 
     // If there were failures, try to extract and print them nicely
