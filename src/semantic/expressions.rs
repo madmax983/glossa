@@ -240,9 +240,40 @@ fn analyze_phrase(
         }
     }
 
-    // Not a function call - could be a complex expression
     // If we have multiple terms but it's not a function call, that's ambiguous/invalid
     if terms.len() > 1 {
+        // Since terms isn't a function call, it's either an invalid sequence of words
+        // or a complex mathematical phrase that failed to match. Try assembling it.
+        let mut asm = crate::semantic::Assembler::new();
+        let mut context = crate::semantic::DisambiguationContext::new();
+        for term in terms {
+            if feed_expr_recursive(&mut asm, term, &mut context, depth + 1).is_err() {
+                return Err(GlossaError::semantic("Unexpected multiple terms in phrase"));
+            }
+        }
+
+        let stmt = asm.finalize().map_err(|_| GlossaError::semantic("Unexpected multiple terms in phrase"))?;
+
+        // Ensure that extracting a value gives us something complex (not just parsing the first term successfully)
+        if let Ok(expr) = crate::semantic::conversion::extract_value(&stmt, scope) {
+            // Check if it's the fallback default
+            if let AnalyzedExprKind::NumberLiteral(0) = expr.0.expr {
+                let is_zero = terms.iter().any(|t| matches!(t, Expr::NumberLiteral(0)));
+                if !is_zero {
+                    return Err(GlossaError::semantic("Unexpected multiple terms in phrase"));
+                }
+            }
+
+            // To prevent false positives where extract_value just extracts the first literal and ignores the rest,
+            // we should fail if there's multiple terms but it just resolved to a single simple literal.
+            // A truly complex parsed phrase would be a BinOp, UnaryOp, VerbCall, MethodCall, etc.
+            if matches!(expr.0.expr, AnalyzedExprKind::NumberLiteral(_) | AnalyzedExprKind::StringLiteral(_) | AnalyzedExprKind::BooleanLiteral(_)) {
+                return Err(GlossaError::semantic("Unexpected multiple terms in phrase"));
+            }
+
+            return Ok(expr.0);
+        }
+
         return Err(GlossaError::semantic("Unexpected multiple terms in phrase"));
     }
 
@@ -326,10 +357,20 @@ fn analyze_unaryop(
                 glossa_type: GlossaType::Unknown,
             })
         }
-        // TODO: Handle Neg and Not
-        _ => Err(GlossaError::semantic(
-            "Unsupported unary operator in expression",
-        )),
+        crate::ast::UnaryOperator::Not => {
+            let inner = analyze_argument_expr_recursive(operand, scope, depth + 1)?;
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::UnaryOp { op: crate::morphology::lexicon::UnaryOp::Not, operand: Box::new(inner) },
+                glossa_type: GlossaType::Boolean,
+            })
+        }
+        crate::ast::UnaryOperator::Neg => {
+            let inner = analyze_argument_expr_recursive(operand, scope, depth + 1)?;
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::UnaryOp { op: crate::morphology::lexicon::UnaryOp::Neg, operand: Box::new(inner) },
+                glossa_type: GlossaType::Number,
+            })
+        }
     }
 }
 
@@ -548,10 +589,9 @@ fn feed_expr_recursive(
             }
             feed_expr_recursive(asm, value, context, depth + 1)?;
         }
-        Expr::BinOp { left, op: _, right } => {
-            // TODO: Implement binary operation handling
-            feed_expr_recursive(asm, left, context, depth + 1)?;
-            feed_expr_recursive(asm, right, context, depth + 1)?;
+        Expr::BinOp { left: _, op: _, right: _ } => {
+            // Treat the entire binary operation as a single unit to preserve order
+            asm.feed_nested_phrase(vec![expr.clone()])?;
         }
         Expr::UnaryOp { op, operand } => {
             // Handle unwrap operator specially - it's a postfix operator that doesn't need word-order handling
@@ -559,8 +599,8 @@ fn feed_expr_recursive(
                 // Store the unwrap expression for special handling
                 asm.feed_unwrap(operand.as_ref().clone())?;
             } else {
-                // TODO: Implement other unary operations (Not, Neg)
-                feed_expr_recursive(asm, operand, context, depth + 1)?;
+                // Treat other unary operations as a single unit
+                asm.feed_nested_phrase(vec![expr.clone()])?;
             }
         }
         Expr::Block(statements) => {
@@ -1448,6 +1488,24 @@ mod regression_tests {
             err.to_string().contains("Insufficient literals"),
             "Unexpected error message: {}",
             err
+        );
+    }
+    #[test]
+    fn test_phrase_errors_on_multiple_terms_complex() {
+        use crate::ast::Word;
+        use crate::semantic::Scope;
+        // (1 + 2) is a valid phrase. "1 2" should be invalid.
+        let expr = Expr::Phrase(vec![
+            Expr::NumberLiteral(1),
+            Expr::Word(Word::new("λέγει")), // valid but missing subject etc
+        ]);
+        let scope = Scope::new();
+        let result = analyze_argument_expr(&expr, &scope);
+
+        // This should fail to extract a valid AnalyzedExpr value
+        assert!(
+            result.is_err(),
+            "Should error on complex ambiguous phrase terms"
         );
     }
 }
