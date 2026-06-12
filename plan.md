@@ -1,4 +1,4 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. Refactor `AuditorVisitor` in `src/tools/auditor.rs` to flatten the object-oriented visitor pattern into pure functions.
+2. Refactor `GnomonVisitor` in `src/tools/gnomon.rs` to flatten the object-oriented visitor pattern into pure functions, if applicable.
+3. Complete pre commit steps to ensure proper testing, verification, review, and reflection are done.
+4. Submit PR following the Razor persona guidelines.
