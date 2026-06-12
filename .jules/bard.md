@@ -76,3 +76,7 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+
+## 2026-03-23 - The Doc Block Binding Trap
+**Confusion:** Building documentation with `RUSTDOCFLAGS="-W missing_docs" cargo doc` threw a `missing_docs` error for `pub fn to_rust_type`, even though it had a comprehensive `///` doc block right above it. Additionally, `error[E0753]: expected outer doc comment` was thrown at the top of the file because of inner attribute `#![allow(...)]` placement.
+**Clarification:** I discovered that a `use std::fmt::Write;` import was placed directly *between* the `///` doc comment and the `pub fn to_rust_type` signature. In Rust, a doc comment binds to the *very next* item. By placing an import there, the doc block was incorrectly bound to the import, leaving the function undocumented. I moved the import to the top of the file (after the `#![allow(...)]` attribute) to resolve both the binding issue and the inner attribute constraint.
