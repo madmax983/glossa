@@ -271,15 +271,6 @@ fn test_alchemist_coverage() {
             },
         ]),
         // Additional unimplemented statement cases
-        AnalyzedStatement::TraitDefinition {
-            name: "T".into(),
-            methods: vec![],
-        },
-        AnalyzedStatement::TraitImplementation {
-            trait_name: "T".into(),
-            type_name: "T".into(),
-            methods: vec![],
-        },
     ];
 
     let program = AnalyzedProgram {

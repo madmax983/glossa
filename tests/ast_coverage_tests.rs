@@ -312,15 +312,6 @@ fn test_statement_debug_formatting() {
             name: Word::new("Type"),
             fields: vec![],
         }),
-        Statement::TraitDefinition(TraitDef {
-            name: Word::new("Trait"),
-            methods: vec![],
-        }),
-        Statement::TraitImpl(TraitImplDef {
-            type_name: Word::new("Type"),
-            trait_name: Word::new("Trait"),
-            methods: vec![],
-        }),
         Statement::TestDeclaration(TestDecl {
             name: "test".to_string(),
             body: vec![],
@@ -375,23 +366,6 @@ fn test_statement_methods() {
     let stmt = Statement::TypeDefinition(TypeDef {
         name: Word::new("t"),
         fields: vec![],
-    });
-    assert!(!stmt.is_query());
-    assert!(!stmt.is_propagate());
-    assert_eq!(stmt.clauses().len(), 0);
-
-    let stmt = Statement::TraitDefinition(TraitDef {
-        name: Word::new("t"),
-        methods: vec![],
-    });
-    assert!(!stmt.is_query());
-    assert!(!stmt.is_propagate());
-    assert_eq!(stmt.clauses().len(), 0);
-
-    let stmt = Statement::TraitImpl(TraitImplDef {
-        type_name: Word::new("t"),
-        trait_name: Word::new("tr"),
-        methods: vec![],
     });
     assert!(!stmt.is_query());
     assert!(!stmt.is_propagate());
