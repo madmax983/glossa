@@ -64,13 +64,31 @@ fn print_dashboard(dot: &str, is_tty: bool) {
         let actual_nodes = dot.lines().filter(|l| l.contains("[label=")).count();
         let edges = dot.matches("->").count();
 
-        println!("   {} {}", "Nodes:".bold(), actual_nodes.to_string().cyan());
-        println!("   {} {}", "Edges:".bold(), edges.to_string().cyan());
+        use comfy_table::{Cell, Color, Table, presets};
+        let mut table = Table::new();
+        table
+            .load_preset(presets::UTF8_FULL)
+            .set_header(vec![
+                Cell::new("Μετρική (Metric)").fg(Color::Cyan),
+                Cell::new("Τιμή (Value)").fg(Color::Cyan),
+            ]);
+
+        table.add_row(vec![
+            Cell::new("Nodes"),
+            Cell::new(actual_nodes.to_string()),
+        ]);
+        table.add_row(vec![
+            Cell::new("Edges"),
+            Cell::new(edges.to_string()),
+        ]);
+
+        for line in table.to_string().lines() {
+            println!("   {}", line);
+        }
         println!();
-        println!(
-            "   {}",
-            "To view the graph, pipe this command to a file or tool:".dim()
-        );
+
+        println!("   {}", "📋 Usage Instructions:".bold().underlined());
+        println!("   To view the graph, pipe this command to a file or tool:");
         println!(
             "   {}",
             "cargo run --features nova --bin glossa -- haruspex <file> > ast.dot".dim()
