@@ -1,0 +1,569 @@
+warning: unused variable: `input`
+   --> src/main.rs:181:33
+    |
+181 |         Some(Commands::Gnomon { input }) => {
+    |                                 ^^^^^ help: try ignoring the field: `input: _`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `glossa` (bin "glossa" test) generated 1 warning (run `cargo fix --bin "glossa" -p glossa --tests` to apply 1 suggestion)
+warning: `glossa` (bin "glossa") generated 1 warning (1 duplicate)
+   Compiling glossa v0.1.0 (/app)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.09s
+     Running unittests src/lib.rs (target/debug/deps/glossa-4ed5083846ff2084)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 580 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/glossa-df88d1a931b8a589)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/alchemist_coverage.rs (target/debug/deps/alchemist_coverage-00792f93a5521043)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ast_coverage_tests.rs (target/debug/deps/ast_coverage_tests-1ec1c608a361e6bb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s
+
+     Running tests/codegen_coverage.rs (target/debug/deps/codegen_coverage-1a5f44c2778378fa)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+     Running tests/codegen_optimizations.rs (target/debug/deps/codegen_optimizations-99463cf3b1a9b235)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/collection_tests.rs (target/debug/deps/collection_tests-50226bc55f6e18e8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.00s
+
+     Running tests/compile_tests.rs (target/debug/deps/compile_tests-b571a7f006143f0a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+     Running tests/control_flow_tests.rs (target/debug/deps/control_flow_tests-f20ec3d971b79e41)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 0.00s
+
+     Running tests/coverage_perfect_fold.rs (target/debug/deps/coverage_perfect_fold-a7c2f953e3b90a31)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/coverage_perfect_participle.rs (target/debug/deps/coverage_perfect_participle-4f7854146a7af794)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/expression_coverage.rs (target/debug/deps/expression_coverage-e981ce5013200efb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/forge_control_flow_coverage.rs (target/debug/deps/forge_control_flow_coverage-e1ede519873f3ee6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/function_tests.rs (target/debug/deps/function_tests-d3c5c6e61f9e1c55)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s
+
+     Running tests/havoc.rs (target/debug/deps/havoc-a610d29f610a3e80)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/havoc_clone_drop.rs (target/debug/deps/havoc_clone_drop-e93d413ccd9c7cbd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_codegen_panic.rs (target/debug/deps/havoc_codegen_panic-8354bdbfd4c3a610)
+
+running 1 test
+
+running 1 test
+
+thread 'havoc_codegen_stack_overflow_direct' (124442) has overflowed its stack
+fatal runtime error: stack overflow, aborting
+test havoc_codegen_stack_overflow_direct ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/havoc_codegen_stack_overflow.rs (target/debug/deps/havoc_codegen_stack_overflow-8762ac645d823776)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_coverage.rs (target/debug/deps/havoc_coverage-e2dacf160a904214)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/havoc_debug_crash.rs (target/debug/deps/havoc_debug_crash-709f9cdf43a222c7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_debug_crash_type.rs (target/debug/deps/havoc_debug_crash_type-67e420e2ea4de8ff)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/havoc_disambiguation_panic.rs (target/debug/deps/havoc_disambiguation_panic-a2493325a062ffe1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_dos.rs (target/debug/deps/havoc_dos-f9167e8603aa4ae2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_dos_ast.rs (target/debug/deps/havoc_dos_ast-de50d9de481371a7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/havoc_dos_unicode.rs (target/debug/deps/havoc_dos_unicode-be96861e121a775d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/havoc_elif_overflow.rs (target/debug/deps/havoc_elif_overflow-5ee836cd540b0254)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_feed_recursion.rs (target/debug/deps/havoc_feed_recursion-a6222305815ac5d4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_fuzz.rs (target/debug/deps/havoc_fuzz-7b88a546f9426d65)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/havoc_fuzz_assembler.rs (target/debug/deps/havoc_fuzz_assembler-f810f29100126271)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/havoc_issue_echo.rs (target/debug/deps/havoc_issue_echo-c56ad3d9e40ed0f8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/havoc_limits.rs (target/debug/deps/havoc_limits-bf8baa2677c2f6a1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+     Running tests/havoc_nested_tests.rs (target/debug/deps/havoc_nested_tests-0ab1891beb1e2c6b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_operator_stress.rs (target/debug/deps/havoc_operator_stress-1ad7ad615af3f772)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_overflow.rs (target/debug/deps/havoc_overflow-a56db5ea90037b9d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_pest_recursion_depth.rs (target/debug/deps/havoc_pest_recursion_depth-b88845e48f075bd2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/havoc_proptest_lexicon.rs (target/debug/deps/havoc_proptest_lexicon-93a2a9dc5d2e756b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_proptest_limits.rs (target/debug/deps/havoc_proptest_limits-aa7c5ff5044a4b35)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/havoc_proptest_normalization.rs (target/debug/deps/havoc_proptest_normalization-0b8bf880d560d3f0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+     Running tests/havoc_proptest_pest.rs (target/debug/deps/havoc_proptest_pest-94c91d3e4d632815)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_proptest_tools.rs (target/debug/deps/havoc_proptest_tools-3ecb38a5588bcf15)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/havoc_proptest_unicode_fuzz.rs (target/debug/deps/havoc_proptest_unicode_fuzz-2e1bc28d26dc44e6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_recursion.rs (target/debug/deps/havoc_recursion-4ec2fe55aecdfc6d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/havoc_recursion_drop.rs (target/debug/deps/havoc_recursion_drop-4295b95f43b5e941)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/havoc_repl_empty.rs (target/debug/deps/havoc_repl_empty-b0164e2a46dd7e85)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_repro.rs (target/debug/deps/havoc_repro-7d1727b07b1ff459)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_semantic_stack_overflow.rs (target/debug/deps/havoc_semantic_stack_overflow-7c595dbe7a544c4b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/havoc_transliteration.rs (target/debug/deps/havoc_transliteration-7392c22ab38788bb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/labyrinth_coverage.rs (target/debug/deps/labyrinth_coverage-54aed3103ec3860a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/lambda_tests.rs (target/debug/deps/lambda_tests-55993fe7800406a0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 38 filtered out; finished in 0.00s
+
+     Running tests/morphology_models_test.rs (target/debug/deps/morphology_models_test-a24755fab18d90c8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/mosaic_coverage.rs (target/debug/deps/mosaic_coverage-6f67c90d06f0b808)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/narrator_coverage.rs (target/debug/deps/narrator_coverage-eca76643853120aa)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+
+     Running tests/nova_coverage.rs (target/debug/deps/nova_coverage-9d3a362e4f0084fe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/nova_numerals.rs (target/debug/deps/nova_numerals-2bd03795e2122cdc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/operator_tests.rs (target/debug/deps/operator_tests-6ab52614e3792236)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+
+     Running tests/option_result_tests.rs (target/debug/deps/option_result_tests-8ef8b921702c85b3)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 59 filtered out; finished in 0.00s
+
+     Running tests/parser_error_tests.rs (target/debug/deps/parser_error_tests-05ab33fd81a54cbd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/razor_coverage.rs (target/debug/deps/razor_coverage-8e74a88d6ebab984)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/regression_codegen_complex.rs (target/debug/deps/regression_codegen_complex-056e818c595549f4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/repro_codegen_perf.rs (target/debug/deps/repro_codegen_perf-dc2a684d098e4a7a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/repro_ignored_block.rs (target/debug/deps/repro_ignored_block-ecd175462a97b0f9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/reproduce_silent_failure.rs (target/debug/deps/reproduce_silent_failure-6df4cf5a05d07b1f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/security_dos_file_size.rs (target/debug/deps/security_dos_file_size-3a22c5d9a261a3c2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/security_tests.rs (target/debug/deps/security_tests-5c6eac6b4625f3d8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/semantic_model_coverage_tests.rs (target/debug/deps/semantic_model_coverage_tests-8bef647871755a00)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+
+     Running tests/sentry_assembler_coverage_tests.rs (target/debug/deps/sentry_assembler_coverage_tests-9c32fb70c250b84e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/sentry_codegen_perf.rs (target/debug/deps/sentry_codegen_perf-8122f1a69e65f6e8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+     Running tests/sentry_morphology_empty_string.rs (target/debug/deps/sentry_morphology_empty_string-9e74f112d128e19b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/sentry_participle_tests.rs (target/debug/deps/sentry_participle_tests-4646228aca735331)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/sentry_tester_tests.rs (target/debug/deps/sentry_tester_tests-25507c37c4aa9dc0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/struct_instantiation.rs (target/debug/deps/struct_instantiation-082a3f4a97fd57fb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/test_assertions_test.rs (target/debug/deps/test_assertions_test-76e2274f4940d0d0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/test_declaration_test.rs (target/debug/deps/test_declaration_test-433a6ee26729bd2a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/trait_tests.rs (target/debug/deps/trait_tests-b80039ef33b2ec32)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 32 filtered out; finished in 0.00s
+
+     Running tests/type_tests.rs (target/debug/deps/type_tests-d7e5359eda81eb27)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+     Running tests/warden_coverage.rs (target/debug/deps/warden_coverage-25915939ddd4febd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/warden_exploit.rs (target/debug/deps/warden_exploit-a9231c726c6b28fd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/warden_hashdos.rs (target/debug/deps/warden_hashdos-aa033a870f7c1dfb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/warden_index_overflow.rs (target/debug/deps/warden_index_overflow-17bbbecee3cee5bd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/warden_index_tryfrom.rs (target/debug/deps/warden_index_tryfrom-76543692668d7a9c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/warden_limits.rs (target/debug/deps/warden_limits-c8f34de61d8b195c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/warden_logic.rs (target/debug/deps/warden_logic-b18291202616bcec)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/warden_missing_verb.rs (target/debug/deps/warden_missing_verb-5ef8bf1bea847a8c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/warden_neg_overflow.rs (target/debug/deps/warden_neg_overflow-8fcf72cbc1ba23da)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/warden_nested_phrase.rs (target/debug/deps/warden_nested_phrase-4db65c52c1fb8e0f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/warden_overflow_sim.rs (target/debug/deps/warden_overflow_sim-978855c42f583b4e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/warden_recursion_bypass.rs (target/debug/deps/warden_recursion_bypass-46289870bb0212d1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/warden_recursive_struct.rs (target/debug/deps/warden_recursive_struct-c8325dfcd4bcbff7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/warden_recursive_struct_mutual.rs (target/debug/deps/warden_recursive_struct_mutual-709f3d3aee26efa1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/warden_text_dos.rs (target/debug/deps/warden_text_dos-3dc1f9e46af0b9eb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/warden_unsafe_deny.rs (target/debug/deps/warden_unsafe_deny-8a1e04cd86ea2868)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/word_order_tests.rs (target/debug/deps/word_order_tests-0b8ab1b5308e3a7b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s
