@@ -846,3 +846,16 @@ mod tests {
         assert!(scope.lookup(name).is_some());
     }
 }
+
+#[cfg(test)]
+mod tests_sentry {
+    use super::*;
+    #[test]
+    #[should_panic(expected = "Scope must have at least one level")]
+    fn test_current_level_panic() {
+        let mut scope = Scope::new();
+        scope.exit();
+        scope.levels.pop();
+        scope.current_level();
+    }
+}

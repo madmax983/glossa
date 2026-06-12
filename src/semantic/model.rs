@@ -905,3 +905,17 @@ impl std::fmt::Debug for TraitImpl {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    #[should_panic]
+    fn test_unreachable_binding_panic() {
+        let expr = AnalyzedStatement::Expression(vec![]);
+        match expr {
+            AnalyzedStatement::Binding { .. } => {}
+            _ => unreachable!(),
+        }
+    }
+}
