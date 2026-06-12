@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Semantic Assembly & Model Panic Safety]
+**Learning:** Found remaining `unreachable!()` calls in `src/semantic/assembly/mod.rs` and `src/semantic/model.rs`. Since they are fallback bounds checks that are semantically unreachable via standard parser outputs, they require isolated unit testing by manually constructing un-validated structures to prevent them from acting as uncovered ticking time bombs in future structural refactoring.
+**Action:** Replace `unreachable!()` with safe fallback returns where possible (like returning `Ok(false)` for invalid string method requests), and explicitly construct failing unit tests under `#[cfg(test)] mod tests` to cover branches that destruct un-validated enums.

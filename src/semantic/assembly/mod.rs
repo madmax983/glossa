@@ -1731,3 +1731,15 @@ mod tests {
         assert_eq!(stmt.object.unwrap().original, "unknown");
     }
 }
+
+#[cfg(test)]
+mod tests_sentry {
+    use super::*;
+    #[test]
+    fn test_try_create_string_method_unreachable_panic_replacement() {
+        let mut asm = Assembler::new();
+        let result = asm.try_create_string_method("anything");
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+}

@@ -862,3 +862,22 @@ test name with spaces ... ok
         assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
     }
 }
+
+#[cfg(test)]
+mod tests_sentry {
+    use super::*;
+    #[test]
+    fn test_extract_failures_edge_cases() {
+        let output = "failures:\n\n\n\n";
+        let failures = extract_failures(output);
+        assert!(failures.is_empty());
+    }
+
+    #[test]
+    fn test_parse_output_edge_cases() {
+        let results = parse_test_output("test   ... ok");
+        assert!(results.is_empty());
+        let results = parse_test_output("test foo ... unknown");
+        assert!(results.is_empty());
+    }
+}

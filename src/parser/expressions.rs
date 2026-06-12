@@ -257,3 +257,19 @@ mod tests_coverage {
         assert!(matches!(result, Err(ParseError::EmptyTerm)));
     }
 }
+
+#[cfg(test)]
+mod tests_sentry {
+    use super::*;
+    use crate::parser::grammar::{GlossaParser, Rule};
+    use pest::Parser;
+
+    #[test]
+    fn test_build_indexed_word_expr_unexpected_rule() {
+        let mut pairs = GlossaParser::parse(Rule::block, "{}").unwrap();
+        let pair = pairs.next().unwrap();
+        let result = build_indexed_word_expr(pair);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), ParseError::EmptyTerm));
+    }
+}
