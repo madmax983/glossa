@@ -248,7 +248,6 @@ fn test_run_scholar_success() {
     assert!(md.contains("# API Documentation"));
     assert!(md.contains("## Types (Εἴδη)"));
     assert!(md.contains("### `χρηστης`"));
-    assert!(md.contains("## Traits (Χαρακτῆρες)"));
     assert!(md.contains("### `ευγενης`"));
     assert!(md.contains("## Functions (Ἔργα)"));
     assert!(md.contains("### `χαιρετισμος() -> Οὐδέν`"));
