@@ -13,8 +13,10 @@ proptest! {
 
     #[test]
     fn test_tell_tale_fuzz(s in "\\PC*") {
-        if let Ok(ast) = parse(&s) && let Ok(analyzed) = analyze_program(&ast) {
+        if let Ok(ast) = parse(&s) {
+            if let Ok(analyzed) = analyze_program(&ast) {
                 let _ = tell_tale(&analyzed);
             }
         }
+    }
 }
