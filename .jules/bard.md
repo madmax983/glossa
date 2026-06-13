@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-06-13 - The Misplaced Import Doc Stealer
+**Confusion:** The documentation for `to_rust_type` in `src/codegen.rs` was throwing a `missing_docs` warning, even though it had a massive rustdoc block right above it.
+**Clarification:** The `use std::fmt::Write;` statement was placed *between* the doc block and the function. In Rust, doc comments attach to the immediately following item. By separating the doc block and the function with a `use` statement, the documentation was attached to the import instead of the public function. Moved the import statement to resolve the issue.
