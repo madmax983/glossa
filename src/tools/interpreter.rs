@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! The Simulator (ὁ Ὑποκριτής) - Tree-Walk Interpreter
 //!
 //! This module implements an in-memory tree-walk interpreter for ΓΛΩΣΣΑ.
