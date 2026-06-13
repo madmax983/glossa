@@ -42,25 +42,7 @@ use std::path::Path;
 /// if let Err(e) = run_scholar(&input) {
 ///     eprintln!("Documentation generation failed: {}", e);
 /// }
-/// ```
-pub fn run_scholar(input: &Path) -> Result<()> {
-    let source = load_source(input)?;
-    let status = Status::start_with_symbol("Συγγραφή (Generating Docs)", "📜");
-
-    let program = match crate::tools::runner::analyze_source(&source) {
-        Ok(p) => p,
-        Err(e) => {
-            status.error("Σφάλμα (Error)");
-            return Err(e);
-        }
-    };
-
-    let mut md = String::with_capacity(4096);
-    let filename = input.file_name().unwrap_or_default().to_string_lossy();
-
-    writeln!(md, "# API Documentation: `{}`\n", filename).unwrap();
-
-    // Document Types (Structs)
+fn write_types_docs(md: &mut String, program: &crate::semantic::AnalyzedProgram) {
     let mut types = program.scope.types().peekable();
     if types.peek().is_some() {
         writeln!(md, "## Types (Εἴδη)\n").unwrap();
@@ -79,8 +61,9 @@ pub fn run_scholar(input: &Path) -> Result<()> {
             }
         }
     }
+}
 
-    // Document Traits (Characters)
+fn write_traits_docs(md: &mut String, program: &crate::semantic::AnalyzedProgram) {
     let mut traits = program.scope.traits().peekable();
     if traits.peek().is_some() {
         writeln!(md, "## Traits (Χαρακτῆρες)\n").unwrap();
@@ -96,8 +79,9 @@ pub fn run_scholar(input: &Path) -> Result<()> {
             }
         }
     }
+}
 
-    // Document Functions (Verbs)
+fn write_functions_docs(md: &mut String, program: &crate::semantic::AnalyzedProgram) {
     let mut functions = program.scope.functions().peekable();
     if functions.peek().is_some() {
         writeln!(md, "## Functions (Ἔργα)\n").unwrap();
@@ -119,6 +103,28 @@ pub fn run_scholar(input: &Path) -> Result<()> {
             writeln!(md, "`\n").unwrap();
         }
     }
+}
+
+pub fn run_scholar(input: &Path) -> Result<()> {
+    let source = load_source(input)?;
+    let status = Status::start_with_symbol("Συγγραφή (Generating Docs)", "📜");
+
+    let program = match crate::tools::runner::analyze_source(&source) {
+        Ok(p) => p,
+        Err(e) => {
+            status.error("Σφάλμα (Error)");
+            return Err(e);
+        }
+    };
+
+    let mut md = String::with_capacity(4096);
+    let filename = input.file_name().unwrap_or_default().to_string_lossy();
+
+    writeln!(md, "# API Documentation: `{}`\n", filename).unwrap();
+
+    write_types_docs(&mut md, &program);
+    write_traits_docs(&mut md, &program);
+    write_functions_docs(&mut md, &program);
 
     let output_path = input.with_extension("doc.md");
     if let Err(e) = std::fs::write(&output_path, &md) {
@@ -141,7 +147,6 @@ pub fn run_scholar(input: &Path) -> Result<()> {
 
     Ok(())
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
