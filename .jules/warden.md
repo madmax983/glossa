@@ -131,3 +131,7 @@ Signed,
 **2026-04-30 - [Infinite Stream DoS Vulnerability in File Loading]
 **Threat:** The `load_source` function in `src/tools/runner.rs` relied on `fs::metadata().len()` to enforce the `MAX_FILE_SIZE` limit. However, special device files like `/dev/zero` report a length of 0 while producing an infinite stream of bytes when read. Reading these files with `fs::read_to_string` causes a thread hang or Out-Of-Memory (OOM) Denial-of-Service condition.
 **Defense:** Added an explicit `metadata.is_file()` check in `check_file_size` to guarantee that the input path points to a regular file and explicitly reject non-regular file types like directories and device streams. Updated `tests/havoc_dos.rs` and `test_load_source_directory_error` to assert the "Not a valid file" error and pass cleanly without timeouts.
+
+**2026-08-01 - [Unbounded Stream DoS in CLI REPL]**
+**Threat:** The interactive standard input wrappers in `src/tools/repl.rs` (`run_repl_inner`) and `src/tools/mentor.rs` (`run_mentor_inner`) used unbounded `read_line` calls. An attacker could pipe an infinite stream of characters without newlines (like `/dev/zero`) into these interactive tools to cause a memory exhaustion crash (Denial of Service).
+**Defense:** Applied a capped reader defense using `std::io::Read::take()` and `MAX_REPL_SOURCE_LEN`. By wrapping the input borrow in a bounded adapter, we protect the process memory while preserving the REPL state and test integration capabilities.

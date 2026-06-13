@@ -181,6 +181,8 @@ fn main() -> Result<()> {
         Some(Commands::Gnomon { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::gnomon::run_gnomon(&input)?;
+            #[cfg(not(feature = "nova"))]
+            let _ = input;
 
             #[cfg(not(feature = "nova"))]
             miette::bail!(

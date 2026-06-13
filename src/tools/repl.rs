@@ -35,7 +35,7 @@ use crate::semantic::{AnalyzedStatement, GlossaType, Scope};
 /// Maximum number of bindings to track in REPL history
 const MAX_REPL_BINDINGS: usize = 50;
 /// Maximum total source size for REPL history
-const MAX_REPL_SOURCE_LEN: usize = 50_000;
+pub const MAX_REPL_SOURCE_LEN: usize = 50_000;
 
 /// Entry point for the REPL using stdin/stdout
 ///
@@ -73,7 +73,11 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
         let _ = output.flush();
 
         let mut line = String::new();
-        let bytes = input.read_line(&mut line).into_diagnostic()?;
+        // 🔒 Warden: Defense against unbounded input exhaustion (DoS)
+        let bytes = {
+            let mut take = std::io::Read::take(input.by_ref(), MAX_REPL_SOURCE_LEN as u64);
+            take.read_line(&mut line).into_diagnostic()?
+        };
 
         // Handle EOF
         if bytes == 0 {
@@ -564,6 +568,17 @@ mod tests {
         // Test None display
         let none = ReplOutput::None;
         assert_eq!(none.to_string(), "");
+    }
+
+    #[test]
+    fn test_run_repl_inner_capped() {
+        let input_data = " ".repeat(MAX_REPL_SOURCE_LEN + 10);
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        let result = run_repl_inner(&mut input, &mut output);
+        assert!(result.is_ok());
+        // The execution passes because the input gets truncated and just evaluates to whitespace/empty.
     }
 
     #[test]

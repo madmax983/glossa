@@ -127,7 +127,14 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
             output.flush().into_diagnostic()?;
 
             let mut line = String::new();
-            let bytes = input.read_line(&mut line).into_diagnostic()?;
+            // 🔒 Warden: Defense against unbounded input exhaustion (DoS)
+            let bytes = {
+                let mut take = std::io::Read::take(
+                    input.by_ref(),
+                    crate::tools::repl::MAX_REPL_SOURCE_LEN as u64,
+                );
+                take.read_line(&mut line).into_diagnostic()?
+            };
 
             if bytes == 0 {
                 return Ok(()); // EOF
@@ -258,6 +265,16 @@ mod tests {
         // Incorrect (no print)
         let p2 = process_submission("ξ 10 ἔστω.").unwrap();
         assert!(!((lesson.verify)(&p2)));
+    }
+
+    #[test]
+    fn test_run_mentor_inner_capped() {
+        let input_data = " ".repeat(crate::tools::repl::MAX_REPL_SOURCE_LEN + 10);
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        let result = run_mentor_inner(&mut input, &mut output);
+        assert!(result.is_ok());
     }
 
     #[test]
