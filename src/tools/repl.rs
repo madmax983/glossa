@@ -571,6 +571,17 @@ mod tests {
     }
 
     #[test]
+    fn test_run_repl_inner_capped() {
+        let input_data = " ".repeat(MAX_REPL_SOURCE_LEN + 10);
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        let result = run_repl_inner(&mut input, &mut output);
+        assert!(result.is_ok());
+        // The execution passes because the input gets truncated and just evaluates to whitespace/empty.
+    }
+
+    #[test]
     fn test_run_repl_inner_workflow() {
         let input_data = "\
 ξ πέντε ἔστω.\n\

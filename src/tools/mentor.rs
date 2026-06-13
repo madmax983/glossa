@@ -268,6 +268,16 @@ mod tests {
     }
 
     #[test]
+    fn test_run_mentor_inner_capped() {
+        let input_data = " ".repeat(crate::tools::repl::MAX_REPL_SOURCE_LEN + 10);
+        let mut input = std::io::Cursor::new(input_data);
+        let mut output = Vec::new();
+
+        let result = run_mentor_inner(&mut input, &mut output);
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn test_run_mentor_inner_flow() {
         // Simulate completing first lesson
         let input_data = "ξ 10 ἔστω.\n\n.exit\n"; // Code -> Enter (continue) -> Exit
