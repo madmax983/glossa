@@ -286,36 +286,44 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
     println!("   {}", "Unit Test Results".italic().dim());
     println!();
 
-    if test_output.status.success() {
+    print_test_summary(results, test_output.status.success());
+    print_test_table(results);
+
+    if !test_output.status.success() {
+        print_test_failures(test_output, stdout);
+    }
+}
+
+fn print_test_summary(results: &[TestResult], is_success: bool) {
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL);
+
+    if is_success {
         if !results.is_empty() {
-            let mut success_table = Table::new();
-            success_table.load_preset(presets::UTF8_FULL);
-            success_table.add_row(vec![
+            table.add_row(vec![
                 Cell::new(" ✓ Πᾶσαι αἱ δοκιμασίαι ἐπέτυχαν! (All tests passed) ")
                     .bg(Color::DarkGreen)
                     .fg(Color::White)
                     .add_attribute(Attribute::Bold),
             ]);
-            println!("{success_table}");
-            println!();
+            println!("{table}\n");
         }
     } else {
-        let mut failure_table = Table::new();
-        failure_table.load_preset(presets::UTF8_FULL);
-        failure_table.add_row(vec![
+        table.add_row(vec![
             Cell::new(" ✕ Τινὲς δοκιμασίαι ἀπέτυχαν (Some tests failed) ")
                 .bg(Color::DarkRed)
                 .fg(Color::White)
                 .add_attribute(Attribute::Bold),
         ]);
-        println!("{failure_table}");
-        println!();
+        println!("{table}\n");
     }
+}
+
+fn print_test_table(results: &[TestResult]) {
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL);
 
     if !results.is_empty() {
-        let mut table = Table::new();
-        table.load_preset(presets::UTF8_FULL);
-
         table.set_header(vec![
             Cell::new("Test Case")
                 .add_attribute(Attribute::Bold)
@@ -332,62 +340,51 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                 TestStatus::Ignored => Cell::new("IGNORED").fg(Color::Yellow),
             };
 
-            // Clean up test name (remove module prefix if any)
-            // e.g., "tests::test_name" -> "test_name"
             let display_name = result.name.split("::").last().unwrap_or(&result.name);
-
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
-        println!("{table}");
     } else {
-        let mut empty_table = Table::new();
-        empty_table.load_preset(presets::UTF8_FULL);
-        empty_table.set_header(vec![
+        table.set_header(vec![
             Cell::new("Status")
                 .add_attribute(Attribute::Bold)
                 .fg(Color::Yellow),
         ]);
-        empty_table.add_row(vec![
+        table.add_row(vec![
             Cell::new("No tests found.")
                 .fg(Color::DarkGrey)
                 .add_attribute(Attribute::Italic)
                 .set_alignment(CellAlignment::Center),
         ]);
-        println!("{empty_table}");
     }
+    println!("{table}");
+}
 
-    // If there were failures, try to extract and print them nicely
-    if !test_output.status.success() {
-        println!();
-        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+fn print_test_failures(test_output: &std::process::Output, stdout: &str) {
+    println!("\n{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
 
-        let failures = extract_failures(stdout);
+    let failures = extract_failures(stdout);
 
-        if !failures.is_empty() {
-            for (name, msg) in failures {
-                let mut header_table = Table::new();
-                header_table.load_preset(presets::UTF8_FULL);
-                header_table.add_row(vec![
-                    Cell::new(format!(" FAILED: {} ", name))
-                        .bg(Color::DarkRed)
-                        .fg(Color::White)
-                        .add_attribute(Attribute::Bold),
-                ]);
-                println!("{header_table}");
+    if !failures.is_empty() {
+        for (name, msg) in failures {
+            let mut header_table = Table::new();
+            header_table.load_preset(presets::UTF8_FULL);
+            header_table.add_row(vec![
+                Cell::new(format!(" FAILED: {} ", name))
+                    .bg(Color::DarkRed)
+                    .fg(Color::White)
+                    .add_attribute(Attribute::Bold),
+            ]);
+            println!("{header_table}");
 
-                // Create a box for the error message using comfy_table
-                let mut error_table = Table::new();
-                error_table.load_preset(presets::UTF8_FULL);
-                error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
-                println!("{error_table}");
-                println!();
-            }
-        } else {
-            // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
-            if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
-            }
+            let mut error_table = Table::new();
+            error_table.load_preset(presets::UTF8_FULL);
+            error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
+            println!("{error_table}\n");
+        }
+    } else {
+        println!("{}", stdout);
+        if !test_output.stderr.is_empty() {
+            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
         }
     }
 }
@@ -496,16 +493,11 @@ mod tests {
         std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.").unwrap();
 
         // Spawn a child process so we don't mutate the global PATH/env.
-        let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
-            let llvm_cov_path = "target/llvm-cov-target/debug/glossa";
-            if std::path::Path::new(llvm_cov_path).exists() {
-                llvm_cov_path.to_string()
-            } else {
-                "target/debug/glossa".to_string()
-            }
-        });
+        let bin_path = "cargo";
         let mut cmd = std::process::Command::new(bin_path);
         let output = cmd
+            .arg("run")
+            .arg("--")
             .arg("test")
             .arg(&input_path)
             .env("GLOSSA_RUSTC_CMD", "nonexistent_rustc_binary")

@@ -244,21 +244,9 @@ impl AuditorVisitor {
                 }
                 self.visit_expr(value);
             }
-            AnalyzedStatement::Print(exprs) => {
-                for expr in exprs {
-                    self.visit_expr(expr);
-                }
-            }
-            AnalyzedStatement::Expression(exprs) => {
-                for expr in exprs {
-                    self.visit_expr(expr);
-                }
-            }
-            AnalyzedStatement::Query(exprs) => {
-                for expr in exprs {
-                    self.visit_expr(expr);
-                }
-            }
+            AnalyzedStatement::Print(exprs)
+            | AnalyzedStatement::Expression(exprs)
+            | AnalyzedStatement::Query(exprs) => self.visit_exprs(exprs),
             AnalyzedStatement::If {
                 condition,
                 then_body,
