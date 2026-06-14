@@ -20,3 +20,7 @@
 **Tangle:** Several modules under `src/tools/` (specifically `cache`, `report`, and `ui`) and `src/semantic/assembly/` (`model`) were exposed as `pub mod`, breaking encapsulation by exposing internal implementation details to the public API.
 **Blueprint:** Modified `src/tools/mod.rs` and `src/semantic/assembly/mod.rs` to restrict these modules with `pub(crate) mod`.
 **Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
+
+## [Extracting The Assembler Implementation]
+**Tangle:** `src/semantic/assembly/mod.rs` was a bloated module (~1700 lines) mixing public DTOs, limit constants, and the massive `Assembler` state machine logic.
+**Blueprint:** Extracted the `Assembler` struct and its implementation into `src/semantic/assembly/assembler.rs`, reducing `mod.rs` to a clean facade and enforcing separation of concerns.

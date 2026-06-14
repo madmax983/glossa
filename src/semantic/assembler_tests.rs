@@ -1,11 +1,8 @@
 use crate::ast::{Expr, Word};
 use crate::morphology::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person, analyze};
 use crate::semantic::AssemblyError;
-use crate::semantic::assembly::{
-    Assembler, MAX_ADJECTIVES, MAX_ARRAYS, MAX_BLOCKS, MAX_GENITIVES, MAX_INDEX_ACCESSES,
-    MAX_LITERALS, MAX_NESTED_PHRASES, MAX_NOMINATIVES, MAX_OPERATORS, MAX_PARTICIPLES,
-    MAX_PROPERTY_ACCESSES, MAX_UNWRAPS,
-};
+use crate::semantic::assembly::Assembler;
+use crate::limits::{MAX_ADJECTIVES, MAX_ARRAYS, MAX_BLOCKS, MAX_GENITIVES, MAX_INDEX_ACCESSES, MAX_LITERALS, MAX_NESTED_PHRASES, MAX_NOMINATIVES, MAX_OPERATORS, MAX_PARTICIPLES, MAX_PROPERTY_ACCESSES, MAX_UNWRAPS};
 use std::borrow::Cow;
 
 // From semantic_assembler_edge_cases.rs
