@@ -193,7 +193,9 @@ pub fn run_gnomon(input: &Path) -> Result<()> {
         }),
     ]);
 
-    println!("{table}");
+    for line in table.to_string().lines() {
+        println!("   {}", line);
+    }
     println!();
 
     Ok(())

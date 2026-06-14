@@ -74,7 +74,9 @@ pub fn run_weave(input: &Path) -> Result<()> {
 
     md.push_str("## 🧩 Semantic Assembly (Mosaic)\n\n");
     // Indent the mosaic output or just put it in a block to preserve formatting
-    md.push_str(&mosaic_output);
+    for line in mosaic_output.lines() {
+        md.push_str(&format!("   {}\n", line));
+    }
     md.push('\n');
 
     md.push_str("## 🦀 Generated Rust Code\n\n");

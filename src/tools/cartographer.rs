@@ -80,7 +80,9 @@ pub fn run_map(input: &Path) -> Result<()> {
                 .fg(Color::DarkGrey)
                 .add_attribute(Attribute::Italic),
         ]);
-        println!("{table}");
+        for line in table.to_string().lines() {
+            println!("   {}", line);
+        }
         println!();
     } else {
         table.set_header(vec![
@@ -94,7 +96,9 @@ pub fn run_map(input: &Path) -> Result<()> {
 
         table.add_row(vec![Cell::new(formatted_map)]);
 
-        println!("{table}");
+        for line in table.to_string().lines() {
+            println!("   {}", line);
+        }
         println!();
         println!("   {}", "📋 Usage Instructions:".bold().underlined());
         println!("   1. Copy the code block above.");
