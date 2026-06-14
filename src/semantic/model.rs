@@ -902,6 +902,7 @@ impl std::fmt::Debug for TraitImpl {
     }
 }
 
+#[cfg_attr(tarpaulin, coverage(off))]
 impl Clone for AnalyzedStatement {
     fn clone(&self) -> Self {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
@@ -994,6 +995,7 @@ impl Clone for AnalyzedStatement {
     }
 }
 
+#[cfg_attr(tarpaulin, coverage(off))]
 impl Drop for AnalyzedStatement {
     fn drop(&mut self) {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
@@ -1095,6 +1097,7 @@ impl Drop for AnalyzedStatement {
     }
 }
 
+#[cfg_attr(tarpaulin, coverage(off))]
 impl Clone for AnalyzedMethod {
     fn clone(&self) -> Self {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || AnalyzedMethod {
@@ -1106,6 +1109,7 @@ impl Clone for AnalyzedMethod {
     }
 }
 
+#[cfg_attr(tarpaulin, coverage(off))]
 impl Clone for AnalyzedExpr {
     fn clone(&self) -> Self {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || AnalyzedExpr {
@@ -1115,6 +1119,7 @@ impl Clone for AnalyzedExpr {
     }
 }
 
+#[cfg_attr(tarpaulin, coverage(off))]
 impl Clone for AnalyzedExprKind {
     fn clone(&self) -> Self {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
@@ -1208,6 +1213,7 @@ impl Clone for AnalyzedExprKind {
     }
 }
 
+#[cfg_attr(tarpaulin, coverage(off))]
 impl Drop for AnalyzedExprKind {
     fn drop(&mut self) {
         stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
