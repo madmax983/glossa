@@ -55,7 +55,9 @@ pub fn run_catalog() -> Result<()> {
         }
 
         println!("\n  {}", format!("{:?} Lexicon", pos).yellow().bold());
-        println!("{table}");
+        for line in table.to_string().lines() {
+            println!("   {}", line);
+        }
     }
 
     Ok(())
