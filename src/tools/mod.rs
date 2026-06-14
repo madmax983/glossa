@@ -49,6 +49,9 @@ pub mod mentor;
 #[cfg(feature = "nova")]
 pub mod mosaic;
 pub mod narrator;
+/// The Nomothetes (ὁ Νομοθέτης) tool for JSON Schema generation.
+#[cfg(feature = "nova")]
+pub mod nomothetes;
 /// The Papyrus (Πάπυρος) tool for SQL schema generation.
 ///
 /// This experimental tool reads Glossa type definitions and automatically

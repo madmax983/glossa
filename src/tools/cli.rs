@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate a JSON Schema for type definitions (Requires "nova" feature)
+    Nomothetes {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
