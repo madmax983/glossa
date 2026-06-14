@@ -338,7 +338,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
-        println!("{table}");
+        for line in table.to_string().lines() {
+            println!("   {}", line);
+        }
     } else {
         let mut empty_table = Table::new();
         empty_table.load_preset(presets::UTF8_FULL);

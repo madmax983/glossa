@@ -71,7 +71,9 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
                 .fg(Color::DarkGrey)
                 .add_attribute(Attribute::Italic),
         ]);
-        writeln!(writer, "{table}").into_diagnostic()?;
+        for line in table.to_string().lines() {
+            writeln!(writer, "   {}", line).into_diagnostic()?;
+        }
         writeln!(writer).into_diagnostic()?;
     } else {
         table.set_header(vec![
@@ -83,7 +85,9 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
         let formatted_cfg = format!("```mermaid\n{}\n```", cfg.trim());
         table.add_row(vec![Cell::new(formatted_cfg)]);
 
-        writeln!(writer, "{table}").into_diagnostic()?;
+        for line in table.to_string().lines() {
+            writeln!(writer, "   {}", line).into_diagnostic()?;
+        }
         writeln!(writer).into_diagnostic()?;
         writeln!(
             writer,

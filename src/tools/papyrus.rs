@@ -106,7 +106,9 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
     let formatted_code = format!("```sql\n{}\n```", output.trim());
     table.add_row(vec![Cell::new(formatted_code)]);
 
-    println!("{table}");
+    for line in table.to_string().lines() {
+        println!("   {}", line);
+    }
     println!();
 
     Ok(())
