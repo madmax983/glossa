@@ -57,10 +57,15 @@ fn test_codegen_runtime_unwrap_panic() {
 
     let mut code = generate_rust_file(&program);
     // Replace the specific initialization that fails to infer type in rustc
-    code = code.replace(
-        "= None",
-        ": std::option::Option<i64> = std::option::Option::None",
-    );
+    code = code
+        .replace(
+            "= None;",
+            ": std::option::Option<i64> = std::option::Option::None;",
+        )
+        .replace(
+            "= None ;",
+            ": std::option::Option<i64> = std::option::Option::None;",
+        );
 
     fs::write(&rs_path, code).unwrap();
 

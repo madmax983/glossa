@@ -1760,4 +1760,62 @@ mod tests {
             assert!(result.contains("trait G_trait_0"));
         }
     }
+    #[test]
+    fn test_generate_expr_unwrap_sentry() {
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable("x".into()),
+                glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
+            })),
+            glossa_type: GlossaType::Number,
+        };
+        let code = generate_expr(&expr).to_string();
+        let s = code.replace(" ", "");
+        assert!(
+            s.contains("attemptedtounwrapanemptyvalue")
+                || code.contains("attempted to unwrap an empty value")
+        );
+    }
+
+    #[test]
+    fn test_generate_unary_op_not_coverage() {
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
+        };
+        let tokens = generate_unary_op(UnaryOp::Not, &expr);
+        let s = tokens.to_string().replace(" ", "");
+        assert!(s.contains("!true"));
+    }
+
+    #[test]
+    fn test_generate_unary_op_neg_non_number_coverage() {
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable("x".into()),
+            glossa_type: GlossaType::Unknown,
+        };
+        let tokens = generate_unary_op(UnaryOp::Neg, &expr);
+        let s = tokens.to_string().replace(" ", "");
+        assert!(s.contains("-g_x") || s.contains("-x"));
+    }
+
+    #[test]
+    fn test_generate_unary_op_ref_coverage() {
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable("x".into()),
+            glossa_type: GlossaType::Number,
+        };
+        let tokens = generate_unary_op(UnaryOp::Ref, &expr);
+        let s = tokens.to_string().replace(" ", "");
+        assert!(s.contains("&g_x") || s.contains("&x"));
+    }
+
+    #[test]
+    fn test_is_self_param_coverage() {
+        assert!(is_self_parameter("τω", 0));
+        assert!(is_self_parameter("τῷ", 0));
+        assert!(is_self_parameter("self", 0));
+        assert!(is_self_parameter("my_self_var", 0));
+        assert!(!is_self_parameter("other", 0));
+    }
 }

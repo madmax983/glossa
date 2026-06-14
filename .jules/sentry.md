@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Formatting CodeGen Output in Tests]**
+**Learning:** Checking the generated Rust code `.to_string()` directly using `.contains("!true")` fails because the underlying `quote!` library inserts extra spaces (e.g., `! true` or `HashMap :: new ()`).
+**Action:** When testing string containment for `codegen.rs` elements like `!`, `-`, `&`, or type paths, always strip spaces via `code.replace(" ", "")` before running the assertion to ensure robust token matching.
