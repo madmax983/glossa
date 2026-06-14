@@ -108,16 +108,21 @@ fn test_extract_value_complex_binary_op_fallback() {
     let (analyzed, glossa_type) =
         extract_value(&asm_stmt, &scope).expect("Should extract binary op (obj+nom)");
 
-    if let AnalyzedExprKind::BinOp { left, op, right } = analyzed.expr {
+    if let AnalyzedExprKind::BinOp {
+        ref left,
+        op,
+        ref right,
+    } = analyzed.expr
+    {
         assert_eq!(op, BinaryOp::Add);
 
-        if let AnalyzedExprKind::Variable(name) = left.expr {
+        if let AnalyzedExprKind::Variable(ref name) = left.expr {
             assert_eq!(name, "x");
         } else {
             panic!("Left should be x");
         }
 
-        if let AnalyzedExprKind::Variable(name) = right.expr {
+        if let AnalyzedExprKind::Variable(ref name) = right.expr {
             assert_eq!(name, "y");
         } else {
             panic!("Right should be y");
@@ -145,16 +150,21 @@ fn test_extract_value_complex_binary_op_two_nominatives() {
     let (analyzed, glossa_type) =
         extract_value(&asm_stmt, &scope).expect("Should extract binary op (nom+nom)");
 
-    if let AnalyzedExprKind::BinOp { left, op, right } = analyzed.expr {
+    if let AnalyzedExprKind::BinOp {
+        ref left,
+        op,
+        ref right,
+    } = analyzed.expr
+    {
         assert_eq!(op, BinaryOp::Add);
 
-        if let AnalyzedExprKind::Variable(name) = left.expr {
+        if let AnalyzedExprKind::Variable(ref name) = left.expr {
             assert_eq!(name, "a");
         } else {
             panic!("Left should be a");
         }
 
-        if let AnalyzedExprKind::Variable(name) = right.expr {
+        if let AnalyzedExprKind::Variable(ref name) = right.expr {
             assert_eq!(name, "b");
         } else {
             panic!("Right should be b");
@@ -184,7 +194,7 @@ fn test_extract_value_array_literal() {
     let (analyzed, glossa_type) =
         extract_value(&asm_stmt, &scope).expect("Should extract array literal");
 
-    if let AnalyzedExprKind::ArrayLiteral(elements) = analyzed.expr {
+    if let AnalyzedExprKind::ArrayLiteral(ref elements) = analyzed.expr {
         assert_eq!(elements.len(), 2);
     } else {
         panic!("Expected ArrayLiteral");
@@ -235,7 +245,7 @@ fn test_extract_value_property_access() {
 
     let (analyzed, _) = extract_value(&asm_stmt, &scope).expect("Should extract property access");
 
-    if let AnalyzedExprKind::MethodCall { method, .. } = analyzed.expr {
+    if let AnalyzedExprKind::MethodCall { ref method, .. } = analyzed.expr {
         assert_eq!(method, "prop");
     } else {
         panic!("Expected MethodCall (property access maps to method call currently)");
@@ -305,13 +315,13 @@ fn test_binding_with_propagate() {
     let analyzed = convert_assembled_to_analyzed(&asm_stmt, &mut scope)
         .expect("Should analyze binding with propagate");
 
-    if let AnalyzedStatement::Binding { value, .. } = analyzed {
+    if let AnalyzedStatement::Binding { ref value, .. } = analyzed {
         assert!(
             matches!(value.expr, AnalyzedExprKind::Try(_)),
             "Value should be wrapped in Try"
         );
 
-        if let AnalyzedExprKind::Try(inner) = value.expr {
+        if let AnalyzedExprKind::Try(ref inner) = value.expr {
             if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
                 assert_eq!(n, 5);
             } else {
@@ -347,7 +357,7 @@ fn test_subjunctive_comparison() {
     let analyzed = convert_assembled_to_analyzed(&asm_stmt, &mut scope)
         .expect("Should analyze subjunctive comparison");
 
-    if let AnalyzedStatement::Expression(exprs) = analyzed {
+    if let AnalyzedStatement::Expression(ref exprs) = analyzed {
         assert_eq!(exprs.len(), 1);
         if let AnalyzedExprKind::BinOp { left, op, right } = &exprs[0].expr {
             assert_eq!(*op, BinaryOp::Gt);
@@ -391,10 +401,15 @@ fn test_binding_subject_object_swap() {
     let analyzed = convert_assembled_to_analyzed(&asm_stmt, &mut scope)
         .expect("Should analyze binding with swap");
 
-    if let AnalyzedStatement::Binding { name, value, .. } = analyzed {
+    if let AnalyzedStatement::Binding {
+        ref name,
+        ref value,
+        ..
+    } = analyzed
+    {
         assert_eq!(name, "new", "Should bind to the undefined variable 'new'");
 
-        if let AnalyzedExprKind::Variable(var_name) = value.expr {
+        if let AnalyzedExprKind::Variable(ref var_name) = value.expr {
             assert_eq!(var_name, "existing", "Value should be 'existing'");
         } else {
             panic!("Value should be variable 'existing'");
@@ -426,14 +441,14 @@ fn test_try_parse_genitive_method_call_extraction() {
         extract_value(&asm_stmt, &scope).expect("Should extract genitive method call");
 
     if let AnalyzedExprKind::MethodCall {
-        receiver,
-        method,
-        args,
+        ref receiver,
+        ref method,
+        ref args,
     } = analyzed.expr
     {
         assert_eq!(method, "method_name");
         assert!(args.is_empty());
-        if let AnalyzedExprKind::Variable(owner_name) = receiver.expr {
+        if let AnalyzedExprKind::Variable(ref owner_name) = receiver.expr {
             assert_eq!(owner_name, "owner");
         } else {
             panic!("Expected receiver to be a Variable");

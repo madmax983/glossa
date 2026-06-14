@@ -41,7 +41,7 @@
 //! };
 //!
 //! match binding {
-//!     AnalyzedStatement::Binding { name, .. } => assert_eq!(name, "ξ"),
+//!     AnalyzedStatement::Binding { ref name, .. } => assert_eq!(name, "ξ"),
 //!     _ => unreachable!(),
 //! }
 //! ```
@@ -71,7 +71,6 @@ use smol_str::SmolStr;
 ///     mutable: false, // `ἔστω` makes it immutable
 /// };
 /// ```
-#[derive(Clone)]
 pub enum AnalyzedStatement {
     /// Variable binding
     ///
@@ -402,7 +401,6 @@ impl std::fmt::Debug for AnalyzedStatement {
 ///     return_type: Some(GlossaType::Unit),
 /// };
 /// ```
-#[derive(Clone)]
 pub struct AnalyzedMethod {
     /// The unique identifier of the method, used for resolution during trait calls.
     pub name: SmolStr,
@@ -456,7 +454,6 @@ impl std::fmt::Debug for AnalyzedMethod {
 ///     glossa_type: GlossaType::Number,
 /// };
 /// ```
-#[derive(Clone)]
 pub struct AnalyzedExpr {
     /// The raw structure of the expression itself, describing the action or literal value.
     /// For instance, a `VerbCall` variant tells us a function is being invoked, while a
@@ -501,7 +498,6 @@ impl std::fmt::Debug for AnalyzedExpr {
 ///     }),
 /// };
 /// ```
-#[derive(Clone)]
 pub enum AnalyzedExprKind {
     /// String literal
     ///
@@ -903,5 +899,454 @@ impl std::fmt::Debug for TraitImpl {
                 .field("type_name", &self.type_name)
                 .finish()
         })
+    }
+}
+
+impl Clone for AnalyzedStatement {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            AnalyzedStatement::Binding {
+                name,
+                value,
+                mutable,
+            } => AnalyzedStatement::Binding {
+                name: name.clone(),
+                value: value.clone(),
+                mutable: *mutable,
+            },
+            AnalyzedStatement::Assignment { name, value } => AnalyzedStatement::Assignment {
+                name: name.clone(),
+                value: value.clone(),
+            },
+            AnalyzedStatement::Print(v) => AnalyzedStatement::Print(v.clone()),
+            AnalyzedStatement::Expression(v) => AnalyzedStatement::Expression(v.clone()),
+            AnalyzedStatement::Query(v) => AnalyzedStatement::Query(v.clone()),
+            AnalyzedStatement::If {
+                condition,
+                then_body,
+                else_body,
+            } => AnalyzedStatement::If {
+                condition: condition.clone(),
+                then_body: then_body.clone(),
+                else_body: else_body.clone(),
+            },
+            AnalyzedStatement::While { condition, body } => AnalyzedStatement::While {
+                condition: condition.clone(),
+                body: body.clone(),
+            },
+            AnalyzedStatement::For {
+                variable,
+                iterator,
+                body,
+            } => AnalyzedStatement::For {
+                variable: variable.clone(),
+                iterator: iterator.clone(),
+                body: body.clone(),
+            },
+            AnalyzedStatement::Match { scrutinee, arms } => AnalyzedStatement::Match {
+                scrutinee: scrutinee.clone(),
+                arms: arms.clone(),
+            },
+            AnalyzedStatement::Break => AnalyzedStatement::Break,
+            AnalyzedStatement::Continue => AnalyzedStatement::Continue,
+            AnalyzedStatement::Return { value } => AnalyzedStatement::Return {
+                value: value.clone(),
+            },
+            AnalyzedStatement::FunctionDef {
+                name,
+                params,
+                return_type,
+                body,
+            } => AnalyzedStatement::FunctionDef {
+                name: name.clone(),
+                params: params.clone(),
+                return_type: return_type.clone(),
+                body: body.clone(),
+            },
+            AnalyzedStatement::TypeDefinition { name, fields } => {
+                AnalyzedStatement::TypeDefinition {
+                    name: name.clone(),
+                    fields: fields.clone(),
+                }
+            }
+            AnalyzedStatement::TraitDefinition { name, methods } => {
+                AnalyzedStatement::TraitDefinition {
+                    name: name.clone(),
+                    methods: methods.clone(),
+                }
+            }
+            AnalyzedStatement::TraitImplementation {
+                trait_name,
+                type_name,
+                methods,
+            } => AnalyzedStatement::TraitImplementation {
+                trait_name: trait_name.clone(),
+                type_name: type_name.clone(),
+                methods: methods.clone(),
+            },
+            AnalyzedStatement::TestDeclaration { name, body } => {
+                AnalyzedStatement::TestDeclaration {
+                    name: name.clone(),
+                    body: body.clone(),
+                }
+            }
+        })
+    }
+}
+
+impl Drop for AnalyzedStatement {
+    fn drop(&mut self) {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            AnalyzedStatement::Binding { value, .. } => {
+                let _ = std::mem::replace(
+                    value,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            AnalyzedStatement::Assignment { value, .. } => {
+                let _ = std::mem::replace(
+                    value,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            AnalyzedStatement::Print(v)
+            | AnalyzedStatement::Expression(v)
+            | AnalyzedStatement::Query(v) => {
+                let _ = std::mem::take(v);
+            }
+            AnalyzedStatement::If {
+                condition,
+                then_body,
+                else_body,
+            } => {
+                let _ = std::mem::replace(
+                    &mut **condition,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+                let _ = std::mem::take(then_body);
+                let _ = std::mem::take(else_body);
+            }
+            AnalyzedStatement::While { condition, body } => {
+                let _ = std::mem::replace(
+                    &mut **condition,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+                let _ = std::mem::take(body);
+            }
+            AnalyzedStatement::For { iterator, body, .. } => {
+                let _ = std::mem::replace(
+                    &mut **iterator,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+                let _ = std::mem::take(body);
+            }
+            AnalyzedStatement::Match { scrutinee, arms } => {
+                let _ = std::mem::replace(
+                    &mut **scrutinee,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+                let _ = std::mem::take(arms);
+            }
+            AnalyzedStatement::Return { value } => {
+                if let Some(v) = value.as_mut() {
+                    let _ = std::mem::replace(
+                        &mut **v,
+                        AnalyzedExpr {
+                            expr: AnalyzedExprKind::None,
+                            glossa_type: crate::semantic::GlossaType::Unit,
+                        },
+                    );
+                }
+            }
+            AnalyzedStatement::FunctionDef { body, .. } => {
+                let _ = std::mem::take(body);
+            }
+            AnalyzedStatement::TraitDefinition { methods, .. } => {
+                let _ = std::mem::take(methods);
+            }
+            AnalyzedStatement::TraitImplementation { methods, .. } => {
+                let _ = std::mem::take(methods);
+            }
+            AnalyzedStatement::TestDeclaration { body, .. } => {
+                let _ = std::mem::take(body);
+            }
+            AnalyzedStatement::Break
+            | AnalyzedStatement::Continue
+            | AnalyzedStatement::TypeDefinition { .. } => {}
+        });
+    }
+}
+
+impl Clone for AnalyzedMethod {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || AnalyzedMethod {
+            name: self.name.clone(),
+            params: self.params.clone(),
+            body: self.body.clone(),
+            return_type: self.return_type.clone(),
+        })
+    }
+}
+
+impl Clone for AnalyzedExpr {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || AnalyzedExpr {
+            expr: self.expr.clone(),
+            glossa_type: self.glossa_type.clone(),
+        })
+    }
+}
+
+impl Clone for AnalyzedExprKind {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            AnalyzedExprKind::StringLiteral(v) => AnalyzedExprKind::StringLiteral(v.clone()),
+            AnalyzedExprKind::NumberLiteral(v) => AnalyzedExprKind::NumberLiteral(*v),
+            AnalyzedExprKind::BooleanLiteral(v) => AnalyzedExprKind::BooleanLiteral(*v),
+            AnalyzedExprKind::Variable(v) => AnalyzedExprKind::Variable(v.clone()),
+            AnalyzedExprKind::PropertyAccess { owner, property } => {
+                AnalyzedExprKind::PropertyAccess {
+                    owner: owner.clone(),
+                    property: property.clone(),
+                }
+            }
+            AnalyzedExprKind::VerbCall { verb, args } => AnalyzedExprKind::VerbCall {
+                verb: verb.clone(),
+                args: args.clone(),
+            },
+            AnalyzedExprKind::BinOp { left, op, right } => AnalyzedExprKind::BinOp {
+                left: left.clone(),
+                op: *op,
+                right: right.clone(),
+            },
+            AnalyzedExprKind::UnaryOp { op, operand } => AnalyzedExprKind::UnaryOp {
+                op: *op,
+                operand: operand.clone(),
+            },
+            AnalyzedExprKind::Range {
+                start,
+                end,
+                inclusive,
+            } => AnalyzedExprKind::Range {
+                start: start.clone(),
+                end: end.clone(),
+                inclusive: *inclusive,
+            },
+            AnalyzedExprKind::ArrayLiteral(v) => AnalyzedExprKind::ArrayLiteral(v.clone()),
+            AnalyzedExprKind::Some(v) => AnalyzedExprKind::Some(v.clone()),
+            AnalyzedExprKind::None => AnalyzedExprKind::None,
+            AnalyzedExprKind::Ok(v) => AnalyzedExprKind::Ok(v.clone()),
+            AnalyzedExprKind::Err(v) => AnalyzedExprKind::Err(v.clone()),
+            AnalyzedExprKind::Unwrap(v) => AnalyzedExprKind::Unwrap(v.clone()),
+            AnalyzedExprKind::Try(v) => AnalyzedExprKind::Try(v.clone()),
+            AnalyzedExprKind::IndexAccess { array, index } => AnalyzedExprKind::IndexAccess {
+                array: array.clone(),
+                index: index.clone(),
+            },
+            AnalyzedExprKind::FunctionCall { func, args } => AnalyzedExprKind::FunctionCall {
+                func: func.clone(),
+                args: args.clone(),
+            },
+            AnalyzedExprKind::MethodCall {
+                receiver,
+                method,
+                args,
+            } => AnalyzedExprKind::MethodCall {
+                receiver: receiver.clone(),
+                method: method.clone(),
+                args: args.clone(),
+            },
+            AnalyzedExprKind::StructInstantiation {
+                type_name,
+                fields,
+                args,
+            } => AnalyzedExprKind::StructInstantiation {
+                type_name: type_name.clone(),
+                fields: fields.clone(),
+                args: args.clone(),
+            },
+            AnalyzedExprKind::Lambda {
+                params,
+                body,
+                capture_mode,
+            } => AnalyzedExprKind::Lambda {
+                params: params.clone(),
+                body: body.clone(),
+                capture_mode: *capture_mode,
+            },
+            AnalyzedExprKind::CollectionNew { collection_type } => {
+                AnalyzedExprKind::CollectionNew {
+                    collection_type: collection_type.clone(),
+                }
+            }
+            AnalyzedExprKind::Assert { condition } => AnalyzedExprKind::Assert {
+                condition: condition.clone(),
+            },
+            AnalyzedExprKind::AssertEq { left, right } => AnalyzedExprKind::AssertEq {
+                left: left.clone(),
+                right: right.clone(),
+            },
+        })
+    }
+}
+
+impl Drop for AnalyzedExprKind {
+    fn drop(&mut self) {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || match self {
+            AnalyzedExprKind::PropertyAccess { owner, .. } => {
+                let _ = std::mem::replace(
+                    &mut **owner,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            AnalyzedExprKind::VerbCall { args, .. } => {
+                let _ = std::mem::take(args);
+            }
+            AnalyzedExprKind::BinOp { left, right, .. } => {
+                let _ = std::mem::replace(
+                    &mut **left,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+                let _ = std::mem::replace(
+                    &mut **right,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            AnalyzedExprKind::UnaryOp { operand, .. } => {
+                let _ = std::mem::replace(
+                    &mut **operand,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            AnalyzedExprKind::Range { start, end, .. } => {
+                let _ = std::mem::replace(
+                    &mut **start,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+                let _ = std::mem::replace(
+                    &mut **end,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            AnalyzedExprKind::ArrayLiteral(v) => {
+                let _ = std::mem::take(v);
+            }
+            AnalyzedExprKind::Some(v)
+            | AnalyzedExprKind::Ok(v)
+            | AnalyzedExprKind::Err(v)
+            | AnalyzedExprKind::Unwrap(v)
+            | AnalyzedExprKind::Try(v) => {
+                let _ = std::mem::replace(
+                    &mut **v,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            AnalyzedExprKind::IndexAccess { array, index } => {
+                let _ = std::mem::replace(
+                    &mut **array,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+                let _ = std::mem::replace(
+                    &mut **index,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            AnalyzedExprKind::FunctionCall { args, .. } => {
+                let _ = std::mem::take(args);
+            }
+            AnalyzedExprKind::MethodCall { receiver, args, .. } => {
+                let _ = std::mem::replace(
+                    &mut **receiver,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+                let _ = std::mem::take(args);
+            }
+            AnalyzedExprKind::StructInstantiation { args, .. } => {
+                let _ = std::mem::take(args);
+            }
+            AnalyzedExprKind::Lambda { body, .. } => {
+                let _ = std::mem::replace(
+                    &mut **body,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            AnalyzedExprKind::Assert { condition } => {
+                let _ = std::mem::replace(
+                    &mut **condition,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            AnalyzedExprKind::AssertEq { left, right } => {
+                let _ = std::mem::replace(
+                    &mut **left,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+                let _ = std::mem::replace(
+                    &mut **right,
+                    AnalyzedExpr {
+                        expr: AnalyzedExprKind::None,
+                        glossa_type: crate::semantic::GlossaType::Unit,
+                    },
+                );
+            }
+            _ => {}
+        });
     }
 }
