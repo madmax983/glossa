@@ -886,7 +886,7 @@ mod tests {
         let result = analyze_argument_expr(&expr, &scope).unwrap();
 
         match result.expr {
-            AnalyzedExprKind::ArrayLiteral(elements) => {
+            AnalyzedExprKind::ArrayLiteral(ref elements) => {
                 assert_eq!(elements.len(), 2);
                 assert!(matches!(
                     elements[0].expr,
@@ -907,7 +907,10 @@ mod tests {
         let result = analyze_argument_expr(&expr, &scope).unwrap();
 
         match result.expr {
-            AnalyzedExprKind::IndexAccess { array: _, index } => {
+            AnalyzedExprKind::IndexAccess {
+                array: _,
+                ref index,
+            } => {
                 assert!(matches!(index.expr, AnalyzedExprKind::NumberLiteral(0)));
             }
             _ => panic!("Expected IndexAccess"),
@@ -1004,7 +1007,7 @@ mod tests {
         let result = analyze_argument_expr(&expr, &scope).unwrap();
 
         match result.expr {
-            AnalyzedExprKind::PropertyAccess { property, .. } => {
+            AnalyzedExprKind::PropertyAccess { ref property, .. } => {
                 assert_eq!(property, "y");
             }
             _ => panic!("Expected PropertyAccess"),
@@ -1145,7 +1148,7 @@ mod tests {
         let result = analyze_argument_expr(&expr, &scope).unwrap();
 
         match result.expr {
-            AnalyzedExprKind::FunctionCall { func, args } => {
+            AnalyzedExprKind::FunctionCall { ref func, ref args } => {
                 assert_eq!(func, "add");
                 assert_eq!(args.len(), 2);
                 assert!(matches!(args[0].expr, AnalyzedExprKind::NumberLiteral(1)));
