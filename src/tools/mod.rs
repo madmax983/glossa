@@ -32,6 +32,12 @@ pub mod cartographer;
 pub mod catalog;
 pub mod cli;
 pub mod dictionary;
+/// The Eidolon (τὸ Εἴδωλον) tool for GraphQL schema generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding GraphQL `type` definitions.
+#[cfg(feature = "nova")]
+pub mod eidolon;
 /// The Haruspex (ὁ Ἱεροσκόπος) tool for visualizing the Semantic AST.
 ///
 /// This experimental tool exports the analyzed program as a Graphviz DOT diagram.
