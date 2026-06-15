@@ -40,6 +40,10 @@ C4Container
         Container(catalog, "The Catalog", "src/tools/catalog.rs", "Lexicon Explorer (CLI)")
         Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
         Container(dictionary, "The Lexicon", "src/tools/dictionary.rs", "The Source of Truth for Words (Dictionary)")
+        Container(gnomon, "The Gnomon", "src/tools/gnomon.rs", "Estimates Big-O time complexity via loop depth analysis")
+        Container(haruspex, "The Haruspex", "src/tools/haruspex.rs", "Generates Graphviz DOT representation of the raw semantic AST")
+        Container(scholar, "The Scholar", "src/tools/scholar.rs", "Generates Markdown API documentation")
+
         Container(highlight, "Highlighter", "src/tools/highlight.rs", "Semantic syntax highlighting")
         Container(interpreter, "Interpreter", "src/tools/interpreter.rs", "In-memory tree-walk simulator")
         Container(labyrinth, "Labyrinth", "src/tools/labyrinth.rs", "Visualizes the control flow graph as a Mermaid flowchart")
@@ -65,6 +69,10 @@ C4Container
     Rel(semantic, narrator, "Analyzed Program")
     Rel(semantic, cartographer, "Analyzed Program")
     Rel(semantic, mentor, "Analyzed Program")
+    Rel(semantic, gnomon, "Analyzed Program")
+    Rel(semantic, haruspex, "Analyzed Program")
+    Rel(semantic, scholar, "Analyzed Program")
+
     Rel(semantic, mosaic, "Analyzed Program")
     Rel(semantic, tester, "Analyzed Program")
     Rel(semantic, interpreter, "Analyzed Program")
