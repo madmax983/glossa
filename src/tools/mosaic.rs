@@ -113,8 +113,6 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
             // For non-regular statements, just print the type
             let type_name = match stmt {
                 crate::ast::Statement::TypeDefinition(_) => "Type Definition",
-                crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
-                crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
                 crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
                 _ => "Unknown",
             };
@@ -409,8 +407,6 @@ mod tests {
             γ μῆκος μέγεθος λέγε.
 
             // Other decls
-            χαρακτήρ Τ ὁρίζειν { }.
-            εἶδος Χ τῷ Τ ἐμπίπτειν { }.
             δοκιμή «τ» .
                 1 1 ἰσοῦται.
             τέλος.
@@ -421,8 +417,6 @@ mod tests {
 
         // Assert we hit the commas for multiple adjectives, genitives, and participles
         // (Note: actual string output depends on parsing, but multiple should exist)
-        assert!(output.contains("Trait Definition"));
-        assert!(output.contains("Trait Implementation"));
         assert!(output.contains("Test Declaration"));
     }
 
