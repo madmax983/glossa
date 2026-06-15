@@ -186,6 +186,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Export the semantic AST to a GraphQL schema (Requires "nova" feature)
+    Eidolon {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Transpile a .γλ file to SQL CREATE TABLE schema (Requires "nova" feature)
     Papyrus {
         /// Input file (.γλ)

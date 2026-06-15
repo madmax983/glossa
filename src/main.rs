@@ -129,6 +129,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Eidolon { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::eidolon::run_eidolon(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'eidolon' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Papyrus { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::papyrus::run_papyrus(&input)?;
