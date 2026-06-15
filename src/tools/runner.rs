@@ -734,8 +734,24 @@ mod tests {
             let llvm_cov_path = "target/llvm-cov-target/debug/glossa";
             if std::path::Path::new(llvm_cov_path).exists() {
                 llvm_cov_path.to_string()
-            } else {
+            } else if std::path::Path::new("target/debug/glossa").exists() {
                 "target/debug/glossa".to_string()
+            } else if std::path::Path::new("target/release/glossa").exists() {
+                "target/release/glossa".to_string()
+            } else {
+                std::env::current_exe()
+                    .expect("Failed to get current exe")
+                    .parent()
+                    .unwrap()
+                    .parent()
+                    .unwrap()
+                    .join(if cfg!(windows) {
+                        "glossa.exe"
+                    } else {
+                        "glossa"
+                    })
+                    .to_string_lossy()
+                    .to_string()
             }
         });
         let mut cmd = std::process::Command::new(bin_path);
