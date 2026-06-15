@@ -194,7 +194,7 @@ fn format_exprs(exprs: &[AnalyzedExpr]) -> String {
     buf
 }
 
-fn format_types(types: &[GlossaType]) -> String {
+pub fn format_types(types: &[GlossaType]) -> String {
     let mut buf = String::with_capacity(types.len() * 16);
     for (i, ty) in types.iter().enumerate() {
         if i > 0 {
@@ -453,17 +453,33 @@ fn add_test_decl(
 /// which outputs nested structs, this formats operations in a pseudo-code style
 /// that is immediately recognizable to developers.
 pub(crate) fn tell_expr(expr: &AnalyzedExpr) -> String {
+    let mut result = String::with_capacity(64);
+    write_tell_expr(expr, &mut result).unwrap();
+    result
+}
+
+fn write_tell_expr(expr: &AnalyzedExpr, out: &mut String) -> std::fmt::Result {
     match &expr.expr {
-        AnalyzedExprKind::StringLiteral(s) => format!("\"{}\"", s),
-        AnalyzedExprKind::NumberLiteral(n) => format!("{}", n),
-        AnalyzedExprKind::BooleanLiteral(b) => format!("{}", b),
-        AnalyzedExprKind::Variable(name) => format!("`{}`", name),
-        AnalyzedExprKind::VerbCall { verb, args } => tell_verb_call(verb, args),
+        AnalyzedExprKind::StringLiteral(s) => write!(out, "\"{}\"", s),
+        AnalyzedExprKind::NumberLiteral(n) => write!(out, "{}", n),
+        AnalyzedExprKind::BooleanLiteral(b) => write!(out, "{}", b),
+        AnalyzedExprKind::Variable(name) => write!(out, "`{}`", name),
+        AnalyzedExprKind::VerbCall { verb, args } => {
+            write!(out, "{}(", verb)?;
+            write_format_exprs(args, out)?;
+            write!(out, ")")
+        }
         AnalyzedExprKind::BinOp { left, op, right } => {
-            format!("({} {:?} {})", tell_expr(left), op, tell_expr(right))
+            write!(out, "(")?;
+            write_tell_expr(left, out)?;
+            write!(out, " {:?} ", op)?;
+            write_tell_expr(right, out)?;
+            write!(out, ")")
         }
         AnalyzedExprKind::UnaryOp { op, operand } => {
-            format!("({:?} {})", op, tell_expr(operand))
+            write!(out, "({:?} ", op)?;
+            write_tell_expr(operand, out)?;
+            write!(out, ")")
         }
         AnalyzedExprKind::Range {
             start,
@@ -471,114 +487,173 @@ pub(crate) fn tell_expr(expr: &AnalyzedExpr) -> String {
             inclusive,
         } => {
             let range_op = if *inclusive { "..=" } else { ".." };
-            format!("{}{}{}", tell_expr(start), range_op, tell_expr(end))
+            write_tell_expr(start, out)?;
+            write!(out, "{}", range_op)?;
+            write_tell_expr(end, out)
         }
-        AnalyzedExprKind::ArrayLiteral(exprs) => tell_array_literal(exprs),
-        AnalyzedExprKind::Some(e) => format!("Some({})", tell_expr(e)),
-        AnalyzedExprKind::None => "None".to_string(),
-        AnalyzedExprKind::Ok(e) => format!("Ok({})", tell_expr(e)),
-        AnalyzedExprKind::Err(e) => format!("Err({})", tell_expr(e)),
-        AnalyzedExprKind::Unwrap(e) => format!("{}!", tell_expr(e)),
-        AnalyzedExprKind::Try(e) => format!("{}?", tell_expr(e)),
+        AnalyzedExprKind::Some(e) => {
+            write!(out, "Some(")?;
+            write_tell_expr(e, out)?;
+            write!(out, ")")
+        }
+        AnalyzedExprKind::None => write!(out, "None"),
+        AnalyzedExprKind::Ok(e) => {
+            write!(out, "Ok(")?;
+            write_tell_expr(e, out)?;
+            write!(out, ")")
+        }
+        AnalyzedExprKind::Err(e) => {
+            write!(out, "Err(")?;
+            write_tell_expr(e, out)?;
+            write!(out, ")")
+        }
+        AnalyzedExprKind::Unwrap(e) => {
+            write_tell_expr(e, out)?;
+            write!(out, "!")
+        }
+        AnalyzedExprKind::Try(e) => {
+            write_tell_expr(e, out)?;
+            write!(out, "?")
+        }
         AnalyzedExprKind::IndexAccess { array, index } => {
-            format!("{}[{}]", tell_expr(array), tell_expr(index))
+            write_tell_expr(array, out)?;
+            write!(out, "[")?;
+            write_tell_expr(index, out)?;
+            write!(out, "]")
         }
-        AnalyzedExprKind::FunctionCall { func, args } => tell_function_call(func, args),
+        AnalyzedExprKind::ArrayLiteral(exprs) => {
+            write!(out, "[")?;
+            write_format_exprs(exprs, out)?;
+            write!(out, "]")
+        }
+        AnalyzedExprKind::FunctionCall { func, args } => {
+            write!(out, "{}(", func)?;
+            write_format_exprs(args, out)?;
+            write!(out, ")")
+        }
         AnalyzedExprKind::MethodCall {
             receiver,
             method,
             args,
-        } => tell_method_call(receiver, method, args),
-        AnalyzedExprKind::StructInstantiation {
-            type_name,
-            fields,
-            args,
-        } => tell_struct_instantiation(type_name, fields, args),
+        } => {
+            write_tell_expr(receiver, out)?;
+            write!(out, ".{}(", method)?;
+            write_format_exprs(args, out)?;
+            write!(out, ")")
+        }
+        AnalyzedExprKind::StructInstantiation { type_name, fields, args } => {
+            write!(out, "{} {{ ", type_name)?;
+            for (i, f) in fields.iter().enumerate() {
+                if i > 0 {
+                    write!(out, ", ")?;
+                }
+                write!(out, "{}: ", f)?;
+                if let Some(arg) = args.get(i) {
+                    write_tell_expr(arg, out)?;
+                } else {
+                    write!(out, "_")?;
+                }
+            }
+            write!(out, " }}")
+        }
         AnalyzedExprKind::Lambda {
             params,
             body,
             capture_mode,
-        } => tell_lambda(params, body, capture_mode),
+        } => {
+            let mode = match capture_mode {
+                CaptureMode::Borrow => "",
+                CaptureMode::Move => "move ",
+            };
+            write!(out, "{}|{}| ", mode, params.join(", "))?;
+            write_tell_expr(body, out)
+        }
         AnalyzedExprKind::CollectionNew { collection_type } => {
-            format!("{}::new()", collection_type)
+            write!(out, "{}::new()", collection_type)
         }
         AnalyzedExprKind::Assert { condition } => {
-            format!("assert({})", tell_expr(condition))
+            write!(out, "assert(")?;
+            write_tell_expr(condition, out)?;
+            write!(out, ")")
         }
         AnalyzedExprKind::AssertEq { left, right } => {
-            format!("assert_eq({}, {})", tell_expr(left), tell_expr(right))
+            write!(out, "assert_eq(")?;
+            write_tell_expr(left, out)?;
+            write!(out, ", ")?;
+            write_tell_expr(right, out)?;
+            write!(out, ")")
         }
         AnalyzedExprKind::PropertyAccess { owner, property } => {
-            format!("{}.{}", tell_expr(owner), property)
+            write_tell_expr(owner, out)?;
+            write!(out, ".{}", property)
         }
     }
 }
 
-fn tell_verb_call(verb: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}({})", verb, format_exprs(args))
-}
-
-fn tell_array_literal(exprs: &[AnalyzedExpr]) -> String {
-    format!("[{}]", format_exprs(exprs))
-}
-
-fn tell_function_call(func: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}({})", func, format_exprs(args))
-}
-
-fn tell_method_call(receiver: &AnalyzedExpr, method: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}.{}({})", tell_expr(receiver), method, format_exprs(args))
-}
-
-fn tell_struct_instantiation(
-    type_name: &str,
-    fields: &[smol_str::SmolStr],
-    args: &[AnalyzedExpr],
-) -> String {
-    let mut buf = String::with_capacity(fields.len() * 16);
-    for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
+fn write_format_exprs(exprs: &[AnalyzedExpr], out: &mut String) -> std::fmt::Result {
+    for (i, expr) in exprs.iter().enumerate() {
         if i > 0 {
-            buf.push_str(", ");
+            write!(out, ", ")?;
         }
-        let _ = write!(&mut buf, "{}: {}", f, tell_expr(a));
+        write_tell_expr(expr, out)?;
     }
-    format!("{} {{ {} }}", type_name, buf)
+    Ok(())
 }
 
-fn tell_lambda(
-    params: &[smol_str::SmolStr],
-    body: &AnalyzedExpr,
-    capture_mode: &CaptureMode,
-) -> String {
-    let mode = match capture_mode {
-        CaptureMode::Borrow => "",
-        CaptureMode::Move => "move ",
-    };
-    format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
-}
-
-/// Converts a semantic type into a familiar Rust-like type signature string.
-///
-/// While ΓΛΩΣΣΑ uses Greek terminology internally (e.g., `ἀριθμός`, `λίστη`),
-/// the Scroll of Logic translates these into conventional programming type names
-/// (e.g., `Number`, `[Type]`) to help developers map the Greek concepts to
-/// concepts they already understand.
 fn tell_type(ty: &GlossaType) -> String {
+    let mut result = String::with_capacity(32);
+    write_tell_type(ty, &mut result).unwrap();
+    result
+}
+
+fn write_tell_type(ty: &GlossaType, out: &mut String) -> std::fmt::Result {
     match ty {
-        GlossaType::Number => "Number".to_string(),
-        GlossaType::String => "String".to_string(),
-        GlossaType::Boolean => "Bool".to_string(),
-        GlossaType::List(inner) => format!("[{}]", tell_type(inner)),
-        GlossaType::Set(inner) => format!("Set<{}>", tell_type(inner)),
-        GlossaType::Map(k, v) => format!("Map<{}, {}>", tell_type(k), tell_type(v)),
-        GlossaType::Option(inner) => format!("Option<{}>", tell_type(inner)),
-        GlossaType::Result(ok, err) => format!("Result<{}, {}>", tell_type(ok), tell_type(err)),
-        GlossaType::Struct { name, .. } => name.to_string(),
-        GlossaType::Function { params, returns } => {
-            format!("Fn({}) -> {}", format_types(params), tell_type(returns))
+        GlossaType::Number => write!(out, "Number"),
+        GlossaType::String => write!(out, "String"),
+        GlossaType::Boolean => write!(out, "Bool"),
+        GlossaType::List(inner) => {
+            write!(out, "[")?;
+            write_tell_type(inner, out)?;
+            write!(out, "]")
         }
-        GlossaType::Unit => "()".to_string(),
-        GlossaType::Unknown => "?".to_string(),
+        GlossaType::Set(inner) => {
+            write!(out, "Set<")?;
+            write_tell_type(inner, out)?;
+            write!(out, ">")
+        }
+        GlossaType::Map(k, v) => {
+            write!(out, "Map<")?;
+            write_tell_type(k, out)?;
+            write!(out, ", ")?;
+            write_tell_type(v, out)?;
+            write!(out, ">")
+        }
+        GlossaType::Option(inner) => {
+            write!(out, "Option<")?;
+            write_tell_type(inner, out)?;
+            write!(out, ">")
+        }
+        GlossaType::Result(ok, err) => {
+            write!(out, "Result<")?;
+            write_tell_type(ok, out)?;
+            write!(out, ", ")?;
+            write_tell_type(err, out)?;
+            write!(out, ">")
+        }
+        GlossaType::Struct { name, .. } => write!(out, "{}", name),
+        GlossaType::Function { params, returns } => {
+            write!(out, "Fn(")?;
+            for (i, p) in params.iter().enumerate() {
+                if i > 0 {
+                    write!(out, ", ")?;
+                }
+                write_tell_type(p, out)?;
+            }
+            write!(out, ") -> ")?;
+            write_tell_type(returns, out)
+        }
+        GlossaType::Unit => write!(out, "()"),
+        GlossaType::Unknown => write!(out, "?"),
     }
 }
 
