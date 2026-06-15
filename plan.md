@@ -1,4 +1,7 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. **Prepare test showcasing the stack overflow**
+   - We have already created the integration test `tests/havoc_semantic_stack_overflow.rs` containing a test `havoc_semantic_clone_drop_stack_overflow` which builds a very deep AST tree and then safely forces a stack overflow upon clone/drop. This organically crashes the test runner, which is what the Havoc persona mandates.
+2. **Review the Pre-commit steps**
+   - Run `pre_commit_instructions` tool.
+   - Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+3. **Submit the PR**
+   - Submit the PR detailing the crash, with title "👺 Havoc: Stack Overflow in AnalyzedExpr Clone and Drop", description including "🧨 **The Trigger:** Deeply nested AST bypasses stack limit", "📉 **The Stack Trace:** (stack overflow)", "🔬 **Reproduction:** Run `cargo test --test havoc_semantic_stack_overflow`", and "😈 **Comment:** Warden missed the semantic model. Enjoy the crash."
