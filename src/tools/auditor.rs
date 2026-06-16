@@ -133,7 +133,9 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         );
         println!();
     } else {
-        println!("{table}");
+        for line in table.to_string().lines() {
+            println!("   {}", line);
+        }
         println!("\n   Total issues found: {}", issues);
     }
 

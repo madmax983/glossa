@@ -159,7 +159,9 @@ fn print_lexicon_entry(entry: &crate::morphology::lexicon::LexiconEntry) {
         table.add_row(vec![Cell::new("Voice"), Cell::new(format!("{:?}", v))]);
     }
 
-    println!("{table}");
+    for line in table.to_string().lines() {
+        println!("   {}", line);
+    }
     println!();
 }
 
@@ -248,7 +250,9 @@ fn print_morphological_analyses(analyses: &[crate::morphology::models::MorphAnal
         ]);
     }
 
-    println!("{table}");
+    for line in table.to_string().lines() {
+        println!("   {}", line);
+    }
     println!();
 }
 
