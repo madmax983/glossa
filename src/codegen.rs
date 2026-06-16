@@ -403,37 +403,22 @@ pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
 /// assert!(rust_code.contains("println"));
 /// ```
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
-    // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
-    // ⚡ Bolt Optimization: Pre-allocate vectors based on statement length.
-    // This reduces internal reallocation overhead during partitioning.
     let capacity = program.statements.len();
-    let mut trait_defs = Vec::with_capacity(capacity);
-    let mut struct_defs = Vec::with_capacity(capacity);
-    let mut trait_impls = Vec::with_capacity(capacity);
-    let mut fn_defs = Vec::with_capacity(capacity);
-    let mut test_defs = Vec::with_capacity(capacity);
-    let mut main_stmts = Vec::with_capacity(capacity);
+    let mut defs = ProgramDefinitions::new(capacity);
 
     for stmt in &program.statements {
-        match stmt {
-            AnalyzedStatement::TraitDefinition { .. } => trait_defs.push(generate_statement(stmt)),
-            AnalyzedStatement::TypeDefinition { .. } => struct_defs.push(generate_statement(stmt)),
-            AnalyzedStatement::TraitImplementation { .. } => {
-                trait_impls.push(generate_statement(stmt))
-            }
-            AnalyzedStatement::FunctionDef { .. } => fn_defs.push(generate_statement(stmt)),
-            AnalyzedStatement::TestDeclaration { .. } => test_defs.push(generate_statement(stmt)),
-            _ => main_stmts.push(generate_statement(stmt)),
-        }
+        defs.add_statement(stmt);
     }
 
-    // Generate imports
-    // We always import collections because they might be used in type definitions
-    // even if not explicitly constructed in the code.
-    // Unused imports are suppressed by #![allow(unused_imports)] in the file header.
     let imports = quote! { use std::collections::{HashMap, HashSet}; };
-
     let panic_hook = generate_panic_hook();
+
+    let trait_defs = &defs.trait_defs;
+    let struct_defs = &defs.struct_defs;
+    let trait_impls = &defs.trait_impls;
+    let fn_defs = &defs.fn_defs;
+    let main_stmts = &defs.main_stmts;
+    let test_defs = &defs.test_defs;
 
     let output = quote! {
         #imports
@@ -456,6 +441,40 @@ pub fn generate_rust(program: &AnalyzedProgram) -> String {
     };
 
     output.to_string()
+}
+
+struct ProgramDefinitions {
+    trait_defs: Vec<TokenStream>,
+    struct_defs: Vec<TokenStream>,
+    trait_impls: Vec<TokenStream>,
+    fn_defs: Vec<TokenStream>,
+    test_defs: Vec<TokenStream>,
+    main_stmts: Vec<TokenStream>,
+}
+
+impl ProgramDefinitions {
+    fn new(capacity: usize) -> Self {
+        Self {
+            trait_defs: Vec::with_capacity(capacity),
+            struct_defs: Vec::with_capacity(capacity),
+            trait_impls: Vec::with_capacity(capacity),
+            fn_defs: Vec::with_capacity(capacity),
+            test_defs: Vec::with_capacity(capacity),
+            main_stmts: Vec::with_capacity(capacity),
+        }
+    }
+
+    fn add_statement(&mut self, stmt: &AnalyzedStatement) {
+        let tokens = generate_statement(stmt);
+        match stmt {
+            AnalyzedStatement::TraitDefinition { .. } => self.trait_defs.push(tokens),
+            AnalyzedStatement::TypeDefinition { .. } => self.struct_defs.push(tokens),
+            AnalyzedStatement::TraitImplementation { .. } => self.trait_impls.push(tokens),
+            AnalyzedStatement::FunctionDef { .. } => self.fn_defs.push(tokens),
+            AnalyzedStatement::TestDeclaration { .. } => self.test_defs.push(tokens),
+            _ => self.main_stmts.push(tokens),
+        }
+    }
 }
 
 fn generate_panic_hook() -> TokenStream {
