@@ -131,3 +131,7 @@ Signed,
 **2026-04-30 - [Infinite Stream DoS Vulnerability in File Loading]
 **Threat:** The `load_source` function in `src/tools/runner.rs` relied on `fs::metadata().len()` to enforce the `MAX_FILE_SIZE` limit. However, special device files like `/dev/zero` report a length of 0 while producing an infinite stream of bytes when read. Reading these files with `fs::read_to_string` causes a thread hang or Out-Of-Memory (OOM) Denial-of-Service condition.
 **Defense:** Added an explicit `metadata.is_file()` check in `check_file_size` to guarantee that the input path points to a regular file and explicitly reject non-regular file types like directories and device streams. Updated `tests/havoc_dos.rs` and `test_load_source_directory_error` to assert the "Not a valid file" error and pass cleanly without timeouts.
+
+**2025-05-18 - [Codegen Stack Overflow DoS]
+**Threat:** A deeply nested expression in the Semantic AST (depth 50,000) causes a stack overflow during Codegen due to unbounded recursive traversal in `generate_expr`. This allows for Denial of Service if the AST is constructed programmatically.
+**Defense:** Added a thread-local `DepthGuard` inside `src/codegen.rs` that enforces a hard recursion limit (500). If exceeded, it safely short-circuits the generation by returning a truncated dummy token stream, preventing the stack from overflowing.
