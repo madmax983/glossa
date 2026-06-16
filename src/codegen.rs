@@ -402,6 +402,37 @@ pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
 /// let rust_code = generate_rust(&program);
 /// assert!(rust_code.contains("println"));
 /// ```
+use std::cell::Cell;
+
+thread_local! {
+    static CODEGEN_DEPTH: Cell<usize> = const { Cell::new(0) };
+}
+
+const MAX_CODEGEN_DEPTH: usize = 500;
+
+struct DepthGuard;
+impl DepthGuard {
+    fn new() -> Self {
+        CODEGEN_DEPTH.with(|d| {
+            let current = d.get();
+            if current > MAX_CODEGEN_DEPTH {
+                panic!(
+                    "Codegen depth limit exceeded ({} > {}) - preventing stack overflow or OOM",
+                    current, MAX_CODEGEN_DEPTH
+                );
+            }
+            d.set(current + 1);
+        });
+        DepthGuard
+    }
+}
+impl Drop for DepthGuard {
+    fn drop(&mut self) {
+        CODEGEN_DEPTH.with(|d| {
+            d.set(d.get().saturating_sub(1));
+        });
+    }
+}
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
     // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
     // ⚡ Bolt Optimization: Pre-allocate vectors based on statement length.
@@ -551,6 +582,7 @@ fn generate_statements(stmts: &[AnalyzedStatement]) -> Vec<TokenStream> {
 }
 
 fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
+    let _guard = DepthGuard::new();
     match stmt {
         AnalyzedStatement::Binding {
             name,
@@ -989,6 +1021,7 @@ fn generate_expr_unwrap(inner: &AnalyzedExpr) -> TokenStream {
 }
 
 fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
+    let _guard = DepthGuard::new();
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => generate_literal_string(s),
 
@@ -1060,6 +1093,7 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
 }
 
 fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> TokenStream {
+    let _guard = DepthGuard::new();
     let left_tokens = generate_expr(left);
     let right_tokens = generate_expr(right);
 
@@ -1341,6 +1375,7 @@ fn generate_method_call(
     method: &str,
     args: &[AnalyzedExpr],
 ) -> TokenStream {
+    let _guard = DepthGuard::new();
     let recv = generate_expr(receiver);
 
     // Check if this is a standard library method call on a standard type

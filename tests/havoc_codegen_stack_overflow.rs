@@ -4,8 +4,6 @@ use glossa::morphology::BinaryOp;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
 };
-use std::env;
-use std::process::Command;
 
 /// 👺 Havoc: Stack Overflow in Codegen
 ///
@@ -13,56 +11,44 @@ use std::process::Command;
 /// constructed programmatically, generating Rust code for it will immediately crash
 /// the thread with a stack overflow.
 #[test]
+#[should_panic(expected = "Codegen depth limit exceeded")]
 fn havoc_codegen_stack_overflow() {
-    if env::var("HAVOC_DETONATE_CODEGEN_OVERFLOW").is_ok() {
-        let depth = 50_000;
-        let mut expr = AnalyzedExpr {
-            expr: AnalyzedExprKind::NumberLiteral(1),
+    let depth = 50_000;
+    let mut expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(1),
+        glossa_type: GlossaType::Number,
+    };
+    for _ in 0..depth {
+        expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::BinOp {
+                left: Box::new(expr),
+                op: BinaryOp::Add,
+                right: Box::new(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(1),
+                    glossa_type: GlossaType::Number,
+                }),
+            },
             glossa_type: GlossaType::Number,
         };
-        for _ in 0..depth {
-            expr = AnalyzedExpr {
-                expr: AnalyzedExprKind::BinOp {
-                    left: Box::new(expr),
-                    op: BinaryOp::Add,
-                    right: Box::new(AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(1),
-                        glossa_type: GlossaType::Number,
-                    }),
-                },
-                glossa_type: GlossaType::Number,
-            };
-        }
-
-        let stmt = AnalyzedStatement::Expression(vec![expr]);
-        let scope = Scope::new();
-        let program = AnalyzedProgram {
-            statements: vec![stmt],
-            scope,
-        };
-
-        // 💥 DETONATE
-        println!(
-            "Generating rust code for deep expression (depth {})...",
-            depth
-        );
-        let _ = generate_rust(&program);
-
-        println!("Survived and mitigated!");
-        std::process::exit(0);
     }
 
-    let exe = env::current_exe().expect("Failed to get current executable");
+    let stmt = AnalyzedStatement::Expression(vec![expr]);
+    let scope = Scope::new();
+    let program = AnalyzedProgram {
+        statements: vec![stmt],
+        scope,
+    };
 
-    let status = Command::new(exe)
-        .env("HAVOC_DETONATE_CODEGEN_OVERFLOW", "1")
-        .arg("--nocapture")
-        .arg("havoc_codegen_stack_overflow")
-        .status()
-        .expect("Failed to spawn subprocess");
-
-    assert!(
-        !status.success(),
-        "Subprocess should have crashed due to stack overflow!"
+    println!(
+        "Generating rust code for deep expression (depth {})...",
+        depth
     );
+
+    // Prevent the AST from blowing the stack when it drops, by leaking it.
+    // The test is verifying that codegen itself doesn't crash with a stack overflow,
+    // but rather panics safely before running out of stack.
+    let program_ref: &'static AnalyzedProgram = Box::leak(Box::new(program));
+
+    // 💥 DETONATE
+    let _ = generate_rust(program_ref);
 }

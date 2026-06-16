@@ -179,6 +179,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Gnomon { input }) => {
+            let _ = input;
             #[cfg(feature = "nova")]
             glossa::tools::gnomon::run_gnomon(&input)?;
 
