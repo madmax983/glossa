@@ -296,7 +296,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                     .fg(Color::White)
                     .add_attribute(Attribute::Bold),
             ]);
-            println!("{success_table}");
+            for line in success_table.to_string().lines() {
+                println!("   {}", line);
+            }
             println!();
         }
     } else {
@@ -308,7 +310,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                 .fg(Color::White)
                 .add_attribute(Attribute::Bold),
         ]);
-        println!("{failure_table}");
+        for line in failure_table.to_string().lines() {
+            println!("   {}", line);
+        }
         println!();
     }
 
@@ -338,7 +342,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
 
             table.add_row(vec![Cell::new(display_name), status_cell]);
         }
-        println!("{table}");
+        for line in table.to_string().lines() {
+            println!("   {}", line);
+        }
     } else {
         let mut empty_table = Table::new();
         empty_table.load_preset(presets::UTF8_FULL);
@@ -353,7 +359,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                 .add_attribute(Attribute::Italic)
                 .set_alignment(CellAlignment::Center),
         ]);
-        println!("{empty_table}");
+        for line in empty_table.to_string().lines() {
+            println!("   {}", line);
+        }
     }
 
     // If there were failures, try to extract and print them nicely
@@ -373,13 +381,17 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                         .fg(Color::White)
                         .add_attribute(Attribute::Bold),
                 ]);
-                println!("{header_table}");
+                for line in header_table.to_string().lines() {
+                    println!("   {}", line);
+                }
 
                 // Create a box for the error message using comfy_table
                 let mut error_table = Table::new();
                 error_table.load_preset(presets::UTF8_FULL);
                 error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
-                println!("{error_table}");
+                for line in error_table.to_string().lines() {
+                    println!("   {}", line);
+                }
                 println!();
             }
         } else {
