@@ -497,6 +497,16 @@ mod tests {
 
         // Spawn a child process so we don't mutate the global PATH/env.
         let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
+            if let Ok(exe) = std::env::current_exe() {
+                let is_glossa = exe
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .starts_with("glossa");
+                if is_glossa {
+                    return exe.display().to_string();
+                }
+            }
             let llvm_cov_path = "target/llvm-cov-target/debug/glossa";
             if std::path::Path::new(llvm_cov_path).exists() {
                 llvm_cov_path.to_string()

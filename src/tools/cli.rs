@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate TypeScript interface declarations from types (Requires "nova" feature)
+    Sibyl {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
