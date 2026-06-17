@@ -165,7 +165,9 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
 }
 
 fn add_binding(table: &mut Table, prefix: &str, name: &str, value: &AnalyzedExpr, mutable: bool) {
-    let script = format!("Let `{}` be {}.", name, tell_expr(value));
+    let mut val_str = String::with_capacity(32);
+    tell_expr_into(value, &mut val_str);
+    let script = format!("Let `{}` be {}.", name, val_str);
     let notes = if mutable { "Mutable" } else { "Immutable" };
     table.add_row(vec![
         Cell::new("BIND").fg(Color::Blue),
@@ -175,7 +177,9 @@ fn add_binding(table: &mut Table, prefix: &str, name: &str, value: &AnalyzedExpr
 }
 
 fn add_assignment(table: &mut Table, prefix: &str, name: &str, value: &AnalyzedExpr) {
-    let script = format!("Update `{}` to {}.", name, tell_expr(value));
+    let mut val_str = String::with_capacity(32);
+    tell_expr_into(value, &mut val_str);
+    let script = format!("Update `{}` to {}.", name, val_str);
     table.add_row(vec![
         Cell::new("SET").fg(Color::Yellow),
         Cell::new(format!("{}{}", prefix, script)),
@@ -183,30 +187,28 @@ fn add_assignment(table: &mut Table, prefix: &str, name: &str, value: &AnalyzedE
     ]);
 }
 
-fn format_exprs(exprs: &[AnalyzedExpr]) -> String {
-    let mut buf = String::with_capacity(exprs.len() * 16);
+fn format_exprs(exprs: &[AnalyzedExpr], buf: &mut String) {
     for (i, expr) in exprs.iter().enumerate() {
         if i > 0 {
             buf.push_str(", ");
         }
-        buf.push_str(&tell_expr(expr));
+        tell_expr_into(expr, buf);
     }
-    buf
 }
 
-fn format_types(types: &[GlossaType]) -> String {
-    let mut buf = String::with_capacity(types.len() * 16);
+fn format_types(types: &[GlossaType], buf: &mut String) {
     for (i, ty) in types.iter().enumerate() {
         if i > 0 {
             buf.push_str(", ");
         }
-        buf.push_str(&tell_type(ty));
+        tell_type_into(ty, buf);
     }
-    buf
 }
 
 fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let script = format!("Proclaim: {}", format_exprs(exprs));
+    let mut expr_str = String::with_capacity(exprs.len() * 16);
+    format_exprs(exprs, &mut expr_str);
+    let script = format!("Proclaim: {}", expr_str);
     table.add_row(vec![
         Cell::new("PRINT").fg(Color::Green),
         Cell::new(format!("{}{}", prefix, script)),
@@ -215,7 +217,9 @@ fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
 }
 
 fn add_expression(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let script = format!("Do: {}", format_exprs(exprs));
+    let mut expr_str = String::with_capacity(exprs.len() * 16);
+    format_exprs(exprs, &mut expr_str);
+    let script = format!("Do: {}", expr_str);
     table.add_row(vec![
         Cell::new("EXPR").fg(Color::DarkGrey),
         Cell::new(format!("{}{}", prefix, script)),
@@ -224,7 +228,9 @@ fn add_expression(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
 }
 
 fn add_query(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
-    let script = format!("Query oracle: {}", format_exprs(exprs));
+    let mut expr_str = String::with_capacity(exprs.len() * 16);
+    format_exprs(exprs, &mut expr_str);
+    let script = format!("Query oracle: {}", expr_str);
     table.add_row(vec![
         Cell::new("QUERY").fg(Color::Magenta),
         Cell::new(format!("{}{}", prefix, script)),
@@ -240,7 +246,9 @@ fn add_if(
     then_body: &[AnalyzedStatement],
     else_body: &Option<Vec<AnalyzedStatement>>,
 ) {
-    let script = format!("If {} is true, then:", tell_expr(condition));
+    let mut expr_str = String::with_capacity(32);
+    tell_expr_into(condition, &mut expr_str);
+    let script = format!("If {} is true, then:", expr_str);
     table.add_row(vec![
         Cell::new("IF").fg(Color::Magenta),
         Cell::new(format!("{}{}", prefix, script)),
@@ -270,7 +278,9 @@ fn add_while(
     condition: &AnalyzedExpr,
     body: &[AnalyzedStatement],
 ) {
-    let script = format!("While {} holds true:", tell_expr(condition));
+    let mut expr_str = String::with_capacity(32);
+    tell_expr_into(condition, &mut expr_str);
+    let script = format!("While {} holds true:", expr_str);
     table.add_row(vec![
         Cell::new("WHILE").fg(Color::Magenta),
         Cell::new(format!("{}{}", prefix, script)),
@@ -289,7 +299,9 @@ fn add_for(
     iterator: &AnalyzedExpr,
     body: &[AnalyzedStatement],
 ) {
-    let script = format!("For each `{}` in {}:", variable, tell_expr(iterator));
+    let mut expr_str = String::with_capacity(32);
+    tell_expr_into(iterator, &mut expr_str);
+    let script = format!("For each `{}` in {}:", variable, expr_str);
     table.add_row(vec![
         Cell::new("FOR").fg(Color::Magenta),
         Cell::new(format!("{}{}", prefix, script)),
@@ -307,14 +319,18 @@ fn add_match(
     scrutinee: &AnalyzedExpr,
     arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
 ) {
-    let script = format!("Match on {}:", tell_expr(scrutinee));
+    let mut expr_str = String::with_capacity(32);
+    tell_expr_into(scrutinee, &mut expr_str);
+    let script = format!("Match on {}:", expr_str);
     table.add_row(vec![
         Cell::new("MATCH").fg(Color::Magenta),
         Cell::new(format!("{}{}", prefix, script)),
         Cell::new("Pattern").fg(Color::Magenta),
     ]);
     for (pat, body) in arms {
-        let case_script = format!("Case {}:", tell_expr(pat));
+        let mut pat_str = String::with_capacity(32);
+        tell_expr_into(pat, &mut pat_str);
+        let case_script = format!("Case {}:", pat_str);
         table.add_row(vec![
             Cell::new("CASE").fg(Color::DarkMagenta),
             Cell::new(format!("{}{}", indent(level + 1), case_script)),
@@ -344,7 +360,9 @@ fn add_continue(table: &mut Table, prefix: &str) {
 
 fn add_return(table: &mut Table, prefix: &str, value: &Option<Box<AnalyzedExpr>>) {
     let script = if let Some(v) = value {
-        format!("Return {}.", tell_expr(v))
+        let mut v_str = String::with_capacity(32);
+        tell_expr_into(v, &mut v_str);
+        format!("Return {}.", v_str)
     } else {
         "Return nothing.".to_string()
     };
@@ -452,109 +470,178 @@ fn add_test_decl(
 /// into linear, human-readable strings. Unlike a standard `Debug` representation
 /// which outputs nested structs, this formats operations in a pseudo-code style
 /// that is immediately recognizable to developers.
+#[allow(dead_code)]
 pub(crate) fn tell_expr(expr: &AnalyzedExpr) -> String {
+    let mut buf = String::with_capacity(32);
+    tell_expr_into(expr, &mut buf);
+    buf
+}
+
+pub(crate) fn tell_expr_into(expr: &AnalyzedExpr, buf: &mut String) {
     match &expr.expr {
-        AnalyzedExprKind::StringLiteral(s) => format!("\"{}\"", s),
-        AnalyzedExprKind::NumberLiteral(n) => format!("{}", n),
-        AnalyzedExprKind::BooleanLiteral(b) => format!("{}", b),
-        AnalyzedExprKind::Variable(name) => format!("`{}`", name),
-        AnalyzedExprKind::VerbCall { verb, args } => tell_verb_call(verb, args),
+        AnalyzedExprKind::StringLiteral(s) => {
+            let _ = write!(buf, "\"{}\"", s);
+        }
+        AnalyzedExprKind::NumberLiteral(n) => {
+            let _ = write!(buf, "{}", n);
+        }
+        AnalyzedExprKind::BooleanLiteral(b) => {
+            let _ = write!(buf, "{}", b);
+        }
+        AnalyzedExprKind::Variable(name) => {
+            let _ = write!(buf, "`{}`", name);
+        }
+        AnalyzedExprKind::VerbCall { verb, args } => tell_verb_call_into(verb, args, buf),
         AnalyzedExprKind::BinOp { left, op, right } => {
-            format!("({} {:?} {})", tell_expr(left), op, tell_expr(right))
+            buf.push('(');
+            tell_expr_into(left, buf);
+            let _ = write!(buf, " {:?} ", op);
+            tell_expr_into(right, buf);
+            buf.push(')');
         }
         AnalyzedExprKind::UnaryOp { op, operand } => {
-            format!("({:?} {})", op, tell_expr(operand))
+            let _ = write!(buf, "({:?} ", op);
+            tell_expr_into(operand, buf);
+            buf.push(')');
         }
         AnalyzedExprKind::Range {
             start,
             end,
             inclusive,
         } => {
+            tell_expr_into(start, buf);
             let range_op = if *inclusive { "..=" } else { ".." };
-            format!("{}{}{}", tell_expr(start), range_op, tell_expr(end))
+            buf.push_str(range_op);
+            tell_expr_into(end, buf);
         }
-        AnalyzedExprKind::ArrayLiteral(exprs) => tell_array_literal(exprs),
-        AnalyzedExprKind::Some(e) => format!("Some({})", tell_expr(e)),
-        AnalyzedExprKind::None => "None".to_string(),
-        AnalyzedExprKind::Ok(e) => format!("Ok({})", tell_expr(e)),
-        AnalyzedExprKind::Err(e) => format!("Err({})", tell_expr(e)),
-        AnalyzedExprKind::Unwrap(e) => format!("{}!", tell_expr(e)),
-        AnalyzedExprKind::Try(e) => format!("{}?", tell_expr(e)),
+        AnalyzedExprKind::ArrayLiteral(exprs) => tell_array_literal_into(exprs, buf),
+        AnalyzedExprKind::Some(e) => {
+            buf.push_str("Some(");
+            tell_expr_into(e, buf);
+            buf.push(')');
+        }
+        AnalyzedExprKind::None => buf.push_str("None"),
+        AnalyzedExprKind::Ok(e) => {
+            buf.push_str("Ok(");
+            tell_expr_into(e, buf);
+            buf.push(')');
+        }
+        AnalyzedExprKind::Err(e) => {
+            buf.push_str("Err(");
+            tell_expr_into(e, buf);
+            buf.push(')');
+        }
+        AnalyzedExprKind::Unwrap(e) => {
+            tell_expr_into(e, buf);
+            buf.push('!');
+        }
+        AnalyzedExprKind::Try(e) => {
+            tell_expr_into(e, buf);
+            buf.push('?');
+        }
         AnalyzedExprKind::IndexAccess { array, index } => {
-            format!("{}[{}]", tell_expr(array), tell_expr(index))
+            tell_expr_into(array, buf);
+            buf.push('[');
+            tell_expr_into(index, buf);
+            buf.push(']');
         }
-        AnalyzedExprKind::FunctionCall { func, args } => tell_function_call(func, args),
+        AnalyzedExprKind::FunctionCall { func, args } => tell_function_call_into(func, args, buf),
         AnalyzedExprKind::MethodCall {
             receiver,
             method,
             args,
-        } => tell_method_call(receiver, method, args),
+        } => tell_method_call_into(receiver, method, args, buf),
         AnalyzedExprKind::StructInstantiation {
             type_name,
             fields,
             args,
-        } => tell_struct_instantiation(type_name, fields, args),
+        } => tell_struct_instantiation_into(type_name, fields, args, buf),
         AnalyzedExprKind::Lambda {
             params,
             body,
             capture_mode,
-        } => tell_lambda(params, body, capture_mode),
+        } => tell_lambda_into(params, body, capture_mode, buf),
         AnalyzedExprKind::CollectionNew { collection_type } => {
-            format!("{}::new()", collection_type)
+            let _ = write!(buf, "{}::new()", collection_type);
         }
         AnalyzedExprKind::Assert { condition } => {
-            format!("assert({})", tell_expr(condition))
+            buf.push_str("assert(");
+            tell_expr_into(condition, buf);
+            buf.push(')');
         }
         AnalyzedExprKind::AssertEq { left, right } => {
-            format!("assert_eq({}, {})", tell_expr(left), tell_expr(right))
+            buf.push_str("assert_eq(");
+            tell_expr_into(left, buf);
+            buf.push_str(", ");
+            tell_expr_into(right, buf);
+            buf.push(')');
         }
         AnalyzedExprKind::PropertyAccess { owner, property } => {
-            format!("{}.{}", tell_expr(owner), property)
+            tell_expr_into(owner, buf);
+            let _ = write!(buf, ".{}", property);
         }
     }
 }
 
-fn tell_verb_call(verb: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}({})", verb, format_exprs(args))
+fn tell_verb_call_into(verb: &str, args: &[AnalyzedExpr], buf: &mut String) {
+    let _ = write!(buf, "{}(", verb);
+    format_exprs(args, buf);
+    buf.push(')');
 }
 
-fn tell_array_literal(exprs: &[AnalyzedExpr]) -> String {
-    format!("[{}]", format_exprs(exprs))
+fn tell_array_literal_into(exprs: &[AnalyzedExpr], buf: &mut String) {
+    buf.push('[');
+    format_exprs(exprs, buf);
+    buf.push(']');
 }
 
-fn tell_function_call(func: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}({})", func, format_exprs(args))
+fn tell_function_call_into(func: &str, args: &[AnalyzedExpr], buf: &mut String) {
+    let _ = write!(buf, "{}(", func);
+    format_exprs(args, buf);
+    buf.push(')');
 }
 
-fn tell_method_call(receiver: &AnalyzedExpr, method: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}.{}({})", tell_expr(receiver), method, format_exprs(args))
+fn tell_method_call_into(
+    receiver: &AnalyzedExpr,
+    method: &str,
+    args: &[AnalyzedExpr],
+    buf: &mut String,
+) {
+    tell_expr_into(receiver, buf);
+    let _ = write!(buf, ".{}(", method);
+    format_exprs(args, buf);
+    buf.push(')');
 }
 
-fn tell_struct_instantiation(
+fn tell_struct_instantiation_into(
     type_name: &str,
     fields: &[smol_str::SmolStr],
     args: &[AnalyzedExpr],
-) -> String {
-    let mut buf = String::with_capacity(fields.len() * 16);
+    buf: &mut String,
+) {
+    let _ = write!(buf, "{} {{ ", type_name);
     for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
         if i > 0 {
             buf.push_str(", ");
         }
-        let _ = write!(&mut buf, "{}: {}", f, tell_expr(a));
+        let _ = write!(buf, "{}: ", f);
+        tell_expr_into(a, buf);
     }
-    format!("{} {{ {} }}", type_name, buf)
+    buf.push_str(" }");
 }
 
-fn tell_lambda(
+fn tell_lambda_into(
     params: &[smol_str::SmolStr],
     body: &AnalyzedExpr,
     capture_mode: &CaptureMode,
-) -> String {
+    buf: &mut String,
+) {
     let mode = match capture_mode {
         CaptureMode::Borrow => "",
         CaptureMode::Move => "move ",
     };
-    format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
+    let _ = write!(buf, "{}|{}| ", mode, params.join(", "));
+    tell_expr_into(body, buf);
 }
 
 /// Converts a semantic type into a familiar Rust-like type signature string.
@@ -564,21 +651,54 @@ fn tell_lambda(
 /// (e.g., `Number`, `[Type]`) to help developers map the Greek concepts to
 /// concepts they already understand.
 fn tell_type(ty: &GlossaType) -> String {
+    let mut buf = String::with_capacity(32);
+    tell_type_into(ty, &mut buf);
+    buf
+}
+
+fn tell_type_into(ty: &GlossaType, buf: &mut String) {
     match ty {
-        GlossaType::Number => "Number".to_string(),
-        GlossaType::String => "String".to_string(),
-        GlossaType::Boolean => "Bool".to_string(),
-        GlossaType::List(inner) => format!("[{}]", tell_type(inner)),
-        GlossaType::Set(inner) => format!("Set<{}>", tell_type(inner)),
-        GlossaType::Map(k, v) => format!("Map<{}, {}>", tell_type(k), tell_type(v)),
-        GlossaType::Option(inner) => format!("Option<{}>", tell_type(inner)),
-        GlossaType::Result(ok, err) => format!("Result<{}, {}>", tell_type(ok), tell_type(err)),
-        GlossaType::Struct { name, .. } => name.to_string(),
-        GlossaType::Function { params, returns } => {
-            format!("Fn({}) -> {}", format_types(params), tell_type(returns))
+        GlossaType::Number => buf.push_str("Number"),
+        GlossaType::String => buf.push_str("String"),
+        GlossaType::Boolean => buf.push_str("Bool"),
+        GlossaType::List(inner) => {
+            buf.push('[');
+            tell_type_into(inner, buf);
+            buf.push(']');
         }
-        GlossaType::Unit => "()".to_string(),
-        GlossaType::Unknown => "?".to_string(),
+        GlossaType::Set(inner) => {
+            buf.push_str("Set<");
+            tell_type_into(inner, buf);
+            buf.push('>');
+        }
+        GlossaType::Map(k, v) => {
+            buf.push_str("Map<");
+            tell_type_into(k, buf);
+            buf.push_str(", ");
+            tell_type_into(v, buf);
+            buf.push('>');
+        }
+        GlossaType::Option(inner) => {
+            buf.push_str("Option<");
+            tell_type_into(inner, buf);
+            buf.push('>');
+        }
+        GlossaType::Result(ok, err) => {
+            buf.push_str("Result<");
+            tell_type_into(ok, buf);
+            buf.push_str(", ");
+            tell_type_into(err, buf);
+            buf.push('>');
+        }
+        GlossaType::Struct { name, .. } => buf.push_str(name),
+        GlossaType::Function { params, returns } => {
+            buf.push_str("Fn(");
+            format_types(params, buf);
+            buf.push_str(") -> ");
+            tell_type_into(returns, buf);
+        }
+        GlossaType::Unit => buf.push_str("()"),
+        GlossaType::Unknown => buf.push('?'),
     }
 }
 
