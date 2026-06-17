@@ -580,7 +580,12 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             params,
             body,
             return_type,
-        } => generate_fn_def(name, params, body, return_type),
+        } => generate_fn_def(FnDefCtx {
+            name: name.as_str(),
+            params: params.as_slice(),
+            body: body.as_slice(),
+            return_type,
+        }),
         AnalyzedStatement::TypeDefinition { name, fields } => generate_struct_def(name, fields),
         AnalyzedStatement::TraitDefinition { name, methods } => generate_trait_def(name, methods),
         AnalyzedStatement::TraitImplementation {
@@ -732,12 +737,19 @@ fn generate_match(
     }
 }
 
-fn generate_fn_def(
-    name: &str,
-    params: &[(smol_str::SmolStr, Option<GlossaType>)],
-    body: &[AnalyzedStatement],
-    return_type: &Option<GlossaType>,
-) -> TokenStream {
+struct FnDefCtx<'a> {
+    name: &'a str,
+    params: &'a [(smol_str::SmolStr, Option<GlossaType>)],
+    body: &'a [AnalyzedStatement],
+    return_type: &'a Option<GlossaType>,
+}
+
+fn generate_fn_def(ctx: FnDefCtx<'_>) -> TokenStream {
+    let name = ctx.name;
+    let params = ctx.params;
+    let body = ctx.body;
+    let return_type = ctx.return_type;
+
     let fn_name = sanitize_ident(name);
     let body_stmts = generate_statements(body);
 
