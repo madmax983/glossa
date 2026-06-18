@@ -53,7 +53,9 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let formatted_code = format!("```python\n{}\n```", python_code.trim());
     table.add_row(vec![Cell::new(formatted_code)]);
 
-    println!("{table}");
+    for line in table.to_string().lines() {
+        println!("   {}", line);
+    }
     println!();
 
     Ok(())
