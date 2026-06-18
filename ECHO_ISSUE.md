@@ -12,3 +12,5 @@ The only one that works is `Ἀσυμφωνία` (Disagreement).
 
 💡 **The Fix:**
 Please either implement these helpful error messages so the compiler actually uses them, or remove them from the README! It is extremely confusing to tell users they will see friendly Greek errors when instead they get silent compilation or raw `rustc` aborts. Also, an undefined variable shouldn't just silently become 0!
+
+All issues resolved.
