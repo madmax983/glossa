@@ -22,6 +22,19 @@ fn main() -> Result<()> {
     }
 
     match cli.command {
+        Some(Commands::Ambassador { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::ambassador::run_ambassador(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'ambassador' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Run { input }) => {
             run_file(&input)?;
         }
