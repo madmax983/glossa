@@ -503,11 +503,13 @@ mod tests {
                 "target/release/glossa".to_string()
             } else if std::path::Path::new("target/llvm-cov-target/debug/glossa").exists() {
                 "target/llvm-cov-target/debug/glossa".to_string()
+            } else if std::path::Path::new("target/debug/glossa.exe").exists() {
+                "target/debug/glossa.exe".to_string()
+            } else if std::path::Path::new("target/release/glossa.exe").exists() {
+                "target/release/glossa.exe".to_string()
             } else {
-                std::env::current_exe()
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_string()
+                // If it can't find the binary, assume 'glossa' is in the PATH or fail naturally
+                "glossa".to_string()
             }
         });
         let mut cmd = std::process::Command::new(bin_path);
@@ -807,6 +809,27 @@ test name with spaces ... ok
         let output = "";
         let failures = extract_failures(output);
         assert!(failures.is_empty());
+    }
+
+    #[test]
+    fn test_warden_exploit_tester_unbounded_memory() {
+        // Exploit attempt: Very large output to see if it causes an OOM panic or stalls
+        // In actual scenarios we just simulate parsing a huge string
+        let mut massive_output = String::with_capacity(10_000_000);
+        massive_output.push_str("failures:\n\n");
+        for i in 0..10_000 {
+            massive_output.push_str(&format!(
+                "---- test_{} stdout ----\nSome failure details\n",
+                i
+            ));
+        }
+        massive_output.push_str("failures:\n");
+        for i in 0..10_000 {
+            massive_output.push_str(&format!("    test_{}\n", i));
+        }
+        // Instead of executing, we test the extract_failures function which is where the DoS vector would be
+        let failures = extract_failures(&massive_output);
+        assert_eq!(failures.len(), 10_000);
     }
 
     #[test]

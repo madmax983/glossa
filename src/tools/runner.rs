@@ -737,11 +737,13 @@ mod tests {
                 "target/release/glossa".to_string()
             } else if std::path::Path::new("target/llvm-cov-target/debug/glossa").exists() {
                 "target/llvm-cov-target/debug/glossa".to_string()
+            } else if std::path::Path::new("target/debug/glossa.exe").exists() {
+                "target/debug/glossa.exe".to_string()
+            } else if std::path::Path::new("target/release/glossa.exe").exists() {
+                "target/release/glossa.exe".to_string()
             } else {
-                std::env::current_exe()
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_string()
+                // If it can't find the binary, assume 'glossa' is in the PATH or fail naturally
+                "glossa".to_string()
             }
         });
         let mut cmd = std::process::Command::new(bin_path);

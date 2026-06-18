@@ -93,16 +93,70 @@ pub(crate) fn read_line_bounded<R: BufRead>(
     limit: usize,
 ) -> Result<usize, std::io::Error> {
     use std::io::Read;
-    let mut bytes_read = 0;
-    let mut byte_buf = Vec::new();
-    for byte_res in reader.bytes() {
-        let byte = byte_res?;
-        byte_buf.push(byte);
-        bytes_read += 1;
-        if byte == b'\n' || bytes_read >= limit {
-            break;
-        }
+    reader.by_ref().take(limit as u64).read_line(buf)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+
+    #[test]
+    fn test_read_line_bounded_normal() {
+        let mut cursor = Cursor::new(b"hello\nworld");
+        let mut buf = String::new();
+        let bytes = read_line_bounded(&mut cursor, &mut buf, 100).unwrap();
+        assert_eq!(bytes, 6);
+        assert_eq!(buf, "hello\n");
     }
-    buf.push_str(&String::from_utf8_lossy(&byte_buf));
-    Ok(bytes_read)
+
+    #[test]
+    fn test_read_line_bounded_limit() {
+        let mut cursor = Cursor::new(b"hello\nworld");
+        let mut buf = String::new();
+        // Limit is 3. Only "hel" should be read
+        let bytes = read_line_bounded(&mut cursor, &mut buf, 3).unwrap();
+        assert_eq!(bytes, 3);
+        assert_eq!(buf, "hel");
+    }
+
+    #[test]
+    fn test_read_line_bounded_eof() {
+        let mut cursor = Cursor::new(b"hello");
+        let mut buf = String::new();
+        let bytes = read_line_bounded(&mut cursor, &mut buf, 100).unwrap();
+        assert_eq!(bytes, 5);
+        assert_eq!(buf, "hello");
+    }
+
+    #[test]
+    fn test_warden_exploit_infinite_stream() {
+        // Exploit attempt: simulate /dev/zero
+        // A cursor that repeats 0 infinitely
+        struct DevZero;
+        impl std::io::Read for DevZero {
+            fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+                for b in buf.iter_mut() {
+                    *b = 0;
+                }
+                Ok(buf.len())
+            }
+        }
+        impl std::io::BufRead for DevZero {
+            fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+                static ZEROS: [u8; 1024] = [0; 1024];
+                Ok(&ZEROS)
+            }
+            fn consume(&mut self, _amt: usize) {}
+        }
+
+        let mut zero = DevZero;
+        let mut buf = String::new();
+        let limit = 10_000;
+
+        let bytes = read_line_bounded(&mut zero, &mut buf, limit).unwrap();
+        assert_eq!(bytes, limit);
+        assert_eq!(buf.len(), limit);
+        // It successfully stops and does not OOM
+    }
 }
