@@ -213,6 +213,12 @@ pub enum Commands {
     /// Explore the built-in lexicon (Requires "nova" feature)
     Catalog,
 
+    /// Generate a JSON Schema from a .γλ file (Requires "nova" feature)
+    Envoy {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Generate an API documentation Markdown file (Requires "nova" feature)
     Scholar {
         /// Input file (.γλ)
