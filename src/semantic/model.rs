@@ -17,7 +17,7 @@
 //!
 //! 1. Starts as raw text: `«χαῖρε» λέγε.`
 //! 2. Parsed into [`crate::ast::Statement`].
-//! 3. Assembled into [`crate::semantic::assembly::AssembledStatement`].
+//! 3. Assembled into [`crate::semantic::AssembledStatement`].
 //! 4. Finally transformed into an [`AnalyzedStatement`] defined here.
 //!
 //! # Examples

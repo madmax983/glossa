@@ -2,11 +2,11 @@ use super::conversion::classify_assembled_statement;
 use crate::ast::Expr;
 use crate::morphology::Case;
 use crate::morphology::lexicon::BinaryOp;
-use crate::semantic::assembly::{ParticipleConstituent, VerbConstituent};
 use crate::semantic::{
     AnalyzedExprKind, AnalyzedStatement, AssembledStatement, Constituent, GlossaType, Literal,
     Scope,
 };
+use crate::semantic::{ParticipleConstituent, VerbConstituent};
 use crate::text::normalize_greek;
 
 fn make_constituent(original: &str, lemma: &str) -> Constituent {

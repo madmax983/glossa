@@ -606,7 +606,7 @@ fn process_adjectives(
 }
 
 fn process_fold_participle(
-    participle: &crate::semantic::assembly::ParticipleConstituent,
+    participle: &crate::semantic::ParticipleConstituent,
     asm_stmt: &AssembledStatement,
     current_expr: &mut AnalyzedExpr,
 ) -> bool {
@@ -682,7 +682,7 @@ fn process_fold_participle(
 }
 
 fn process_map_participle(
-    participle: &crate::semantic::assembly::ParticipleConstituent,
+    participle: &crate::semantic::ParticipleConstituent,
     verb_stem: &str,
     current_expr: &mut AnalyzedExpr,
 ) -> bool {
@@ -1041,7 +1041,7 @@ mod tests {
 
     #[test]
     fn test_process_fold_participle_unsupported_op_fallback() {
-        let participle = crate::semantic::assembly::ParticipleConstituent {
+        let participle = crate::semantic::ParticipleConstituent {
             verb_lemma: "dummy".into(),
             original: "dummy".into(),
             normalized: "dummy".into(),
