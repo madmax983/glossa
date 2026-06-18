@@ -912,6 +912,10 @@ mod tests {
         let empty_phrase = Expr::Phrase(vec![]);
         let err = parse_match_pattern(&empty_phrase, &mut scope);
         assert!(err.is_err());
+        let word_undef_norm = Expr::Word(Word::new("αγνωστου"));
+        let err = parse_match_pattern(&word_undef_norm, &mut scope);
+        assert!(err.is_err());
+        assert_eq!(err.unwrap_err().to_string(), "Ἄγνωστον ὄνομα: αγνωστου");
     }
 
     #[test]
@@ -1405,5 +1409,367 @@ mod tests {
     fn test_check_conditional_start_true_word() {
         let expr = Expr::Word(Word::new("εαν"));
         assert!(check_conditional_start(&expr));
+    }
+
+    #[test]
+    fn test_parse_match_errors() {
+        let mut scope = Scope::new();
+        scope.define("ξ".to_string(), GlossaType::Number);
+
+        let stmt1 = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![
+                    Expr::Phrase(vec![
+                        Expr::Word(Word::new("κατα")),
+                        Expr::Word(Word::new("ξ")),
+                    ]),
+                    Expr::Phrase(vec![
+                        Expr::Word(Word::new("αλλο")),
+                        Expr::Word(Word::new("η")),
+                    ]),
+                ],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result1 = super::parse_match_expression(&stmt1, &mut scope);
+        assert!(result1.is_err());
+        let err_msg1 = result1.unwrap_err().to_string();
+        assert!(
+            err_msg1.contains("Match expression needs at least one arm")
+                || err_msg1.contains("Match pattern without body")
+        );
+
+        let stmt2 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![
+                        Expr::Phrase(vec![
+                            Expr::Word(Word::new("κατα")),
+                            Expr::Word(Word::new("ξ")),
+                        ]),
+                        Expr::Phrase(vec![
+                            Expr::Word(Word::new("αλλο")),
+                            Expr::Word(Word::new("η")),
+                        ]),
+                    ],
+                },
+                Clause {
+                    expressions: vec![],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result2 = super::parse_match_expression(&stmt2, &mut scope);
+        assert!(result2.is_err());
+        assert!(
+            result2
+                .unwrap_err()
+                .to_string()
+                .contains("Empty match arm body")
+        );
+    }
+
+    #[test]
+    fn test_parse_conditional_errors() {
+        let mut scope = Scope::new();
+
+        let stmt1 = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Phrase(vec![
+                    Expr::Word(Word::new("εαν")),
+                    Expr::NumberLiteral(1),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result1 = super::parse_conditional(&stmt1, &mut scope, 0);
+        assert!(result1.is_err());
+        assert!(
+            result1
+                .unwrap_err()
+                .to_string()
+                .contains("Conditional needs at least 2 clauses: condition and body")
+        );
+
+        let stmt2 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("εαν")),
+                        Expr::NumberLiteral(1),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result2 = super::parse_conditional(&stmt2, &mut scope, 0);
+        assert!(result2.is_err());
+        assert!(
+            result2
+                .unwrap_err()
+                .to_string()
+                .contains("Empty then-body in conditional")
+        );
+
+        let stmt3 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![Expr::Word(Word::new("εαν"))])],
+                },
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::StringLiteral("γεια".to_string()),
+                        Expr::Word(Word::new("λεγε")),
+                    ])],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result3 = super::parse_conditional(&stmt3, &mut scope, 0);
+        assert!(result3.is_err());
+        assert!(
+            result3
+                .unwrap_err()
+                .to_string()
+                .contains("Empty condition in conditional")
+        );
+    }
+
+    #[test]
+    fn test_parse_for_iteration_errors() {
+        let mut scope = Scope::new();
+        scope.define(
+            "αριθμος".to_string(),
+            GlossaType::List(Box::new(GlossaType::Number)),
+        );
+
+        let stmt1 = Statement::Regular {
+            clauses: vec![Clause {
+                expressions: vec![Expr::Phrase(vec![
+                    Expr::Word(Word::new("δια")),
+                    Expr::Word(Word::new("αριθμου")),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result1 = super::parse_for_iteration_loop(&stmt1, &mut scope);
+        assert!(result1.is_err());
+        assert!(
+            result1
+                .unwrap_err()
+                .to_string()
+                .contains("For loop needs at least 2 clauses: collection and body")
+        );
+
+        let stmt2 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![],
+                },
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("ν")), Expr::Word(Word::new("λεγε"))],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result2 = super::parse_for_iteration_loop(&stmt2, &mut scope);
+        assert!(result2.is_err());
+        assert!(
+            result2
+                .unwrap_err()
+                .to_string()
+                .contains("Empty collection clause in for loop")
+        );
+
+        let stmt3 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![Expr::Word(Word::new("δια"))])],
+                },
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("ν")), Expr::Word(Word::new("λεγε"))],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result3 = super::parse_for_iteration_loop(&stmt3, &mut scope);
+        assert!(result3.is_err());
+        assert!(
+            result3
+                .unwrap_err()
+                .to_string()
+                .contains("For iteration needs: διὰ collection")
+        );
+
+        let stmt4 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("δια")),
+                        Expr::StringLiteral("string".to_string()),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("ν")), Expr::Word(Word::new("λεγε"))],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result4 = super::parse_for_iteration_loop(&stmt4, &mut scope);
+        assert!(result4.is_err());
+        assert!(
+            result4
+                .unwrap_err()
+                .to_string()
+                .contains("Expected word for collection")
+        );
+
+        let stmt5 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("δια"))],
+                },
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("ν")), Expr::Word(Word::new("λεγε"))],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result5 = super::parse_for_iteration_loop(&stmt5, &mut scope);
+        assert!(result5.is_err());
+        assert!(
+            result5
+                .unwrap_err()
+                .to_string()
+                .contains("Expected phrase in for iteration")
+        );
+    }
+
+    #[test]
+    fn test_parse_return_expression_unknown_variable() {
+        let scope = Scope::new();
+        let clause = Clause {
+            expressions: vec![Expr::Phrase(vec![
+                Expr::Word(Word::new("δός")),
+                Expr::Word(Word::new("αγνωστου")),
+            ])],
+        };
+
+        let result = super::parse_return_expression(&clause, &scope).unwrap();
+        match result.expr {
+            AnalyzedExprKind::Variable(v) if v == "αγνωστου" => (),
+            _ => panic!("Expected Variable(αγνωστου)"),
+        }
+        assert_eq!(result.glossa_type, GlossaType::Unknown);
+    }
+
+    #[test]
+    fn test_parse_for_range_errors() {
+        let mut scope = Scope::new();
+
+        let stmt1 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![],
+                },
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("λεγε"))],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result1 = super::parse_for_range_loop(&stmt1, &mut scope);
+        assert!(result1.is_err());
+        assert!(
+            result1
+                .unwrap_err()
+                .to_string()
+                .contains("Empty range clause in for loop")
+        );
+
+        let stmt2 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("απο"))],
+                },
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("λεγε"))],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result2 = super::parse_for_range_loop(&stmt2, &mut scope);
+        assert!(result2.is_err());
+        assert!(
+            result2
+                .unwrap_err()
+                .to_string()
+                .contains("Expected phrase in for range")
+        );
+
+        let stmt3 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("απο")),
+                        Expr::NumberLiteral(1),
+                        Expr::Word(Word::new("μεχρι")),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("λεγε"))],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result3 = super::parse_for_range_loop(&stmt3, &mut scope);
+        assert!(result3.is_err());
+        assert!(
+            result3
+                .unwrap_err()
+                .to_string()
+                .contains("For range needs: ἀπὸ start μέχρι/ἕως end")
+        );
+
+        let stmt4 = Statement::Regular {
+            clauses: vec![
+                Clause {
+                    expressions: vec![Expr::Phrase(vec![
+                        Expr::Word(Word::new("απο")),
+                        Expr::Word(Word::new("αγνωστου")),
+                        Expr::Word(Word::new("μεχρι")),
+                        Expr::NumberLiteral(5),
+                    ])],
+                },
+                Clause {
+                    expressions: vec![Expr::Word(Word::new("λεγε"))],
+                },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result4 = super::parse_for_range_loop(&stmt4, &mut scope);
+        assert!(result4.is_err());
+        let err_msg = result4.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Ἄγνωστον ὄνομα: αγνωστου")
+                || err_msg.contains("Expected word for range end")
+        );
     }
 }
