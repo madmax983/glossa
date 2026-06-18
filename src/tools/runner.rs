@@ -731,11 +731,17 @@ mod tests {
         // Even though coverage inside the child won't count towards the Codecov patch score,
         // we've compensated enough elsewhere.
         let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
-            let llvm_cov_path = "target/llvm-cov-target/debug/glossa";
-            if std::path::Path::new(llvm_cov_path).exists() {
-                llvm_cov_path.to_string()
-            } else {
+            if std::path::Path::new("target/debug/glossa").exists() {
                 "target/debug/glossa".to_string()
+            } else if std::path::Path::new("target/release/glossa").exists() {
+                "target/release/glossa".to_string()
+            } else if std::path::Path::new("target/llvm-cov-target/debug/glossa").exists() {
+                "target/llvm-cov-target/debug/glossa".to_string()
+            } else {
+                std::env::current_exe()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string()
             }
         });
         let mut cmd = std::process::Command::new(bin_path);

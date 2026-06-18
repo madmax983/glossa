@@ -82,3 +82,27 @@ pub mod tester;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
 pub mod weave;
+
+use miette::Result;
+use std::io::BufRead;
+
+/// A bounded read_line to prevent DoS via infinite stream memory exhaustion
+pub(crate) fn read_line_bounded<R: BufRead>(
+    reader: &mut R,
+    buf: &mut String,
+    limit: usize,
+) -> Result<usize, std::io::Error> {
+    use std::io::Read;
+    let mut bytes_read = 0;
+    let mut byte_buf = Vec::new();
+    for byte_res in reader.bytes() {
+        let byte = byte_res?;
+        byte_buf.push(byte);
+        bytes_read += 1;
+        if byte == b'\n' || bytes_read >= limit {
+            break;
+        }
+    }
+    buf.push_str(&String::from_utf8_lossy(&byte_buf));
+    Ok(bytes_read)
+}
