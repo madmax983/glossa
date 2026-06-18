@@ -73,7 +73,8 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
         let _ = output.flush();
 
         let mut line = String::new();
-        let bytes = input.read_line(&mut line).into_diagnostic()?;
+        let bytes = crate::tools::read_line_bounded(input, &mut line, MAX_REPL_SOURCE_LEN)
+            .into_diagnostic()?;
 
         // Handle EOF
         if bytes == 0 {

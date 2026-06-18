@@ -496,14 +496,7 @@ mod tests {
         std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.").unwrap();
 
         // Spawn a child process so we don't mutate the global PATH/env.
-        let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
-            let llvm_cov_path = "target/llvm-cov-target/debug/glossa";
-            if std::path::Path::new(llvm_cov_path).exists() {
-                llvm_cov_path.to_string()
-            } else {
-                "target/debug/glossa".to_string()
-            }
-        });
+        let bin_path = crate::tools::find_glossa_binary();
         let mut cmd = std::process::Command::new(bin_path);
         let output = cmd
             .arg("test")
@@ -801,6 +794,27 @@ test name with spaces ... ok
         let output = "";
         let failures = extract_failures(output);
         assert!(failures.is_empty());
+    }
+
+    #[test]
+    fn test_warden_exploit_tester_unbounded_memory() {
+        // Exploit attempt: Very large output to see if it causes an OOM panic or stalls
+        // In actual scenarios we just simulate parsing a huge string
+        let mut massive_output = String::with_capacity(10_000_000);
+        massive_output.push_str("failures:\n\n");
+        for i in 0..10_000 {
+            massive_output.push_str(&format!(
+                "---- test_{} stdout ----\nSome failure details\n",
+                i
+            ));
+        }
+        massive_output.push_str("failures:\n");
+        for i in 0..10_000 {
+            massive_output.push_str(&format!("    test_{}\n", i));
+        }
+        // Instead of executing, we test the extract_failures function which is where the DoS vector would be
+        let failures = extract_failures(&massive_output);
+        assert_eq!(failures.len(), 10_000);
     }
 
     #[test]
