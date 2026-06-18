@@ -126,7 +126,7 @@ pub enum Literal {
 /// In the grammatical world of ΓΛΩΣΣΑ, a `Constituent` is the physical manifestation of a noun,
 /// pronoun, or adjective acting as a primary sentence component (e.g., Subject, Object).
 /// It bridges the raw morphological analysis ([`crate::morphology::models::MorphAnalysis`])
-/// with the structural needs of the [`crate::semantic::assembly::Assembler`].
+/// with the structural needs of the [`crate::semantic::Assembler`].
 ///
 /// # Why it exists
 /// The parser gives us isolated words, but to build a sentence, we need to know *what* each word is doing.

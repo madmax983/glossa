@@ -42,7 +42,7 @@ use super::patterns::detect_iterator_pattern;
 use crate::ast::Expr;
 use crate::errors::GlossaError;
 use crate::morphology::{self};
-use crate::semantic::assembly::AssembledStatement;
+use crate::semantic::AssembledStatement;
 use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
 use crate::semantic::resolver::Scope;
 
@@ -70,7 +70,7 @@ use crate::semantic::{Constituent, Literal};
 ///
 /// ```rust,ignore
 /// // Example cannot be run as a doctest because this module is pub(crate)
-/// use glossa::semantic::assembly::AssembledStatement;
+/// use glossa::semantic::AssembledStatement;
 /// use glossa::semantic::conversion::convert_assembled_to_analyzed;
 /// use glossa::semantic::resolver::Scope;
 /// use glossa::ast::{Expr, Word};
@@ -110,7 +110,7 @@ pub fn convert_assembled_to_analyzed(
 ///
 /// ```rust,ignore
 /// // Example cannot be run as a doctest because this module is pub(crate)
-/// use glossa::semantic::assembly::AssembledStatement;
+/// use glossa::semantic::AssembledStatement;
 /// use glossa::semantic::conversion::classify_assembled_statement;
 /// use glossa::semantic::resolver::Scope;
 /// use glossa::ast::{Expr, Word};
@@ -1588,7 +1588,7 @@ fn extract_object_fallback(
 ///
 /// ```rust,ignore
 /// // Example cannot be run as a doctest because this module is pub(crate)
-/// use glossa::semantic::assembly::AssembledStatement;
+/// use glossa::semantic::AssembledStatement;
 /// use glossa::semantic::conversion::extract_value;
 /// use glossa::semantic::resolver::Scope;
 /// use glossa::semantic::types::GlossaType;
@@ -1688,7 +1688,7 @@ mod tests {
     #[test]
     fn test_classify_pop_wrong_verb() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "λέγει".into(), // not a pop verb
                 normalized: "λέγει".into(),
                 original: "λέγει".into(),
@@ -1709,7 +1709,7 @@ mod tests {
     #[test]
     fn test_classify_pop_missing_subject() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "ὠθεῖ".into(), // actually a push verb, let's use ἕλκεται for pop, but any string works for the missing subject test since it checks lemma first
                 normalized: "ἕλκεται".into(),
                 original: "ἕλκεται".into(),
@@ -1732,7 +1732,7 @@ mod tests {
     #[test]
     fn test_classify_push_wrong_verb() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "λέγει".into(),
                 normalized: "λέγει".into(),
                 original: "λέγει".into(),
@@ -1753,7 +1753,7 @@ mod tests {
     #[test]
     fn test_classify_push_missing_subject() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "ὠθεῖ".into(),
                 normalized: "ὠθεῖ".into(),
                 original: "ὠθεῖ".into(),
@@ -1775,7 +1775,7 @@ mod tests {
     #[test]
     fn test_classify_insert_wrong_verb() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "λέγει".into(),
                 normalized: "λέγει".into(),
                 original: "λέγει".into(),
@@ -1796,7 +1796,7 @@ mod tests {
     #[test]
     fn test_classify_insert_missing_subject() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "τίθησι".into(),
                 normalized: "τίθησι".into(),
                 original: "τίθησι".into(),
@@ -1830,7 +1830,7 @@ mod tests {
     #[test]
     fn test_classify_assertion_wrong_verb() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "λέγει".into(),
                 normalized: "λέγει".into(),
                 original: "λέγει".into(),
@@ -1851,7 +1851,7 @@ mod tests {
     #[test]
     fn test_classify_assertion_no_containment() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "δεῖ".into(),
                 normalized: "δεῖ".into(),
                 original: "δεῖ".into(),
@@ -1873,7 +1873,7 @@ mod tests {
     #[test]
     fn test_classify_assertion_missing_subject() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "δεῖ".into(),
                 normalized: "δεῖ".into(),
                 original: "δεῖ".into(),
@@ -1908,7 +1908,7 @@ mod tests {
     #[test]
     fn test_classify_equality_assertion_wrong_verb() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "λέγει".into(),
                 normalized: "λέγει".into(),
                 original: "λέγει".into(),
@@ -1929,7 +1929,7 @@ mod tests {
     #[test]
     fn test_classify_equality_assertion_missing_left_expr() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "ἰσοῦται".into(),
                 normalized: "ἰσοῦται".into(),
                 original: "ἰσοῦται".into(),
@@ -1952,7 +1952,7 @@ mod tests {
     #[test]
     fn test_classify_equality_assertion_undefined_left_expr() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "ἰσοῦται".into(),
                 normalized: "ἰσοῦται".into(),
                 original: "ἰσοῦται".into(),
@@ -1983,7 +1983,7 @@ mod tests {
     #[test]
     fn test_classify_equality_assertion_missing_right_expr() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "ἰσοῦται".into(),
                 normalized: "ἰσοῦται".into(),
                 original: "ἰσοῦται".into(),
@@ -2039,7 +2039,7 @@ mod tests {
     #[test]
     fn test_classify_print_wrong_verb() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "λέγει".into(), // not a print verb (λέγε is, but here testing the literal check)
                 normalized: "λέγει".into(),
                 original: "λέγει".into(),
@@ -2337,7 +2337,7 @@ mod tests {
     #[test]
     fn test_classify_property_access_print_owner_not_in_scope() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "λέγε".into(),
                 normalized: "λέγε".into(),
                 original: "λέγε".into(),
@@ -2376,7 +2376,7 @@ mod tests {
     #[test]
     fn test_classify_property_access_print_owner_not_struct() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "λέγε".into(),
                 normalized: "λέγε".into(),
                 original: "λέγε".into(),
@@ -2416,7 +2416,7 @@ mod tests {
     #[test]
     fn test_classify_function_call_no_subject() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "ἔστω".into(), // Binding verb
                 normalized: "ἔστω".into(),
                 original: "ἔστω".into(),
@@ -2448,7 +2448,7 @@ mod tests {
     #[test]
     fn test_classify_subjunctive_comparison_no_subject() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "ἔστω".into(), // Binding verb
                 normalized: "ἔστω".into(),
                 original: "ἔστω".into(),
@@ -2553,7 +2553,7 @@ mod tests {
         // Let's use "λεγω" which is definitely a verb
         let asm_stmt = AssembledStatement {
             subject: None,
-            participles: vec![crate::semantic::assembly::ParticipleConstituent {
+            participles: vec![crate::semantic::ParticipleConstituent {
                 verb_lemma: "λεγω".into(),
                 normalized: "λεγων".into(), // Actual participle
                 original: "λέγων".into(),
@@ -2579,7 +2579,7 @@ mod tests {
         // This tests the "false participle" check at the very beginning of the function
         let asm_stmt = AssembledStatement {
             subject: None,
-            participles: vec![crate::semantic::assembly::ParticipleConstituent {
+            participles: vec![crate::semantic::ParticipleConstituent {
                 verb_lemma: "not_a_real_verb_lemma".into(), // Will fail lexicon lookup
                 normalized: "false_participle".into(),
                 original: "false_participle".into(),
@@ -2663,7 +2663,7 @@ mod tests {
     #[test]
     fn test_classify_insert_no_args() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "τιθημι".into(), // insert verb
                 normalized: "τιθημι".into(),
                 original: "τίθησι".into(),
@@ -2706,7 +2706,7 @@ mod tests {
     #[test]
     fn test_classify_insert_object() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "τιθημι".into(), // insert verb
                 normalized: "τιθημι".into(),
                 original: "τίθησι".into(),
@@ -2762,7 +2762,7 @@ mod tests {
     #[test]
     fn test_classify_push_no_args() {
         let asm_stmt = AssembledStatement {
-            verb: Some(crate::semantic::assembly::VerbConstituent {
+            verb: Some(crate::semantic::VerbConstituent {
                 lemma: "ωθω".into(), // push verb
                 normalized: "ωθω".into(),
                 original: "ὠθεῖ".into(),
