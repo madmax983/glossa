@@ -98,6 +98,12 @@ pub struct Cli {
 /// ```
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Export Glossa structs to JSON Schema (Requires "nova" feature)
+    Ambassador {
+        /// Input file (.γλ)
+        input: std::path::PathBuf,
+    },
+
     /// Run a .γλ file (default)
     Run {
         /// Input file (.γλ)
