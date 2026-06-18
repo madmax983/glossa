@@ -86,7 +86,27 @@ pub mod weave;
 use miette::Result;
 use std::io::BufRead;
 
-/// A bounded read_line to prevent DoS via infinite stream memory exhaustion
+/// Centralized resolution of the glossa binary path for spawning subprocesses
+#[cfg(test)]
+#[allow(dead_code)]
+pub(crate) fn find_glossa_binary() -> String {
+    std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
+        if std::path::Path::new("target/debug/glossa").exists() {
+            "target/debug/glossa".to_string()
+        } else if std::path::Path::new("target/release/glossa").exists() {
+            "target/release/glossa".to_string()
+        } else if std::path::Path::new("target/llvm-cov-target/debug/glossa").exists() {
+            "target/llvm-cov-target/debug/glossa".to_string()
+        } else if std::path::Path::new("target/debug/glossa.exe").exists() {
+            "target/debug/glossa.exe".to_string()
+        } else if std::path::Path::new("target/release/glossa.exe").exists() {
+            "target/release/glossa.exe".to_string()
+        } else {
+            "glossa".to_string()
+        }
+    })
+}
+
 pub(crate) fn read_line_bounded<R: BufRead>(
     reader: &mut R,
     buf: &mut String,

@@ -496,22 +496,7 @@ mod tests {
         std::fs::write(&input_path, "δοκιμή «test» { «ok» λέγε. }.").unwrap();
 
         // Spawn a child process so we don't mutate the global PATH/env.
-        let bin_path = std::env::var("CARGO_BIN_EXE_glossa").unwrap_or_else(|_| {
-            if std::path::Path::new("target/debug/glossa").exists() {
-                "target/debug/glossa".to_string()
-            } else if std::path::Path::new("target/release/glossa").exists() {
-                "target/release/glossa".to_string()
-            } else if std::path::Path::new("target/llvm-cov-target/debug/glossa").exists() {
-                "target/llvm-cov-target/debug/glossa".to_string()
-            } else if std::path::Path::new("target/debug/glossa.exe").exists() {
-                "target/debug/glossa.exe".to_string()
-            } else if std::path::Path::new("target/release/glossa.exe").exists() {
-                "target/release/glossa.exe".to_string()
-            } else {
-                // If it can't find the binary, assume 'glossa' is in the PATH or fail naturally
-                "glossa".to_string()
-            }
-        });
+        let bin_path = crate::tools::find_glossa_binary();
         let mut cmd = std::process::Command::new(bin_path);
         let output = cmd
             .arg("test")
