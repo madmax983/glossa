@@ -8,3 +8,6 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+**[Avoid format! allocations in code generators]
+**Learning:** Using `out.push_str(&format!("...", ...))` creates an unnecessary intermediate `String` allocation for every appended statement, causing major performance overhead in AST-to-text codegen tools like Alchemist.
+**Action:** Use the `std::fmt::Write` trait's `write!` or `writeln!` macros to append directly to the target `String` buffer (e.g., `let _ = writeln!(out, "...", ...);`) and completely eliminate the intermediate heap allocations.
