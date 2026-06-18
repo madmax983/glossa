@@ -72,3 +72,27 @@ fn havoc_semantic_clone_drop_stack_overflow() {
         "Subprocess should have crashed due to stack overflow!"
     );
 }
+
+#[test]
+#[ignore = "Demonstrating stack overflow"]
+fn havoc_deep_type_clone() {
+    let mut t = GlossaType::Number;
+    for _ in 0..100000 {
+        t = GlossaType::List(Box::new(t));
+    }
+    // Deeply nested Clone triggers stack overflow
+    let _cloned = t.clone();
+    std::mem::forget(t);
+    std::mem::forget(_cloned);
+}
+
+#[test]
+#[ignore = "Demonstrating stack overflow"]
+fn havoc_deep_type_drop() {
+    let mut t = GlossaType::Number;
+    for _ in 0..100000 {
+        t = GlossaType::List(Box::new(t));
+    }
+    // Implicitly dropping deeply nested type triggers stack overflow
+    drop(t);
+}
