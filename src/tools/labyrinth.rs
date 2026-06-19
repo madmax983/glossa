@@ -144,12 +144,15 @@ pub fn generate_cfg(program: &AnalyzedProgram) -> String {
     let end_node = add_node("End", "round", &mut nodes, &mut node_counter);
     add_edge(&current_node, &end_node, None, &mut edges);
 
-    let mut out = String::from("graph TD\n");
+    use std::fmt::Write;
+    let capacity = 10 + nodes.len() * 30 + edges.len() * 40;
+    let mut out = String::with_capacity(capacity);
+    out.push_str("graph TD\n");
     for node in nodes {
-        out.push_str(&format!("    {}\n", node));
+        let _ = writeln!(out, "    {}", node);
     }
     for edge in edges {
-        out.push_str(&format!("    {}\n", edge));
+        let _ = writeln!(out, "    {}", edge);
     }
     out
 }
