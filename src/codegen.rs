@@ -551,7 +551,7 @@ fn generate_statements(stmts: &[AnalyzedStatement]) -> Vec<TokenStream> {
 }
 
 fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
-    match stmt {
+    stacker::maybe_grow(32 * 1024, 1024 * 1024, || match stmt {
         AnalyzedStatement::Binding {
             name,
             value,
@@ -589,7 +589,7 @@ fn generate_statement(stmt: &AnalyzedStatement) -> TokenStream {
             methods,
         } => generate_trait_impl(trait_name, type_name, methods),
         AnalyzedStatement::TestDeclaration { name, body } => generate_test(name, body),
-    }
+    })
 }
 
 fn generate_statement_binding(name: &str, value: &AnalyzedExpr, mutable: bool) -> TokenStream {
@@ -989,7 +989,7 @@ fn generate_expr_unwrap(inner: &AnalyzedExpr) -> TokenStream {
 }
 
 fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
-    match &expr.expr {
+    stacker::maybe_grow(32 * 1024, 1024 * 1024, || match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => generate_literal_string(s),
 
         AnalyzedExprKind::NumberLiteral(n) => generate_literal_number(*n),
@@ -1056,7 +1056,7 @@ fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
         AnalyzedExprKind::Assert { condition } => generate_control_assert(condition),
 
         AnalyzedExprKind::AssertEq { left, right } => generate_control_assert_eq(left, right),
-    }
+    })
 }
 
 fn generate_bin_op(op: BinaryOp, left: &AnalyzedExpr, right: &AnalyzedExpr) -> TokenStream {
