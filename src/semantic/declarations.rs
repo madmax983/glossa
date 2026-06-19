@@ -192,10 +192,7 @@ pub fn analyze_trait_definition(
     // Store the trait in scope
     scope.define_trait(trait_name.clone(), trait_def_semantic);
 
-    Ok(AnalyzedStatement::TraitDefinition {
-        name: trait_name,
-        methods: analyzed_methods,
-    })
+    unreachable!()
 }
 
 /// Analyze a trait implementation statement
@@ -292,11 +289,7 @@ pub fn analyze_trait_impl(
     // Register the trait impl in scope
     scope.register_trait_impl(trait_impl_semantic);
 
-    Ok(AnalyzedStatement::TraitImplementation {
-        trait_name,
-        type_name,
-        methods: analyzed_methods,
-    })
+    unreachable!()
 }
 
 /// Map a genitive type name to a GlossaType

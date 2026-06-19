@@ -371,13 +371,11 @@ impl ReplContext {
                 // Persistence Logic:
                 // - Side effects (print, expressions) are NOT saved. We don't want to
                 //   print "Hello" 50 times just because we defined a variable later.
-                // - Structural definitions (Types, Functions, Traits) MUST be saved.
+                // - Structural definitions (Types, Functions) MUST be saved.
                 if matches!(
                     last_stmt,
                     AnalyzedStatement::FunctionDef { .. }
                         | AnalyzedStatement::TypeDefinition { .. }
-                        | AnalyzedStatement::TraitDefinition { .. }
-                        | AnalyzedStatement::TraitImplementation { .. }
                 ) {
                     self.bindings.push(input.to_string());
                 }

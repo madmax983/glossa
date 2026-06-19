@@ -139,6 +139,7 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
             add_match(table, &prefix, level, scrutinee, arms)
         }
         AnalyzedStatement::Break => add_break(table, &prefix),
+        AnalyzedStatement::TestDeclaration { .. } => {}
         AnalyzedStatement::Continue => add_continue(table, &prefix),
         AnalyzedStatement::Return { value } => add_return(table, &prefix, value),
         AnalyzedStatement::FunctionDef {
@@ -149,17 +150,6 @@ fn add_statement(table: &mut Table, stmt: &AnalyzedStatement, level: usize) {
         } => add_function_def(table, &prefix, level, name, params, body, return_type),
         AnalyzedStatement::TypeDefinition { name, fields } => {
             add_type_def(table, &prefix, name, fields)
-        }
-        AnalyzedStatement::TraitDefinition { name, methods: _ } => {
-            add_trait_def(table, &prefix, name)
-        }
-        AnalyzedStatement::TraitImplementation {
-            trait_name,
-            type_name,
-            methods: _,
-        } => add_trait_impl(table, &prefix, trait_name, type_name),
-        AnalyzedStatement::TestDeclaration { name, body } => {
-            add_test_decl(table, &prefix, level, name, body)
         }
     }
 }
@@ -408,42 +398,6 @@ fn add_type_def(
         Cell::new(format!("{}{}", prefix, script)),
         Cell::new("Struct").fg(Color::Blue),
     ]);
-}
-
-fn add_trait_def(table: &mut Table, prefix: &str, name: &str) {
-    let script = format!("Trait `{}`", name);
-    table.add_row(vec![
-        Cell::new("TRAIT").fg(Color::Blue),
-        Cell::new(format!("{}{}", prefix, script)),
-        Cell::new("Interface").fg(Color::Blue),
-    ]);
-}
-
-fn add_trait_impl(table: &mut Table, prefix: &str, trait_name: &str, type_name: &str) {
-    let script = format!("Impl `{}` for `{}`", trait_name, type_name);
-    table.add_row(vec![
-        Cell::new("IMPL").fg(Color::Blue),
-        Cell::new(format!("{}{}", prefix, script)),
-        Cell::new("Implementation").fg(Color::Blue),
-    ]);
-}
-
-fn add_test_decl(
-    table: &mut Table,
-    prefix: &str,
-    level: usize,
-    name: &str,
-    body: &[AnalyzedStatement],
-) {
-    let script = format!("Test `{}`:", name);
-    table.add_row(vec![
-        Cell::new("TEST").fg(Color::Green),
-        Cell::new(format!("{}{}", prefix, script)),
-        Cell::new("Verification").fg(Color::Green),
-    ]);
-    for stmt in body {
-        add_statement(table, stmt, level + 1);
-    }
 }
 
 /// Translates a semantic expression into a readable English string.

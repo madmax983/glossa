@@ -227,16 +227,6 @@ fn visit_statement(next_id: &mut usize, output: &mut String, stmt: &AnalyzedStat
         AnalyzedStatement::TypeDefinition { name, fields } => {
             visit_type_def_statement(next_id, output, id, name, fields);
         }
-        AnalyzedStatement::TraitDefinition { name, methods } => {
-            visit_trait_def_statement(next_id, output, id, name, methods);
-        }
-        AnalyzedStatement::TraitImplementation {
-            trait_name,
-            type_name,
-            methods,
-        } => {
-            visit_trait_impl_statement(next_id, output, id, trait_name, type_name, methods);
-        }
         AnalyzedStatement::TestDeclaration { name, body } => {
             visit_test_decl_statement(next_id, output, id, name, body);
         }
@@ -578,57 +568,6 @@ fn visit_type_def_statement(
     }
 }
 
-fn visit_trait_def_statement(
-    next_id: &mut usize,
-    output: &mut String,
-    id: usize,
-    name: &str,
-    methods: &[crate::semantic::AnalyzedMethod],
-) {
-    emit_node(
-        output,
-        id,
-        &format!("TraitDefinition\\n{}", name),
-        "lightgreen",
-    );
-    for (i, method) in methods.iter().enumerate() {
-        let m_id = get_next_id(next_id);
-        emit_node(
-            output,
-            m_id,
-            &format!("MethodDecl\\n{}", method.name),
-            "lightyellow",
-        );
-        emit_edge(output, id, m_id, &format!("method_{}", i));
-    }
-}
-
-fn visit_trait_impl_statement(
-    next_id: &mut usize,
-    output: &mut String,
-    id: usize,
-    trait_name: &str,
-    type_name: &str,
-    methods: &[crate::semantic::AnalyzedMethod],
-) {
-    emit_node(
-        output,
-        id,
-        &format!("TraitImpl\\n{} for {}", trait_name, type_name),
-        "lightgreen",
-    );
-    for (i, method) in methods.iter().enumerate() {
-        let m_id = get_next_id(next_id);
-        emit_node(
-            output,
-            m_id,
-            &format!("MethodImpl\\n{}", method.name),
-            "lightyellow",
-        );
-        emit_edge(output, id, m_id, &format!("method_{}", i));
-    }
-}
-
 fn visit_test_decl_statement(
     next_id: &mut usize,
     output: &mut String,
@@ -951,21 +890,6 @@ mod tests {
         });
 
         // TraitDef & TraitImpl
-        let method = crate::semantic::AnalyzedMethod {
-            name: "meth".into(),
-            params: vec![],
-            body: Some(vec![]),
-            return_type: None,
-        };
-        statements.push(AnalyzedStatement::TraitDefinition {
-            name: "Trait".into(),
-            methods: vec![method.clone()],
-        });
-        statements.push(AnalyzedStatement::TraitImplementation {
-            trait_name: "Trait".into(),
-            type_name: "Type".into(),
-            methods: vec![method],
-        });
 
         // TestDeclaration
         statements.push(AnalyzedStatement::TestDeclaration {

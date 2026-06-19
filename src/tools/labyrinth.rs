@@ -243,24 +243,6 @@ fn build_statement(
             edges,
             node_counter,
         ),
-        AnalyzedStatement::TraitDefinition { name, .. } => build_simple_statement(
-            &format!("Trait: {}", name),
-            prev_node,
-            nodes,
-            edges,
-            node_counter,
-        ),
-        AnalyzedStatement::TraitImplementation {
-            type_name,
-            trait_name,
-            ..
-        } => build_simple_statement(
-            &format!("Impl {} for {}", trait_name, type_name),
-            prev_node,
-            nodes,
-            edges,
-            node_counter,
-        ),
         AnalyzedStatement::TestDeclaration { name, .. } => build_simple_statement(
             &format!("Test: {}", name),
             prev_node,
@@ -541,17 +523,6 @@ mod tests {
             fields: vec![],
         });
 
-        statements.push(AnalyzedStatement::TraitDefinition {
-            name: SmolStr::new("MyTrait"),
-            methods: vec![],
-        });
-
-        statements.push(AnalyzedStatement::TraitImplementation {
-            type_name: SmolStr::new("MyType"),
-            trait_name: SmolStr::new("MyTrait"),
-            methods: vec![],
-        });
-
         statements.push(AnalyzedStatement::TestDeclaration {
             name: "my_test".to_string(),
             body: vec![],
@@ -587,8 +558,6 @@ mod tests {
         assert!(cfg.contains("Return"));
         assert!(cfg.contains("Function: my_fn"));
         assert!(cfg.contains("Type: MyType"));
-        assert!(cfg.contains("Trait: MyTrait"));
-        assert!(cfg.contains("Impl MyTrait for MyType"));
         assert!(cfg.contains("Test: my_test"));
     }
 }

@@ -237,34 +237,6 @@ pub enum AnalyzedStatement {
         /// The internal structure defining the essence of this form.
         fields: Vec<(SmolStr, GlossaType)>,
     },
-    /// Trait definition
-    ///
-    /// # Example
-    /// ```glossa
-    /// χαρακτήρ Show ...
-    /// ```
-    /// -> `trait Show { ... }`
-    TraitDefinition {
-        /// The name of the ideal character (`χαρακτήρ`) being described.
-        name: SmolStr,
-        /// The specific behaviors required to embody this character.
-        methods: Vec<AnalyzedMethod>,
-    },
-    /// Trait implementation
-    ///
-    /// # Example
-    /// ```glossa
-    /// εἶδος User τῷ Show ἐμπίπτειν ...
-    /// ```
-    /// -> `impl Show for User { ... }`
-    TraitImplementation {
-        /// The character (`χαρακτήρ`) that the form is striving to embody.
-        trait_name: SmolStr,
-        /// The specific form (`εἶδος`) that is taking on this character.
-        type_name: SmolStr,
-        /// The realization of the required behaviors.
-        methods: Vec<AnalyzedMethod>,
-    },
     /// Test declaration
     ///
     /// # Example
@@ -354,21 +326,6 @@ impl std::fmt::Debug for AnalyzedStatement {
                 .debug_struct("TypeDefinition")
                 .field("name", name)
                 .field("fields", fields)
-                .finish(),
-            AnalyzedStatement::TraitDefinition { name, methods } => f
-                .debug_struct("TraitDefinition")
-                .field("name", name)
-                .field("methods", methods)
-                .finish(),
-            AnalyzedStatement::TraitImplementation {
-                trait_name,
-                type_name,
-                methods,
-            } => f
-                .debug_struct("TraitImplementation")
-                .field("trait_name", trait_name)
-                .field("type_name", type_name)
-                .field("methods", methods)
                 .finish(),
             AnalyzedStatement::TestDeclaration { name, body } => f
                 .debug_struct("TestDeclaration")

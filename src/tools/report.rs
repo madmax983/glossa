@@ -183,17 +183,6 @@ impl ProgramStats {
             }
             AnalyzedStatement::Break | AnalyzedStatement::Continue => {}
             AnalyzedStatement::TypeDefinition { .. } => {} // Already counted in scope
-            AnalyzedStatement::TraitDefinition { .. } => {} // Already counted in scope
-            AnalyzedStatement::TraitImplementation { methods, .. } => {
-                // Visit trait method implementations to get complete expression coverage
-                for method in methods {
-                    if let Some(body) = &method.body {
-                        for s in body {
-                            self.visit_statement(s, depth + 1);
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -614,24 +603,6 @@ mod tests {
             fields: vec![],
         });
 
-        program.statements.push(AnalyzedStatement::TraitDefinition {
-            name: "Trait".into(),
-            methods: vec![],
-        });
-
-        program
-            .statements
-            .push(AnalyzedStatement::TraitImplementation {
-                trait_name: "Trait".into(),
-                type_name: "Type".into(),
-                methods: vec![crate::semantic::AnalyzedMethod {
-                    name: "method".into(),
-                    params: vec![],
-                    body: Some(vec![AnalyzedStatement::Break]),
-                    return_type: None,
-                }],
-            });
-
         // Exprs
         program.statements.push(AnalyzedStatement::Expression(vec![
             AnalyzedExpr {
@@ -743,7 +714,7 @@ mod tests {
 
         let stats = ProgramStats::new(&program);
 
-        assert_eq!(stats.statement_count, 17); // 4 + 9 newly added nodes + 1 Expr node containing multiple elements + 3 loop/match nested statements
+        assert_eq!(stats.statement_count, 14);
         assert_eq!(stats.binding_count, 1);
         assert_eq!(stats.conditional_count, 2);
         assert_eq!(stats.function_count, 1);
@@ -866,22 +837,6 @@ mod tests {
                     },
                     glossa_type: GlossaType::Unit,
                 })),
-            },
-            // Trait Definition (coverage for empty branch)
-            AnalyzedStatement::TraitDefinition {
-                name: "TestTrait".into(),
-                methods: vec![],
-            },
-            // Trait Implementation (coverage for empty branch and methods)
-            AnalyzedStatement::TraitImplementation {
-                trait_name: "TestTrait".into(),
-                type_name: "TestType".into(),
-                methods: vec![crate::semantic::AnalyzedMethod {
-                    name: "test_method".into(),
-                    params: vec![],
-                    body: Some(vec![AnalyzedStatement::Break]),
-                    return_type: None,
-                }],
             },
             // Type Definition (coverage for empty branch)
             AnalyzedStatement::TypeDefinition {
