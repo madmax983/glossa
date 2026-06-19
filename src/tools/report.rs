@@ -354,7 +354,9 @@ impl Display for GlossaReport<'_> {
         writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
         writeln!(f, "   {}", "Language Metrics Dashboard".italic().dim())?;
         writeln!(f)?;
-        writeln!(f, "{}", table)?;
+        for line in table.to_string().lines() {
+            writeln!(f, "   {}", line)?;
+        }
 
         // If there are top-level functions, list them
         let mut functions = self.program.scope.functions().peekable();
@@ -390,7 +392,9 @@ impl Display for GlossaReport<'_> {
                     Cell::new(ret).fg(Color::Yellow),
                 ]);
             }
-            writeln!(f, "{}", func_table)?;
+            for line in func_table.to_string().lines() {
+                writeln!(f, "   {}", line)?;
+            }
         }
 
         Ok(())
@@ -493,7 +497,9 @@ impl Display for CompilationReport {
         writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
         writeln!(f, "   {}", "Compilation Metrics Dashboard".italic().dim())?;
         writeln!(f)?;
-        writeln!(f, "{}", table)?;
+        for line in table.to_string().lines() {
+            writeln!(f, "   {}", line)?;
+        }
 
         Ok(())
     }
