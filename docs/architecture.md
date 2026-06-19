@@ -131,3 +131,23 @@ C4Component
 
     Rel(model, types, "Uses")
 ```
+
+## Class Diagram
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+  %% Removed the circular dependency arrow
+```
+
+## Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant C as Core
+    participant S as Storage
+    C->>S: Request Data
+    S-->>C: Return Data
+```
