@@ -213,6 +213,12 @@ pub enum Commands {
     /// Explore the built-in lexicon (Requires "nova" feature)
     Catalog,
 
+    /// Inspect the variable scope of a program (Requires "nova" feature)
+    Archimedes {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Generate an API documentation Markdown file (Requires "nova" feature)
     Scholar {
         /// Input file (.γλ)
