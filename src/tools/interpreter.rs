@@ -200,6 +200,10 @@ impl Interpreter {
     }
 
     /// Get the captured output
+    pub fn env_globals(&self) -> &FxHashMap<String, Value> {
+        &self.env[0]
+    }
+
     pub fn get_output(&self) -> String {
         self.output.join("\n")
     }
