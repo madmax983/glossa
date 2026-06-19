@@ -148,13 +148,6 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             transpile_test_declaration(name, body, indent)
         }
         AnalyzedStatement::Match { scrutinee, arms } => transpile_match(scrutinee, arms, indent),
-        AnalyzedStatement::TraitDefinition { .. }
-        | AnalyzedStatement::TraitImplementation { .. } => {
-            format!(
-                "{}# Traits not natively supported in simple Python transpile",
-                ind
-            )
-        }
     }
 }
 

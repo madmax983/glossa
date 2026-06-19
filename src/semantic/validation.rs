@@ -172,9 +172,7 @@ fn check_statement_depth(stmt: &AnalyzedStatement, depth: usize) -> Result<(), G
         }
         AnalyzedStatement::Break
         | AnalyzedStatement::Continue
-        | AnalyzedStatement::TypeDefinition { .. }
-        | AnalyzedStatement::TraitDefinition { .. }
-        | AnalyzedStatement::TraitImplementation { .. } => {}
+        | AnalyzedStatement::TypeDefinition { .. } => {}
     }
     Ok(())
 }

@@ -80,23 +80,6 @@ pub fn run_scholar(input: &Path) -> Result<()> {
         }
     }
 
-    // Document Traits (Characters)
-    let mut traits = program.scope.traits().peekable();
-    if traits.peek().is_some() {
-        writeln!(md, "## Traits (Χαρακτῆρες)\n").unwrap();
-        for (name, trait_def) in traits {
-            writeln!(md, "### `{}`\n", name).unwrap();
-            if !trait_def.methods.is_empty() {
-                for method in &trait_def.methods {
-                    writeln!(md, "* `{}`", method.name).unwrap();
-                }
-                md.push('\n');
-            } else {
-                writeln!(md, "*No methods defined.*\n").unwrap();
-            }
-        }
-    }
-
     // Document Functions (Verbs)
     let mut functions = program.scope.functions().peekable();
     if functions.peek().is_some() {
@@ -180,28 +163,6 @@ mod tests {
                 || err_msg.contains("denied")
                 || err_msg.contains("Permission")
         );
-    }
-
-    #[test]
-    fn test_run_scholar_empty_fields_methods_functions() {
-        let dir = tempdir().unwrap();
-        let input_path = dir.path().join("api.γλ");
-
-        let source = "
-        εἶδος Χρήστης ὁρίζειν { }.
-        χαρακτήρ Εὐγενής ὁρίζειν { }.
-        ";
-        fs::write(&input_path, source).unwrap();
-
-        let result = run_scholar(&input_path);
-        assert!(result.is_ok());
-
-        let output_path = input_path.with_extension("doc.md");
-        assert!(output_path.exists());
-
-        let md = fs::read_to_string(&output_path).unwrap();
-        assert!(md.contains("*No fields defined.*"));
-        assert!(md.contains("*No methods defined.*"));
     }
 
     #[test]

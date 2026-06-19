@@ -294,9 +294,7 @@ impl AuditorVisitor {
             }
             AnalyzedStatement::Break
             | AnalyzedStatement::Continue
-            | AnalyzedStatement::TypeDefinition { .. }
-            | AnalyzedStatement::TraitDefinition { .. }
-            | AnalyzedStatement::TraitImplementation { .. } => {}
+            | AnalyzedStatement::TypeDefinition { .. } => {}
         }
     }
 
@@ -490,15 +488,6 @@ mod tests {
             AnalyzedStatement::TypeDefinition {
                 name: "T".into(),
                 fields: vec![],
-            },
-            AnalyzedStatement::TraitDefinition {
-                name: "Tr".into(),
-                methods: vec![],
-            },
-            AnalyzedStatement::TraitImplementation {
-                trait_name: "Tr".into(),
-                type_name: "T".into(),
-                methods: vec![],
             },
         ];
 

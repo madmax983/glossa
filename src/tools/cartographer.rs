@@ -13,10 +13,8 @@
 //!
 //! The output is a standard Mermaid Class Diagram that shows:
 //! * **Classes**: Structs with their fields and types.
-//! * **Interfaces**: Traits with their methods.
 //! * **Relationships**:
 //!   * `-->` (Association): When a Struct field holds another Struct.
-//!   * `<|..` (Implementation): When a Struct implements a Trait.
 //!
 //! # Example Output
 //!
@@ -33,7 +31,7 @@
 //!     Printable <|.. User : implements
 //! ```
 
-use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType};
+use crate::semantic::{AnalyzedProgram, GlossaType};
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
@@ -119,9 +117,7 @@ pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut dependencies = FxHashSet::default();
 
     format_structs(&mut map, program, &mut dependencies);
-    format_traits(&mut map, program);
     format_dependencies(&mut map, program, dependencies);
-    format_trait_impls(&mut map, program);
 
     map
 }
@@ -156,34 +152,6 @@ fn format_structs(
     }
 }
 
-fn format_traits(map: &mut String, program: &AnalyzedProgram) {
-    use std::fmt::Write;
-    let mut traits: Vec<_> = program.scope.traits().collect();
-    traits.sort_by(|a, b| a.0.cmp(b.0));
-
-    for (_key, trait_def) in traits {
-        let name = &trait_def.name;
-        let _ = writeln!(map, "    class {} {{", name);
-        map.push_str("        <<interface>>\n");
-        for method in &trait_def.methods {
-            let mut params_str = String::new();
-            for (i, (n, t)) in method.params.iter().enumerate() {
-                if i > 0 {
-                    params_str.push_str(", ");
-                }
-                write!(&mut params_str, "{}: {}", n, t).unwrap();
-            }
-
-            let _ = write!(map, "        +{}({})", method.name, params_str);
-            if let Some(t) = &method.return_type {
-                let _ = write!(map, ": {}", t);
-            }
-            map.push('\n');
-        }
-        map.push_str("    }\n");
-    }
-}
-
 fn format_dependencies(
     map: &mut String,
     program: &AnalyzedProgram,
@@ -208,20 +176,6 @@ fn format_dependencies(
     for (source, target) in sorted_deps {
         if defined_types.contains(&target) {
             let _ = writeln!(map, "    {} --> {}", source, target);
-        }
-    }
-}
-
-fn format_trait_impls(map: &mut String, program: &AnalyzedProgram) {
-    use std::fmt::Write;
-    for stmt in &program.statements {
-        if let AnalyzedStatement::TraitImplementation {
-            trait_name,
-            type_name,
-            ..
-        } = stmt
-        {
-            let _ = writeln!(map, "    {} <|.. {} : implements", trait_name, type_name);
         }
     }
 }
@@ -290,31 +244,6 @@ mod tests {
         assert!(map.contains("class διευθυνσις") || map.contains("class Διεύθυνσις"));
         // Check for relationship (normalized)
         assert!(map.contains("χρηστης --> διευθυνσις") || map.contains("Χρήστης --> Διεύθυνσις"));
-    }
-
-    #[test]
-    fn test_cartographer_trait_impl() {
-        let source = "
-            χαρακτήρ Εκτυπώσιμος ὁρίζειν {
-                δεῖ τυπωσις τῷ self.
-            }.
-
-            εἶδος Χ ὁρίζειν { χ ἀριθμοῦ. }.
-
-            εἶδος Χ τῷ Εκτυπώσιμος ἐμπίπτειν {
-                τυπωσις τῷ self· «x» λέγε.
-            }.
-        ";
-        let ast = parse(source).unwrap();
-        let program = analyze_program(&ast).unwrap();
-        let map = generate_map(&program);
-
-        assert!(map.contains("class εκτυπωσιμος") || map.contains("class Εκτυπώσιμος"));
-        assert!(map.contains("<<interface>>"));
-        assert!(
-            map.contains("εκτυπωσιμος <|.. χ : implements")
-                || map.contains("Εκτυπώσιμος <|.. Χ : implements")
-        );
     }
 
     #[test]
@@ -428,44 +357,6 @@ mod tests {
 
         // Should NOT contain arrow to Other (because Other is not in scope)
         assert!(!map.contains("Node --> Other"));
-    }
-
-    #[test]
-    fn test_cartographer_complex_methods() {
-        use crate::semantic::{AnalyzedMethod, Scope, TraitDef};
-
-        let mut scope = Scope::new();
-
-        // Manually define a trait with complex method signature
-        let method = AnalyzedMethod {
-            name: "complex_method".into(),
-            params: vec![
-                ("a".into(), GlossaType::Number),
-                ("b".into(), GlossaType::String),
-            ],
-            body: None,
-            return_type: Some(GlossaType::Boolean),
-        };
-
-        let trait_def = TraitDef {
-            name: "ComplexTrait".into(),
-            methods: vec![method],
-        };
-
-        scope.define_trait("ComplexTrait", trait_def);
-
-        let program = AnalyzedProgram {
-            statements: vec![],
-            scope,
-        };
-
-        let map = generate_map(&program);
-
-        assert!(map.contains("class ComplexTrait"));
-        assert!(map.contains("complex_method"));
-        assert!(map.contains("a: Ἀριθμός"));
-        assert!(map.contains("b: Ὄνομα"));
-        assert!(map.contains(": Ἀληθές/Ψεῦδος"));
     }
 
     #[test]

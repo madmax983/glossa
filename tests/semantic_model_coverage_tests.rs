@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 use glossa::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, AssembledStatement,
-    CaptureMode, Constituent, Literal, ParticipleConstituent, TraitDef, TraitImpl, VerbConstituent,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, AssembledStatement, CaptureMode,
+    Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
 use smol_str::SmolStr;
 
@@ -38,13 +38,6 @@ fn test_analyzed_statement_debug() {
     };
     let dbg5 = format!("{:?}", stmt5);
     assert!(dbg5.contains("TypeDefinition"));
-
-    let stmt6 = AnalyzedStatement::TraitDefinition {
-        name: SmolStr::new("Trait"),
-        methods: vec![],
-    };
-    let dbg6 = format!("{:?}", stmt6);
-    assert!(dbg6.contains("TraitDefinition"));
 
     let stmt_binding = AnalyzedStatement::Binding {
         name: SmolStr::new("name"),
@@ -109,13 +102,6 @@ fn test_analyzed_statement_debug() {
         return_type: None,
     };
     assert!(format!("{:?}", stmt_func).contains("FunctionDef"));
-
-    let stmt_trait_impl = AnalyzedStatement::TraitImplementation {
-        trait_name: SmolStr::new("trait"),
-        type_name: SmolStr::new("type"),
-        methods: vec![],
-    };
-    assert!(format!("{:?}", stmt_trait_impl).contains("TraitImplementation"));
 
     let stmt_test = AnalyzedStatement::TestDeclaration {
         name: "test".to_string(),
@@ -281,39 +267,6 @@ fn test_analyzed_expr_kind_debug() {
     let dbg = format!("{:?}", expr);
     assert!(dbg.contains("BooleanLiteral"));
     assert!(dbg.contains("true"));
-}
-
-#[test]
-fn test_analyzed_method_debug() {
-    let method = AnalyzedMethod {
-        name: SmolStr::new("test"),
-        params: vec![],
-        body: None,
-        return_type: None,
-    };
-    let dbg = format!("{:?}", method);
-    assert!(dbg.contains("AnalyzedMethod"));
-    assert!(dbg.contains("test"));
-}
-
-#[test]
-fn test_trait_def_debug() {
-    let def = TraitDef {
-        name: SmolStr::new("Trait"),
-        methods: vec![],
-    };
-    let dbg = format!("{:?}", def);
-    assert!(dbg.contains("TraitDef"));
-}
-
-#[test]
-fn test_trait_impl_debug() {
-    let impl_def = TraitImpl {
-        trait_name: SmolStr::new("Trait"),
-        type_name: SmolStr::new("Type"),
-    };
-    let dbg = format!("{:?}", impl_def);
-    assert!(dbg.contains("TraitImpl"));
 }
 
 #[test]
