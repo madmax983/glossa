@@ -203,3 +203,28 @@ pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError
 
     Ok(analyzed)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_analyze_statement_recursive_limit() {
+        let mut scope = Scope::new();
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result =
+            analyze_statement_recursive(&stmt, &mut scope, crate::limits::MAX_AST_DEPTH + 1);
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Recursion limit exceeded in statement analysis")
+        );
+    }
+}

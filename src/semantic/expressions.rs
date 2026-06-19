@@ -1450,4 +1450,75 @@ mod regression_tests {
             err
         );
     }
+
+    #[test]
+    fn test_literal_to_type() {
+        assert_eq!(
+            literal_to_type(&Literal::String("s".to_string())),
+            GlossaType::String
+        );
+        assert_eq!(literal_to_type(&Literal::Number(1)), GlossaType::Number);
+        assert_eq!(
+            literal_to_type(&Literal::Boolean(true)),
+            GlossaType::Boolean
+        );
+    }
+
+    #[test]
+    fn test_get_first_word_empty_statement() {
+        let stmt = Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        };
+        assert!(get_first_word(&stmt).is_err());
+    }
+
+    #[test]
+    fn test_get_first_word_with_word() {
+        let stmt = Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![Expr::Word(crate::ast::Word::new("ει"))],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        assert_eq!(get_first_word(&stmt).unwrap(), "ει");
+    }
+
+    #[test]
+    fn test_get_first_word_with_phrase() {
+        let stmt = Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![Expr::Phrase(vec![Expr::Word(crate::ast::Word::new("ει"))])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        assert_eq!(get_first_word(&stmt).unwrap(), "ει");
+    }
+
+    #[test]
+    fn test_contains_verb_in_expr_literals() {
+        let expr = Expr::NumberLiteral(1);
+        assert!(!contains_verb_in_expr(&expr, "οριζειν"));
+    }
+
+    #[test]
+    fn test_contains_verb_in_expr_word() {
+        let expr = Expr::Word(crate::ast::Word::new("οριζειν"));
+        assert!(contains_verb_in_expr(&expr, "οριζειν"));
+    }
+
+    #[test]
+    fn test_contains_function_definition_verb_true() {
+        let stmt = Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![Expr::Word(crate::ast::Word::new("οριζειν"))],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+        assert!(contains_function_definition_verb(&stmt));
+    }
 }
