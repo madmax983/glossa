@@ -20,6 +20,7 @@ use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use std::path::Path;
+use std::fmt::Write;
 
 /// Run the Labyrinth tool on a file
 pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
@@ -146,10 +147,10 @@ pub fn generate_cfg(program: &AnalyzedProgram) -> String {
 
     let mut out = String::from("graph TD\n");
     for node in nodes {
-        out.push_str(&format!("    {}\n", node));
+        let _ = writeln!(out, "    {}", node);
     }
     for edge in edges {
-        out.push_str(&format!("    {}\n", edge));
+        let _ = writeln!(out, "    {}", edge);
     }
     out
 }
