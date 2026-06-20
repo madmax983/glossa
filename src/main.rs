@@ -178,11 +178,12 @@ fn main() -> Result<()> {
             );
         }
 
+        #[cfg(feature = "nova")]
         Some(Commands::Gnomon { input }) => {
-            #[cfg(feature = "nova")]
             glossa::tools::gnomon::run_gnomon(&input)?;
-
-            #[cfg(not(feature = "nova"))]
+        }
+        #[cfg(not(feature = "nova"))]
+        Some(Commands::Gnomon { input: _ }) => {
             miette::bail!(
                 "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
             );
