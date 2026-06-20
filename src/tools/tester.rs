@@ -384,10 +384,29 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
             }
         } else {
             // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
+            let mut raw_table = Table::new();
+            raw_table.load_preset(presets::UTF8_FULL);
+            raw_table.add_row(vec![
+                Cell::new(" FAILED: Raw Output ")
+                    .bg(Color::DarkRed)
+                    .fg(Color::White)
+                    .add_attribute(Attribute::Bold),
+            ]);
+            println!("{raw_table}");
+
+            let mut error_table = Table::new();
+            error_table.load_preset(presets::UTF8_FULL);
+            let raw_out = stdout.trim();
+            let mut content = if raw_out.is_empty() {
+                String::new()
+            } else {
+                format!("{}\n", raw_out)
+            };
             if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+                content.push_str(&String::from_utf8_lossy(&test_output.stderr));
             }
+            error_table.add_row(vec![Cell::new(format!("\n{}\n", content)).fg(Color::Red)]);
+            println!("{error_table}");
         }
     }
 }

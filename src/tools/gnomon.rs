@@ -164,10 +164,10 @@ pub fn run_gnomon(input: &Path) -> Result<()> {
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
     table.set_header(vec![
-        Cell::new("Metric")
+        Cell::new("Μετρική (Metric)")
             .add_attribute(Attribute::Bold)
             .fg(Color::Cyan),
-        Cell::new("Value").add_attribute(Attribute::Bold),
+        Cell::new("Τιμή (Value)").add_attribute(Attribute::Bold),
     ]);
 
     let complexity = if visitor.max_depth == 0 {
@@ -179,11 +179,11 @@ pub fn run_gnomon(input: &Path) -> Result<()> {
     };
 
     table.add_row(vec![
-        Cell::new("Max Loop Depth"),
+        Cell::new("Μέγιστον Βάθος (Max Depth)"),
         Cell::new(visitor.max_depth.to_string()),
     ]);
     table.add_row(vec![
-        Cell::new("Estimated Big-O"),
+        Cell::new("Πολυπλοκότης (Big-O)"),
         Cell::new(complexity).fg(if visitor.max_depth > 2 {
             Color::Red
         } else if visitor.max_depth == 2 {
