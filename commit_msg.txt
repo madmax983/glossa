@@ -1,0 +1,17 @@
+⚡ Bolt: Optimize String Allocation in Transpilers and AST Partitioning
+
+💡 What:
+- Replaced `out.push_str(&format!(...))` patterns with `writeln!(out, ...)` and `write!(out, ...)` macros in `src/tools/alchemist.rs`, `labyrinth.rs`, and `weave.rs`.
+- Included `use std::fmt::Write;` in affected files.
+- Restored the pre-allocation `Vec::with_capacity(stmt_len / 4)` in `src/codegen.rs` to prevent vector reallocation overhead during AST partitioning.
+- Safely added the Bolt learning journal entry about avoiding `&mut &mut String` borrow checker conflicts (as observed in `mosaic.rs`).
+
+🎯 Why:
+- The `push_str(&format!(...))` pattern creates temporary `String` heap allocations on every operation, which are immediately discarded. Directly formatting into the buffer via `write!` avoids these redundant allocations.
+- Dynamic `Vec::new()` resizing overhead is entirely removed for large code generation processes.
+
+📊 Impact:
+- Eliminates significant amounts of intermediate, short-lived heap allocations per file when running transpilers and code generation, leading to faster execution times and reduced memory footprints without sacrificing safe and readable code.
+
+🔬 Measurement:
+- `cargo bench` and `cargo test` run without regressions.
