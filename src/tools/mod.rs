@@ -93,7 +93,7 @@ pub(crate) mod report;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use glossa::tools::runner::run_file;
+/// use glossa::tools::run_file;
 /// use std::path::Path;
 ///
 /// // Execute a Glossa file directly from its path

@@ -35,7 +35,7 @@ use std::path::Path;
 /// ## Examples
 ///
 /// ```rust,no_run
-/// use glossa::tools::scholar::run_scholar;
+/// use glossa::tools::run_scholar;
 /// use std::path::Path;
 ///
 /// let input = Path::new("library.γλ");
