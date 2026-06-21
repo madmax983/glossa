@@ -35,7 +35,7 @@ fn test_warden_neg_overflow_defense() {
 
     // Verify the fix: we should see `.checked_neg().expect(...)`
     assert!(code.contains("checked_neg"));
-    assert!(code.contains("expect"));
+    assert!(code.contains("unwrap_or_else"));
     assert!(code.contains("arithmetic overflow"));
 
     // Verify we are not generating the old unsafe `-` logic for numbers

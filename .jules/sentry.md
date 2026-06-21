@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Replacing .expect() with .unwrap_or_else(|| panic!(...)) for Precise Tracing]**
+**Learning:** In code generation (like `src/codegen.rs`), using `.expect("message")` inserts spaces unpredictably and is sometimes brittle to exact macro string checks. More importantly, when testing panic traces triggered during runtime (such as bound checks), `.expect()` creates generic panic formats.
+**Action:** Replace `.expect("...")` with `.unwrap_or_else(|| panic!("..."))` directly within the AST traversal to ensure deterministic panic formats without space-insertion side effects, and explicitly update existing macro exact-string `contains` tests to verify `unwrap_or_else`.
