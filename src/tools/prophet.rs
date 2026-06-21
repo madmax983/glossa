@@ -108,6 +108,37 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
 mod tests {
     use super::*;
 
+
+    #[test]
+    fn test_run_prophet_success() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("schema.γλ");
+        // Valid glossa types: ὄνομα (String), ἀριθμός (Number). Let's use standard properties.
+        std::fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }.").unwrap();
+
+        let result = run_prophet(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_prophet_file_not_found() {
+        let input_path = Path::new("nonexistent_prophet_file.γλ");
+        let result = run_prophet(input_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_run_prophet_analysis_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("error.γλ");
+        // Syntax error
+        std::fs::write(&input_path, "not valid glossa").unwrap();
+
+        let result = run_prophet(&input_path);
+        assert!(result.is_err());
+    }
+
     #[test]
     fn test_glossa_type_to_ts() {
         assert_eq!(glossa_type_to_ts(&GlossaType::Number), "number");
