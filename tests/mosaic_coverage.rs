@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 #![cfg(feature = "nova")]
 
-use glossa::tools::mosaic::run_mosaic_inner;
+use glossa::tools::run_mosaic_inner;
 
 #[test]
 fn test_mosaic_comprehensive_coverage() {
