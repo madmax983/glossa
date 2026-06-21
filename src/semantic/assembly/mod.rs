@@ -1660,6 +1660,18 @@ mod tests {
         );
     }
     #[test]
+    fn test_feed_unwrap_success() {
+        let mut asm = Assembler::new();
+        let expr = Expr::NumberLiteral(42);
+        assert!(asm.feed_unwrap(expr).is_ok());
+        // Need a valid state to finalize
+        let verb = analyze("λέγει");
+        asm.feed(&verb, "λέγει").unwrap();
+        let stmt = asm.finalize().unwrap();
+        assert!(!stmt.unwraps.is_empty());
+    }
+
+    #[test]
     fn test_max_unwraps_exceeded() {
         let mut asm = Assembler::new();
         let expr = Expr::NumberLiteral(0);

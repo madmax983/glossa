@@ -985,7 +985,7 @@ fn generate_expr_try(inner: &AnalyzedExpr) -> TokenStream {
 
 fn generate_expr_unwrap(inner: &AnalyzedExpr) -> TokenStream {
     let inner_tokens = generate_expr(inner);
-    quote! { #inner_tokens.expect("attempted to unwrap an empty value") }
+    quote! { #inner_tokens.unwrap_or_else(|| panic!("attempted to unwrap an empty value")) }
 }
 
 fn generate_expr(expr: &AnalyzedExpr) -> TokenStream {
@@ -1136,7 +1136,7 @@ fn generate_checked_op(
     msg: &str,
 ) -> TokenStream {
     let method_ident = format_ident!("{}", method);
-    quote! { (#left).#method_ident(#right).expect(#msg) }
+    quote! { (#left).#method_ident(#right).unwrap_or_else(|| panic!("{}", #msg)) }
 }
 
 fn generate_struct_lit(
@@ -1282,7 +1282,7 @@ fn generate_unary_op(op: UnaryOp, operand: &AnalyzedExpr) -> TokenStream {
         UnaryOp::Neg => {
             let operand_tokens = generate_expr(operand);
             if matches!(operand.glossa_type, GlossaType::Number) {
-                quote! { (#operand_tokens).checked_neg().expect("arithmetic overflow") }
+                quote! { (#operand_tokens).checked_neg().unwrap_or_else(|| panic!("arithmetic overflow")) }
             } else {
                 quote! { -#operand_tokens }
             }
@@ -1330,8 +1330,8 @@ fn generate_collection_index(array: &AnalyzedExpr, index: &AnalyzedExpr) -> Toke
             if idx < 0 {
                 panic!("index out of bounds: negative index {}", idx);
             }
-            let u_idx = usize::try_from(idx).expect("index out of bounds: too large");
-            #array_tokens.get(u_idx).cloned().expect("index out of bounds: index too large")
+            let u_idx = usize::try_from(idx).unwrap_or_else(|_| panic!("index out of bounds: too large"));
+            #array_tokens.get(u_idx).cloned().unwrap_or_else(|| panic!("index out of bounds: index too large"))
         }
     }
 }
@@ -1588,7 +1588,7 @@ mod tests {
         let code =
             generate_checked_op(left, right, "checked_add", "arithmetic overflow").to_string();
         assert!(code.contains("checked_add"));
-        assert!(code.contains("expect"));
+        assert!(code.contains("unwrap_or_else"));
         assert!(code.contains("arithmetic overflow"));
     }
 
@@ -1600,7 +1600,7 @@ mod tests {
         };
         let code = generate_unary_op(UnaryOp::Neg, &expr).to_string();
         assert!(code.contains("checked_neg"));
-        assert!(code.contains("expect"));
+        assert!(code.contains("unwrap_or_else"));
         assert!(code.contains("arithmetic overflow"));
     }
 
@@ -1616,9 +1616,15 @@ mod tests {
         };
         let code = generate_collection_index(&array, &index).to_string();
         assert!(code.contains("try_from"));
-        assert!(code.contains("expect (\"index out of bounds: too large\")"));
+        assert!(
+            code.replace(" ", "")
+                .contains("unwrap_or_else(|_|panic!(\"indexoutofbounds:toolarge\"))")
+        );
         assert!(code.contains("index out of bounds: negative index"));
-        assert!(code.contains("expect (\"index out of bounds: index too large\")"));
+        assert!(
+            code.replace(" ", "")
+                .contains("unwrap_or_else(||panic!(\"indexoutofbounds:indextoolarge\"))")
+        );
     }
 
     #[test]
@@ -1632,7 +1638,7 @@ mod tests {
         };
 
         let code = generate_expr(&expr).to_string();
-        assert!(code.contains("expect"));
+        assert!(code.contains("unwrap_or_else"));
         assert!(code.contains("attempted to unwrap an empty value"));
         assert!(code.contains("42"));
     }
@@ -1711,7 +1717,7 @@ mod tests {
             let code = tokens.to_string();
 
             assert!(code.contains("checked_add"));
-            assert!(code.contains("expect"));
+            assert!(code.contains("unwrap_or_else"));
         }
 
         #[test]
@@ -1759,5 +1765,37 @@ mod tests {
             assert!(result.contains("struct G_type_0"));
             assert!(result.contains("trait G_trait_0"));
         }
+    }
+
+    #[test]
+    fn test_generate_expr_try() {
+        let inner = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(42),
+            glossa_type: GlossaType::Unknown,
+        };
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Try(Box::new(inner)),
+            glossa_type: GlossaType::Unknown,
+        };
+        let tokens = generate_expr(&expr);
+        let output = tokens.to_string().replace(" ", "");
+        println!("{}", output);
+        assert!(output.contains("42i64?"));
+    }
+
+    #[test]
+    fn test_generate_expr_unwrap() {
+        let inner = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(42),
+            glossa_type: GlossaType::Unknown,
+        };
+        let expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Unwrap(Box::new(inner)),
+            glossa_type: GlossaType::Unknown,
+        };
+        let tokens = generate_expr(&expr);
+        let output = tokens.to_string().replace(" ", "");
+        println!("{}", output);
+        assert!(output.contains("42i64.unwrap_or_else(||panic!(\"attempted"));
     }
 }
