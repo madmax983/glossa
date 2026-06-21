@@ -295,6 +295,12 @@ pub fn run_file(input: &Path) -> Result<()> {
 fn compile_and_build(source: &str, cached_rs: &Path, cached_exe: &Path) -> Result<()> {
     let mut status = Status::start_with_symbol("Μεταγλώττισις (Compiling)", "🚀");
 
+    // Analyze first before compiling so that Glossa errors are returned instead of ICE
+    if let Err(e) = analyze_source(source) {
+        status.error("Σφάλμα μεταγλωττίσεως");
+        return Err(e);
+    }
+
     let rust_code = match compile(source) {
         Ok(code) => code,
         Err(e) => {
