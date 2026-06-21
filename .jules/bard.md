@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-06-11 - Documenting `to_rust_type` and fixing unused variables
+**Confusion:** The documentation for `to_rust_type` in `src/codegen.rs` had `use std::fmt::Write;` intercepting its rustdoc, throwing `missing_docs` warnings. The `Gnomon` command in `src/main.rs` was missing a `let _ = input;` when `nova` feature was disabled.
+**Clarification:** Moved `use std::fmt::Write;` higher up to correctly attribute the rustdocs to `pub fn to_rust_type`. Ignored `input` appropriately in the `Gnomon` match arm to prevent warnings.
