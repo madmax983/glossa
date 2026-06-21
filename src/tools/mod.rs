@@ -82,3 +82,9 @@ pub mod tester;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
 pub mod weave;
+
+/// The Scribe (ὁ Γραμματεύς) tool for JSON export.
+///
+/// This experimental tool exports the analyzed program as a JSON string.
+#[cfg(feature = "nova")]
+pub mod scribe;
