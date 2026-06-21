@@ -17,45 +17,72 @@
 //! * `ui`: **The Stage** - Terminal UI helpers (status spinners, emojis, etc.).
 
 #[cfg(feature = "nova")]
-pub mod alchemist;
+pub(crate) mod alchemist;
+#[cfg(feature = "nova")]
+pub use alchemist::{run_alchemist, transpile_to_python};
 /// The Auditor (Λογιστής) tool for static analysis.
 ///
 /// This experimental tool analyzes Glossa code to detect unused variables,
 /// unnecessary mutable bindings, and other code quality issues.
 #[cfg(feature = "nova")]
-pub mod auditor;
+pub(crate) mod auditor;
+#[cfg(feature = "nova")]
+pub use auditor::run_auditor;
 pub(crate) mod cache;
 pub use cache::Cache;
 #[cfg(feature = "nova")]
-pub mod cartographer;
+pub(crate) mod cartographer;
 #[cfg(feature = "nova")]
-pub mod catalog;
-pub mod cli;
-pub mod dictionary;
+pub use cartographer::{run_map, generate_map};
+#[cfg(feature = "nova")]
+pub(crate) mod catalog;
+#[cfg(feature = "nova")]
+pub use catalog::run_catalog;
+pub(crate) mod cli;
+pub use cli::{Cli, Commands};
+pub(crate) mod dictionary;
+pub use dictionary::lookup_word;
 /// The Haruspex (ὁ Ἱεροσκόπος) tool for visualizing the Semantic AST.
 ///
 /// This experimental tool exports the analyzed program as a Graphviz DOT diagram.
 #[cfg(feature = "nova")]
-pub mod gnomon;
+pub(crate) mod gnomon;
 #[cfg(feature = "nova")]
-pub mod haruspex;
-pub mod highlight;
+pub use gnomon::{run_gnomon, GnomonVisitor};
 #[cfg(feature = "nova")]
-pub mod interpreter;
+pub(crate) mod haruspex;
 #[cfg(feature = "nova")]
-pub mod labyrinth;
+pub use haruspex::run_haruspex;
+pub(crate) mod highlight;
+pub use highlight::highlight;
 #[cfg(feature = "nova")]
-pub mod mentor;
+pub(crate) mod interpreter;
 #[cfg(feature = "nova")]
-pub mod mosaic;
-pub mod narrator;
+pub use interpreter::{Interpreter, Value, EvalError};
+#[cfg(feature = "nova")]
+pub(crate) mod labyrinth;
+#[cfg(feature = "nova")]
+pub use labyrinth::{run_labyrinth, run_labyrinth_inner, generate_cfg};
+#[cfg(feature = "nova")]
+pub(crate) mod mentor;
+#[cfg(feature = "nova")]
+pub use mentor::{run_mentor, Lesson};
+#[cfg(feature = "nova")]
+pub(crate) mod mosaic;
+#[cfg(feature = "nova")]
+pub use mosaic::{run_mosaic, run_mosaic_inner};
+pub(crate) mod narrator;
+pub use narrator::tell_tale;
 /// The Papyrus (Πάπυρος) tool for SQL schema generation.
 ///
 /// This experimental tool reads Glossa type definitions and automatically
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
-pub mod papyrus;
-pub mod repl;
+pub(crate) mod papyrus;
+#[cfg(feature = "nova")]
+pub use papyrus::run_papyrus;
+pub(crate) mod repl;
+pub use repl::{run_repl, ReplOutput};
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
 ///
@@ -75,10 +102,16 @@ pub(crate) mod report;
 ///     eprintln!("Execution failed: {}", e);
 /// }
 /// ```
-pub mod runner;
+pub(crate) mod runner;
+pub use runner::{analyze_source, bard_file, build_file, check_file, highlight_file, report_file, run_file};
 #[cfg(feature = "nova")]
-pub mod scholar;
-pub mod tester;
+pub(crate) mod scholar;
+#[cfg(feature = "nova")]
+pub use scholar::run_scholar;
+pub(crate) mod tester;
+pub use tester::run_tests;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
-pub mod weave;
+pub(crate) mod weave;
+#[cfg(feature = "nova")]
+pub use weave::run_weave;

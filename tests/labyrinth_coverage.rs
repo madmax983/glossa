@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 #![cfg(feature = "nova")]
 
-use glossa::tools::labyrinth::{run_labyrinth, run_labyrinth_inner};
+use glossa::tools::{run_labyrinth, run_labyrinth_inner};
 
 #[test]
 fn test_run_labyrinth_comfy_table_output() {

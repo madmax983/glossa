@@ -1,4 +1,4 @@
-use glossa::tools::repl::run_repl;
+use glossa::tools::run_repl;
 
 // test wrapper for REPL crash
 #[test]
