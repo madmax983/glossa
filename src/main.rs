@@ -142,6 +142,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Prophet { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::prophet::run_prophet(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'prophet' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Haruspex { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::haruspex::run_haruspex(&input)?;

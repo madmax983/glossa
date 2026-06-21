@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Prophet (ὁ Προφήτης)
+**Concept:** A CLI tool (`glossa prophet`) that exports Glossa type definitions (`εἶδος`) directly to TypeScript interfaces (`.d.ts`), bridging the gap between ancient semantics and modern web development.
+**Fate:** Merged
+**Lesson:** Iterating over the type definition fields and translating them recursively to strings proves the semantic AST is stable and modular enough to target any modern high-level language interfaces simply and directly.

@@ -55,6 +55,12 @@ pub mod narrator;
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
 pub mod papyrus;
+/// The Prophet (ὁ Προφήτης) tool for TypeScript interface generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding TypeScript interfaces (`.d.ts`).
+#[cfg(feature = "nova")]
+pub mod prophet;
 pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
