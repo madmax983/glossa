@@ -1,0 +1,3 @@
+🌟 The Scribe (ὁ Γραμματεύς) - JSON AST Exporter
+Concept: A CLI tool (`glossa scribe`) that exports the `AnalyzedProgram` to JSON.
+Why it's cool: Useful for integration with other languages and analysis tools.

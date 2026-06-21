@@ -98,6 +98,11 @@ pub struct Cli {
 /// ```
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Export the semantic AST to JSON format (Requires "nova" feature)
+    Scribe {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
     /// Run a .γλ file (default)
     Run {
         /// Input file (.γλ)
