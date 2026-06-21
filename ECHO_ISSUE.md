@@ -11,4 +11,6 @@ None of these errors actually show up!
 The only one that works is `Ἀσυμφωνία` (Disagreement).
 
 💡 **The Fix:**
-Please either implement these helpful error messages so the compiler actually uses them, or remove them from the README! It is extremely confusing to tell users they will see friendly Greek errors when instead they get silent compilation or raw `rustc` aborts. Also, an undefined variable shouldn't just silently become 0!
+I have fixed the "Missing verb" compiler panic to output properly. Due to the complexity and current constraints regarding checking multiple variables and subject tracking in `compile_and_build`, the "Double Subject" and "Undefined variable" implementations cause cascading compilation failures across tests.
+
+Therefore, I have removed `Οὐκ οἶδα τὸ ὄνομα` and `Διπλοῦν ὑποκείμενον` from the README.md to prevent user confusion, while keeping the newly fixed `Ῥῆμα οὐχ εὑρέθη` and `Ἀσυμφωνία`.
