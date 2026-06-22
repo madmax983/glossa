@@ -8,3 +8,7 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+
+**[String Concatenation Optimization]
+**Learning:** Intermediate string allocations from `join` and subsequent concatenations are common on hot paths like REPL execution loops or semantic evaluation.
+**Action:** Use `iter().map().sum()` to calculate the exact total capacity needed beforehand, then instantiate `String::with_capacity` and iterate with `push_str` and `push` to avoid intermediate buffer re-allocations entirely.

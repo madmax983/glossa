@@ -313,8 +313,11 @@ impl ReplContext {
         // 1. Construct the Virtual Source File
         // We simulate a single persistent file by concatenating previous valid bindings
         // with the new input. This allows variable references to resolve correctly.
-        let mut full_source = self.bindings.join("\n");
-        if !full_source.is_empty() {
+        // ⚡ Bolt Optimization: Calculate exact capacity to avoid intermediate `.join()` allocation and reallocations.
+        let capacity = self.bindings.iter().map(|b| b.len() + 1).sum::<usize>() + input.len();
+        let mut full_source = String::with_capacity(capacity);
+        for binding in &self.bindings {
+            full_source.push_str(binding);
             full_source.push('\n');
         }
         full_source.push_str(input);
