@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Semantic Coverage Improvements]
+**Learning:** Adding test coverage to multiple modules `disambiguation`, `matcher`, `participle`, and `text` improved the line coverage of these critical parsing logic blocks to near 100%. One key finding was that `GreekLowercaseIterator` handles case tracking when diacritics are ignored, and it's best tested directly.
+**Action:** Always test iterators directly. Ensure coverage tools run across the entire workspace to identify untracked conditions.

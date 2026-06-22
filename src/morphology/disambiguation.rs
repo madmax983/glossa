@@ -676,3 +676,89 @@ mod tests {
         }
     }
 }
+#[cfg(test)]
+mod tests_sentry_disambiguation_extra3 {
+    use crate::morphology::disambiguation::{
+        DisambiguationContext, disambiguate, resolve_best, score_analysis,
+    };
+    use crate::morphology::models::{Case, Gender, MorphAnalysis, Number, PartOfSpeech, Person};
+
+    #[test]
+    fn test_disambiguation_context_from_article() {
+        let mut article = MorphAnalysis::new("ο".to_string(), PartOfSpeech::Article);
+        article.case = Some(Case::Nominative);
+        article.gender = Some(Gender::Masculine);
+        article.number = Some(Number::Singular);
+        let ctx = DisambiguationContext::from_article(&article);
+        assert_eq!(ctx.expected_case, Some(Case::Nominative));
+        assert_eq!(ctx.expected_gender, Some(Gender::Masculine));
+        assert_eq!(ctx.expected_number, Some(Number::Singular));
+        assert_eq!(ctx.expected_person, None);
+    }
+
+    #[test]
+    fn test_disambiguation_context_expecting_case() {
+        let ctx = DisambiguationContext::expecting_case(Case::Dative);
+        assert_eq!(ctx.expected_case, Some(Case::Dative));
+        assert_eq!(ctx.expected_gender, None);
+    }
+
+    #[test]
+    fn test_disambiguate_empty() {
+        let ctx = DisambiguationContext::new();
+        let res = disambiguate(vec![], &ctx);
+        assert!(res.is_empty());
+    }
+
+    #[test]
+    fn test_disambiguate_no_context() {
+        let ctx = DisambiguationContext::new();
+        let mut analyses = vec![MorphAnalysis::new("λογος".to_string(), PartOfSpeech::Noun)];
+        analyses[0].confidence = 0.5;
+        let res = disambiguate(analyses.clone(), &ctx);
+        assert_eq!(res.len(), 1);
+        assert_eq!(res[0].confidence, 0.5);
+    }
+
+    #[test]
+    fn test_score_analysis_mismatches() {
+        let mut analysis = MorphAnalysis::new("λογος".to_string(), PartOfSpeech::Noun);
+        analysis.case = Some(Case::Nominative);
+        analysis.number = Some(Number::Singular);
+        analysis.gender = Some(Gender::Masculine);
+        analysis.person = Some(Person::Third);
+
+        let mut ctx = DisambiguationContext::new();
+        ctx.expected_case = Some(Case::Accusative);
+        ctx.expected_number = Some(Number::Plural);
+        ctx.expected_gender = Some(Gender::Feminine);
+        ctx.expected_person = Some(Person::First);
+
+        let score = score_analysis(&analysis, &ctx);
+        assert_eq!(score, 0.0);
+    }
+
+    #[test]
+    fn test_resolve_best_empty() {
+        let ctx = DisambiguationContext::new();
+        let res = resolve_best(vec![], &ctx);
+        assert_eq!(res.lemma, "?");
+        assert_eq!(res.part_of_speech, PartOfSpeech::Unknown);
+    }
+
+    #[test]
+    fn test_score_analysis_person_agreement() {
+        let mut analysis = MorphAnalysis::new("τρεχω".to_string(), PartOfSpeech::Verb);
+        analysis.person = Some(Person::First);
+        let mut ctx = DisambiguationContext::new();
+        ctx.expected_person = Some(Person::First);
+
+        let score = score_analysis(&analysis, &ctx);
+        assert!((score - 0.7).abs() < 0.0001);
+
+        let mut analysis_mismatch = MorphAnalysis::new("τρεχει".to_string(), PartOfSpeech::Verb);
+        analysis_mismatch.person = Some(Person::Third);
+        let score2 = score_analysis(&analysis_mismatch, &ctx);
+        assert!((score2 - 0.2).abs() < 0.0001);
+    }
+}

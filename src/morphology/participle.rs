@@ -608,3 +608,13 @@ mod tests {
         assert_eq!(p.verb_lemma(), "γραφω");
     }
 }
+#[cfg(test)]
+mod tests_sentry_participle_extra2 {
+    use crate::morphology::participle::analyze_participle;
+
+    #[test]
+    fn test_participle_continue_matching_if_no_verb() {
+        let result = analyze_participle("nonexistentverbων");
+        assert!(result.is_some()); // we verified it returns Some with a ParticipleAnalysis
+    }
+}
