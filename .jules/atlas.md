@@ -20,3 +20,7 @@
 **Tangle:** Several modules under `src/tools/` (specifically `cache`, `report`, and `ui`) and `src/semantic/assembly/` (`model`) were exposed as `pub mod`, breaking encapsulation by exposing internal implementation details to the public API.
 **Blueprint:** Modified `src/tools/mod.rs` and `src/semantic/assembly/mod.rs` to restrict these modules with `pub(crate) mod`.
 **Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
+## [Encapsulating Internal Modules]
+**Tangle:** Several modules under `src/tools/` were exposed as `pub mod` but didn't need to be, which broke encapsulation and exposed internal implementation details to the public API.
+**Blueprint:** Modified `src/tools/mod.rs` to restrict these modules with `pub(crate) mod` and exposed only necessary functions via a Facade pattern using `pub use`. Adjusted `src/main.rs` and tests to use the new Facade pattern.
+**Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
