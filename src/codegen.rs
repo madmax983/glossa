@@ -94,6 +94,7 @@
 
 #![allow(clippy::needless_doctest_main)]
 
+use std::fmt::Write;
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedProgram, AnalyzedStatement,
@@ -273,8 +274,6 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// );
 /// assert_eq!(to_rust_type(&result_type), "Result<i64, String>");
 /// ```
-use std::fmt::Write;
-
 pub fn to_rust_type(ty: &GlossaType) -> String {
     let mut result = String::with_capacity(32);
     write_rust_type(ty, &mut result).unwrap();
