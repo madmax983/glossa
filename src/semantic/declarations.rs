@@ -506,7 +506,13 @@ fn extract_parameters_from_expr(
 
 /// Collect all Word nodes from an expression (flattening phrases)
 fn collect_words_from_expr(expr: &Expr) -> Vec<&crate::ast::Word> {
-    let mut words = Vec::new();
+    // ⚡ Bolt Optimization: Use `Vec::with_capacity` if it's a phrase to prevent reallocation
+    let capacity = if let Expr::Phrase(terms) = expr {
+        terms.len()
+    } else {
+        1
+    };
+    let mut words = Vec::with_capacity(capacity);
     collect_words_from_expr_into(expr, &mut words);
     words
 }
