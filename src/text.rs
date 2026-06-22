@@ -300,3 +300,59 @@ mod tests {
         assert_eq!(normalize_greek("AΣ́"), "aς");
     }
 }
+#[cfg(test)]
+mod tests_sentry_text_extra5 {
+    use crate::text::{GreekLowercaseIterator, is_greek_diacritic, normalize_greek};
+
+    #[test]
+    fn test_text_normalization_early_return() {
+        let input = "Αβγ";
+        let output = normalize_greek(input);
+        assert_eq!(output, "αβγ");
+    }
+
+    #[test]
+    fn test_normalize_greek_safe_prefix_with_unsafe_suffix() {
+        let input = "abcἄ";
+        let output = normalize_greek(input);
+        assert_eq!(output, "abcα");
+    }
+
+    #[test]
+    fn test_greek_lowercase_iterator_direct() {
+        let text = "Α";
+        let iter = GreekLowercaseIterator::new(text);
+        let result: String = iter.collect();
+        assert_eq!(result, "α");
+    }
+
+    #[test]
+    fn test_greek_lowercase_iterator_sigma_cased() {
+        let text = "Σ";
+        let iter = GreekLowercaseIterator::new_with_state(text, true);
+        let result: String = iter.collect();
+        assert_eq!(result, "ς");
+    }
+
+    #[test]
+    fn test_greek_lowercase_iterator_sigma_cased_followed_by_cased() {
+        let text = "Σα";
+        let iter = GreekLowercaseIterator::new_with_state(text, true);
+        let result: String = iter.collect();
+        assert_eq!(result, "σα");
+    }
+
+    #[test]
+    fn test_greek_lowercase_iterator_diacritic_followed_by_cased() {
+        let text = "Σ\u{0301}α";
+        let iter = GreekLowercaseIterator::new_with_state(text, true);
+        let result: String = iter.collect();
+        assert_eq!(result, "σ\u{0301}α");
+    }
+
+    #[test]
+    fn test_is_greek_diacritic() {
+        assert!(is_greek_diacritic('\u{0300}'));
+        assert!(!is_greek_diacritic('α'));
+    }
+}

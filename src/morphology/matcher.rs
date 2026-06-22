@@ -183,3 +183,39 @@ mod tests {
         assert_eq!(count, 2);
     }
 }
+#[cfg(test)]
+mod tests_sentry_matcher_extra2 {
+    use crate::morphology::matcher::match_suffix;
+
+    #[test]
+    fn test_match_suffix_break_early() {
+        let patterns = vec![("suffix1", 1), ("suffix2", 2), ("suffix3", 3)];
+        let mut count = 0;
+        match_suffix(
+            "wordsuffix1",
+            &patterns,
+            |p| p.0,
+            |_, _| {
+                count += 1;
+                false
+            },
+        );
+        assert_eq!(count, 1, "Should have broken early");
+    }
+
+    #[test]
+    fn test_match_suffix_does_not_mutate_if_no_match() {
+        let patterns = vec![("a", 1), ("b", 2)];
+        let mut count = 0;
+        match_suffix(
+            "c",
+            &patterns,
+            |p| p.0,
+            |_, _| {
+                count += 1;
+                true
+            },
+        );
+        assert_eq!(count, 0);
+    }
+}
