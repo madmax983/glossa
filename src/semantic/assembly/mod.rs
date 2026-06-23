@@ -653,40 +653,36 @@ impl Assembler {
                 is_match_arm: !self.state.adjectives.is_empty()
                     || (self.state.subject.is_some()
                         && self.state.object.is_none()
-                        && self.state.literals.is_empty()),
+                        && self.state.literals.is_empty()
+                        && self.state.nominatives.is_empty()),
             };
             self.check_missing_verb(&ctx)?;
         }
+        // Check for double subjects
+        if self.state.subject.is_some() && !self.state.nominatives.is_empty() {
+            let mut is_allowed = false;
+
+            // Allow multiple nominatives if it's an operator expression (e.g. `ὁ χρυσοῦς > ὁ ἀργυροῦς`)
+            if !self.state.operators.is_empty() {
+                is_allowed = true;
+            }
+
+            // Allow if it's a binding verb like 'ἔστω'
+            if let Some(verb) = &self.state.verb {
+                #[allow(clippy::collapsible_if)]
+                if crate::morphology::lexicon::is_binding_verb(&verb.lemma) {
+                    is_allowed = true;
+                }
+            }
+
+            if !is_allowed {
+                return Err(AssemblyError::DoubleSubject);
+            }
+        }
+
         // Check subject-verb agreement if both present
         if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {
             self.check_agreement(subject, verb)?;
-            // If we have a verb, a subject, and extra nominatives, but it's not a function definition or binary operation
-            if !self.state.nominatives.is_empty()
-                && self.state.operators.is_empty()
-                && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
-            {
-                return Err(AssemblyError::DoubleSubject);
-            }
-        } else if self.state.subject.is_some()
-            && !self.state.nominatives.is_empty()
-            && self.state.operators.is_empty()
-        {
-            // Unhandled double subject when there's no verb and no operators
-            // Exception: Function definition / pattern calls
-            let is_function_call = !self.state.nested_phrases.is_empty()
-                || !self.state.blocks.is_empty()
-                || !self.state.literals.is_empty();
-            let is_special_pattern =
-                !self.state.property_accesses.is_empty() || self.state.is_query;
-            // Note: If self.state.verb.is_some(), we would have entered the previous block, not this 'else if' block!
-            // Wait, we are in 'else if self.state.subject.is_some()', which means verb is NONE.
-            // Oh, so Double Subject logic wasn't fully firing in the previous block either. Let me adjust.
-            if !is_function_call && !is_special_pattern {
-                // No verb, stacked nominatives...
-                return Err(AssemblyError::DoubleSubject);
-            }
         }
         // Return the assembled statement
         let statement = std::mem::take(&mut self.state);
