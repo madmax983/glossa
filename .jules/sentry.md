@@ -92,3 +92,6 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+**Double Object & Verb Logic Untested**
+**Learning:** In the semantic assembler, errors like `AssemblyError::DoubleObject`, `AssemblyError::DoubleSubject`, and `AssemblyError::DoubleVerb` as well as the fallbacks on parts of speech matching like handling `Vocative` or `Unknown` case, lacked direct explicit testing, posing a risk of regressions inside sentence structure verifications.
+**Action:** Adding explicit integration tests that instantiate fake semantic trees (`MorphAnalysis`) dynamically to push to the boundaries (like exceeding limits `MAX_GENITIVES`) to ensure errors trigger robustly.
