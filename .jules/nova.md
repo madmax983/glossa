@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Grammarian (ὁ Γραμματικός)
+**Concept:** A CLI tool (`glossa grammarian`) that extracts all unique Greek words from a `.γλ` file and generates a personalized vocabulary study guide using the compiler's built-in lexicon.
+**Fate:** Merged
+**Lesson:** The semantic pipeline's tight coupling with morphology allows for creative educational tooling. Combining the syntax parser's ability to extract raw words with the lexicon's translation data provides a powerful way to generate context-specific flashcards or vocabulary tables without needing complex AST analysis.

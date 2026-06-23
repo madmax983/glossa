@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate a vocabulary study guide for a program (Requires "nova" feature)
+    Grammarian {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
