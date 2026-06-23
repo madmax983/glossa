@@ -14,8 +14,8 @@
 //!
 //! The [`run_auditor`](crate::tools::auditor::run_auditor) function drives the analysis:
 //! 1. The code is parsed and semantically analyzed.
-//! 2. A custom visitor (`AuditorVisitor`) traverses every statement and expression in the AST.
-//! 3. The visitor tracks variable declarations, usages, and reassignments using HashMaps and HashSets.
+//! 2. A custom traversal function traverses every statement and expression in the AST.
+//! 3. The ctx tracks variable declarations, usages, and reassignments using HashMaps and HashSets.
 //! 4. After traversal, the findings are cross-referenced to produce a final report,
 //!    which is displayed in a stylized terminal table.
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
@@ -76,9 +76,9 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 
     status.success();
 
-    let mut visitor = AuditorVisitor::new();
+    let mut ctx = AuditContext::new();
     for stmt in &program.statements {
-        visitor.visit_statement(stmt);
+        ctx.visit_statement(stmt);
     }
 
     let mut issues = 0;
@@ -101,7 +101,7 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         Cell::new("Message").add_attribute(Attribute::Bold),
     ]);
 
-    for (var, count) in &visitor.usage_count {
+    for (var, count) in &ctx.usage_count {
         if *count == 0 {
             table.add_row(vec![
                 Cell::new("⚠️ Unused Variable").fg(Color::Yellow),
@@ -112,10 +112,10 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         }
     }
 
-    for (var, count) in &visitor.mutation_count {
+    for (var, count) in &ctx.mutation_count {
         if *count == 0
-            && visitor.mutable_vars.contains(var)
-            && visitor.usage_count.get(var).unwrap_or(&0) > &0
+            && ctx.mutable_vars.contains(var)
+            && ctx.usage_count.get(var).unwrap_or(&0) > &0
         {
             table.add_row(vec![
                 Cell::new("💡 Unnecessary Mutation").fg(Color::Blue),
@@ -140,7 +140,7 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     Ok(())
 }
 
-struct AuditorVisitor {
+struct AuditContext {
     /// ⚡ Bolt Optimization: Uses `FxHashMap` instead of the standard `HashMap`
     /// to reduce cryptographic hashing overhead for small string keys (`SmolStr`).
     usage_count: FxHashMap<SmolStr, usize>,
@@ -148,7 +148,7 @@ struct AuditorVisitor {
     mutable_vars: FxHashSet<SmolStr>,
 }
 
-impl AuditorVisitor {
+impl AuditContext {
     fn new() -> Self {
         Self {
             usage_count: FxHashMap::default(),
@@ -394,8 +394,8 @@ mod tests {
     }
 
     #[test]
-    fn test_auditor_visitor_coverage_statements() {
-        let mut visitor = AuditorVisitor::new();
+    fn test_auditor_ctx_coverage_statements() {
+        let mut ctx = AuditContext::new();
 
         let statements = vec![
             AnalyzedStatement::Binding {
@@ -503,13 +503,13 @@ mod tests {
         ];
 
         for stmt in statements {
-            visitor.visit_statement(&stmt);
+            ctx.visit_statement(&stmt);
         }
     }
 
     #[test]
-    fn test_auditor_visitor_coverage_expressions() {
-        let mut visitor = AuditorVisitor::new();
+    fn test_auditor_ctx_coverage_expressions() {
+        let mut ctx = AuditContext::new();
 
         let exprs = vec![
             AnalyzedExprKind::Variable("x".into()),
@@ -605,7 +605,7 @@ mod tests {
                 expr: kind,
                 glossa_type: crate::semantic::GlossaType::Boolean,
             };
-            visitor.visit_expr(&expr);
+            ctx.visit_expr(&expr);
         }
     }
 
