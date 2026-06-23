@@ -17,7 +17,28 @@ use crossterm::style::Stylize;
 use std::fmt::Write;
 use std::path::Path;
 
-/// Run the Alchemist tool on a file
+/// Runs the Alchemist tool on a given Glossa source file.
+///
+/// The Alchemist reads the provided source file, compiles it, and transpiles the resulting
+/// Abstract Syntax Tree into equivalent Python code. The generated code is then written
+/// to a new file with a `.py` extension.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::alchemist::run_alchemist;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_alchemist(&input) {
+///     eprintln!("Transpilation failed: {}", e);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if the file cannot be read, if there is a syntax or
+/// semantic error, or if there is an issue writing the generated Python file.
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
@@ -59,7 +80,22 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     Ok(())
 }
 
-/// Transpile an AnalyzedProgram to Python source code
+/// Transpiles an `AnalyzedProgram` into Python source code.
+///
+/// This function recursively traverses the semantic AST and emits equivalent Python syntax.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::tools::alchemist::transpile_to_python;
+///
+/// let ast = parse("ξ 5 ἔστω.").unwrap();
+/// let program = analyze_program(&ast).unwrap();
+/// let python_code = transpile_to_python(&program);
+/// assert!(python_code.contains("g_ξ = 5"));
+/// ```
 pub fn transpile_to_python(program: &AnalyzedProgram) -> String {
     let mut out = String::new();
     out.push_str("from typing import Any\n");

@@ -41,9 +41,28 @@ use miette::Result;
 use rustc_hash::FxHashSet;
 use std::path::Path;
 
-/// Run the Cartographer tool on a file
+/// Runs the Cartographer tool on a given Glossa source file.
 ///
-/// Reads the source file, parses it, and prints the architectural map to stdout.
+/// This function reads the provided source file, parses and semantically analyzes it,
+/// and then prints a Mermaid.js class diagram to the standard output, representing the
+/// architectural map of the program's defined types and traits.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::cartographer::run_map;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_map(&input) {
+///     eprintln!("Mapping failed: {}", e);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if the file cannot be read, or if there is a parsing
+/// or semantic error during compilation.
 pub fn run_map(input: &Path) -> Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
@@ -108,7 +127,24 @@ pub fn run_map(input: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Generate a Mermaid class diagram from an analyzed program
+/// Generates a Mermaid class diagram from an `AnalyzedProgram`.
+///
+/// Scans the program's scope for defined structs and traits, and translates them
+/// into a Mermaid.js `classDiagram` formatted string, including fields, methods,
+/// and relationships.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::tools::cartographer::generate_map;
+///
+/// let ast = parse("εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.").unwrap();
+/// let program = analyze_program(&ast).unwrap();
+/// let mermaid_code = generate_map(&program);
+/// assert!(mermaid_code.contains("class Χρήστης"));
+/// ```
 pub fn generate_map(program: &AnalyzedProgram) -> String {
     let mut map = String::from("classDiagram\n");
 

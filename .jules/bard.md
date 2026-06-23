@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-05-04 - Missing Tool Docs
+**Confusion:** Tools in `src/tools/` like Alchemist, Cartographer, Catalog, etc. were missing module-level `//!` documentation and proper rustdoc for their entrypoint `pub fn run_*` functions, causing them to lack context in generated HTML docs and failing the 'Missing Link' test.
+**Clarification:** Added module-level documentation and `# Examples` to the missing tools.

@@ -19,9 +19,29 @@ use miette::{IntoDiagnostic, Result};
 use std::fs;
 use std::path::Path;
 
-/// Run the Weave tool on a file
+/// Runs the Weave tool on a given Glossa source file.
 ///
-/// Reads the source file, compiles it, generates the mosaic, and writes out a Markdown file.
+/// This function reads the source file, compiles it, generates the semantic mosaic,
+/// and writes out a 'Rosetta Stone' Markdown file containing the original Greek source,
+/// the analyzed syntax map, and the generated Rust code.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::weave::run_weave;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_weave(&input) {
+///     eprintln!("Weaving failed: {}", e);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if the file cannot be read, if there is a parsing
+/// or semantic error during analysis, or if there is an IO error while writing
+/// the generated Markdown file.
 pub fn run_weave(input: &Path) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));

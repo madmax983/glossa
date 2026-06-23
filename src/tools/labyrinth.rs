@@ -21,7 +21,28 @@ use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use std::path::Path;
 
-/// Run the Labyrinth tool on a file
+/// Runs the Labyrinth tool on a given Glossa source file.
+///
+/// This function reads the source file, compiles it, and generates a Mermaid.js
+/// flowchart representing the control flow of the program. The graph is printed
+/// to the standard output.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::labyrinth::run_labyrinth;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_labyrinth(&input) {
+///     eprintln!("Labyrinth failed: {}", e);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if the file cannot be read, if there is a syntax or
+/// semantic error, or if writing to standard output fails.
 pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
     let mut buffer = Vec::new();
