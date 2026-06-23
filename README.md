@@ -104,7 +104,6 @@ The compiler speaks to you in Greek. Do not fear it; learn from it.
 |---------------|-------------|---------------|------------|
 | **Ἀσυμφωνία** | Disagreement | Subject/Verb mismatch | Check if your Noun is Singular but Verb is Plural. |
 | **Διπλοῦν ὑποκείμενον** | Double Subject | Two Nominatives | You have two subjects (e.g., "The man the god says"). Remove one. |
-| **Οὐκ οἶδα τὸ ὄνομα** | I don't know the name | Undefined variable | Define the variable with `ἔστω` before using it. |
 | **Ῥῆμα οὐχ εὑρέθη** | Verb not found | Missing verb | Every sentence needs a verb (action). Add one. |
 
 ## Running Code

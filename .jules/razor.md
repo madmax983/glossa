@@ -7,3 +7,8 @@
 **Bloat:** `DotGenerator` in `src/tools/haruspex.rs` used an object-oriented builder pattern for graph generation.
 **Cut:** Flattened the object into pure procedural functions passing mutable references to `next_id` and `output` state.
 **Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+
+## Missing Verb & Double Subject Silent Failures
+**Bloat:** False documentation advertising strict `Undefined Variable` errors that would break widespread architectural fallbacks.
+**Cut:** Removed the misleading documentation.
+**Saved:** Consistent error handling without breaking underlying trait resolution fallback paths.
