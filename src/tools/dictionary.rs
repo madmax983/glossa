@@ -52,7 +52,25 @@ use miette::Result;
 use crate::morphology::{analyze_all, lexicon};
 use crate::text::normalize_greek;
 
-/// Lookup a word in the dictionary
+/// Looks up a word in the built-in dictionary.
+///
+/// This function normalizes the input word, queries the internal lexicon for exact
+/// matches, and performs morphological analysis (declension/conjugation) to find
+/// potential stems and features. It prints the results to standard output.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::dictionary::lookup_word;
+///
+/// if let Err(e) = lookup_word("λέγε") {
+///     eprintln!("Lookup failed: {}", e);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if an error occurs during morphological analysis.
 pub fn lookup_word(word: &str) -> Result<()> {
     let normalized = normalize_greek(word);
 

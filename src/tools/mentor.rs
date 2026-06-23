@@ -105,10 +105,26 @@ const LESSONS: &[Lesson] = &[
     },
 ];
 
-/// Start the interactive Mentor session
+/// Starts the interactive Mentor session.
 ///
-/// This function enters a loop where it presents lessons to the user and waits
-/// for them to type code that satisfies the lesson's requirements.
+/// This function enters a Read-Eval-Print Loop (REPL) specifically tailored for
+/// the interactive tutorial. It presents lessons to the user, reads their input,
+/// compiles the code, and verifies if it satisfies the lesson's requirements.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::mentor::run_mentor;
+///
+/// if let Err(e) = run_mentor() {
+///     eprintln!("Mentor session failed: {}", e);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if an error occurs while reading from standard input
+/// or writing to standard output during the interactive session.
 pub fn run_mentor() -> Result<()> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();

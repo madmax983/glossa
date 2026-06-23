@@ -10,7 +10,24 @@ use comfy_table::{Cell, Color, Table};
 use crossterm::style::Stylize;
 use miette::Result;
 
-/// Run the catalog explorer
+/// Runs the catalog explorer to display the compiler's internal lexicon.
+///
+/// This function aggregates all entries from the built-in lexicon, groups them by
+/// their part of speech, and prints a formatted, colorful table to the standard output.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::catalog::run_catalog;
+///
+/// if let Err(e) = run_catalog() {
+///     eprintln!("Catalog failed: {}", e);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if an error occurs while writing to standard output.
 pub fn run_catalog() -> Result<()> {
     // ⚡ Bolt Optimization: Uses `rustc_hash::FxHashMap` instead of the standard `HashMap`
     // since the keys are internal `PartOfSpeech` enums and are not exposed to HashDoS attacks.

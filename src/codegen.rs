@@ -275,6 +275,7 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// ```
 use std::fmt::Write;
 
+/// Translates a semantic `GlossaType` into its equivalent Rust type string.
 pub fn to_rust_type(ty: &GlossaType) -> String {
     let mut result = String::with_capacity(32);
     write_rust_type(ty, &mut result).unwrap();

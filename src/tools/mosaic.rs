@@ -34,9 +34,28 @@ use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::path::Path;
 
-/// Run the Mosaic tool on a file
+/// Runs the Mosaic tool on a given Glossa source file.
 ///
-/// Reads the source file, parses it, and prints the semantic assembly table to stdout.
+/// This function reads the provided source file, parses the source code, and directly
+/// outputs a colorful table representing the internal `AssembledStatement` structure
+/// to the standard output.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use glossa::tools::mosaic::run_mosaic;
+/// use std::path::Path;
+///
+/// let input = Path::new("main.γλ");
+/// if let Err(e) = run_mosaic(&input) {
+///     eprintln!("Mosaic failed: {}", e);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`miette::Result`] if the file cannot be read, or if there is a parsing
+/// error.
 pub fn run_mosaic(input_path: &Path) -> Result<()> {
     let source = crate::tools::runner::load_source(input_path)?;
 
