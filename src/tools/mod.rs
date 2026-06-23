@@ -38,6 +38,8 @@ pub mod dictionary;
 #[cfg(feature = "nova")]
 pub mod gnomon;
 #[cfg(feature = "nova")]
+pub mod grammarian;
+#[cfg(feature = "nova")]
 pub mod haruspex;
 pub mod highlight;
 #[cfg(feature = "nova")]
