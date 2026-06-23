@@ -281,3 +281,13 @@ fn test_run_scholar_syntax_error() {
 }
 
 // removed test_run_tests_rustc_error because of environment variable pollution causing intermittent failures in parallel execution and it being redundant to runner tests
+
+#[test]
+fn test_run_grammarian_types_and_traits() {
+    let dir = Builder::new().tempdir().unwrap();
+    let input_path = dir.path().join("vocab_traits.γλ");
+    let source = "«χαῖρε» λέγε.";
+    std::fs::write(&input_path, source).unwrap();
+    let result = glossa::tools::grammarian::run_grammarian(&input_path);
+    assert!(result.is_ok());
+}

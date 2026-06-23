@@ -250,4 +250,48 @@ mod tests {
         let result = run_grammarian(input_path);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_grammarian_parse_error() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("vocab_err.γλ");
+        fs::write(&input_path, "ξ πέντε ἔστω «χαῖρε» λέγε").unwrap();
+
+        let result = run_grammarian(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_grammarian_types_and_traits() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("vocab_traits.γλ");
+        let source = "
+        εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.
+        χαρακτήρ Ὁμιλητής ὁρίζειν { λέγειν(αὐτός). }.
+        εἶδος Χρήστης τῷ Ὁμιλητής ἐμπίπτειν { λέγειν(αὐτός) { αὐτοῦ ὄνομα λέγε. } }.
+        ";
+        fs::write(&input_path, source).unwrap();
+
+        let result = run_grammarian(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_grammarian_control_flow_and_blocks() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("vocab_blocks.γλ");
+        let source = "
+        εἰ αληθες, {
+            πίναξ[0] 1 γίγνεται.
+            δοκιμή «foo» τέλος.
+        } εἰ δὲ μή, {
+            παῦε.
+        }
+        διὰ α, β λέγε.
+        ";
+        fs::write(&input_path, source).unwrap();
+
+        let result = run_grammarian(&input_path);
+        assert!(result.is_ok());
+    }
 }
