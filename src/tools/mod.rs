@@ -18,6 +18,8 @@
 
 #[cfg(feature = "nova")]
 pub mod alchemist;
+#[cfg(feature = "nova")]
+pub mod architect;
 /// The Auditor (Λογιστής) tool for static analysis.
 ///
 /// This experimental tool analyzes Glossa code to detect unused variables,
