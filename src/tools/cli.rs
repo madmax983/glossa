@@ -199,6 +199,12 @@ pub enum Commands {
     },
 
     /// Estimate the Big-O time complexity of a program (Requires "nova" feature)
+    /// Generate a JSON Schema from type definitions (Requires "nova" feature)
+    Pygmalion {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     Gnomon {
         /// Input file (.γλ)
         input: PathBuf,

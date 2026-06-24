@@ -55,6 +55,8 @@ pub mod narrator;
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
 pub mod papyrus;
+#[cfg(feature = "nova")]
+pub mod pygmalion;
 pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs

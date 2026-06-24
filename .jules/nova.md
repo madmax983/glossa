@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Pygmalion (ὁ Πυγμαλίων)
+**Concept:** A JSON Schema Generator (`glossa pygmalion`) that exports Glossa types (`εἶδος`) into standard JSON Schema definitions, allowing Glossa to act as a language-agnostic Data Definition Language.
+**Fate:** Merged
+**Lesson:** Bridging ancient language constructs with modern REST API standards via JSON Schema export is a highly effective way to add practical utility. Iterating over the semantic AST allows us to build powerful exporters with very little extra parsing.
