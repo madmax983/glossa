@@ -186,6 +186,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate a JSON Schema from a .γλ file (Requires "nova" feature)
+    Architect {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Transpile a .γλ file to SQL CREATE TABLE schema (Requires "nova" feature)
     Papyrus {
         /// Input file (.γλ)

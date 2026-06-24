@@ -129,6 +129,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Architect { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::architect::run_architect(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'architect' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Papyrus { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::papyrus::run_papyrus(&input)?;
