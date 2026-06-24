@@ -131,7 +131,7 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
         AnalyzedStatement::Expression(exprs) => {
             let mut out = String::new();
             for expr in exprs {
-                out.push_str(&format!("{}{}\n", ind, transpile_expr(expr)));
+                let _ = writeln!(&mut out, "{}{}", ind, transpile_expr(expr));
             }
             out.trim_end().to_string()
         }
@@ -165,9 +165,10 @@ fn transpile_if(
     indent: usize,
 ) -> String {
     let ind = "    ".repeat(indent);
-    let mut out = format!("{}if {}:\n", ind, transpile_expr(condition));
+    let mut out = String::new();
+    let _ = writeln!(&mut out, "{}if {}:", ind, transpile_expr(condition));
     if then_body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        let _ = writeln!(&mut out, "{}    pass", ind);
     } else {
         for b_stmt in then_body {
             out.push_str(&transpile_statement(b_stmt, indent + 1));
@@ -175,9 +176,9 @@ fn transpile_if(
         }
     }
     if let Some(ebody) = else_body {
-        out.push_str(&format!("{}else:\n", ind));
+        let _ = writeln!(&mut out, "{}else:", ind);
         if ebody.is_empty() {
-            out.push_str(&format!("{}    pass\n", ind));
+            let _ = writeln!(&mut out, "{}    pass", ind);
         } else {
             for b_stmt in ebody {
                 out.push_str(&transpile_statement(b_stmt, indent + 1));
@@ -190,9 +191,10 @@ fn transpile_if(
 
 fn transpile_while(condition: &AnalyzedExpr, body: &[AnalyzedStatement], indent: usize) -> String {
     let ind = "    ".repeat(indent);
-    let mut out = format!("{}while {}:\n", ind, transpile_expr(condition));
+    let mut out = String::new();
+    let _ = writeln!(&mut out, "{}while {}:", ind, transpile_expr(condition));
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        let _ = writeln!(&mut out, "{}    pass", ind);
     } else {
         for b_stmt in body {
             out.push_str(&transpile_statement(b_stmt, indent + 1));
@@ -209,14 +211,16 @@ fn transpile_for(
     indent: usize,
 ) -> String {
     let ind = "    ".repeat(indent);
-    let mut out = format!(
-        "{}for {} in {}:\n",
+    let mut out = String::new();
+    let _ = writeln!(
+        &mut out,
+        "{}for {} in {}:",
         ind,
         sanitize_ident(variable),
         transpile_expr(iterator)
     );
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        let _ = writeln!(&mut out, "{}    pass", ind);
     } else {
         for b_stmt in body {
             out.push_str(&transpile_statement(b_stmt, indent + 1));
@@ -233,7 +237,8 @@ fn transpile_function_def(
     indent: usize,
 ) -> String {
     let ind = "    ".repeat(indent);
-    let mut out = format!("{}def {}(", ind, sanitize_ident(name));
+    let mut out = String::new();
+    let _ = write!(&mut out, "{}def {}(", ind, sanitize_ident(name));
     for (i, (p, _)) in params.iter().enumerate() {
         if i > 0 {
             out.push_str(", ");
@@ -243,7 +248,7 @@ fn transpile_function_def(
     out.push_str("):\n");
 
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        let _ = writeln!(&mut out, "{}    pass", ind);
     } else {
         for (i, b_stmt) in body.iter().enumerate() {
             let mut is_last_expr = false;
@@ -255,9 +260,10 @@ fn transpile_function_def(
                 if let AnalyzedStatement::Expression(exprs) = b_stmt {
                     for (j, expr) in exprs.iter().enumerate() {
                         if j == exprs.len() - 1 {
-                            out.push_str(&format!("{}    return {}\n", ind, transpile_expr(expr)));
+                            let _ =
+                                writeln!(&mut out, "{}    return {}", ind, transpile_expr(expr));
                         } else {
-                            out.push_str(&format!("{}    {}\n", ind, transpile_expr(expr)));
+                            let _ = writeln!(&mut out, "{}    {}", ind, transpile_expr(expr));
                         }
                     }
                 }
@@ -276,17 +282,19 @@ fn transpile_type_def(
     indent: usize,
 ) -> String {
     let ind = "    ".repeat(indent);
-    let mut out = format!(
-        "{}@dataclass\n{}class {}:\n",
+    let mut out = String::new();
+    let _ = writeln!(
+        &mut out,
+        "{}@dataclass\n{}class {}:",
         ind,
         ind,
         sanitize_ident(name)
     );
     if fields.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        let _ = writeln!(&mut out, "{}    pass", ind);
     } else {
         for (f_name, _) in fields {
-            out.push_str(&format!("{}    {}: Any\n", ind, sanitize_ident(f_name)));
+            let _ = writeln!(&mut out, "{}    {}: Any", ind, sanitize_ident(f_name));
         }
     }
     out.trim_end().to_string()
@@ -296,9 +304,10 @@ fn transpile_test_declaration(name: &str, body: &[AnalyzedStatement], indent: us
     let ind = "    ".repeat(indent);
     // We can transpile tests as regular functions prefixed with test_
     let safe_name = name.replace(" ", "_").replace("-", "_").replace("\"", "");
-    let mut out = format!("{}def test_{}():\n", ind, safe_name);
+    let mut out = String::new();
+    let _ = writeln!(&mut out, "{}def test_{}():", ind, safe_name);
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        let _ = writeln!(&mut out, "{}    pass", ind);
     } else {
         for b_stmt in body {
             out.push_str(&transpile_statement(b_stmt, indent + 1));
@@ -315,15 +324,17 @@ fn transpile_match(
 ) -> String {
     let ind = "    ".repeat(indent);
     // Python 3.10+ match statement
-    let mut out = format!("{}match {}:\n", ind, transpile_expr(scrutinee));
+    let mut out = String::new();
+    let _ = writeln!(&mut out, "{}match {}:", ind, transpile_expr(scrutinee));
     for (pattern_expr, arm_body) in arms {
-        out.push_str(&format!(
-            "{}    case {}:\n",
+        let _ = writeln!(
+            &mut out,
+            "{}    case {}:",
             ind,
             transpile_expr(pattern_expr)
-        ));
+        );
         if arm_body.is_empty() {
-            out.push_str(&format!("{}        pass\n", ind));
+            let _ = writeln!(&mut out, "{}        pass", ind);
         } else {
             for b_stmt in arm_body {
                 out.push_str(&transpile_statement(b_stmt, indent + 2));
