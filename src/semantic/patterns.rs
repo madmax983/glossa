@@ -267,7 +267,7 @@ pub fn try_parse_struct_instantiation(
 }
 
 fn parse_struct_args(
-    args_terms: &[Expr],
+    args_terms: &[crate::ast::Expr],
     fields_info: &[(SmolStr, GlossaType)],
     scope: &Scope,
 ) -> Option<Vec<AnalyzedExpr>> {
@@ -1518,6 +1518,30 @@ mod coverage_tests {
 
         let result = parse_struct_args(&terms, &fields, &scope);
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_parse_struct_instantiation_unknown_type() {
+        let mut scope = Scope::new();
+
+        let stmt = crate::ast::Statement::Regular {
+            clauses: vec![crate::ast::Clause {
+                expressions: vec![crate::ast::Expr::Phrase(vec![
+                    crate::ast::Expr::Word(crate::ast::Word::new("var")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("νέον")),
+                    crate::ast::Expr::Word(crate::ast::Word::new("UnknownType")),
+                    crate::ast::Expr::NumberLiteral(1),
+                    crate::ast::Expr::Word(crate::ast::Word::new("ἔστω")),
+                ])],
+            }],
+            is_query: false,
+            is_propagate: false,
+        };
+
+        let result = try_parse_struct_instantiation(&stmt, &mut scope);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Άγνωστος τύπος"));
     }
 
     #[test]

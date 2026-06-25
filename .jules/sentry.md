@@ -92,3 +92,6 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+**Unknown Struct Type Parsing**
+**Learning:** When manually constructing AST nodes to test specific semantic error paths (e.g., 'Unknown Type' in Glossa), ensure the mocked syntax structure is otherwise completely valid (including all required arguments, correct term counts, and correctly accented tokens). Otherwise, the test may silently pass by triggering an unrelated, earlier validation error.
+**Action:** Always verify the required parameters and logic bounds for the structure being tested. For struct instantiation (`try_parse_struct_instantiation`), the clause must contain a phrase with at least 4 terms: the variable name, the adjective ("νέον" with accent), the type name, any arguments, and the binding verb ("ἔστω").
