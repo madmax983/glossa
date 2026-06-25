@@ -141,7 +141,8 @@ fn parse_failure_name(line: &str) -> Option<String> {
 }
 
 fn capture_failure_message(lines: &mut std::iter::Peekable<std::str::Lines>) -> String {
-    let mut message = String::new();
+    // ⚡ Bolt Optimization: Pre-allocate capacity for failure messages to reduce re-allocations
+    let mut message = String::with_capacity(128);
     while let Some(current) = lines.peek() {
         let trimmed = current.trim();
         if (trimmed.starts_with("----") && trimmed.ends_with("stdout ----"))
@@ -193,7 +194,10 @@ fn clean_panic_message(current: &str) -> Option<String> {
     }
 
     let panicked_idx = current.find("panicked at")?;
-    let mut clean_panic = format!("{}panicked", &current[..panicked_idx]);
+    // ⚡ Bolt Optimization: Use String::with_capacity and push_str instead of format!
+    let mut clean_panic = String::with_capacity(panicked_idx + 8);
+    clean_panic.push_str(&current[..panicked_idx]);
+    clean_panic.push_str("panicked");
 
     // Remove the "(pid)" thread id
     #[allow(clippy::collapsible_if)]
