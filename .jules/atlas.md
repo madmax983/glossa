@@ -20,3 +20,7 @@
 **Tangle:** Several modules under `src/tools/` (specifically `cache`, `report`, and `ui`) and `src/semantic/assembly/` (`model`) were exposed as `pub mod`, breaking encapsulation by exposing internal implementation details to the public API.
 **Blueprint:** Modified `src/tools/mod.rs` and `src/semantic/assembly/mod.rs` to restrict these modules with `pub(crate) mod`.
 **Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
+
+## [Unused Input Variable & Mod Encapsulation]
+**Tangle:** The `Commands::Gnomon` match arm in `src/main.rs` failed to consume the `input` variable when `feature = "nova"` was disabled, causing an unused variable warning. The `src/semantic/mod.rs` was exposing `pub mod assembly` bypassing intended API boundaries.
+**Blueprint:** Ignored `input` via `let _ = input;` to fix compiler warning. Converted `assembly` export to `pub(crate)` to encapsulate logic inside the `semantic` module, forcing usage of public types via the Facade pattern.
