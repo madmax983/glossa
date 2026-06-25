@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**Double Objects, Verbs, and Agreement Limits**
+**Learning:** Found coverage gaps in the `Assembler::feed` method, particularly error handling like `DoubleObject`, `DoubleVerb`, `MissingVerb`, and `SubjectVerbDisagreement`.
+**Action:** Wrote tests under `tests/sentry_coverage.rs` manually feeding `analyze` output into the Assembler to specifically verify the `AssemblyError` match arms are triggered.
