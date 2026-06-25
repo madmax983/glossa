@@ -1,4 +1,4 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. **Optimize `capture_failure_message` in `src/tools/tester.rs`**: Provide a capacity estimate for `String::with_capacity` rather than just `String::new()` to avoid re-allocations when collecting lines of output.
+2. **Optimize `clean_panic_message` in `src/tools/tester.rs`**: Replace `format!` which allocates and runs the formatting machinery with `String::with_capacity` + `push_str`.
+3. **Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.**
+4. **Submit the change.**
