@@ -257,11 +257,19 @@ fn compile_test_harness(temp_path: &Path, exe_path: &Path, status: Status) -> Re
         }
 
         status.error("Σφάλμα μεταγλωττίσεως δοκιμῶν (Test Compilation Error)");
-        return Err(miette::miette!(
+        let error_msg = format!(
+            "\n{}\n{}\n{}\n",
+            "╔══════════════════════════════════════════════════════════════╗".red(),
+            "║  INTERNAL COMPILER ERROR (Codegen Failed)                    ║".red().bold(),
+            "╚══════════════════════════════════════════════════════════════╝".red()
+        );
+        let help_msg = format!(
             "{}\n{}",
-            "Rustc Error:".red(),
-            clean_stderr.trim()
-        ));
+            "This indicates a bug in the Glossa compiler's code generation.",
+            "Please report this issue with the following details:"
+        )
+        .yellow();
+        return Err(miette::miette!("{}\n{}\n\n{}", error_msg, help_msg, clean_stderr.trim()));
     }
 
     Ok(status)

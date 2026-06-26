@@ -19,7 +19,6 @@
 use crate::semantic::{AnalyzedStatement, GlossaType};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
-use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
@@ -94,19 +93,35 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
     println!("   {}", "SQL Schema".italic().dim());
     println!();
 
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
-
-    table.set_header(vec![
-        Cell::new("SQL Schema")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-    ]);
-
-    let formatted_code = format!("```sql\n{}\n```", output.trim());
-    table.add_row(vec![Cell::new(formatted_code)]);
-
-    println!("{table}");
+    // Colorize the SQL output for terminal display (Z-Pattern UI)
+    let sql_output = output.trim();
+    for line in sql_output.lines() {
+        if line.starts_with("--") {
+            println!("   {}", line.dim());
+        } else if line.starts_with("CREATE TABLE") {
+            let parts: Vec<&str> = line.splitn(3, ' ').collect();
+            if parts.len() == 3 {
+                let create_table = format!("{} {}", parts[0], parts[1]).green().bold();
+                println!("   {} {}", create_table, parts[2].cyan());
+            } else {
+                println!("   {}", line.cyan());
+            }
+        } else if line.contains("TEXT") || line.contains("BIGINT") || line.contains("BOOLEAN") || line.contains("JSONB") {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                let col_name = parts[0];
+                let col_type = parts[1].blue().bold();
+                let rest = parts[2..].join(" ").magenta();
+                println!("       {} {} {}", col_name.cyan(), col_type, rest);
+            } else {
+                println!("       {}", line);
+            }
+        } else if line.starts_with(");") {
+            println!("   {}", line.green().bold());
+        } else {
+            println!("   {}", line);
+        }
+    }
     println!();
 
     Ok(())
