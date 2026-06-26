@@ -12,7 +12,6 @@
 
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
-use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use std::fmt::Write;
 use std::path::Path;
@@ -41,19 +40,35 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     println!("   {}", "Python Transpilation Result".italic().dim());
     println!();
 
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
+    // Colorize Python output directly instead of boxing it
+    for line in python_code.trim().lines() {
+        if line.starts_with("from ") || line.starts_with("import ") {
+            println!("   {}", line.blue());
+        } else if line.starts_with("@") {
+            println!("   {}", line.yellow());
+        } else if line.starts_with("class ") || line.starts_with("def ") {
+            let mut parts = line.splitn(2, ' ');
+            if let (Some(kw), Some(rest)) = (parts.next(), parts.next()) {
+                println!("   {} {}", kw.magenta().bold(), rest.cyan());
+            } else {
+                println!("   {}", line);
+            }
+        } else {
+            // Very basic highlighting for keywords like print, if, for, while, return, match, case
+            let colored_line = line
+                .replace("print(", &format!("{}(" , "print".magenta()))
+                .replace("if ", &format!("{} ", "if".magenta().bold()))
+                .replace("else:", &format!("{}", "else:".magenta().bold()))
+                .replace("for ", &format!("{} ", "for".magenta().bold()))
+                .replace("while ", &format!("{} ", "while".magenta().bold()))
+                .replace("return ", &format!("{} ", "return".magenta().bold()))
+                .replace("match ", &format!("{} ", "match".magenta().bold()))
+                .replace("case ", &format!("{} ", "case".magenta().bold()));
 
-    table.set_header(vec![
-        Cell::new("Python Source Code")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-    ]);
-
-    let formatted_code = format!("```python\n{}\n```", python_code.trim());
-    table.add_row(vec![Cell::new(formatted_code)]);
-
-    println!("{table}");
+            // Add slight padding to the left for clean Z-pattern alignment
+            println!("   {}", colored_line);
+        }
+    }
     println!();
 
     Ok(())
