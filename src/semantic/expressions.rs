@@ -364,6 +364,8 @@ fn analyze_unaryop(
 ///
 /// assert_eq!(get_first_word(&stmt).unwrap(), "ει");
 /// ```
+///
+/// * `stmt` - The statement to extract the first word from.
 pub fn get_first_word(stmt: &Statement) -> Result<smol_str::SmolStr, GlossaError> {
     if let Some(first_clause) = stmt.clauses().first()
         && let Some(first_expr) = first_clause.expressions.first()
@@ -409,6 +411,8 @@ pub fn get_first_word(stmt: &Statement) -> Result<smol_str::SmolStr, GlossaError
 ///
 /// assert!(contains_function_definition_verb(&stmt));
 /// ```
+///
+/// * `stmt` - The statement to check.
 pub fn contains_function_definition_verb(stmt: &Statement) -> bool {
     for clause in stmt.clauses() {
         for expr in &clause.expressions {
@@ -443,6 +447,9 @@ pub fn contains_function_definition_verb(stmt: &Statement) -> bool {
 /// assert!(contains_verb_in_expr(&expr, "λεγει"));
 /// assert!(!contains_verb_in_expr(&expr, "οριζειν"));
 /// ```
+///
+/// * `expr` - The expression to search in.
+/// * `verb` - The normalized verb lemma to look for.
 pub fn contains_verb_in_expr(expr: &Expr, verb: &str) -> bool {
     match expr {
         Expr::Word(word) => word.normalized == verb,

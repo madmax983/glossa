@@ -95,6 +95,8 @@ use crate::errors::GlossaError;
 /// // The verb slot should be filled
 /// assert!(assembled.verb.is_some());
 /// ```
+///
+/// * `stmt` - The AST statement to assemble into semantic slots.
 pub fn assemble_statement(stmt: &Statement) -> Result<AssembledStatement, GlossaError> {
     let mut asm = Assembler::new();
     asm.set_query(stmt.is_query());

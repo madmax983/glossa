@@ -69,6 +69,9 @@ pub struct AnalyzedProgram {
 /// assert_eq!(statements.len(), 1);
 /// assert!(scope.lookup_binding("ξ").is_some());
 /// ```
+///
+/// * `stmt` - The statement to analyze.
+/// * `scope` - The scope to check and update bindings.
 pub fn analyze_statement(
     stmt: &Statement,
     scope: &mut Scope,
@@ -158,6 +161,8 @@ fn extract_block_statements(stmt: &Statement) -> Option<&Vec<Statement>> {
 /// Perform semantic analysis on a program
 ///
 /// This is the entry point for semantic analysis.
+///
+/// * `program` - The full AST program to analyze.
 pub fn analyze_program(program: &Program) -> Result<AnalyzedProgram, GlossaError> {
     crate::semantic::validation::check_program_depth(program)?;
 

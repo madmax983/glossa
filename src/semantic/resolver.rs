@@ -183,6 +183,10 @@ impl Scope {
     }
 
     /// Define a function in this scope
+    ///
+    /// * `name` - The identifier of the function to define.
+    /// * `param_types` - The list of types expected as arguments.
+    /// * `return_type` - The return type of the function, or None if it's void.
     pub fn define_function(
         &mut self,
         name: impl Into<SmolStr>,
@@ -216,6 +220,9 @@ impl Scope {
     }
 
     /// Define a type in this scope
+    ///
+    /// * `name` - The identifier of the new type.
+    /// * `glossa_type` - The `GlossaType` defining the underlying structure.
     pub fn define_type(&mut self, name: impl Into<SmolStr>, glossa_type: GlossaType) {
         self.current_level().types.insert(name.into(), glossa_type);
     }
@@ -231,6 +238,9 @@ impl Scope {
     }
 
     /// Define a trait in this scope
+    ///
+    /// * `name` - The identifier of the new trait.
+    /// * `trait_def` - The structural definition of the trait.
     pub fn define_trait(
         &mut self,
         name: impl Into<SmolStr>,
@@ -250,6 +260,8 @@ impl Scope {
     }
 
     /// Register a trait implementation
+    ///
+    /// * `impl_def` - The concrete implementation associating a type with a trait.
     pub fn register_trait_impl(&mut self, impl_def: crate::semantic::model::TraitImpl) {
         self.current_level().trait_impls.push(impl_def);
     }

@@ -262,6 +262,8 @@ impl GlossaType {
 /// assert_eq!(name, "HashMap");
 /// assert!(matches!(ty, GlossaType::Map(..)));
 /// ```
+///
+/// * `type_name` - The string representing a potential collection type.
 pub fn detect_collection_type(type_name: &str) -> Option<(&'static str, GlossaType)> {
     match type_name {
         "συνολον" => Some(("HashSet", GlossaType::Set(Box::new(GlossaType::Unknown)))),
