@@ -52,6 +52,9 @@ C4Container
         Container(runner, "Runner", "src/tools/runner.rs", "Orchestrates the compilation pipeline")
         Container(tester, "The Judge", "src/tools/tester.rs", "Verifies Correctness (Test Runner)")
         Container(ui, "The Stage", "src/tools/ui.rs", "Presentation Layer & UI Helpers")
+        Container(gnomon, "The Gnomon", "src/tools/gnomon.rs", "Estimates Big-O time complexity")
+        Container(haruspex, "The Haruspex", "src/tools/haruspex.rs", "Visualizes the Semantic AST as a Graphviz DOT diagram")
+        Container(scholar, "The Scholar", "src/tools/scholar.rs", "Generates Markdown API documentation")
         Container(weave, "Weave", "src/tools/weave.rs", "Rosetta Stone Markdown Exporter")
     }
 
@@ -71,6 +74,9 @@ C4Container
     Rel(semantic, alchemist, "Analyzed Program")
     Rel(semantic, auditor, "Analyzed Program")
     Rel(semantic, labyrinth, "Analyzed Program")
+    Rel(semantic, gnomon, "Analyzed Program")
+    Rel(semantic, haruspex, "Analyzed Program")
+    Rel(semantic, scholar, "Analyzed Program")
     Rel(semantic, weave, "Analyzed Program")
     Rel(semantic, papyrus, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
