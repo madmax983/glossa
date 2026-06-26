@@ -32,6 +32,9 @@ use smol_str::SmolStr;
 ///
 /// * Updates `scope` with the new type definition.
 /// * Allows recursive types via `Box`, `Vec`, etc., but prevents direct infinite recursion.
+///
+/// * `type_def` - The AST Type definition to analyze.
+/// * `scope` - The current semantic scope.
 pub fn analyze_type_definition(
     type_def: &crate::ast::TypeDef,
     scope: &mut Scope,
@@ -111,6 +114,9 @@ fn check_recursive_type(target_name: &str, ty: &GlossaType) -> bool {
 ///     τύπωσις(εαυτός). // Method signature
 /// }.
 /// ```
+///
+/// * `trait_def` - The AST trait definition to analyze.
+/// * `scope` - The current semantic scope.
 pub fn analyze_trait_definition(
     trait_def: &crate::ast::TraitDef,
     scope: &mut Scope,
@@ -210,6 +216,9 @@ pub fn analyze_trait_definition(
 ///     τύπωσις(εαυτός) { ... }
 /// }.
 /// ```
+///
+/// * `trait_impl` - The AST trait implementation to analyze.
+/// * `scope` - The current semantic scope.
 pub fn analyze_trait_impl(
     trait_impl: &crate::ast::TraitImplDef,
     scope: &mut Scope,
@@ -340,6 +349,9 @@ pub fn resolve_type_name(name: &str, scope: &Scope) -> Result<GlossaType, Glossa
 ///
 /// 1. **Header**: Name + `ὁρίζειν` + Parameters (Dative + Genitive type).
 /// 2. **Body**: Expressions separated by middle dot (·).
+///
+/// * `stmt` - The AST statement to analyze.
+/// * `scope` - The current semantic scope.
 pub fn parse_function_definition(
     stmt: &Statement,
     scope: &mut Scope,
@@ -536,6 +548,9 @@ pub fn infer_return_type_from_body(body: &[AnalyzedStatement]) -> Option<GlossaT
 }
 
 /// Analyze a test declaration statement
+///
+/// * `test_decl` - The AST test declaration to analyze.
+/// * `scope` - The current semantic scope.
 pub fn analyze_test_declaration(
     test_decl: &crate::ast::TestDecl,
     scope: &mut Scope,

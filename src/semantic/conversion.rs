@@ -90,6 +90,9 @@ use crate::semantic::{Constituent, Literal};
 /// let result = convert_assembled_to_analyzed(&asm, &mut scope);
 /// assert!(result.is_ok());
 /// ```
+///
+/// * `asm_stmt` - The assembled statement to convert.
+/// * `scope` - The current semantic scope.
 pub fn convert_assembled_to_analyzed(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
@@ -134,6 +137,9 @@ pub fn convert_assembled_to_analyzed(
 ///     _ => panic!("Expected Print statement"),
 /// }
 /// ```
+///
+/// * `asm_stmt` - The assembled statement to classify.
+/// * `scope` - The current semantic scope.
 pub fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
@@ -1608,6 +1614,9 @@ fn extract_object_fallback(
 ///     _ => panic!("Expected NumberLiteral"),
 /// }
 /// ```
+///
+/// * `asm_stmt` - The assembled statement to extract a value from.
+/// * `scope` - The current semantic scope.
 pub fn extract_value(
     asm_stmt: &AssembledStatement,
     scope: &Scope,

@@ -52,6 +52,9 @@ use crate::morphology::lexicon;
 /// let result = analyze_control_flow(&stmt, &mut scope).unwrap();
 /// assert!(result.is_none());
 /// ```
+///
+/// * `stmt` - The AST statement to analyze.
+/// * `scope` - The current semantic scope.
 pub fn analyze_control_flow(
     stmt: &Statement,
     scope: &mut Scope,

@@ -225,6 +225,9 @@ impl Assembler {
     ///
     /// It parses a string into morphologic traits and saves it to the ongoing statement structure. It exists as the primary interface to collect terms.
     ///
+    /// * `analysis` - The morphologically analyzed properties of the word.
+    /// * `original` - The original string as it appeared in source code.
+    ///
     /// # Examples
     ///
     /// ```rust,ignore
@@ -241,6 +244,10 @@ impl Assembler {
     ///
     /// This is a zero-allocation path when the normalized form is already known (e.g. from AST).
     /// It bypasses the costly `normalize_greek` call which may allocate strings.
+    ///
+    /// * `analysis` - The morphologically analyzed properties of the word.
+    /// * `original` - The original string as it appeared in source code.
+    /// * `normalized` - The pre-computed normalized form of the string.
     ///
     /// # Examples
     ///

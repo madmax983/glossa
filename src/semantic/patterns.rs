@@ -61,6 +61,9 @@ use smol_str::SmolStr;
 /// ```
 ///
 /// Returns `Some(analyzed_statement)` if this is a standalone method call, `None` otherwise.
+///
+/// * `stmt` - The AST statement to analyze.
+/// * `scope` - The current semantic scope.
 pub fn try_parse_method_call(
     stmt: &Statement,
     scope: &mut Scope,
@@ -143,6 +146,9 @@ pub fn try_parse_method_call(
 /// ```
 ///
 /// Returns `Some(analyzed_statement)` if this is a struct instantiation, `None` otherwise.
+///
+/// * `stmt` - The AST statement to analyze.
+/// * `scope` - The current semantic scope.
 pub fn try_parse_struct_instantiation(
     stmt: &Statement,
     scope: &mut Scope,
@@ -370,6 +376,9 @@ fn parse_struct_args(
 /// | **Quantifier** | "Any" (`τι`) + `>` | `.any(predicate)` |
 /// | **Quantifier** | "All" (`πάντα`) + `>` | `.all(predicate)` |
 /// | **Verb** | "Find" (`εὑρέ`) | `.find(predicate)` |
+///
+/// * `asm_stmt` - The assembled statement to check for functional patterns.
+/// * `scope` - The current semantic scope.
 pub fn detect_iterator_pattern(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,

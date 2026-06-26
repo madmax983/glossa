@@ -171,6 +171,8 @@ impl<'a> std::fmt::Display for Sanitizer<'a> {
 /// // Keyword safety (even Rust keywords are safe due to g_ prefix)
 /// assert_eq!(sanitize_name("if"), "g_if");
 /// ```
+///
+/// * `name` - The string to sanitize.
 pub fn sanitize_name(name: &str) -> String {
     // Use the zero-allocation Sanitizer to generate the string
     Sanitizer {
@@ -204,6 +206,8 @@ pub fn sanitize_name(name: &str) -> String {
 /// assert_eq!(transliterate("λογος"), "_u3bb__u3bf__u3b3__u3bf__u3c2_");
 /// assert_eq!(transliterate("φιλοσοφια"), "_u3c6__u3b9__u3bb__u3bf__u3c3__u3bf__u3c6__u3b9__u3b1_");
 /// ```
+///
+/// * `greek` - The Greek string to transliterate.
 pub fn transliterate(greek: &str) -> String {
     if greek.is_empty() {
         return "_var_empty".to_string();
@@ -275,6 +279,8 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// ```
 use std::fmt::Write;
 
+///
+/// * `ty` - The Glossa type to convert.
 pub fn to_rust_type(ty: &GlossaType) -> String {
     let mut result = String::with_capacity(32);
     write_rust_type(ty, &mut result).unwrap();
@@ -339,6 +345,8 @@ fn write_rust_type(ty: &GlossaType, out: &mut String) -> std::fmt::Result {
 /// let tokens = generate_type_tokens(&GlossaType::Number);
 /// assert_eq!(tokens.to_string(), "i64");
 /// ```
+///
+/// * `ty` - The Glossa type to generate tokens for.
 pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
     match ty {
         GlossaType::Number => quote! { i64 },
@@ -402,6 +410,8 @@ pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
 /// let rust_code = generate_rust(&program);
 /// assert!(rust_code.contains("println"));
 /// ```
+///
+/// * `program` - The analyzed program to generate Rust code for.
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
     // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
     // ⚡ Bolt Optimization: Pre-allocate vectors based on statement length.
@@ -503,6 +513,8 @@ fn generate_panic_hook() -> TokenStream {
 /// let rust_file = generate_rust_file(&program);
 /// assert!(rust_file.contains("fn main"));
 /// ```
+///
+/// * `program` - The analyzed program to generate a full Rust file for.
 pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
     let code = generate_rust(program);
 
@@ -542,6 +554,8 @@ pub fn generate_rust_file(program: &AnalyzedProgram) -> String {
 /// let rust_code = generate_statement_code(&stmt);
 /// // The resulting code string is `let g__u3be_ = 5i64 ;`
 /// ```
+///
+/// * `stmt` - The analyzed statement to generate Rust code for.
 pub fn generate_statement_code(stmt: &AnalyzedStatement) -> String {
     generate_statement(stmt).to_string()
 }
