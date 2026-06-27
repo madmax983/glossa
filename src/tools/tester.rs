@@ -192,17 +192,15 @@ fn clean_panic_message(current: &str) -> Option<String> {
         return None;
     }
 
-    let panicked_idx = current.find("panicked at")?;
-    let mut clean_panic = format!("{}panicked", &current[..panicked_idx]);
-
-    // Remove the "(pid)" thread id
-    #[allow(clippy::collapsible_if)]
-    if let Some(idx1) = clean_panic.find(" (") {
-        if let Some(idx2) = clean_panic[idx1..].find(") ") {
-            clean_panic.replace_range(idx1..idx1 + idx2 + 2, " ");
-        }
+    // Polish the UI: hide raw rust panic threads and translate to Greek
+    if current.contains("assertion `left == right` failed") {
+        return Some("Ἀσυμφωνία: assertion failed".to_string());
+    }
+    if current.contains("assertion failed: ") {
+        return Some("Ἀποτυχία: assertion failed".to_string());
     }
 
+    let clean_panic = "Σφάλμα Ἐκτελέσεως (Runtime Panic):".to_string();
     Some(clean_panic)
 }
 
@@ -834,7 +832,7 @@ test name with spaces ... ok
         let failures = extract_failures(output);
         assert_eq!(failures.len(), 1);
         assert_eq!(failures[0].0, "test_1");
-        assert!(failures[0].1.contains("panicked"));
+        assert!(failures[0].1.contains("Σφάλμα"));
     }
 
     #[test]
