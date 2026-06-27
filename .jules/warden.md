@@ -131,3 +131,7 @@ Signed,
 **2026-04-30 - [Infinite Stream DoS Vulnerability in File Loading]
 **Threat:** The `load_source` function in `src/tools/runner.rs` relied on `fs::metadata().len()` to enforce the `MAX_FILE_SIZE` limit. However, special device files like `/dev/zero` report a length of 0 while producing an infinite stream of bytes when read. Reading these files with `fs::read_to_string` causes a thread hang or Out-Of-Memory (OOM) Denial-of-Service condition.
 **Defense:** Added an explicit `metadata.is_file()` check in `check_file_size` to guarantee that the input path points to a regular file and explicitly reject non-regular file types like directories and device streams. Updated `tests/havoc_dos.rs` and `test_load_source_directory_error` to assert the "Not a valid file" error and pass cleanly without timeouts.
+
+**2024-05-18 - [codegen unwrap vulnerability]**
+**Threat:** The `Unwrap` expression kind generated an unchecked `.unwrap()` call, which maps to a raw Rust panic that bypasses the translation layer and leaks English panics to end users.
+**Defense:** Replaced `.unwrap()` with `.expect("attempted to unwrap an empty value")` to safely panic with an explicit message that the runtime intercepts and translates.
