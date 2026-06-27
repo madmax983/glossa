@@ -35,3 +35,44 @@ fn test_assembler_numeral_value() {
         panic!("Expected Number literal");
     }
 }
+
+#[test]
+fn test_double_indirect_object_error() {
+    let mut asm = Assembler::new();
+    let obj1 = analyze("ἀνθρώπῳ");
+    asm.feed(&obj1, "ἀνθρώπῳ").unwrap();
+    let obj2 = analyze("θεῷ");
+    let result = asm.feed(&obj2, "θεῷ");
+    assert!(matches!(
+        result,
+        Err(glossa::errors::AssemblyError::DoubleIndirect)
+    ));
+}
+
+#[test]
+fn test_missing_verb_error() {
+    let mut asm = Assembler::new();
+    let subj = analyze("ἄνθρωπος");
+    asm.feed(&subj, "ἄνθρωπος").unwrap();
+    let obj = analyze("λόγον");
+    asm.feed(&obj, "λόγον").unwrap();
+    let result = asm.finalize();
+    assert!(matches!(
+        result,
+        Err(glossa::errors::AssemblyError::MissingVerb)
+    ));
+}
+
+#[test]
+fn test_double_subject_no_verb() {
+    let mut asm = Assembler::new();
+    let subj1 = analyze("ἄνθρωπος");
+    asm.feed(&subj1, "ἄνθρωπος").unwrap();
+    let subj2 = analyze("θεός");
+    asm.feed(&subj2, "θεός").unwrap();
+    let fin_result = asm.finalize();
+    assert!(matches!(
+        fin_result,
+        Err(glossa::errors::AssemblyError::DoubleSubject)
+    ));
+}
