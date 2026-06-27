@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Translator (ὁ Ἑρμηνεύς)
+**Concept:** A reverse dictionary CLI tool (`glossa translate`) that translates English concepts/keywords into ΓΛΩΣΣΑ equivalents by searching the lexicon.
+**Fate:** Merged
+**Lesson:** Provides accessibility for developers unfamiliar with Ancient Greek, allowing them to discover the keywords needed to write code.
