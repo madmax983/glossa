@@ -213,6 +213,12 @@ pub enum Commands {
     /// Explore the built-in lexicon (Requires "nova" feature)
     Catalog,
 
+    /// Translate English words into ΓΛΩΣΣΑ (Requires "nova" feature)
+    Translate {
+        /// The English word or concept to search for
+        english: String,
+    },
+
     /// Generate an API documentation Markdown file (Requires "nova" feature)
     Scholar {
         /// Input file (.γλ)
