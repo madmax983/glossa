@@ -845,4 +845,12 @@ mod tests {
         assert!(scope.is_function(name));
         assert!(scope.lookup(name).is_some());
     }
+
+    #[test]
+    #[should_panic(expected = "Scope must have at least one level")]
+    fn test_current_level_panic() {
+        let mut scope = Scope::new();
+        scope.levels.clear(); // Forcefully empty the levels to trigger the panic
+        scope.define("test".to_string(), GlossaType::Number); // This calls current_level()
+    }
 }
