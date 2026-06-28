@@ -953,25 +953,29 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
-        args.insert(
-            0,
-            AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: var_type.clone(),
-            },
-        );
+    if let Some(ref subj) = asm_stmt.subject {
+        if let Some(var_type) = scope.lookup(&subj.lemma) {
+            args.insert(
+                0,
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+                    glossa_type: var_type.clone(),
+                },
+            );
+        } else {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
-        args.push(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-            glossa_type: var_type.clone(),
-        });
+    if let Some(ref obj) = asm_stmt.object {
+        if let Some(var_type) = scope.lookup(&obj.lemma) {
+            args.push(AnalyzedExpr {
+                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+                glossa_type: var_type.clone(),
+            });
+        } else {
+            return Err(GlossaError::undefined(obj.lemma.as_str()));
+        }
     }
 
     Ok(args)
@@ -1028,6 +1032,9 @@ fn classify_query(
         exprs.push(literal_to_analyzed_expr(lit));
     }
     if let Some(ref subj) = asm_stmt.subject {
+        if !scope.is_defined(&subj.lemma) {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
         let var_type = scope
             .lookup(&subj.lemma)
             .cloned()
@@ -1137,16 +1144,32 @@ fn classify_expression(
         let right = if let Some(lit_expr) = exprs.first() {
             Some(lit_expr.clone())
         } else if let Some(ref obj) = asm_stmt.object {
+            if !scope.is_defined(&obj.lemma) && !asm_stmt.is_propagate {
+                return Err(GlossaError::undefined(obj.lemma.as_str()));
+            }
             Some(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             })
         } else {
-            asm_stmt.nominatives.first().map(|nom| AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            })
+            if let Some(nom) = asm_stmt.nominatives.first() {
+                if !scope.is_defined(&nom.lemma) && !asm_stmt.is_propagate {
+                    return Err(GlossaError::undefined(nom.lemma.as_str()));
+                }
+                Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+                    glossa_type: GlossaType::Unknown,
+                })
+            } else {
+                None
+            }
         };
+
+        if let Some(ref subj) = asm_stmt.subject {
+            if !scope.is_defined(&subj.lemma) && !asm_stmt.is_propagate {
+                return Err(GlossaError::undefined(subj.lemma.as_str()));
+            }
+        }
 
         if let (Some(l), Some(r)) = (left, right) {
             let bin_expr = build_binary_expr(l, op, r);
