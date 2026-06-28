@@ -526,7 +526,9 @@ where
 /// - 2nd person singular present imperative (λέγε!)
 /// - 3rd person singular aorist indicative (ἔλυσε)
 pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
-    let mut analyses = Vec::new();
+    // ⚡ Bolt Optimization: Pre-allocate capacity to avoid intermediate reallocations
+    // Verbs can match multiple paradigms or infinitive patterns.
+    let mut analyses = Vec::with_capacity(6);
     analyze_verb_all_into(word, &mut analyses);
     analyses
 }
