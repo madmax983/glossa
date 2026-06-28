@@ -911,6 +911,7 @@ fn generate_trait_impl(
         let body_stmts: Vec<TokenStream> = if let Some(body) = &method.body {
             generate_statements(body)
         } else {
+            // ⚡ Bolt Optimization: Returns an empty vector without allocating when body is None
             Vec::new()
         };
 

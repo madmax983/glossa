@@ -151,9 +151,11 @@ struct AuditorVisitor {
 impl AuditorVisitor {
     fn new() -> Self {
         Self {
-            usage_count: FxHashMap::default(),
-            mutation_count: FxHashMap::default(),
-            mutable_vars: FxHashSet::default(),
+            // ⚡ Bolt Optimization: Uses `FxHashMap` and `FxHashSet` with `default()`
+            // initialized with capacity, avoiding reallocations. Most programs have <32 variables.
+            usage_count: FxHashMap::with_capacity_and_hasher(32, Default::default()),
+            mutation_count: FxHashMap::with_capacity_and_hasher(32, Default::default()),
+            mutable_vars: FxHashSet::with_capacity_and_hasher(16, Default::default()),
         }
     }
 
