@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Uncovered Panic on Mutable State Check]**
+**Learning:** In Rust unit testing, using `.expect("...")` on vectors inside methods accessing state (e.g., `self.levels.last_mut().expect(...)`) presents a hidden panic risk if the state is ever manually cleared or improperly initialized, even if structural invariants normally protect it.
+**Action:** When acting as Sentry, manually construct states that violate the structural invariants (e.g., calling `.clear()` on a required state list) and call the method to ensure the `expect()` panic is tested using `#[should_panic]`.
