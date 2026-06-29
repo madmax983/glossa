@@ -66,7 +66,8 @@ mod tests {
     fn test_multiple_matches() {
         // Matches should be found in order if callback returns true
         let patterns = vec![("ix", 1), ("fix", 2), ("suffix", 3)];
-        let mut matches = Vec::new();
+        // ⚡ Bolt Optimization: Uses `Vec::with_capacity` to prevent reallocation
+        let mut matches = Vec::with_capacity(4);
 
         match_suffix(
             "suffix",
@@ -90,7 +91,8 @@ mod tests {
     #[test]
     fn test_early_exit() {
         let patterns = vec![("ix", 1), ("fix", 2)];
-        let mut matches = Vec::new();
+        // ⚡ Bolt Optimization: Uses `Vec::with_capacity` to prevent reallocation
+        let mut matches = Vec::with_capacity(4);
 
         match_suffix(
             "suffix",
@@ -129,7 +131,8 @@ mod tests {
     fn test_unicode_suffix() {
         // Test with Greek characters
         let patterns = vec![("ος", "nominative")];
-        let mut matches = Vec::new();
+        // ⚡ Bolt Optimization: Uses `Vec::with_capacity` to prevent reallocation
+        let mut matches = Vec::with_capacity(4);
 
         match_suffix(
             "λογος",

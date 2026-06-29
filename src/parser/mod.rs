@@ -70,7 +70,8 @@ fn parse_source(source: &str) -> Result<Program, ParseError> {
 
     let pairs = grammar_parse(source).map_err(|e| ParseError::PestError(e.to_string()))?;
 
-    let mut statements = Vec::new();
+    // ⚡ Bolt Optimization: Pre-allocate statements based on rough heuristic.
+    let mut statements = Vec::with_capacity(8);
 
     for pair in pairs {
         if pair.as_rule() == Rule::program {
