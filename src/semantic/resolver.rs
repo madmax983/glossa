@@ -634,6 +634,15 @@ mod tests {
     }
 
     #[test]
+    fn test_resolver_scope_current_level_after_excess_exits() {
+        let mut scope = Scope::new();
+        scope.exit();
+        scope.exit();
+
+        let _ = scope.current_level(); // Should not panic since exit() protects the root level
+    }
+
+    #[test]
     fn test_scope_exit_underflow_protection() {
         let mut scope = Scope::new();
         // A new scope starts with 1 level
