@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Ambassador (ὁ Πρόξενος)
+**Concept:** A CLI tool (`glossa ambassador`) that converts Glossa types and functions to a C Header file (`.h`). It maps basic Glossa types (`Number`, `String`) to C standard types (`int64_t`, `const char*`).
+**Fate:** Merged
+**Lesson:** Iterating over `AnalyzedStatement::TypeDefinition` and `AnalyzedStatement::FunctionDef` allows us to easily build an FFI boundary to interact with other systems.

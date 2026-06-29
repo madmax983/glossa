@@ -210,6 +210,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate a C header file (Requires "nova" feature)
+    Ambassador {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Explore the built-in lexicon (Requires "nova" feature)
     Catalog,
 
