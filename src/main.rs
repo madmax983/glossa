@@ -7,7 +7,7 @@ use clap::Parser;
 use miette::Result;
 
 use glossa::tools::cli::{Cli, Commands};
-use glossa::tools::dictionary::lookup_word;
+use glossa::tools::lookup_word;
 use glossa::tools::repl::run_repl;
 use glossa::tools::runner::{
     bard_file, build_file, check_file, highlight_file, report_file, run_file,
@@ -79,7 +79,7 @@ fn main() -> Result<()> {
 
         Some(Commands::Map { input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::cartographer::run_map(&input)?;
+            glossa::tools::run_map(&input)?;
 
             #[cfg(not(feature = "nova"))]
             {
@@ -144,7 +144,7 @@ fn main() -> Result<()> {
 
         Some(Commands::Haruspex { input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::haruspex::run_haruspex(&input)?;
+            glossa::tools::run_haruspex(&input)?;
 
             #[cfg(not(feature = "nova"))]
             {
@@ -170,7 +170,7 @@ fn main() -> Result<()> {
 
         Some(Commands::Catalog) => {
             #[cfg(feature = "nova")]
-            glossa::tools::catalog::run_catalog()?;
+            glossa::tools::run_catalog()?;
 
             #[cfg(not(feature = "nova"))]
             miette::bail!(
@@ -183,9 +183,12 @@ fn main() -> Result<()> {
             glossa::tools::gnomon::run_gnomon(&input)?;
 
             #[cfg(not(feature = "nova"))]
-            miette::bail!(
-                "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
-            );
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
         Some(Commands::Scholar { input }) => {

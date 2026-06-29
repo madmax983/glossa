@@ -20,3 +20,6 @@
 **Tangle:** Several modules under `src/tools/` (specifically `cache`, `report`, and `ui`) and `src/semantic/assembly/` (`model`) were exposed as `pub mod`, breaking encapsulation by exposing internal implementation details to the public API.
 **Blueprint:** Modified `src/tools/mod.rs` and `src/semantic/assembly/mod.rs` to restrict these modules with `pub(crate) mod`.
 **Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
+**[Module Encapsulation]**
+**Tangle:** Several experimental and internal tools (cartographer, catalog, dictionary, haruspex) and the semantic assembly phase were exposed as public modules (`pub mod`) despite only being accessed from within the library (such as the main CLI entry point or internally within semantic analysis).
+**Blueprint:** Restricted visibility by converting these modules to `pub(crate) mod` to enforce clear domain boundaries and hide implementation details from the public API.
