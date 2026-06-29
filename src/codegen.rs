@@ -1582,6 +1582,70 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_bin_op_checked_sub() {
+        let left = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(10),
+            glossa_type: GlossaType::Number,
+        };
+        let right = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+        let code = generate_bin_op(BinaryOp::Sub, &left, &right).to_string();
+        assert!(code.contains("checked_sub"));
+        assert!(code.contains("expect"));
+        assert!(code.contains("arithmetic overflow"));
+    }
+
+    #[test]
+    fn test_generate_bin_op_checked_mul() {
+        let left = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(10),
+            glossa_type: GlossaType::Number,
+        };
+        let right = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+        let code = generate_bin_op(BinaryOp::Mul, &left, &right).to_string();
+        assert!(code.contains("checked_mul"));
+        assert!(code.contains("expect"));
+        assert!(code.contains("arithmetic overflow"));
+    }
+
+    #[test]
+    fn test_generate_bin_op_checked_div() {
+        let left = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(10),
+            glossa_type: GlossaType::Number,
+        };
+        let right = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+        let code = generate_bin_op(BinaryOp::Div, &left, &right).to_string();
+        assert!(code.contains("checked_div"));
+        assert!(code.contains("expect"));
+        assert!(code.contains("division by zero"));
+    }
+
+    #[test]
+    fn test_generate_bin_op_checked_rem() {
+        let left = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(10),
+            glossa_type: GlossaType::Number,
+        };
+        let right = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(5),
+            glossa_type: GlossaType::Number,
+        };
+        let code = generate_bin_op(BinaryOp::Mod, &left, &right).to_string();
+        assert!(code.contains("checked_rem"));
+        assert!(code.contains("expect"));
+        assert!(code.contains("division by zero"));
+    }
+
+    #[test]
     fn test_generate_checked_op() {
         let left = quote! { a };
         let right = quote! { b };
