@@ -448,7 +448,8 @@ fn extract_parameters_from_expr(
     expr: &Expr,
     scope: &Scope,
 ) -> Result<Vec<(SmolStr, Option<GlossaType>)>, GlossaError> {
-    let mut params = Vec::new();
+    // ⚡ Bolt Optimization: Uses `Vec::with_capacity` to prevent reallocation
+    let mut params = Vec::with_capacity(4);
 
     // Collect all words from the expression
     let words = collect_words_from_expr(expr);
@@ -506,7 +507,8 @@ fn extract_parameters_from_expr(
 
 /// Collect all Word nodes from an expression (flattening phrases)
 fn collect_words_from_expr(expr: &Expr) -> Vec<&crate::ast::Word> {
-    let mut words = Vec::new();
+    // ⚡ Bolt Optimization: Uses `Vec::with_capacity` to prevent reallocation
+    let mut words = Vec::with_capacity(4);
     collect_words_from_expr_into(expr, &mut words);
     words
 }

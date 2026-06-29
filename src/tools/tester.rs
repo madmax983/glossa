@@ -97,7 +97,8 @@ fn parse_test_output(output: &str) -> Vec<TestResult> {
 /// This parses the output stream in-place using a `Peekable` iterator, reducing memory
 /// allocations when test outputs are large.
 fn extract_failures(output: &str) -> Vec<(String, String)> {
-    let mut failures = Vec::new();
+    // ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on heuristic estimation.
+    let mut failures = Vec::with_capacity(4);
     let mut lines = output.lines().peekable();
 
     // Skip until "failures:"

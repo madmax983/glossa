@@ -169,7 +169,9 @@ const DECLENSION_PATTERNS: &[DeclensionPattern] = &[
 /// assert_eq!(analysis.case, Some(Case::Accusative)); // Because "ον" can be accusative
 /// ```
 pub fn analyze_noun(word: &str) -> Option<MorphAnalysis> {
-    let mut analyses = analyze_noun_all(word);
+    // ⚡ Bolt Optimization: Uses `Vec::with_capacity` directly to avoid reallocation
+    let mut analyses = Vec::with_capacity(4);
+    analyze_noun_all_into(word, &mut analyses);
 
     // Sort by confidence (highest first)
     // analyze_noun_all sorts by (case, number, gender, lemma) but NOT confidence.
@@ -204,7 +206,8 @@ where
 ///
 /// The caller should use syntactic context to pick the right one.
 pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
-    let mut analyses = Vec::new();
+    // ⚡ Bolt Optimization: Uses `Vec::with_capacity` to prevent reallocation
+    let mut analyses = Vec::with_capacity(4);
     analyze_noun_all_into(word, &mut analyses);
     analyses
 }
