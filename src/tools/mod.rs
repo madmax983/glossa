@@ -27,18 +27,18 @@ pub mod auditor;
 pub(crate) mod cache;
 pub use cache::Cache;
 #[cfg(feature = "nova")]
-pub mod cartographer;
+pub(crate) mod cartographer;
 #[cfg(feature = "nova")]
-pub mod catalog;
+pub(crate) mod catalog;
 pub mod cli;
-pub mod dictionary;
+pub(crate) mod dictionary;
 /// The Haruspex (ὁ Ἱεροσκόπος) tool for visualizing the Semantic AST.
 ///
 /// This experimental tool exports the analyzed program as a Graphviz DOT diagram.
 #[cfg(feature = "nova")]
 pub mod gnomon;
 #[cfg(feature = "nova")]
-pub mod haruspex;
+pub(crate) mod haruspex;
 pub mod highlight;
 #[cfg(feature = "nova")]
 pub mod interpreter;
@@ -82,3 +82,12 @@ pub mod tester;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
 pub mod weave;
+
+// Facade re-exports for main.rs CLI access
+#[cfg(feature = "nova")]
+pub use cartographer::run_map;
+#[cfg(feature = "nova")]
+pub use catalog::run_catalog;
+pub use dictionary::lookup_word;
+#[cfg(feature = "nova")]
+pub use haruspex::run_haruspex;
