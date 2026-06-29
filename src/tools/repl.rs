@@ -347,7 +347,9 @@ impl ReplContext {
         // 5. Analyze Result
         // We only care about the *last* statement, because previous statements have already
         // been executed/processed in previous turns.
-        let last_stmt = analyzed.statements.last().unwrap();
+        let Some(last_stmt) = analyzed.statements.last() else {
+            return Ok(ReplOutput::None);
+        };
         match last_stmt {
             AnalyzedStatement::Binding { name, mutable, .. } => {
                 // Lookup type from scope since it's no longer in the binding statement
@@ -648,4 +650,11 @@ mod tests {
         // Our formatting prints "× error_string".
         // We just want to ensure it printed.
     }
+}
+
+#[test]
+fn test_repl_panic_on_valid_comment() {
+    let mut context = ReplContext::new();
+    let result = context.execute("ψ 10 ἔστω. // comment");
+    assert!(result.is_ok());
 }
