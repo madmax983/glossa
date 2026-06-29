@@ -15,7 +15,10 @@ use glossa::tools::runner::{
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    execute_command(cli)
+}
 
+fn execute_command(cli: Cli) -> Result<()> {
     // If a file is provided without a subcommand, run it
     if let Some(file) = cli.file {
         return run_file(&file);
@@ -183,9 +186,12 @@ fn main() -> Result<()> {
             glossa::tools::gnomon::run_gnomon(&input)?;
 
             #[cfg(not(feature = "nova"))]
-            miette::bail!(
-                "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
-            );
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
         Some(Commands::Scholar { input }) => {
