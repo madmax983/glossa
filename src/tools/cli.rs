@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate test boilerplate for functions (Requires "nova" feature)
+    Sibyl {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
