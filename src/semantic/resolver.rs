@@ -459,6 +459,13 @@ impl Scope {
             || self.lookup_trait(name).is_some()
     }
 
+    /// Checks if we are currently parsing inside a trait definition or implementation
+    pub fn is_in_trait_context(&self) -> bool {
+        // If there's a type named 'self' or we just have traits, we assume we might be in trait context.
+        // Actually the best way is to check if `self` is defined.
+        self.lookup_variable("self").is_some()
+    }
+
     /// Summons every known entity and its story ([`Binding`]) into the light.
     ///
     /// This gathers the truths from all accessible spheres of scope.

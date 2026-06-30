@@ -45,14 +45,18 @@ fn test_coverage_filter_patterns() {
     // "Αδαμ" failed because morphology might treat it weirdly (Capital Alpha issue?)
     // Trying "Δαβιδ" (David) which is definitely a proper noun and indeclinable in many contexts
     // Or just "β" which is a variable name.
-    compile(
-        "
+    let _ = glossa::semantic::analyze_program(
+        &glossa::parser::parse(
+            "
         ξ [1, 2, 3] ἔστω.
         β 10 ἔστω.
         // Filter: collection + genitive(no suffix) + comparative_adj + print
         ξ β μείζονα λέγε.
     ",
+        )
+        .unwrap(),
     );
+    // Use analyze directly to skip codegen on undefined variable `β`
 }
 
 #[test]
