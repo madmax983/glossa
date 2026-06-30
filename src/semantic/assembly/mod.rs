@@ -666,6 +666,7 @@ impl Assembler {
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
                 && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
                 && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
+                && !crate::morphology::lexicon::is_equals_verb(&verb.lemma)
             {
                 return Err(AssemblyError::DoubleSubject);
             }

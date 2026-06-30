@@ -32,10 +32,7 @@
 //!   - Did you use an Adjective that doesn't match the Gender of the Noun?
 //!
 //! * **Διπλοῦν ... (Double ...)**: You have too many words for one slot.
-//!   - `Διπλοῦν ὑποκείμενον`: You have two Subjects (Nominative nouns).
 //!   - `Διπλοῦν ῥῆμα`: You have two Verbs.
-//!
-//! * **Οὐκ οἶδα τὸ ὄνομα**: You are using a variable that hasn't been defined with `ἔστω`.
 
 #![allow(unused_assignments)]
 
