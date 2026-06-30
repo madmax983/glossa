@@ -98,6 +98,11 @@ pub struct Cli {
 /// ```
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Generate a C header file for FFI (Requires "nova" feature)
+    Diplomat {
+        /// Input file (.γλ)
+        input: std::path::PathBuf,
+    },
     /// Run a .γλ file (default)
     Run {
         /// Input file (.γλ)
