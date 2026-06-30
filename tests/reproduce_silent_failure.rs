@@ -24,6 +24,7 @@ fn test_undefined_struct_type_error() {
                     || msg.contains("undefined")
                     || msg.contains("Ἄγνωστον")
                     || msg.contains("Άγνωστον")
+                    || msg.contains("Οὐκ οἶδα τὸ ὄνομα")
             );
         }
     }
