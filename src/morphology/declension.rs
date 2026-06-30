@@ -203,8 +203,10 @@ where
 /// - Vocative singular (O sea!)
 ///
 /// The caller should use syntactic context to pick the right one.
+///
+/// ⚡ Bolt Optimization: Pre-allocating capacity avoids intermediate heap reallocations.
 pub fn analyze_noun_all(word: &str) -> Vec<MorphAnalysis> {
-    let mut analyses = Vec::new();
+    let mut analyses = Vec::with_capacity(8);
     analyze_noun_all_into(word, &mut analyses);
     analyses
 }
