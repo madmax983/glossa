@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Diplomat (ὁ Διπλωμάτης)
+**Concept:** A CLI tool (`glossa diplomat`) that generates C headers (`.h`) from Glossa types for FFI compatibility.
+**Fate:** Proposed
+**Lesson:** Proves that FFI is possible.
