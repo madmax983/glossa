@@ -525,8 +525,10 @@ where
 /// For example, "-ε" could be:
 /// - 2nd person singular present imperative (λέγε!)
 /// - 3rd person singular aorist indicative (ἔλυσε)
+///
+/// ⚡ Bolt Optimization: Pre-allocating capacity avoids intermediate heap reallocations.
 pub fn analyze_verb_all(word: &str) -> Vec<MorphAnalysis> {
-    let mut analyses = Vec::new();
+    let mut analyses = Vec::with_capacity(8);
     analyze_verb_all_into(word, &mut analyses);
     analyses
 }

@@ -8,3 +8,7 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+
+**[Pre-allocation in Morphology Vectors]**
+**Learning:** Found small, frequently-called functions (`analyze_noun_all`, `analyze_verb_all`) that instantiated `Vec::new()` and then appended multiple (`1..8`) items. Pre-allocating these vectors with `Vec::with_capacity(8)` saves intermediate heap reallocations. Also learned that when injecting new doc comments into existing Rust `///` blocks (especially after markdown lists like `/// - item`), you must insert a blank doc line (`///`) before the new text to prevent `clippy::doc-lazy-continuation` errors.
+**Action:** Use `Vec::with_capacity()` for small vectors populated in hot paths like syntax/morphology disambiguation, and remember to properly format Rust doc comments to appease `clippy`.
