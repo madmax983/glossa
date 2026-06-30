@@ -483,99 +483,101 @@ fn feed_expr_recursive(
     }
 
     match expr {
-        Expr::StringLiteral(s) => {
-            asm.feed_string(s.clone())?;
-        }
-        Expr::NumberLiteral(n) => {
-            asm.feed_number(*n)?;
-        }
-        Expr::BooleanLiteral(b) => {
-            asm.feed_boolean(*b)?;
-        }
-        Expr::Word(w) => {
-            feed_word_expr(w, asm, context)?;
-        }
-        Expr::Phrase(terms) => {
-            // Feed each term in the phrase, passing context through
-            // But detect nested phrases (parenthesized expressions) and store them separately
-            for term in terms {
-                if matches!(term, Expr::Phrase(_)) {
-                    // This is a nested phrase (parenthesized expression)
-                    // Store it for later analysis instead of flattening
-                    if let Expr::Phrase(nested_terms) = term {
-                        asm.feed_nested_phrase(nested_terms.clone())?;
-                    }
-                } else {
-                    feed_expr_recursive(asm, term, context, depth + 1)?;
-                }
-            }
-        }
-        Expr::PropertyAccess { .. } => {
-            // Property access expression (e.g. x.len)
-            // We feed this as a nested phrase so it's treated as a single unit (value)
-            // and analyzed later by analyze_argument_expr, rather than being split
-            // into constituent words which might be misassembled.
-
-            // SECURITY: Ensure we don't clone excessively deep structures, which would stack overflow.
-            check_cloning_depth_safety(expr, MAX_AST_DEPTH)?;
-
-            asm.feed_nested_phrase(vec![expr.clone()])?;
-        }
-        Expr::Call { verb, arguments } => {
-            // Feed the verb - verbs can set context for subjects
-            let analyses = morphology::analyze_all(&verb.normalized);
-            let best_verb = resolve_best(analyses, context);
-
-            // Set context from verb for potential subject agreement
-            *context = DisambiguationContext::from_verb(&best_verb);
-
-            if let Err(e) = asm.feed_with_normalized(&best_verb, &verb.original, &verb.normalized) {
-                return Err(GlossaError::semantic(e.to_string()));
-            }
-
-            // Feed arguments
-            for arg in arguments {
-                feed_expr_recursive(asm, arg, context, depth + 1)?;
-            }
-        }
-        Expr::Binding { name, value } => {
-            // Feed the name and value (binding verbs handled by assembler)
-            let analyses = morphology::analyze_all(&name.normalized);
-            let best_name = resolve_best(analyses, context);
-
-            if let Err(e) = asm.feed_with_normalized(&best_name, &name.original, &name.normalized) {
-                return Err(GlossaError::semantic(e.to_string()));
-            }
-            feed_expr_recursive(asm, value, context, depth + 1)?;
-        }
-        Expr::BinOp { left, op: _, right } => {
-            // TODO: Implement binary operation handling
-            feed_expr_recursive(asm, left, context, depth + 1)?;
-            feed_expr_recursive(asm, right, context, depth + 1)?;
-        }
-        Expr::UnaryOp { op, operand } => {
-            // Handle unwrap operator specially - it's a postfix operator that doesn't need word-order handling
-            if matches!(op, crate::ast::UnaryOperator::Unwrap) {
-                // Store the unwrap expression for special handling
-                asm.feed_unwrap(operand.as_ref().clone())?;
-            } else {
-                // TODO: Implement other unary operations (Not, Neg)
-                feed_expr_recursive(asm, operand, context, depth + 1)?;
-            }
-        }
-        Expr::Block(statements) => {
-            // Parenthesized expressions are stored as blocks for later analysis
-            // Don't feed their contents to the main assembler - they'll be analyzed separately
-            asm.feed_block(statements.clone())?;
-        }
-        Expr::ArrayLiteral(elements) => {
-            // Feed array literal to assembler
-            asm.feed_array(elements.clone())?;
-        }
+        Expr::StringLiteral(s) => asm.feed_string(s.clone())?,
+        Expr::NumberLiteral(n) => asm.feed_number(*n)?,
+        Expr::BooleanLiteral(b) => asm.feed_boolean(*b)?,
+        Expr::Word(w) => feed_word_expr(w, asm, context)?,
+        Expr::Phrase(terms) => feed_phrase(asm, terms, context, depth)?,
+        Expr::PropertyAccess { .. } => feed_property_access(asm, expr)?,
+        Expr::Call { verb, arguments } => feed_call(asm, verb, arguments, context, depth)?,
+        Expr::Binding { name, value } => feed_binding(asm, name, value, context, depth)?,
+        Expr::BinOp { left, right, .. } => feed_binop(asm, left, right, context, depth)?,
+        Expr::UnaryOp { op, operand } => feed_unary_op(asm, op, operand, context, depth)?,
+        Expr::Block(statements) => asm.feed_block(statements.clone())?,
+        Expr::ArrayLiteral(elements) => asm.feed_array(elements.clone())?,
         Expr::IndexAccess { array, index } => {
-            // Feed index access to assembler
-            asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone())?;
+            asm.feed_index_access(array.as_ref().clone(), index.as_ref().clone())?
         }
+    }
+    Ok(())
+}
+
+fn feed_phrase(
+    asm: &mut Assembler,
+    terms: &[Expr],
+    context: &mut DisambiguationContext,
+    depth: usize,
+) -> Result<(), GlossaError> {
+    for term in terms {
+        if let Expr::Phrase(nested_terms) = term {
+            asm.feed_nested_phrase(nested_terms.clone())?;
+        } else {
+            feed_expr_recursive(asm, term, context, depth + 1)?;
+        }
+    }
+    Ok(())
+}
+
+fn feed_property_access(asm: &mut Assembler, expr: &Expr) -> Result<(), GlossaError> {
+    check_cloning_depth_safety(expr, MAX_AST_DEPTH)?;
+    asm.feed_nested_phrase(vec![expr.clone()])?;
+    Ok(())
+}
+
+fn feed_call(
+    asm: &mut Assembler,
+    verb: &crate::ast::Word,
+    arguments: &[Expr],
+    context: &mut DisambiguationContext,
+    depth: usize,
+) -> Result<(), GlossaError> {
+    let best_verb = resolve_best(morphology::analyze_all(&verb.normalized), context);
+    *context = DisambiguationContext::from_verb(&best_verb);
+    asm.feed_with_normalized(&best_verb, &verb.original, &verb.normalized)
+        .map_err(|e| GlossaError::semantic(e.to_string()))?;
+    for arg in arguments {
+        feed_expr_recursive(asm, arg, context, depth + 1)?;
+    }
+    Ok(())
+}
+
+fn feed_binding(
+    asm: &mut Assembler,
+    name: &crate::ast::Word,
+    value: &Expr,
+    context: &mut DisambiguationContext,
+    depth: usize,
+) -> Result<(), GlossaError> {
+    let best_name = resolve_best(morphology::analyze_all(&name.normalized), context);
+    asm.feed_with_normalized(&best_name, &name.original, &name.normalized)
+        .map_err(|e| GlossaError::semantic(e.to_string()))?;
+    feed_expr_recursive(asm, value, context, depth + 1)?;
+    Ok(())
+}
+
+fn feed_binop(
+    asm: &mut Assembler,
+    left: &Expr,
+    right: &Expr,
+    context: &mut DisambiguationContext,
+    depth: usize,
+) -> Result<(), GlossaError> {
+    feed_expr_recursive(asm, left, context, depth + 1)?;
+    feed_expr_recursive(asm, right, context, depth + 1)?;
+    Ok(())
+}
+
+fn feed_unary_op(
+    asm: &mut Assembler,
+    op: &crate::ast::UnaryOperator,
+    operand: &Expr,
+    context: &mut DisambiguationContext,
+    depth: usize,
+) -> Result<(), GlossaError> {
+    if matches!(op, crate::ast::UnaryOperator::Unwrap) {
+        asm.feed_unwrap(operand.clone())?;
+    } else {
+        feed_expr_recursive(asm, operand, context, depth + 1)?;
     }
     Ok(())
 }
