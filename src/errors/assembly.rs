@@ -18,6 +18,15 @@ use thiserror::Error;
 /// assert!(error.to_string().contains("Διπλοῦν ἀντικείμενον"));
 /// ```
 ///
+/// Attempting to use two subjects in the same sentence causes a DoubleSubject error:
+///
+/// ```rust
+/// use glossa::errors::AssemblyError;
+///
+/// let error = AssemblyError::DoubleSubject;
+/// assert!(error.to_string().contains("Διπλοῦν ὑποκείμενον"));
+/// ```
+///
 #[derive(Debug, Clone, Error, Diagnostic)]
 pub enum AssemblyError {
     /// Two subjects found in the same statement (Nominative collision)
