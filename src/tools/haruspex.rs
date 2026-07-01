@@ -160,25 +160,13 @@ fn visit_statement(next_id: &mut usize, output: &mut String, stmt: &AnalyzedStat
             emit_edge(output, id, val_id, "value");
         }
         AnalyzedStatement::Print(exprs) => {
-            emit_node(output, id, "Print", "lightgreen");
-            for (i, expr) in exprs.iter().enumerate() {
-                let child_id = visit_expr(next_id, output, expr);
-                emit_edge(output, id, child_id, &format!("arg_{}", i));
-            }
+            visit_statement_list(next_id, output, id, "Print", exprs)
         }
         AnalyzedStatement::Expression(exprs) => {
-            emit_node(output, id, "ExpressionStmt", "lightgreen");
-            for (i, expr) in exprs.iter().enumerate() {
-                let child_id = visit_expr(next_id, output, expr);
-                emit_edge(output, id, child_id, &format!("expr_{}", i));
-            }
+            visit_statement_list(next_id, output, id, "ExpressionStmt", exprs)
         }
         AnalyzedStatement::Query(exprs) => {
-            emit_node(output, id, "Query", "lightgreen");
-            for (i, expr) in exprs.iter().enumerate() {
-                let child_id = visit_expr(next_id, output, expr);
-                emit_edge(output, id, child_id, &format!("arg_{}", i));
-            }
+            visit_statement_list(next_id, output, id, "Query", exprs)
         }
         AnalyzedStatement::If {
             condition,
@@ -321,32 +309,20 @@ fn visit_expr(next_id: &mut usize, output: &mut String, expr: &AnalyzedExpr) -> 
             visit_array_literal_expr(next_id, output, id, exprs, &type_info);
         }
         AnalyzedExprKind::Some(e) => {
-            emit_node(output, id, &format!("Some{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "value");
+            visit_wrapper_expr(next_id, output, id, "Some", "value", e, &type_info)
         }
-        AnalyzedExprKind::None => {
-            emit_node(output, id, &format!("None{}", type_info), "lightyellow");
-        }
+        AnalyzedExprKind::None => visit_leaf_expr(output, id, "None", &type_info),
         AnalyzedExprKind::Ok(e) => {
-            emit_node(output, id, &format!("Ok{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "value");
+            visit_wrapper_expr(next_id, output, id, "Ok", "value", e, &type_info)
         }
         AnalyzedExprKind::Err(e) => {
-            emit_node(output, id, &format!("Err{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "error");
+            visit_wrapper_expr(next_id, output, id, "Err", "error", e, &type_info)
         }
         AnalyzedExprKind::Unwrap(e) => {
-            emit_node(output, id, &format!("Unwrap{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "target");
+            visit_wrapper_expr(next_id, output, id, "Unwrap", "target", e, &type_info)
         }
         AnalyzedExprKind::Try(e) => {
-            emit_node(output, id, &format!("Try{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "target");
+            visit_wrapper_expr(next_id, output, id, "Try", "target", e, &type_info)
         }
         AnalyzedExprKind::IndexAccess { array, index } => {
             emit_node(
@@ -820,6 +796,48 @@ fn visit_lambda_expr(
     );
     let body_id = visit_expr(next_id, output, body);
     emit_edge(output, id, body_id, "body");
+}
+
+fn visit_statement_list(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    name: &str,
+    exprs: &[AnalyzedExpr],
+) {
+    emit_node(output, id, name, "lightgreen");
+    for (i, expr) in exprs.iter().enumerate() {
+        let child_id = visit_expr(next_id, output, expr);
+        let label = if name == "ExpressionStmt" {
+            format!("expr_{}", i)
+        } else {
+            format!("arg_{}", i)
+        };
+        emit_edge(output, id, child_id, &label);
+    }
+}
+
+fn visit_leaf_expr(output: &mut String, id: usize, label: &str, type_info: &str) {
+    emit_node(
+        output,
+        id,
+        &format!("{}{}", label, type_info),
+        "lightyellow",
+    );
+}
+
+fn visit_wrapper_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    name: &str,
+    edge_label: &str,
+    inner: &AnalyzedExpr,
+    type_info: &str,
+) {
+    emit_node(output, id, &format!("{}{}", name, type_info), "lightyellow");
+    let inner_id = visit_expr(next_id, output, inner);
+    emit_edge(output, id, inner_id, edge_label);
 }
 
 #[cfg(test)]
