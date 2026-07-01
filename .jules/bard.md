@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-06-15 - Doc Comments Must Directly Precede Items
+**Confusion:** The documentation for `to_rust_type` was completely detached from the function because a `use std::fmt::Write;` statement was placed between the doc comment block and the function signature. This triggered a `missing_docs` warning despite the documentation existing.
+**Clarification:** I moved the `use` statement above the documentation block so that the doc comment is directly attached to the function, resolving the warning and ensuring the documentation renders correctly for the item.
