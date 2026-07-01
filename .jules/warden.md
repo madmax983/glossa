@@ -131,3 +131,7 @@ Signed,
 **2026-04-30 - [Infinite Stream DoS Vulnerability in File Loading]
 **Threat:** The `load_source` function in `src/tools/runner.rs` relied on `fs::metadata().len()` to enforce the `MAX_FILE_SIZE` limit. However, special device files like `/dev/zero` report a length of 0 while producing an infinite stream of bytes when read. Reading these files with `fs::read_to_string` causes a thread hang or Out-Of-Memory (OOM) Denial-of-Service condition.
 **Defense:** Added an explicit `metadata.is_file()` check in `check_file_size` to guarantee that the input path points to a regular file and explicitly reject non-regular file types like directories and device streams. Updated `tests/havoc_dos.rs` and `test_load_source_directory_error` to assert the "Not a valid file" error and pass cleanly without timeouts.
+
+**2024-11-20 - [Anyhow Unsoundness CVE & Unbounded Reads]
+**Threat:** `cargo audit` identified `anyhow` version `1.0.102` as vulnerable to `RUSTSEC-2026-0190` (Unsoundness in `Error::downcast_mut()`). Additionally, `src/tools/scholar.rs` contained unbounded `fs::read_to_string` calls in its test suite, posing a potential (though low-risk in tests) memory exhaustion DoS vector.
+**Defense:** Updated `anyhow` to `1.0.103` using `cargo update -p anyhow`. Replaced `fs::read_to_string` in `src/tools/scholar.rs` tests with explicitly capped readers using `std::io::Read::take(f, 1024 * 1024 + 1)`.
