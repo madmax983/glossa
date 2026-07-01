@@ -49,14 +49,14 @@ fn test_run_papyrus_success() {
     let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }. ξ 5 ἔστω.";
     write!(temp_file, "{}", source).expect("Failed to write to temp file");
 
-    let result = glossa::tools::papyrus::run_papyrus(temp_file.path());
+    let result = glossa::tools::papyrus::run_papyrus_inner(temp_file.path(), false);
     assert!(result.is_ok(), "Papyrus failed: {:?}", result.err());
 }
 
 #[test]
 fn test_run_papyrus_file_not_found() {
     let path = PathBuf::from("non_existent_file.gl");
-    let result = glossa::tools::papyrus::run_papyrus(&path);
+    let result = glossa::tools::papyrus::run_papyrus_inner(&path, false);
     assert!(result.is_err());
     assert!(
         result
@@ -79,7 +79,7 @@ fn test_run_papyrus_file_too_large() {
         f.write_all(&data).unwrap();
     }
 
-    let result = glossa::tools::papyrus::run_papyrus(&input_path);
+    let result = glossa::tools::papyrus::run_papyrus_inner(&input_path, false);
     assert!(result.is_err());
     assert!(
         result
@@ -98,7 +98,7 @@ fn test_run_papyrus_syntax_error() {
 
     write!(temp_file, "invalid syntax").expect("Failed to write");
 
-    let result = glossa::tools::papyrus::run_papyrus(temp_file.path());
+    let result = glossa::tools::papyrus::run_papyrus_inner(temp_file.path(), false);
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("Parse error"));
 }
@@ -112,7 +112,7 @@ fn test_run_papyrus_semantic_error() {
 
     write!(temp_file, "ψ πέντε γίγνεται.").expect("Failed to write");
 
-    let result = glossa::tools::papyrus::run_papyrus(temp_file.path());
+    let result = glossa::tools::papyrus::run_papyrus_inner(temp_file.path(), false);
     assert!(result.is_err());
     let err_str = result.unwrap_err().to_string();
     assert!(

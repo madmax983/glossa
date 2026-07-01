@@ -48,6 +48,10 @@ use std::path::Path;
 /// Returns a [`miette::Result`] if the file cannot be read, or if there is a parsing
 /// or semantic analysis error during compilation.
 pub fn run_papyrus(input: &Path) -> Result<()> {
+    run_papyrus_inner(input, std::io::stdout().is_terminal())
+}
+
+pub fn run_papyrus_inner(input: &Path, is_tty: bool) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
@@ -90,12 +94,12 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
         }
     }
 
-    if std::io::stdout().is_terminal() {
-        println!();
-        println!("   {}", "Γ Λ Ω Σ Σ Α   P A P Y R U S".bold().cyan());
-        println!("   {}", "SQL Schema".italic().dim());
-        println!();
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   P A P Y R U S".bold().cyan());
+    println!("   {}", "SQL Schema".italic().dim());
+    println!();
 
+    if is_tty {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
 

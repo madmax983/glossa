@@ -62,6 +62,7 @@ pub fn run_labyrinth_inner<W: std::io::Write>(
         .into_diagnostic()?;
         writeln!(writer, "   {}", "Control Flow Graph".italic().dim()).into_diagnostic()?;
         writeln!(writer).into_diagnostic()?;
+
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
 

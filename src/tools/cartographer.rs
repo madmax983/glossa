@@ -46,6 +46,10 @@ use std::path::Path;
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
 pub fn run_map(input: &Path) -> Result<()> {
+    run_map_inner(input, std::io::stdout().is_terminal())
+}
+
+pub fn run_map_inner(input: &Path, is_tty: bool) -> Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
@@ -62,12 +66,12 @@ pub fn run_map(input: &Path) -> Result<()> {
 
     status.success();
 
-    if std::io::stdout().is_terminal() {
-        println!();
-        println!("   {}", "Γ Λ Ω Σ Σ Α   M A P".bold().cyan());
-        println!("   {}", "Architectural Blueprint".italic().dim());
-        println!();
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   M A P".bold().cyan());
+    println!("   {}", "Architectural Blueprint".italic().dim());
+    println!();
 
+    if is_tty {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
 
