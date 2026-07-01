@@ -8,3 +8,6 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+**[Optimizing Morphological Analysis Vectors]**
+**Learning:** During highly repetitive parsing loops (like linguistic morphological analysis), allocating zero-capacity vectors (`Vec::new()`) leads to immediate and predictable heap re-allocations because elements are always appended. By inspecting the domain model (a word usually has 1-4 valid morphological interpretations), pre-allocating small fixed capacities (e.g., `Vec::with_capacity(4)`) eliminates these intermediate growth allocations without wasting significant memory.
+**Action:** Replace `Vec::new()` with `Vec::with_capacity(n)` in hot paths where the approximate number of appended elements is known or bounded.
