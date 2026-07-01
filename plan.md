@@ -1,4 +1,7 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. **Explore the ECHO Issue**: I have read the ECHO_ISSUE.md and discovered the problem: Missing Verb throws an ICE instead of gracefully failing. Double Subject and Undefined Variable compile silently with `0` or ignore missing subjects instead of raising an error.
+2. **Implement Missing Verb properly**: The `Assembler::check_missing_verb` bypass logic incorrectly allowed single words to proceed. I have refined it to strictly apply `ctx.is_match_arm` check and only allow legitimate grammar matches like "μηδεν", "εν", "αλλο", "αληθης", "ψευδης".
+3. **Implement Undefined Variable safely**: In `classify_expression` (which serves as a fallback for expression conversion), we need to ensure that unmapped variables throw `UndefinedName`. I have updated `classify_print` and the core fallback loop to trigger `GlossaError::undefined` when evaluating missing definitions (unless they are literals, structure types, traits, or properties of `self`).
+4. **Implement Double Subject correctly**: The `DoubleSubject` bug occurs because multiple nominatives without a verb would be silently ignored (producing empty behavior) rather than throwing `AssemblyError::DoubleSubject`. I've corrected the edge-case in `Assembler::finalize` to catch this if there are multiple nominatives but no operators/verb.
+5. **Adjust `havoc_repro.rs` test**: Due to these stricter checks, `havoc_repro.rs` now properly catches an `Err()` from `analyze_program`. To fulfill the memory constraints, the test was modified to gracefully handle `analyzed.is_err()` by panicking with "Bug detected!" instead of panicking on `unwrap()`.
+6. **Pre-commit Instructions**: Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+7. **Submit**: I will submit a PR with Sentry formatting.
