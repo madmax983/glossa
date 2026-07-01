@@ -19,20 +19,25 @@ use crate::semantic::{AnalyzedProgram, AnalyzedStatement};
 use crate::tools::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Run the Labyrinth tool on a file
 pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
     let mut buffer = Vec::new();
-    run_labyrinth_inner(&source, &mut buffer)?;
+    run_labyrinth_inner(&source, &mut buffer, std::io::stdout().is_terminal())?;
     let output = String::from_utf8(buffer).expect("comfy-table outputs valid UTF-8");
     print!("{}", output);
     Ok(())
 }
 
 /// Internal implementation of Labyrinth logic for testing
-pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> miette::Result<()> {
+pub fn run_labyrinth_inner<W: std::io::Write>(
+    source: &str,
+    writer: &mut W,
+    is_tty: bool,
+) -> miette::Result<()> {
     use miette::IntoDiagnostic;
     let status = Status::start_with_symbol("Λαβύρινθος (Control Flow Graph)", "🔀");
 
@@ -47,58 +52,63 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
     let cfg = generate_cfg(&program);
     status.success();
 
-    writeln!(writer).into_diagnostic()?;
-    writeln!(
-        writer,
-        "   {}",
-        "Γ Λ Ω Σ Σ Α   L A B Y R I N T H".bold().cyan()
-    )
-    .into_diagnostic()?;
-    writeln!(writer, "   {}", "Control Flow Graph".italic().dim()).into_diagnostic()?;
-    writeln!(writer).into_diagnostic()?;
-
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
-
-    if program.statements.is_empty() {
-        table.set_header(vec![
-            Cell::new("Status")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
-        ]);
-        table.add_row(vec![
-            Cell::new("No control flow structures found.")
-                .fg(Color::DarkGrey)
-                .add_attribute(Attribute::Italic),
-        ]);
-        writeln!(writer, "{table}").into_diagnostic()?;
-        writeln!(writer).into_diagnostic()?;
-    } else {
-        table.set_header(vec![
-            Cell::new("Mermaid.js Diagram")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-        ]);
-
-        let formatted_cfg = format!("```mermaid\n{}\n```", cfg.trim());
-        table.add_row(vec![Cell::new(formatted_cfg)]);
-
-        writeln!(writer, "{table}").into_diagnostic()?;
+    if is_tty {
         writeln!(writer).into_diagnostic()?;
         writeln!(
             writer,
             "   {}",
-            "📋 Usage Instructions:".bold().underlined()
+            "Γ Λ Ω Σ Σ Α   L A B Y R I N T H".bold().cyan()
         )
         .into_diagnostic()?;
-        writeln!(writer, "   1. Copy the code block above.").into_diagnostic()?;
-        writeln!(
-            writer,
-            "   2. Paste it into {}",
-            "https://mermaid.live".cyan().underlined()
-        )
-        .into_diagnostic()?;
+        writeln!(writer, "   {}", "Control Flow Graph".italic().dim()).into_diagnostic()?;
         writeln!(writer).into_diagnostic()?;
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
+
+        if program.statements.is_empty() {
+            table.set_header(vec![
+                Cell::new("Status")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Yellow),
+            ]);
+            table.add_row(vec![
+                Cell::new("No control flow structures found.")
+                    .fg(Color::DarkGrey)
+                    .add_attribute(Attribute::Italic),
+            ]);
+            writeln!(writer, "{table}").into_diagnostic()?;
+            writeln!(writer).into_diagnostic()?;
+        } else {
+            table.set_header(vec![
+                Cell::new("Mermaid.js Diagram")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Cyan),
+            ]);
+
+            let formatted_cfg = format!("```mermaid\n{}\n```", cfg.trim());
+            table.add_row(vec![Cell::new(formatted_cfg)]);
+
+            writeln!(writer, "{table}").into_diagnostic()?;
+            writeln!(writer).into_diagnostic()?;
+            writeln!(
+                writer,
+                "   {}",
+                "📋 Usage Instructions:".bold().underlined()
+            )
+            .into_diagnostic()?;
+            writeln!(writer, "   1. Copy the code block above.").into_diagnostic()?;
+            writeln!(
+                writer,
+                "   2. Paste it into {}",
+                "https://mermaid.live".cyan().underlined()
+            )
+            .into_diagnostic()?;
+            writeln!(writer).into_diagnostic()?;
+        }
+    } else {
+        if !program.statements.is_empty() {
+            writeln!(writer, "{}", cfg.trim()).into_diagnostic()?;
+        }
     }
 
     Ok(())
