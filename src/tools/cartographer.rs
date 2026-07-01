@@ -39,12 +39,17 @@ use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
 use rustc_hash::FxHashSet;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Run the Cartographer tool on a file
 ///
 /// Reads the source file, parses it, and prints the architectural map to stdout.
 pub fn run_map(input: &Path) -> Result<()> {
+    run_map_inner(input, std::io::stdout().is_terminal())
+}
+
+pub fn run_map_inner(input: &Path, is_tty: bool) -> Result<()> {
     let source = crate::tools::runner::load_source(input)?;
 
     let status = Status::start_with_symbol("Χαρτογράφησις (Mapping)", "🗺️");
@@ -66,43 +71,49 @@ pub fn run_map(input: &Path) -> Result<()> {
     println!("   {}", "Architectural Blueprint".italic().dim());
     println!();
 
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
+    if is_tty {
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
 
-    if map.trim() == "classDiagram" {
-        table.set_header(vec![
-            Cell::new("Status")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
-        ]);
-        table.add_row(vec![
-            Cell::new("No architectural structures (Structs) found.")
-                .fg(Color::DarkGrey)
-                .add_attribute(Attribute::Italic),
-        ]);
-        println!("{table}");
-        println!();
+        if map.trim() == "classDiagram" {
+            table.set_header(vec![
+                Cell::new("Status")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Yellow),
+            ]);
+            table.add_row(vec![
+                Cell::new("No architectural structures (Structs) found.")
+                    .fg(Color::DarkGrey)
+                    .add_attribute(Attribute::Italic),
+            ]);
+            println!("{table}");
+            println!();
+        } else {
+            table.set_header(vec![
+                Cell::new("Mermaid.js Diagram")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Cyan),
+            ]);
+
+            // Wrap in markdown code block for easy copying
+            let formatted_map = format!("```mermaid\n{}\n```", map.trim());
+
+            table.add_row(vec![Cell::new(formatted_map)]);
+
+            println!("{table}");
+            println!();
+            println!("   {}", "📋 Usage Instructions:".bold().underlined());
+            println!("   1. Copy the code block above.");
+            println!(
+                "   2. Paste it into {}",
+                "https://mermaid.live".cyan().underlined()
+            );
+            println!();
+        }
     } else {
-        table.set_header(vec![
-            Cell::new("Mermaid.js Diagram")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-        ]);
-
-        // Wrap in markdown code block for easy copying
-        let formatted_map = format!("```mermaid\n{}\n```", map.trim());
-
-        table.add_row(vec![Cell::new(formatted_map)]);
-
-        println!("{table}");
-        println!();
-        println!("   {}", "📋 Usage Instructions:".bold().underlined());
-        println!("   1. Copy the code block above.");
-        println!(
-            "   2. Paste it into {}",
-            "https://mermaid.live".cyan().underlined()
-        );
-        println!();
+        if map.trim() != "classDiagram" {
+            println!("{}", map.trim());
+        }
     }
 
     Ok(())

@@ -21,6 +21,10 @@ use std::path::Path;
 
 /// Runs the Haruspex tool to generate a Graphviz DOT representation of the AST.
 pub fn run_haruspex(input: &Path) -> Result<()> {
+    run_haruspex_inner(input, std::io::stdout().is_terminal())
+}
+
+pub fn run_haruspex_inner(input: &Path, is_tty: bool) -> Result<()> {
     if !input.exists() {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
@@ -47,7 +51,7 @@ pub fn run_haruspex(input: &Path) -> Result<()> {
 
     let dot = generate_dot(&program);
 
-    print_dashboard(&dot, std::io::stdout().is_terminal());
+    print_dashboard(&dot, is_tty);
     Ok(())
 }
 

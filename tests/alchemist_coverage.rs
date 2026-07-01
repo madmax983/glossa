@@ -5,7 +5,7 @@ use glossa::morphology::{BinaryOp, UnaryOp};
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
 };
-use glossa::tools::alchemist::{run_alchemist, transpile_to_python};
+use glossa::tools::alchemist::transpile_to_python;
 use std::io::Write;
 use tempfile::Builder;
 
@@ -329,6 +329,6 @@ fn test_run_alchemist() {
     let source = "ξ 1 ἔστω. ξ λέγε.";
     write!(temp_file, "{}", source).expect("Failed to write to temp file");
 
-    let result = run_alchemist(temp_file.path());
+    let result = glossa::tools::alchemist::run_alchemist_inner(temp_file.path(), false);
     assert!(result.is_ok(), "Alchemist failed: {:?}", result.err());
 }
