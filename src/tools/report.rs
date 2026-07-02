@@ -53,7 +53,7 @@ impl ProgramStats {
     /// ```rust,ignore
     /// use glossa::parser::parse;
     /// use glossa::semantic::analyze_program;
-    /// use glossa::tools::report::ProgramStats;
+    /// use glossa::tools::ProgramStats;
     ///
     /// let source = "ξ πέντε ἔστω.";
     /// let ast = parse(source).unwrap();
@@ -274,7 +274,7 @@ impl<'a> GlossaReport<'a> {
     /// ```rust,ignore
     /// use glossa::parser::parse;
     /// use glossa::semantic::analyze_program;
-    /// use glossa::tools::report::GlossaReport;
+    /// use glossa::tools::GlossaReport;
     ///
     /// let source = "ξ πέντε ἔστω.";
     /// let ast = parse(source).unwrap();

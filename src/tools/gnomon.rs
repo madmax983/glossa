@@ -113,7 +113,7 @@ impl GnomonVisitor {
 /// # Examples
 ///
 /// ```rust,no_run
-/// use glossa::tools::gnomon::run_gnomon;
+/// use glossa::tools::run_gnomon;
 /// use std::path::Path;
 ///
 /// let input = Path::new("algorithm.γλ");

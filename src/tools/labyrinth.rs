@@ -113,7 +113,7 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::tools::labyrinth::generate_cfg;
+/// use glossa::tools::generate_cfg;
 /// use glossa::semantic::analyze_program;
 /// use glossa::parser::parse;
 ///

@@ -32,7 +32,7 @@ use std::fmt;
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::tools::interpreter::Value;
+/// use glossa::tools::Value;
 ///
 /// // Create a numerical truth
 /// let count = Value::Number(42);
@@ -79,7 +79,7 @@ impl fmt::Display for Value {
 /// ## Examples
 ///
 /// ```rust
-/// use glossa::tools::interpreter::EvalError;
+/// use glossa::tools::EvalError;
 ///
 /// let missing_var = EvalError::VariableNotFound("x".into());
 /// assert!(missing_var.to_string().contains("μεταβλητὴ"));
@@ -135,7 +135,7 @@ pub enum EvalError {
 /// # Examples
 ///
 /// ```rust
-/// use glossa::tools::interpreter::Interpreter;
+/// use glossa::tools::Interpreter;
 ///
 /// let mut interp = Interpreter::new();
 /// // You could then run a program via `interp.run(&analyzed_program)`
@@ -163,7 +163,7 @@ impl Interpreter {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::interpreter::Interpreter;
+    /// use glossa::tools::Interpreter;
     ///
     /// let interp = Interpreter::new();
     /// assert_eq!(interp.get_output(), "");
@@ -180,7 +180,7 @@ impl Interpreter {
     /// # Examples
     ///
     /// ```rust
-    /// use glossa::tools::interpreter::Interpreter;
+    /// use glossa::tools::Interpreter;
     /// use glossa::parser::parse;
     /// use glossa::semantic::analyze_program;
     ///
