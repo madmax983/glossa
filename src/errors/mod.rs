@@ -105,9 +105,9 @@ pub enum GlossaError {
     ///
     /// # Example Output
     /// ```text
-    /// Ἄγνωστον ὄνομα: ξ
+    /// Οὐκ οἶδα τὸ ὄνομα: ξ
     /// ```
-    #[error("Ἄγνωστον ὄνομα: {name}")]
+    #[error("Οὐκ οἶδα τὸ ὄνομα: {name}")]
     #[diagnostic(code(glossa::undefined))]
     UndefinedName {
         /// The identifier (variable or function name) that the compiler could not resolve in the current scope.
@@ -326,7 +326,7 @@ mod tests {
     #[test]
     fn test_undefined_error() {
         let err = GlossaError::undefined("ξ");
-        assert!(err.to_string().contains("Ἄγνωστον ὄνομα"));
+        assert!(err.to_string().contains("Οὐκ οἶδα τὸ ὄνομα"));
         assert!(err.to_string().contains("ξ"));
     }
 

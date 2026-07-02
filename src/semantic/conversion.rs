@@ -953,9 +953,17 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
+    if let Some(ref subj) = asm_stmt.subject {
+        if !scope.is_defined(&subj.lemma) && !scope.is_defined(&subj.normalized) {
+            let is_trait = scope.traits().any(|_| true);
+            if !is_trait {
+                return Err(GlossaError::undefined(subj.normalized.clone()));
+            }
+        }
+        let var_type = scope
+            .lookup(&subj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         args.insert(
             0,
             AnalyzedExpr {
@@ -965,9 +973,17 @@ fn try_print_default(
         );
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
+    if let Some(ref obj) = asm_stmt.object {
+        if !scope.is_defined(&obj.lemma) && !scope.is_defined(&obj.normalized) {
+            let is_trait = scope.traits().any(|_| true);
+            if !is_trait {
+                return Err(GlossaError::undefined(obj.normalized.clone()));
+            }
+        }
+        let var_type = scope
+            .lookup(&obj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         args.push(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
             glossa_type: var_type.clone(),
@@ -1028,6 +1044,25 @@ fn classify_query(
         exprs.push(literal_to_analyzed_expr(lit));
     }
     if let Some(ref subj) = asm_stmt.subject {
+        if !scope.is_defined(&subj.lemma) && !scope.is_defined(&subj.normalized) {
+            let is_trait = scope.traits().any(|_| true);
+            let l = subj.lemma.as_str();
+            if !is_trait
+                && l != "μηδεν"
+                && l != "εν"
+                && l != "αλλο"
+                && l != "αληθης"
+                && l != "ψευδης"
+                && crate::morphology::lexicon::numeral_value(l).is_none()
+                && !crate::morphology::lexicon::is_none_word(l)
+                && !crate::morphology::lexicon::is_some_word(l)
+                && !crate::morphology::lexicon::is_ok_word(l)
+                && !crate::morphology::lexicon::is_err_word(l)
+                && !(l.starts_with('«') && l.ends_with('»'))
+            {
+                return Err(GlossaError::undefined(subj.normalized.clone()));
+            }
+        }
         let var_type = scope
             .lookup(&subj.lemma)
             .cloned()
@@ -1157,11 +1192,59 @@ fn classify_expression(
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            if !asm_stmt.is_propagate {
+                let is_trait = scope.traits().any(|_| true);
+                let l = subj.lemma.as_str();
+                #[allow(clippy::collapsible_if)]
+                if !is_trait
+                    && !scope.is_defined(&subj.lemma)
+                    && !scope.is_defined(&subj.normalized)
+                    && l != "μηδεν"
+                    && l != "εν"
+                    && l != "αλλο"
+                    && l != "αληθης"
+                    && l != "ψευδης"
+                    && crate::morphology::lexicon::numeral_value(l).is_none()
+                    && !crate::morphology::lexicon::is_none_word(l)
+                    && !crate::morphology::lexicon::is_some_word(l)
+                    && !crate::morphology::lexicon::is_ok_word(l)
+                    && !crate::morphology::lexicon::is_err_word(l)
+                    && !(l.starts_with('«') && l.ends_with('»'))
+                {
+                    if asm_stmt.genitives.is_empty() && asm_stmt.property_accesses.is_empty() {
+                        return Err(GlossaError::undefined(subj.normalized.clone()));
+                    }
+                }
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,
             });
         } else if let Some(ref obj) = asm_stmt.object {
+            if !asm_stmt.is_propagate {
+                let is_trait = scope.traits().any(|_| true);
+                let l = obj.lemma.as_str();
+                #[allow(clippy::collapsible_if)]
+                if !is_trait
+                    && !scope.is_defined(&obj.lemma)
+                    && !scope.is_defined(&obj.normalized)
+                    && l != "μηδεν"
+                    && l != "εν"
+                    && l != "αλλο"
+                    && l != "αληθης"
+                    && l != "ψευδης"
+                    && crate::morphology::lexicon::numeral_value(l).is_none()
+                    && !crate::morphology::lexicon::is_none_word(l)
+                    && !crate::morphology::lexicon::is_some_word(l)
+                    && !crate::morphology::lexicon::is_ok_word(l)
+                    && !crate::morphology::lexicon::is_err_word(l)
+                    && !(l.starts_with('«') && l.ends_with('»'))
+                {
+                    if asm_stmt.genitives.is_empty() && asm_stmt.property_accesses.is_empty() {
+                        return Err(GlossaError::undefined(obj.normalized.clone()));
+                    }
+                }
+            }
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
                 glossa_type: GlossaType::Unknown,

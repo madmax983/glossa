@@ -26,7 +26,7 @@ fn test_errors_display_impls() {
     assert_eq!(err_semantic.category_greek(), "Σημασία");
 
     let err_undefined = GlossaError::undefined("x");
-    assert!(format!("{}", err_undefined).contains("Ἄγνωστον ὄνομα"));
+    assert!(format!("{}", err_undefined).contains("Οὐκ οἶδα τὸ ὄνομα"));
     assert_eq!(err_undefined.category_greek(), "Ὄνομα");
 
     let err_agreement = GlossaError::agreement("test");
