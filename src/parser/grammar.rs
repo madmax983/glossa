@@ -124,7 +124,12 @@ mod tests {
         let result = parse("invalid_garbage_syntax!!!!");
         assert!(result.is_err());
         let err_str = result.unwrap_err().to_string();
-        assert!(err_str.contains("Expected") || err_str.contains("expected") || err_str.contains("Σφάλμα") || err_str.to_lowercase().contains("error"));
+        assert!(
+            err_str.contains("Expected")
+                || err_str.contains("expected")
+                || err_str.contains("Σφάλμα")
+                || err_str.to_lowercase().contains("error")
+        );
     }
 
     use super::*;

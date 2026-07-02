@@ -249,21 +249,32 @@ mod tests {
     use super::*;
     use crate::semantic::GlossaType;
 
-
     #[test]
     fn test_ast_statement_depth_limit() {
-        let stmt = Statement::Regular { clauses: vec![], is_query: false, is_propagate: false };
+        let stmt = Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        };
         let result = check_ast_statement_depth(&stmt, MAX_AST_DEPTH + 1);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Σφάλμα σημασίας: Recursion limit exceeded in statement analysis");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Σφάλμα σημασίας: Recursion limit exceeded in statement analysis"
+        );
     }
 
     #[test]
     fn test_ast_clause_depth_limit() {
-        let clause = Clause { expressions: vec![] };
+        let clause = Clause {
+            expressions: vec![],
+        };
         let result = check_ast_clause_depth(&clause, MAX_AST_DEPTH + 1);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Σφάλμα σημασίας: Recursion limit exceeded in clause analysis");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Σφάλμα σημασίας: Recursion limit exceeded in clause analysis"
+        );
     }
     #[test]
     fn test_statement_depth_limit() {
@@ -295,7 +306,6 @@ mod tests {
             _ => panic!("Expected LimitExceeded error"),
         }
     }
-
 
     #[test]
     fn test_return_statement_depth_limit() {
