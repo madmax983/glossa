@@ -832,6 +832,51 @@ mod tests {
     use super::*;
     use crate::ast::{Clause, Expr, Statement, Word};
 
+
+    #[test]
+    fn test_for_range_errors() {
+        let mut scope = Scope::new();
+        // 1. empty range clause
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause { expressions: vec![] },
+                Clause { expressions: vec![Expr::Word(Word::new("τελος"))] },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_for_range_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Σφάλμα σημασίας: Empty range clause in for loop");
+
+        // 2. not a phrase for words extraction
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause { expressions: vec![Expr::Word(Word::new("απο"))] },
+                Clause { expressions: vec![Expr::Word(Word::new("τελος"))] },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_for_range_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Σφάλμα σημασίας: Expected phrase in for range");
+    }
+
+    #[test]
+    fn test_while_loop_body_error() {
+        let mut scope = Scope::new();
+        // missing body loop
+        let stmt = Statement::Regular {
+            clauses: vec![
+                Clause { expressions: vec![Expr::Phrase(vec![Expr::Word(Word::new("εφ")), Expr::Word(Word::new("οσον"))])] },
+            ],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = parse_while_loop(&stmt, &mut scope);
+        assert!(result.is_err());
+    }
     #[test]
     fn test_parse_match_expression_missing_clauses() {
         let mut scope = Scope::new();

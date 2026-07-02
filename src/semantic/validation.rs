@@ -249,6 +249,22 @@ mod tests {
     use super::*;
     use crate::semantic::GlossaType;
 
+
+    #[test]
+    fn test_ast_statement_depth_limit() {
+        let stmt = Statement::Regular { clauses: vec![], is_query: false, is_propagate: false };
+        let result = check_ast_statement_depth(&stmt, MAX_AST_DEPTH + 1);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Σφάλμα σημασίας: Recursion limit exceeded in statement analysis");
+    }
+
+    #[test]
+    fn test_ast_clause_depth_limit() {
+        let clause = Clause { expressions: vec![] };
+        let result = check_ast_clause_depth(&clause, MAX_AST_DEPTH + 1);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Σφάλμα σημασίας: Recursion limit exceeded in clause analysis");
+    }
     #[test]
     fn test_statement_depth_limit() {
         let stmt = AnalyzedStatement::Break;
@@ -280,6 +296,18 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn test_return_statement_depth_limit() {
+        let stmt = AnalyzedStatement::Return {
+            value: Some(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            })),
+        };
+        let result = check_statement_depth(&stmt, MAX_EXPRESSION_DEPTH);
+        assert!(result.is_err());
+    }
     #[test]
     fn test_return_statement_depth() {
         let expr = AnalyzedExpr {

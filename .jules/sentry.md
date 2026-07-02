@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Test Coverage Improvements in Parser, Validation and Control Flow]
+**Learning:** By systematically reading the llvm-cov json output we were able to pinpoint uncovered error branches in `src/parser/declarations.rs`, `src/semantic/validation.rs` and `src/semantic/control_flow.rs`.
+**Action:** Wrote multiple embedded unit tests using the existing API to provide structural objects directly or trigger failure modes without relying purely on macro parsing, significantly lifting test coverage >90% per file.

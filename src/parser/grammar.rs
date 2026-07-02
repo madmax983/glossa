@@ -119,6 +119,14 @@ pub fn parse(source: &str) -> Result<pest::iterators::Pairs<'_, Rule>, pest::err
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_parse_invalid_syntax_error_details() {
+        let result = parse("invalid_garbage_syntax!!!!");
+        assert!(result.is_err());
+        let err_str = result.unwrap_err().to_string();
+        assert!(err_str.contains("Expected") || err_str.contains("expected") || err_str.contains("Σφάλμα") || err_str.to_lowercase().contains("error"));
+    }
+
     use super::*;
 
     #[test]
