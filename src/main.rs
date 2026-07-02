@@ -13,6 +13,32 @@ use glossa::tools::runner::{
     bard_file, build_file, check_file, highlight_file, report_file, run_file,
 };
 
+macro_rules! nova_command {
+    ($name:expr, $module:path) => {
+        #[cfg(feature = "nova")]
+        $module()?;
+
+        #[cfg(not(feature = "nova"))]
+        miette::bail!(
+            "The '{}' command is experimental. Recompile glossa with '--features nova' to enable it.",
+            $name
+        );
+    };
+    ($name:expr, $module:path, $input:expr) => {
+        #[cfg(feature = "nova")]
+        $module(&$input)?;
+
+        #[cfg(not(feature = "nova"))]
+        {
+            let _ = $input;
+            miette::bail!(
+                "The '{}' command is experimental. Recompile glossa with '--features nova' to enable it.",
+                $name
+            );
+        }
+    };
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -27,13 +53,7 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Mentor) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::mentor::run_mentor()?;
-
-            #[cfg(not(feature = "nova"))]
-            miette::bail!(
-                "The 'mentor' command is experimental. Recompile glossa with '--features nova' to enable it."
-            );
+            nova_command!("mentor", glossa::tools::mentor::run_mentor);
         }
 
         Some(Commands::Build { input, output }) => {
@@ -65,140 +85,47 @@ fn main() -> Result<()> {
         }
 
         Some(Commands::Mosaic { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::mosaic::run_mosaic(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'mosaic' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
+            nova_command!("mosaic", glossa::tools::mosaic::run_mosaic, input);
         }
 
         Some(Commands::Map { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::cartographer::run_map(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'map' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
+            nova_command!("map", glossa::tools::cartographer::run_map, input);
         }
 
         Some(Commands::Labyrinth { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::labyrinth::run_labyrinth(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'labyrinth' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
+            nova_command!("labyrinth", glossa::tools::labyrinth::run_labyrinth, input);
         }
 
         Some(Commands::Weave { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::weave::run_weave(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'weave' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
+            nova_command!("weave", glossa::tools::weave::run_weave, input);
         }
 
         Some(Commands::Alchemist { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::alchemist::run_alchemist(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'alchemist' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
+            nova_command!("alchemist", glossa::tools::alchemist::run_alchemist, input);
         }
 
         Some(Commands::Papyrus { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::papyrus::run_papyrus(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'papyrus' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
+            nova_command!("papyrus", glossa::tools::papyrus::run_papyrus, input);
         }
 
         Some(Commands::Haruspex { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::haruspex::run_haruspex(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'haruspex' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
+            nova_command!("haruspex", glossa::tools::haruspex::run_haruspex, input);
         }
 
         Some(Commands::Audit { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::auditor::run_auditor(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'audit' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
+            nova_command!("audit", glossa::tools::auditor::run_auditor, input);
         }
 
         Some(Commands::Catalog) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::catalog::run_catalog()?;
-
-            #[cfg(not(feature = "nova"))]
-            miette::bail!(
-                "The 'catalog' command is experimental. Recompile glossa with '--features nova' to enable it."
-            );
+            nova_command!("catalog", glossa::tools::catalog::run_catalog);
         }
 
         Some(Commands::Gnomon { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::gnomon::run_gnomon(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            miette::bail!(
-                "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
-            );
+            nova_command!("gnomon", glossa::tools::gnomon::run_gnomon, input);
         }
 
         Some(Commands::Scholar { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::scholar::run_scholar(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'scholar' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
+            nova_command!("scholar", glossa::tools::scholar::run_scholar, input);
         }
 
         Some(Commands::Repl) | None => {

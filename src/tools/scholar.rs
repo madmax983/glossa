@@ -55,70 +55,8 @@ pub fn run_scholar(input: &Path) -> Result<()> {
         }
     };
 
-    let mut md = String::with_capacity(4096);
     let filename = input.file_name().unwrap_or_default().to_string_lossy();
-
-    writeln!(md, "# API Documentation: `{}`\n", filename).unwrap();
-
-    // Document Types (Structs)
-    let mut types = program.scope.types().peekable();
-    if types.peek().is_some() {
-        writeln!(md, "## Types (Εἴδη)\n").unwrap();
-        for (name, type_def) in types {
-            writeln!(md, "### `{}`\n", name).unwrap();
-            if let crate::semantic::GlossaType::Struct { fields, .. } = type_def {
-                if !fields.is_empty() {
-                    writeln!(md, "| Field | Type |\n|-------|------|").unwrap();
-                    for (field_name, field_type) in fields {
-                        writeln!(md, "| `{}` | `{}` |", field_name, field_type).unwrap();
-                    }
-                    md.push('\n');
-                } else {
-                    writeln!(md, "*No fields defined.*\n").unwrap();
-                }
-            }
-        }
-    }
-
-    // Document Traits (Characters)
-    let mut traits = program.scope.traits().peekable();
-    if traits.peek().is_some() {
-        writeln!(md, "## Traits (Χαρακτῆρες)\n").unwrap();
-        for (name, trait_def) in traits {
-            writeln!(md, "### `{}`\n", name).unwrap();
-            if !trait_def.methods.is_empty() {
-                for method in &trait_def.methods {
-                    writeln!(md, "* `{}`", method.name).unwrap();
-                }
-                md.push('\n');
-            } else {
-                writeln!(md, "*No methods defined.*\n").unwrap();
-            }
-        }
-    }
-
-    // Document Functions (Verbs)
-    let mut functions = program.scope.functions().peekable();
-    if functions.peek().is_some() {
-        writeln!(md, "## Functions (Ἔργα)\n").unwrap();
-        for func in functions {
-            // ⚡ Bolt Optimization: Use `write!` to build strings dynamically without intermediate `Vec` collections.
-            write!(md, "### `{}(", func.name).unwrap();
-            for (i, t) in func.param_types.iter().enumerate() {
-                if i > 0 {
-                    write!(md, ", ").unwrap();
-                }
-                write!(md, "{}", t).unwrap();
-            }
-            write!(md, ") -> ").unwrap();
-            if let Some(ret_type) = &func.return_type {
-                write!(md, "{}", ret_type).unwrap();
-            } else {
-                write!(md, "Οὐδέν").unwrap();
-            }
-            writeln!(md, "`\n").unwrap();
-        }
-    }
+    let md = generate_markdown(&program, &filename);
 
     let output_path = input.with_extension("doc.md");
     if let Err(e) = std::fs::write(&output_path, &md) {
@@ -140,6 +78,132 @@ pub fn run_scholar(input: &Path) -> Result<()> {
     println!();
 
     Ok(())
+}
+
+fn generate_markdown(program: &crate::semantic::AnalyzedProgram, filename: &str) -> String {
+    let mut md = String::with_capacity(4096);
+    writeln!(
+        md,
+        "# API Documentation: `{}`
+",
+        filename
+    )
+    .unwrap();
+
+    format_types(&mut md, program);
+    format_traits(&mut md, program);
+    format_functions(&mut md, program);
+
+    md
+}
+
+fn format_types(md: &mut String, program: &crate::semantic::AnalyzedProgram) {
+    let mut types = program.scope.types().peekable();
+    if types.peek().is_some() {
+        writeln!(
+            md,
+            "## Types (Εἴδη)
+"
+        )
+        .unwrap();
+        for (name, type_def) in types {
+            writeln!(
+                md,
+                "### `{}`
+",
+                name
+            )
+            .unwrap();
+            if let crate::semantic::GlossaType::Struct { fields, .. } = type_def {
+                if !fields.is_empty() {
+                    writeln!(
+                        md,
+                        "| Field | Type |
+|-------|------|"
+                    )
+                    .unwrap();
+                    for (field_name, field_type) in fields {
+                        writeln!(md, "| `{}` | `{}` |", field_name, field_type).unwrap();
+                    }
+                    md.push('\n');
+                } else {
+                    writeln!(
+                        md,
+                        "*No fields defined.*
+"
+                    )
+                    .unwrap();
+                }
+            }
+        }
+    }
+}
+
+fn format_traits(md: &mut String, program: &crate::semantic::AnalyzedProgram) {
+    let mut traits = program.scope.traits().peekable();
+    if traits.peek().is_some() {
+        writeln!(
+            md,
+            "## Traits (Χαρακτῆρες)
+"
+        )
+        .unwrap();
+        for (name, trait_def) in traits {
+            writeln!(
+                md,
+                "### `{}`
+",
+                name
+            )
+            .unwrap();
+            if !trait_def.methods.is_empty() {
+                for method in &trait_def.methods {
+                    writeln!(md, "* `{}`", method.name).unwrap();
+                }
+                md.push('\n');
+            } else {
+                writeln!(
+                    md,
+                    "*No methods defined.*
+"
+                )
+                .unwrap();
+            }
+        }
+    }
+}
+
+fn format_functions(md: &mut String, program: &crate::semantic::AnalyzedProgram) {
+    let mut functions = program.scope.functions().peekable();
+    if functions.peek().is_some() {
+        writeln!(
+            md,
+            "## Functions (Ἔργα)
+"
+        )
+        .unwrap();
+        for func in functions {
+            write!(md, "### `{}(", func.name).unwrap();
+            for (i, t) in func.param_types.iter().enumerate() {
+                if i > 0 {
+                    write!(md, ", ").unwrap();
+                }
+                write!(md, "{}", t).unwrap();
+            }
+            write!(md, ") -> ").unwrap();
+            if let Some(ret_type) = &func.return_type {
+                write!(md, "{}", ret_type).unwrap();
+            } else {
+                write!(md, "Οὐδέν").unwrap();
+            }
+            writeln!(
+                md,
+                "`
+"
+            )
+            .unwrap();
+        }
+    }
 }
 
 #[cfg(test)]
