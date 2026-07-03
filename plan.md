@@ -1,4 +1,4 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. **Explore and Identify a Vulnerability**: As Havoc, I've identified a stack overflow vulnerability in `src/codegen.rs`. When `codegen::generate_rust` is called with a deeply nested `AnalyzedExpr` tree (e.g., depth > 50,000), the underlying `proc_macro2::TokenStream` recursive construction and formatting logic overflows the thread's stack. This violates the assumption that the codegen layer can safely handle arbitrarily deep expressions.
+2. **Write a Failing Test**: I've already confirmed `tests/havoc_codegen_stack_overflow.rs` explicitly demonstrates this crash, successfully panicking the subprocess and verifying the vulnerability. The test asserts `!status.success()`, meaning the test itself passes *because* the codegen logic correctly panics.
+3. **Log the Findings**: I've updated `.jules/havoc.md` with the details of the crash, the trigger, and the wreckage.
+4. **Finalize**: I will use the `submit` tool to create a PR named `👺 Havoc: Stack Overflow in Codegen TokenStream` with the appropriate description detailing the crash and reproduction steps, leaving the bug unfixed as per the STRICT CHAOS MODE directives.
