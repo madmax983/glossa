@@ -194,17 +194,6 @@ fn format_exprs(exprs: &[AnalyzedExpr]) -> String {
     buf
 }
 
-fn format_types(types: &[GlossaType]) -> String {
-    let mut buf = String::with_capacity(types.len() * 16);
-    for (i, ty) in types.iter().enumerate() {
-        if i > 0 {
-            buf.push_str(", ");
-        }
-        buf.push_str(&tell_type(ty));
-    }
-    buf
-}
-
 fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
     let script = format!("Proclaim: {}", format_exprs(exprs));
     table.add_row(vec![
@@ -564,21 +553,61 @@ fn tell_lambda(
 /// (e.g., `Number`, `[Type]`) to help developers map the Greek concepts to
 /// concepts they already understand.
 fn tell_type(ty: &GlossaType) -> String {
+    let mut buf = String::with_capacity(32);
+    let _ = write_type(&mut buf, ty);
+    buf
+}
+
+/// ⚡ Bolt Optimization: Uses `std::fmt::Write` recursively to prevent intermediate `String` allocations.
+fn write_type(buf: &mut String, ty: &GlossaType) -> std::fmt::Result {
+    use std::fmt::Write;
     match ty {
-        GlossaType::Number => "Number".to_string(),
-        GlossaType::String => "String".to_string(),
-        GlossaType::Boolean => "Bool".to_string(),
-        GlossaType::List(inner) => format!("[{}]", tell_type(inner)),
-        GlossaType::Set(inner) => format!("Set<{}>", tell_type(inner)),
-        GlossaType::Map(k, v) => format!("Map<{}, {}>", tell_type(k), tell_type(v)),
-        GlossaType::Option(inner) => format!("Option<{}>", tell_type(inner)),
-        GlossaType::Result(ok, err) => format!("Result<{}, {}>", tell_type(ok), tell_type(err)),
-        GlossaType::Struct { name, .. } => name.to_string(),
-        GlossaType::Function { params, returns } => {
-            format!("Fn({}) -> {}", format_types(params), tell_type(returns))
+        GlossaType::Number => write!(buf, "Number"),
+        GlossaType::String => write!(buf, "String"),
+        GlossaType::Boolean => write!(buf, "Bool"),
+        GlossaType::List(inner) => {
+            write!(buf, "[")?;
+            write_type(buf, inner)?;
+            write!(buf, "]")
         }
-        GlossaType::Unit => "()".to_string(),
-        GlossaType::Unknown => "?".to_string(),
+        GlossaType::Set(inner) => {
+            write!(buf, "Set<")?;
+            write_type(buf, inner)?;
+            write!(buf, ">")
+        }
+        GlossaType::Map(k, v) => {
+            write!(buf, "Map<")?;
+            write_type(buf, k)?;
+            write!(buf, ", ")?;
+            write_type(buf, v)?;
+            write!(buf, ">")
+        }
+        GlossaType::Option(inner) => {
+            write!(buf, "Option<")?;
+            write_type(buf, inner)?;
+            write!(buf, ">")
+        }
+        GlossaType::Result(ok, err) => {
+            write!(buf, "Result<")?;
+            write_type(buf, ok)?;
+            write!(buf, ", ")?;
+            write_type(buf, err)?;
+            write!(buf, ">")
+        }
+        GlossaType::Struct { name, .. } => write!(buf, "{}", name),
+        GlossaType::Function { params, returns } => {
+            write!(buf, "Fn(")?;
+            for (i, p) in params.iter().enumerate() {
+                if i > 0 {
+                    write!(buf, ", ")?;
+                }
+                write_type(buf, p)?;
+            }
+            write!(buf, ") -> ")?;
+            write_type(buf, returns)
+        }
+        GlossaType::Unit => write!(buf, "()"),
+        GlossaType::Unknown => write!(buf, "?"),
     }
 }
 
