@@ -295,8 +295,8 @@ impl<'a> GlossaReport<'a> {
     }
 }
 
-impl Display for GlossaReport<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<'a> GlossaReport<'a> {
+    fn format_metrics_table(&self) -> Table {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL).set_header(vec![
             Cell::new("Μετρική (Metric)")
@@ -350,46 +350,58 @@ impl Display for GlossaReport<'_> {
             ]);
         }
 
+        table
+    }
+
+    fn format_functions_table(&self) -> Option<Table> {
+        let mut functions = self.program.scope.functions().peekable();
+        functions.peek()?;
+
+        let mut func_table = Table::new();
+        func_table.load_preset(presets::UTF8_FULL).set_header(vec![
+            "Ὄνομα (Name)",
+            "Παράμετροι (Params)",
+            "Επιστροφή (Returns)",
+        ]);
+
+        for func in functions {
+            // ⚡ Bolt Optimization: Build the formatted string directly to avoid the O(n) heap allocation
+            // of the intermediate Vec<_> created by .collect::<Vec<_>>().join(", ").
+            let mut params = String::with_capacity(func.param_types.len() * 8);
+            for (i, t) in func.param_types.iter().enumerate() {
+                if i > 0 {
+                    params.push_str(", ");
+                }
+                params.push_str(&t.to_string());
+            }
+
+            let ret = func
+                .return_type
+                .as_ref()
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "Οὐδέν".to_string());
+
+            func_table.add_row(vec![
+                Cell::new(&func.name).fg(Color::Cyan),
+                Cell::new(if params.is_empty() { "-" } else { &params }),
+                Cell::new(ret).fg(Color::Yellow),
+            ]);
+        }
+
+        Some(func_table)
+    }
+}
+
+impl Display for GlossaReport<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f)?;
         writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
         writeln!(f, "   {}", "Language Metrics Dashboard".italic().dim())?;
         writeln!(f)?;
-        writeln!(f, "{}", table)?;
+        writeln!(f, "{}", self.format_metrics_table())?;
 
-        // If there are top-level functions, list them
-        let mut functions = self.program.scope.functions().peekable();
-        if functions.peek().is_some() {
+        if let Some(func_table) = self.format_functions_table() {
             writeln!(f, "\n{}", "ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)".bold())?;
-            let mut func_table = Table::new();
-            func_table.load_preset(presets::UTF8_FULL).set_header(vec![
-                "Ὄνομα (Name)",
-                "Παράμετροι (Params)",
-                "Επιστροφή (Returns)",
-            ]);
-
-            for func in functions {
-                // ⚡ Bolt Optimization: Build the formatted string directly to avoid the O(n) heap allocation
-                // of the intermediate Vec<_> created by .collect::<Vec<_>>().join(", ").
-                let mut params = String::with_capacity(func.param_types.len() * 8);
-                for (i, t) in func.param_types.iter().enumerate() {
-                    if i > 0 {
-                        params.push_str(", ");
-                    }
-                    params.push_str(&t.to_string());
-                }
-
-                let ret = func
-                    .return_type
-                    .as_ref()
-                    .map(|t| t.to_string())
-                    .unwrap_or_else(|| "Οὐδέν".to_string());
-
-                func_table.add_row(vec![
-                    Cell::new(&func.name).fg(Color::Cyan),
-                    Cell::new(if params.is_empty() { "-" } else { &params }),
-                    Cell::new(ret).fg(Color::Yellow),
-                ]);
-            }
             writeln!(f, "{}", func_table)?;
         }
 
@@ -441,8 +453,8 @@ pub struct CompilationReport {
     pub stats: ProgramStats,
 }
 
-impl Display for CompilationReport {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl CompilationReport {
+    fn format_metrics_table(&self) -> Table {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL).set_header(vec![
             Cell::new("Μετρική (Metric)")
@@ -489,11 +501,17 @@ impl Display for CompilationReport {
             Cell::new(self.stats.function_count),
         ]);
 
+        table
+    }
+}
+
+impl Display for CompilationReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f)?;
         writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
         writeln!(f, "   {}", "Compilation Metrics Dashboard".italic().dim())?;
         writeln!(f)?;
-        writeln!(f, "{}", table)?;
+        writeln!(f, "{}", self.format_metrics_table())?;
 
         Ok(())
     }

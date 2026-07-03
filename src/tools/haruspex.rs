@@ -247,112 +247,88 @@ fn visit_statement(next_id: &mut usize, output: &mut String, stmt: &AnalyzedStat
 
 fn visit_expr(next_id: &mut usize, output: &mut String, expr: &AnalyzedExpr) -> usize {
     let id = get_next_id(next_id);
-
-    // Include type information in expression nodes
     let type_info = format!("\\n[{}]", expr.glossa_type);
 
     match &expr.expr {
-        AnalyzedExprKind::StringLiteral(s) => {
-            emit_node(
-                output,
-                id,
-                &format!("String\\n\\\"{}\\\"{}", s, type_info),
-                "lightyellow",
-            );
-        }
-        AnalyzedExprKind::NumberLiteral(n) => {
-            emit_node(
-                output,
-                id,
-                &format!("Number\\n{}{}", n, type_info),
-                "lightyellow",
-            );
-        }
-        AnalyzedExprKind::BooleanLiteral(b) => {
-            emit_node(
-                output,
-                id,
-                &format!("Boolean\\n{}{}", b, type_info),
-                "lightyellow",
-            );
-        }
-        AnalyzedExprKind::Variable(v) => {
-            emit_node(
-                output,
-                id,
-                &format!("Variable\\n{}{}", v, type_info),
-                "lightyellow",
-            );
-        }
+        AnalyzedExprKind::StringLiteral(s) => emit_node(
+            output,
+            id,
+            &format!("String\\n\\\"{}\\\"{type_info}", s),
+            "lightyellow",
+        ),
+        AnalyzedExprKind::NumberLiteral(n) => emit_node(
+            output,
+            id,
+            &format!("Number\\n{n}{type_info}"),
+            "lightyellow",
+        ),
+        AnalyzedExprKind::BooleanLiteral(b) => emit_node(
+            output,
+            id,
+            &format!("Boolean\\n{b}{type_info}"),
+            "lightyellow",
+        ),
+        AnalyzedExprKind::Variable(v) => emit_node(
+            output,
+            id,
+            &format!("Variable\\n{v}{type_info}"),
+            "lightyellow",
+        ),
+        AnalyzedExprKind::None => emit_node(output, id, &format!("None{type_info}"), "lightyellow"),
+        AnalyzedExprKind::CollectionNew { collection_type } => emit_node(
+            output,
+            id,
+            &format!("CollectionNew\\n{}::new(){type_info}", collection_type),
+            "lightyellow",
+        ),
+
         AnalyzedExprKind::PropertyAccess { owner, property } => {
             emit_node(
                 output,
                 id,
-                &format!("PropertyAccess\\n.{}{}", property, type_info),
+                &format!("PropertyAccess\\n.{property}{type_info}"),
                 "lightyellow",
             );
             let owner_id = visit_expr(next_id, output, owner);
             emit_edge(output, id, owner_id, "owner");
         }
-        AnalyzedExprKind::VerbCall { verb, args } => {
-            visit_verb_call_expr(next_id, output, id, verb, args, &type_info);
-        }
-        AnalyzedExprKind::BinOp { left, op, right } => {
-            visit_binop_expr(next_id, output, id, left, op, right, &type_info);
-        }
         AnalyzedExprKind::UnaryOp { op, operand } => {
             emit_node(
                 output,
                 id,
-                &format!("UnaryOp\\n{:?}{}", op, type_info),
+                &format!("UnaryOp\\n{:?}{type_info}", op),
                 "lightyellow",
             );
             let operand_id = visit_expr(next_id, output, operand);
             emit_edge(output, id, operand_id, "operand");
         }
-        AnalyzedExprKind::Range {
-            start,
-            end,
-            inclusive,
-        } => {
-            visit_range_expr(next_id, output, id, start, end, *inclusive, &type_info);
-        }
-        AnalyzedExprKind::ArrayLiteral(exprs) => {
-            visit_array_literal_expr(next_id, output, id, exprs, &type_info);
-        }
-        AnalyzedExprKind::Some(e) => {
-            emit_node(output, id, &format!("Some{}", type_info), "lightyellow");
+        AnalyzedExprKind::Some(e)
+        | AnalyzedExprKind::Ok(e)
+        | AnalyzedExprKind::Err(e)
+        | AnalyzedExprKind::Unwrap(e)
+        | AnalyzedExprKind::Try(e) => {
+            let label = match &expr.expr {
+                AnalyzedExprKind::Some(_) => "Some",
+                AnalyzedExprKind::Ok(_) => "Ok",
+                AnalyzedExprKind::Err(_) => "Err",
+                AnalyzedExprKind::Unwrap(_) => "Unwrap",
+                AnalyzedExprKind::Try(_) => "Try",
+                _ => unreachable!(),
+            };
+            emit_node(output, id, &format!("{label}{type_info}"), "lightyellow");
             let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "value");
-        }
-        AnalyzedExprKind::None => {
-            emit_node(output, id, &format!("None{}", type_info), "lightyellow");
-        }
-        AnalyzedExprKind::Ok(e) => {
-            emit_node(output, id, &format!("Ok{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "value");
-        }
-        AnalyzedExprKind::Err(e) => {
-            emit_node(output, id, &format!("Err{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "error");
-        }
-        AnalyzedExprKind::Unwrap(e) => {
-            emit_node(output, id, &format!("Unwrap{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "target");
-        }
-        AnalyzedExprKind::Try(e) => {
-            emit_node(output, id, &format!("Try{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "target");
+            let edge_label = match &expr.expr {
+                AnalyzedExprKind::Err(_) => "error",
+                AnalyzedExprKind::Unwrap(_) | AnalyzedExprKind::Try(_) => "target",
+                _ => "value",
+            };
+            emit_edge(output, id, e_id, edge_label);
         }
         AnalyzedExprKind::IndexAccess { array, index } => {
             emit_node(
                 output,
                 id,
-                &format!("IndexAccess{}", type_info),
+                &format!("IndexAccess{type_info}"),
                 "lightyellow",
             );
             let array_id = visit_expr(next_id, output, array);
@@ -360,52 +336,52 @@ fn visit_expr(next_id: &mut usize, output: &mut String, expr: &AnalyzedExpr) -> 
             emit_edge(output, id, array_id, "array");
             emit_edge(output, id, index_id, "index");
         }
-        AnalyzedExprKind::FunctionCall { func, args } => {
-            visit_function_call_expr(next_id, output, id, func, args, &type_info);
-        }
-        AnalyzedExprKind::MethodCall {
-            receiver,
-            method,
-            args,
-        } => {
-            visit_method_call_expr(next_id, output, id, receiver, method, args, &type_info);
-        }
-        AnalyzedExprKind::StructInstantiation {
-            type_name,
-            fields,
-            args,
-        } => {
-            visit_struct_instantiation_expr(
-                next_id, output, id, type_name, fields, args, &type_info,
-            );
-        }
-        AnalyzedExprKind::Lambda {
-            params,
-            body,
-            capture_mode,
-        } => {
-            visit_lambda_expr(next_id, output, id, params, body, capture_mode, &type_info);
-        }
-        AnalyzedExprKind::CollectionNew { collection_type } => {
-            emit_node(
-                output,
-                id,
-                &format!("CollectionNew\\n{}::new(){}", collection_type, type_info),
-                "lightyellow",
-            );
-        }
         AnalyzedExprKind::Assert { condition } => {
-            emit_node(output, id, &format!("Assert{}", type_info), "lightyellow");
+            emit_node(output, id, &format!("Assert{type_info}"), "lightyellow");
             let cond_id = visit_expr(next_id, output, condition);
             emit_edge(output, id, cond_id, "condition");
         }
         AnalyzedExprKind::AssertEq { left, right } => {
-            emit_node(output, id, &format!("AssertEq{}", type_info), "lightyellow");
+            emit_node(output, id, &format!("AssertEq{type_info}"), "lightyellow");
             let left_id = visit_expr(next_id, output, left);
             let right_id = visit_expr(next_id, output, right);
             emit_edge(output, id, left_id, "left");
             emit_edge(output, id, right_id, "right");
         }
+        AnalyzedExprKind::VerbCall { verb, args } => {
+            visit_verb_call_expr(next_id, output, id, verb, args, &type_info)
+        }
+        AnalyzedExprKind::BinOp { left, op, right } => {
+            visit_binop_expr(next_id, output, id, left, op, right, &type_info)
+        }
+        AnalyzedExprKind::Range {
+            start,
+            end,
+            inclusive,
+        } => visit_range_expr(next_id, output, id, start, end, *inclusive, &type_info),
+        AnalyzedExprKind::ArrayLiteral(exprs) => {
+            visit_array_literal_expr(next_id, output, id, exprs, &type_info)
+        }
+        AnalyzedExprKind::FunctionCall { func, args } => {
+            visit_function_call_expr(next_id, output, id, func, args, &type_info)
+        }
+        AnalyzedExprKind::MethodCall {
+            receiver,
+            method,
+            args,
+        } => visit_method_call_expr(next_id, output, id, receiver, method, args, &type_info),
+        AnalyzedExprKind::StructInstantiation {
+            type_name,
+            fields,
+            args,
+        } => visit_struct_instantiation_expr(
+            next_id, output, id, type_name, fields, args, &type_info,
+        ),
+        AnalyzedExprKind::Lambda {
+            params,
+            body,
+            capture_mode,
+        } => visit_lambda_expr(next_id, output, id, params, body, capture_mode, &type_info),
     }
 
     id
