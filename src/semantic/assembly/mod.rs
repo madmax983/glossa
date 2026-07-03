@@ -660,12 +660,9 @@ impl Assembler {
         // Check subject-verb agreement if both present
         if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {
             self.check_agreement(subject, verb)?;
-            // If we have a verb, a subject, and extra nominatives, but it's not a function definition or binary operation
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
             {
                 return Err(AssemblyError::DoubleSubject);
             }
@@ -718,16 +715,33 @@ impl Assembler {
         {
             return Ok(());
         }
+        // Match arms can sometimes be parsed as just adjectives or specific subjects
+        // without verbs. However, to prevent normal verbless statements (like "ὁ ἄνθρωπος.")
+        // from silently passing, we only allow specific lemmas to bypass the missing verb check.
         if ctx.is_match_arm
             && self.state.object.is_none()
             && self.state.nominatives.is_empty()
             && self.state.adjectives.is_empty()
             && let Some(subject) = self.state.subject.as_ref()
         {
-            if subject.lemma == "ανθρωπος" {
-                return Err(AssemblyError::MissingVerb);
+            // Specifically allow these to be verbless subjects (for match arms and conditions)
+            let valid_match_arms = [
+                "μηδεν",
+                "εν",
+                "αλλο",
+                "αληθης",
+                "ψευδης",
+                "μηδέν",
+                "ἓν",
+                "ἄλλο",
+                "ἀληθής",
+                "ψευδής",
+            ];
+            if valid_match_arms.contains(&subject.lemma.as_str())
+                || valid_match_arms.contains(&subject.normalized.as_str())
+            {
+                return Ok(());
             }
-            return Ok(());
         }
         Err(AssemblyError::MissingVerb)
     }

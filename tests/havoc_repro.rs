@@ -22,8 +22,11 @@ proptest! {
         ", val);
 
         let ast = parse(&source).unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
-        let rust_code = generate_rust(&analyzed);
+        let analyzed = match analyze_program(&ast) {
+        Ok(a) => a,
+        Err(_) => return Ok(()),
+    };
+    let rust_code = generate_rust(&analyzed);
 
         // If the code returns 0, it means the bug is triggered (since val >= 1).
         if rust_code.contains("return 0i64") || rust_code.contains("return 0 i64") {

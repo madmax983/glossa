@@ -715,14 +715,36 @@ fn skip_first_word_and_parse(
 
     // Parse the modified clause as a statement
     let stmt = Statement::Regular {
-        clauses: vec![modified_clause],
+        clauses: vec![modified_clause.clone()],
         is_query: false,
         is_propagate: false,
     };
-    let analyzed = assemble_statement(&stmt)?;
-
     // We bypass the top-level MissingVerb check by extracting the expression manually
     // from the assembled statement if it's a simple fallback condition.
+    let analyzed = match assemble_statement(&stmt) {
+        Ok(a) => a,
+        Err(GlossaError::AssemblyError(crate::errors::AssemblyError::MissingVerb)) => {
+            // It failed because there's no verb. Let's just try to parse the clause as a single phrase!
+            if let Some(Expr::Phrase(terms)) = modified_clause.expressions.first()
+                && terms.len() == 1
+                && let Expr::Word(w) = &terms[0]
+            {
+                let var_type = scope
+                    .lookup(&w.normalized)
+                    .cloned()
+                    .unwrap_or(crate::semantic::GlossaType::Unknown);
+                return Ok(crate::semantic::AnalyzedExpr {
+                    expr: crate::semantic::AnalyzedExprKind::Variable(w.normalized.clone()),
+                    glossa_type: var_type,
+                });
+            }
+            return Err(GlossaError::AssemblyError(
+                crate::errors::AssemblyError::MissingVerb,
+            ));
+        }
+        Err(e) => return Err(e),
+    };
+
     let converted =
         match crate::semantic::conversion::convert_assembled_to_analyzed(&analyzed, scope) {
             Ok(c) => c,

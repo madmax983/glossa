@@ -117,10 +117,9 @@ fn analyze_word(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, Glo
     }
 
     // Unknown variable
-    Err(GlossaError::semantic(format!(
-        "Undefined variable: {}",
-        normalized
-    )))
+    Err(GlossaError::UndefinedName {
+        name: normalized.clone().into(),
+    })
 }
 
 fn analyze_literal(expr: &Expr) -> Result<AnalyzedExpr, GlossaError> {
