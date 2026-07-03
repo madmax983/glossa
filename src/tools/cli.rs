@@ -192,6 +192,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate TypeScript interfaces from type definitions (Requires "nova" feature)
+    Diplomat {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Export the semantic AST to a Graphviz DOT diagram (Requires "nova" feature)
     Haruspex {
         /// Input file (.γλ)
