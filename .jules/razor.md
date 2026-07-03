@@ -1,9 +1,4 @@
 ## [Reduction]
-**Bloat:** `CFGBuilder` in `src/tools/labyrinth.rs` used an object-oriented builder pattern for a simple logic flow.
-**Cut:** Flattened the object into pure functions passing mutable references to `nodes`, `edges`, and `node_counter` state.
-**Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
-
-## [Reduction]
-**Bloat:** `DotGenerator` in `src/tools/haruspex.rs` used an object-oriented builder pattern for graph generation.
-**Cut:** Flattened the object into pure procedural functions passing mutable references to `next_id` and `output` state.
-**Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+**Bloat:** `GnomonVisitor` and `AuditorVisitor` structs were functioning as unnecessary boilerplate state-holders for tree traversal (object-oriented abstractions).
+**Cut:** Removed the visitor structs and replaced them with direct, explicit procedural recursive functions (`visit_statement_gnomon`, `visit_statement_auditor`, etc.). Single-use helper methods were also inlined.
+**Saved:** Reduced cognitive load and unnecessary abstractions by utilizing pure functions passing mutable references to explicitly needed state.
