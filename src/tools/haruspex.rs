@@ -61,9 +61,24 @@ fn print_dashboard(dot: &str, is_tty: bool) {
         );
         println!();
 
+        let mut table = comfy_table::Table::new();
+        table.load_preset(comfy_table::presets::UTF8_FULL);
+
+        table.set_header(vec![
+            comfy_table::Cell::new("Graphviz DOT Representation")
+                .add_attribute(comfy_table::Attribute::Bold)
+                .fg(comfy_table::Color::Cyan),
+        ]);
+
+        let formatted_code = format!("```dot\n{}\n```", dot.trim());
+        table.add_row(vec![comfy_table::Cell::new(formatted_code)]);
+
+        println!("{table}");
+
         let actual_nodes = dot.lines().filter(|l| l.contains("[label=")).count();
         let edges = dot.matches("->").count();
 
+        println!();
         println!("   {} {}", "Nodes:".bold(), actual_nodes.to_string().cyan());
         println!("   {} {}", "Edges:".bold(), edges.to_string().cyan());
         println!();

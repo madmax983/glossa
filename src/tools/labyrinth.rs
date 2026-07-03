@@ -22,12 +22,26 @@ use crossterm::style::Stylize;
 use std::path::Path;
 
 /// Run the Labyrinth tool on a file
+use std::io::IsTerminal;
+
 pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
-    let mut buffer = Vec::new();
-    run_labyrinth_inner(&source, &mut buffer)?;
-    let output = String::from_utf8(buffer).expect("comfy-table outputs valid UTF-8");
-    print!("{}", output);
+
+    if std::io::stdout().is_terminal() {
+        let mut buffer = Vec::new();
+        run_labyrinth_inner(&source, &mut buffer)?;
+        let output = String::from_utf8(buffer).expect("comfy-table outputs valid UTF-8");
+        print!("{}", output);
+    } else {
+        let program = match crate::tools::runner::analyze_source(&source) {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+        let cfg = generate_cfg(&program);
+        println!("{}", cfg.trim());
+    }
     Ok(())
 }
 
