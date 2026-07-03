@@ -347,7 +347,9 @@ impl ReplContext {
         // 5. Analyze Result
         // We only care about the *last* statement, because previous statements have already
         // been executed/processed in previous turns.
-        let last_stmt = analyzed.statements.last().unwrap();
+        let Some(last_stmt) = analyzed.statements.last() else {
+            return Ok(ReplOutput::None);
+        };
         match last_stmt {
             AnalyzedStatement::Binding { name, mutable, .. } => {
                 // Lookup type from scope since it's no longer in the binding statement
@@ -647,5 +649,15 @@ mod tests {
         // The error message from GlossaError::ParseError starts with "Σφάλμα συντάξεως: ..."
         // Our formatting prints "× error_string".
         // We just want to ensure it printed.
+    }
+
+    #[test]
+    fn test_repl_comment_panic() {
+        let mut context = ReplContext::new();
+        // Since the compiler does not produce any AST nodes for an empty program or just comments,
+        // we might hit a state where evaluated length is 0.
+        // Just sending a whitespace/comment string to verify it doesn't panic on empty ast.
+        let result = context.execute("  \n ");
+        assert!(result.is_ok());
     }
 }

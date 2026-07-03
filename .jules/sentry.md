@@ -92,3 +92,6 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+**[REPL Empty Statement List Panic]**
+**Learning:** In the Glossa REPL (`src/tools/repl.rs`), inputting pure comments or whitespace causes the AST parser to return an empty statement list. Blindly calling `.unwrap()` on `analyzed.statements.last()` acts as a ticking time bomb and causes an out-of-bounds panic (Denial of Service) when the REPL executes empty input.
+**Action:** Always safely match `analyzed.statements.last()` using `let Some(...) = ... else { ... }` or `if let` rather than calling `.unwrap()`, to ensure it safely handles empty outputs by returning a `None` state. Wrote an isolated test `test_repl_comment_panic` under `#[cfg(test)] mod tests` block to verify the panic is avoided when executing empty strings.
