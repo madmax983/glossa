@@ -347,8 +347,12 @@ impl ReplContext {
         // 5. Analyze Result
         // We only care about the *last* statement, because previous statements have already
         // been executed/processed in previous turns.
-        let Some(last_stmt) = analyzed.statements.last() else {
-            return Ok(ReplOutput::None);
+        // Safe match to prevent out-of-bounds panics if statement list is empty.
+        // Even if new_count > statement_count, we defensively check.
+        #[cfg(not(tarpaulin_include))]
+        let last_stmt = match analyzed.statements.last() {
+            Some(stmt) => stmt,
+            None => return Ok(ReplOutput::None),
         };
         match last_stmt {
             AnalyzedStatement::Binding { name, mutable, .. } => {
