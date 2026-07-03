@@ -91,6 +91,12 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
     }
 
     let is_tty = std::io::stdout().is_terminal();
+    print_dashboard(&output, is_tty);
+
+    Ok(())
+}
+
+fn print_dashboard(output: &str, is_tty: bool) {
     if is_tty {
         println!();
         println!("   {}", "Γ Λ Ω Σ Σ Α   P A P Y R U S".bold().cyan());
@@ -114,8 +120,6 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
     } else {
         println!("{}", output.trim());
     }
-
-    Ok(())
 }
 
 fn glossa_type_to_sql(g_type: &GlossaType) -> String {
@@ -139,6 +143,16 @@ fn glossa_type_to_sql(g_type: &GlossaType) -> String {
 mod tests {
     use super::*;
 
+
+    #[test]
+    fn test_print_dashboard_tty() {
+        print_dashboard("test", true);
+    }
+
+    #[test]
+    fn test_print_dashboard_not_tty() {
+        print_dashboard("test", false);
+    }
     #[test]
     fn test_glossa_type_to_sql() {
         assert_eq!(glossa_type_to_sql(&GlossaType::Number), "BIGINT NOT NULL");

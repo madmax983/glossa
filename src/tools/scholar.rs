@@ -128,6 +128,12 @@ pub fn run_scholar(input: &Path) -> Result<()> {
 
     status.success();
 
+    print_dashboard(&output_path);
+
+    Ok(())
+}
+
+fn print_dashboard(output_path: &std::path::Path) {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   S C H O L A R".bold().cyan());
     println!("   {}", "API Documentation Generated".italic().dim());
@@ -138,8 +144,6 @@ pub fn run_scholar(input: &Path) -> Result<()> {
         output_path.display().to_string().cyan()
     );
     println!();
-
-    Ok(())
 }
 
 #[cfg(test)]
@@ -148,6 +152,11 @@ mod tests {
     use std::fs;
     use tempfile::tempdir;
 
+
+    #[test]
+    fn test_print_dashboard() {
+        print_dashboard(std::path::Path::new("test.md"));
+    }
     #[test]
     fn test_run_scholar_success() {
         let dir = tempdir().unwrap();

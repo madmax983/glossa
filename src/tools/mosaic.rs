@@ -54,6 +54,12 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
     status.success();
 
     let is_tty = std::io::stdout().is_terminal();
+    print_dashboard(&output, is_tty);
+
+    Ok(())
+}
+
+fn print_dashboard(output: &str, is_tty: bool) {
     if is_tty {
         println!();
         println!("   {}", "Γ Λ Ω Σ Σ Α   M O S A I C".bold().cyan());
@@ -63,8 +69,6 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
     } else {
         println!("{}", output);
     }
-
-    Ok(())
 }
 
 /// Internal implementation of Mosaic logic
@@ -382,6 +386,16 @@ fn fmt_constituent(c: &Constituent) -> String {
 mod tests {
     use super::*;
 
+
+    #[test]
+    fn test_print_dashboard_tty() {
+        print_dashboard("test", true);
+    }
+
+    #[test]
+    fn test_print_dashboard_not_tty() {
+        print_dashboard("test", false);
+    }
     #[test]
     fn test_mosaic_output() {
         let source = "ὁ ἄνθρωπος τὸν λόγον λέγει.";

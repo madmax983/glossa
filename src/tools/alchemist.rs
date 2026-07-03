@@ -38,6 +38,12 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     status.success();
 
     let is_tty = std::io::stdout().is_terminal();
+    print_dashboard(&python_code, is_tty);
+
+    Ok(())
+}
+
+fn print_dashboard(python_code: &str, is_tty: bool) {
     if is_tty {
         println!();
         println!("   {}", "Γ Λ Ω Σ Σ Α   A L C H E M I S T".bold().cyan());
@@ -61,8 +67,6 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
     } else {
         println!("{}", python_code.trim());
     }
-
-    Ok(())
 }
 
 /// Transpile an AnalyzedProgram to Python source code
