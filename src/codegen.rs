@@ -275,6 +275,15 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// ```
 use std::fmt::Write;
 
+/// Entry point to convert a `GlossaType` into a standard Rust type representation.
+/// It wraps the recursive logic in a single allocated string.
+///
+/// # Examples
+/// ```
+/// use glossa::codegen::to_rust_type;
+/// use glossa::semantic::GlossaType;
+/// assert_eq!(to_rust_type(&GlossaType::Number), "i64");
+/// ```
 pub fn to_rust_type(ty: &GlossaType) -> String {
     let mut result = String::with_capacity(32);
     write_rust_type(ty, &mut result).unwrap();

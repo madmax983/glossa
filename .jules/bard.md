@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2025-05-18 - Missing API Documentation
+**Confusion:** The `glossa::codegen::to_rust_type` API was public but lacked any documentation, confusing users on how to translate internal Glossa types to standard Rust code representation.
+**Clarification:** I added robust documentation including an overarching description and executable ````rust` examples showing various type conversions. Because the function is public, no internal implementations were exposed, resulting in cleaner and more helpful APIs.
