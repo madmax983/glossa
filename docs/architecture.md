@@ -35,7 +35,7 @@ C4Container
     Container_Boundary(tools, "Developer Experience (Nova)") {
         Container(alchemist, "The Alchemist", "src/tools/alchemist.rs", "Python Exporter")
         Container(auditor, "The Auditor", "src/tools/auditor.rs", "Static analysis to find unused variables and mutability smells")
-        Container(cache, "Cache", "src/tools/cache.rs", "Incremental compilation cache")
+        Container(cache, "Cache", "src/tools/cache.rs", "[Internal] Incremental compilation cache")
         Container(cartographer, "Cartographer", "src/tools/cartographer.rs", "Generates Mermaid Class Diagrams")
         Container(catalog, "The Catalog", "src/tools/catalog.rs", "Lexicon Explorer (CLI)")
         Container(cli, "CLI", "src/tools/cli.rs", "Command-line interface definition")
@@ -96,7 +96,7 @@ C4Component
         Component(expressions, "Expressions", "src/semantic/expressions.rs", "Recursively analyzes nested expressions")
         Component(resolver, "Resolver", "src/semantic/resolver.rs", "Manages Scope and Bindings")
         Component(assembly, "Assembly", "src/semantic/assembly/mod.rs", "Routes words to grammatical slots")
-        Component(assembly_model, "Assembly Model", "src/semantic/assembly/model.rs", "Data Transfer Objects (DTOs)")
+        Component(assembly_model, "Assembly Model", "src/semantic/assembly/model.rs", "[Internal] Data Transfer Objects (DTOs)")
         Component(conversion, "Conversion", "src/semantic/conversion.rs", "Interprets assembled slots into statements")
         Component(patterns, "Pattern Matcher", "src/semantic/patterns.rs", "Identifies high-level constructs")
         Component(model, "Semantic Model", "src/semantic/model.rs", "Type-checked HIR (AnalyzedStatement)")
