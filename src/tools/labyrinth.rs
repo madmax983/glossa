@@ -123,9 +123,12 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
 /// let cfg = generate_cfg(&program);
 /// assert!(cfg.contains("graph TD"));
 /// ```
+/// ⚡ Bolt Optimization: Uses `Vec::with_capacity` to prevent reallocations
+/// and `writeln!` to avoid intermediate `String` allocations during graph assembly.
 pub fn generate_cfg(program: &AnalyzedProgram) -> String {
-    let mut nodes = Vec::new();
-    let mut edges = Vec::new();
+    use std::fmt::Write;
+    let mut nodes = Vec::with_capacity(32);
+    let mut edges = Vec::with_capacity(32);
     let mut node_counter = 0;
 
     let start_node = add_node("Start", "round", &mut nodes, &mut node_counter);
@@ -146,10 +149,10 @@ pub fn generate_cfg(program: &AnalyzedProgram) -> String {
 
     let mut out = String::from("graph TD\n");
     for node in nodes {
-        out.push_str(&format!("    {}\n", node));
+        let _ = writeln!(out, "    {}", node);
     }
     for edge in edges {
-        out.push_str(&format!("    {}\n", edge));
+        let _ = writeln!(out, "    {}", edge);
     }
     out
 }
