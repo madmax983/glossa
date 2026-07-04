@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Tools/Gnomon Coverage]**
+**Learning:** `src/tools/gnomon.rs` had low coverage due to `run_gnomon` integration and various recursive AST statement handlers (like `Match`, `If`, `FunctionDef`) not being tested. Additionally, the module itself is gated behind `#[cfg(feature = "nova")]`.
+**Action:** Created isolated unit tests directly exercising `GnomonVisitor` inside an integration test file `tests/sentry_gnomon_coverage.rs` and added top-level integration tests for `run_gnomon`. Remembered to use `#![cfg(feature = "nova")]` at the top of the integration test file and execute with `--all-features` to ensure they get picked up.
