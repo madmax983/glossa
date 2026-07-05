@@ -859,6 +859,10 @@ test name with spaces ... ok
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
         // The underlying error bubbles up.
-        assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
+        assert!(
+            err_msg.contains("Semantic error")
+                || err_msg.contains("Σφάλμα")
+                || err_msg.contains("Ἄγνωστον ὄνομα")
+        );
     }
 }

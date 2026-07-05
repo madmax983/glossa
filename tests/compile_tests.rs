@@ -86,7 +86,8 @@ fn test_immutable_assignment_error() {
 fn test_undefined_assignment_error() {
     let result = compile("ξ δέκα γίγνεται.");
     assert!(result.is_err());
-    assert!(result.unwrap_err().contains("οὐχ ὡρίσθη"));
+    let err = result.unwrap_err();
+    assert!(err.contains("Ἄγνωστον ὄνομα") || err.contains("οὐχ ὡρίσθη"));
 }
 
 #[test]

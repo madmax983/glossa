@@ -2230,7 +2230,7 @@ pub fn is_binding_verb(normalized_word: &str) -> bool {
 
 /// Check if a word is a print verb (λέγε, γράφε)
 pub fn is_print_verb(normalized_word: &str) -> bool {
-    matches!(normalized_word, "λεγε" | "γραφε" | "λεγω" | "γραφω")
+    matches!(normalized_word, "λεγε" | "γραφε" | "λεγω" | "γραφω" | "λεγει" | "γραφει")
 }
 
 /// Check if a word is a find verb (εὑρέ)

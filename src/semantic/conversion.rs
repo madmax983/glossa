@@ -503,10 +503,7 @@ fn classify_assignment(
     let var_name = subject.normalized.clone();
 
     match scope.lookup_binding(&var_name) {
-        None => Err(GlossaError::semantic(format!(
-            "Τὸ «{}» οὐχ ὡρίσθη — πρῶτον ὅρισον αὐτό",
-            var_name
-        ))),
+        None => Err(GlossaError::undefined(var_name.as_str())),
         Some(b) if !b.mutable => Err(GlossaError::semantic(format!(
             "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
             &var_name
@@ -953,9 +950,8 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
+    if let Some(ref subj) = asm_stmt.subject {
+        let var_type = scope.lookup(&subj.lemma).ok_or_else(|| GlossaError::undefined(subj.lemma.as_str()))?;
         args.insert(
             0,
             AnalyzedExpr {
@@ -965,9 +961,8 @@ fn try_print_default(
         );
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
+    if let Some(ref obj) = asm_stmt.object {
+        let var_type = scope.lookup(&obj.lemma).ok_or_else(|| GlossaError::undefined(obj.lemma.as_str()))?;
         args.push(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
             glossa_type: var_type.clone(),
