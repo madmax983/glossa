@@ -52,11 +52,16 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
 
     status.success();
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   M O S A I C".bold().cyan());
-    println!("   {}", "Semantic Sentence Structure".italic().dim());
-    println!();
-    println!("{}", output);
+    use std::io::IsTerminal;
+    if std::io::stdout().is_terminal() {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   M O S A I C".bold().cyan());
+        println!("   {}", "Semantic Sentence Structure".italic().dim());
+        println!();
+        println!("{}", output);
+    } else {
+        println!("{}", output);
+    }
 
     Ok(())
 }

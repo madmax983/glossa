@@ -30,32 +30,43 @@ pub fn run_catalog() -> Result<()> {
     // Sort keys based on debug formatting since they don't implement Ord natively
     pos_keys.sort_by_key(|k| format!("{:?}", k));
 
-    println!("\n   {}", "Γ Λ Ω Σ Σ Α   C A T A L O G".cyan().bold());
-    println!("   {}\n", "The Lexicon Explorer".dim().italic());
+    use std::io::IsTerminal;
+    if std::io::stdout().is_terminal() {
+        println!("\n   {}", "Γ Λ Ω Σ Σ Α   C A T A L O G".cyan().bold());
+        println!("   {}\n", "The Lexicon Explorer".dim().italic());
 
-    for pos in pos_keys {
-        let mut table = Table::new();
-        table.load_preset(UTF8_FULL).set_header(vec![
-            Cell::new("Word").fg(Color::Cyan),
-            Cell::new("Lemma").fg(Color::Cyan),
-            Cell::new("Meaning").fg(Color::Cyan),
-            Cell::new("Rust Equivalent").fg(Color::Cyan),
-        ]);
-
-        let mut pos_entries = entries_by_pos.get(&pos).unwrap().clone();
-        pos_entries.sort_by_key(|(word, _)| *word);
-
-        for (word, entry) in pos_entries {
-            table.add_row(vec![
-                Cell::new(word).fg(Color::Yellow),
-                Cell::new(entry.lemma).fg(Color::White),
-                Cell::new(entry.meaning).fg(Color::Green),
-                Cell::new(entry.rust_equiv.unwrap_or("-")).fg(Color::Magenta),
+        for pos in pos_keys.clone() {
+            let mut table = Table::new();
+            table.load_preset(UTF8_FULL).set_header(vec![
+                Cell::new("Word").fg(Color::Cyan),
+                Cell::new("Lemma").fg(Color::Cyan),
+                Cell::new("Meaning").fg(Color::Cyan),
+                Cell::new("Rust Equivalent").fg(Color::Cyan),
             ]);
-        }
 
-        println!("\n  {}", format!("{:?} Lexicon", pos).yellow().bold());
-        println!("{table}");
+            let mut pos_entries = entries_by_pos.get(&pos).unwrap().clone();
+            pos_entries.sort_by_key(|(word, _)| *word);
+
+            for (word, entry) in pos_entries {
+                table.add_row(vec![
+                    Cell::new(word).fg(Color::Yellow),
+                    Cell::new(entry.lemma).fg(Color::White),
+                    Cell::new(entry.meaning).fg(Color::Green),
+                    Cell::new(entry.rust_equiv.unwrap_or("-")).fg(Color::Magenta),
+                ]);
+            }
+
+            println!("\n  {}", format!("{:?} Lexicon", pos).yellow().bold());
+            println!("{table}");
+        }
+    } else {
+        for pos in pos_keys {
+            let mut pos_entries = entries_by_pos.get(&pos).unwrap().clone();
+            pos_entries.sort_by_key(|(word, _)| *word);
+            for (word, entry) in pos_entries {
+                println!("{},{},{},{}", word, entry.lemma, entry.meaning, entry.rust_equiv.unwrap_or("-"));
+            }
+        }
     }
 
     Ok(())

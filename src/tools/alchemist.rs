@@ -1,3 +1,4 @@
+
 //! The Alchemist (ὁ Χημικός) - Python Exporter
 //!
 //! This module implements an experimental transpiler that converts ΓΛΩΣΣΑ programs
@@ -10,6 +11,7 @@
 //! provides an alternative export format, proving the independence of the semantic
 //! phase from the Rust codegen phase.
 
+use std::io::IsTerminal;
 use crate::morphology::lexicon::{BinaryOp, UnaryOp};
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use comfy_table::{Attribute, Cell, Color, Table, presets};
@@ -36,25 +38,29 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
 
     status.success();
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   A L C H E M I S T".bold().cyan());
-    println!("   {}", "Python Transpilation Result".italic().dim());
-    println!();
+    if std::io::stdout().is_terminal() {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   A L C H E M I S T".bold().cyan());
+        println!("   {}", "Python Transpilation Result".italic().dim());
+        println!();
 
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
 
-    table.set_header(vec![
-        Cell::new("Python Source Code")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-    ]);
+        table.set_header(vec![
+            Cell::new("Python Source Code")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+        ]);
 
-    let formatted_code = format!("```python\n{}\n```", python_code.trim());
-    table.add_row(vec![Cell::new(formatted_code)]);
+        let formatted_code = format!("```python\n{}\n```", python_code.trim());
+        table.add_row(vec![Cell::new(formatted_code)]);
 
-    println!("{table}");
-    println!();
+        println!("{table}");
+        println!();
+    } else {
+        println!("{}", python_code.trim());
+    }
 
     Ok(())
 }

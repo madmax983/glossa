@@ -25,14 +25,23 @@ use std::path::Path;
 pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
     let source = crate::tools::runner::load_source(input)?;
     let mut buffer = Vec::new();
-    run_labyrinth_inner(&source, &mut buffer)?;
-    let output = String::from_utf8(buffer).expect("comfy-table outputs valid UTF-8");
-    print!("{}", output);
+    let cfg_str = run_labyrinth_inner(&source, &mut buffer)?;
+
+    use std::io::IsTerminal;
+    if std::io::stdout().is_terminal() {
+        let output = String::from_utf8(buffer).expect("comfy-table outputs valid UTF-8");
+        print!("{}", output);
+    } else {
+        if let Some(cfg) = cfg_str {
+            println!("{}", cfg.trim());
+        }
+    }
+
     Ok(())
 }
 
 /// Internal implementation of Labyrinth logic for testing
-pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> miette::Result<()> {
+pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> miette::Result<Option<String>> {
     use miette::IntoDiagnostic;
     let status = Status::start_with_symbol("Λαβύρινθος (Control Flow Graph)", "🔀");
 
@@ -99,9 +108,10 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
         )
         .into_diagnostic()?;
         writeln!(writer).into_diagnostic()?;
+        return Ok(Some(cfg));
     }
 
-    Ok(())
+    Ok(None)
 }
 
 /// Generate a Mermaid.js flowchart representation of the program's control flow.

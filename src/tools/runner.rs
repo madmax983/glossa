@@ -548,11 +548,16 @@ pub fn bard_file(input: &Path) -> Result<()> {
     let tale = tell_tale(&analyzed);
     status.success();
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   B A R D".bold().cyan());
-    println!("   {}", "The Scroll of Logic".italic().dim());
-    println!();
-    println!("{}", tale);
+    use std::io::IsTerminal;
+    if std::io::stdout().is_terminal() {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   B A R D".bold().cyan());
+        println!("   {}", "The Scroll of Logic".italic().dim());
+        println!();
+        println!("{}", tale);
+    } else {
+        println!("{}", tale);
+    }
 
     Ok(())
 }

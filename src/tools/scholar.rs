@@ -128,16 +128,21 @@ pub fn run_scholar(input: &Path) -> Result<()> {
 
     status.success();
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   S C H O L A R".bold().cyan());
-    println!("   {}", "API Documentation Generated".italic().dim());
-    println!();
-    println!(
-        "   {} {}",
-        "Saved to:".bold(),
-        output_path.display().to_string().cyan()
-    );
-    println!();
+    use std::io::IsTerminal;
+    if std::io::stdout().is_terminal() {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   S C H O L A R".bold().cyan());
+        println!("   {}", "API Documentation Generated".italic().dim());
+        println!();
+        println!(
+            "   {} {}",
+            "Saved to:".bold(),
+            output_path.display().to_string().cyan()
+        );
+        println!();
+    } else {
+        println!("Saved to: {}", output_path.display());
+    }
 
     Ok(())
 }

@@ -1,3 +1,4 @@
+
 //! The Papyrus (ὁ Πάπυρος) - SQL Schema Generator
 //!
 //! This module implements the "Papyrus" tool, which inspects the type definitions
@@ -16,6 +17,7 @@
 //! 2. Scans the Abstract Syntax Tree for `TypeDefinition` nodes.
 //! 3. Maps ΓΛΩΣΣΑ types (`ἀριθμοῦ`, `ὀνόματος`, etc.) to SQL types (`BIGINT`, `TEXT`, etc.).
 //! 4. Outputs formatted SQL code to the terminal using a stylish, colorful table.
+use std::io::IsTerminal;
 use crate::semantic::{AnalyzedStatement, GlossaType};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
@@ -89,25 +91,29 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
         }
     }
 
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   P A P Y R U S".bold().cyan());
-    println!("   {}", "SQL Schema".italic().dim());
-    println!();
+    if std::io::stdout().is_terminal() {
+        println!();
+        println!("   {}", "Γ Λ Ω Σ Σ Α   P A P Y R U S".bold().cyan());
+        println!("   {}", "SQL Schema".italic().dim());
+        println!();
 
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
 
-    table.set_header(vec![
-        Cell::new("SQL Schema")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-    ]);
+        table.set_header(vec![
+            Cell::new("SQL Schema")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+        ]);
 
-    let formatted_code = format!("```sql\n{}\n```", output.trim());
-    table.add_row(vec![Cell::new(formatted_code)]);
+        let formatted_code = format!("```sql\n{}\n```", output.trim());
+        table.add_row(vec![Cell::new(formatted_code)]);
 
-    println!("{table}");
-    println!();
+        println!("{table}");
+        println!();
+    } else {
+        println!("{}", output.trim());
+    }
 
     Ok(())
 }
