@@ -20,3 +20,7 @@
 **Tangle:** Several modules under `src/tools/` (specifically `cache`, `report`, and `ui`) and `src/semantic/assembly/` (`model`) were exposed as `pub mod`, breaking encapsulation by exposing internal implementation details to the public API.
 **Blueprint:** Modified `src/tools/mod.rs` and `src/semantic/assembly/mod.rs` to restrict these modules with `pub(crate) mod`.
 **Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
+
+## [Splitting The Blob: Lexicon]
+**Tangle:** `src/morphology/lexicon.rs` was a monolithic file (~2800 lines) mixing over 2000 lines of `LEXICON` data with helper functions.
+**Blueprint:** Extracted the massive `LEXICON` LazyLock hashmap initializer into its own file `src/morphology/lexicon/data.rs` and left the remaining helper functions in `src/morphology/lexicon/mod.rs`.
