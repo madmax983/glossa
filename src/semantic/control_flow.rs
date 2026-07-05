@@ -925,7 +925,7 @@ mod tests {
         };
 
         let result = parse_return_expression(&clause, &scope).unwrap();
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::BooleanLiteral(true) => (),
             _ => panic!("Expected BooleanLiteral(true)"),
         }
@@ -943,7 +943,7 @@ mod tests {
         };
 
         let result = parse_return_expression(&clause, &scope).unwrap();
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::StringLiteral(s) if s == "test" => (),
             _ => panic!("Expected StringLiteral"),
         }
@@ -961,7 +961,7 @@ mod tests {
         };
 
         let result = parse_return_expression(&clause, &scope).unwrap();
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::NumberLiteral(42) => (),
             _ => panic!("Expected NumberLiteral(42)"),
         }
@@ -980,7 +980,7 @@ mod tests {
         };
 
         let result = parse_return_expression(&clause, &scope).unwrap();
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::Variable(v) if v == "foo" => (),
             _ => panic!("Expected Variable(foo)"),
         }
@@ -1168,7 +1168,10 @@ mod tests {
         let analyzed = result.unwrap().unwrap();
 
         match analyzed {
-            AnalyzedStatement::While { condition, body } => {
+            AnalyzedStatement::While {
+                ref condition,
+                ref body,
+            } => {
                 // Assert condition
                 assert_eq!(condition.glossa_type, GlossaType::Boolean);
                 // Assert body

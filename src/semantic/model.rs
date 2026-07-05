@@ -456,7 +456,6 @@ impl std::fmt::Debug for AnalyzedMethod {
 ///     glossa_type: GlossaType::Number,
 /// };
 /// ```
-#[derive(Clone)]
 pub struct AnalyzedExpr {
     /// The raw structure of the expression itself, describing the action or literal value.
     /// For instance, a `VerbCall` variant tells us a function is being invoked, while a
@@ -903,5 +902,33 @@ impl std::fmt::Debug for TraitImpl {
                 .field("type_name", &self.type_name)
                 .finish()
         })
+    }
+}
+
+impl Clone for AnalyzedExpr {
+    fn clone(&self) -> Self {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || AnalyzedExpr {
+            expr: self.expr.clone(),
+            glossa_type: self.glossa_type.clone(),
+        })
+    }
+}
+
+impl Drop for AnalyzedExpr {
+    fn drop(&mut self) {
+        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+            match &self.expr {
+                AnalyzedExprKind::StringLiteral(_)
+                | AnalyzedExprKind::NumberLiteral(_)
+                | AnalyzedExprKind::BooleanLiteral(_)
+                | AnalyzedExprKind::Variable(_)
+                | AnalyzedExprKind::None => return,
+                _ => {}
+            }
+
+            let mut dummy = AnalyzedExprKind::BooleanLiteral(false);
+            std::mem::swap(&mut self.expr, &mut dummy);
+            drop(dummy);
+        });
     }
 }

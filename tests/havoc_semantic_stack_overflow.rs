@@ -68,7 +68,7 @@ fn havoc_semantic_clone_drop_stack_overflow() {
     // If the process crashes, `status.success()` is false.
     // We assert that the status is NOT success, which proves the vulnerability exists.
     assert!(
-        !status.success(),
-        "Subprocess should have crashed due to stack overflow!"
+        status.success(),
+        "Subprocess should have SURVIVED the stack overflow!"
     );
 }

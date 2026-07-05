@@ -842,7 +842,7 @@ mod tests {
         let scope = Scope::new();
         let result = analyze_argument_expr(&expr, &scope).unwrap();
 
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::Unwrap(_) => {
                 // Success - correctly identified as Unwrap
             }
@@ -885,7 +885,7 @@ mod tests {
         let scope = Scope::new();
         let result = analyze_argument_expr(&expr, &scope).unwrap();
 
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::ArrayLiteral(elements) => {
                 assert_eq!(elements.len(), 2);
                 assert!(matches!(
@@ -906,7 +906,7 @@ mod tests {
         let scope = Scope::new();
         let result = analyze_argument_expr(&expr, &scope).unwrap();
 
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::IndexAccess { array: _, index } => {
                 assert!(matches!(index.expr, AnalyzedExprKind::NumberLiteral(0)));
             }
@@ -980,10 +980,10 @@ mod tests {
             };
             let result = analyze_argument_expr(&expr, &scope).unwrap();
 
-            match result.expr {
+            match &result.expr {
                 AnalyzedExprKind::BinOp { op, .. } => {
                     assert_eq!(
-                        op, expected_sem_op,
+                        *op, expected_sem_op,
                         "Mismatch for AST operator {:?}",
                         ast_op
                     );
@@ -1003,7 +1003,7 @@ mod tests {
         scope.define("x", GlossaType::Unknown);
         let result = analyze_argument_expr(&expr, &scope).unwrap();
 
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::PropertyAccess { property, .. } => {
                 assert_eq!(property, "y");
             }
@@ -1119,8 +1119,8 @@ mod tests {
         let scope = Scope::new();
         let result = analyze_argument_expr(&outer, &scope).unwrap();
 
-        match result.expr {
-            AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 1),
+        match &result.expr {
+            AnalyzedExprKind::NumberLiteral(n) => assert_eq!(*n, 1),
             _ => panic!("Expected NumberLiteral"),
         }
     }
@@ -1144,7 +1144,7 @@ mod tests {
 
         let result = analyze_argument_expr(&expr, &scope).unwrap();
 
-        match result.expr {
+        match &result.expr {
             AnalyzedExprKind::FunctionCall { func, args } => {
                 assert_eq!(func, "add");
                 assert_eq!(args.len(), 2);
@@ -1184,8 +1184,8 @@ mod tests {
         let scope = Scope::new();
         let result = analyze_argument_expr(&expr, &scope).unwrap();
 
-        match result.expr {
-            AnalyzedExprKind::NumberLiteral(n) => assert_eq!(n, 1),
+        match &result.expr {
+            AnalyzedExprKind::NumberLiteral(n) => assert_eq!(*n, 1),
             _ => panic!("Expected NumberLiteral"),
         }
     }

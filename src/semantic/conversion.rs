@@ -2843,7 +2843,7 @@ mod tests {
 
         let (expr, ty) = opt.unwrap();
         assert_eq!(ty, GlossaType::Unknown);
-        if let AnalyzedExprKind::Unwrap(inner) = expr.expr {
+        if let AnalyzedExprKind::Unwrap(ref inner) = expr.expr {
             if let AnalyzedExprKind::NumberLiteral(n) = inner.expr {
                 assert_eq!(n, 42);
             } else {
