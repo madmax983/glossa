@@ -39,6 +39,12 @@ pub mod dictionary;
 pub mod gnomon;
 #[cfg(feature = "nova")]
 pub mod haruspex;
+/// The Herald (ὁ Κῆρυξ) tool for TypeScript Interface generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding TypeScript `interface` declarations.
+#[cfg(feature = "nova")]
+pub mod herald;
 pub mod highlight;
 #[cfg(feature = "nova")]
 pub mod interpreter;
