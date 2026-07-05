@@ -214,6 +214,16 @@ pub fn analyze_trait_impl(
     trait_impl: &crate::ast::TraitImplDef,
     scope: &mut Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
+    scope.in_trait = true;
+    let res = analyze_trait_impl_inner(trait_impl, scope);
+    scope.in_trait = false;
+    res
+}
+
+fn analyze_trait_impl_inner(
+    trait_impl: &crate::ast::TraitImplDef,
+    scope: &mut Scope,
+) -> Result<AnalyzedStatement, GlossaError> {
     // Extract type and trait names
     let type_name = trait_impl.type_name.normalized.clone();
     let trait_name = trait_impl.trait_name.normalized.clone();

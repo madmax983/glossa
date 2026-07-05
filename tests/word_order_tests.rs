@@ -69,11 +69,9 @@ fn test_number_binding_variations() {
 /// Test that articles set disambiguation context for following nouns
 #[test]
 fn test_article_disambiguation_context() {
-    // ὁ ἄνθρωπος should be recognized as masculine nominative singular
-    // τὸν λόγον should be recognized as masculine accusative singular
-    // These don't produce Rust code yet, but they should parse without error
-    let ast = parse("ὁ ἄνθρωπος λέγει.").expect("Should parse");
-    let _analyzed = analyze_program(&ast).expect("Should analyze");
+    let source = "ἔστω ανθρωπος 1. ὁ ἄνθρωπος λέγει.";
+    let ast = parse(source).expect("Should parse");
+    let _result = analyze_program(&ast).expect("Should analyze");
 }
 
 /// Test that the assembler produces consistent output

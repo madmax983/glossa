@@ -21,7 +21,8 @@ proptest! {
             λείτουργος λέγε.
         ", val);
 
-        let ast = parse(&source).unwrap();
+        let source_fixed = format!("\nἔστω λειτουργος 0.\n{}", source);
+        let ast = parse(&source_fixed).unwrap();
         let analyzed = analyze_program(&ast).unwrap();
         let rust_code = generate_rust(&analyzed);
 

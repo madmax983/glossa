@@ -94,7 +94,7 @@ C4Component
         Component(declarations, "Declarations", "src/semantic/declarations.rs", "Analyzes Types, Traits, Functions")
         Component(control_flow, "Control Flow", "src/semantic/control_flow.rs", "Analyzes If, While, Match")
         Component(expressions, "Expressions", "src/semantic/expressions.rs", "Recursively analyzes nested expressions")
-        Component(resolver, "Resolver", "src/semantic/resolver.rs", "Manages Scope and Bindings")
+        Component(resolver, "Resolver", "src/semantic/resolver.rs", "Manages Scope, Bindings, and Context State (e.g. Traits)")
         Component(assembly, "Assembly", "src/semantic/assembly/mod.rs", "Routes words to grammatical slots")
         Component(assembly_model, "Assembly Model", "src/semantic/assembly/model.rs", "Data Transfer Objects (DTOs)")
         Component(conversion, "Conversion", "src/semantic/conversion.rs", "Interprets assembled slots into statements")

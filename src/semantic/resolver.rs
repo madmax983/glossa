@@ -80,6 +80,7 @@ impl ScopeLevel {
 #[derive(Debug, Clone)]
 pub struct Scope {
     levels: Vec<ScopeLevel>,
+    pub in_trait: bool,
 }
 
 /// A function signature tracking defined operations.
@@ -127,6 +128,7 @@ impl Scope {
     pub fn new() -> Self {
         Scope {
             levels: vec![ScopeLevel::new()],
+            in_trait: false,
         }
     }
 
