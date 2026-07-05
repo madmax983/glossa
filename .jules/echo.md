@@ -1,0 +1,3 @@
+**Error messages in Troubleshooting guide don't exist**
+**The Confusion:** The troubleshooting guide listed error messages like `Οὐκ οἶδα τὸ ὄνομα` (Undefined variable), `Διπλοῦν ὑποκείμενον` (Double Subject), and `Ῥῆμα οὐχ εὑρέθη` (Missing verb), but none of these errors were generated! The undefined variable compiled silently, the double subject compiled without errors, and the missing verb caused a compiler panic.
+**The Fix:** Updated `src/semantic/conversion.rs` and `src/semantic/assembly/mod.rs` to correctly return `AssemblyError::DoubleSubject`, `AssemblyError::MissingVerb`, and `GlossaError::UndefinedName` properly formatted so that the CLI will display them instead of panic.

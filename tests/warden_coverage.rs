@@ -17,7 +17,8 @@ fn test_coverage_filter_patterns() {
         ξ [1, 2, 3] ἔστω.
         θ 10 ἔστω.
         // Filter: collection + genitive(ου) + comparative_adj + print
-        ξ θου μείζονα λέγε.
+        // We use τὸν ξ instead of ξ to clearly mark it as accusative so we don't get double subject
+        υ τὸν ξ θου μείζονα ἔστω.
     ",
     );
 
@@ -27,7 +28,7 @@ fn test_coverage_filter_patterns() {
         ξ [1, 2, 3] ἔστω.
         αγάπη 10 ἔστω.
         // Filter: collection + genitive(ης) + comparative_adj + print
-        ξ αγάπης μείζονα λέγε.
+        υ τὸν ξ αγάπης μείζονα ἔστω.
     ",
     );
 
