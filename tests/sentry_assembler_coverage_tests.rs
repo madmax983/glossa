@@ -1,8 +1,8 @@
 #![allow(missing_docs)]
 use glossa::morphology::BinaryOp;
 use glossa::morphology::analyze;
-use glossa::semantic::Assembler;
-use glossa::semantic::Literal;
+use glossa::semantic::assembly::Assembler;
+use glossa::semantic::assembly::model::Literal;
 
 #[test]
 fn test_assembler_comparison_operator() {

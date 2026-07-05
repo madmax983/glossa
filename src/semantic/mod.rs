@@ -58,8 +58,8 @@ pub(crate) mod validation;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
 pub use analyzer::{AnalyzedProgram, analyze_program, analyze_statement};
-pub use assembly::Assembler;
-pub use assembly::{
+pub(crate) use assembly::Assembler;
+pub(crate) use assembly::{
     AssembledStatement, AssemblyError, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
 pub use model::*;

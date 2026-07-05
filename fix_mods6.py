@@ -1,0 +1,10 @@
+import sys
+
+def replace_in_file(filepath, search, replace):
+    with open(filepath) as f:
+        content = f.read()
+    content = content.replace(search, replace)
+    with open(filepath, 'w') as f:
+        f.write(content)
+
+replace_in_file("tests/havoc_fuzz_assembler.rs", "use glossa::semantic::Assembler;", "use glossa::semantic::assembly::Assembler;")
