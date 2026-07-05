@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Analyze code for functional purity and side effects (Requires "nova" feature)
+    Philosopher {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }

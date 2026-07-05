@@ -188,6 +188,19 @@ fn main() -> Result<()> {
             );
         }
 
+        Some(Commands::Philosopher { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::philosopher::run_philosopher(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'philosopher' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Scholar { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::scholar::run_scholar(&input)?;
