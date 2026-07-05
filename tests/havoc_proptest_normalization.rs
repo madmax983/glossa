@@ -85,7 +85,7 @@ proptest! {
     }
 }
 
-use glossa::semantic::assembly::Assembler;
+use glossa::semantic::Assembler;
 
 proptest! {
     #[test]

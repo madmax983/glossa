@@ -6,7 +6,7 @@
 
 use glossa::errors::{AssemblyError, GlossaError};
 use glossa::morphology::{Case, Gender, Number, Person, Tense, Voice};
-use glossa::semantic::assembly::model::{
+use glossa::semantic::{
     AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
 };
 use miette::Diagnostic;

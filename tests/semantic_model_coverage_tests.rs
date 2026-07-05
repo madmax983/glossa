@@ -1,10 +1,7 @@
 #![allow(missing_docs)]
-use glossa::semantic::assembly::model::{
-    AssembledStatement, Constituent, Literal, ParticipleConstituent, VerbConstituent,
-};
 use glossa::semantic::{
-    AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, CaptureMode, TraitDef,
-    TraitImpl,
+    AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, AssembledStatement,
+    CaptureMode, Constituent, Literal, ParticipleConstituent, TraitDef, TraitImpl, VerbConstituent,
 };
 use smol_str::SmolStr;
 

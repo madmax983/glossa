@@ -148,8 +148,8 @@ struct StatementContext {
     has_delimiter: bool,
     is_match_arm: bool,
 }
-pub mod model;
-pub(crate) use model::*;
+pub(crate) mod model;
+pub use model::*;
 
 /// The `Assembler` orchestrates semantic construction.
 ///
@@ -160,7 +160,7 @@ pub(crate) use model::*;
 /// # Examples
 ///
 /// ```rust
-/// use glossa::semantic::Assembler;
+/// use glossa::semantic::assembly::Assembler;
 /// let mut asm = Assembler::new();
 /// // Then feed analysis and finalise statement
 /// ```
