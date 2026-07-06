@@ -152,7 +152,12 @@ impl Status {
 
         let msg = self.message.as_str().bold().to_string();
         self.print_done("✕".red(), &msg);
-        eprintln!("{}", err);
+
+        let err_string = format!("{}", err);
+        // Use a styled blockquote for errors!
+        for line in err_string.lines() {
+            eprintln!("{} {}", "│".red(), line);
+        }
         self.active = false;
     }
 
