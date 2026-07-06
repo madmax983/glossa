@@ -14,7 +14,7 @@
 //!
 //! The [`run_auditor`](crate::tools::auditor::run_auditor) function drives the analysis:
 //! 1. The code is parsed and semantically analyzed.
-//! 2. A custom visitor (`AuditorVisitor`) traverses every statement and expression in the AST.
+//! 2. A custom visitor (`AuditorVisitorFlattened`) traverses every statement and expression in the AST.
 //! 3. The visitor tracks variable declarations, usages, and reassignments using HashMaps and HashSets.
 //! 4. After traversal, the findings are cross-referenced to produce a final report,
 //!    which is displayed in a stylized terminal table.
@@ -76,7 +76,7 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 
     status.success();
 
-    let mut visitor = AuditorVisitor::new();
+    let mut visitor = AuditorVisitorFlattened::default();
     for stmt in &program.statements {
         visitor.visit_statement(stmt);
     }
@@ -140,7 +140,8 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     Ok(())
 }
 
-struct AuditorVisitor {
+#[derive(Default)]
+struct AuditorVisitorFlattened {
     /// ⚡ Bolt Optimization: Uses `FxHashMap` instead of the standard `HashMap`
     /// to reduce cryptographic hashing overhead for small string keys (`SmolStr`).
     usage_count: FxHashMap<SmolStr, usize>,
@@ -148,15 +149,7 @@ struct AuditorVisitor {
     mutable_vars: FxHashSet<SmolStr>,
 }
 
-impl AuditorVisitor {
-    fn new() -> Self {
-        Self {
-            usage_count: FxHashMap::default(),
-            mutation_count: FxHashMap::default(),
-            mutable_vars: FxHashSet::default(),
-        }
-    }
-
+impl AuditorVisitorFlattened {
     fn visit_if_statement(
         &mut self,
         condition: &AnalyzedExpr,
@@ -395,7 +388,7 @@ mod tests {
 
     #[test]
     fn test_auditor_visitor_coverage_statements() {
-        let mut visitor = AuditorVisitor::new();
+        let mut visitor = AuditorVisitorFlattened::default();
 
         let statements = vec![
             AnalyzedStatement::Binding {
@@ -509,7 +502,7 @@ mod tests {
 
     #[test]
     fn test_auditor_visitor_coverage_expressions() {
-        let mut visitor = AuditorVisitor::new();
+        let mut visitor = AuditorVisitorFlattened::default();
 
         let exprs = vec![
             AnalyzedExprKind::Variable("x".into()),
