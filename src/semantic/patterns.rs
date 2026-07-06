@@ -1090,10 +1090,12 @@ mod tests {
         });
 
         let expr = extract_comparison_value(&stmt, &scope);
+        assert!(
+            matches!(expr.expr, AnalyzedExprKind::Variable(_)),
+            "Expected variable"
+        );
         if let AnalyzedExprKind::Variable(name) = expr.expr {
             assert_eq!(name, "ονομα", "Expected lemma 'ονομα', got '{}'", name);
-        } else {
-            panic!("Expected variable");
         }
     }
 
@@ -1114,14 +1116,16 @@ mod tests {
         });
 
         let expr = extract_comparison_value(&stmt, &scope);
+        assert!(
+            matches!(expr.expr, AnalyzedExprKind::Variable(_)),
+            "Expected variable"
+        );
         if let AnalyzedExprKind::Variable(name) = expr.expr {
             assert_eq!(
                 name, "αγαπ",
                 "Expected stripped name 'αγαπ', got '{}'",
                 name
             );
-        } else {
-            panic!("Expected variable");
         }
     }
 
@@ -1142,14 +1146,16 @@ mod tests {
         });
 
         let expr = extract_comparison_value(&stmt, &scope);
+        assert!(
+            matches!(expr.expr, AnalyzedExprKind::Variable(_)),
+            "Expected variable"
+        );
         if let AnalyzedExprKind::Variable(name) = expr.expr {
             assert_eq!(
                 name, "μετρ",
                 "Expected stripped name 'μετρ', got '{}'",
                 name
             );
-        } else {
-            panic!("Expected variable");
         }
     }
 
@@ -1171,10 +1177,12 @@ mod tests {
         });
 
         let expr = extract_comparison_value(&stmt, &scope);
+        assert!(
+            matches!(expr.expr, AnalyzedExprKind::Variable(_)),
+            "Expected variable"
+        );
         if let AnalyzedExprKind::Variable(name) = expr.expr {
             assert_eq!(name, "θ", "Expected stripped name 'θ', got '{}'", name);
-        } else {
-            panic!("Expected variable");
         }
     }
 
@@ -1196,14 +1204,16 @@ mod tests {
         });
 
         let expr = extract_comparison_value(&stmt, &scope);
+        assert!(
+            matches!(expr.expr, AnalyzedExprKind::Variable(_)),
+            "Expected variable"
+        );
         if let AnalyzedExprKind::Variable(name) = expr.expr {
             assert_eq!(
                 name, "μυος",
                 "Expected original name 'μυος', got '{}'",
                 name
             );
-        } else {
-            panic!("Expected variable");
         }
     }
 
@@ -1224,14 +1234,16 @@ mod tests {
         });
 
         let expr = extract_comparison_value(&stmt, &scope);
+        assert!(
+            matches!(expr.expr, AnalyzedExprKind::Variable(_)),
+            "Expected variable"
+        );
         if let AnalyzedExprKind::Variable(name) = expr.expr {
             assert_eq!(
                 name, "θ",
                 "Expected fallback to stripped name 'θ', got '{}'",
                 name
             );
-        } else {
-            panic!("Expected variable");
         }
     }
 
@@ -1253,7 +1265,7 @@ mod tests {
 
         let result = try_parse_struct_instantiation(&stmt, &mut scope);
         assert!(result.is_ok());
-        assert!(result.unwrap().is_none());
+        assert!(result.expect("Expected Ok result").is_none());
     }
 
     #[test]
@@ -1352,18 +1364,18 @@ mod coverage_tests {
 
         let result = detect_iterator_pattern(&stmt, &mut scope);
         assert!(result.is_ok());
-        let expr_opt = result.unwrap();
+        let expr_opt = result.expect("Expected Ok result");
         assert!(expr_opt.is_some());
 
-        let expr = expr_opt.unwrap();
+        let expr = expr_opt.expect("Expected Some expression");
         // Should be MethodCall "any"
+        assert!(
+            matches!(expr.expr, AnalyzedExprKind::MethodCall { .. }),
+            "Expected MethodCall"
+        );
         if let AnalyzedExprKind::MethodCall { method, args, .. } = expr.expr {
             assert_eq!(method, "any");
             assert_eq!(args.len(), 1);
-            // Verify argument is a closure x > x
-            // (The detailed closure structure is complex to verify, but method name is key)
-        } else {
-            panic!("Expected MethodCall 'any', got {:?}", expr.expr);
         }
     }
 
@@ -1415,16 +1427,18 @@ mod coverage_tests {
 
         let result = detect_iterator_pattern(&stmt, &mut scope);
         assert!(result.is_ok());
-        let expr_opt = result.unwrap();
+        let expr_opt = result.expect("Expected Ok result");
         assert!(expr_opt.is_some());
 
-        let expr = expr_opt.unwrap();
+        let expr = expr_opt.expect("Expected Some expression");
         // Should be MethodCall "find"
+        assert!(
+            matches!(expr.expr, AnalyzedExprKind::MethodCall { .. }),
+            "Expected MethodCall"
+        );
         if let AnalyzedExprKind::MethodCall { method, args, .. } = expr.expr {
             assert_eq!(method, "find");
             assert_eq!(args.len(), 1);
-        } else {
-            panic!("Expected MethodCall 'find', got {:?}", expr.expr);
         }
     }
 
@@ -1483,28 +1497,31 @@ mod coverage_tests {
 
         let result = detect_iterator_pattern(&stmt, &mut scope);
         assert!(result.is_ok());
-        let expr_opt = result.unwrap();
+        let expr_opt = result.expect("Expected Ok result");
         assert!(expr_opt.is_some());
 
-        let expr = expr_opt.unwrap();
+        let expr = expr_opt.expect("Expected Some expression");
         // Should be MethodCall "collect" (finalized), inner is filter
+        assert!(
+            matches!(expr.expr, AnalyzedExprKind::MethodCall { .. }),
+            "Expected MethodCall 'collect'"
+        );
         if let AnalyzedExprKind::MethodCall {
             method, receiver, ..
         } = expr.expr
         {
             assert_eq!(method, "collect");
-            // Check inner receiver
+            assert!(
+                matches!(receiver.expr, AnalyzedExprKind::MethodCall { .. }),
+                "Expected inner MethodCall"
+            );
             if let AnalyzedExprKind::MethodCall {
                 method: inner_method,
                 ..
             } = receiver.expr
             {
                 assert_eq!(inner_method, "filter");
-            } else {
-                panic!("Expected inner MethodCall 'filter'");
             }
-        } else {
-            panic!("Expected MethodCall 'collect'");
         }
     }
 
@@ -1533,11 +1550,13 @@ mod coverage_tests {
         process_find(&asm_stmt, &scope, &mut current_expr);
 
         // Expected to be a MethodCall to "next" with no args
+        assert!(
+            matches!(current_expr.expr, AnalyzedExprKind::MethodCall { .. }),
+            "Expected MethodCall"
+        );
         if let AnalyzedExprKind::MethodCall { method, args, .. } = current_expr.expr {
             assert_eq!(method, "find");
             assert_eq!(args.len(), 1);
-        } else {
-            panic!("Expected MethodCall 'find'");
         }
     }
 }

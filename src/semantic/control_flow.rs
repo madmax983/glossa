@@ -49,7 +49,7 @@ use crate::morphology::lexicon;
 ///     is_propagate: false,
 /// };
 ///
-/// let result = analyze_control_flow(&stmt, &mut scope).unwrap();
+/// let result = analyze_control_flow(&stmt, &mut scope).expect("Expected valid result");
 /// assert!(result.is_none());
 /// ```
 pub fn analyze_control_flow(
@@ -867,7 +867,7 @@ mod tests {
 
         // Phrase with wild-card "ἄλλο"
         let phrase_wildcard = Expr::Phrase(vec![Expr::Word(Word::new("ἄλλο"))]);
-        let res = parse_match_pattern(&phrase_wildcard, &mut scope).unwrap();
+        let res = parse_match_pattern(&phrase_wildcard, &mut scope).expect("Expected valid result");
         if let AnalyzedExprKind::BooleanLiteral(b) = res.expr {
             assert!(b);
         } else {
@@ -876,7 +876,7 @@ mod tests {
 
         // Phrase with numeral "δύο"
         let phrase_numeral = Expr::Phrase(vec![Expr::Word(Word::new("δύο"))]);
-        let res = parse_match_pattern(&phrase_numeral, &mut scope).unwrap();
+        let res = parse_match_pattern(&phrase_numeral, &mut scope).expect("Expected valid result");
         if let AnalyzedExprKind::NumberLiteral(n) = res.expr {
             assert_eq!(n, 2);
         } else {
@@ -924,7 +924,7 @@ mod tests {
             ])],
         };
 
-        let result = parse_return_expression(&clause, &scope).unwrap();
+        let result = parse_return_expression(&clause, &scope).expect("Expected valid result");
         match result.expr {
             AnalyzedExprKind::BooleanLiteral(true) => (),
             _ => panic!("Expected BooleanLiteral(true)"),
@@ -942,7 +942,7 @@ mod tests {
             ])],
         };
 
-        let result = parse_return_expression(&clause, &scope).unwrap();
+        let result = parse_return_expression(&clause, &scope).expect("Expected valid result");
         match result.expr {
             AnalyzedExprKind::StringLiteral(s) if s == "test" => (),
             _ => panic!("Expected StringLiteral"),
@@ -960,7 +960,7 @@ mod tests {
             ])],
         };
 
-        let result = parse_return_expression(&clause, &scope).unwrap();
+        let result = parse_return_expression(&clause, &scope).expect("Expected valid result");
         match result.expr {
             AnalyzedExprKind::NumberLiteral(42) => (),
             _ => panic!("Expected NumberLiteral(42)"),
@@ -979,7 +979,7 @@ mod tests {
             ])],
         };
 
-        let result = parse_return_expression(&clause, &scope).unwrap();
+        let result = parse_return_expression(&clause, &scope).expect("Expected valid result");
         match result.expr {
             AnalyzedExprKind::Variable(v) if v == "foo" => (),
             _ => panic!("Expected Variable(foo)"),
@@ -996,7 +996,7 @@ mod tests {
             is_propagate: false,
         };
 
-        let result = parse_return_statement(&stmt, &mut scope).unwrap();
+        let result = parse_return_statement(&stmt, &mut scope).expect("Expected valid result");
         match result {
             Some(AnalyzedStatement::Return { value: None }) => (),
             _ => panic!("Expected Return with None"),
@@ -1165,7 +1165,9 @@ mod tests {
 
         let result = analyze_control_flow(&stmt, &mut scope);
         assert!(result.is_ok());
-        let analyzed = result.unwrap().unwrap();
+        let analyzed = result
+            .expect("Expected valid result")
+            .expect("Expected valid result");
 
         match analyzed {
             AnalyzedStatement::While { condition, body } => {
@@ -1274,7 +1276,9 @@ mod tests {
         };
         let result = parse_conditional(&stmt, &mut scope, 0);
         assert!(result.is_ok());
-        let stmt = result.unwrap().unwrap();
+        let stmt = result
+            .expect("Expected valid result")
+            .expect("Expected valid result");
         if let AnalyzedStatement::If {
             condition: _,
             then_body: _,
@@ -1321,7 +1325,9 @@ mod tests {
         };
         let result = parse_conditional(&stmt, &mut scope, 0);
         assert!(result.is_ok());
-        let stmt = result.unwrap().unwrap();
+        let stmt = result
+            .expect("Expected valid result")
+            .expect("Expected valid result");
         if let AnalyzedStatement::If {
             condition: _,
             then_body: _,
@@ -1363,7 +1369,9 @@ mod tests {
         };
         let result = parse_conditional(&stmt, &mut scope, 0);
         assert!(result.is_ok());
-        let stmt = result.unwrap().unwrap();
+        let stmt = result
+            .expect("Expected valid result")
+            .expect("Expected valid result");
         if let AnalyzedStatement::If {
             condition,
             then_body: _,

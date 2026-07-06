@@ -48,7 +48,7 @@ pub fn run_mosaic(input_path: &Path) -> Result<()> {
         status.error("Σφάλμα (Error)");
         return Err(e);
     }
-    let output = String::from_utf8(buffer).expect("comfy-table outputs valid UTF-8");
+    let output = String::from_utf8(buffer).unwrap_or_else(|_| String::new());
 
     status.success();
 

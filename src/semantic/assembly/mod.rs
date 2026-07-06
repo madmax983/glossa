@@ -89,15 +89,15 @@
 //! let mut asm = Assembler::new();
 //!
 //! // "λέγει" (Verb)
-//! asm.feed(&analyze("λέγει"), "λέγει").unwrap();
+//! asm.feed(&analyze("λέγει"), "λέγει").expect("Expected valid result");
 //!
 //! // "τὸν λόγον" (Object)
-//! asm.feed(&analyze("λόγον"), "λόγον").unwrap();
+//! asm.feed(&analyze("λόγον"), "λόγον").expect("Expected valid result");
 //!
 //! // "ὁ ἄνθρωπος" (Subject)
-//! asm.feed(&analyze("ἄνθρωπος"), "ἄνθρωπος").unwrap();
+//! asm.feed(&analyze("ἄνθρωπος"), "ἄνθρωπος").expect("Expected valid result");
 //!
-//! let stmt = asm.finalize().unwrap();
+//! let stmt = asm.finalize().expect("Expected valid result");
 //!
 //! assert!(stmt.subject.is_some());
 //! assert!(stmt.verb.is_some());
@@ -215,11 +215,11 @@ impl Assembler {
     ///
     /// // "ἄνθρωπος" (Nom) -> Subject
     /// let subj = analyze("ἄνθρωπος");
-    /// asm.feed(&subj, "ἄνθρωπος").unwrap();
+    /// asm.feed(&subj, "ἄνθρωπος").expect("Expected valid result");
     ///
     /// // "λόγον" (Acc) -> Object
     /// let obj = analyze("λόγον");
-    /// asm.feed(&obj, "λόγον").unwrap();
+    /// asm.feed(&obj, "λόγον").expect("Expected valid result");
     /// ```
     /// Feeds an AST element into the assembler.
     ///
@@ -228,7 +228,7 @@ impl Assembler {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// asm.feed(&analysis, "λόγος").unwrap();
+    /// asm.feed(&analysis, "λόγος").expect("Expected valid result");
     /// ```
     #[allow(dead_code)]
     pub fn feed(&mut self, analysis: &MorphAnalysis, original: &str) -> Result<(), AssemblyError> {
@@ -245,7 +245,7 @@ impl Assembler {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// asm.feed_with_normalized(&analysis, "λογος", "λόγος").unwrap();
+    /// asm.feed_with_normalized(&analysis, "λογος", "λόγος").expect("Expected valid result");
     /// ```
     pub fn feed_with_normalized(
         &mut self,
@@ -290,7 +290,7 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_string("χαῖρε".to_string()).unwrap();
+    /// asm.feed_string("χαῖρε".to_string()).expect("Expected valid result");
     /// ```
     pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
         Self::check_limit(self.state.literals.len(), MAX_LITERALS, "Literals")?;
@@ -305,7 +305,7 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_number(42).unwrap();
+    /// asm.feed_number(42).expect("Expected valid result");
     /// ```
     pub fn feed_number(&mut self, value: i64) -> Result<(), AssemblyError> {
         Self::check_limit(self.state.literals.len(), MAX_LITERALS, "Literals")?;
@@ -320,7 +320,7 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_boolean(true).unwrap();
+    /// asm.feed_boolean(true).expect("Expected valid result");
     /// ```
     pub fn feed_boolean(&mut self, value: bool) -> Result<(), AssemblyError> {
         Self::check_limit(self.state.literals.len(), MAX_LITERALS, "Literals")?;
@@ -337,7 +337,7 @@ impl Assembler {
     ///
     /// let mut asm = Assembler::new();
     /// let elements = vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)];
-    /// asm.feed_array(elements).unwrap();
+    /// asm.feed_array(elements).expect("Expected valid result");
     /// ```
     pub fn feed_array(&mut self, elements: Vec<Expr>) -> Result<(), AssemblyError> {
         Self::check_limit(self.state.arrays.len(), MAX_ARRAYS, "Arrays")?;
@@ -352,7 +352,7 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_block(vec![]).unwrap(); // Empty block
+    /// asm.feed_block(vec![]).expect("Expected valid result"); // Empty block
     /// ```
     pub fn feed_block(
         &mut self,
@@ -371,7 +371,7 @@ impl Assembler {
     /// use glossa::ast::Expr;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]).unwrap();
+    /// asm.feed_nested_phrase(vec![Expr::NumberLiteral(1)]).expect("Expected valid result");
     /// ```
     pub fn feed_nested_phrase(&mut self, terms: Vec<Expr>) -> Result<(), AssemblyError> {
         Self::check_limit(
@@ -397,7 +397,7 @@ impl Assembler {
     ///     normalized: SmolStr::new("πιναξ"),
     /// });
     /// let index = Expr::NumberLiteral(0);
-    /// asm.feed_index_access(array, index).unwrap();
+    /// asm.feed_index_access(array, index).expect("Expected valid result");
     /// ```
     pub fn feed_index_access(&mut self, array: Expr, index: Expr) -> Result<(), AssemblyError> {
         Self::check_limit(
@@ -422,7 +422,7 @@ impl Assembler {
     ///     original: SmolStr::new("τιμή"),
     ///     normalized: SmolStr::new("τιμη"),
     /// });
-    /// asm.feed_unwrap(expr).unwrap();
+    /// asm.feed_unwrap(expr).expect("Expected valid result");
     /// ```
     pub fn feed_unwrap(&mut self, expr: Expr) -> Result<(), AssemblyError> {
         Self::check_limit(self.state.unwraps.len(), MAX_UNWRAPS, "Unwraps")?;
@@ -448,7 +448,7 @@ impl Assembler {
     ///     confidence: 1.0,
     /// };
     ///
-    /// asm.feed_participle(&analysis, "διπλασιαζόμενα").unwrap();
+    /// asm.feed_participle(&analysis, "διπλασιαζόμενα").expect("Expected valid result");
     /// ```
     pub fn feed_participle(
         &mut self,
@@ -615,10 +615,10 @@ impl Assembler {
     /// let mut asm = Assembler::new();
     ///
     /// // "The man says"
-    /// asm.feed(&analyze("ἄνθρωπος"), "ἄνθρωπος").unwrap();
-    /// asm.feed(&analyze("λέγει"), "λέγει").unwrap();
+    /// asm.feed(&analyze("ἄνθρωπος"), "ἄνθρωπος").expect("Expected valid result");
+    /// asm.feed(&analyze("λέγει"), "λέγει").expect("Expected valid result");
     ///
-    /// let stmt = asm.finalize().unwrap();
+    /// let stmt = asm.finalize().expect("Expected valid result");
     /// assert!(stmt.subject.is_some());
     /// assert!(stmt.verb.is_some());
     /// ```
@@ -939,7 +939,10 @@ mod tests {
         asm.state.literals.push(Literal::Number(42));
         let result = asm.try_create_string_method("split");
         assert!(result.is_ok());
-        assert!(!result.unwrap(), "should return false and not panic");
+        assert!(
+            !result.expect("Expected valid result"),
+            "should return false and not panic"
+        );
     }
     #[test]
     fn test_operator_detection() {
@@ -947,8 +950,8 @@ mod tests {
         let mut asm = Assembler::new();
         // Feed comparison adjective
         let meizon = analyze("μειζον");
-        asm.feed(&meizon, "μεῖζον").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&meizon, "μεῖζον").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert!(
             !stmt.operators.is_empty(),
             "Expected operator to be captured"
@@ -961,8 +964,8 @@ mod tests {
         let mut asm = Assembler::new();
         // Feed boolean particle
         let or_particle = analyze("η");
-        asm.feed(&or_particle, "ἤ").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&or_particle, "ἤ").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert!(
             !stmt.operators.is_empty(),
             "Expected operator to be captured, got: {:?}",
@@ -975,16 +978,16 @@ mod tests {
         // ἀληθές ἤ ψεῦδος λέγε - simulate the full expression
         let mut asm = Assembler::new();
         // Feed true (boolean literal - handled by parser, goes to feed_boolean)
-        asm.feed_boolean(true).unwrap();
+        asm.feed_boolean(true).expect("Expected valid result");
         // Feed ἤ (OR operator)
         let or_particle = analyze("η");
-        asm.feed(&or_particle, "ἤ").unwrap();
+        asm.feed(&or_particle, "ἤ").expect("Expected valid result");
         // Feed false (boolean literal)
-        asm.feed_boolean(false).unwrap();
+        asm.feed_boolean(false).expect("Expected valid result");
         // Feed λέγε (print verb)
         let verb = analyze("λεγε");
-        asm.feed(&verb, "λέγε").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&verb, "λέγε").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert_eq!(
             stmt.literals.len(),
             2,
@@ -1005,14 +1008,14 @@ mod tests {
         let mut asm = Assembler::new();
         // Feed subject (nominative)
         let subj = analyze("ανθρωπος");
-        asm.feed(&subj, "ἄνθρωπος").unwrap();
+        asm.feed(&subj, "ἄνθρωπος").expect("Expected valid result");
         // Feed object (accusative)
         let obj = analyze("λογον");
-        asm.feed(&obj, "λόγον").unwrap();
+        asm.feed(&obj, "λόγον").expect("Expected valid result");
         // Feed verb
         let verb = analyze("λεγει");
-        asm.feed(&verb, "λέγει").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&verb, "λέγει").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert!(stmt.subject.is_some());
         assert!(stmt.object.is_some());
         assert!(stmt.verb.is_some());
@@ -1023,14 +1026,14 @@ mod tests {
         let mut asm = Assembler::new();
         // Feed verb first
         let verb = analyze("λεγει");
-        asm.feed(&verb, "λέγει").unwrap();
+        asm.feed(&verb, "λέγει").expect("Expected valid result");
         // Feed object
         let obj = analyze("λογον");
-        asm.feed(&obj, "λόγον").unwrap();
+        asm.feed(&obj, "λόγον").expect("Expected valid result");
         // Feed subject
         let subj = analyze("ανθρωπος");
-        asm.feed(&subj, "ἄνθρωπος").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&subj, "ἄνθρωπος").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert!(stmt.subject.is_some());
         assert!(stmt.object.is_some());
         assert!(stmt.verb.is_some());
@@ -1040,15 +1043,15 @@ mod tests {
         // Multiple nominatives are now allowed for function call patterns
         let mut asm = Assembler::new();
         let subj1 = analyze("ανθρωπος");
-        asm.feed(&subj1, "ἄνθρωπος").unwrap();
+        asm.feed(&subj1, "ἄνθρωπος").expect("Expected valid result");
         let subj2 = analyze("θεος");
-        asm.feed(&subj2, "θεός").unwrap(); // Should succeed now
+        asm.feed(&subj2, "θεός").expect("Expected valid result"); // Should succeed now
         // For multiple nominatives to pass validation, it must be part of a function definition
         // or contain literals/blocks that define the call
         let verb = analyze("εστω");
-        asm.feed(&verb, "ἔστω").unwrap();
-        asm.feed_number(1).unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&verb, "ἔστω").expect("Expected valid result");
+        asm.feed_number(1).expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert!(stmt.subject.is_some());
         assert_eq!(stmt.nominatives.len(), 1); // Second nominative in the list
     }
@@ -1056,7 +1059,7 @@ mod tests {
     fn test_double_verb_error() {
         let mut asm = Assembler::new();
         let verb1 = analyze("λεγει");
-        asm.feed(&verb1, "λέγει").unwrap();
+        asm.feed(&verb1, "λέγει").expect("Expected valid result");
         let verb2 = analyze("γραφει");
         let result = asm.feed(&verb2, "γράφει");
         assert!(matches!(result, Err(AssemblyError::DoubleVerb)));
@@ -1064,10 +1067,11 @@ mod tests {
     #[test]
     fn test_literals() {
         let mut asm = Assembler::new();
-        asm.feed_string("χαῖρε κόσμε".to_string()).unwrap();
+        asm.feed_string("χαῖρε κόσμε".to_string())
+            .expect("Expected valid result");
         let verb = analyze("λεγε");
-        asm.feed(&verb, "λέγε").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&verb, "λέγε").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert_eq!(stmt.literals.len(), 1);
         assert!(matches!(&stmt.literals[0], Literal::String(s) if s == "χαῖρε κόσμε"));
     }
@@ -1076,10 +1080,11 @@ mod tests {
         let mut asm = Assembler::new();
         // χρήστου ὄνομα (the name of the user)
         let genitive = analyze("χρηστου");
-        asm.feed(&genitive, "χρήστου").unwrap();
+        asm.feed(&genitive, "χρήστου")
+            .expect("Expected valid result");
         let nom = analyze("ονομα");
-        asm.feed(&nom, "ὄνομα").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&nom, "ὄνομα").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert_eq!(stmt.genitives.len(), 1);
         assert!(stmt.subject.is_some() || stmt.object.is_some());
     }
@@ -1088,10 +1093,10 @@ mod tests {
         let mut asm = Assembler::new();
         // τῷ ἀνθρώπῳ δίδωμι (I give to the man)
         let dat = analyze("ανθρωπω");
-        asm.feed(&dat, "ἀνθρώπῳ").unwrap();
+        asm.feed(&dat, "ἀνθρώπῳ").expect("Expected valid result");
         let verb = analyze("διδωμι");
-        asm.feed(&verb, "δίδωμι").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&verb, "δίδωμι").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert!(stmt.indirect.is_some());
     }
     #[test]
@@ -1099,10 +1104,10 @@ mod tests {
         let mut asm = Assembler::new();
         // γίγνεται - middle voice verb
         let verb = analyze("γιγνεται");
-        asm.feed(&verb, "γίγνεται").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&verb, "γίγνεται").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert!(stmt.verb.is_some());
-        let verb_const = stmt.verb.unwrap();
+        let verb_const = stmt.verb.expect("Expected valid result");
         assert_eq!(verb_const.voice, Some(Voice::Middle));
     }
     #[test]
@@ -1122,7 +1127,8 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&ego_analysis, "ἐγώ").unwrap();
+        asm.feed(&ego_analysis, "ἐγώ")
+            .expect("Expected valid result");
         // Feed verb "λέγει" (He says) - Third Person Singular
         let verb_analysis = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("λεγω"),
@@ -1148,7 +1154,7 @@ mod tests {
         let mut asm = Assembler::new();
         // First object: λόγον
         let obj1 = analyze("λόγον");
-        asm.feed(&obj1, "λόγον").unwrap();
+        asm.feed(&obj1, "λόγον").expect("Expected valid result");
         // Second object: λόγον (again)
         let obj2 = analyze("λόγον");
         let result = asm.feed(&obj2, "λόγον");
@@ -1170,7 +1176,7 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&subj, "ζῷα").unwrap();
+        asm.feed(&subj, "ζῷα").expect("Expected valid result");
         // Verb: τρέχει (runs) - Singular
         let verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("τρεχω"),
@@ -1184,7 +1190,7 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&verb, "τρέχει").unwrap();
+        asm.feed(&verb, "τρέχει").expect("Expected valid result");
         // Should succeed despite Plural Subject + Singular Verb
         let stmt = asm.finalize();
         assert!(
@@ -1209,7 +1215,7 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&subj, "User").unwrap();
+        asm.feed(&subj, "User").expect("Expected valid result");
         // Verb: "Print!" (Imperative, 2nd person)
         let verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("print"),
@@ -1223,7 +1229,7 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&verb, "Print").unwrap();
+        asm.feed(&verb, "Print").expect("Expected valid result");
         // Should succeed
         let stmt = asm.finalize();
         assert!(
@@ -1249,7 +1255,7 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&adj, "καλός").unwrap();
+        asm.feed(&adj, "καλός").expect("Expected valid result");
         // Noun: γυνή (Feminine)
         let noun = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("γυνη"),
@@ -1263,7 +1269,7 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&noun, "γυνή").unwrap();
+        asm.feed(&noun, "γυνή").expect("Expected valid result");
         // Verb (to complete the sentence)
         let verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("λεγω"),
@@ -1277,7 +1283,7 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&verb, "λέγει").unwrap();
+        asm.feed(&verb, "λέγει").expect("Expected valid result");
         let stmt = asm.finalize();
         // Currently expecting OK because the check is missing
         assert!(stmt.is_ok(), "Gender mismatch is currently ignored");
@@ -1298,7 +1304,7 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&subj, "text").unwrap();
+        asm.feed(&subj, "text").expect("Expected valid result");
         // 2. Delimiter Preposition: "κατά"
         let marker_analysis = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("κατα"),
@@ -1312,9 +1318,11 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&marker_analysis, "κατά").unwrap();
+        asm.feed(&marker_analysis, "κατά")
+            .expect("Expected valid result");
         // 3. Delimiter Literal: ","
-        asm.feed_string(",".to_string()).unwrap();
+        asm.feed_string(",".to_string())
+            .expect("Expected valid result");
         // 4. Split Verb: "σχίζεται" (is split)
         let split_verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("σχιζω"), // assuming lemma for split verb
@@ -1328,8 +1336,9 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&split_verb, "σχίζεται").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&split_verb, "σχίζεται")
+            .expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         // Check if property access was created
         assert!(
             !stmt.property_accesses.is_empty(),
@@ -1358,7 +1367,8 @@ mod tests {
             voice: Some(Voice::Active),
             confidence: 1.0,
         };
-        asm.feed(&verb_analysis, "βλέπω").unwrap();
+        asm.feed(&verb_analysis, "βλέπω")
+            .expect("Expected valid result");
         // Feed subject: "The gift" (3rd Person Singular)
         let subj_analysis = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("δωρον"),
@@ -1395,7 +1405,8 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&subj_analysis, "δῶρον").unwrap();
+        asm.feed(&subj_analysis, "δῶρον")
+            .expect("Expected valid result");
         // Feed verb: "I see" (1st Person Singular)
         let verb_analysis = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("βλεπω"),
@@ -1439,7 +1450,7 @@ mod tests {
     fn test_max_literals_exceeded() {
         let mut asm = Assembler::new();
         for i in 0..MAX_LITERALS {
-            asm.feed_number(i as i64).unwrap();
+            asm.feed_number(i as i64).expect("Expected valid result");
         }
         let result = asm.feed_number(0);
         assert!(
@@ -1455,7 +1466,7 @@ mod tests {
             Some(Case::Nominative),
             Some(Number::Singular),
         );
-        asm.feed(&subj, "subject").unwrap();
+        asm.feed(&subj, "subject").expect("Expected valid result");
         for i in 0..MAX_NOMINATIVES {
             let nom = make_analysis(
                 &format!("nom_{}", i),
@@ -1463,7 +1474,8 @@ mod tests {
                 Some(Case::Nominative),
                 Some(Number::Singular),
             );
-            asm.feed(&nom, &format!("nom_{}", i)).unwrap();
+            asm.feed(&nom, &format!("nom_{}", i))
+                .expect("Expected valid result");
         }
         let nom = make_analysis(
             "overflow",
@@ -1486,7 +1498,8 @@ mod tests {
                 Some(Case::Nominative),
                 Some(Number::Singular),
             );
-            asm.feed(&adj, &format!("adj_{}", i)).unwrap();
+            asm.feed(&adj, &format!("adj_{}", i))
+                .expect("Expected valid result");
         }
         let adj = make_analysis(
             "overflow",
@@ -1504,7 +1517,8 @@ mod tests {
         let mut asm = Assembler::new();
         let op_analysis = make_analysis("και", PartOfSpeech::Conjunction, None, None);
         for _ in 0..MAX_OPERATORS {
-            asm.feed(&op_analysis, "καί").unwrap();
+            asm.feed(&op_analysis, "καί")
+                .expect("Expected valid result");
         }
         let result = asm.feed(&op_analysis, "καί");
         assert!(
@@ -1521,7 +1535,8 @@ mod tests {
                 Some(Case::Genitive),
                 Some(Number::Singular),
             );
-            asm.feed(&genitive, &format!("gen_{}", i)).unwrap();
+            asm.feed(&genitive, &format!("gen_{}", i))
+                .expect("Expected valid result");
         }
         let genitive = make_analysis(
             "overflow",
@@ -1543,7 +1558,7 @@ mod tests {
             Some(Case::Accusative),
             Some(Number::Singular),
         );
-        asm.feed(&obj, "object").unwrap();
+        asm.feed(&obj, "object").expect("Expected valid result");
         let unknown = make_analysis("unknown", PartOfSpeech::Noun, None, Some(Number::Singular));
         let result = asm.feed(&unknown, "unknown");
         assert!(
@@ -1567,7 +1582,7 @@ mod tests {
             voice: None,
             confidence: 1.0,
         };
-        asm.feed(&subj, "δῶρα").unwrap();
+        asm.feed(&subj, "δῶρα").expect("Expected valid result");
         let verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("blepw"),
             part_of_speech: PartOfSpeech::Verb,
@@ -1591,13 +1606,13 @@ mod tests {
     fn test_disambiguation_en_vs_hen() {
         let mut asm = Assembler::new();
         let analysis = make_analysis("εν", PartOfSpeech::Preposition, None, None);
-        asm.feed(&analysis, "ἐν").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&analysis, "ἐν").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert!(stmt.has_containment_preposition);
         let mut asm = Assembler::new();
         let hen = "ἕν";
-        asm.feed(&analysis, hen).unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&analysis, hen).expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         assert!(
             !stmt.has_containment_preposition,
             "Should not detect containment preposition for 'one' (hen)"
@@ -1607,7 +1622,7 @@ mod tests {
     fn test_max_arrays_exceeded() {
         let mut asm = Assembler::new();
         for _ in 0..MAX_ARRAYS {
-            asm.feed_array(vec![]).unwrap();
+            asm.feed_array(vec![]).expect("Expected valid result");
         }
         let result = asm.feed_array(vec![]);
         assert!(
@@ -1620,7 +1635,8 @@ mod tests {
         let array = Expr::NumberLiteral(0); // Dummy expression
         let index = Expr::NumberLiteral(0);
         for _ in 0..MAX_INDEX_ACCESSES {
-            asm.feed_index_access(array.clone(), index.clone()).unwrap();
+            asm.feed_index_access(array.clone(), index.clone())
+                .expect("Expected valid result");
         }
         let result = asm.feed_index_access(array, index);
         assert!(
@@ -1631,7 +1647,8 @@ mod tests {
     fn test_max_nested_phrases_exceeded() {
         let mut asm = Assembler::new();
         for _ in 0..MAX_NESTED_PHRASES {
-            asm.feed_nested_phrase(vec![]).unwrap();
+            asm.feed_nested_phrase(vec![])
+                .expect("Expected valid result");
         }
         let result = asm.feed_nested_phrase(vec![]);
         assert!(
@@ -1652,7 +1669,7 @@ mod tests {
         };
         for i in 0..MAX_PARTICIPLES {
             asm.feed_participle(&analysis, &format!("part_{}", i))
-                .unwrap();
+                .expect("Expected valid result");
         }
         let result = asm.feed_participle(&analysis, "overflow");
         assert!(
@@ -1664,7 +1681,8 @@ mod tests {
         let mut asm = Assembler::new();
         let expr = Expr::NumberLiteral(0);
         for _ in 0..MAX_UNWRAPS {
-            asm.feed_unwrap(expr.clone()).unwrap();
+            asm.feed_unwrap(expr.clone())
+                .expect("Expected valid result");
         }
         let result = asm.feed_unwrap(expr);
         assert!(
@@ -1675,7 +1693,7 @@ mod tests {
     fn test_max_blocks_exceeded() {
         let mut asm = Assembler::new();
         for _ in 0..MAX_BLOCKS {
-            asm.feed_block(vec![]).unwrap();
+            asm.feed_block(vec![]).expect("Expected valid result");
         }
         let result = asm.feed_block(vec![]);
         assert!(
@@ -1694,10 +1712,11 @@ mod tests {
                 Some(Case::Nominative),
                 Some(Number::Singular),
             );
-            asm.feed(&subj, "subject").unwrap();
+            asm.feed(&subj, "subject").expect("Expected valid result");
             // Feed property "μῆκος" (length)
             let prop = make_analysis("μηκος", PartOfSpeech::Noun, None, None);
-            asm.feed_with_normalized(&prop, "μῆκος", "μηκος").unwrap();
+            asm.feed_with_normalized(&prop, "μῆκος", "μηκος")
+                .expect("Expected valid result");
         }
         // Try one more time to break it
         let subj = make_analysis(
@@ -1706,7 +1725,7 @@ mod tests {
             Some(Case::Nominative),
             Some(Number::Singular),
         );
-        asm.feed(&subj, "subject").unwrap();
+        asm.feed(&subj, "subject").expect("Expected valid result");
         let prop = make_analysis("μηκος", PartOfSpeech::Noun, None, None);
         let result = asm.feed_with_normalized(&prop, "μῆκος", "μηκος");
         assert!(
@@ -1719,15 +1738,19 @@ mod tests {
         // Feed unknown word
         // PartOfSpeech::Noun but case: None
         let unknown = make_analysis("unknown", PartOfSpeech::Noun, None, Some(Number::Singular));
-        asm.feed(&unknown, "unknown").unwrap();
+        asm.feed(&unknown, "unknown")
+            .expect("Expected valid result");
         let verb = analyze("λέγει");
-        asm.feed(&verb, "λέγει").unwrap();
-        let stmt = asm.finalize().unwrap();
+        asm.feed(&verb, "λέγει").expect("Expected valid result");
+        let stmt = asm.finalize().expect("Expected valid result");
         // Assert it was captured as object
         assert!(
             stmt.object.is_some(),
             "Unknown word should have been captured as object"
         );
-        assert_eq!(stmt.object.unwrap().original, "unknown");
+        assert_eq!(
+            stmt.object.expect("Expected valid result").original,
+            "unknown"
+        );
     }
 }

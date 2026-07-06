@@ -164,7 +164,7 @@ const DECLENSION_PATTERNS: &[DeclensionPattern] = &[
 /// use glossa::morphology::analyze_noun;
 /// use glossa::morphology::{Case, Number, Gender};
 ///
-/// let analysis = analyze_noun("λογον").unwrap();
+/// let analysis = analyze_noun("λογον").expect("Expected valid noun analysis");
 /// assert_eq!(analysis.lemma, "λογος"); // Fallback matches masculine -ος type mostly
 /// assert_eq!(analysis.case, Some(Case::Accusative)); // Because "ον" can be accusative
 /// ```
@@ -417,7 +417,7 @@ mod tests {
 
     #[test]
     fn test_second_declension_nominative() {
-        let analysis = analyze_noun("χρηστος").unwrap();
+        let analysis = analyze_noun("χρηστος").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Nominative));
         assert_eq!(analysis.number, Some(Number::Singular));
         assert_eq!(analysis.gender, Some(Gender::Masculine));
@@ -425,7 +425,7 @@ mod tests {
 
     #[test]
     fn test_second_declension_genitive() {
-        let analysis = analyze_noun("χρηστου").unwrap();
+        let analysis = analyze_noun("χρηστου").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Genitive));
         assert_eq!(analysis.number, Some(Number::Singular));
         assert_eq!(analysis.lemma, "χρηστος");
@@ -433,32 +433,32 @@ mod tests {
 
     #[test]
     fn test_second_declension_dative() {
-        let analysis = analyze_noun("χρηστω").unwrap();
+        let analysis = analyze_noun("χρηστω").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Dative));
         assert_eq!(analysis.number, Some(Number::Singular));
     }
 
     #[test]
     fn test_second_declension_accusative() {
-        let analysis = analyze_noun("χρηστον").unwrap();
+        let analysis = analyze_noun("χρηστον").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Accusative));
         assert_eq!(analysis.number, Some(Number::Singular));
     }
 
     #[test]
     fn test_second_declension_vocative() {
-        let analysis = analyze_noun("χρηστε").unwrap();
+        let analysis = analyze_noun("χρηστε").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Vocative));
         assert_eq!(analysis.number, Some(Number::Singular));
     }
 
     #[test]
     fn test_second_declension_plural() {
-        let analysis = analyze_noun("χρηστοι").unwrap();
+        let analysis = analyze_noun("χρηστοι").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Nominative));
         assert_eq!(analysis.number, Some(Number::Plural));
 
-        let analysis = analyze_noun("χρηστων").unwrap();
+        let analysis = analyze_noun("χρηστων").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Genitive));
         assert_eq!(analysis.number, Some(Number::Plural));
     }
@@ -501,21 +501,21 @@ mod tests {
 
     #[test]
     fn test_first_declension_eta() {
-        let analysis = analyze_noun("λιστη").unwrap();
+        let analysis = analyze_noun("λιστη").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Nominative));
         assert_eq!(analysis.gender, Some(Gender::Feminine));
 
-        let analysis = analyze_noun("λιστης").unwrap();
+        let analysis = analyze_noun("λιστης").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Genitive));
     }
 
     #[test]
     fn test_third_declension_ma() {
-        let analysis = analyze_noun("ονομα").unwrap();
+        let analysis = analyze_noun("ονομα").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Nominative));
         assert_eq!(analysis.gender, Some(Gender::Neuter));
 
-        let analysis = analyze_noun("ονοματος").unwrap();
+        let analysis = analyze_noun("ονοματος").expect("Expected valid noun analysis");
         assert_eq!(analysis.case, Some(Case::Genitive));
         // The lemma is correctly reconstructed as "ονομα" (stem "ονο" + "μα")
         assert_eq!(analysis.lemma, "ονομα");

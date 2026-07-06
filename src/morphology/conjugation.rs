@@ -315,18 +315,18 @@ const EIMI_SUBJUNCTIVE: &[(&str, Person, Number)] = &[
 /// use glossa::morphology::{analyze_verb, Tense, Mood, Person, Number};
 ///
 /// // Present Indicative
-/// let analysis = analyze_verb("λέγω").unwrap();
+/// let analysis = analyze_verb("λέγω").expect("Expected valid verb analysis");
 /// assert_eq!(analysis.tense, Some(Tense::Present));
 /// assert_eq!(analysis.mood, Some(Mood::Indicative));
 ///
 /// // Aorist Indicative (with augment stripping)
 /// // ἔλυσα -> lemma λυω
-/// let analysis = analyze_verb("ἔλυσα").unwrap();
+/// let analysis = analyze_verb("ἔλυσα").expect("Expected valid verb analysis");
 /// assert_eq!(analysis.tense, Some(Tense::Aorist));
 /// assert_eq!(analysis.lemma, "λυω");
 ///
 /// // Imperative
-/// let analysis = analyze_verb("λέγε").unwrap();
+/// let analysis = analyze_verb("λέγε").expect("Expected valid verb analysis");
 /// assert_eq!(analysis.mood, Some(Mood::Imperative));
 /// ```
 pub fn analyze_verb(word: &str) -> Option<MorphAnalysis> {
@@ -710,20 +710,20 @@ mod tests {
 
     #[test]
     fn test_present_active_indicative() {
-        let analysis = analyze_verb("λεγω").unwrap();
+        let analysis = analyze_verb("λεγω").expect("Expected valid verb analysis");
         assert_eq!(analysis.tense, Some(Tense::Present));
         assert_eq!(analysis.mood, Some(Mood::Indicative));
         assert_eq!(analysis.person, Some(Person::First));
         assert_eq!(analysis.number, Some(Number::Singular));
 
-        let analysis = analyze_verb("γραφει").unwrap();
+        let analysis = analyze_verb("γραφει").expect("Expected valid verb analysis");
         assert_eq!(analysis.person, Some(Person::Third));
         assert_eq!(analysis.number, Some(Number::Singular));
     }
 
     #[test]
     fn test_present_active_imperative() {
-        let analysis = analyze_verb("λεγε").unwrap();
+        let analysis = analyze_verb("λεγε").expect("Expected valid verb analysis");
         assert_eq!(analysis.tense, Some(Tense::Present));
         assert_eq!(analysis.mood, Some(Mood::Imperative));
         assert_eq!(analysis.person, Some(Person::Second));
@@ -732,7 +732,7 @@ mod tests {
 
     #[test]
     fn test_aorist_active() {
-        let analysis = analyze_verb("ελυσα").unwrap();
+        let analysis = analyze_verb("ελυσα").expect("Expected valid verb analysis");
         assert_eq!(analysis.tense, Some(Tense::Aorist));
         assert_eq!(analysis.mood, Some(Mood::Indicative));
         assert_eq!(analysis.person, Some(Person::First));
@@ -744,12 +744,12 @@ mod tests {
     fn test_augment_stripping() {
         // Standard sigmatic aorist with ε-augment
         // ελυσα = ε (augment) + λυ (stem) + σα (aorist ending)
-        let analysis = analyze_verb("ελυσα").unwrap();
+        let analysis = analyze_verb("ελυσα").expect("Expected valid verb analysis");
         assert_eq!(analysis.lemma, "λυω");
         assert_eq!(analysis.tense, Some(Tense::Aorist));
 
         // επαυσα = ε (augment) + παυ (stem) + σα (ending)
-        let analysis = analyze_verb("επαυσα").unwrap();
+        let analysis = analyze_verb("επαυσα").expect("Expected valid verb analysis");
         assert_eq!(analysis.lemma, "παυω");
     }
 
@@ -776,7 +776,7 @@ mod tests {
 
     #[test]
     fn test_infinitive() {
-        let analysis = analyze_verb("λεγειν").unwrap();
+        let analysis = analyze_verb("λεγειν").expect("Expected valid verb analysis");
         assert_eq!(analysis.tense, Some(Tense::Present));
         assert_eq!(analysis.mood, Some(Mood::Infinitive));
     }
@@ -784,7 +784,7 @@ mod tests {
     #[test]
     fn test_eimi_subjunctive() {
         // ᾖ normalizes to η - 3rd person singular subjunctive of εἰμί
-        let analysis = analyze_verb("η").unwrap();
+        let analysis = analyze_verb("η").expect("Expected valid verb analysis");
         assert_eq!(analysis.lemma, "ειμι");
         assert_eq!(analysis.mood, Some(Mood::Subjunctive));
         assert_eq!(analysis.person, Some(Person::Third));
@@ -826,23 +826,23 @@ mod tests {
     #[test]
     fn test_analyze_verb_coverage_forms() {
         // Aorist Active Infinitive
-        let analysis = analyze_verb("λυσαι").unwrap();
+        let analysis = analyze_verb("λυσαι").expect("Expected valid verb analysis");
         assert_eq!(analysis.tense, Some(Tense::Aorist));
         assert_eq!(analysis.mood, Some(Mood::Infinitive));
         assert_eq!(analysis.lemma, "λυω"); // Constructed from stem "λυ" + "ω" (Aorist Infinitive ending is "σαι")
 
         // Present Active Subjunctive
-        let analysis = analyze_verb("λυῃς").unwrap();
+        let analysis = analyze_verb("λυῃς").expect("Expected valid verb analysis");
         assert_eq!(analysis.mood, Some(Mood::Subjunctive));
         assert_eq!(analysis.lemma, "λυω");
 
         // Present Active Optative
-        let analysis = analyze_verb("λυοιμι").unwrap();
+        let analysis = analyze_verb("λυοιμι").expect("Expected valid verb analysis");
         assert_eq!(analysis.mood, Some(Mood::Optative));
         assert_eq!(analysis.lemma, "λυω");
 
         // Aorist Passive Optative
-        let analysis = analyze_verb("λυθειη").unwrap();
+        let analysis = analyze_verb("λυθειη").expect("Expected valid verb analysis");
         assert_eq!(analysis.voice, Some(Voice::Passive));
         assert_eq!(analysis.mood, Some(Mood::Optative));
         assert_eq!(analysis.lemma, "λυω"); // Strip "θ" from "λυθ" -> "λυ"

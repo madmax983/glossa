@@ -92,3 +92,6 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+**Testing Semantic Control Flow Guards**
+**Learning:** We replaced multiple `unwrap()` and `panic!()` calls with safer `.expect()` or robust match fallbacks across tests in `src/semantic/patterns.rs`, `src/morphology/participle.rs`, and others.
+**Action:** Always prefer safe fallbacks or `.expect()` over `.unwrap()` in test modules to accurately pinpoint failures and eliminate arbitrary panics.

@@ -32,7 +32,7 @@ use crate::errors::GlossaError;
 /// let empty_ast = Program { statements: vec![] };
 ///
 /// // The analyzed program will contain an empty scope and no statements
-/// let analyzed = analyze_program(&empty_ast).unwrap();
+/// let analyzed = analyze_program(&empty_ast).expect("Expected valid result");
 /// assert!(analyzed.statements.is_empty());
 /// ```
 #[derive(Debug, Clone)]
@@ -62,9 +62,9 @@ pub struct AnalyzedProgram {
 /// use glossa::semantic::{Scope, analyze_statement};
 ///
 /// let mut scope = Scope::new();
-/// let ast = parse("ξ πέντε ἔστω.").unwrap(); // "Let ξ be 5."
+/// let ast = parse("ξ πέντε ἔστω.").expect("Expected valid result"); // "Let ξ be 5."
 ///
-/// let statements = analyze_statement(&ast.statements[0], &mut scope).unwrap();
+/// let statements = analyze_statement(&ast.statements[0], &mut scope).expect("Expected valid result");
 ///
 /// assert_eq!(statements.len(), 1);
 /// assert!(scope.lookup_binding("ξ").is_some());

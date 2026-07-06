@@ -19,7 +19,7 @@
 //! use glossa::morphology::analyze_participle;
 //! use glossa::morphology::Tense;
 //!
-//! let p = analyze_participle("γραφων").unwrap();
+//! let p = analyze_participle("γραφων").expect("Expected valid participle analysis");
 //! assert_eq!(p.verb_lemma(), "γραφω");
 //! assert_eq!(p.tense, Tense::Present);
 //! ```
@@ -55,7 +55,7 @@ impl ParticipleAnalysis {
     /// ```
     /// use glossa::morphology::analyze_participle;
     ///
-    /// let p = analyze_participle("γραφων").unwrap();
+    /// let p = analyze_participle("γραφων").expect("Expected valid participle analysis");
     /// assert_eq!(p.verb_lemma(), "γραφω");
     /// ```
     pub fn verb_lemma(&self) -> String {
@@ -501,7 +501,7 @@ static ALL_PATTERNS: LazyLock<Vec<&'static ParticiplePattern>> = LazyLock::new(|
 /// use glossa::morphology::analyze_participle;
 /// use glossa::morphology::Tense;
 ///
-/// let p = analyze_participle("γραφων").unwrap();
+/// let p = analyze_participle("γραφων").expect("Expected valid participle analysis");
 /// assert_eq!(p.verb_lemma(), "γραφω");
 /// assert_eq!(p.tense, Tense::Present);
 /// ```
@@ -537,7 +537,7 @@ mod tests {
 
     #[test]
     fn test_present_active_participle_masculine() {
-        let p = analyze_participle("γραφων").unwrap();
+        let p = analyze_participle("γραφων").expect("Expected valid participle analysis");
         assert_eq!(p.tense, Tense::Present);
         assert_eq!(p.voice, Voice::Active);
         assert_eq!(p.gender, Gender::Masculine);
@@ -548,7 +548,7 @@ mod tests {
 
     #[test]
     fn test_present_active_participle_feminine() {
-        let p = analyze_participle("γραφουσα").unwrap();
+        let p = analyze_participle("γραφουσα").expect("Expected valid participle analysis");
         assert_eq!(p.tense, Tense::Present);
         assert_eq!(p.voice, Voice::Active);
         assert_eq!(p.gender, Gender::Feminine);
@@ -556,7 +556,7 @@ mod tests {
 
     #[test]
     fn test_present_active_participle_neuter() {
-        let p = analyze_participle("γραφον").unwrap();
+        let p = analyze_participle("γραφον").expect("Expected valid participle analysis");
         assert_eq!(p.tense, Tense::Present);
         assert_eq!(p.voice, Voice::Active);
         assert_eq!(p.gender, Gender::Neuter);
@@ -564,7 +564,7 @@ mod tests {
 
     #[test]
     fn test_present_middle_participle() {
-        let p = analyze_participle("διπλασιαζομενον").unwrap();
+        let p = analyze_participle("διπλασιαζομενον").expect("Expected valid participle analysis");
         assert_eq!(p.tense, Tense::Present);
         assert_eq!(p.voice, Voice::Middle);
         assert_eq!(p.gender, Gender::Neuter);
@@ -573,7 +573,7 @@ mod tests {
 
     #[test]
     fn test_aorist_active_participle() {
-        let p = analyze_participle("γραψας").unwrap();
+        let p = analyze_participle("γραψας").expect("Expected valid participle analysis");
         assert_eq!(p.tense, Tense::Aorist);
         assert_eq!(p.voice, Voice::Active);
         assert_eq!(p.gender, Gender::Masculine);
@@ -582,21 +582,21 @@ mod tests {
 
     #[test]
     fn test_aorist_feminine() {
-        let p = analyze_participle("γραψασα").unwrap();
+        let p = analyze_participle("γραψασα").expect("Expected valid participle analysis");
         assert_eq!(p.tense, Tense::Aorist);
         assert_eq!(p.gender, Gender::Feminine);
     }
 
     #[test]
     fn test_aorist_neuter() {
-        let p = analyze_participle("γραψαν").unwrap();
+        let p = analyze_participle("γραψαν").expect("Expected valid participle analysis");
         assert_eq!(p.tense, Tense::Aorist);
         assert_eq!(p.gender, Gender::Neuter);
     }
 
     #[test]
     fn test_perfect_passive_participle() {
-        let p = analyze_participle("γεγραμμενος").unwrap();
+        let p = analyze_participle("γεγραμμενος").expect("Expected valid participle analysis");
         assert_eq!(p.tense, Tense::Perfect);
         assert_eq!(p.voice, Voice::Passive);
         assert_eq!(p.stem, "γεγραμ");
@@ -604,7 +604,7 @@ mod tests {
 
     #[test]
     fn test_verb_lemma() {
-        let p = analyze_participle("γραφων").unwrap();
+        let p = analyze_participle("γραφων").expect("Expected valid participle analysis");
         assert_eq!(p.verb_lemma(), "γραφω");
     }
 }

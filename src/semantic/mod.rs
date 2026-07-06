@@ -87,10 +87,10 @@ use crate::errors::GlossaError;
 /// use glossa::semantic::assemble_statement;
 ///
 /// // Create an AST with a single statement: "Say hello."
-/// let ast = parse("«χαῖρε» λέγε.").unwrap();
+/// let ast = parse("«χαῖρε» λέγε.").expect("Expected valid result");
 ///
 /// // Assemble the statement into grammatical slots
-/// let assembled = assemble_statement(&ast.statements[0]).unwrap();
+/// let assembled = assemble_statement(&ast.statements[0]).expect("Expected valid result");
 ///
 /// // The verb slot should be filled
 /// assert!(assembled.verb.is_some());
@@ -122,8 +122,8 @@ mod tests {
 
     #[test]
     fn test_analyze_hello() {
-        let ast = parse("«χαῖρε» λέγε.").unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
+        let ast = parse("«χαῖρε» λέγε.").expect("Expected valid result");
+        let analyzed = analyze_program(&ast).expect("Expected valid result");
 
         assert_eq!(analyzed.statements.len(), 1);
         assert!(matches!(
@@ -134,8 +134,8 @@ mod tests {
 
     #[test]
     fn test_analyze_binding() {
-        let ast = parse("ξ πέντε ἔστω.").unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
+        let ast = parse("ξ πέντε ἔστω.").expect("Expected valid result");
+        let analyzed = analyze_program(&ast).expect("Expected valid result");
 
         assert!(matches!(
             &analyzed.statements[0],
@@ -148,8 +148,8 @@ mod tests {
 
     #[test]
     fn test_analyze_variable_use() {
-        let ast = parse("ξ πέντε ἔστω. ξ λέγε.").unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
+        let ast = parse("ξ πέντε ἔστω. ξ λέγε.").expect("Expected valid result");
+        let analyzed = analyze_program(&ast).expect("Expected valid result");
 
         assert_eq!(analyzed.statements.len(), 2);
         // Second statement should reference ξ with known type
@@ -161,8 +161,8 @@ mod tests {
 
     #[test]
     fn test_analyze_string_literal() {
-        let ast = parse("«χαῖρε κόσμε» λέγε.").unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
+        let ast = parse("«χαῖρε κόσμε» λέγε.").expect("Expected valid result");
+        let analyzed = analyze_program(&ast).expect("Expected valid result");
 
         if let AnalyzedStatement::Print(exprs) = &analyzed.statements[0] {
             assert_eq!(exprs[0].glossa_type, GlossaType::String);
@@ -173,8 +173,8 @@ mod tests {
 
     #[test]
     fn test_analyze_number_literal() {
-        let ast = parse("42 λέγε.").unwrap();
-        let analyzed = analyze_program(&ast).unwrap();
+        let ast = parse("42 λέγε.").expect("Expected valid result");
+        let analyzed = analyze_program(&ast).expect("Expected valid result");
 
         if let AnalyzedStatement::Print(exprs) = &analyzed.statements[0] {
             assert_eq!(exprs[0].glossa_type, GlossaType::Number);
