@@ -60,65 +60,9 @@ pub fn run_scholar(input: &Path) -> Result<()> {
 
     writeln!(md, "# API Documentation: `{}`\n", filename).unwrap();
 
-    // Document Types (Structs)
-    let mut types = program.scope.types().peekable();
-    if types.peek().is_some() {
-        writeln!(md, "## Types (Εἴδη)\n").unwrap();
-        for (name, type_def) in types {
-            writeln!(md, "### `{}`\n", name).unwrap();
-            if let crate::semantic::GlossaType::Struct { fields, .. } = type_def {
-                if !fields.is_empty() {
-                    writeln!(md, "| Field | Type |\n|-------|------|").unwrap();
-                    for (field_name, field_type) in fields {
-                        writeln!(md, "| `{}` | `{}` |", field_name, field_type).unwrap();
-                    }
-                    md.push('\n');
-                } else {
-                    writeln!(md, "*No fields defined.*\n").unwrap();
-                }
-            }
-        }
-    }
-
-    // Document Traits (Characters)
-    let mut traits = program.scope.traits().peekable();
-    if traits.peek().is_some() {
-        writeln!(md, "## Traits (Χαρακτῆρες)\n").unwrap();
-        for (name, trait_def) in traits {
-            writeln!(md, "### `{}`\n", name).unwrap();
-            if !trait_def.methods.is_empty() {
-                for method in &trait_def.methods {
-                    writeln!(md, "* `{}`", method.name).unwrap();
-                }
-                md.push('\n');
-            } else {
-                writeln!(md, "*No methods defined.*\n").unwrap();
-            }
-        }
-    }
-
-    // Document Functions (Verbs)
-    let mut functions = program.scope.functions().peekable();
-    if functions.peek().is_some() {
-        writeln!(md, "## Functions (Ἔργα)\n").unwrap();
-        for func in functions {
-            // ⚡ Bolt Optimization: Use `write!` to build strings dynamically without intermediate `Vec` collections.
-            write!(md, "### `{}(", func.name).unwrap();
-            for (i, t) in func.param_types.iter().enumerate() {
-                if i > 0 {
-                    write!(md, ", ").unwrap();
-                }
-                write!(md, "{}", t).unwrap();
-            }
-            write!(md, ") -> ").unwrap();
-            if let Some(ret_type) = &func.return_type {
-                write!(md, "{}", ret_type).unwrap();
-            } else {
-                write!(md, "Οὐδέν").unwrap();
-            }
-            writeln!(md, "`\n").unwrap();
-        }
-    }
+    format_types(&mut md, program.scope.types().peekable());
+    format_traits(&mut md, program.scope.traits().peekable());
+    format_functions(&mut md, program.scope.functions().peekable());
 
     let output_path = input.with_extension("doc.md");
     if let Err(e) = std::fs::write(&output_path, &md) {
@@ -140,6 +84,77 @@ pub fn run_scholar(input: &Path) -> Result<()> {
     println!();
 
     Ok(())
+}
+
+fn format_types<'a, I>(md: &mut String, mut types: std::iter::Peekable<I>)
+where
+    I: Iterator<Item = (&'a smol_str::SmolStr, &'a crate::semantic::GlossaType)>,
+{
+    if types.peek().is_none() {
+        return;
+    }
+    writeln!(md, "## Types (Εἴδη)\n").unwrap();
+    for (name, type_def) in types {
+        writeln!(md, "### `{}`\n", name).unwrap();
+        if let crate::semantic::GlossaType::Struct { fields, .. } = type_def {
+            if !fields.is_empty() {
+                writeln!(md, "| Field | Type |\n|-------|------|").unwrap();
+                for (field_name, field_type) in fields {
+                    writeln!(md, "| `{}` | `{}` |", field_name, field_type).unwrap();
+                }
+                md.push('\n');
+            } else {
+                writeln!(md, "*No fields defined.*\n").unwrap();
+            }
+        }
+    }
+}
+
+fn format_traits<'a, I>(md: &mut String, mut traits: std::iter::Peekable<I>)
+where
+    I: Iterator<Item = (&'a smol_str::SmolStr, &'a crate::semantic::model::TraitDef)>,
+{
+    if traits.peek().is_none() {
+        return;
+    }
+    writeln!(md, "## Traits (Χαρακτῆρες)\n").unwrap();
+    for (name, trait_def) in traits {
+        writeln!(md, "### `{}`\n", name).unwrap();
+        if !trait_def.methods.is_empty() {
+            for method in &trait_def.methods {
+                writeln!(md, "* `{}`", method.name).unwrap();
+            }
+            md.push('\n');
+        } else {
+            writeln!(md, "*No methods defined.*\n").unwrap();
+        }
+    }
+}
+
+fn format_functions<'a, I>(md: &mut String, mut functions: std::iter::Peekable<I>)
+where
+    I: Iterator<Item = &'a crate::semantic::FunctionSignature>,
+{
+    if functions.peek().is_none() {
+        return;
+    }
+    writeln!(md, "## Functions (Ἔργα)\n").unwrap();
+    for func in functions {
+        write!(md, "### `{}(", func.name).unwrap();
+        for (i, t) in func.param_types.iter().enumerate() {
+            if i > 0 {
+                write!(md, ", ").unwrap();
+            }
+            write!(md, "{}", t).unwrap();
+        }
+        write!(md, ") -> ").unwrap();
+        if let Some(ret_type) = &func.return_type {
+            write!(md, "{}", ret_type).unwrap();
+        } else {
+            write!(md, "Οὐδέν").unwrap();
+        }
+        writeln!(md, "`\n").unwrap();
+    }
 }
 
 #[cfg(test)]
