@@ -102,10 +102,10 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                     table.add_row(vec![
                         Cell::new(i + 1),
                         Cell::new(format!("Error: {}", e)).fg(Color::Red),
-                        Cell::new(""),
-                        Cell::new(""),
-                        Cell::new(""),
-                        Cell::new(""),
+                        Cell::new("-").fg(Color::DarkGrey),
+                        Cell::new("-").fg(Color::DarkGrey),
+                        Cell::new("-").fg(Color::DarkGrey),
+                        Cell::new("-").fg(Color::DarkGrey),
                     ]);
                 }
             }
@@ -123,10 +123,10 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                 Cell::new(type_name)
                     .fg(Color::Blue)
                     .add_attribute(Attribute::Italic),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
+                Cell::new("-").fg(Color::DarkGrey),
+                Cell::new("-").fg(Color::DarkGrey),
+                Cell::new("-").fg(Color::DarkGrey),
+                Cell::new("-").fg(Color::DarkGrey),
             ]);
         }
     }
@@ -358,13 +358,29 @@ fn add_row(table: &mut Table, line: usize, asm: &AssembledStatement) {
 
     let other_column = format_other_column(asm);
 
+    let mk_cell = |s: &str| {
+        if s.is_empty() {
+            Cell::new("-").fg(Color::DarkGrey)
+        } else {
+            Cell::new(s)
+        }
+    };
+
+    let mk_other = |s: &str| {
+        if s.is_empty() {
+            Cell::new("-").fg(Color::DarkGrey)
+        } else {
+            Cell::new(s).fg(Color::DarkGrey)
+        }
+    };
+
     table.add_row(vec![
         Cell::new(line),
-        Cell::new(full_subject),
-        Cell::new(verb),
-        Cell::new(object),
-        Cell::new(indirect),
-        Cell::new(other_column).fg(Color::DarkGrey),
+        mk_cell(&full_subject),
+        mk_cell(&verb),
+        mk_cell(&object),
+        mk_cell(&indirect),
+        mk_other(&other_column),
     ]);
 }
 
