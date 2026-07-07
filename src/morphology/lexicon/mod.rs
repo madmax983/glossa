@@ -130,8 +130,10 @@ impl LexiconEntry {
     }
 }
 
+
 mod data;
 use data::LEXICON;
+
 
 /// Look up a word in the lexicon
 pub fn lookup(normalized_word: &str) -> Option<&'static LexiconEntry> {
@@ -799,5 +801,172 @@ mod tests {
         assert_eq!(entry.voice, Some(Voice::Middle));
         assert_eq!(entry.person, Some(Person::Third));
         assert_eq!(entry.number, Some(Number::Singular));
+    }
+
+    #[test]
+    fn test_is_verb() {
+        assert!(is_verb("λεγε"));
+        assert!(!is_verb("αριθμος"));
+    }
+
+    #[test]
+    fn test_is_find_verb() {
+        assert!(is_find_verb("ευρε"));
+        assert!(is_find_verb("ευρισκω"));
+        assert!(!is_find_verb("λεγε"));
+    }
+
+    #[test]
+    fn test_is_any_quantifier() {
+        assert!(is_any_quantifier("τι"));
+        assert!(is_any_quantifier("τις"));
+        assert!(!is_any_quantifier("παντα"));
+    }
+
+    #[test]
+    fn test_is_all_quantifier() {
+        assert!(is_all_quantifier("παντα"));
+        assert!(is_all_quantifier("πας"));
+        assert!(!is_all_quantifier("τι"));
+    }
+
+    #[test]
+    fn test_is_operator_word() {
+        assert!(is_operator_word("και"));
+        assert!(is_operator_word("αθροισμα"));
+        assert!(!is_operator_word("λεγε"));
+    }
+
+    #[test]
+    fn test_get_binary_operator() {
+        assert_eq!(get_binary_operator("μειζον"), Some(BinaryOp::Gt));
+        assert_eq!(get_binary_operator("και"), Some(BinaryOp::And));
+        assert_eq!(get_binary_operator("αθροισμα"), Some(BinaryOp::Add));
+        assert_eq!(get_binary_operator("foo"), None);
+    }
+
+    #[test]
+    fn test_is_conditional_particle() {
+        assert!(is_conditional_particle("ει"));
+        assert!(is_conditional_particle("εαν"));
+        assert!(!is_conditional_particle("foo"));
+    }
+
+    #[test]
+    fn test_is_else_pattern() {
+        assert!(is_else_pattern("ει δε μη"));
+        assert!(!is_else_pattern("ει δε"));
+    }
+
+    #[test]
+    fn test_is_loop_particle() {
+        assert!(is_loop_particle("εως"));
+        assert!(is_loop_particle("δια"));
+        assert!(!is_loop_particle("foo"));
+    }
+
+    #[test]
+    fn test_is_range_particle() {
+        assert!(is_range_particle("απο"));
+        assert!(is_range_particle("εως"));
+        assert!(!is_range_particle("foo"));
+    }
+
+    #[test]
+    fn test_is_break_verb() {
+        assert!(is_break_verb("παυε"));
+        assert!(is_break_verb("παυω"));
+        assert!(!is_break_verb("λεγε"));
+    }
+
+    #[test]
+    fn test_is_continue_verb() {
+        assert!(is_continue_verb("συνεχιζε"));
+        assert!(is_continue_verb("συνεχιζω"));
+        assert!(!is_continue_verb("λεγε"));
+    }
+
+    #[test]
+    fn test_is_match_particle() {
+        assert!(is_match_particle("κατα"));
+        assert!(!is_match_particle("foo"));
+    }
+
+    #[test]
+    fn test_is_push_verb() {
+        assert!(is_push_verb("ωθει"));
+        assert!(is_push_verb("ωθεω"));
+        assert!(!is_push_verb("λεγε"));
+    }
+
+    #[test]
+    fn test_is_pop_verb() {
+        assert!(is_pop_verb("ελκεται"));
+        assert!(is_pop_verb("ελκω"));
+        assert!(!is_pop_verb("λεγε"));
+    }
+
+    #[test]
+    fn test_is_length_property() {
+        assert!(is_length_property("μηκος"));
+        assert!(!is_length_property("foo"));
+    }
+
+    #[test]
+    fn test_is_ordinal() {
+        assert!(is_ordinal("πρωτον"));
+        assert!(is_ordinal("δευτερον"));
+        assert!(!is_ordinal("foo"));
+    }
+
+    #[test]
+    fn test_ordinal_to_index() {
+        assert_eq!(ordinal_to_index("πρωτον"), Some(0));
+        assert_eq!(ordinal_to_index("δευτερον"), Some(1));
+        assert_eq!(ordinal_to_index("τριτον"), Some(2));
+        assert_eq!(ordinal_to_index("foo"), None);
+    }
+
+    #[test]
+    fn test_is_necessity_particle() {
+        assert!(is_necessity_particle("αναγκη"));
+        assert!(!is_necessity_particle("foo"));
+    }
+
+    #[test]
+    fn test_is_obligation_particle() {
+        assert!(is_obligation_particle("χρη"));
+        assert!(!is_obligation_particle("foo"));
+    }
+
+    #[test]
+    fn test_is_consequence_marker() {
+        assert!(is_consequence_marker("αναγκη"));
+        assert!(is_consequence_marker("χρη"));
+        assert!(!is_consequence_marker("foo"));
+    }
+
+    #[test]
+    fn test_is_none_word() {
+        assert!(is_none_word("ουδεν"));
+        assert!(!is_none_word("foo"));
+    }
+
+    #[test]
+    fn test_is_some_word() {
+        assert!(is_some_word("τι"));
+        assert!(!is_some_word("foo"));
+    }
+
+    #[test]
+    fn test_is_ok_word() {
+        assert!(is_ok_word("επιτυχια"));
+        assert!(!is_ok_word("foo"));
+    }
+
+    #[test]
+    fn test_is_err_word() {
+        assert!(is_err_word("σφαλμα"));
+        assert!(!is_err_word("foo"));
     }
 }

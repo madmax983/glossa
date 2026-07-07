@@ -1,7 +1,7 @@
-use super::LexiconEntry;
-use crate::morphology::models::{Case, Gender, Mood, Number, PartOfSpeech, Person, Tense, Voice};
 use rustc_hash::FxHashMap;
 use std::sync::LazyLock;
+use crate::morphology::models::{Case, Gender, Number, PartOfSpeech, Mood, Person, Tense, Voice};
+use super::LexiconEntry;
 
 pub(super) static LEXICON: LazyLock<FxHashMap<&'static str, LexiconEntry>> = LazyLock::new(|| {
     let mut m = FxHashMap::default();
