@@ -20,3 +20,10 @@
 **Tangle:** Several modules under `src/tools/` (specifically `cache`, `report`, and `ui`) and `src/semantic/assembly/` (`model`) were exposed as `pub mod`, breaking encapsulation by exposing internal implementation details to the public API.
 **Blueprint:** Modified `src/tools/mod.rs` and `src/semantic/assembly/mod.rs` to restrict these modules with `pub(crate) mod`.
 **Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
+## [Splitting The Blob: Lexicon]
+**Tangle:** `src/morphology/lexicon.rs` was a monolithic file (~2800 lines) mixing DTOs (`LexiconEntry`), logic, and a huge data blob (`LEXICON` dictionary).
+**Blueprint:**
+1. Created `src/morphology/lexicon/` module.
+2. Extracted the large `LEXICON` dictionary to `src/morphology/lexicon/data.rs`.
+3. Moved logic and DTOs to `src/morphology/lexicon/mod.rs`.
+**Stability:** Achieved higher cohesion by splitting the large data blob out of the logic file, improving separation of concerns and file size.
