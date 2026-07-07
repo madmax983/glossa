@@ -135,6 +135,52 @@ fn emit_edge(output: &mut String, from: usize, to: usize, label: &str) {
     }
 }
 
+fn visit_binding_statement(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    name: &str,
+    value: &AnalyzedExpr,
+    mutable: bool,
+) {
+    let mut_str = if mutable { "mut " } else { "" };
+    emit_node(
+        output,
+        id,
+        &format!("Binding\\n{}{}", mut_str, name),
+        "lightgreen",
+    );
+    let val_id = visit_expr(next_id, output, value);
+    emit_edge(output, id, val_id, "value");
+}
+
+fn visit_assignment_statement(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    name: &str,
+    value: &AnalyzedExpr,
+) {
+    emit_node(output, id, &format!("Assignment\\n{}", name), "lightgreen");
+    let val_id = visit_expr(next_id, output, value);
+    emit_edge(output, id, val_id, "value");
+}
+
+fn visit_expr_list_statement(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    exprs: &[AnalyzedExpr],
+    node_label: &str,
+    edge_prefix: &str,
+) {
+    emit_node(output, id, node_label, "lightgreen");
+    for (i, expr) in exprs.iter().enumerate() {
+        let child_id = visit_expr(next_id, output, expr);
+        emit_edge(output, id, child_id, &format!("{}{}", edge_prefix, i));
+    }
+}
+
 fn visit_statement(next_id: &mut usize, output: &mut String, stmt: &AnalyzedStatement) -> usize {
     let id = get_next_id(next_id);
 
@@ -144,41 +190,19 @@ fn visit_statement(next_id: &mut usize, output: &mut String, stmt: &AnalyzedStat
             value,
             mutable,
         } => {
-            let mut_str = if *mutable { "mut " } else { "" };
-            emit_node(
-                output,
-                id,
-                &format!("Binding\\n{}{}", mut_str, name),
-                "lightgreen",
-            );
-            let val_id = visit_expr(next_id, output, value);
-            emit_edge(output, id, val_id, "value");
+            visit_binding_statement(next_id, output, id, name, value, *mutable);
         }
         AnalyzedStatement::Assignment { name, value } => {
-            emit_node(output, id, &format!("Assignment\\n{}", name), "lightgreen");
-            let val_id = visit_expr(next_id, output, value);
-            emit_edge(output, id, val_id, "value");
+            visit_assignment_statement(next_id, output, id, name, value);
         }
         AnalyzedStatement::Print(exprs) => {
-            emit_node(output, id, "Print", "lightgreen");
-            for (i, expr) in exprs.iter().enumerate() {
-                let child_id = visit_expr(next_id, output, expr);
-                emit_edge(output, id, child_id, &format!("arg_{}", i));
-            }
+            visit_expr_list_statement(next_id, output, id, exprs, "Print", "arg_");
         }
         AnalyzedStatement::Expression(exprs) => {
-            emit_node(output, id, "ExpressionStmt", "lightgreen");
-            for (i, expr) in exprs.iter().enumerate() {
-                let child_id = visit_expr(next_id, output, expr);
-                emit_edge(output, id, child_id, &format!("expr_{}", i));
-            }
+            visit_expr_list_statement(next_id, output, id, exprs, "ExpressionStmt", "expr_");
         }
         AnalyzedStatement::Query(exprs) => {
-            emit_node(output, id, "Query", "lightgreen");
-            for (i, expr) in exprs.iter().enumerate() {
-                let child_id = visit_expr(next_id, output, expr);
-                emit_edge(output, id, child_id, &format!("arg_{}", i));
-            }
+            visit_expr_list_statement(next_id, output, id, exprs, "Query", "arg_");
         }
         AnalyzedStatement::If {
             condition,
@@ -244,6 +268,93 @@ fn visit_statement(next_id: &mut usize, output: &mut String, stmt: &AnalyzedStat
 
     id
 }
+fn visit_literal_expr(output: &mut String, id: usize, label: &str) {
+    emit_node(output, id, label, "lightyellow");
+}
+
+fn visit_property_access_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    owner: &AnalyzedExpr,
+    property: &str,
+    type_info: &str,
+) {
+    emit_node(
+        output,
+        id,
+        &format!("PropertyAccess\\n.{}{}", property, type_info),
+        "lightyellow",
+    );
+    let owner_id = visit_expr(next_id, output, owner);
+    emit_edge(output, id, owner_id, "owner");
+}
+
+fn visit_index_access_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    array: &AnalyzedExpr,
+    index: &AnalyzedExpr,
+    type_info: &str,
+) {
+    emit_node(
+        output,
+        id,
+        &format!("IndexAccess{}", type_info),
+        "lightyellow",
+    );
+    let array_id = visit_expr(next_id, output, array);
+    let index_id = visit_expr(next_id, output, index);
+    emit_edge(output, id, array_id, "array");
+    emit_edge(output, id, index_id, "index");
+}
+
+fn visit_unary_op_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    op: &crate::morphology::lexicon::UnaryOp,
+    operand: &AnalyzedExpr,
+    type_info: &str,
+) {
+    emit_node(
+        output,
+        id,
+        &format!("UnaryOp\\n{:?}{}", op, type_info),
+        "lightyellow",
+    );
+    let operand_id = visit_expr(next_id, output, operand);
+    emit_edge(output, id, operand_id, "operand");
+}
+
+fn visit_wrapper_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    inner: &AnalyzedExpr,
+    label: &str,
+    edge_label: &str,
+) {
+    emit_node(output, id, label, "lightyellow");
+    let inner_id = visit_expr(next_id, output, inner);
+    emit_edge(output, id, inner_id, edge_label);
+}
+
+fn visit_assert_eq_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    left: &AnalyzedExpr,
+    right: &AnalyzedExpr,
+    type_info: &str,
+) {
+    emit_node(output, id, &format!("AssertEq{}", type_info), "lightyellow");
+    let left_id = visit_expr(next_id, output, left);
+    let right_id = visit_expr(next_id, output, right);
+    emit_edge(output, id, left_id, "left");
+    emit_edge(output, id, right_id, "right");
+}
 
 fn visit_expr(next_id: &mut usize, output: &mut String, expr: &AnalyzedExpr) -> usize {
     let id = get_next_id(next_id);
@@ -253,46 +364,32 @@ fn visit_expr(next_id: &mut usize, output: &mut String, expr: &AnalyzedExpr) -> 
 
     match &expr.expr {
         AnalyzedExprKind::StringLiteral(s) => {
-            emit_node(
-                output,
-                id,
-                &format!("String\\n\\\"{}\\\"{}", s, type_info),
-                "lightyellow",
-            );
+            visit_literal_expr(output, id, &format!("String\\n\\\"{}\\\"{}", s, type_info));
         }
         AnalyzedExprKind::NumberLiteral(n) => {
-            emit_node(
-                output,
-                id,
-                &format!("Number\\n{}{}", n, type_info),
-                "lightyellow",
-            );
+            visit_literal_expr(output, id, &format!("Number\\n{}{}", n, type_info));
         }
         AnalyzedExprKind::BooleanLiteral(b) => {
-            emit_node(
-                output,
-                id,
-                &format!("Boolean\\n{}{}", b, type_info),
-                "lightyellow",
-            );
+            visit_literal_expr(output, id, &format!("Boolean\\n{}{}", b, type_info));
         }
         AnalyzedExprKind::Variable(v) => {
-            emit_node(
+            visit_literal_expr(output, id, &format!("Variable\\n{}{}", v, type_info));
+        }
+        AnalyzedExprKind::None => {
+            visit_literal_expr(output, id, &format!("None{}", type_info));
+        }
+        AnalyzedExprKind::CollectionNew { collection_type } => {
+            visit_literal_expr(
                 output,
                 id,
-                &format!("Variable\\n{}{}", v, type_info),
-                "lightyellow",
+                &format!("CollectionNew\\n{}::new(){}", collection_type, type_info),
             );
         }
         AnalyzedExprKind::PropertyAccess { owner, property } => {
-            emit_node(
-                output,
-                id,
-                &format!("PropertyAccess\\n.{}{}", property, type_info),
-                "lightyellow",
-            );
-            let owner_id = visit_expr(next_id, output, owner);
-            emit_edge(output, id, owner_id, "owner");
+            visit_property_access_expr(next_id, output, id, owner, property, &type_info);
+        }
+        AnalyzedExprKind::IndexAccess { array, index } => {
+            visit_index_access_expr(next_id, output, id, array, index, &type_info);
         }
         AnalyzedExprKind::VerbCall { verb, args } => {
             visit_verb_call_expr(next_id, output, id, verb, args, &type_info);
@@ -301,14 +398,7 @@ fn visit_expr(next_id: &mut usize, output: &mut String, expr: &AnalyzedExpr) -> 
             visit_binop_expr(next_id, output, id, left, op, right, &type_info);
         }
         AnalyzedExprKind::UnaryOp { op, operand } => {
-            emit_node(
-                output,
-                id,
-                &format!("UnaryOp\\n{:?}{}", op, type_info),
-                "lightyellow",
-            );
-            let operand_id = visit_expr(next_id, output, operand);
-            emit_edge(output, id, operand_id, "operand");
+            visit_unary_op_expr(next_id, output, id, op, operand, &type_info);
         }
         AnalyzedExprKind::Range {
             start,
@@ -321,44 +411,47 @@ fn visit_expr(next_id: &mut usize, output: &mut String, expr: &AnalyzedExpr) -> 
             visit_array_literal_expr(next_id, output, id, exprs, &type_info);
         }
         AnalyzedExprKind::Some(e) => {
-            emit_node(output, id, &format!("Some{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "value");
-        }
-        AnalyzedExprKind::None => {
-            emit_node(output, id, &format!("None{}", type_info), "lightyellow");
-        }
-        AnalyzedExprKind::Ok(e) => {
-            emit_node(output, id, &format!("Ok{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "value");
-        }
-        AnalyzedExprKind::Err(e) => {
-            emit_node(output, id, &format!("Err{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "error");
-        }
-        AnalyzedExprKind::Unwrap(e) => {
-            emit_node(output, id, &format!("Unwrap{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "target");
-        }
-        AnalyzedExprKind::Try(e) => {
-            emit_node(output, id, &format!("Try{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "target");
-        }
-        AnalyzedExprKind::IndexAccess { array, index } => {
-            emit_node(
+            visit_wrapper_expr(
+                next_id,
                 output,
                 id,
-                &format!("IndexAccess{}", type_info),
-                "lightyellow",
+                e,
+                &format!("Some{}", type_info),
+                "value",
             );
-            let array_id = visit_expr(next_id, output, array);
-            let index_id = visit_expr(next_id, output, index);
-            emit_edge(output, id, array_id, "array");
-            emit_edge(output, id, index_id, "index");
+        }
+        AnalyzedExprKind::Ok(e) => {
+            visit_wrapper_expr(next_id, output, id, e, &format!("Ok{}", type_info), "value");
+        }
+        AnalyzedExprKind::Err(e) => {
+            visit_wrapper_expr(
+                next_id,
+                output,
+                id,
+                e,
+                &format!("Err{}", type_info),
+                "error",
+            );
+        }
+        AnalyzedExprKind::Unwrap(e) => {
+            visit_wrapper_expr(
+                next_id,
+                output,
+                id,
+                e,
+                &format!("Unwrap{}", type_info),
+                "target",
+            );
+        }
+        AnalyzedExprKind::Try(e) => {
+            visit_wrapper_expr(
+                next_id,
+                output,
+                id,
+                e,
+                &format!("Try{}", type_info),
+                "target",
+            );
         }
         AnalyzedExprKind::FunctionCall { func, args } => {
             visit_function_call_expr(next_id, output, id, func, args, &type_info);
@@ -386,31 +479,23 @@ fn visit_expr(next_id: &mut usize, output: &mut String, expr: &AnalyzedExpr) -> 
         } => {
             visit_lambda_expr(next_id, output, id, params, body, capture_mode, &type_info);
         }
-        AnalyzedExprKind::CollectionNew { collection_type } => {
-            emit_node(
+        AnalyzedExprKind::Assert { condition } => {
+            visit_wrapper_expr(
+                next_id,
                 output,
                 id,
-                &format!("CollectionNew\\n{}::new(){}", collection_type, type_info),
-                "lightyellow",
+                condition,
+                &format!("Assert{}", type_info),
+                "condition",
             );
         }
-        AnalyzedExprKind::Assert { condition } => {
-            emit_node(output, id, &format!("Assert{}", type_info), "lightyellow");
-            let cond_id = visit_expr(next_id, output, condition);
-            emit_edge(output, id, cond_id, "condition");
-        }
         AnalyzedExprKind::AssertEq { left, right } => {
-            emit_node(output, id, &format!("AssertEq{}", type_info), "lightyellow");
-            let left_id = visit_expr(next_id, output, left);
-            let right_id = visit_expr(next_id, output, right);
-            emit_edge(output, id, left_id, "left");
-            emit_edge(output, id, right_id, "right");
+            visit_assert_eq_expr(next_id, output, id, left, right, &type_info);
         }
     }
 
     id
 }
-
 fn visit_if_statement(
     next_id: &mut usize,
     output: &mut String,
