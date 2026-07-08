@@ -55,6 +55,13 @@ pub mod narrator;
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
 pub mod papyrus;
+
+/// The Herald (ὁ Κῆρυξ) tool for JSON Schema generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding JSON Schema definitions.
+#[cfg(feature = "nova")]
+pub mod herald;
 pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs

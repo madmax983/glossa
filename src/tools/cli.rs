@@ -192,6 +192,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Transpile a .γλ file to JSON Schema (Requires "nova" feature)
+    Herald {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Export the semantic AST to a Graphviz DOT diagram (Requires "nova" feature)
     Haruspex {
         /// Input file (.γλ)

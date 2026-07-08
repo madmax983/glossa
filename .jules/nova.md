@@ -24,10 +24,12 @@
 **Concept:** A CLI tool (`glossa labyrinth`) that visualizes the control flow graph of a Glossa program as a Mermaid.js diagram. This expands the "Architectural Transparency" feature set by tracing logic branching instead of just structural relations.
 **Fate:** Merged
 **Lesson:** Iterating over the complex nested variants in `AnalyzedStatement` proves the semantic AST is stable enough for deep structural introspection. Representing implicit logic branches explicitly via node/edge graph generators reinforces the language's determinism.
+
 ## The Papyrus (ὁ Πάπυρος)
 **Concept:** A SQL Schema generator (`glossa papyrus`) that transpiles Glossa structs (`εἶδος`) directly to `CREATE TABLE` SQL statements.
 **Fate:** Proposed
 **Lesson:** Treating Glossa as a Data Definition Language bridges ancient syntax with modern relational databases.
+
 ## The Auditor (ὁ Λογιστής)
 **Concept:** A basic static analysis tool / linter (`glossa audit`) that traverses the semantic AST (`AnalyzedProgram`) to find code smells, such as unused variables and unnecessary mutable declarations.
 **Fate:** Merged
@@ -52,3 +54,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Herald (ὁ Κῆρυξ)
+**Concept:** A JSON Schema Generator (`glossa herald`) that transpiles Glossa structs (`εἶδος`) directly into standard JSON Schema definitions.
+**Fate:** Proposed
+**Lesson:** Connecting Glossa types with modern data interchange formats opens up possibilities for API design and validation using Ancient Greek syntax.
