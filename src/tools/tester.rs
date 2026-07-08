@@ -193,7 +193,11 @@ fn clean_panic_message(current: &str) -> Option<String> {
     }
 
     let panicked_idx = current.find("panicked at")?;
-    let mut clean_panic = format!("{}panicked", &current[..panicked_idx]);
+
+    // ⚡ Bolt Optimization: Pre-allocate String based on known index size, avoiding format! allocation
+    let mut clean_panic = String::with_capacity(panicked_idx + 8);
+    clean_panic.push_str(&current[..panicked_idx]);
+    clean_panic.push_str("panicked");
 
     // Remove the "(pid)" thread id
     #[allow(clippy::collapsible_if)]

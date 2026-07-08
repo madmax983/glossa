@@ -155,7 +155,12 @@ fn format_subject(asm: &AssembledStatement) -> String {
 
     if !extra_noms.is_empty() {
         if !subject.is_empty() {
-            format!("{} (+ {})", subject, extra_noms)
+            let mut result = String::with_capacity(subject.len() + extra_noms.len() + 5);
+            result.push_str(&subject);
+            result.push_str(" (+ ");
+            result.push_str(&extra_noms);
+            result.push(')');
+            result
         } else {
             extra_noms
         }
