@@ -7,14 +7,13 @@
 //! - Return (δός)
 //! - Break/Continue (παῦε, συνέχιζε)
 
-use super::expressions::get_first_word;
 use super::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement, GlossaType, Scope,
     analyzer::analyze_statement, assemble_statement,
 };
+use crate::ast::MAX_CONTROL_FLOW_DEPTH;
 use crate::ast::{Clause, Expr, Statement};
 use crate::errors::GlossaError;
-use crate::limits::MAX_CONTROL_FLOW_DEPTH;
 use crate::morphology::lexicon;
 
 /// Intercepts and parses control flow constructs (`εἰ`, `ἕως`, `διὰ`) before standard assembly.
@@ -60,9 +59,23 @@ pub fn analyze_control_flow(
 
     // Get the first word to check for control flow particles
     // If this fails (e.g., statement starts with literal), it's not control flow
-    let normalized = match get_first_word(stmt) {
-        Ok(word) => word,
-        Err(_) => return Ok(None),
+    let normalized = {
+        let mut found = None;
+        if let Some(first_clause) = stmt.clauses().first()
+            && let Some(first_expr) = first_clause.expressions.first()
+        {
+            if let Expr::Phrase(terms) = first_expr {
+                if let Some(Expr::Word(word)) = terms.first() {
+                    found = Some(word.normalized.clone());
+                }
+            } else if let Expr::Word(word) = first_expr {
+                found = Some(word.normalized.clone());
+            }
+        }
+        match found {
+            Some(w) => w,
+            None => return Ok(None),
+        }
     };
 
     // Conditional: εἰ/ἐάν condition, body [, εἰ δὲ μή, else_body]
@@ -1225,8 +1238,7 @@ mod tests {
             is_propagate: false,
         };
 
-        let result =
-            parse_conditional(&stmt, &mut scope, crate::limits::MAX_CONTROL_FLOW_DEPTH + 1);
+        let result = parse_conditional(&stmt, &mut scope, crate::ast::MAX_CONTROL_FLOW_DEPTH + 1);
         assert!(result.is_err());
         assert!(
             result

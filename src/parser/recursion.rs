@@ -10,7 +10,7 @@ use super::ParseError;
 /// are not nested deeper than `MAX_DEPTH` (500).
 /// This prevents stack overflows during the recursive parsing phase.
 pub(crate) fn check_recursion_depth(source: &str) -> Result<(), ParseError> {
-    use crate::limits::MAX_PARSE_DEPTH;
+    use crate::ast::MAX_PARSE_DEPTH;
     let mut depth = 0;
     let mut in_string = false;
     let bytes = source.as_bytes();

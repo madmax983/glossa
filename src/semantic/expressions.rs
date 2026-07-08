@@ -12,9 +12,9 @@
 //! 2. **Recursive Analysis**: Nested expressions (args inside a function call) are analyzed
 //!    recursively to produce an [`AnalyzedExpr`]. See [`analyze_argument_expr`].
 
+use crate::ast::MAX_AST_DEPTH;
 use crate::ast::{Expr, Statement};
 use crate::errors::GlossaError;
-use crate::limits::MAX_AST_DEPTH;
 use crate::morphology::{self, DisambiguationContext, analyze_article, disambiguate, resolve_best};
 use crate::semantic::assembly::Assembler;
 use crate::semantic::assembly::Literal;
@@ -333,80 +333,22 @@ fn analyze_unaryop(
     }
 }
 
-/// Extracts the first logical word from a statement to facilitate structural pattern matching.
-///
-/// In GLOSSA, control flow constructs (like `εἰ` for "if" or `ἕως` for "while") are uniquely
-/// identified by their leading particle. This function exists to provide a fast, non-allocating
-/// way to peek at the beginning of a statement *before* full semantic assembly is attempted.
-/// If a statement begins with a control flow particle, it bypasses the standard Subject-Object-Verb
-/// assembler entirely and is instead routed to [`crate::semantic::control_flow::analyze_control_flow`].
-///
-/// # Returns
-///
-/// * `Ok(SmolStr)` containing the monotonic, normalized form of the first word.
-/// * `Err(GlossaError)` if the statement is completely empty or starts with a non-word (like a literal).
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Example cannot be run as a doctest because this module is pub(crate)
-/// use glossa::ast::{Statement, Clause, Expr, Word};
-/// use glossa::semantic::expressions::get_first_word;
-///
-/// // Represents the statement: "εἰ ἡλικία 50 μεῖζον ᾖ,"
-/// let stmt = Statement::Regular {
-///     clauses: vec![Clause {
-///         expressions: vec![Expr::Word(Word::new("εἰ"))],
-///     }],
-///     is_query: false,
-///     is_propagate: false,
-/// };
-///
-/// assert_eq!(get_first_word(&stmt).unwrap(), "ει");
-/// ```
-pub fn get_first_word(stmt: &Statement) -> Result<smol_str::SmolStr, GlossaError> {
-    if let Some(first_clause) = stmt.clauses().first()
-        && let Some(first_expr) = first_clause.expressions.first()
-    {
-        if let Expr::Phrase(terms) = first_expr {
-            if let Some(first_term) = terms.first()
-                && let Expr::Word(word) = first_term
-            {
-                return Ok(word.normalized.clone());
-            }
-        } else if let Expr::Word(word) = first_expr {
-            return Ok(word.normalized.clone());
-        }
-    }
-    Err(GlossaError::semantic("Empty statement"))
-}
-
 /// Determines if a statement is attempting to define a new function by looking for `ὁρίζειν` ("to define").
 ///
 /// Function definitions in GLOSSA have an irregular block structure (a type definition block `{ ... }`)
 /// that breaks the standard sentence assembler rules. We must identify function definitions *early* in the
-/// semantic pipeline so they can be processed independently by the [`crate::semantic::analyzer`], preventing
-/// the assembler from choking on their nested clauses and scoping semantics.
+/// semantic analysis phase so we can parse them directly rather than feeding their tokens into the assembler.
 ///
-/// This performs a deep search through the entire statement, rather than just checking the verb slot,
-/// because the `ὁρίζειν` verb might be deeply nested inside a phrase before assembly happens.
+/// This function specifically checks if the outermost verb of the main clause is `ὁρίζειν`.
 ///
 /// # Examples
 ///
 /// ```rust,ignore
-/// // Example cannot be run as a doctest because this module is pub(crate)
-/// use glossa::ast::{Statement, Clause, Expr, Word};
+/// use glossa::parser::parse;
 /// use glossa::semantic::expressions::contains_function_definition_verb;
 ///
-/// // Represents: "f(x) ὁρίζειν { ... }"
-/// let stmt = Statement::Regular {
-///     clauses: vec![Clause {
-///         expressions: vec![Expr::Word(Word::new("ὁρίζειν"))],
-///     }],
-///     is_query: false,
-///     is_propagate: false,
-/// };
-///
+/// let ast = parse("πρόσθεσις (α ἀριθμοῦ, β ἀριθμοῦ) ἀριθμὸν ὁρίζειν { ... }").unwrap();
+/// let stmt = &ast.statements[0];
 /// assert!(contains_function_definition_verb(&stmt));
 /// ```
 pub fn contains_function_definition_verb(stmt: &Statement) -> bool {

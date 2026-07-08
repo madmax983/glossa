@@ -358,7 +358,7 @@ impl Scope {
     }
 
     /// Helper to look up any variable
-    fn lookup_variable(&self, name: &str) -> Option<&Binding> {
+    pub fn lookup_binding(&self, name: &str) -> Option<&Binding> {
         for level in self.levels.iter().rev() {
             if let Some(binding) = level.variables.get(name) {
                 return Some(binding);
@@ -385,7 +385,7 @@ impl Scope {
     /// assert!(scope.lookup("y").is_none());
     /// ```
     pub fn lookup(&self, name: &str) -> Option<&GlossaType> {
-        self.lookup_variable(name).map(|b| &b.glossa_type)
+        self.lookup_binding(name).map(|b| &b.glossa_type)
     }
 
     /// Unveils the full story of an entity, revealing not just its type but its mortality (mutability)
@@ -405,10 +405,6 @@ impl Scope {
     /// let binding = scope.lookup_binding("y").unwrap();
     /// assert_eq!(binding.name, "y");
     /// ```
-    pub fn lookup_binding(&self, name: &str) -> Option<&Binding> {
-        self.lookup_variable(name)
-    }
-
     /// Determines if an entity was born within the current, immediate reality.
     ///
     /// This ignores the whispers of ancestors in outer scopes, focusing only on
@@ -453,7 +449,7 @@ impl Scope {
     /// assert!(!scope.is_defined("chance"));
     /// ```
     pub fn is_defined(&self, name: &str) -> bool {
-        self.lookup_variable(name).is_some()
+        self.lookup_binding(name).is_some()
             || self.lookup_function(name).is_some()
             || self.lookup_type(name).is_some()
             || self.lookup_trait(name).is_some()

@@ -60,7 +60,7 @@
 //! * **Literals**: Max 1024
 //! * **Nested Structures**: Max 256 (Arrays, Blocks, Phrases)
 //!
-//! See [`crate::limits`] for the full list of limits.
+//! See [`crate::ast`] for the full list of limits.
 //!
 //! ## The Hero's Journey: A Sentence's Path
 //!
@@ -104,12 +104,12 @@
 //! assert!(stmt.object.is_some());
 //! ```
 use crate::ast::{Expr, Word};
-pub use crate::errors::AssemblyError;
-pub(crate) use crate::limits::{
+pub(crate) use crate::ast::{
     MAX_ADJECTIVES, MAX_ARRAYS, MAX_BLOCKS, MAX_GENITIVES, MAX_INDEX_ACCESSES, MAX_LITERALS,
     MAX_NESTED_PHRASES, MAX_NOMINATIVES, MAX_OPERATORS, MAX_PARTICIPLES, MAX_PROPERTY_ACCESSES,
     MAX_UNWRAPS,
 };
+pub use crate::errors::AssemblyError;
 use crate::morphology::lexicon::BinaryOp;
 use crate::morphology::{Case, Gender, Mood, MorphAnalysis, Number, PartOfSpeech, Person};
 use crate::text::normalize_greek;

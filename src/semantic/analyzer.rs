@@ -81,7 +81,7 @@ fn analyze_statement_recursive(
     scope: &mut Scope,
     depth: usize,
 ) -> Result<Vec<AnalyzedStatement>, GlossaError> {
-    if depth > crate::limits::MAX_AST_DEPTH {
+    if depth > crate::ast::MAX_AST_DEPTH {
         return Err(GlossaError::semantic(
             "Recursion limit exceeded in statement analysis",
         ));

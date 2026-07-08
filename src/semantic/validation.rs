@@ -6,8 +6,8 @@
 
 use super::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use crate::ast::{Clause, Expr, Program, Statement};
+use crate::ast::{MAX_AST_DEPTH, MAX_EXPRESSION_DEPTH};
 use crate::errors::GlossaError;
-use crate::limits::{MAX_AST_DEPTH, MAX_EXPRESSION_DEPTH};
 
 /// Validates the raw AST program depth before semantic analysis begins.
 pub(crate) fn check_program_depth(program: &Program) -> Result<(), GlossaError> {

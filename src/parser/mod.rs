@@ -235,7 +235,7 @@ mod tests {
 
     #[test]
     fn test_recursion_limit_exceeded() {
-        use crate::limits::MAX_PARSE_DEPTH;
+        use crate::ast::MAX_PARSE_DEPTH;
         // Exceed max parentheses
         let source = "(".repeat(MAX_PARSE_DEPTH + 1) + &")".repeat(MAX_PARSE_DEPTH + 1);
         let result = parse_source(&source);
@@ -247,7 +247,7 @@ mod tests {
 
     #[test]
     fn test_recursion_limit_not_exceeded() {
-        use crate::limits::MAX_PARSE_DEPTH;
+        use crate::ast::MAX_PARSE_DEPTH;
         // Exactly max nested parentheses
         let source = "(".repeat(MAX_PARSE_DEPTH) + &")".repeat(MAX_PARSE_DEPTH);
         // We only care about the recursion check here
@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_recursion_limit_mixed_brackets() {
-        use crate::limits::MAX_PARSE_DEPTH;
+        use crate::ast::MAX_PARSE_DEPTH;
         // Mixed brackets should all count towards the same limit
         // E.g. MAX_PARSE_DEPTH = 250 => 100 (, 100 {, 51 [ = 251 total
         let source = "(".repeat(100)

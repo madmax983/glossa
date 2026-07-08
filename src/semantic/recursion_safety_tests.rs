@@ -1,5 +1,5 @@
+use crate::ast::MAX_AST_DEPTH;
 use crate::ast::{Expr, Word};
-use crate::limits::MAX_AST_DEPTH;
 use crate::semantic::expressions::feed_expr_to_assembler_with_context;
 use crate::semantic::{Assembler, DisambiguationContext};
 

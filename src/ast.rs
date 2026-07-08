@@ -1,40 +1,40 @@
-//! Abstract Syntax Tree for ΓΛΩΣΣΑ
-//!
-//! The AST captures the semantic structure of a GLOSSA program,
-//! preserving morphological information from Greek words.
-//!
-//! # The Tree Structure
-//!
-//! The AST hierarchy reflects the grammatical structure of the language:
-//!
-//! * [`Program`]: The root node, containing a list of statements.
-//! * [`Statement`]: A sentence, ending with a period (`.`) or query mark (`?` / `;`).
-//!   * A statement consists of one or more [`Clause`]s.
-//! * [`Clause`]: A comma-separated part of a statement.
-//!   * Example: `ὁ ἄνθρωπος, τὸν λόγον λέγει.` (Two clauses: "The man", "says the word").
-//! * [`Expr`]: An expression (word, literal, operation).
-//!   * [`Expr::Word`]: A raw Greek word with its original and normalized forms.
-//!
-//! # Design Philosophy
-//!
-//! Unlike traditional ASTs that might discard surface-level details, the GLOSSA AST
-//! preserves the *original* Greek text in [`Word`] nodes. This is crucial for:
-//!
-//! 1. **Error Reporting**: Using the original polytonic Greek in error messages.
-//! 2. **Morphological Analysis**: The semantic phase needs the original form to
-//!    distinguish subtle variations if needed.
-//!
-//! # Example
-//!
-//! A simple program like `«χαῖρε» λέγε.` produces:
-//!
-//! ```text
-//! Program
-//! └── Statement::Regular
-//!     └── Clause
-//!         ├── Expr::StringLiteral("χαῖρε")
-//!         └── Expr::Word("λέγε")
-//! ```
+// Abstract Syntax Tree for ΓΛΩΣΣΑ
+//
+// The AST captures the semantic structure of a GLOSSA program,
+// preserving morphological information from Greek words.
+//
+// # The Tree Structure
+//
+// The AST hierarchy reflects the grammatical structure of the language:
+//
+// * [`Program`]: The root node, containing a list of statements.
+// * [`Statement`]: A sentence, ending with a period (`.`) or query mark (`?` / `;`).
+//   * A statement consists of one or more [`Clause`]s.
+// * [`Clause`]: A comma-separated part of a statement.
+//   * Example: `ὁ ἄνθρωπος, τὸν λόγον λέγει.` (Two clauses: "The man", "says the word").
+// * [`Expr`]: An expression (word, literal, operation).
+//   * [`Expr::Word`]: A raw Greek word with its original and normalized forms.
+//
+// # Design Philosophy
+//
+// Unlike traditional ASTs that might discard surface-level details, the GLOSSA AST
+// preserves the *original* Greek text in [`Word`] nodes. This is crucial for:
+//
+// 1. **Error Reporting**: Using the original polytonic Greek in error messages.
+// 2. **Morphological Analysis**: The semantic phase needs the original form to
+//    distinguish subtle variations if needed.
+//
+// # Example
+//
+// A simple program like `«χαῖρε» λέγε.` produces:
+//
+// ```text
+// Program
+// └── Statement::Regular
+//     └── Clause
+//         ├── Expr::StringLiteral("χαῖρε")
+//         └── Expr::Word("λέγε")
+// ```
 
 use smol_str::SmolStr;
 
@@ -1011,3 +1011,47 @@ impl Word {
         }
     }
 }
+
+//
+
+/// Maximum recursion depth during the parsing phase (CST construction).
+/// This is checked via a linear scan before deep recursive descent begins.
+pub const MAX_PARSE_DEPTH: usize = 250;
+
+/// Maximum recursion depth during semantic analysis (AST processing).
+/// This prevents stack overflows when processing deeply nested phrases or expressions.
+pub const MAX_AST_DEPTH: usize = 50;
+
+/// Maximum recursion depth during semantic validation.
+/// This prevents stack overflows from evaluating deeply nested expressions in the AST.
+pub const MAX_EXPRESSION_DEPTH: usize = 200;
+
+// Semantic limit constants (from assembly/model.rs)
+/// Maximum number of adjectives allowed per statement
+pub const MAX_ADJECTIVES: usize = 1024;
+/// Maximum number of literals (strings/numbers) allowed per statement
+pub const MAX_LITERALS: usize = 1024;
+/// Maximum number of nominatives (subjects/function names) allowed per statement
+pub const MAX_NOMINATIVES: usize = 256;
+/// Maximum number of genitives (possessors) allowed per statement
+pub const MAX_GENITIVES: usize = 256;
+/// Maximum number of array literals allowed per statement
+pub const MAX_ARRAYS: usize = 256;
+/// Maximum number of index accesses allowed per statement
+pub const MAX_INDEX_ACCESSES: usize = 256;
+/// Maximum number of property accesses allowed per statement
+pub const MAX_PROPERTY_ACCESSES: usize = 256;
+/// Maximum number of nested phrases (parenthesized calls) allowed per statement
+pub const MAX_NESTED_PHRASES: usize = 256;
+/// Maximum number of participles (lambdas) allowed per statement
+pub const MAX_PARTICIPLES: usize = 256;
+/// Maximum number of unwrap operations allowed per statement
+pub const MAX_UNWRAPS: usize = 256;
+/// Maximum number of binary operators allowed per statement
+pub const MAX_OPERATORS: usize = 256;
+/// Maximum number of block expressions allowed per statement
+pub const MAX_BLOCKS: usize = 256;
+
+// Semantic limit constants (from control_flow.rs)
+/// Maximum depth of nested control flow structures
+pub const MAX_CONTROL_FLOW_DEPTH: usize = 100;
