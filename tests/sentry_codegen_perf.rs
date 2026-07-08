@@ -489,3 +489,321 @@ fn test_codegen_runtime_div_by_zero_panic() {
         stderr
     );
 }
+
+#[test]
+fn test_codegen_runtime_sub_overflow_panic() {
+    let dir = tempfile::tempdir().unwrap();
+    let rs_path = dir.path().join("test_sub_overflow.rs");
+
+    use glossa::morphology::BinaryOp;
+
+    let left_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(i64::MIN),
+        glossa_type: GlossaType::Number,
+    };
+
+    let right_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(1),
+        glossa_type: GlossaType::Number,
+    };
+
+    let sub_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::BinOp {
+            op: BinaryOp::Sub,
+            left: Box::new(left_expr),
+            right: Box::new(right_expr),
+        },
+        glossa_type: GlossaType::Number,
+    };
+
+    let stmt = AnalyzedStatement::Expression(vec![sub_expr]);
+    let program = AnalyzedProgram {
+        statements: vec![stmt],
+        scope: Scope::new(),
+    };
+
+    let code = generate_rust_file(&program);
+    std::fs::write(&rs_path, code).unwrap();
+
+    let exe_path = dir.path().join("test_sub_overflow");
+    let rustc_status = std::process::Command::new("rustc")
+        .arg(&rs_path)
+        .arg("-o")
+        .arg(&exe_path)
+        .status()
+        .expect("Failed to execute rustc");
+
+    assert!(
+        rustc_status.success(),
+        "Generated Rust code failed to compile"
+    );
+
+    let output = std::process::Command::new(&exe_path)
+        .output()
+        .expect("Failed to run executable");
+
+    assert!(!output.status.success(), "Executable should have panicked");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("arithmetic overflow")
+            || String::from_utf8_lossy(&output.stdout).contains("Arithmetic overflow")
+            || stderr.contains("Ὑπερχείλισις ἀριθμοῦ"),
+        "Missing panic message: {}",
+        stderr
+    );
+}
+
+#[test]
+fn test_codegen_runtime_mul_overflow_panic() {
+    let dir = tempfile::tempdir().unwrap();
+    let rs_path = dir.path().join("test_mul_overflow.rs");
+
+    use glossa::morphology::BinaryOp;
+
+    let left_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(i64::MAX),
+        glossa_type: GlossaType::Number,
+    };
+
+    let right_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(2),
+        glossa_type: GlossaType::Number,
+    };
+
+    let mul_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::BinOp {
+            op: BinaryOp::Mul,
+            left: Box::new(left_expr),
+            right: Box::new(right_expr),
+        },
+        glossa_type: GlossaType::Number,
+    };
+
+    let stmt = AnalyzedStatement::Expression(vec![mul_expr]);
+    let program = AnalyzedProgram {
+        statements: vec![stmt],
+        scope: Scope::new(),
+    };
+
+    let code = generate_rust_file(&program);
+    std::fs::write(&rs_path, code).unwrap();
+
+    let exe_path = dir.path().join("test_mul_overflow");
+    let rustc_status = std::process::Command::new("rustc")
+        .arg(&rs_path)
+        .arg("-o")
+        .arg(&exe_path)
+        .status()
+        .expect("Failed to execute rustc");
+
+    assert!(
+        rustc_status.success(),
+        "Generated Rust code failed to compile"
+    );
+
+    let output = std::process::Command::new(&exe_path)
+        .output()
+        .expect("Failed to run executable");
+
+    assert!(!output.status.success(), "Executable should have panicked");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("arithmetic overflow")
+            || String::from_utf8_lossy(&output.stdout).contains("Arithmetic overflow")
+            || stderr.contains("Ὑπερχείλισις ἀριθμοῦ"),
+        "Missing panic message: {}",
+        stderr
+    );
+}
+
+#[test]
+fn test_codegen_runtime_mod_by_zero_panic() {
+    let dir = tempfile::tempdir().unwrap();
+    let rs_path = dir.path().join("test_mod_by_zero.rs");
+
+    use glossa::morphology::BinaryOp;
+
+    let left_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(10),
+        glossa_type: GlossaType::Number,
+    };
+
+    let right_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(0),
+        glossa_type: GlossaType::Number,
+    };
+
+    let mod_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::BinOp {
+            op: BinaryOp::Mod,
+            left: Box::new(left_expr),
+            right: Box::new(right_expr),
+        },
+        glossa_type: GlossaType::Number,
+    };
+
+    let stmt = AnalyzedStatement::Expression(vec![mod_expr]);
+    let program = AnalyzedProgram {
+        statements: vec![stmt],
+        scope: Scope::new(),
+    };
+
+    let code = generate_rust_file(&program);
+    std::fs::write(&rs_path, code).unwrap();
+
+    let exe_path = dir.path().join("test_mod_by_zero");
+    let rustc_status = std::process::Command::new("rustc")
+        .arg(&rs_path)
+        .arg("-o")
+        .arg(&exe_path)
+        .status()
+        .expect("Failed to execute rustc");
+
+    assert!(
+        rustc_status.success(),
+        "Generated Rust code failed to compile"
+    );
+
+    let output = std::process::Command::new(&exe_path)
+        .output()
+        .expect("Failed to run executable");
+
+    assert!(!output.status.success(), "Executable should have panicked");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("division by zero")
+            || String::from_utf8_lossy(&output.stdout).contains("Division by zero")
+            || stderr.contains("Διαίρεσις διὰ τοῦ μηδενός")
+            || stderr.contains("Διαίρεσις διὰ μηδενός"),
+        "Missing panic message: {}",
+        stderr
+    );
+}
+
+#[test]
+fn test_codegen_runtime_mod_by_zero_overflow_panic() {
+    let dir = tempfile::tempdir().unwrap();
+    let rs_path = dir.path().join("test_mod_by_zero_overflow.rs");
+
+    use glossa::morphology::BinaryOp;
+
+    let left_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(i64::MIN),
+        glossa_type: GlossaType::Number,
+    };
+
+    let right_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(-1),
+        glossa_type: GlossaType::Number,
+    };
+
+    let mod_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::BinOp {
+            op: BinaryOp::Mod,
+            left: Box::new(left_expr),
+            right: Box::new(right_expr),
+        },
+        glossa_type: GlossaType::Number,
+    };
+
+    let stmt = AnalyzedStatement::Expression(vec![mod_expr]);
+    let program = AnalyzedProgram {
+        statements: vec![stmt],
+        scope: Scope::new(),
+    };
+
+    let code = generate_rust_file(&program);
+    std::fs::write(&rs_path, code).unwrap();
+
+    let exe_path = dir.path().join("test_mod_by_zero_overflow");
+    let rustc_status = std::process::Command::new("rustc")
+        .arg(&rs_path)
+        .arg("-o")
+        .arg(&exe_path)
+        .status()
+        .expect("Failed to execute rustc");
+
+    assert!(
+        rustc_status.success(),
+        "Generated Rust code failed to compile"
+    );
+
+    let output = std::process::Command::new(&exe_path)
+        .output()
+        .expect("Failed to run executable");
+
+    assert!(!output.status.success(), "Executable should have panicked");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("division by zero or overflow")
+            || String::from_utf8_lossy(&output.stdout).contains("Division by zero")
+            || stderr.contains("Διαίρεσις διὰ τοῦ μηδενός")
+            || stderr.contains("Διαίρεσις διὰ μηδενός"),
+        "Missing panic message: {}",
+        stderr
+    );
+}
+
+#[test]
+fn test_codegen_runtime_div_by_zero_overflow_panic() {
+    let dir = tempfile::tempdir().unwrap();
+    let rs_path = dir.path().join("test_div_by_zero_overflow.rs");
+
+    use glossa::morphology::BinaryOp;
+
+    let left_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(i64::MIN),
+        glossa_type: GlossaType::Number,
+    };
+
+    let right_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::NumberLiteral(-1),
+        glossa_type: GlossaType::Number,
+    };
+
+    let div_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::BinOp {
+            op: BinaryOp::Div,
+            left: Box::new(left_expr),
+            right: Box::new(right_expr),
+        },
+        glossa_type: GlossaType::Number,
+    };
+
+    let stmt = AnalyzedStatement::Expression(vec![div_expr]);
+    let program = AnalyzedProgram {
+        statements: vec![stmt],
+        scope: Scope::new(),
+    };
+
+    let code = generate_rust_file(&program);
+    std::fs::write(&rs_path, code).unwrap();
+
+    let exe_path = dir.path().join("test_div_by_zero_overflow");
+    let rustc_status = std::process::Command::new("rustc")
+        .arg(&rs_path)
+        .arg("-o")
+        .arg(&exe_path)
+        .status()
+        .expect("Failed to execute rustc");
+
+    assert!(
+        rustc_status.success(),
+        "Generated Rust code failed to compile"
+    );
+
+    let output = std::process::Command::new(&exe_path)
+        .output()
+        .expect("Failed to run executable");
+
+    assert!(!output.status.success(), "Executable should have panicked");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("division by zero or overflow")
+            || String::from_utf8_lossy(&output.stdout).contains("Division by zero")
+            || stderr.contains("Διαίρεσις διὰ τοῦ μηδενός")
+            || stderr.contains("Διαίρεσις διὰ μηδενός"),
+        "Missing panic message: {}",
+        stderr
+    );
+}
