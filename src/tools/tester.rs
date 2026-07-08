@@ -343,12 +343,12 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         let mut empty_table = Table::new();
         empty_table.load_preset(presets::UTF8_FULL);
         empty_table.set_header(vec![
-            Cell::new("Status")
+            Cell::new("ℹ️ Status")
                 .add_attribute(Attribute::Bold)
-                .fg(Color::Yellow),
+                .fg(Color::Cyan),
         ]);
         empty_table.add_row(vec![
-            Cell::new("No tests found.")
+            Cell::new("No tests found. Add `δοκιμή` blocks to your file.")
                 .fg(Color::DarkGrey)
                 .add_attribute(Attribute::Italic)
                 .set_alignment(CellAlignment::Center),
@@ -384,9 +384,21 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
             }
         } else {
             // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
+            let mut error_table = Table::new();
+            error_table.load_preset(presets::UTF8_FULL);
+            error_table.add_row(vec![Cell::new(format!("\n{}\n", stdout)).fg(Color::Red)]);
+            println!("{error_table}");
             if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
+                let mut stderr_table = Table::new();
+                stderr_table.load_preset(presets::UTF8_FULL);
+                stderr_table.add_row(vec![
+                    Cell::new(format!(
+                        "\n{}\n",
+                        String::from_utf8_lossy(&test_output.stderr)
+                    ))
+                    .fg(Color::Red),
+                ]);
+                println!("{stderr_table}");
             }
         }
     }
