@@ -207,12 +207,7 @@ impl Scope {
 
     /// Look up a function signature
     pub fn lookup_function(&self, name: &str) -> Option<&FunctionSignature> {
-        for level in self.levels.iter().rev() {
-            if let Some(sig) = level.functions.get(name) {
-                return Some(sig);
-            }
-        }
-        None
+        self.levels.iter().rev().find_map(|level| level.functions.get(name))
     }
 
     /// Define a type in this scope
@@ -222,12 +217,7 @@ impl Scope {
 
     /// Look up a type by name
     pub fn lookup_type(&self, name: &str) -> Option<&GlossaType> {
-        for level in self.levels.iter().rev() {
-            if let Some(ty) = level.types.get(name) {
-                return Some(ty);
-            }
-        }
-        None
+        self.levels.iter().rev().find_map(|level| level.types.get(name))
     }
 
     /// Define a trait in this scope
@@ -241,12 +231,7 @@ impl Scope {
 
     /// Look up a trait by name
     pub fn lookup_trait(&self, name: &str) -> Option<&crate::semantic::model::TraitDef> {
-        for level in self.levels.iter().rev() {
-            if let Some(def) = level.traits.get(name) {
-                return Some(def);
-            }
-        }
-        None
+        self.levels.iter().rev().find_map(|level| level.traits.get(name))
     }
 
     /// Register a trait implementation
@@ -359,12 +344,7 @@ impl Scope {
 
     /// Helper to look up any variable
     fn lookup_variable(&self, name: &str) -> Option<&Binding> {
-        for level in self.levels.iter().rev() {
-            if let Some(binding) = level.variables.get(name) {
-                return Some(binding);
-            }
-        }
-        None
+        self.levels.iter().rev().find_map(|level| level.variables.get(name))
     }
 
     /// Discovers the true nature ([`GlossaType`]) of an entity by its name.
