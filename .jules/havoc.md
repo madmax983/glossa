@@ -6,3 +6,6 @@
 2. `cargo-fuzz` survived `126,000` iterations directly into FFI/Morphology boundaries without a single panic.
 3. `havoc_dos` verified `/dev/zero` infinite stream aborts safely with no OOM.
 4. Attempted stack exhaustion on clone/drop of `Program` / `Statement` handled safely by `stacker`.
+5. **[Deep Expression Stack Overflow]**
+**Trigger:** `AnalyzedExprKind` with deeply nested `BinOp` bypassing parser limits programmatically.
+**Action:** Created `tests/havoc_codegen_stack_overflow.rs` to detonate this vulnerability via stack overflow during code generation.

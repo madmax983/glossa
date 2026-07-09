@@ -14,7 +14,8 @@ use std::process::Command;
 /// the thread with a stack overflow.
 #[test]
 fn havoc_codegen_stack_overflow() {
-    if env::var("HAVOC_DETONATE_CODEGEN_OVERFLOW").is_ok() {
+    // If we are the child, run the actual crashing code
+    if env::var("RUN_CRASH").is_ok() {
         let depth = 50_000;
         let mut expr = AnalyzedExpr {
             expr: AnalyzedExprKind::NumberLiteral(1),
@@ -55,7 +56,7 @@ fn havoc_codegen_stack_overflow() {
     let exe = env::current_exe().expect("Failed to get current executable");
 
     let status = Command::new(exe)
-        .env("HAVOC_DETONATE_CODEGEN_OVERFLOW", "1")
+        .env("RUN_CRASH", "1")
         .arg("--nocapture")
         .arg("havoc_codegen_stack_overflow")
         .status()
