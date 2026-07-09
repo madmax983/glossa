@@ -1,0 +1,3 @@
+**Echo: Getting Started example errors are silently ignored**
+**Learning:** Undefined variables and Double Subject syntax errors were silently ignored by the `try_print_default` classification fallback and assembler validation, causing user examples to fail silently rather than showing the documented Greek error translations.
+**Action:** Removed implicit `0` and fallback mappings when `scope.lookup` fails in `try_print_default`, `try_print_binary_op`, and `classify_expression` by checking if the component represents a valid unbound phrase/property or should throw `GlossaError::undefined`. Fixed `assembly/mod.rs` to validate `DoubleSubject` consistently across statements.

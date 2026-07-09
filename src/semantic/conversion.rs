@@ -1003,6 +1003,21 @@ fn classify_print(
             }
 
             let args = try_print_default(asm_stmt, scope)?;
+            if !asm_stmt.nominatives.is_empty() && asm_stmt.operators.is_empty() && asm_stmt.nested_phrases.is_empty() {
+                // Echo fix: Double subjects should be explicitly rejected instead of silently discarded in print statements
+                return Err(GlossaError::AssemblyError(crate::errors::AssemblyError::DoubleSubject));
+            }
+            if args.is_empty() && asm_stmt.literals.is_empty() && asm_stmt.property_accesses.is_empty() && asm_stmt.genitives.is_empty() && asm_stmt.nested_phrases.is_empty() && asm_stmt.blocks.is_empty() && asm_stmt.index_accesses.is_empty() && asm_stmt.unwraps.is_empty() {
+                if let Some(ref subj) = asm_stmt.subject {
+                    if !scope.is_defined(&subj.lemma) && !scope.is_defined_locally("self") {
+                        return Err(GlossaError::undefined(subj.lemma.clone()));
+                    }
+                } else if let Some(ref obj) = asm_stmt.object {
+                    if !scope.is_defined(&obj.lemma) && !scope.is_defined_locally("self") {
+                        return Err(GlossaError::undefined(obj.lemma.clone()));
+                    }
+                }
+            }
             return Ok(Some(AnalyzedStatement::Print(args)));
         }
     }
