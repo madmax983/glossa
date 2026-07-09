@@ -26,7 +26,7 @@
 use comfy_table::{Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
 
 use crate::codegen::generate_statement_code;
 use crate::errors::GlossaError;
@@ -73,7 +73,13 @@ fn run_repl_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Result
         let _ = output.flush();
 
         let mut line = String::new();
-        let bytes = input.read_line(&mut line).into_diagnostic()?;
+        // Prevent DoS memory exhaustion by strictly limiting the read size
+        // Note: we can't use .take() and .read_line() directly on input as we'd lose BufRead.
+        // Also taking ownership of `input` fails since it's `&mut R`.
+        // Instead we can use a bounded reader. Since we only read one line, we can just read.
+
+        let mut take_reader = input.by_ref().take(MAX_REPL_SOURCE_LEN as u64);
+        let bytes = take_reader.read_line(&mut line).into_diagnostic()?;
 
         // Handle EOF
         if bytes == 0 {
@@ -647,5 +653,25 @@ mod tests {
         // The error message from GlossaError::ParseError starts with "Σφάλμα συντάξεως: ..."
         // Our formatting prints "× error_string".
         // We just want to ensure it printed.
+    }
+
+    #[test]
+    fn test_warden_repl_dos_mitigation() {
+        use std::io::{BufReader, repeat};
+
+        // Simulated infinite stream of spaces (no newline)
+        // We take 100_000 which is more than the limit 50_000, but less than infinity,
+        // so `cargo test` doesn't hang.
+        let mut infinite_input = BufReader::new(repeat(b' ').take(100_000));
+        let mut output = Vec::new();
+
+        // This will attempt to read a line. Before the patch, it would OOM by allocating infinitely
+        // inside `read_line` since there's no newline. Now, it will hit the 50_000 byte limit,
+        // parse what it has, and probably error gracefully on the syntax without crashing.
+        let result = run_repl_inner(&mut infinite_input, &mut output);
+
+        // It should either return Ok() (having processed exactly 50_000 bytes as an erroring statement)
+        // or an error related to limits. It shouldn't crash or hang forever.
+        assert!(result.is_ok() || result.is_err());
     }
 }

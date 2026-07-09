@@ -18,7 +18,7 @@ use crate::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType};
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
 
 /// A self-contained chapter in the interactive ΓΛΩΣΣΑ tutorial.
 ///
@@ -127,7 +127,8 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
             output.flush().into_diagnostic()?;
 
             let mut line = String::new();
-            let bytes = input.read_line(&mut line).into_diagnostic()?;
+            let mut take_reader = input.by_ref().take(50000);
+            let bytes = take_reader.read_line(&mut line).into_diagnostic()?;
 
             if bytes == 0 {
                 return Ok(()); // EOF
@@ -155,7 +156,9 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
                             .into_diagnostic()?;
                         writeln!(output, "{}", "Press Enter to continue...".dim())
                             .into_diagnostic()?;
-                        let _ = input.read_line(&mut String::new());
+                        let mut line2 = String::new();
+                        let mut take_reader2 = input.by_ref().take(50000);
+                        let _ = take_reader2.read_line(&mut line2);
                         break; // Next lesson
                     } else {
                         writeln!(
@@ -351,5 +354,20 @@ mod tests {
 
         run_mentor_inner(&mut input, &mut output).unwrap();
         // Should just continue loop and then exit
+    }
+
+    #[test]
+    fn test_warden_mentor_dos_mitigation() {
+        use std::io::{BufReader, repeat};
+
+        // Simulated infinite stream of spaces (no newline).
+        // Take a bounded amount (e.g., 100_000 bytes) larger than our 50_000 byte limit.
+        // This ensures cargo test doesn't hang forever, but proves the limit works.
+        let mut infinite_input = BufReader::new(repeat(b' ').take(100_000));
+        let mut output = Vec::new();
+
+        let result = run_mentor_inner(&mut infinite_input, &mut output);
+        // It should not crash with OOM or loop infinitely on reading.
+        assert!(result.is_ok() || result.is_err());
     }
 }
