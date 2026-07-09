@@ -98,6 +98,11 @@ pub struct Cli {
 /// ```
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Generate a JSON Schema from a .γλ file (Requires "nova" feature)
+    Diplomat {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
     /// Run a .γλ file (default)
     Run {
         /// Input file (.γλ)

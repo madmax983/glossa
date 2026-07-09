@@ -32,6 +32,7 @@ pub mod cartographer;
 pub mod catalog;
 pub mod cli;
 pub mod dictionary;
+pub mod diplomat;
 /// The Haruspex (ὁ Ἱεροσκόπος) tool for visualizing the Semantic AST.
 ///
 /// This experimental tool exports the analyzed program as a Graphviz DOT diagram.
