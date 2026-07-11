@@ -192,6 +192,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate mock JSON data from type definitions (Requires "nova" feature)
+    Mime {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Export the semantic AST to a Graphviz DOT diagram (Requires "nova" feature)
     Haruspex {
         /// Input file (.γλ)
