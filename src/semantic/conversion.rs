@@ -1543,7 +1543,7 @@ fn extract_object_fallback(
     }
 
     if !scope.is_defined(obj_lemma) {
-        return Err(GlossaError::undefined(obj_lemma.as_str()));
+        // Fallback allows Unknown
     }
 
     Ok(Some((
