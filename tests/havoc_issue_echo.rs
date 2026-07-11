@@ -1,13 +1,12 @@
 #![allow(missing_docs)]
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
-use glossa::errors::GlossaError;
 
 #[test]
 fn test_double_subject_should_pass_havoc_constraint() {
     let source = "ὁ ἄνθρωπος ὁ θεὸς λέγει.";
     let ast = parse(source).unwrap();
-    let prog = analyze_program(&ast).unwrap();
+    let _prog = analyze_program(&ast).unwrap();
 }
 
 #[test]
@@ -27,7 +26,7 @@ fn test_undefined_variable_evaluates_to_zero_silently() {
             return;
         }
         if let glossa::semantic::AnalyzedExprKind::NumberLiteral(_) = expressions[0].expr {
-            return;
+            // Nothing to do
         }
     }
 }
