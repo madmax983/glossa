@@ -178,7 +178,10 @@ fn main() -> Result<()> {
             );
         }
 
-        Some(Commands::Gnomon { input }) => {
+        Some(Commands::Gnomon {
+            #[allow(unused_variables)]
+            input,
+        }) => {
             #[cfg(feature = "nova")]
             glossa::tools::gnomon::run_gnomon(&input)?;
 
