@@ -953,9 +953,25 @@ fn try_print_default(
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
-    if let Some(ref subj) = asm_stmt.subject
-        && let Some(var_type) = scope.lookup(&subj.lemma)
-    {
+    if let Some(ref subj) = asm_stmt.subject {
+        if asm_stmt.genitives.is_empty()
+            && !scope.is_defined(&subj.lemma)
+            && !scope.is_function(&subj.lemma)
+            && subj.lemma != "self"
+            && !subj.lemma.starts_with('_')
+            && !crate::morphology::lexicon::is_none_word(&subj.lemma)
+            && !crate::morphology::lexicon::is_some_word(&subj.lemma)
+            && !crate::morphology::lexicon::is_ok_word(&subj.lemma)
+            && !crate::morphology::lexicon::is_err_word(&subj.lemma)
+            && !crate::morphology::lexicon::is_assert_verb(&subj.lemma)
+            && subj.original.chars().count() > 1
+        {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
+        let var_type = scope
+            .lookup(&subj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         args.insert(
             0,
             AnalyzedExpr {
@@ -965,9 +981,25 @@ fn try_print_default(
         );
     }
 
-    if let Some(ref obj) = asm_stmt.object
-        && let Some(var_type) = scope.lookup(&obj.lemma)
-    {
+    if let Some(ref obj) = asm_stmt.object {
+        if asm_stmt.genitives.is_empty()
+            && !scope.is_defined(&obj.lemma)
+            && !scope.is_function(&obj.lemma)
+            && obj.lemma != "self"
+            && !obj.lemma.starts_with('_')
+            && !crate::morphology::lexicon::is_none_word(&obj.lemma)
+            && !crate::morphology::lexicon::is_some_word(&obj.lemma)
+            && !crate::morphology::lexicon::is_ok_word(&obj.lemma)
+            && !crate::morphology::lexicon::is_err_word(&obj.lemma)
+            && !crate::morphology::lexicon::is_assert_verb(&obj.lemma)
+            && obj.original.chars().count() > 1
+        {
+            return Err(GlossaError::undefined(obj.lemma.as_str()));
+        }
+        let var_type = scope
+            .lookup(&obj.lemma)
+            .cloned()
+            .unwrap_or(GlossaType::Unknown);
         args.push(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
             glossa_type: var_type.clone(),
@@ -1028,6 +1060,19 @@ fn classify_query(
         exprs.push(literal_to_analyzed_expr(lit));
     }
     if let Some(ref subj) = asm_stmt.subject {
+        if asm_stmt.genitives.is_empty()
+            && !scope.is_defined(&subj.lemma)
+            && !scope.is_function(&subj.lemma)
+            && subj.lemma != "self"
+            && !subj.lemma.starts_with('_')
+            && !crate::morphology::lexicon::is_none_word(&subj.lemma)
+            && !crate::morphology::lexicon::is_some_word(&subj.lemma)
+            && !crate::morphology::lexicon::is_ok_word(&subj.lemma)
+            && !crate::morphology::lexicon::is_err_word(&subj.lemma)
+            && !crate::morphology::lexicon::is_assert_verb(&subj.lemma)
+        {
+            return Err(GlossaError::undefined(subj.lemma.as_str()));
+        }
         let var_type = scope
             .lookup(&subj.lemma)
             .cloned()
@@ -1157,14 +1202,50 @@ fn classify_expression(
     // Fallback: If no literals/ops, check Subject/Object
     if exprs.is_empty() {
         if let Some(ref subj) = asm_stmt.subject {
+            if asm_stmt.genitives.is_empty()
+                && !scope.is_defined(&subj.lemma)
+                && !scope.is_function(&subj.lemma)
+                && subj.lemma != "self"
+                && !subj.lemma.starts_with('_')
+                && !crate::morphology::lexicon::is_none_word(&subj.lemma)
+                && !crate::morphology::lexicon::is_some_word(&subj.lemma)
+                && !crate::morphology::lexicon::is_ok_word(&subj.lemma)
+                && !crate::morphology::lexicon::is_err_word(&subj.lemma)
+                && !crate::morphology::lexicon::is_assert_verb(&subj.lemma)
+                && subj.original.chars().count() > 1
+            {
+                return Err(GlossaError::undefined(subj.lemma.as_str()));
+            }
+            let var_type = scope
+                .lookup(&subj.lemma)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown);
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
+                glossa_type: var_type.clone(),
             });
         } else if let Some(ref obj) = asm_stmt.object {
+            if asm_stmt.genitives.is_empty()
+                && !scope.is_defined(&obj.lemma)
+                && !scope.is_function(&obj.lemma)
+                && obj.lemma != "self"
+                && !obj.lemma.starts_with('_')
+                && !crate::morphology::lexicon::is_none_word(&obj.lemma)
+                && !crate::morphology::lexicon::is_some_word(&obj.lemma)
+                && !crate::morphology::lexicon::is_ok_word(&obj.lemma)
+                && !crate::morphology::lexicon::is_err_word(&obj.lemma)
+                && !crate::morphology::lexicon::is_assert_verb(&obj.lemma)
+                && obj.original.chars().count() > 1
+            {
+                return Err(GlossaError::undefined(obj.lemma.as_str()));
+            }
+            let var_type = scope
+                .lookup(&obj.lemma)
+                .cloned()
+                .unwrap_or(GlossaType::Unknown);
             exprs.push(AnalyzedExpr {
                 expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
+                glossa_type: var_type.clone(),
             });
         }
     }

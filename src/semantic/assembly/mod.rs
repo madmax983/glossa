@@ -663,9 +663,9 @@ impl Assembler {
             // If we have a verb, a subject, and extra nominatives, but it's not a function definition or binary operation
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
-                && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
+                && !crate::morphology::lexicon::is_binding_verb(&verb.normalized)
+                && !crate::morphology::lexicon::is_print_verb(&verb.normalized)
+                && !crate::morphology::lexicon::is_find_verb(&verb.normalized)
             {
                 return Err(AssemblyError::DoubleSubject);
             }
@@ -718,14 +718,30 @@ impl Assembler {
         {
             return Ok(());
         }
-        if ctx.is_match_arm
-            && self.state.object.is_none()
-            && self.state.nominatives.is_empty()
-            && self.state.adjectives.is_empty()
-            && let Some(subject) = self.state.subject.as_ref()
-        {
-            if subject.lemma == "ανθρωπος" {
-                return Err(AssemblyError::MissingVerb);
+        if ctx.is_match_arm {
+            if let Some(subject) = self.state.subject.as_ref() {
+                let lemma = subject.lemma.as_str();
+                let is_allowed = matches!(
+                    lemma,
+                    "μηδεν"
+                        | "εν"
+                        | "αλλο"
+                        | "αληθης"
+                        | "ψευδης"
+                        | "μηδέν"
+                        | "ἕν"
+                        | "ἄλλο"
+                        | "ἀληθής"
+                        | "ψευδής"
+                ) || crate::morphology::lexicon::is_none_word(lemma)
+                    || crate::morphology::lexicon::is_some_word(lemma)
+                    || crate::morphology::lexicon::is_ok_word(lemma)
+                    || crate::morphology::lexicon::is_err_word(lemma)
+                    || subject.original.chars().count() == 1; // Single letter variables like `ξ` are allowed
+
+                if !is_allowed && subject.lemma == "ανθρωπος" {
+                    return Err(AssemblyError::MissingVerb);
+                }
             }
             return Ok(());
         }
