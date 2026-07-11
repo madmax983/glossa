@@ -131,3 +131,21 @@ C4Component
 
     Rel(model, types, "Uses")
 ```
+
+## Storage Architecture (Class & Sequence Diagrams)
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+  %% Removed the circular dependency arrow
+```
+
+```mermaid
+sequenceDiagram
+    participant Core
+    participant Storage
+    Core->>Storage: Delegate persistence
+    Storage-->>Core: Persistence outcome
+```
