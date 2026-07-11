@@ -664,8 +664,8 @@ impl Assembler {
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
                 && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
+                && !crate::morphology::lexicon::is_print_verb(&verb.normalized)
+                && !crate::morphology::lexicon::is_find_verb(&verb.normalized)
             {
                 return Err(AssemblyError::DoubleSubject);
             }

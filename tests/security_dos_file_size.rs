@@ -20,6 +20,8 @@ fn test_file_size_limit_cli() {
     // We expect this to fail
     let output = Command::new(env!("CARGO"))
         .arg("run")
+        .arg("--bin")
+        .arg("glossa")
         .arg("--quiet")
         .arg("--")
         .arg("check")
