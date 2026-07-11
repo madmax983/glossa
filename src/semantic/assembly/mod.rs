@@ -1155,6 +1155,33 @@ mod tests {
         assert!(matches!(result, Err(AssemblyError::DoubleObject)));
     }
     #[test]
+    fn test_handle_vocative() {
+        let mut asm = Assembler::new();
+        let vocative = MorphAnalysis {
+            lemma: std::borrow::Cow::Borrowed("ανθρωπε"),
+            part_of_speech: PartOfSpeech::Noun,
+            case: Some(Case::Vocative),
+            number: Some(Number::Singular),
+            gender: Some(Gender::Masculine),
+            person: Some(Person::Third),
+            tense: None,
+            mood: None,
+            voice: None,
+            confidence: 1.0,
+        };
+        asm.feed(&vocative, "ἄνθρωπε").unwrap();
+        assert!(asm.state.subject.is_some());
+        assert_eq!(asm.state.subject.unwrap().original, "ἄνθρωπε");
+    }
+
+    #[test]
+    fn test_assembler_default() {
+        let asm = Assembler::default();
+        assert!(asm.state.nominatives.is_empty());
+        assert!(asm.state.adjectives.is_empty());
+    }
+
+    #[test]
     fn test_neuter_plural_subject_singular_verb() {
         let mut asm = Assembler::new();
         // Subject: τὰ ζῷα (The animals) - Neuter Plural
