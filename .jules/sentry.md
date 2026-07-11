@@ -96,3 +96,7 @@
 **2025-03-05 - [Semantic Assembler Vocative and Default Tests]**
 **Learning:** Found coverage gaps in `src/semantic/assembly/mod.rs` for `Case::Vocative` handling and the default implementation of `Assembler::default()`. These branches were identified using `cargo llvm-cov` line and function coverage reporting. Since Vocative isn't completely wired through as functionally distinct from subject yet, it was falling back through undocumented paths if unhandled.
 **Action:** Added specific manual unit tests `test_handle_vocative` and `test_assembler_default` inline under `#[cfg(test)] mod tests` in `mod.rs` to raise coverage and safeguard logic.
+
+**2025-03-05 - [Clippy Redundant Reference in Formatting Fix]**
+**Learning:** Found an instance in `src/semantic/conversion.rs` where a format argument (`&var_name`) had a redundant reference causing a `clippy::useless-borrows-in-formatting` violation. This occurred during an error message string formatting block.
+**Action:** Removed the redundant `&` to satisfy the strict `-D warnings` checking requirement for `cargo clippy`.
