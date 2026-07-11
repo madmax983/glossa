@@ -1,4 +1,7 @@
-1. **Analyze CI Failure:** The check run failed on "Format Check" running `cargo fmt --all -- --check`. The diff shows missing trailing commas in the array initializing the `Table` rows.
-2. **Fix `src/tools/tester.rs`:** Run `cargo fmt --all` to automatically apply the formatting changes required to fix the trailing comma issues.
-3. **Verify:** Ensure `cargo fmt --all -- --check` passes.
-4. **Submit PR.**
+1. *Create `src/morphology/lexicon/` directory*
+2. *Extract `LexiconEntry` and related DTOs, as well as `LEXICON` LazyLock and `lookup`/`entries` into `src/morphology/lexicon/data.rs`*
+3. *Extract the helper functions (e.g. `is_verb`, `is_binding_verb`, etc.) into `src/morphology/lexicon/mod.rs`, which also re-exports items from `data.rs`.*
+4. *Update `src/morphology/mod.rs` to use `pub(crate) mod lexicon;`.*
+5. *Update imports across the codebase where `crate::morphology::lexicon::*` was used if necessary.*
+6. *Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.*
+7. *Submit the change.*
