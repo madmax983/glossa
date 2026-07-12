@@ -171,56 +171,12 @@ pub fn try_parse_struct_instantiation(
         return Ok(None);
     }
 
-    // Verify structural words (0, 1, 2, Last) are Words
-    let Expr::Word(var_word) = &terms[0] else {
-        return Ok(None);
-    };
-    let Expr::Word(adj_word) = &terms[1] else {
-        return Ok(None);
-    };
-    let Expr::Word(type_word) = &terms[2] else {
-        return Ok(None);
-    };
-    let Some(Expr::Word(last_word)) = terms.last() else {
+    let Some((var_name, type_name)) = verify_struct_instantiation_pattern(terms) else {
         return Ok(None);
     };
 
-    // Check pattern: var_name νέον TypeName args... ἔστω
-    // Last word should be ἔστω (binding verb)
-    if !crate::morphology::lexicon::is_binding_verb(&last_word.normalized) {
-        return Ok(None);
-    }
-
-    // Second word should be νέον (new) - check both normalized form and if it's "new" via morphology
-    let normalized_adj = crate::text::normalize_greek(&adj_word.normalized);
-    // Check if it's "new" - could be νέον, νεον, etc.
-    if normalized_adj != "νεον" && normalized_adj != "νεος" {
-        return Ok(None);
-    }
-
-    // Extract components
-    let var_name = &var_word.normalized;
-    let type_name = &type_word.normalized;
-
-    // Check for built-in collection types first (HashSet, HashMap)
-    if let Some((rust_type, glossa_type)) =
-        crate::semantic::types::detect_collection_type(type_name)
-    {
-        let collection_new = AnalyzedExpr {
-            expr: AnalyzedExprKind::CollectionNew {
-                collection_type: rust_type.to_string(),
-            },
-            glossa_type: glossa_type.clone(),
-        };
-
-        // Register variable in scope (collections are implicitly mutable for insert)
-        scope.define_mut(var_name.clone(), glossa_type.clone());
-
-        return Ok(Some(AnalyzedStatement::Binding {
-            name: var_name.clone(),
-            value: collection_new,
-            mutable: true,
-        }));
+    if let Some(stmt) = handle_collection_instantiation(var_name, type_name, scope) {
+        return Ok(Some(stmt));
     }
 
     // Check if type exists as a user-defined struct
@@ -229,7 +185,6 @@ pub fn try_parse_struct_instantiation(
         // but the type is unknown, return an error instead of falling back.
         return Err(GlossaError::undefined(type_name.to_string()));
     };
-
     // Extract fields from struct type
     // ⚡ Bolt Optimization: Use slice instead of cloning `fields` to prevent unnecessary heap allocations
     let fields_info: &[(SmolStr, GlossaType)] =
@@ -264,6 +219,59 @@ pub fn try_parse_struct_instantiation(
         value: struct_inst,
         mutable: false,
     }))
+}
+
+fn verify_struct_instantiation_pattern(terms: &[Expr]) -> Option<(&SmolStr, &SmolStr)> {
+    // Verify structural words (0, 1, 2, Last) are Words
+    let Expr::Word(var_word) = &terms[0] else {
+        return None;
+    };
+    let Expr::Word(adj_word) = &terms[1] else {
+        return None;
+    };
+    let Expr::Word(type_word) = &terms[2] else {
+        return None;
+    };
+    let Expr::Word(last_word) = terms.last()? else {
+        return None;
+    };
+
+    // Last word should be ἔστω (binding verb)
+    if !crate::morphology::lexicon::is_binding_verb(&last_word.normalized) {
+        return None;
+    }
+
+    // Second word should be νέον (new)
+    let normalized_adj = crate::text::normalize_greek(&adj_word.normalized);
+    if normalized_adj != "νεον" && normalized_adj != "νεος" {
+        return None;
+    }
+
+    Some((&var_word.normalized, &type_word.normalized))
+}
+
+fn handle_collection_instantiation(
+    var_name: &SmolStr,
+    type_name: &SmolStr,
+    scope: &mut Scope,
+) -> Option<AnalyzedStatement> {
+    let (rust_type, glossa_type) = crate::semantic::types::detect_collection_type(type_name)?;
+
+    let collection_new = AnalyzedExpr {
+        expr: AnalyzedExprKind::CollectionNew {
+            collection_type: rust_type.to_string(),
+        },
+        glossa_type: glossa_type.clone(),
+    };
+
+    // Register variable in scope (collections are implicitly mutable for insert)
+    scope.define_mut(var_name.clone(), glossa_type.clone());
+
+    Some(AnalyzedStatement::Binding {
+        name: var_name.clone(),
+        value: collection_new,
+        mutable: true,
+    })
 }
 
 fn parse_struct_args(
