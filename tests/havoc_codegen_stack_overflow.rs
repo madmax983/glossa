@@ -58,11 +58,16 @@ fn havoc_codegen_stack_overflow() {
         .env("HAVOC_DETONATE_CODEGEN_OVERFLOW", "1")
         .arg("--nocapture")
         .arg("havoc_codegen_stack_overflow")
-        .status()
+        .output()
         .expect("Failed to spawn subprocess");
 
+    assert!(!status.status.success(), "Subprocess should have failed!");
+    let stderr = String::from_utf8_lossy(&status.stderr);
     assert!(
-        !status.success(),
-        "Subprocess should have crashed due to stack overflow!"
+        stderr.contains(
+            "Code generation failed: deeply nested expression would cause stack overflow"
+        ) || stderr.contains("has overflowed its stack"),
+        "Did not fail with the expected depth limit panic: {}",
+        stderr
     );
 }

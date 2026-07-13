@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Havoc Codegen Stack Overflow]**
+**Learning:** If an `AnalyzedProgram` is constructed programmatically, bypassing the `check_program_depth` in `glossa::semantic::analyze_program`, the `generate_rust` function in `src/codegen.rs` could crash with a stack overflow when recursively iterating over deep `AnalyzedExpr` nodes.
+**Action:** Enforce `validate_program(&program)` validation as the first step within `generate_rust()` to ensure all programs meet the safe depth limit prior to any recursive traversal. Use `.expect()` to fail gracefully with the specific `LimitExceeded` error instead of encountering a hard abort. Update test cases to verify the correct error message.

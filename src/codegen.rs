@@ -403,6 +403,15 @@ pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
 /// assert!(rust_code.contains("println"));
 /// ```
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
+    // 🛡️ Sentry: Validate the AST depth before generating code to prevent stack overflows
+    // from deeply nested expressions that were programmatically created, bypassing the parser limits.
+    if let Err(e) = crate::semantic::validation::validate_program(program) {
+        panic!(
+            "Code generation failed: deeply nested expression would cause stack overflow: {:?}",
+            e
+        );
+    }
+
     // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
     // ⚡ Bolt Optimization: Pre-allocate vectors based on statement length.
     // This reduces internal reallocation overhead during partitioning.
