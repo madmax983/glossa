@@ -144,7 +144,8 @@ pub fn generate_cfg(program: &AnalyzedProgram) -> String {
     let end_node = add_node("End", "round", &mut nodes, &mut node_counter);
     add_edge(&current_node, &end_node, None, &mut edges);
 
-    let mut out = String::from("graph TD\n");
+    let mut out = String::with_capacity(1024);
+    out.push_str("graph TD\n");
     for node in nodes {
         out.push_str(&format!("    {}\n", node));
     }

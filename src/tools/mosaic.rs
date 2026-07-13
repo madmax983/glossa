@@ -278,7 +278,7 @@ fn format_structural_elements(asm: &AssembledStatement, other: &mut String) {
 fn format_flags(asm: &AssembledStatement, other: &mut String) {
     use std::fmt::Write;
     // Flags
-    let mut flags = String::new();
+    let mut flags = String::with_capacity(32);
     let mut add_flag = |f: &str| {
         if !flags.is_empty() {
             flags.push_str(", ");

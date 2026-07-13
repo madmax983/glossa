@@ -110,7 +110,8 @@ pub fn run_map(input: &Path) -> Result<()> {
 
 /// Generate a Mermaid class diagram from an analyzed program
 pub fn generate_map(program: &AnalyzedProgram) -> String {
-    let mut map = String::from("classDiagram\n");
+    let mut map = String::with_capacity(1024);
+    map.push_str("classDiagram\n");
 
     // ⚡ Bolt Optimization: Swapped `HashSet` for `FxHashSet` for performance.
     // Standard `HashSet` uses SipHash, which is cryptographically secure but slower.

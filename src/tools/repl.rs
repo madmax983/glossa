@@ -301,7 +301,7 @@ struct ReplContext {
 impl ReplContext {
     fn new() -> Self {
         ReplContext {
-            bindings: Vec::new(),
+            bindings: Vec::with_capacity(32),
             last_scope: None,
             statement_count: 0,
         }

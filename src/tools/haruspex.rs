@@ -87,7 +87,7 @@ fn print_dashboard(dot: &str, is_tty: bool) {
 
 fn generate_dot(program: &AnalyzedProgram) -> String {
     let mut next_id = 0;
-    let mut output = String::new();
+    let mut output = String::with_capacity(4096);
     output.push_str("digraph AST {\n");
     output.push_str(
         "    node [shape=box, style=filled, fillcolor=lightgrey, fontname=\"Courier\"];\n",

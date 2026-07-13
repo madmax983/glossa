@@ -191,7 +191,7 @@ fn print_morphological_analyses(analyses: &[crate::morphology::models::MorphAnal
     // ⚡ Bolt Optimization: Reuse a single String buffer and avoid intermediate format allocations
     // by writing directly into the buffer instead of collecting into a Vec<String> and joining.
     use std::fmt::Write;
-    let mut grammar_buf = String::new();
+    let mut grammar_buf = String::with_capacity(64);
 
     for analysis in analyses {
         grammar_buf.clear();

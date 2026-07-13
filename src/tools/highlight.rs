@@ -69,7 +69,7 @@ struct Highlighter {
 impl Highlighter {
     fn new() -> Self {
         Self {
-            output: String::new(),
+            output: String::with_capacity(1024),
             context: DisambiguationContext::new(),
         }
     }

@@ -50,7 +50,7 @@ pub fn run_weave(input: &Path) -> Result<()> {
     let rust_code = generate_rust_file(&program);
 
     // 3. Generate Mosaic Table
-    let mut mosaic_buffer = Vec::new();
+    let mut mosaic_buffer = Vec::with_capacity(4096);
     if let Err(e) = run_mosaic_inner(&source, &mut mosaic_buffer) {
         status.error("Σφάλμα (Error)");
         return Err(e);
@@ -58,7 +58,7 @@ pub fn run_weave(input: &Path) -> Result<()> {
     let mosaic_output = String::from_utf8(mosaic_buffer).expect("comfy-table outputs valid UTF-8");
 
     // 4. Format Markdown
-    let mut md = String::new();
+    let mut md = String::with_capacity(4096);
 
     let filename = input.file_name().unwrap_or_default().to_string_lossy();
 
@@ -131,7 +131,7 @@ mod tests {
         assert!(output_path.exists());
 
         let mut f = std::fs::File::open(&output_path).unwrap();
-        let mut md = String::new();
+        let mut md = String::with_capacity(4096);
         std::io::Read::take(&mut f, 1024 * 1024 + 1)
             .read_to_string(&mut md)
             .unwrap();
