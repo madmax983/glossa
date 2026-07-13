@@ -151,10 +151,12 @@ cargo run --release --features nova -- mosaic examples/quickstart.γλ
 ```
 
 ### 4. The Bard (Scroll of Logic)
-Translate your code into an English narrative (available without `nova`).
+Translate your code into an English narrative.
+
+> ⚠️ **REQUIRES FEATURE NOVA**
 
 ```bash
-cargo run --release -- bard examples/quickstart.γλ
+cargo run --release --features nova -- bard examples/quickstart.γλ
 ```
 
 ## Features
