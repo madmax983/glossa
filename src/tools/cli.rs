@@ -192,6 +192,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Transpile a .γλ file to a GraphQL schema (Requires "nova" feature)
+    Pythia {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Export the semantic AST to a Graphviz DOT diagram (Requires "nova" feature)
     Haruspex {
         /// Input file (.γλ)

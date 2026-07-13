@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Pythia (ἡ Πυθία)
+**Concept:** A GraphQL schema generator (`glossa pythia`) that transpiles Glossa struct (`εἶδος`) and trait (`χαρακτήρ`) definitions directly into GraphQL `type` and `interface` schemas.
+**Fate:** Merged
+**Lesson:** Treating Glossa type and trait definitions as schemas unlocks seamless frontend/backend generation pipelines without breaking core logic, matching the project's semantic-first vision.

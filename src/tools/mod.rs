@@ -55,6 +55,12 @@ pub mod narrator;
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
 pub mod papyrus;
+/// The Pythia (ἡ Πυθία) tool for GraphQL schema generation.
+///
+/// This experimental tool reads Glossa type and trait definitions and automatically
+/// generates corresponding GraphQL `type` and `interface` statements.
+#[cfg(feature = "nova")]
+pub mod pythia;
 pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
