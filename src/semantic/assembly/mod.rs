@@ -661,14 +661,21 @@ impl Assembler {
         if let (Some(subject), Some(verb)) = (&self.state.subject, &self.state.verb) {
             self.check_agreement(subject, verb)?;
             // If we have a verb, a subject, and extra nominatives, but it's not a function definition or binary operation
+
+            let is_print_allowed = crate::morphology::lexicon::is_print_verb(&verb.lemma)
+                && verb.mood == Some(crate::morphology::Mood::Imperative);
+
+            let verb_allows_multiple = crate::morphology::lexicon::is_binding_verb(&verb.lemma)
+                || crate::morphology::lexicon::is_find_verb(&verb.lemma)
+                || is_print_allowed;
+
             if !self.state.nominatives.is_empty()
                 && self.state.operators.is_empty()
-                && !crate::morphology::lexicon::is_binding_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_print_verb(&verb.lemma)
-                && !crate::morphology::lexicon::is_find_verb(&verb.lemma)
+                && !verb_allows_multiple
             {
                 return Err(AssemblyError::DoubleSubject);
             }
+
         } else if self.state.subject.is_some()
             && !self.state.nominatives.is_empty()
             && self.state.operators.is_empty()

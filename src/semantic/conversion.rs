@@ -950,6 +950,11 @@ fn try_print_default(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<Vec<AnalyzedExpr>, GlossaError> {
+    if !asm_stmt.participles.is_empty() {
+        let name = &asm_stmt.participles[0].original;
+        return Err(GlossaError::undefined(name.as_str()));
+    }
+
     let mut args =
         build_expressions_from_literals_and_ops(&asm_stmt.literals, &asm_stmt.operators)?;
 
