@@ -7,3 +7,8 @@
 **Bloat:** `DotGenerator` in `src/tools/haruspex.rs` used an object-oriented builder pattern for graph generation.
 **Cut:** Flattened the object into pure procedural functions passing mutable references to `next_id` and `output` state.
 **Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+
+## [Reduction]
+**Bloat:** `GnomonVisitor` and `AuditorVisitor` used object-oriented patterns with mutable structs to traverse the AST.
+**Cut:** Flattened these objects into simple pure recursive functions that pass mutable state as parameters.
+**Saved:** Replaced stateful object-oriented abstractions with standard procedural recursive functions, eliminating the need for `impl` blocks and constructor methods.
