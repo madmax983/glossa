@@ -1,0 +1,1 @@
+sed -i 's/let mut params_str = String::with_capacity(method.params.len() \* 16);/\/\/ ⚡ Bolt Optimization: Pre-allocate capacity based on param count to avoid heap reallocations\n            let mut params_str = String::with_capacity(method.params.len() * 16);/' src/tools/cartographer.rs

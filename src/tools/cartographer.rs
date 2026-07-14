@@ -166,7 +166,8 @@ fn format_traits(map: &mut String, program: &AnalyzedProgram) {
         let _ = writeln!(map, "    class {} {{", name);
         map.push_str("        <<interface>>\n");
         for method in &trait_def.methods {
-            let mut params_str = String::new();
+            // ⚡ Bolt Optimization: Pre-allocate capacity based on param count to avoid heap reallocations
+            let mut params_str = String::with_capacity(method.params.len() * 16);
             for (i, (n, t)) in method.params.iter().enumerate() {
                 if i > 0 {
                     params_str.push_str(", ");

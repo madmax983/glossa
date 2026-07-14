@@ -8,3 +8,7 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+
+**Pre-allocating format strings for loops**
+**Learning:** `String::new()` in a loop that formats dynamically-sized contents (like function parameters) causes multiple heap reallocations.
+**Action:** Use `String::with_capacity(...)` based on the sequence length and average token size to avoid these reallocations and improve formatting performance.
