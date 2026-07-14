@@ -17,92 +17,61 @@ use crossterm::style::Stylize;
 use miette::Result;
 use std::path::Path;
 
-/// A visitor that traverses the Abstract Syntax Tree to calculate loop depth.
+/// Recursively calculates the maximum loop depth of a statement.
 ///
-/// Just as a gnomon casts a shadow to indicate time, this visitor casts a shadow
+/// Just as a gnomon casts a shadow to indicate time, this function casts a shadow
 /// over the structure of a program to estimate its execution time complexity.
 /// It tracks the maximum nesting depth of `while` and `for` loops.
-#[derive(Default)]
-pub struct GnomonVisitor {
-    /// The current nesting depth of loops during traversal.
-    pub current_depth: usize,
-    /// The maximum nesting depth encountered so far.
-    pub max_depth: usize,
-}
-
-impl GnomonVisitor {
-    /// Creates a new `GnomonVisitor` starting at depth 0.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Recursively visits a statement and updates loop depth metrics.
-    ///
-    /// Increases depth when entering `While` or `For` loops, and explores
-    /// inner statements in branches (`If`, `Match`, functions).
-    pub fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
-        match stmt {
-            AnalyzedStatement::While { body, .. } => {
-                self.current_depth += 1;
-                if self.current_depth > self.max_depth {
-                    self.max_depth = self.current_depth;
-                }
-                for s in body {
-                    self.visit_statement(s);
-                }
-                self.current_depth -= 1;
+pub fn calculate_max_depth(stmt: &AnalyzedStatement) -> usize {
+    match stmt {
+        AnalyzedStatement::While { body, .. } | AnalyzedStatement::For { body, .. } => {
+            let mut inner_max = 0;
+            for s in body {
+                inner_max = inner_max.max(calculate_max_depth(s));
             }
-            AnalyzedStatement::For { body, .. } => {
-                self.current_depth += 1;
-                if self.current_depth > self.max_depth {
-                    self.max_depth = self.current_depth;
-                }
-                for s in body {
-                    self.visit_statement(s);
-                }
-                self.current_depth -= 1;
-            }
-            AnalyzedStatement::If {
-                then_body,
-                else_body,
-                ..
-            } => {
-                for s in then_body {
-                    self.visit_statement(s);
-                }
-                if let Some(else_stmts) = else_body {
-                    for s in else_stmts {
-                        self.visit_statement(s);
-                    }
-                }
-            }
-            AnalyzedStatement::Match { arms, .. } => {
-                for (_, stmts) in arms {
-                    for s in stmts {
-                        self.visit_statement(s);
-                    }
-                }
-            }
-            AnalyzedStatement::FunctionDef { body, .. } => {
-                for s in body {
-                    self.visit_statement(s);
-                }
-            }
-            AnalyzedStatement::TestDeclaration { body, .. } => {
-                for s in body {
-                    self.visit_statement(s);
-                }
-            }
-            _ => {}
+            inner_max + 1
         }
+        AnalyzedStatement::If {
+            then_body,
+            else_body,
+            ..
+        } => {
+            let mut max = 0;
+            for s in then_body {
+                max = max.max(calculate_max_depth(s));
+            }
+            if let Some(else_stmts) = else_body {
+                for s in else_stmts {
+                    max = max.max(calculate_max_depth(s));
+                }
+            }
+            max
+        }
+        AnalyzedStatement::Match { arms, .. } => {
+            let mut max = 0;
+            for (_, stmts) in arms {
+                for s in stmts {
+                    max = max.max(calculate_max_depth(s));
+                }
+            }
+            max
+        }
+        AnalyzedStatement::FunctionDef { body, .. }
+        | AnalyzedStatement::TestDeclaration { body, .. } => {
+            let mut max = 0;
+            for s in body {
+                max = max.max(calculate_max_depth(s));
+            }
+            max
+        }
+        _ => 0,
     }
 }
 
 /// Analyzes a ΓΛΩΣΣΑ source file and estimates its Big-O time complexity.
 ///
-/// This function coordinates the parsing, semantic analysis, and AST traversal
-/// using the [`GnomonVisitor`]. The result is presented to the user in a
-/// stylized terminal table.
+/// This function coordinates the parsing, semantic analysis, and AST traversal.
+/// The result is presented to the user in a stylized terminal table.
 ///
 /// # Errors
 ///
@@ -146,9 +115,9 @@ pub fn run_gnomon(input: &Path) -> Result<()> {
 
     status.success();
 
-    let mut visitor = GnomonVisitor::new();
+    let mut max_depth = 0;
     for stmt in &program.statements {
-        visitor.visit_statement(stmt);
+        max_depth = max_depth.max(calculate_max_depth(stmt));
     }
 
     println!();
@@ -170,23 +139,23 @@ pub fn run_gnomon(input: &Path) -> Result<()> {
         Cell::new("Value").add_attribute(Attribute::Bold),
     ]);
 
-    let complexity = if visitor.max_depth == 0 {
+    let complexity = if max_depth == 0 {
         "O(1)".to_string()
-    } else if visitor.max_depth == 1 {
+    } else if max_depth == 1 {
         "O(N)".to_string()
     } else {
-        format!("O(N^{})", visitor.max_depth)
+        format!("O(N^{})", max_depth)
     };
 
     table.add_row(vec![
         Cell::new("Max Loop Depth"),
-        Cell::new(visitor.max_depth.to_string()),
+        Cell::new(max_depth.to_string()),
     ]);
     table.add_row(vec![
         Cell::new("Estimated Big-O"),
-        Cell::new(complexity).fg(if visitor.max_depth > 2 {
+        Cell::new(complexity).fg(if max_depth > 2 {
             Color::Red
-        } else if visitor.max_depth == 2 {
+        } else if max_depth == 2 {
             Color::Yellow
         } else {
             Color::Green
@@ -214,30 +183,27 @@ mod tests {
 
     #[test]
     fn test_gnomon_while_loop() {
-        let mut visitor = GnomonVisitor::new();
         let stmt = AnalyzedStatement::While {
             condition: dummy_expr(),
             body: vec![],
         };
-        visitor.visit_statement(&stmt);
-        assert_eq!(visitor.max_depth, 1);
+        let max_depth = calculate_max_depth(&stmt);
+        assert_eq!(max_depth, 1);
     }
 
     #[test]
     fn test_gnomon_for_loop() {
-        let mut visitor = GnomonVisitor::new();
         let stmt = AnalyzedStatement::For {
             variable: SmolStr::new("x"),
             iterator: dummy_expr(),
             body: vec![],
         };
-        visitor.visit_statement(&stmt);
-        assert_eq!(visitor.max_depth, 1);
+        let max_depth = calculate_max_depth(&stmt);
+        assert_eq!(max_depth, 1);
     }
 
     #[test]
     fn test_gnomon_nested_loops() {
-        let mut visitor = GnomonVisitor::new();
         let inner_loop = AnalyzedStatement::For {
             variable: SmolStr::new("y"),
             iterator: dummy_expr(),
@@ -247,7 +213,7 @@ mod tests {
             condition: dummy_expr(),
             body: vec![inner_loop],
         };
-        visitor.visit_statement(&outer_loop);
-        assert_eq!(visitor.max_depth, 2);
+        let max_depth = calculate_max_depth(&outer_loop);
+        assert_eq!(max_depth, 2);
     }
 }
