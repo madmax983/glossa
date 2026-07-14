@@ -280,14 +280,16 @@ fn execute_test_binary(exe_path: &Path, status: &mut Status) -> Result<std::proc
     Ok(test_output)
 }
 
-fn print_test_results(results: &[TestResult], test_output: &std::process::Output, stdout: &str) {
+fn print_tester_header() {
     println!();
     println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
     println!("   {}", "Unit Test Results".italic().dim());
     println!();
+}
 
-    if test_output.status.success() {
-        if !results.is_empty() {
+fn print_status_banner(success: bool, has_results: bool) {
+    if success {
+        if has_results {
             let mut success_table = Table::new();
             success_table.load_preset(presets::UTF8_FULL);
             success_table.add_row(vec![
@@ -311,35 +313,10 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         println!("{failure_table}");
         println!();
     }
+}
 
-    if !results.is_empty() {
-        let mut table = Table::new();
-        table.load_preset(presets::UTF8_FULL);
-
-        table.set_header(vec![
-            Cell::new("Test Case")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("Status").add_attribute(Attribute::Bold),
-        ]);
-
-        for result in results {
-            let status_cell = match result.status {
-                TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
-                TestStatus::Failed => Cell::new("FAILED")
-                    .fg(Color::Red)
-                    .add_attribute(Attribute::Bold),
-                TestStatus::Ignored => Cell::new("IGNORED").fg(Color::Yellow),
-            };
-
-            // Clean up test name (remove module prefix if any)
-            // e.g., "tests::test_name" -> "test_name"
-            let display_name = result.name.split("::").last().unwrap_or(&result.name);
-
-            table.add_row(vec![Cell::new(display_name), status_cell]);
-        }
-        println!("{table}");
-    } else {
+fn print_results_table(results: &[TestResult]) {
+    if results.is_empty() {
         let mut empty_table = Table::new();
         empty_table.load_preset(presets::UTF8_FULL);
         empty_table.set_header(vec![
@@ -354,42 +331,80 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
                 .set_alignment(CellAlignment::Center),
         ]);
         println!("{empty_table}");
+        return;
     }
 
-    // If there were failures, try to extract and print them nicely
-    if !test_output.status.success() {
-        println!();
-        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL);
 
-        let failures = extract_failures(stdout);
+    table.set_header(vec![
+        Cell::new("Test Case")
+            .add_attribute(Attribute::Bold)
+            .fg(Color::Cyan),
+        Cell::new("Status").add_attribute(Attribute::Bold),
+    ]);
 
-        if !failures.is_empty() {
-            for (name, msg) in failures {
-                let mut header_table = Table::new();
-                header_table.load_preset(presets::UTF8_FULL);
-                header_table.add_row(vec![
-                    Cell::new(format!(" FAILED: {} ", name))
-                        .bg(Color::DarkRed)
-                        .fg(Color::White)
-                        .add_attribute(Attribute::Bold),
-                ]);
-                println!("{header_table}");
+    for result in results {
+        let status_cell = match result.status {
+            TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
+            TestStatus::Failed => Cell::new("FAILED")
+                .fg(Color::Red)
+                .add_attribute(Attribute::Bold),
+            TestStatus::Ignored => Cell::new("IGNORED").fg(Color::Yellow),
+        };
 
-                // Create a box for the error message using comfy_table
-                let mut error_table = Table::new();
-                error_table.load_preset(presets::UTF8_FULL);
-                error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
-                println!("{error_table}");
-                println!();
-            }
-        } else {
-            // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
-            if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
-            }
+        // Clean up test name (remove module prefix if any)
+        // e.g., "tests::test_name" -> "test_name"
+        let display_name = result.name.split("::").last().unwrap_or(&result.name);
+
+        table.add_row(vec![Cell::new(display_name), status_cell]);
+    }
+    println!("{table}");
+}
+
+fn print_failure_details(test_output: &std::process::Output, stdout: &str) {
+    if test_output.status.success() {
+        return;
+    }
+
+    println!();
+    println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+
+    let failures = extract_failures(stdout);
+
+    if !failures.is_empty() {
+        for (name, msg) in failures {
+            let mut header_table = Table::new();
+            header_table.load_preset(presets::UTF8_FULL);
+            header_table.add_row(vec![
+                Cell::new(format!(" FAILED: {} ", name))
+                    .bg(Color::DarkRed)
+                    .fg(Color::White)
+                    .add_attribute(Attribute::Bold),
+            ]);
+            println!("{header_table}");
+
+            // Create a box for the error message using comfy_table
+            let mut error_table = Table::new();
+            error_table.load_preset(presets::UTF8_FULL);
+            error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
+            println!("{error_table}");
+            println!();
+        }
+    } else {
+        // Fallback to raw output if extraction failed but tests failed
+        println!("{}", stdout);
+        if !test_output.stderr.is_empty() {
+            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
         }
     }
+}
+
+fn print_test_results(results: &[TestResult], test_output: &std::process::Output, stdout: &str) {
+    print_tester_header();
+    print_status_banner(test_output.status.success(), !results.is_empty());
+    print_results_table(results);
+    print_failure_details(test_output, stdout);
 }
 
 /// Run unit tests defined within a ΓΛΩΣΣΑ file.
