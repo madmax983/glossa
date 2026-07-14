@@ -104,6 +104,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Transpile a .γλ file to a Bash script (Requires "nova" feature)
+    Commander {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Generate a language metrics dashboard
     Report {
         /// Input file (.γλ)

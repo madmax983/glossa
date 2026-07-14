@@ -31,6 +31,8 @@ pub mod cartographer;
 #[cfg(feature = "nova")]
 pub mod catalog;
 pub mod cli;
+#[cfg(feature = "nova")]
+pub mod commander;
 pub mod dictionary;
 /// The Haruspex (ὁ Ἱεροσκόπος) tool for visualizing the Semantic AST.
 ///

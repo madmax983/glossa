@@ -188,6 +188,19 @@ fn main() -> Result<()> {
             );
         }
 
+        Some(Commands::Commander { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::commander::run_commander(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'commander' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Scholar { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::scholar::run_scholar(&input)?;
