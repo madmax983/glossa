@@ -90,6 +90,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Envoy { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::envoy::run_envoy(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'envoy' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Labyrinth { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::labyrinth::run_labyrinth(&input)?;

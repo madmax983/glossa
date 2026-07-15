@@ -110,6 +110,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate a TypeScript definition file (Requires "nova" feature)
+    Envoy {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Visualize the control flow graph as a map (Requires "nova" feature)
     Labyrinth {
         /// Input file (.γλ)
