@@ -114,6 +114,68 @@ mod tests {
     }
 
     #[test]
+    fn test_glossa_type_to_ts_collections() {
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Set(Box::new(GlossaType::Number))),
+            "Set<number>"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Map(
+                Box::new(GlossaType::String),
+                Box::new(GlossaType::Number)
+            )),
+            "Record<string, number>"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Option(Box::new(GlossaType::String))),
+            "string | null"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Result(
+                Box::new(GlossaType::Number),
+                Box::new(GlossaType::String)
+            )),
+            "number | Error"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Function {
+                params: vec![],
+                returns: Box::new(GlossaType::Unit)
+            }),
+            "Function"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Struct {
+                name: "User".into(),
+                gender: crate::morphology::Gender::Neuter,
+                fields: vec![]
+            }),
+            "User"
+        );
+    }
+
+    #[test]
+    fn test_run_envoy_file_error() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("non_existent.γλ");
+        let result = run_envoy(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_envoy_write_error() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api.γλ");
+        fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.").unwrap();
+
+        let output_path = input_path.with_extension("d.ts");
+        fs::create_dir(&output_path).unwrap(); // Create a directory so file write fails
+
+        let result = run_envoy(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn test_run_envoy_success() {
         let dir = tempdir().unwrap();
         let input_path = dir.path().join("api.γλ");
@@ -125,8 +187,27 @@ mod tests {
         let output_path = input_path.with_extension("d.ts");
         assert!(output_path.exists());
         let ts_content = fs::read_to_string(&output_path).unwrap();
-        assert!(ts_content.contains("export interface χρηστης {") || ts_content.contains("export interface Χρήστης {"));
+        assert!(
+            ts_content.contains("export interface χρηστης {")
+                || ts_content.contains("export interface Χρήστης {")
+        );
         assert!(ts_content.contains("ονομα: string;") || ts_content.contains("ὄνομα: string;"));
+    }
+
+    #[test]
+    fn test_run_envoy_with_void_function() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api.γλ");
+        let source = "τυπωσις ὁρίζειν τῷ ξ ἀριθμοῦ· ξ λέγε.";
+        fs::write(&input_path, source).unwrap();
+
+        let result = run_envoy(&input_path);
+        assert!(result.is_ok());
+
+        let output_path = input_path.with_extension("d.ts");
+        assert!(output_path.exists());
+        let ts_content = fs::read_to_string(&output_path).unwrap();
+        assert!(ts_content.contains("export declare function τυπωσις(arg0: number): void;"));
     }
 
     #[test]
