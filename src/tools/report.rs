@@ -259,142 +259,125 @@ impl ProgramStats {
     }
 }
 
-/// A human-readable report for an analyzed program
-pub struct GlossaReport<'a> {
-    program: &'a AnalyzedProgram,
-    stats: ProgramStats,
-    filename: String,
-}
+/// Generates a human-readable report for an analyzed program
+///
+/// ## Examples
+///
+/// ```rust,ignore
+/// use glossa::parser::parse;
+/// use glossa::semantic::analyze_program;
+/// use glossa::tools::report::generate_report;
+///
+/// let source = "ξ πέντε ἔστω.";
+/// let ast = parse(source).unwrap();
+/// let program = analyze_program(&ast).unwrap();
+/// let report = generate_report(&program, "main.γλ");
+///
+/// assert!(report.contains("main.γλ"));
+/// assert!(report.contains("1")); // Statement count
+/// ```
+pub fn generate_report(program: &AnalyzedProgram, filename: &str) -> String {
+    use std::fmt::Write;
+    let mut f = String::new();
+    let stats = ProgramStats::new(program);
 
-impl<'a> GlossaReport<'a> {
-    /// Creates a new GlossaReport.
-    ///
-    /// ## Examples
-    ///
-    /// ```rust,ignore
-    /// use glossa::parser::parse;
-    /// use glossa::semantic::analyze_program;
-    /// use glossa::tools::report::GlossaReport;
-    ///
-    /// let source = "ξ πέντε ἔστω.";
-    /// let ast = parse(source).unwrap();
-    /// let program = analyze_program(&ast).unwrap();
-    /// let report = GlossaReport::new(&program, "main.γλ".to_string());
-    ///
-    /// let output = format!("{}", report);
-    /// assert!(output.contains("main.γλ"));
-    /// assert!(output.contains("1")); // Statement count
-    /// ```
-    pub fn new(program: &'a AnalyzedProgram, filename: String) -> Self {
-        let stats = ProgramStats::new(program);
-        Self {
-            program,
-            stats,
-            filename,
-        }
+    let mut table = Table::new();
+    table.load_preset(presets::UTF8_FULL).set_header(vec![
+        Cell::new("Μετρική (Metric)")
+            .add_attribute(comfy_table::Attribute::Bold)
+            .fg(Color::Cyan),
+        Cell::new("Τιμή (Value)").add_attribute(comfy_table::Attribute::Bold),
+    ]);
+
+    table.add_row(vec![
+        Cell::new("Ἀρχεῖον (File)"),
+        Cell::new(filename).fg(Color::Green),
+    ]);
+    table.add_row(vec![
+        Cell::new("Προτάσεις (Statements)"),
+        Cell::new(stats.statement_count),
+    ]);
+    table.add_row(vec![
+        Cell::new("Εκφράσεις (Expressions)"),
+        Cell::new(stats.expression_count),
+    ]);
+    table.add_row(vec![
+        Cell::new("Μεταβλητές (Bindings)"),
+        Cell::new(stats.binding_count),
+    ]);
+
+    if stats.function_count > 0 {
+        table.add_row(vec![
+            Cell::new("Συναρτήσεις (Functions)"),
+            Cell::new(stats.function_count),
+        ]);
     }
-}
 
-impl Display for GlossaReport<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
-        table.load_preset(presets::UTF8_FULL).set_header(vec![
-            Cell::new("Μετρική (Metric)")
-                .add_attribute(comfy_table::Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("Τιμή (Value)").add_attribute(comfy_table::Attribute::Bold),
-        ]);
-
+    if stats.type_count > 0 {
         table.add_row(vec![
-            Cell::new("Ἀρχεῖον (File)"),
-            Cell::new(&self.filename).fg(Color::Green),
+            Cell::new("Τύποι (Types)"),
+            Cell::new(stats.type_count),
         ]);
+    }
+
+    if stats.loop_count > 0 {
         table.add_row(vec![
-            Cell::new("Προτάσεις (Statements)"),
-            Cell::new(self.stats.statement_count),
+            Cell::new("Βρόχοι (Loops)"),
+            Cell::new(stats.loop_count),
         ]);
+    }
+
+    if stats.max_depth > 0 {
         table.add_row(vec![
-            Cell::new("Εκφράσεις (Expressions)"),
-            Cell::new(self.stats.expression_count),
+            Cell::new("Βάθος (Max Depth)"),
+            Cell::new(stats.max_depth),
         ]);
-        table.add_row(vec![
-            Cell::new("Μεταβλητές (Bindings)"),
-            Cell::new(self.stats.binding_count),
+    }
+
+    writeln!(&mut f).unwrap();
+    writeln!(&mut f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan()).unwrap();
+    writeln!(&mut f, "   {}", "Language Metrics Dashboard".italic().dim()).unwrap();
+    writeln!(&mut f).unwrap();
+    writeln!(&mut f, "{}", table).unwrap();
+
+    // If there are top-level functions, list them
+    let mut functions = program.scope.functions().peekable();
+    if functions.peek().is_some() {
+        writeln!(&mut f, "\n{}", "ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)".bold()).unwrap();
+        let mut func_table = Table::new();
+        func_table.load_preset(presets::UTF8_FULL).set_header(vec![
+            "Ὄνομα (Name)",
+            "Παράμετροι (Params)",
+            "Επιστροφή (Returns)",
         ]);
 
-        if self.stats.function_count > 0 {
-            table.add_row(vec![
-                Cell::new("Συναρτήσεις (Functions)"),
-                Cell::new(self.stats.function_count),
-            ]);
-        }
-
-        if self.stats.type_count > 0 {
-            table.add_row(vec![
-                Cell::new("Τύποι (Types)"),
-                Cell::new(self.stats.type_count),
-            ]);
-        }
-
-        if self.stats.loop_count > 0 {
-            table.add_row(vec![
-                Cell::new("Βρόχοι (Loops)"),
-                Cell::new(self.stats.loop_count),
-            ]);
-        }
-
-        if self.stats.max_depth > 0 {
-            table.add_row(vec![
-                Cell::new("Βάθος (Max Depth)"),
-                Cell::new(self.stats.max_depth),
-            ]);
-        }
-
-        writeln!(f)?;
-        writeln!(f, "   {}", "Γ Λ Ω Σ Σ Α   R E P O R T".bold().cyan())?;
-        writeln!(f, "   {}", "Language Metrics Dashboard".italic().dim())?;
-        writeln!(f)?;
-        writeln!(f, "{}", table)?;
-
-        // If there are top-level functions, list them
-        let mut functions = self.program.scope.functions().peekable();
-        if functions.peek().is_some() {
-            writeln!(f, "\n{}", "ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)".bold())?;
-            let mut func_table = Table::new();
-            func_table.load_preset(presets::UTF8_FULL).set_header(vec![
-                "Ὄνομα (Name)",
-                "Παράμετροι (Params)",
-                "Επιστροφή (Returns)",
-            ]);
-
-            for func in functions {
-                // ⚡ Bolt Optimization: Build the formatted string directly to avoid the O(n) heap allocation
-                // of the intermediate Vec<_> created by .collect::<Vec<_>>().join(", ").
-                let mut params = String::with_capacity(func.param_types.len() * 8);
-                for (i, t) in func.param_types.iter().enumerate() {
-                    if i > 0 {
-                        params.push_str(", ");
-                    }
-                    params.push_str(&t.to_string());
+        for func in functions {
+            // ⚡ Bolt Optimization: Build the formatted string directly to avoid the O(n) heap allocation
+            // of the intermediate Vec<_> created by .collect::<Vec<_>>().join(", ").
+            let mut params = String::with_capacity(func.param_types.len() * 8);
+            for (i, t) in func.param_types.iter().enumerate() {
+                if i > 0 {
+                    params.push_str(", ");
                 }
-
-                let ret = func
-                    .return_type
-                    .as_ref()
-                    .map(|t| t.to_string())
-                    .unwrap_or_else(|| "Οὐδέν".to_string());
-
-                func_table.add_row(vec![
-                    Cell::new(&func.name).fg(Color::Cyan),
-                    Cell::new(if params.is_empty() { "-" } else { &params }),
-                    Cell::new(ret).fg(Color::Yellow),
-                ]);
+                params.push_str(&t.to_string());
             }
-            writeln!(f, "{}", func_table)?;
-        }
 
-        Ok(())
+            let ret = func
+                .return_type
+                .as_ref()
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "Οὐδέν".to_string());
+
+            func_table.add_row(vec![
+                Cell::new(&func.name).fg(Color::Cyan),
+                Cell::new(if params.is_empty() { "-" } else { &params }),
+                Cell::new(ret).fg(Color::Yellow),
+            ]);
+        }
+        writeln!(&mut f, "{}", func_table).unwrap();
     }
+
+    f
 }
 
 /// A comprehensive report for the compilation process
@@ -762,8 +745,7 @@ mod tests {
             Some(GlossaType::Boolean),
         );
 
-        let report = GlossaReport::new(&program, "test.gl".to_string());
-        let output = format!("{}", report);
+        let output = generate_report(&program, "test.gl");
 
         assert!(output.contains("R E P O R T"));
         assert!(output.contains("test.gl"));

@@ -108,38 +108,25 @@ use quote::{format_ident, quote};
 
 /// Helper to sanitize a name and format it as an Ident
 pub(crate) fn sanitize_ident(name: &str) -> Ident {
-    format_ident!(
-        "{}",
-        Sanitizer {
-            name,
-            capitalize: false
-        }
-        .to_string()
-    )
+    format_ident!("{}", format_sanitized(name, false))
 }
 
 /// Zero-allocation sanitizer for Rust identifiers
-struct Sanitizer<'a> {
-    name: &'a str,
-    capitalize: bool,
-}
-
-impl<'a> std::fmt::Display for Sanitizer<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.capitalize {
-            f.write_str("G_")?;
-        } else {
-            f.write_str("g_")?;
-        }
-
-        transliterate_fmt(self.name, f)?;
-
-        if self.name.is_empty() {
-            f.write_str("_var_empty")?;
-        }
-
-        Ok(())
+fn format_sanitized(name: &str, capitalize: bool) -> String {
+    let mut s = String::with_capacity(name.len() + 2);
+    if capitalize {
+        s.push_str("G_");
+    } else {
+        s.push_str("g_");
     }
+
+    let _ = transliterate_fmt(name, &mut s);
+
+    if name.is_empty() {
+        s.push_str("_var_empty");
+    }
+
+    s
 }
 
 /// Sanitize a Greek name for use as a Rust identifier
@@ -172,12 +159,7 @@ impl<'a> std::fmt::Display for Sanitizer<'a> {
 /// assert_eq!(sanitize_name("if"), "g_if");
 /// ```
 pub fn sanitize_name(name: &str) -> String {
-    // Use the zero-allocation Sanitizer to generate the string
-    Sanitizer {
-        name,
-        capitalize: false,
-    }
-    .to_string()
+    format_sanitized(name, false)
 }
 
 /// Transliterate Greek to Latin characters via Hex Encoding
@@ -317,11 +299,7 @@ fn write_rust_type(ty: &GlossaType, out: &mut String) -> std::fmt::Result {
         }
         GlossaType::Unit => write!(out, "()"),
         GlossaType::Struct { name, .. } => {
-            let sanitized = Sanitizer {
-                name,
-                capitalize: true,
-            }
-            .to_string();
+            let sanitized = format_sanitized(name, true);
             write!(out, "{}", sanitized)
         }
         // TODO: Better representation for function types if they appear in type signatures
@@ -369,14 +347,7 @@ pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
         GlossaType::Unit => quote! { () },
         GlossaType::Struct { name, .. } => {
             // Directly sanitize and create identifier without intermediate string allocation for the type name
-            let ident = format_ident!(
-                "{}",
-                Sanitizer {
-                    name,
-                    capitalize: true
-                }
-                .to_string()
-            );
+            let ident = format_ident!("{}", format_sanitized(name, true));
             quote! { #ident }
         }
         // Function types are not fully supported in type signatures yet, fallback to generic
@@ -771,14 +742,7 @@ fn generate_fn_def(
 
 fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -> TokenStream {
     // Capitalize struct name for Rust conventions
-    let struct_name = format_ident!(
-        "{}",
-        Sanitizer {
-            name,
-            capitalize: true
-        }
-        .to_string()
-    );
+    let struct_name = format_ident!("{}", format_sanitized(name, true));
 
     // Generate field list
     let field_tokens = fields.iter().map(|(field_name, field_type)| {
@@ -829,14 +793,7 @@ fn generate_trait_method_parts(method: &AnalyzedMethod) -> TraitMethodParts {
 
 fn generate_trait_def(name: &str, methods: &[AnalyzedMethod]) -> TokenStream {
     // Capitalize trait name for Rust conventions
-    let trait_name = format_ident!(
-        "{}",
-        Sanitizer {
-            name,
-            capitalize: true
-        }
-        .to_string()
-    );
+    let trait_name = format_ident!("{}", format_sanitized(name, true));
 
     // Generate method signatures
     let method_tokens = methods.iter().map(|method| {
@@ -884,22 +841,8 @@ fn generate_trait_impl(
     methods: &[AnalyzedMethod],
 ) -> TokenStream {
     // Capitalize trait and type names for Rust conventions
-    let trait_ident = format_ident!(
-        "{}",
-        Sanitizer {
-            name: trait_name,
-            capitalize: true
-        }
-        .to_string()
-    );
-    let type_ident = format_ident!(
-        "{}",
-        Sanitizer {
-            name: type_name,
-            capitalize: true
-        }
-        .to_string()
-    );
+    let trait_ident = format_ident!("{}", format_sanitized(trait_name, true));
+    let type_ident = format_ident!("{}", format_sanitized(type_name, true));
 
     // Generate method implementations
     let method_tokens = methods.iter().map(|method| {
@@ -1145,14 +1088,7 @@ fn generate_struct_lit(
     args: &[AnalyzedExpr],
 ) -> TokenStream {
     // Capitalize struct name for Rust conventions
-    let struct_name = format_ident!(
-        "{}",
-        Sanitizer {
-            name: type_name,
-            capitalize: true
-        }
-        .to_string()
-    );
+    let struct_name = format_ident!("{}", format_sanitized(type_name, true));
 
     // Generate field: value pairs using actual field names
     let field_assignments = fields.iter().zip(args.iter()).map(|(field_name, arg)| {

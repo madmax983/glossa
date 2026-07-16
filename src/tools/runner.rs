@@ -27,7 +27,7 @@ use crate::semantic::{AnalyzedProgram, analyze_program};
 use crate::tools::cache::Cache;
 use crate::tools::highlight::highlight;
 use crate::tools::narrator::tell_tale;
-use crate::tools::report::{CompilationReport, GlossaReport, ProgramStats};
+use crate::tools::report::{CompilationReport, ProgramStats, generate_report};
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
@@ -449,7 +449,7 @@ pub fn report_file(input: &Path) -> Result<()> {
         .unwrap_or(input.as_os_str())
         .to_string_lossy()
         .to_string();
-    let report = GlossaReport::new(&analyzed, filename);
+    let report = generate_report(&analyzed, &filename);
 
     status.success();
     println!("{}", report);
