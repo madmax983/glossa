@@ -134,3 +134,6 @@ Signed,
 **YYYY-MM-DD - [DoS Mitigation]
 **Threat:** Memory Exhaustion / Unbounded Allocations via standard IO.
 **Defense:** Wrapped mutable readers using `.by_ref().take(LIMIT)` inside `repl.rs` and `mentor.rs`.
+**2025-01-20 - RUSTSEC-2026-0190 Unsoundness in Error::downcast_mut()**
+**Threat:** anyhow crate before 1.0.103 allowed for undefined behavior when adding context to an error via `Error::context` and then calling `Error::downcast_mut` on the returned error due to a borrow rules violation.
+**Defense:** Bumped anyhow to latest safe version (1.0.103) via `cargo update -p anyhow`.
