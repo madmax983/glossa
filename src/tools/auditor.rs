@@ -76,9 +76,17 @@ pub fn run_auditor(input: &Path) -> Result<()> {
 
     status.success();
 
-    let mut visitor = AuditorVisitor::new();
+    let mut usage_count = FxHashMap::default();
+    let mut mutation_count = FxHashMap::default();
+    let mut mutable_vars = FxHashSet::default();
+
     for stmt in &program.statements {
-        visitor.visit_statement(stmt);
+        visit_statement(
+            stmt,
+            &mut usage_count,
+            &mut mutation_count,
+            &mut mutable_vars,
+        );
     }
 
     let mut issues = 0;
@@ -101,7 +109,7 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         Cell::new("Message").add_attribute(Attribute::Bold),
     ]);
 
-    for (var, count) in &visitor.usage_count {
+    for (var, count) in &usage_count {
         if *count == 0 {
             table.add_row(vec![
                 Cell::new("⚠️ Unused Variable").fg(Color::Yellow),
@@ -112,11 +120,8 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         }
     }
 
-    for (var, count) in &visitor.mutation_count {
-        if *count == 0
-            && visitor.mutable_vars.contains(var)
-            && visitor.usage_count.get(var).unwrap_or(&0) > &0
-        {
+    for (var, count) in &mutation_count {
+        if *count == 0 && mutable_vars.contains(var) && usage_count.get(var).unwrap_or(&0) > &0 {
             table.add_row(vec![
                 Cell::new("💡 Unnecessary Mutation").fg(Color::Blue),
                 Cell::new(var),
@@ -174,14 +179,14 @@ impl AuditorVisitor {
         }
     }
 
-    fn visit_while_loop(&mut self, condition: &AnalyzedExpr, body: &[AnalyzedStatement]) {
+    pub fn visit_while_loop(&mut self, condition: &AnalyzedExpr, body: &[AnalyzedStatement]) {
         self.visit_expr(condition);
         for s in body {
             self.visit_statement(s);
         }
     }
 
-    fn visit_for_loop(
+    pub fn visit_for_loop(
         &mut self,
         variable: &smol_str::SmolStr,
         iterator: &AnalyzedExpr,
@@ -194,7 +199,7 @@ impl AuditorVisitor {
         }
     }
 
-    fn visit_match_statement(
+    pub fn visit_match_statement(
         &mut self,
         scrutinee: &AnalyzedExpr,
         arms: &[(AnalyzedExpr, Vec<AnalyzedStatement>)],
@@ -208,7 +213,7 @@ impl AuditorVisitor {
         }
     }
 
-    fn visit_function_def(
+    pub fn visit_function_def(
         &mut self,
         params: &[(smol_str::SmolStr, Option<crate::semantic::GlossaType>)],
         body: &[AnalyzedStatement],
@@ -221,7 +226,7 @@ impl AuditorVisitor {
         }
     }
 
-    fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
+    pub fn visit_statement(&mut self, stmt: &AnalyzedStatement) {
         match stmt {
             AnalyzedStatement::Binding {
                 name,
@@ -358,6 +363,7 @@ impl AuditorVisitor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::{visit_expr, visit_statement};
     use std::io::Write;
 
     #[test]
@@ -395,7 +401,9 @@ mod tests {
 
     #[test]
     fn test_auditor_visitor_coverage_statements() {
-        let mut visitor = AuditorVisitor::new();
+        let mut usage_count = FxHashMap::default();
+        let mut mutation_count = FxHashMap::default();
+        let mut mutable_vars = FxHashSet::default();
 
         let statements = vec![
             AnalyzedStatement::Binding {
@@ -503,13 +511,18 @@ mod tests {
         ];
 
         for stmt in statements {
-            visitor.visit_statement(&stmt);
+            visit_statement(
+                &stmt,
+                &mut usage_count,
+                &mut mutation_count,
+                &mut mutable_vars,
+            );
         }
     }
 
     #[test]
     fn test_auditor_visitor_coverage_expressions() {
-        let mut visitor = AuditorVisitor::new();
+        let mut usage_count = FxHashMap::default();
 
         let exprs = vec![
             AnalyzedExprKind::Variable("x".into()),
@@ -605,7 +618,7 @@ mod tests {
                 expr: kind,
                 glossa_type: crate::semantic::GlossaType::Boolean,
             };
-            visitor.visit_expr(&expr);
+            visit_expr(&expr, &mut usage_count);
         }
     }
 
