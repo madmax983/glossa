@@ -42,7 +42,10 @@ pub fn run_catalog() -> Result<()> {
             Cell::new("Rust Equivalent").fg(Color::Cyan),
         ]);
 
-        let mut pos_entries = entries_by_pos.get(&pos).unwrap().clone();
+        // ⚡ Bolt Optimization: Using `.remove()` instead of `.get().unwrap().clone()`
+        // to take ownership of the vector and avoid an expensive heap allocation and copy,
+        // since the original map entry is no longer needed.
+        let mut pos_entries = entries_by_pos.remove(&pos).unwrap();
         pos_entries.sort_by_key(|(word, _)| *word);
 
         for (word, entry) in pos_entries {
