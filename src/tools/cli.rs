@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Transpile a .γλ file to TypeScript Interfaces (Requires "nova" feature)
+    Scribe {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
