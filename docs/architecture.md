@@ -56,6 +56,7 @@ C4Container
     }
 
     Container(codegen, "Code Generator", "src/codegen.rs", "Generates Rust source code")
+    Container(storage, "Storage", "src/storage", "Decoupled Persistence Logic")
 
     Rel(lexer, parser, "Stream<Token>")
     Rel(parser, morphology, "AST (Unresolved)")
@@ -74,11 +75,22 @@ C4Container
     Rel(semantic, weave, "Analyzed Program")
     Rel(semantic, papyrus, "Analyzed Program")
     Rel(semantic, codegen, "Analyzed Program")
+    Rel(semantic, storage, "Uses (Trait Bound)")
 
     Rel(morphology, dictionary, "Lexicon Data")
     Rel(morphology, catalog, "Lexicon Data")
     Rel(parser, tester, "AST")
     Rel(codegen, tester, "Rust Source")
+```
+
+## Storage Architecture (Class Diagram)
+
+```mermaid
+classDiagram
+  class Core
+  class Storage
+  Core --> Storage : Uses (Trait Bound)
+  %% Removed the circular dependency arrow
 ```
 
 ## Semantic Analysis (C4 Component Level)
