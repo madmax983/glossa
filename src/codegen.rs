@@ -403,6 +403,11 @@ pub fn generate_type_tokens(ty: &GlossaType) -> TokenStream {
 /// assert!(rust_code.contains("println"));
 /// ```
 pub fn generate_rust(program: &AnalyzedProgram) -> String {
+    // 🛡️ Sentry Validation: Enforce depth limits before recursive code generation starts
+    // to prevent programmatically constructed ASTs from overflowing the thread stack.
+    crate::semantic::validation::validate_program(program)
+        .expect("Recursion limit exceeded in code generation");
+
     // Separate trait defs, struct defs, trait impls, function defs, tests, and main body statements
     // ⚡ Bolt Optimization: Pre-allocate vectors based on statement length.
     // This reduces internal reallocation overhead during partitioning.
