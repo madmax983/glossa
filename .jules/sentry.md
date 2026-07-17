@@ -92,3 +92,11 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**2025-03-05 - [Prevent Stack Overflow in Codegen]**
+**Learning:** Programmatically constructed, deeply nested `AnalyzedStatement` types that bypass standard parsing limits can crash the thread with a stack overflow during recursive token stream generation in `generate_rust()`.
+**Action:** Enforced existing depth limits globally by calling `validate_program` *before* initiating any recursion in code generators. Also discovered that ensuring panic safeguards correctly abort integration tests avoids crashing the entire test runner.
+
+**2025-03-05 - [Prevent Stack Overflow in Codegen]**
+**Learning:** Programmatically constructed, deeply nested `AnalyzedStatement` types that bypass standard parsing limits can crash the thread with a stack overflow during recursive token stream generation in `generate_rust()`. When a subprocess crash test is refactored into a `#[should_panic]` test, cloning or using standard variables for the large memory block can cause a stack overflow *before* the intended function call.
+**Action:** Enforced existing depth limits globally by calling `validate_program` *before* initiating any recursion in code generators. When running high-depth `#[should_panic]` tests, construct the objects as `Box::leak(Box::new(...))` to avoid overflowing the stack during test setup.
