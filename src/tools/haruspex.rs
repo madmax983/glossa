@@ -321,32 +321,22 @@ fn visit_expr(next_id: &mut usize, output: &mut String, expr: &AnalyzedExpr) -> 
             visit_array_literal_expr(next_id, output, id, exprs, &type_info);
         }
         AnalyzedExprKind::Some(e) => {
-            emit_node(output, id, &format!("Some{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "value");
+            visit_some_expr(next_id, output, id, e, &type_info);
         }
         AnalyzedExprKind::None => {
-            emit_node(output, id, &format!("None{}", type_info), "lightyellow");
+            visit_none_expr(output, id, &type_info);
         }
         AnalyzedExprKind::Ok(e) => {
-            emit_node(output, id, &format!("Ok{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "value");
+            visit_ok_expr(next_id, output, id, e, &type_info);
         }
         AnalyzedExprKind::Err(e) => {
-            emit_node(output, id, &format!("Err{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "error");
+            visit_err_expr(next_id, output, id, e, &type_info);
         }
         AnalyzedExprKind::Unwrap(e) => {
-            emit_node(output, id, &format!("Unwrap{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "target");
+            visit_unwrap_expr(next_id, output, id, e, &type_info);
         }
         AnalyzedExprKind::Try(e) => {
-            emit_node(output, id, &format!("Try{}", type_info), "lightyellow");
-            let e_id = visit_expr(next_id, output, e);
-            emit_edge(output, id, e_id, "target");
+            visit_try_expr(next_id, output, id, e, &type_info);
         }
         AnalyzedExprKind::IndexAccess { array, index } => {
             emit_node(
@@ -820,6 +810,70 @@ fn visit_lambda_expr(
     );
     let body_id = visit_expr(next_id, output, body);
     emit_edge(output, id, body_id, "body");
+}
+
+fn visit_some_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    e: &AnalyzedExpr,
+    type_info: &str,
+) {
+    emit_node(output, id, &format!("Some{}", type_info), "lightyellow");
+    let e_id = visit_expr(next_id, output, e);
+    emit_edge(output, id, e_id, "value");
+}
+
+fn visit_none_expr(output: &mut String, id: usize, type_info: &str) {
+    emit_node(output, id, &format!("None{}", type_info), "lightyellow");
+}
+
+fn visit_ok_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    e: &AnalyzedExpr,
+    type_info: &str,
+) {
+    emit_node(output, id, &format!("Ok{}", type_info), "lightyellow");
+    let e_id = visit_expr(next_id, output, e);
+    emit_edge(output, id, e_id, "value");
+}
+
+fn visit_err_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    e: &AnalyzedExpr,
+    type_info: &str,
+) {
+    emit_node(output, id, &format!("Err{}", type_info), "lightyellow");
+    let e_id = visit_expr(next_id, output, e);
+    emit_edge(output, id, e_id, "error");
+}
+
+fn visit_unwrap_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    e: &AnalyzedExpr,
+    type_info: &str,
+) {
+    emit_node(output, id, &format!("Unwrap{}", type_info), "lightyellow");
+    let e_id = visit_expr(next_id, output, e);
+    emit_edge(output, id, e_id, "target");
+}
+
+fn visit_try_expr(
+    next_id: &mut usize,
+    output: &mut String,
+    id: usize,
+    e: &AnalyzedExpr,
+    type_info: &str,
+) {
+    emit_node(output, id, &format!("Try{}", type_info), "lightyellow");
+    let e_id = visit_expr(next_id, output, e);
+    emit_edge(output, id, e_id, "target");
 }
 
 #[cfg(test)]
