@@ -334,3 +334,19 @@ fn test_run_scribe_semantic_error() {
     let result = glossa::tools::scribe::run_scribe(temp_file.path());
     assert!(result.is_err());
 }
+
+#[test]
+fn test_run_scribe_no_fields() {
+    use std::io::Write;
+    use tempfile::Builder;
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "εἶδος Κενό ὁρίζειν {  }.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::scribe::run_scribe(temp_file.path());
+    assert!(result.is_ok());
+}
