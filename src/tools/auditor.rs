@@ -363,7 +363,6 @@ impl AuditorVisitor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::{visit_expr, visit_statement};
     use std::io::Write;
 
     #[test]
