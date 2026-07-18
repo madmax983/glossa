@@ -350,3 +350,26 @@ fn test_run_scribe_no_fields() {
     let result = glossa::tools::scribe::run_scribe(temp_file.path());
     assert!(result.is_ok());
 }
+
+#[test]
+fn test_run_scribe_file_too_large() {
+    let dir = Builder::new().prefix("scribe_large").tempdir().unwrap();
+    let input_path = dir.path().join("too_large.γλ");
+
+    let max_size = 1024 * 1024;
+    {
+        use std::io::Write;
+        let mut f = std::fs::File::create(&input_path).unwrap();
+        let data = vec![0u8; max_size + 1];
+        f.write_all(&data).unwrap();
+    }
+
+    let result = glossa::tools::scribe::run_scribe(&input_path);
+    assert!(result.is_err());
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Ἀρχεῖον λίαν μέγα")
+    );
+}
