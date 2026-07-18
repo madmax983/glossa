@@ -119,6 +119,13 @@ pub enum Commands {
     /// Start the interactive tutorial (Requires "nova" feature)
     Mentor,
 
+    /// Generate TypeScript interfaces from type definitions (Requires "nova" feature)
+    #[cfg(feature = "nova")]
+    Emissary {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Compile a .γλ file to Rust source
     Build {
         /// Input file (.γλ)

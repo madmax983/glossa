@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Emissary (ὁ Ἄγγελος)
+**Concept:** A TypeScript exporter (`glossa emissary`) that transpiles Glossa struct definitions (`TypeDefinition`) into TypeScript declaration files (`.d.ts`), enabling typed frontend integration.
+**Fate:** Proposed
+**Lesson:** Treating Glossa types as the single source of truth allows seamless integration into modern web stacks. By translating the robust grammatical types (like Option being the Optative mood) into TypeScript's interface syntax, we maintain end-to-end type safety between ancient syntax and modern APIs.

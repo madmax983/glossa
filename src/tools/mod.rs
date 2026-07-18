@@ -26,6 +26,12 @@ pub mod alchemist;
 pub mod auditor;
 pub(crate) mod cache;
 pub use cache::Cache;
+/// The Emissary (ὁ Ἄγγελος) tool for TypeScript export.
+///
+/// This experimental tool analyzes Glossa type definitions and
+/// generates TypeScript declaration files (.d.ts).
+#[cfg(feature = "nova")]
+pub mod emissary;
 #[cfg(feature = "nova")]
 pub mod cartographer;
 #[cfg(feature = "nova")]
