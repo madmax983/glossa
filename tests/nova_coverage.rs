@@ -281,3 +281,95 @@ fn test_run_scholar_syntax_error() {
 }
 
 // removed test_run_tests_rustc_error because of environment variable pollution causing intermittent failures in parallel execution and it being redundant to runner tests
+
+#[test]
+fn test_run_scribe_success() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }. ξ 5 ἔστω.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::scribe::run_scribe(temp_file.path());
+    assert!(result.is_ok(), "Scribe failed: {:?}", result.err());
+}
+
+#[test]
+fn test_run_scribe_file_not_found() {
+    let path = PathBuf::from("non_existent_file.gl");
+    let result = glossa::tools::scribe::run_scribe(&path);
+    assert!(result.is_err());
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Ἀρχεῖον οὐχ εὑρέθη")
+    );
+}
+
+#[test]
+fn test_run_scribe_syntax_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "invalid syntax").expect("Failed to write");
+
+    let result = glossa::tools::scribe::run_scribe(temp_file.path());
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_scribe_semantic_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "ψ πέντε γίγνεται.").expect("Failed to write");
+
+    let result = glossa::tools::scribe::run_scribe(temp_file.path());
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_scribe_no_fields() {
+    use std::io::Write;
+    use tempfile::Builder;
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "εἶδος Κενό ὁρίζειν {  }.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::scribe::run_scribe(temp_file.path());
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_run_scribe_file_too_large() {
+    let dir = Builder::new().prefix("scribe_large").tempdir().unwrap();
+    let input_path = dir.path().join("too_large.γλ");
+
+    let max_size = 1024 * 1024;
+    {
+        use std::io::Write;
+        let mut f = std::fs::File::create(&input_path).unwrap();
+        let data = vec![0u8; max_size + 1];
+        f.write_all(&data).unwrap();
+    }
+
+    let result = glossa::tools::scribe::run_scribe(&input_path);
+    assert!(result.is_err());
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Ἀρχεῖον λίαν μέγα")
+    );
+}
