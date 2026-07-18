@@ -214,6 +214,49 @@ mod tests {
     }
 
     #[test]
+    fn test_gnomon_coverage_branches() {
+        let mut max_depth = 0;
+        let stmt_if = AnalyzedStatement::If {
+            condition: dummy_expr(),
+            then_body: vec![AnalyzedStatement::While { condition: dummy_expr(), body: vec![] }],
+            else_body: Some(vec![AnalyzedStatement::For { variable: SmolStr::new("x"), iterator: dummy_expr(), body: vec![] }]),
+        };
+        visit_statement(&stmt_if, 0, &mut max_depth);
+        assert_eq!(max_depth, 1);
+
+        max_depth = 0;
+        let stmt_match = AnalyzedStatement::Match {
+            scrutinee: dummy_expr(),
+            arms: vec![(dummy_expr(), vec![AnalyzedStatement::While { condition: dummy_expr(), body: vec![] }])],
+        };
+        visit_statement(&stmt_match, 0, &mut max_depth);
+        assert_eq!(max_depth, 1);
+
+        max_depth = 0;
+        let stmt_func = AnalyzedStatement::FunctionDef {
+            name: SmolStr::new("f"),
+            params: vec![],
+            body: vec![AnalyzedStatement::While { condition: dummy_expr(), body: vec![] }],
+            return_type: None,
+        };
+        visit_statement(&stmt_func, 0, &mut max_depth);
+        assert_eq!(max_depth, 1);
+
+        max_depth = 0;
+        let stmt_test = AnalyzedStatement::TestDeclaration {
+            name: SmolStr::new("t"),
+            body: vec![AnalyzedStatement::While { condition: dummy_expr(), body: vec![] }],
+        };
+        visit_statement(&stmt_test, 0, &mut max_depth);
+        assert_eq!(max_depth, 1);
+
+        max_depth = 0;
+        let stmt_other = AnalyzedStatement::Break;
+        visit_statement(&stmt_other, 0, &mut max_depth);
+        assert_eq!(max_depth, 0);
+    }
+
+    #[test]
     fn test_gnomon_nested_loops() {
         let mut max_depth = 0;
         let inner_loop = AnalyzedStatement::For {

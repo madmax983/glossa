@@ -415,6 +415,16 @@ mod tests {
         let mut mutable_vars = FxHashSet::default();
 
         let statements = vec![
+            AnalyzedStatement::Expression(vec![
+                AnalyzedExpr {
+                    expr: AnalyzedExprKind::Range {
+                        start: Box::new(dummy_expr()),
+                        end: Box::new(dummy_expr()),
+                        inclusive: true,
+                    },
+                    glossa_type: crate::semantic::GlossaType::Boolean,
+                }
+            ]),
             AnalyzedStatement::Binding {
                 name: "x".into(),
                 value: dummy_expr(),
