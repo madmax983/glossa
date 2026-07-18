@@ -11,3 +11,6 @@
 **HashMap entry removal optimization**
 **Learning:** When retrieving a value from a `HashMap` where the original map entry is no longer needed (especially heap-allocated types like `Vec` or `String`), using `.get(&key).unwrap().clone()` incurs unnecessary heap allocations.
 **Action:** Use `.remove(&key).unwrap()` to safely transfer ownership out of the map without cloning.
+**Formatting strings memory optimization**
+**Learning:** When using `format!`, passing a string explicitly by reference (e.g., `&var_name`) causes clippy to issue a `useless_borrows_in_formatting` warning.
+**Action:** Always pass variables directly to `format!` (e.g., `var_name`) to avoid the redundant borrow and satisfy clippy lints.
