@@ -22,4 +22,13 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Ἀρχεῖον οὐχ εὑρέθη: non_existent_file.γλ");
     }
+
+    #[test]
+    fn test_emissary_invalid_syntax() {
+        let mut file = NamedTempFile::new().unwrap();
+        writeln!(file, "x y z").unwrap();
+
+        let result = run_emissary(file.path());
+        assert!(result.is_err());
+    }
 }
