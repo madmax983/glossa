@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Codegen Unwrap Panic Runtime Coverage]**
+**Learning:** Found that testing runtime `.expect()` inside `src/codegen.rs` for `Unwrap` (`!`) expressions generates compilation errors `E0282: type annotations needed` if `None` is provided directly as `AnalyzedExprKind::None` without a way to infer its type during variable declaration.
+**Action:** When testing runtime `unwrap` panics via generated Rust code, explicitly declare the variable with an initial `Some(...)` value using a `Binding` statement to force type inference, then reassign it to `None` using an `Assignment` statement, and finally prepend `#![allow(unused_assignments)]` to the generated code to suppress compiler warnings before execution.

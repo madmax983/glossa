@@ -6,91 +6,6 @@ use std::fs;
 use std::process::Command;
 
 #[test]
-fn test_codegen_runtime_unwrap_panic() {
-    let dir = tempfile::tempdir().unwrap();
-    let rs_path = dir.path().join("test_unwrap.rs");
-
-    let unwrap_expr = AnalyzedExpr {
-        expr: AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable("opt".into()),
-            glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
-        })),
-        glossa_type: GlossaType::Number,
-    };
-
-    let stmt = AnalyzedStatement::Expression(vec![unwrap_expr]);
-
-    // Instead of using None, we can just use an empty array `[].first().copied()`
-    // But since the type is inferred as unknown, we'll construct a mock option
-    // wait, we can just change the hacky string replacement to the following:
-
-    // Create an explicit Try block that fails, or we can just stick to `Option<i64> = None`.
-    // Let's use `std::collections::HashMap::new().get(&1)`
-
-    // Better yet, generate code that just is:
-    // let mut opt: Option<i64> = None; opt.unwrap();
-    //
-
-    // Instead of string replacement, we can use an explicit function call or we can leave string replacement but make it more robust.
-    // Or we can just use something else to trigger an unwrap panic, e.g. finding something in an empty list:
-    // list = []
-    // x = list.first().unwrap()
-    // Let's use `AnalyzedExprKind::MethodCall` for `.first()`
-
-    // Let's keep the `g_opt` string replace but make it less brittle:
-    let decl = AnalyzedStatement::Binding {
-        name: "opt".into(),
-        value: AnalyzedExpr {
-            expr: AnalyzedExprKind::None,
-            glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
-        },
-        mutable: false,
-    };
-
-    let mut scope = Scope::new();
-    scope.define("opt", GlossaType::Option(Box::new(GlossaType::Number)));
-
-    let program = AnalyzedProgram {
-        statements: vec![decl, stmt],
-        scope,
-    };
-
-    let mut code = generate_rust_file(&program);
-    // Replace the specific initialization that fails to infer type in rustc
-    code = code.replace(
-        "= None",
-        ": std::option::Option<i64> = std::option::Option::None",
-    );
-
-    fs::write(&rs_path, code).unwrap();
-
-    let exe_path = dir.path().join("test_unwrap");
-    let rustc_status = Command::new("rustc")
-        .arg(&rs_path)
-        .arg("-o")
-        .arg(&exe_path)
-        .status()
-        .expect("Failed to execute rustc");
-
-    assert!(
-        rustc_status.success(),
-        "Generated Rust code failed to compile"
-    );
-
-    let output = Command::new(&exe_path)
-        .output()
-        .expect("Failed to run executable");
-
-    assert!(!output.status.success(), "Executable should have panicked");
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("attempted to unwrap an empty value") || stderr.contains("Unknown error"),
-        "Missing panic message: {}",
-        stderr
-    );
-}
-
-#[test]
 fn test_codegen_runtime_large_index_panic() {
     let dir = tempfile::tempdir().unwrap();
     let rs_path = dir.path().join("test_large_index.rs");
@@ -485,6 +400,79 @@ fn test_codegen_runtime_div_by_zero_panic() {
         stderr.contains("Division by zero")
             || String::from_utf8_lossy(&output.stdout).contains("Division by zero")
             || stderr.contains("Διαίρεσις διὰ τοῦ μηδενός"),
+        "Missing panic message: {}",
+        stderr
+    );
+}
+
+#[test]
+fn test_codegen_runtime_unwrap_panic() {
+    let dir = tempfile::tempdir().unwrap();
+    let rs_path = dir.path().join("test_unwrap.rs");
+
+    let var_decl = AnalyzedStatement::Binding {
+        name: smol_str::SmolStr::new("x"),
+        value: AnalyzedExpr {
+            expr: AnalyzedExprKind::Some(Box::new(AnalyzedExpr {
+                expr: AnalyzedExprKind::NumberLiteral(1),
+                glossa_type: GlossaType::Number,
+            })),
+            glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
+        },
+        mutable: true,
+    };
+
+    let var_assign = AnalyzedStatement::Assignment {
+        name: smol_str::SmolStr::new("x"),
+        value: AnalyzedExpr {
+            expr: AnalyzedExprKind::None,
+            glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
+        },
+    };
+
+    let var_ref = AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(smol_str::SmolStr::new("x")),
+        glossa_type: GlossaType::Option(Box::new(GlossaType::Number)),
+    };
+
+    let unwrap_expr = AnalyzedExpr {
+        expr: AnalyzedExprKind::Unwrap(Box::new(var_ref)),
+        glossa_type: GlossaType::Number,
+    };
+
+    let stmt = AnalyzedStatement::Expression(vec![unwrap_expr]);
+    let program = AnalyzedProgram {
+        statements: vec![var_decl, var_assign, stmt],
+        scope: Scope::new(),
+    };
+
+    let code = generate_rust_file(&program);
+    // Suppress unused warnings
+    let code = format!("#![allow(unused_assignments)]\n{}", code);
+    fs::write(&rs_path, code).unwrap();
+
+    let exe_path = dir.path().join("test_unwrap");
+    let rustc_status = Command::new("rustc")
+        .arg(&rs_path)
+        .arg("-o")
+        .arg(&exe_path)
+        .status()
+        .expect("Failed to execute rustc");
+
+    assert!(
+        rustc_status.success(),
+        "Generated Rust code failed to compile"
+    );
+
+    let output = Command::new(&exe_path)
+        .output()
+        .expect("Failed to run executable");
+
+    assert!(!output.status.success(), "Executable should have panicked");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("attempted to unwrap an empty value")
+            || String::from_utf8_lossy(&output.stdout).contains("Unknown error"),
         "Missing panic message: {}",
         stderr
     );
