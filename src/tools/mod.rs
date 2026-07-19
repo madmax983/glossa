@@ -78,6 +78,8 @@ pub(crate) mod report;
 pub mod runner;
 #[cfg(feature = "nova")]
 pub mod scholar;
+#[cfg(feature = "nova")]
+pub mod sybil;
 pub mod tester;
 pub(crate) mod ui;
 #[cfg(feature = "nova")]
