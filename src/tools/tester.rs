@@ -885,7 +885,10 @@ test name with spaces ... ok
 #[cfg(test)]
 mod tests_forge_refactor {
     use super::*;
+    #[cfg(unix)]
     use std::os::unix::process::ExitStatusExt;
+    #[cfg(windows)]
+    use std::os::windows::process::ExitStatusExt;
     use std::process::Output;
 
     #[test]
