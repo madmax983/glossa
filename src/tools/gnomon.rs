@@ -197,4 +197,68 @@ mod tests {
         };
         assert_eq!(get_statement_depth(&outer_loop), 2);
     }
+
+    #[test]
+    fn test_gnomon_if_statement() {
+        let stmt = AnalyzedStatement::If {
+            condition: dummy_expr(),
+            then_body: vec![AnalyzedStatement::While {
+                condition: dummy_expr(),
+                body: vec![],
+            }],
+            else_body: Some(vec![AnalyzedStatement::For {
+                variable: SmolStr::new("z"),
+                iterator: dummy_expr(),
+                body: vec![],
+            }]),
+        };
+        assert_eq!(get_statement_depth(&stmt), 1);
+    }
+
+    #[test]
+    fn test_gnomon_match_statement() {
+        let stmt = AnalyzedStatement::Match {
+            scrutinee: dummy_expr(),
+            arms: vec![(
+                *dummy_expr(),
+                vec![AnalyzedStatement::While {
+                    condition: dummy_expr(),
+                    body: vec![],
+                }],
+            )],
+        };
+        assert_eq!(get_statement_depth(&stmt), 1);
+    }
+
+    #[test]
+    fn test_gnomon_function_def() {
+        let stmt = AnalyzedStatement::FunctionDef {
+            name: SmolStr::new("func"),
+            params: vec![],
+            return_type: None,
+            body: vec![AnalyzedStatement::While {
+                condition: dummy_expr(),
+                body: vec![],
+            }],
+        };
+        assert_eq!(get_statement_depth(&stmt), 1);
+    }
+
+    #[test]
+    fn test_gnomon_test_decl() {
+        let stmt = AnalyzedStatement::TestDeclaration {
+            name: SmolStr::new("test"),
+            body: vec![AnalyzedStatement::While {
+                condition: dummy_expr(),
+                body: vec![],
+            }],
+        };
+        assert_eq!(get_statement_depth(&stmt), 1);
+    }
+
+    #[test]
+    fn test_gnomon_other_statement() {
+        let stmt = AnalyzedStatement::Break;
+        assert_eq!(get_statement_depth(&stmt), 0);
+    }
 }
