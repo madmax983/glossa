@@ -289,4 +289,19 @@ mod tests {
         };
         assert_eq!(get_statement_depth(&stmt), 0);
     }
+
+    #[test]
+    fn test_get_statement_depth_other_unhandled() {
+        let stmt = AnalyzedStatement::Continue;
+        assert_eq!(get_statement_depth(&stmt), 0);
+
+        let stmt2 = AnalyzedStatement::Return { value: None };
+        assert_eq!(get_statement_depth(&stmt2), 0);
+
+        let stmt3 = AnalyzedStatement::Print(vec![]);
+        assert_eq!(get_statement_depth(&stmt3), 0);
+
+        let stmt4 = AnalyzedStatement::Expression(vec![]);
+        assert_eq!(get_statement_depth(&stmt4), 0);
+    }
 }
