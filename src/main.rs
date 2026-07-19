@@ -36,6 +36,11 @@ fn main() -> Result<()> {
             );
         }
 
+        #[cfg(feature = "nova")]
+        Some(Commands::Emissary { input }) => {
+            glossa::tools::emissary::run_emissary(&input)?;
+        }
+
         Some(Commands::Build { input, output }) => {
             build_file(&input, output.as_deref())?;
         }

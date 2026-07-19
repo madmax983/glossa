@@ -32,6 +32,12 @@ pub mod cartographer;
 pub mod catalog;
 pub mod cli;
 pub mod dictionary;
+/// The Emissary (ὁ Ἄγγελος) tool for TypeScript export.
+///
+/// This experimental tool analyzes Glossa type definitions and
+/// generates TypeScript declaration files (.d.ts).
+#[cfg(feature = "nova")]
+pub mod emissary;
 /// The Haruspex (ὁ Ἱεροσκόπος) tool for visualizing the Semantic AST.
 ///
 /// This experimental tool exports the analyzed program as a Graphviz DOT diagram.
