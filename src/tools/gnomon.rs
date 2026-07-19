@@ -261,4 +261,32 @@ mod tests {
         let stmt = AnalyzedStatement::Break;
         assert_eq!(get_statement_depth(&stmt), 0);
     }
+
+    #[test]
+    fn test_get_max_loop_depth_empty() {
+        let stmts: Vec<AnalyzedStatement> = vec![];
+        assert_eq!(get_max_loop_depth(&stmts), 0);
+    }
+
+    #[test]
+    fn test_get_statement_depth_if_missing_else() {
+        let stmt = AnalyzedStatement::If {
+            condition: dummy_expr(),
+            then_body: vec![AnalyzedStatement::While {
+                condition: dummy_expr(),
+                body: vec![],
+            }],
+            else_body: None,
+        };
+        assert_eq!(get_statement_depth(&stmt), 1);
+    }
+
+    #[test]
+    fn test_get_statement_depth_match_empty() {
+        let stmt = AnalyzedStatement::Match {
+            scrutinee: dummy_expr(),
+            arms: vec![],
+        };
+        assert_eq!(get_statement_depth(&stmt), 0);
+    }
 }
