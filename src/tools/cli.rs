@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Export Type Definitions as JSON Schema (Requires "nova" feature)
+    Sybil {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
