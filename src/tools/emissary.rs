@@ -55,17 +55,21 @@ pub fn run_emissary(input: &Path) -> Result<()> {
                 let ts_type = glossa_type_to_ts(field_type);
                 // In TypeScript, if the type is Optional, we could mark the field as optional too
                 let is_optional = matches!(field_type, GlossaType::Option(_));
-                let is_optional = matches!(field_type, GlossaType::Option(_));
                 let opt_marker = if is_optional { "?" } else { "" };
                 // If it's a top-level Optional, the ? handles undefined natively, so we strip the `| undefined` from ts_type to keep it clean.
                 let mut display_type = ts_type;
                 if is_optional {
+                    #[allow(clippy::collapsible_if)]
                     if let GlossaType::Option(inner) = field_type {
                         display_type = glossa_type_to_ts(inner);
                     }
                 }
 
-                let _ = writeln!(output, "    {}{}: {};", field_name, opt_marker, display_type);
+                let _ = writeln!(
+                    output,
+                    "    {}{}: {};",
+                    field_name, opt_marker, display_type
+                );
             }
             output.push_str("}\n\n");
         }
@@ -151,7 +155,9 @@ mod tests {
             "(number | undefined)"
         );
         assert_eq!(
-            glossa_type_to_ts(&GlossaType::List(Box::new(GlossaType::Option(Box::new(GlossaType::String))))),
+            glossa_type_to_ts(&GlossaType::List(Box::new(GlossaType::Option(Box::new(
+                GlossaType::String
+            ))))),
             "(string | undefined)[]"
         );
         assert_eq!(
