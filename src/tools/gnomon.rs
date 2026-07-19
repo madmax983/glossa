@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn test_gnomon_function_def() {
         let stmt = AnalyzedStatement::FunctionDef {
-            name: SmolStr::new("func"),
+            name: SmolStr::new("func").into(),
             params: vec![],
             return_type: None,
             body: vec![AnalyzedStatement::While {
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     fn test_gnomon_test_decl() {
         let stmt = AnalyzedStatement::TestDeclaration {
-            name: SmolStr::new("test"),
+            name: SmolStr::new("test").into(),
             body: vec![AnalyzedStatement::While {
                 condition: dummy_expr(),
                 body: vec![],
