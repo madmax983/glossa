@@ -57,3 +57,8 @@
 **Concept:** A JSON schema generator (`glossa sybil`) that transpiles Glossa structs (`εἶδος`) directly to JSON Schema representations.
 **Fate:** Proposed
 **Lesson:** Provides standard web interoperability from Ancient Greek semantic structure, showing how robust the Semantic AST is for mapping to web formats.
+
+## 🌟 The Sybil (ὁ Σίβυλλα)
+**Concept:** A JSON schema generator (`glossa sybil`) that transpiles Glossa structs (`εἶδος`) directly to JSON Schema representations.
+**Fate:** Proposed
+**Lesson:** Provides standard web interoperability from Ancient Greek semantic structure, showing how robust the Semantic AST is for mapping to web formats.
