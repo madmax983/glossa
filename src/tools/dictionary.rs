@@ -190,47 +190,11 @@ fn print_morphological_analyses(analyses: &[crate::morphology::models::MorphAnal
 
     // ⚡ Bolt Optimization: Reuse a single String buffer and avoid intermediate format allocations
     // by writing directly into the buffer instead of collecting into a Vec<String> and joining.
-    use std::fmt::Write;
     let mut grammar_buf = String::new();
 
     for analysis in analyses {
         grammar_buf.clear();
-        let mut first = true;
-        let mut push_comma = |buf: &mut String| {
-            if !first {
-                buf.push_str(", ");
-            }
-            first = false;
-        };
-
-        if let Some(c) = analysis.case {
-            push_comma(&mut grammar_buf);
-            let _ = write!(grammar_buf, "{}", c);
-        }
-        if let Some(n) = analysis.number {
-            push_comma(&mut grammar_buf);
-            let _ = write!(grammar_buf, "{}", n);
-        }
-        if let Some(g) = analysis.gender {
-            push_comma(&mut grammar_buf);
-            let _ = write!(grammar_buf, "{}", g);
-        }
-        if let Some(p) = analysis.person {
-            push_comma(&mut grammar_buf);
-            let _ = write!(grammar_buf, "{:?}", p);
-        }
-        if let Some(t) = analysis.tense {
-            push_comma(&mut grammar_buf);
-            let _ = write!(grammar_buf, "{:?}", t);
-        }
-        if let Some(m) = analysis.mood {
-            push_comma(&mut grammar_buf);
-            let _ = write!(grammar_buf, "{:?}", m);
-        }
-        if let Some(v) = analysis.voice {
-            push_comma(&mut grammar_buf);
-            let _ = write!(grammar_buf, "{:?}", v);
-        }
+        let _ = format_morphological_grammar(analysis, &mut grammar_buf);
 
         let conf_cell = if analysis.confidence >= 0.9 {
             Cell::new(format!("{:.2}", analysis.confidence)).fg(Color::Green)
@@ -250,6 +214,50 @@ fn print_morphological_analyses(analyses: &[crate::morphology::models::MorphAnal
 
     println!("{table}");
     println!();
+}
+
+fn format_morphological_grammar(
+    analysis: &crate::morphology::models::MorphAnalysis,
+    buf: &mut String,
+) -> std::fmt::Result {
+    use std::fmt::Write;
+    let mut first = true;
+    let mut push_comma = |b: &mut String| {
+        if !first {
+            b.push_str(", ");
+        }
+        first = false;
+    };
+
+    if let Some(c) = analysis.case {
+        push_comma(buf);
+        write!(buf, "{}", c)?;
+    }
+    if let Some(n) = analysis.number {
+        push_comma(buf);
+        write!(buf, "{}", n)?;
+    }
+    if let Some(g) = analysis.gender {
+        push_comma(buf);
+        write!(buf, "{}", g)?;
+    }
+    if let Some(p) = analysis.person {
+        push_comma(buf);
+        write!(buf, "{:?}", p)?;
+    }
+    if let Some(t) = analysis.tense {
+        push_comma(buf);
+        write!(buf, "{:?}", t)?;
+    }
+    if let Some(m) = analysis.mood {
+        push_comma(buf);
+        write!(buf, "{:?}", m)?;
+    }
+    if let Some(v) = analysis.voice {
+        push_comma(buf);
+        write!(buf, "{:?}", v)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]

@@ -175,43 +175,9 @@ impl Highlighter {
                 self.output.push(' ');
                 self.highlight_expr(right)?;
             }
-            Expr::UnaryOp { op, operand } => {
-                match op {
-                    UnaryOperator::Unwrap => {
-                        self.highlight_expr(operand)?;
-                        write!(self.output, "{}", "!".bold().red())?;
-                    }
-                    UnaryOperator::Not => {
-                        write!(self.output, "{}", "οὐ".bold())?; // Simplified
-                        self.output.push(' ');
-                        self.highlight_expr(operand)?;
-                    }
-                    UnaryOperator::Neg => {
-                        write!(self.output, "-")?;
-                        self.highlight_expr(operand)?;
-                    }
-                }
-            }
-            Expr::Block(stmts) => {
-                self.output.push_str("{ ");
-                for (i, stmt) in stmts.iter().enumerate() {
-                    if i > 0 {
-                        self.output.push(' ');
-                    }
-                    self.highlight_statement(stmt)?;
-                }
-                self.output.push_str(" }");
-            }
-            Expr::ArrayLiteral(elements) => {
-                self.output.push('[');
-                for (i, el) in elements.iter().enumerate() {
-                    if i > 0 {
-                        self.output.push_str(", ");
-                    }
-                    self.highlight_expr(el)?;
-                }
-                self.output.push(']');
-            }
+            Expr::UnaryOp { op, operand } => self.highlight_unary_op(op, operand)?,
+            Expr::Block(stmts) => self.highlight_block(stmts)?,
+            Expr::ArrayLiteral(elements) => self.highlight_array_literal(elements)?,
             Expr::IndexAccess { array, index } => {
                 self.highlight_expr(array)?;
                 self.output.push('[');
@@ -219,6 +185,49 @@ impl Highlighter {
                 self.output.push(']');
             }
         }
+        Ok(())
+    }
+
+    fn highlight_unary_op(&mut self, op: &UnaryOperator, operand: &Expr) -> std::fmt::Result {
+        match op {
+            UnaryOperator::Unwrap => {
+                self.highlight_expr(operand)?;
+                write!(self.output, "{}", "!".bold().red())?;
+            }
+            UnaryOperator::Not => {
+                write!(self.output, "{}", "οὐ".bold())?; // Simplified
+                self.output.push(' ');
+                self.highlight_expr(operand)?;
+            }
+            UnaryOperator::Neg => {
+                write!(self.output, "-")?;
+                self.highlight_expr(operand)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn highlight_block(&mut self, stmts: &[Statement]) -> std::fmt::Result {
+        self.output.push_str("{ ");
+        for (i, stmt) in stmts.iter().enumerate() {
+            if i > 0 {
+                self.output.push(' ');
+            }
+            self.highlight_statement(stmt)?;
+        }
+        self.output.push_str(" }");
+        Ok(())
+    }
+
+    fn highlight_array_literal(&mut self, elements: &[Expr]) -> std::fmt::Result {
+        self.output.push('[');
+        for (i, el) in elements.iter().enumerate() {
+            if i > 0 {
+                self.output.push_str(", ");
+            }
+            self.highlight_expr(el)?;
+        }
+        self.output.push(']');
         Ok(())
     }
 
