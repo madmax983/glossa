@@ -166,15 +166,16 @@ fn format_traits(map: &mut String, program: &AnalyzedProgram) {
         let _ = writeln!(map, "    class {} {{", name);
         map.push_str("        <<interface>>\n");
         for method in &trait_def.methods {
-            let mut params_str = String::new();
+            // ⚡ Bolt Optimization: Eliminated intermediate `String` allocation for parameters by writing directly to `map`
+            let _ = write!(map, "        +{}(", method.name);
             for (i, (n, t)) in method.params.iter().enumerate() {
                 if i > 0 {
-                    params_str.push_str(", ");
+                    map.push_str(", ");
                 }
-                write!(&mut params_str, "{}: {}", n, t).unwrap();
+                let _ = write!(map, "{}: {}", n, t);
             }
+            map.push(')');
 
-            let _ = write!(map, "        +{}({})", method.name, params_str);
             if let Some(t) = &method.return_type {
                 let _ = write!(map, ": {}", t);
             }
