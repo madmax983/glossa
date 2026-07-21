@@ -232,4 +232,67 @@ mod tests {
         };
         assert_eq!(calculate_max_depth(&outer_loop), 2);
     }
+
+    #[test]
+    fn test_gnomon_if_statement() {
+        let inner_loop = AnalyzedStatement::While {
+            condition: dummy_expr(),
+            body: vec![],
+        };
+        let stmt = AnalyzedStatement::If {
+            condition: dummy_expr(),
+            then_body: vec![inner_loop],
+            else_body: Some(vec![]),
+        };
+        assert_eq!(calculate_max_depth(&stmt), 1);
+    }
+
+    #[test]
+    fn test_gnomon_match_statement() {
+        let inner_loop = AnalyzedStatement::For {
+            variable: SmolStr::new("x"),
+            iterator: dummy_expr(),
+            body: vec![],
+        };
+        let stmt = AnalyzedStatement::Match {
+            expression: dummy_expr(),
+            arms: vec![(dummy_expr(), vec![inner_loop])],
+        };
+        assert_eq!(calculate_max_depth(&stmt), 1);
+    }
+
+    #[test]
+    fn test_gnomon_function_def() {
+        let inner_loop = AnalyzedStatement::While {
+            condition: dummy_expr(),
+            body: vec![],
+        };
+        let stmt = AnalyzedStatement::FunctionDef {
+            name: SmolStr::new("test"),
+            params: vec![],
+            return_type: GlossaType::Void,
+            body: vec![inner_loop],
+            is_public: false,
+        };
+        assert_eq!(calculate_max_depth(&stmt), 1);
+    }
+
+    #[test]
+    fn test_gnomon_test_declaration() {
+        let inner_loop = AnalyzedStatement::While {
+            condition: dummy_expr(),
+            body: vec![],
+        };
+        let stmt = AnalyzedStatement::TestDeclaration {
+            name: SmolStr::new("test"),
+            body: vec![inner_loop],
+        };
+        assert_eq!(calculate_max_depth(&stmt), 1);
+    }
+
+    #[test]
+    fn test_gnomon_other_statement() {
+        let stmt = AnalyzedStatement::Expression(dummy_expr());
+        assert_eq!(calculate_max_depth(&stmt), 0);
+    }
 }
