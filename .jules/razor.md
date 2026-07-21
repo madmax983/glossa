@@ -7,3 +7,7 @@
 **Bloat:** `DotGenerator` in `src/tools/haruspex.rs` used an object-oriented builder pattern for graph generation.
 **Cut:** Flattened the object into pure procedural functions passing mutable references to `next_id` and `output` state.
 **Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
+## [Reduction]
+**Bloat:** `GnomonVisitor` in `src/tools/gnomon.rs` used an object-oriented visitor pattern to track max depth.
+**Cut:** Flattened the object into a pure recursive function `calculate_max_depth` without state parameters.
+**Saved:** Replaced a localized object-oriented abstraction with standard procedural Rust functions.
