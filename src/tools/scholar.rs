@@ -146,6 +146,7 @@ pub fn run_scholar(input: &Path) -> Result<()> {
 mod tests {
     use super::*;
     use std::fs;
+    use std::io::Read;
     use tempfile::tempdir;
 
     #[test]
@@ -199,7 +200,11 @@ mod tests {
         let output_path = input_path.with_extension("doc.md");
         assert!(output_path.exists());
 
-        let md = fs::read_to_string(&output_path).unwrap();
+        let mut f = std::fs::File::open(&output_path).unwrap();
+        let mut md = String::new();
+        std::io::Read::take(&mut f, 1024 * 1024 + 1)
+            .read_to_string(&mut md)
+            .unwrap();
         assert!(md.contains("*No fields defined.*"));
         assert!(md.contains("*No methods defined.*"));
     }
@@ -220,7 +225,11 @@ mod tests {
         let output_path = input_path.with_extension("doc.md");
         assert!(output_path.exists());
 
-        let md = fs::read_to_string(&output_path).unwrap();
+        let mut f = std::fs::File::open(&output_path).unwrap();
+        let mut md = String::new();
+        std::io::Read::take(&mut f, 1024 * 1024 + 1)
+            .read_to_string(&mut md)
+            .unwrap();
         assert!(md.contains("### `προσθεσις(Ἀριθμός, Ἀριθμός) -> Ἀριθμός`"));
     }
 }

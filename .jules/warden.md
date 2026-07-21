@@ -134,3 +134,9 @@ Signed,
 **YYYY-MM-DD - [DoS Mitigation]
 **Threat:** Memory Exhaustion / Unbounded Allocations via standard IO.
 **Defense:** Wrapped mutable readers using `.by_ref().take(LIMIT)` inside `repl.rs` and `mentor.rs`.
+**2026-05-19 - [Unbounded File Read DoS in Scholar Tool Tests]
+**Threat:** The tests `test_run_scholar_empty_fields_methods_functions` and `test_run_scholar_with_functions` were using `std::fs::read_to_string`, which loads an entire file into memory without bounds checking. While currently in tests, leaving unbound read patterns in test code creates a security theater where copy-pasted implementations can easily become vulnerabilities.
+**Defense:** Replaced `std::fs::read_to_string` with safe bounded readers using `std::io::Read::take()` and `1024 * 1024 + 1` limit, preventing potential memory exhaustion.**
+**2026-05-19 - [CI Format Specifier Bug in semantic conversion]
+**Threat:** The `clippy::useless_borrows_in_formatting` check failed because `&var_name` was used inside `format!` macro in `src/semantic/conversion.rs`, causing a warning to be elevated to an error. This broke the build during CI and blocked merges.
+**Defense:** Replaced `&var_name` with `var_name` in the format string within `src/semantic/conversion.rs`.**
