@@ -1638,6 +1638,17 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_statement_break_continue() {
+        let stmt_break = AnalyzedStatement::Break;
+        let code_break = generate_statement_code(&stmt_break);
+        assert!(code_break.contains("break"));
+
+        let stmt_continue = AnalyzedStatement::Continue;
+        let code_continue = generate_statement_code(&stmt_continue);
+        assert!(code_continue.contains("continue"));
+    }
+
+    #[test]
     fn test_generate_unreachable_operators() {
         // Manually trigger fallback operators like Le/Ge that aren't parsed yet
         let left = AnalyzedExpr {
