@@ -8,3 +8,7 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+
+**[Optimizing `format!` in `clean_panic_message`]**
+**Learning:** `format!` inside `clean_panic_message` in `src/tools/tester.rs` was reallocating unnecessarily and invoking the formatting machinery on a hot path during test parsing. Replacing it with an exact-sized `String::with_capacity` and manual `push_str` calls reduces allocations overhead during failed test parsing.
+**Action:** Always check if a simple concatenation using `push_str` and `String::with_capacity` can replace a `format!` macro for basic string prepends/appends, as it completely skips the `fmt::Display` machinery overhead.
