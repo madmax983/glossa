@@ -42,7 +42,7 @@ pub fn run_catalog() -> Result<()> {
             Cell::new("Rust Equivalent").fg(Color::Cyan),
         ]);
 
-        let mut pos_entries = entries_by_pos.get(&pos).unwrap().clone();
+        let mut pos_entries = entries_by_pos.remove(&pos).unwrap();
         pos_entries.sort_by_key(|(word, _)| *word);
 
         for (word, entry) in pos_entries {
