@@ -76,3 +76,9 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-07-22 - The Floating Doc Comment
+**Confusion:** The documentation for the public `to_rust_type` function in `src/codegen.rs` was missing from the generated rustdoc, and running `cargo doc` with `-W missing_docs` issued a warning. This happened because a `use std::fmt::Write;` statement was placed exactly between the `///` doc block and the function signature.
+**Clarification:** In Rust, a `///` doc comment attaches strictly to the very next syntax item. If an import or unrelated statement interrupts it, the documentation binds to that intermediate item, leaving the intended function undocumented. I fixed this by moving the `use` statement above the doc block.
+## 2026-07-22 - Useless Borrows in Formatting
+**Confusion:** The CI pipeline failed on a `clippy::useless_borrows_in_formatting` lint because a format string used `&var_name` as an argument (e.g., `format!("...", &var_name)`).
+**Clarification:** The `format!` macro implicitly takes a reference to its arguments, so passing an explicit reference to a variable that might already be a reference (like `&String` or `&str`) is redundant and triggers a clippy warning when run with `-D warnings`. The fix is simply to remove the explicit `&`.
