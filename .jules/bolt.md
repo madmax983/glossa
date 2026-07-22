@@ -8,3 +8,6 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+**[Title: Avoid Unnecessary `.clone()` on Map Values]
+**Learning:** Calling `.get(&key).unwrap().clone()` on a `HashMap` just to consume or iterate over a value creates an unnecessary, expensive deep clone of the object (like a `Vec` or `String`) when the original entry in the map is no longer needed.
+**Action:** Use `.remove(&key).unwrap()` to transfer ownership directly out of the map without allocating new memory, achieving a zero-cost extraction.
