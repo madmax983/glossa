@@ -38,6 +38,11 @@
 **Fate:** Merged
 **Lesson:** Adding an iterator to the static lexicon unlocks great introspection capabilities for tooling, allowing users to browse the exact translation matrix that the semantic engine uses under the hood.
 
+## 🌟 The Envoy (ὁ Πρεσβευτής)
+**Concept:** A TypeScript interface generator (`glossa envoy`) that transpiles Glossa structs (`εἶδος`) directly to TypeScript `interface` statements.
+**Fate:** Proposed
+**Lesson:** Treating Glossa types as the source of truth for full-stack apps bridges ancient backend syntax with modern web frontends, proving the extensibility of the semantic AST to export definitions for various downstream languages.
+
 ## The Scholar (ὁ Σχολαστικός)
 **Concept:** A Markdown documentation generator (`glossa scholar`) that uses the compiler's semantic phase to extract and format types, traits, and functions.
 **Fate:** Merged
