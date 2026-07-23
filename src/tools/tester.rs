@@ -317,26 +317,26 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         table.load_preset(presets::UTF8_FULL);
 
         table.set_header(vec![
+            Cell::new("Status")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
             Cell::new("Test Case")
                 .add_attribute(Attribute::Bold)
                 .fg(Color::Cyan),
-            Cell::new("Status").add_attribute(Attribute::Bold),
         ]);
 
         for result in results {
             let status_cell = match result.status {
-                TestStatus::Ok => Cell::new("PASSED").fg(Color::Green),
-                TestStatus::Failed => Cell::new("FAILED")
-                    .fg(Color::Red)
-                    .add_attribute(Attribute::Bold),
-                TestStatus::Ignored => Cell::new("IGNORED").fg(Color::Yellow),
+                TestStatus::Ok => Cell::new("✓").fg(Color::Green),
+                TestStatus::Failed => Cell::new("✕").fg(Color::Red).add_attribute(Attribute::Bold),
+                TestStatus::Ignored => Cell::new("~").fg(Color::Yellow),
             };
 
             // Clean up test name (remove module prefix if any)
             // e.g., "tests::test_name" -> "test_name"
             let display_name = result.name.split("::").last().unwrap_or(&result.name);
 
-            table.add_row(vec![Cell::new(display_name), status_cell]);
+            table.add_row(vec![status_cell, Cell::new(display_name)]);
         }
         println!("{table}");
     } else {
