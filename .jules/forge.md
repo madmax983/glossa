@@ -1,3 +1,11 @@
-**Refactored Cartographer's generate_map**
-**Learning:** Found a god object function > 100 lines handling struct rendering, trait rendering, dependencies, and implementations.
-**Action:** Created clear, small helpers (`format_structs`, `format_traits`, `format_dependencies`, `format_trait_impls`) and passed mutable states down.
+**[Extracted CLI command router]
+**Learning:** `src/main.rs` had a God Function (`main`) of ~200 lines matching on every CLI command with feature gates.
+**Action:** Extracted it into `execute_command` and `execute_nova_command` to flatten the structure and keep main tiny.
+
+**[Extracted CLI command router]**
+**Learning:** `src/main.rs` had a God Function (`main`) of ~200 lines matching on every CLI command with feature gates.
+**Action:** Extracted it into `execute_command` and `execute_nova_command` to flatten the structure and keep main tiny.
+
+**[Removed redundant borrow in format!]**
+**Learning:** Passing a reference `&var_name` inside `format!()` when `var_name` is already a string slice/owned string triggers the `clippy::useless_borrows_in_formatting` lint.
+**Action:** Removed the redundant `&` to satisfy Clippy's strict warnings (`-D warnings`).
