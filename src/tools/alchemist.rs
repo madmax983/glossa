@@ -61,7 +61,7 @@ pub fn run_alchemist(input: &Path) -> miette::Result<()> {
 
 /// Transpile an AnalyzedProgram to Python source code
 pub fn transpile_to_python(program: &AnalyzedProgram) -> String {
-    let mut out = String::new();
+    let mut out = String::with_capacity(program.statements.len() * 128 + 64);
     out.push_str("from typing import Any\n");
     out.push_str("from dataclasses import dataclass\n\n");
     for stmt in &program.statements {
@@ -129,9 +129,12 @@ fn transpile_statement(stmt: &AnalyzedStatement, indent: usize) -> String {
             format!("{}print({})", ind, format_transpiled_exprs(exprs))
         }
         AnalyzedStatement::Expression(exprs) => {
-            let mut out = String::new();
+            let mut out = String::with_capacity(exprs.len() * 32);
             for expr in exprs {
-                out.push_str(&format!("{}{}\n", ind, transpile_expr(expr)));
+                out.push_str(&ind);
+
+                out.push_str(&transpile_expr(expr));
+                out.push('\n');
             }
             out.trim_end().to_string()
         }
@@ -167,7 +170,8 @@ fn transpile_if(
     let ind = "    ".repeat(indent);
     let mut out = format!("{}if {}:\n", ind, transpile_expr(condition));
     if then_body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        out.push_str(&ind);
+        out.push_str("    pass\n");
     } else {
         for b_stmt in then_body {
             out.push_str(&transpile_statement(b_stmt, indent + 1));
@@ -175,9 +179,11 @@ fn transpile_if(
         }
     }
     if let Some(ebody) = else_body {
-        out.push_str(&format!("{}else:\n", ind));
+        out.push_str(&ind);
+        out.push_str("else:\n");
         if ebody.is_empty() {
-            out.push_str(&format!("{}    pass\n", ind));
+            out.push_str(&ind);
+            out.push_str("    pass\n");
         } else {
             for b_stmt in ebody {
                 out.push_str(&transpile_statement(b_stmt, indent + 1));
@@ -192,7 +198,8 @@ fn transpile_while(condition: &AnalyzedExpr, body: &[AnalyzedStatement], indent:
     let ind = "    ".repeat(indent);
     let mut out = format!("{}while {}:\n", ind, transpile_expr(condition));
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        out.push_str(&ind);
+        out.push_str("    pass\n");
     } else {
         for b_stmt in body {
             out.push_str(&transpile_statement(b_stmt, indent + 1));
@@ -216,7 +223,8 @@ fn transpile_for(
         transpile_expr(iterator)
     );
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        out.push_str(&ind);
+        out.push_str("    pass\n");
     } else {
         for b_stmt in body {
             out.push_str(&transpile_statement(b_stmt, indent + 1));
@@ -243,7 +251,8 @@ fn transpile_function_def(
     out.push_str("):\n");
 
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        out.push_str(&ind);
+        out.push_str("    pass\n");
     } else {
         for (i, b_stmt) in body.iter().enumerate() {
             let mut is_last_expr = false;
@@ -255,9 +264,15 @@ fn transpile_function_def(
                 if let AnalyzedStatement::Expression(exprs) = b_stmt {
                     for (j, expr) in exprs.iter().enumerate() {
                         if j == exprs.len() - 1 {
-                            out.push_str(&format!("{}    return {}\n", ind, transpile_expr(expr)));
+                            out.push_str(&ind);
+                            out.push_str("    return ");
+                            out.push_str(&transpile_expr(expr));
+                            out.push('\n');
                         } else {
-                            out.push_str(&format!("{}    {}\n", ind, transpile_expr(expr)));
+                            out.push_str(&ind);
+                            out.push_str("    ");
+                            out.push_str(&transpile_expr(expr));
+                            out.push('\n');
                         }
                     }
                 }
@@ -283,10 +298,14 @@ fn transpile_type_def(
         sanitize_ident(name)
     );
     if fields.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        out.push_str(&ind);
+        out.push_str("    pass\n");
     } else {
         for (f_name, _) in fields {
-            out.push_str(&format!("{}    {}: Any\n", ind, sanitize_ident(f_name)));
+            out.push_str(&ind);
+            out.push_str("    ");
+            out.push_str(&sanitize_ident(f_name));
+            out.push_str(": Any\n");
         }
     }
     out.trim_end().to_string()
@@ -298,7 +317,8 @@ fn transpile_test_declaration(name: &str, body: &[AnalyzedStatement], indent: us
     let safe_name = name.replace(" ", "_").replace("-", "_").replace("\"", "");
     let mut out = format!("{}def test_{}():\n", ind, safe_name);
     if body.is_empty() {
-        out.push_str(&format!("{}    pass\n", ind));
+        out.push_str(&ind);
+        out.push_str("    pass\n");
     } else {
         for b_stmt in body {
             out.push_str(&transpile_statement(b_stmt, indent + 1));
@@ -323,7 +343,8 @@ fn transpile_match(
             transpile_expr(pattern_expr)
         ));
         if arm_body.is_empty() {
-            out.push_str(&format!("{}        pass\n", ind));
+            out.push_str(&ind);
+            out.push_str("        pass\n");
         } else {
             for b_stmt in arm_body {
                 out.push_str(&transpile_statement(b_stmt, indent + 2));
