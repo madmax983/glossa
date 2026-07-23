@@ -317,16 +317,18 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         table.load_preset(presets::UTF8_FULL);
 
         table.set_header(vec![
-            Cell::new("Status").add_attribute(Attribute::Bold).fg(Color::Cyan),
-            Cell::new("Test Case").add_attribute(Attribute::Bold).fg(Color::Cyan),
+            Cell::new("Status")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("Test Case")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
         ]);
 
         for result in results {
             let status_cell = match result.status {
                 TestStatus::Ok => Cell::new("✓").fg(Color::Green),
-                TestStatus::Failed => Cell::new("✕")
-                    .fg(Color::Red)
-                    .add_attribute(Attribute::Bold),
+                TestStatus::Failed => Cell::new("✕").fg(Color::Red).add_attribute(Attribute::Bold),
                 TestStatus::Ignored => Cell::new("~").fg(Color::Yellow),
             };
 
