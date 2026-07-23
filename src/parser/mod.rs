@@ -33,7 +33,6 @@ pub(crate) mod statements;
 use self::grammar::{Rule, parse as grammar_parse};
 use crate::ast::*;
 use crate::errors::GlossaError;
-use pest::iterators::Pair;
 
 pub use common::ParseError;
 pub use common::parse_number_literal;
@@ -80,50 +79,13 @@ fn parse_source(source: &str) -> Result<Program, ParseError> {
             statements.reserve(inner_pairs.len());
             for inner in inner_pairs {
                 if inner.as_rule() == Rule::statement {
-                    statements.push(build_statement(inner)?);
+                    statements.push(statements::build_statement(inner)?);
                 }
             }
         }
     }
 
     Ok(Program { statements })
-}
-
-pub(crate) fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
-    let mut pairs = pair.into_inner();
-    let first = pairs
-        .next()
-        .ok_or(ParseError::UnexpectedRule("Empty statement".into()))?;
-
-    match first.as_rule() {
-        Rule::test_declaration => Ok(Statement::TestDeclaration(
-            declarations::build_test_declaration(first)?,
-        )),
-        Rule::type_definition => {
-            // Consume statement_end
-            let _ = pairs.next();
-            Ok(Statement::TypeDefinition(
-                declarations::build_type_definition(first)?,
-            ))
-        }
-        Rule::trait_definition => {
-            // Consume statement_end
-            let _ = pairs.next();
-            Ok(Statement::TraitDefinition(
-                declarations::build_trait_definition(first)?,
-            ))
-        }
-        Rule::trait_impl => {
-            // Consume statement_end
-            let _ = pairs.next();
-            Ok(Statement::TraitImpl(declarations::build_trait_impl(first)?))
-        }
-        Rule::clause_list => statements::build_regular_statement(first, pairs),
-        _ => Err(ParseError::UnexpectedRule(format!(
-            "Unexpected start of statement: {:?}",
-            first.as_rule()
-        ))),
-    }
 }
 
 #[cfg(test)]
@@ -312,7 +274,7 @@ mod tests_coverage {
         let mut pairs = GlossaParser::parse(Rule::string_literal, "«a»").unwrap();
         let pair = pairs.next().unwrap();
 
-        let result = build_statement(pair);
+        let result = statements::build_statement(pair);
         assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
     }
 
@@ -324,7 +286,7 @@ mod tests_coverage {
         let mut pairs = GlossaParser::parse(Rule::period, ".").unwrap();
         let pair = pairs.next().unwrap();
 
-        let result = build_statement(pair);
+        let result = statements::build_statement(pair);
         assert!(matches!(result, Err(ParseError::UnexpectedRule(_))));
     }
 }

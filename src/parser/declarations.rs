@@ -10,9 +10,9 @@
 //! * Test Declarations (`δοκιμή ... τέλος`)
 
 use crate::ast::*;
-use crate::parser::build_statement;
 use crate::parser::common::ParseError;
 use crate::parser::grammar::Rule;
+use crate::parser::statements::build_statement;
 use pest::iterators::Pair;
 
 /// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
