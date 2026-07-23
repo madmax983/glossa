@@ -86,7 +86,7 @@ pub fn run_envoy(input: &Path) -> Result<()> {
     Ok(())
 }
 
-fn glossa_type_to_ts(g_type: &GlossaType) -> String {
+pub(crate) fn glossa_type_to_ts(g_type: &GlossaType) -> String {
     match g_type {
         GlossaType::Number => "number".to_string(),
         GlossaType::String => "string".to_string(),
@@ -99,12 +99,14 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
         GlossaType::Option(inner) => glossa_type_to_ts(inner),
         GlossaType::Struct { name, .. } => name.to_string(),
         GlossaType::Function { params, returns } => {
-            let p: Vec<String> = params
-                .iter()
-                .enumerate()
-                .map(|(i, p)| format!("p{}: {}", i, glossa_type_to_ts(p)))
-                .collect();
-            format!("({}) => {}", p.join(", "), glossa_type_to_ts(returns))
+            let mut p = String::new();
+            for (i, param) in params.iter().enumerate() {
+                if i > 0 {
+                    p.push_str(", ");
+                }
+                let _ = write!(&mut p, "p{}: {}", i, glossa_type_to_ts(param));
+            }
+            format!("({}) => {}", p, glossa_type_to_ts(returns))
         }
         GlossaType::Unit => "void".to_string(),
         _ => "any".to_string(),
@@ -137,6 +139,34 @@ mod tests {
             }),
             "User"
         );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Function {
+                params: vec![GlossaType::Number, GlossaType::String],
+                returns: Box::new(GlossaType::Boolean)
+            }),
+            "(p0: number, p1: string) => boolean"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Map(
+                Box::new(GlossaType::String),
+                Box::new(GlossaType::Number)
+            )),
+            "Record<string, number>"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Set(Box::new(GlossaType::Number))),
+            "Set<number>"
+        );
+        assert_eq!(glossa_type_to_ts(&GlossaType::Unit), "void");
         assert_eq!(glossa_type_to_ts(&GlossaType::Unknown), "any");
+
+        // Test fallback match arm
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Result(
+                Box::new(GlossaType::Number),
+                Box::new(GlossaType::String)
+            )),
+            "any"
+        );
     }
 }
