@@ -29,25 +29,17 @@ pub fn calculate_max_depth(stmts: &[AnalyzedStatement]) -> usize {
             AnalyzedStatement::While { body, .. } | AnalyzedStatement::For { body, .. } => {
                 1 + calculate_max_depth(body)
             }
-            AnalyzedStatement::If {
-                then_body,
-                else_body,
-                ..
-            } => {
+            AnalyzedStatement::If { then_body, else_body, .. } => {
                 let then_depth = calculate_max_depth(then_body);
-                let else_depth = else_body
-                    .as_ref()
-                    .map(|b| calculate_max_depth(b))
-                    .unwrap_or(0);
+                let else_depth = else_body.as_ref().map(|b| calculate_max_depth(b)).unwrap_or(0);
                 then_depth.max(else_depth)
             }
-            AnalyzedStatement::Match { arms, .. } => arms
-                .iter()
-                .map(|(_, body)| calculate_max_depth(body))
-                .max()
-                .unwrap_or(0),
-            AnalyzedStatement::FunctionDef { body, .. }
-            | AnalyzedStatement::TestDeclaration { body, .. } => calculate_max_depth(body),
+            AnalyzedStatement::Match { arms, .. } => {
+                arms.iter().map(|(_, body)| calculate_max_depth(body)).max().unwrap_or(0)
+            }
+            AnalyzedStatement::FunctionDef { body, .. } | AnalyzedStatement::TestDeclaration { body, .. } => {
+                calculate_max_depth(body)
+            }
             _ => 0,
         };
         if depth > max {

@@ -81,12 +81,7 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     let mut mutable_vars = FxHashSet::default();
 
     for stmt in &program.statements {
-        visit_statement(
-            stmt,
-            &mut usage_count,
-            &mut mutation_count,
-            &mut mutable_vars,
-        );
+        visit_statement(stmt, &mut usage_count, &mut mutation_count, &mut mutable_vars);
     }
 
     let mut issues = 0;
@@ -121,7 +116,10 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     }
 
     for (var, count) in &mutation_count {
-        if *count == 0 && mutable_vars.contains(var) && usage_count.get(var).unwrap_or(&0) > &0 {
+        if *count == 0
+            && mutable_vars.contains(var)
+            && usage_count.get(var).unwrap_or(&0) > &0
+        {
             table.add_row(vec![
                 Cell::new("💡 Unnecessary Mutation").fg(Color::Blue),
                 Cell::new(var),
@@ -145,7 +143,10 @@ pub fn run_auditor(input: &Path) -> Result<()> {
     Ok(())
 }
 
-fn visit_expr(expr: &AnalyzedExpr, usage_count: &mut FxHashMap<SmolStr, usize>) {
+fn visit_expr(
+    expr: &AnalyzedExpr,
+    usage_count: &mut FxHashMap<SmolStr, usize>,
+) {
     match &expr.expr {
         AnalyzedExprKind::Variable(name) => {
             if let Some(count) = usage_count.get_mut(name) {
@@ -458,12 +459,7 @@ mod tests {
         ];
 
         for stmt in statements {
-            visit_statement(
-                &stmt,
-                &mut usage_count,
-                &mut mutation_count,
-                &mut mutable_vars,
-            );
+            visit_statement(&stmt, &mut usage_count, &mut mutation_count, &mut mutable_vars);
         }
     }
 
