@@ -20,3 +20,7 @@
 **Tangle:** Several modules under `src/tools/` (specifically `cache`, `report`, and `ui`) and `src/semantic/assembly/` (`model`) were exposed as `pub mod`, breaking encapsulation by exposing internal implementation details to the public API.
 **Blueprint:** Modified `src/tools/mod.rs` and `src/semantic/assembly/mod.rs` to restrict these modules with `pub(crate) mod`.
 **Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
+
+## [The Parser Knot]
+**Tangle:** `src/parser/mod.rs` exported and defined `build_statement`, which was used by `expressions.rs` and `declarations.rs`. These child modules were also imported by `mod.rs`, creating a cyclic dependency structure where the parent module depended on children that explicitly reached back up to the parent.
+**Blueprint:** Moved the implementation of `build_statement` into `src/parser/statements.rs` where it logically resides, as it delegates to `statements::build_regular_statement`. Changed imports in `mod.rs`, `expressions.rs`, and `declarations.rs` to point to `crate::parser::statements::build_statement`.

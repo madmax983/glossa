@@ -3,9 +3,47 @@
 //! Handles parsing of grammatical clauses into regular statements.
 use crate::ast::*;
 use crate::parser::common::ParseError;
+use crate::parser::declarations;
 use crate::parser::expressions::build_expression;
 use crate::parser::grammar::Rule;
 use pest::iterators::Pair;
+
+pub(crate) fn build_statement(pair: Pair<'_, Rule>) -> Result<Statement, ParseError> {
+    let mut pairs = pair.into_inner();
+    let first = pairs
+        .next()
+        .ok_or(ParseError::UnexpectedRule("Empty statement".into()))?;
+
+    match first.as_rule() {
+        Rule::test_declaration => Ok(Statement::TestDeclaration(
+            declarations::build_test_declaration(first)?,
+        )),
+        Rule::type_definition => {
+            // Consume statement_end
+            let _ = pairs.next();
+            Ok(Statement::TypeDefinition(
+                declarations::build_type_definition(first)?,
+            ))
+        }
+        Rule::trait_definition => {
+            // Consume statement_end
+            let _ = pairs.next();
+            Ok(Statement::TraitDefinition(
+                declarations::build_trait_definition(first)?,
+            ))
+        }
+        Rule::trait_impl => {
+            // Consume statement_end
+            let _ = pairs.next();
+            Ok(Statement::TraitImpl(declarations::build_trait_impl(first)?))
+        }
+        Rule::clause_list => build_regular_statement(first, pairs),
+        _ => Err(ParseError::UnexpectedRule(format!(
+            "Unexpected start of statement: {:?}",
+            first.as_rule()
+        ))),
+    }
+}
 
 pub(crate) fn build_regular_statement(
     clause_list_pair: Pair<'_, Rule>,
