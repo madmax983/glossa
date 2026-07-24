@@ -795,7 +795,9 @@ fn generate_struct_def(name: &str, fields: &[(smol_str::SmolStr, GlossaType)]) -
     }
 }
 
-fn generate_trait_method_parts(method: &AnalyzedMethod) -> (Ident, Vec<TokenStream>, Option<TokenStream>) {
+fn generate_trait_method_parts(
+    method: &AnalyzedMethod,
+) -> (Ident, Vec<TokenStream>, Option<TokenStream>) {
     let method_name = sanitize_ident(&method.name);
 
     let param_tokens = method
