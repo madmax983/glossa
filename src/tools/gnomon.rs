@@ -203,4 +203,74 @@ mod tests {
         let depth = calculate_max_depth(&[outer_loop]);
         assert_eq!(depth, 2);
     }
+
+    #[test]
+    fn test_gnomon_if_statement() {
+        let inner_loop = AnalyzedStatement::For {
+            variable: SmolStr::new("y"),
+            iterator: dummy_expr(),
+            body: vec![],
+        };
+        let if_stmt = AnalyzedStatement::If {
+            condition: dummy_expr(),
+            then_body: vec![inner_loop.clone()],
+            else_body: Some(vec![inner_loop]),
+        };
+        let depth = calculate_max_depth(&[if_stmt]);
+        assert_eq!(depth, 1);
+    }
+
+    #[test]
+    fn test_gnomon_match_statement() {
+        let inner_loop = AnalyzedStatement::For {
+            variable: SmolStr::new("y"),
+            iterator: dummy_expr(),
+            body: vec![],
+        };
+        let match_stmt = AnalyzedStatement::Match {
+            scrutinee: dummy_expr(),
+            arms: vec![(*dummy_expr(), vec![inner_loop])],
+        };
+        let depth = calculate_max_depth(&[match_stmt]);
+        assert_eq!(depth, 1);
+    }
+
+    #[test]
+    fn test_gnomon_function_def() {
+        let inner_loop = AnalyzedStatement::For {
+            variable: SmolStr::new("y"),
+            iterator: dummy_expr(),
+            body: vec![],
+        };
+        let fn_def = AnalyzedStatement::FunctionDef {
+            name: SmolStr::new("f"),
+            params: vec![],
+            return_type: None,
+            body: vec![inner_loop],
+        };
+        let depth = calculate_max_depth(&[fn_def]);
+        assert_eq!(depth, 1);
+    }
+
+    #[test]
+    fn test_gnomon_test_decl() {
+        let inner_loop = AnalyzedStatement::For {
+            variable: SmolStr::new("y"),
+            iterator: dummy_expr(),
+            body: vec![],
+        };
+        let test_decl = AnalyzedStatement::TestDeclaration {
+            name: "t".to_string(),
+            body: vec![inner_loop],
+        };
+        let depth = calculate_max_depth(&[test_decl]);
+        assert_eq!(depth, 1);
+    }
+
+    #[test]
+    fn test_gnomon_other_statement() {
+        let break_stmt = AnalyzedStatement::Break;
+        let depth = calculate_max_depth(&[break_stmt]);
+        assert_eq!(depth, 0);
+    }
 }

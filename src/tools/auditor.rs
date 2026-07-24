@@ -455,6 +455,8 @@ mod tests {
                 type_name: "T".into(),
                 methods: vec![],
             },
+            AnalyzedStatement::Continue,
+            AnalyzedStatement::Break,
         ];
 
         for stmt in statements {
