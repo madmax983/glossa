@@ -37,3 +37,24 @@ fn test_run_envoy_parse_error() {
     let result = run_envoy(&file_path);
     assert!(result.is_err());
 }
+
+#[test]
+fn test_run_envoy_semantic_error() {
+    let dir = tempdir().unwrap();
+    let file_path = dir.path().join("test_semantic_error.gl");
+    // valid syntax, but undefined identifier
+    let content = "ξ πέντε γίγνεται.";
+    fs::write(&file_path, content).unwrap();
+
+    let result = run_envoy(&file_path);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_envoy_file_read_error() {
+    let dir = tempdir().unwrap();
+    // Directory paths exist but cannot be read as files, causing load_source to fail
+    let dir_path = dir.path();
+    let result = run_envoy(dir_path);
+    assert!(result.is_err());
+}
