@@ -13,9 +13,6 @@ use crate::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType,
 };
 use crate::tools::runner::load_source;
-use crate::tools::ui::Status;
-use comfy_table::{Attribute, Cell, Color, Table, presets};
-use crossterm::style::Stylize;
 use miette::Result;
 use std::path::Path;
 
@@ -25,47 +22,14 @@ pub fn run_artisan(input: &Path) -> Result<()> {
         return Err(miette::miette!("Ἀρχεῖον οὐχ εὑρέθη: {}", input.display()));
     }
 
-    let status = Status::start_with_symbol("Τεχνίτης (Exporting to JSON)", "🔨");
+    let source =
+        load_source(input).map_err(|e| miette::miette!("Σφάλμα ἀρχείου (File Error): {}", e))?;
 
-    let source = match load_source(input) {
-        Ok(s) => s,
-        Err(e) => {
-            status.error("Σφάλμα ἀρχείου (File Error)");
-            return Err(e);
-        }
-    };
-
-    let program = match crate::tools::runner::analyze_source(&source) {
-        Ok(p) => p,
-        Err(e) => {
-            status.error("Σφάλμα ἀναλύσεως (Analysis Error)");
-            return Err(e);
-        }
-    };
-
-    status.success();
+    let program = crate::tools::runner::analyze_source(&source)
+        .map_err(|e| miette::miette!("Σφάλμα ἀναλύσεως (Analysis Error): {}", e))?;
 
     let json_output = program_to_json(&program);
-
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   A R T I S A N".bold().cyan());
-    println!("   {}", "JSON AST Export".italic().dim());
-    println!();
-
-    let mut table = Table::new();
-    table.load_preset(presets::UTF8_FULL);
-
-    table.set_header(vec![
-        Cell::new("JSON Output")
-            .add_attribute(Attribute::Bold)
-            .fg(Color::Cyan),
-    ]);
-
-    let formatted_code = format!("```json\n{}\n```", json_output.trim());
-    table.add_row(vec![Cell::new(formatted_code)]);
-
-    println!("{table}");
-    println!();
+    println!("{}", json_output.trim());
 
     Ok(())
 }

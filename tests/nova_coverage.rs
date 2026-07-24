@@ -308,3 +308,129 @@ fn test_run_artisan_file_not_found() {
             .contains("Ἀρχεῖον οὐχ εὑρέθη")
     );
 }
+
+#[test]
+fn test_run_artisan_complex_types() {
+    let mut program = glossa::semantic::AnalyzedProgram {
+        statements: vec![],
+        scope: glossa::semantic::Scope::new(),
+    };
+
+    // Test different types
+    let types = vec![
+        glossa::semantic::GlossaType::Number,
+        glossa::semantic::GlossaType::String,
+        glossa::semantic::GlossaType::Boolean,
+        glossa::semantic::GlossaType::Unknown,
+        glossa::semantic::GlossaType::List(Box::new(glossa::semantic::GlossaType::Number)),
+    ];
+
+    for (i, t) in types.into_iter().enumerate() {
+        program
+            .statements
+            .push(glossa::semantic::AnalyzedStatement::TypeDefinition {
+                name: format!("Type{}", i).into(),
+                fields: vec![("field".into(), t)],
+            });
+    }
+
+    let json = glossa::tools::artisan::program_to_json(&program);
+    assert!(json.contains("\"Number\""));
+    assert!(json.contains("\"String\""));
+    assert!(json.contains("\"Boolean\""));
+    assert!(json.contains("\"Unknown\""));
+    assert!(json.contains("\"Complex\""));
+}
+
+#[test]
+fn test_run_artisan_complex_exprs() {
+    let mut program = glossa::semantic::AnalyzedProgram {
+        statements: vec![],
+        scope: glossa::semantic::Scope::new(),
+    };
+
+    program
+        .statements
+        .push(glossa::semantic::AnalyzedStatement::Expression(vec![
+            glossa::semantic::AnalyzedExpr {
+                expr: glossa::semantic::AnalyzedExprKind::StringLiteral("hello\nworld\t\"".into()),
+                glossa_type: glossa::semantic::GlossaType::String,
+            },
+            glossa::semantic::AnalyzedExpr {
+                expr: glossa::semantic::AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: glossa::semantic::GlossaType::Boolean,
+            },
+            glossa::semantic::AnalyzedExpr {
+                expr: glossa::semantic::AnalyzedExprKind::Variable("x".into()),
+                glossa_type: glossa::semantic::GlossaType::Number,
+            },
+            glossa::semantic::AnalyzedExpr {
+                expr: glossa::semantic::AnalyzedExprKind::None, // Other
+                glossa_type: glossa::semantic::GlossaType::Unknown,
+            },
+        ]));
+
+    let json = glossa::tools::artisan::program_to_json(&program);
+    assert!(json.contains("\"hello\\nworld\\t\\\"\""));
+    assert!(json.contains("\"BooleanLiteral\""));
+    assert!(json.contains("\"Other\""));
+}
+
+#[test]
+fn test_run_artisan_complex_statements() {
+    let mut program = glossa::semantic::AnalyzedProgram {
+        statements: vec![],
+        scope: glossa::semantic::Scope::new(),
+    };
+
+    let dummy_expr = glossa::semantic::AnalyzedExpr {
+        expr: glossa::semantic::AnalyzedExprKind::NumberLiteral(1),
+        glossa_type: glossa::semantic::GlossaType::Number,
+    };
+
+    program
+        .statements
+        .push(glossa::semantic::AnalyzedStatement::Assignment {
+            name: "x".into(),
+            value: dummy_expr.clone(),
+        });
+
+    program
+        .statements
+        .push(glossa::semantic::AnalyzedStatement::Query(vec![
+            dummy_expr.clone(),
+        ]));
+
+    program
+        .statements
+        .push(glossa::semantic::AnalyzedStatement::Return {
+            value: Some(Box::new(dummy_expr.clone())),
+        });
+
+    program
+        .statements
+        .push(glossa::semantic::AnalyzedStatement::Return { value: None });
+
+    program
+        .statements
+        .push(glossa::semantic::AnalyzedStatement::Break);
+    program
+        .statements
+        .push(glossa::semantic::AnalyzedStatement::Continue);
+
+    // Unsupported statement
+    program
+        .statements
+        .push(glossa::semantic::AnalyzedStatement::TestDeclaration {
+            name: "test".into(),
+            body: vec![],
+        });
+
+    let json = glossa::tools::artisan::program_to_json(&program);
+    assert!(json.contains("\"type\": \"Assignment\""));
+    assert!(json.contains("\"type\": \"Query\""));
+    assert!(json.contains("\"type\": \"Return\""));
+
+    assert!(json.contains("\"type\": \"Break\""));
+    assert!(json.contains("\"type\": \"Continue\""));
+}
