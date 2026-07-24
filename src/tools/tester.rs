@@ -286,6 +286,15 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
     println!("   {}", "Unit Test Results".italic().dim());
     println!();
 
+    print_test_summary_banner(results, test_output);
+    print_test_cases_table(results);
+
+    if !test_output.status.success() {
+        print_test_failure_details(test_output, stdout);
+    }
+}
+
+fn print_test_summary_banner(results: &[TestResult], test_output: &std::process::Output) {
     if test_output.status.success() {
         if !results.is_empty() {
             let mut success_table = Table::new();
@@ -311,7 +320,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         println!("{failure_table}");
         println!();
     }
+}
 
+fn print_test_cases_table(results: &[TestResult]) {
     if !results.is_empty() {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
@@ -355,39 +366,38 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         ]);
         println!("{empty_table}");
     }
+}
 
-    // If there were failures, try to extract and print them nicely
-    if !test_output.status.success() {
-        println!();
-        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+fn print_test_failure_details(test_output: &std::process::Output, stdout: &str) {
+    println!();
+    println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
 
-        let failures = extract_failures(stdout);
+    let failures = extract_failures(stdout);
 
-        if !failures.is_empty() {
-            for (name, msg) in failures {
-                let mut header_table = Table::new();
-                header_table.load_preset(presets::UTF8_FULL);
-                header_table.add_row(vec![
-                    Cell::new(format!(" FAILED: {} ", name))
-                        .bg(Color::DarkRed)
-                        .fg(Color::White)
-                        .add_attribute(Attribute::Bold),
-                ]);
-                println!("{header_table}");
+    if !failures.is_empty() {
+        for (name, msg) in failures {
+            let mut header_table = Table::new();
+            header_table.load_preset(presets::UTF8_FULL);
+            header_table.add_row(vec![
+                Cell::new(format!(" FAILED: {} ", name))
+                    .bg(Color::DarkRed)
+                    .fg(Color::White)
+                    .add_attribute(Attribute::Bold),
+            ]);
+            println!("{header_table}");
 
-                // Create a box for the error message using comfy_table
-                let mut error_table = Table::new();
-                error_table.load_preset(presets::UTF8_FULL);
-                error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
-                println!("{error_table}");
-                println!();
-            }
-        } else {
-            // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
-            if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
-            }
+            // Create a box for the error message using comfy_table
+            let mut error_table = Table::new();
+            error_table.load_preset(presets::UTF8_FULL);
+            error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
+            println!("{error_table}");
+            println!();
+        }
+    } else {
+        // Fallback to raw output if extraction failed but tests failed
+        println!("{}", stdout);
+        if !test_output.stderr.is_empty() {
+            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
         }
     }
 }
