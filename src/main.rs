@@ -201,6 +201,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Sculptor { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::sculptor::run_sculptor(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'sculptor' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }
