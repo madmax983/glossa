@@ -1,7 +1,7 @@
 # 16. Add Alchemist and Weave to Developer Experience Tools
 
 Date: 2024-11-15
-Status: Proposed
+Status: Accepted
 
 ## Context
 
