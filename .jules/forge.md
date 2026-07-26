@@ -4,4 +4,4 @@
 
 **[Clippy Refactoring: Disambiguation Contexts]
 **Learning:** We need to keep our functions small and readable. `analyze_article` in `src/morphology/disambiguation.rs` was a giant `match` block returning `Some(DisambiguationContext { ... })` and triggered `clippy::too_many_lines`.
-**Action:** Extract a helper function `ctx(case: impl Into<Option<Case>>, num: impl Into<Option<Number>>, gen: impl Into<Option<Gender>>) -> Option<DisambiguationContext>` to remove the boilerplate from `analyze_article`.
+**Action:** Extract a helper function `ctx(case: Option<Case>, num: Option<Number>, gen: Option<Gender>) -> Option<DisambiguationContext>` to remove the boilerplate from `analyze_article`. (Initially used `impl Into<Option<T>>` but it caused inference errors when passing `None`, so explicit `Option<T>` is safer).

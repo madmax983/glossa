@@ -240,14 +240,14 @@ pub fn resolve_best(
 /// # Examples
 #[inline(always)]
 fn ctx(
-    expected_case: impl Into<Option<Case>>,
-    expected_number: impl Into<Option<Number>>,
-    expected_gender: impl Into<Option<Gender>>,
+    expected_case: Option<Case>,
+    expected_number: Option<Number>,
+    expected_gender: Option<Gender>,
 ) -> Option<DisambiguationContext> {
     Some(DisambiguationContext {
-        expected_case: expected_case.into(),
-        expected_number: expected_number.into(),
-        expected_gender: expected_gender.into(),
+        expected_case,
+        expected_number,
+        expected_gender,
         expected_person: None,
     })
 }
@@ -263,36 +263,86 @@ pub fn analyze_article(word: &str) -> Option<DisambiguationContext> {
     // Match on original polytonic forms - diacritics matter!
     match word {
         // Masculine nominative - ὁ with rough breathing
-        "ὁ" | "ο" => ctx(Case::Nominative, Number::Singular, Gender::Masculine),
-        "τοῦ" | "του" => ctx(Case::Genitive, Number::Singular, Gender::Masculine),
-        "τῷ" | "τω" => ctx(Case::Dative, Number::Singular, Gender::Masculine),
-        "τόν" | "τὸν" | "τον" => {
-            ctx(Case::Accusative, Number::Singular, Gender::Masculine)
-        }
-        "οἱ" | "οι" => ctx(Case::Nominative, Number::Plural, Gender::Masculine),
-        "τῶν" | "των" => ctx(Case::Genitive, Number::Plural, None),
-        "τοῖς" | "τοις" => ctx(Case::Dative, Number::Plural, Gender::Masculine),
-        "τούς" | "τοὺς" | "τους" => {
-            ctx(Case::Accusative, Number::Plural, Gender::Masculine)
-        }
+        "ὁ" | "ο" => ctx(
+            Some(Case::Nominative),
+            Some(Number::Singular),
+            Some(Gender::Masculine),
+        ),
+        "τοῦ" | "του" => ctx(
+            Some(Case::Genitive),
+            Some(Number::Singular),
+            Some(Gender::Masculine),
+        ),
+        "τῷ" | "τω" => ctx(
+            Some(Case::Dative),
+            Some(Number::Singular),
+            Some(Gender::Masculine),
+        ),
+        "τόν" | "τὸν" | "τον" => ctx(
+            Some(Case::Accusative),
+            Some(Number::Singular),
+            Some(Gender::Masculine),
+        ),
+        "οἱ" | "οι" => ctx(
+            Some(Case::Nominative),
+            Some(Number::Plural),
+            Some(Gender::Masculine),
+        ),
+        "τῶν" | "των" => ctx(Some(Case::Genitive), Some(Number::Plural), None),
+        "τοῖς" | "τοις" => ctx(
+            Some(Case::Dative),
+            Some(Number::Plural),
+            Some(Gender::Masculine),
+        ),
+        "τούς" | "τοὺς" | "τους" => ctx(
+            Some(Case::Accusative),
+            Some(Number::Plural),
+            Some(Gender::Masculine),
+        ),
 
         // Feminine - ἡ with ROUGH breathing (NOT ἤ which is "or")
-        "ἡ" => ctx(Case::Nominative, Number::Singular, Gender::Feminine),
-        "τῆς" | "της" => ctx(Case::Genitive, Number::Singular, Gender::Feminine),
-        "τῇ" | "τη" => ctx(Case::Dative, Number::Singular, Gender::Feminine),
-        "τήν" | "τὴν" | "την" => {
-            ctx(Case::Accusative, Number::Singular, Gender::Feminine)
-        }
-        "αἱ" | "αι" => ctx(Case::Nominative, Number::Plural, Gender::Feminine),
-        "ταῖς" | "ταις" => ctx(Case::Dative, Number::Plural, Gender::Feminine),
-        "τάς" | "τὰς" | "τας" => ctx(Case::Accusative, Number::Plural, Gender::Feminine),
+        "ἡ" => ctx(
+            Some(Case::Nominative),
+            Some(Number::Singular),
+            Some(Gender::Feminine),
+        ),
+        "τῆς" | "της" => ctx(
+            Some(Case::Genitive),
+            Some(Number::Singular),
+            Some(Gender::Feminine),
+        ),
+        "τῇ" | "τη" => ctx(
+            Some(Case::Dative),
+            Some(Number::Singular),
+            Some(Gender::Feminine),
+        ),
+        "τήν" | "τὴν" | "την" => ctx(
+            Some(Case::Accusative),
+            Some(Number::Singular),
+            Some(Gender::Feminine),
+        ),
+        "αἱ" | "αι" => ctx(
+            Some(Case::Nominative),
+            Some(Number::Plural),
+            Some(Gender::Feminine),
+        ),
+        "ταῖς" | "ταις" => ctx(
+            Some(Case::Dative),
+            Some(Number::Plural),
+            Some(Gender::Feminine),
+        ),
+        "τάς" | "τὰς" | "τας" => ctx(
+            Some(Case::Accusative),
+            Some(Number::Plural),
+            Some(Gender::Feminine),
+        ),
 
         // Neuter - Case is ambiguous (Nominative or Accusative)
         // We do NOT set expected_case so we don't bias disambiguation incorrectly.
         // The assembler will eventually decide based on available slots,
         // or we rely on backtracking if an incorrect choice causes a conflict.
-        "τό" | "τὸ" | "το" => ctx(None, Number::Singular, Gender::Neuter),
-        "τά" | "τὰ" | "τα" => ctx(None, Number::Plural, Gender::Neuter),
+        "τό" | "τὸ" | "το" => ctx(None, Some(Number::Singular), Some(Gender::Neuter)),
+        "τά" | "τὰ" | "τα" => ctx(None, Some(Number::Plural), Some(Gender::Neuter)),
 
         _ => None,
     }
