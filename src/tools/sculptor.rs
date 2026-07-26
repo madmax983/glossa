@@ -44,10 +44,10 @@ pub fn run_sculptor(input: &Path) -> Result<()> {
             for (field_name, field_type) in fields {
                 let ts_type = glossa_type_to_ts(field_type);
                 if let GlossaType::Option(inner) = field_type {
-                     let inner_ts = glossa_type_to_ts(inner);
-                     let _ = writeln!(output, "    {}?: {};", field_name, inner_ts);
+                    let inner_ts = glossa_type_to_ts(inner);
+                    let _ = writeln!(output, "    {}?: {};", field_name, inner_ts);
                 } else {
-                     let _ = writeln!(output, "    {}: {};", field_name, ts_type);
+                    let _ = writeln!(output, "    {}: {};", field_name, ts_type);
                 }
             }
             output.push_str("}\n\n");
@@ -81,7 +81,11 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
         }
         GlossaType::Option(inner) => glossa_type_to_ts(inner),
         GlossaType::Result(ok, err) => {
-            format!("{{ ok: true, value: {} }} | {{ ok: false, error: {} }}", glossa_type_to_ts(ok), glossa_type_to_ts(err))
+            format!(
+                "{{ ok: true, value: {} }} | {{ ok: false, error: {} }}",
+                glossa_type_to_ts(ok),
+                glossa_type_to_ts(err)
+            )
         }
         GlossaType::Struct { name, .. } => name.to_string(),
         _ => "any".to_string(),
