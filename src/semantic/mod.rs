@@ -34,7 +34,7 @@
 pub(crate) mod analyzer;
 #[cfg(test)]
 mod assembler_tests;
-pub mod assembly;
+pub(crate) mod assembly;
 #[cfg(test)]
 mod classification_tests;
 pub(crate) mod control_flow;
@@ -49,11 +49,11 @@ pub(crate) mod patterns;
 mod property_access_tests;
 #[cfg(test)]
 mod recursion_safety_tests;
-mod resolver;
+pub(crate) mod resolver;
 #[cfg(test)]
 mod sentry_conversion_tests;
 
-mod types;
+pub(crate) mod types;
 pub(crate) mod validation;
 
 pub use crate::morphology::{DisambiguationContext, analyze_article, disambiguate, resolve_best};
