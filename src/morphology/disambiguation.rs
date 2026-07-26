@@ -238,6 +238,20 @@ pub fn resolve_best(
 /// e.g., ἡ (article) vs ἤ (or) - differ only in breathing/accent
 ///
 /// # Examples
+#[inline(always)]
+fn ctx(
+    expected_case: impl Into<Option<Case>>,
+    expected_number: impl Into<Option<Number>>,
+    expected_gender: impl Into<Option<Gender>>,
+) -> Option<DisambiguationContext> {
+    Some(DisambiguationContext {
+        expected_case: expected_case.into(),
+        expected_number: expected_number.into(),
+        expected_gender: expected_gender.into(),
+        expected_person: None,
+    })
+}
+
 /// ```
 /// use glossa::morphology::{analyze_article, Case, Gender, Number};
 /// let ctx = analyze_article("τῆς").unwrap();
@@ -249,115 +263,36 @@ pub fn analyze_article(word: &str) -> Option<DisambiguationContext> {
     // Match on original polytonic forms - diacritics matter!
     match word {
         // Masculine nominative - ὁ with rough breathing
-        "ὁ" | "ο" => Some(DisambiguationContext {
-            expected_case: Some(Case::Nominative),
-            expected_number: Some(Number::Singular),
-            expected_gender: Some(Gender::Masculine),
-            expected_person: None,
-        }),
-        "τοῦ" | "του" => Some(DisambiguationContext {
-            expected_case: Some(Case::Genitive),
-            expected_number: Some(Number::Singular),
-            expected_gender: Some(Gender::Masculine),
-            expected_person: None,
-        }),
-        "τῷ" | "τω" => Some(DisambiguationContext {
-            expected_case: Some(Case::Dative),
-            expected_number: Some(Number::Singular),
-            expected_gender: Some(Gender::Masculine),
-            expected_person: None,
-        }),
-        "τόν" | "τὸν" | "τον" => Some(DisambiguationContext {
-            expected_case: Some(Case::Accusative),
-            expected_number: Some(Number::Singular),
-            expected_gender: Some(Gender::Masculine),
-            expected_person: None,
-        }),
-        "οἱ" | "οι" => Some(DisambiguationContext {
-            expected_case: Some(Case::Nominative),
-            expected_number: Some(Number::Plural),
-            expected_gender: Some(Gender::Masculine),
-            expected_person: None,
-        }),
-        "τῶν" | "των" => Some(DisambiguationContext {
-            expected_case: Some(Case::Genitive),
-            expected_number: Some(Number::Plural),
-            expected_gender: None, // All genders share τῶν
-            expected_person: None,
-        }),
-        "τοῖς" | "τοις" => Some(DisambiguationContext {
-            expected_case: Some(Case::Dative),
-            expected_number: Some(Number::Plural),
-            expected_gender: Some(Gender::Masculine),
-            expected_person: None,
-        }),
-        "τούς" | "τοὺς" | "τους" => Some(DisambiguationContext {
-            expected_case: Some(Case::Accusative),
-            expected_number: Some(Number::Plural),
-            expected_gender: Some(Gender::Masculine),
-            expected_person: None,
-        }),
+        "ὁ" | "ο" => ctx(Case::Nominative, Number::Singular, Gender::Masculine),
+        "τοῦ" | "του" => ctx(Case::Genitive, Number::Singular, Gender::Masculine),
+        "τῷ" | "τω" => ctx(Case::Dative, Number::Singular, Gender::Masculine),
+        "τόν" | "τὸν" | "τον" => {
+            ctx(Case::Accusative, Number::Singular, Gender::Masculine)
+        }
+        "οἱ" | "οι" => ctx(Case::Nominative, Number::Plural, Gender::Masculine),
+        "τῶν" | "των" => ctx(Case::Genitive, Number::Plural, None),
+        "τοῖς" | "τοις" => ctx(Case::Dative, Number::Plural, Gender::Masculine),
+        "τούς" | "τοὺς" | "τους" => {
+            ctx(Case::Accusative, Number::Plural, Gender::Masculine)
+        }
 
         // Feminine - ἡ with ROUGH breathing (NOT ἤ which is "or")
-        "ἡ" => Some(DisambiguationContext {
-            expected_case: Some(Case::Nominative),
-            expected_number: Some(Number::Singular),
-            expected_gender: Some(Gender::Feminine),
-            expected_person: None,
-        }),
-        "τῆς" | "της" => Some(DisambiguationContext {
-            expected_case: Some(Case::Genitive),
-            expected_number: Some(Number::Singular),
-            expected_gender: Some(Gender::Feminine),
-            expected_person: None,
-        }),
-        "τῇ" | "τη" => Some(DisambiguationContext {
-            expected_case: Some(Case::Dative),
-            expected_number: Some(Number::Singular),
-            expected_gender: Some(Gender::Feminine),
-            expected_person: None,
-        }),
-        "τήν" | "τὴν" | "την" => Some(DisambiguationContext {
-            expected_case: Some(Case::Accusative),
-            expected_number: Some(Number::Singular),
-            expected_gender: Some(Gender::Feminine),
-            expected_person: None,
-        }),
-        "αἱ" | "αι" => Some(DisambiguationContext {
-            expected_case: Some(Case::Nominative),
-            expected_number: Some(Number::Plural),
-            expected_gender: Some(Gender::Feminine),
-            expected_person: None,
-        }),
-        "ταῖς" | "ταις" => Some(DisambiguationContext {
-            expected_case: Some(Case::Dative),
-            expected_number: Some(Number::Plural),
-            expected_gender: Some(Gender::Feminine),
-            expected_person: None,
-        }),
-        "τάς" | "τὰς" | "τας" => Some(DisambiguationContext {
-            expected_case: Some(Case::Accusative),
-            expected_number: Some(Number::Plural),
-            expected_gender: Some(Gender::Feminine),
-            expected_person: None,
-        }),
+        "ἡ" => ctx(Case::Nominative, Number::Singular, Gender::Feminine),
+        "τῆς" | "της" => ctx(Case::Genitive, Number::Singular, Gender::Feminine),
+        "τῇ" | "τη" => ctx(Case::Dative, Number::Singular, Gender::Feminine),
+        "τήν" | "τὴν" | "την" => {
+            ctx(Case::Accusative, Number::Singular, Gender::Feminine)
+        }
+        "αἱ" | "αι" => ctx(Case::Nominative, Number::Plural, Gender::Feminine),
+        "ταῖς" | "ταις" => ctx(Case::Dative, Number::Plural, Gender::Feminine),
+        "τάς" | "τὰς" | "τας" => ctx(Case::Accusative, Number::Plural, Gender::Feminine),
 
         // Neuter - Case is ambiguous (Nominative or Accusative)
         // We do NOT set expected_case so we don't bias disambiguation incorrectly.
         // The assembler will eventually decide based on available slots,
         // or we rely on backtracking if an incorrect choice causes a conflict.
-        "τό" | "τὸ" | "το" => Some(DisambiguationContext {
-            expected_case: None,
-            expected_number: Some(Number::Singular),
-            expected_gender: Some(Gender::Neuter),
-            expected_person: None,
-        }),
-        "τά" | "τὰ" | "τα" => Some(DisambiguationContext {
-            expected_case: None,
-            expected_number: Some(Number::Plural),
-            expected_gender: Some(Gender::Neuter),
-            expected_person: None,
-        }),
+        "τό" | "τὸ" | "το" => ctx(None, Number::Singular, Gender::Neuter),
+        "τά" | "τὰ" | "τα" => ctx(None, Number::Plural, Gender::Neuter),
 
         _ => None,
     }

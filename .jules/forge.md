@@ -1,3 +1,3 @@
-**Refactored Cartographer's generate_map**
-**Learning:** Found a god object function > 100 lines handling struct rendering, trait rendering, dependencies, and implementations.
-**Action:** Created clear, small helpers (`format_structs`, `format_traits`, `format_dependencies`, `format_trait_impls`) and passed mutable states down.
+**[Clippy Refactoring]
+**Learning:** We need to keep our functions small and readable. `analyze_article` in `src/morphology/disambiguation.rs` is essentially a giant `match` block returning `Some(DisambiguationContext { ... })`. We can extract a helper function to create these contexts or use a macro to shorten the repetitive `Some(DisambiguationContext { ... })` initialization. Wait, the better way is a helper function `ctx(case, num, gender)`. Or even better, it's just a mapping. Let's create a helper function that returns the context.
+**Action:** Extract a helper function `ctx(case: Option<Case>, num: Option<Number>, gen: Option<Gender>) -> Option<DisambiguationContext>` to remove the boilerplate from `analyze_article` in `src/morphology/disambiguation.rs`.
