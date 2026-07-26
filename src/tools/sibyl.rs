@@ -110,6 +110,38 @@ fn generate_mock_value(g_type: &GlossaType) -> String {
 mod tests {
     use super::*;
 
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_run_sibyl_success() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("api.γλ");
+        fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος· ἡλικία ἀριθμοῦ. }.").unwrap();
+
+        let result = run_sibyl(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_sibyl_file_not_found() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("missing.γλ");
+
+        let result = run_sibyl(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_sibyl_parse_error() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("invalid.γλ");
+        fs::write(&input_path, "invalid syntax").unwrap();
+
+        let result = run_sibyl(&input_path);
+        assert!(result.is_err());
+    }
+
     #[test]
     fn test_generate_mock_value() {
         assert_eq!(generate_mock_value(&GlossaType::Number), "42");
