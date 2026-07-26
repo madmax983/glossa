@@ -34,3 +34,42 @@ fn test_huge_numeral_overflow_attempt() {
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), 90_000_000);
 }
+
+#[test]
+fn havoc_codegen_stack_overflow() {
+    if std::env::var("HAVOC_TRIGGER").is_ok() {
+        let mut expr = glossa::semantic::AnalyzedExpr {
+            expr: glossa::semantic::AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: glossa::semantic::GlossaType::Boolean,
+        };
+        for _ in 0..100000 {
+            expr = glossa::semantic::AnalyzedExpr {
+                expr: glossa::semantic::AnalyzedExprKind::UnaryOp {
+                    op: glossa::morphology::UnaryOp::Not,
+                    operand: Box::new(expr)
+                },
+                glossa_type: glossa::semantic::GlossaType::Boolean,
+            };
+        }
+        let ast = glossa::semantic::AnalyzedProgram {
+            statements: vec![glossa::semantic::AnalyzedStatement::Return {
+                value: Some(Box::new(expr)),
+            }],
+            scope: glossa::semantic::Scope::new(),
+        };
+        glossa::codegen::generate_rust(&ast);
+        return;
+    }
+
+    let exe = std::env::current_exe().unwrap();
+    let output = std::process::Command::new(exe)
+        .env("HAVOC_TRIGGER", "1")
+        .arg("--nocapture")
+        .arg("havoc_codegen_stack_overflow")
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success(), "Expected to crash");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("stack overflow"), "Expected stack overflow in stderr");
+}
