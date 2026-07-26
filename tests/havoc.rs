@@ -46,7 +46,7 @@ fn havoc_codegen_stack_overflow() {
             expr = glossa::semantic::AnalyzedExpr {
                 expr: glossa::semantic::AnalyzedExprKind::UnaryOp {
                     op: glossa::morphology::UnaryOp::Not,
-                    operand: Box::new(expr)
+                    operand: Box::new(expr),
                 },
                 glossa_type: glossa::semantic::GlossaType::Boolean,
             };
@@ -71,5 +71,8 @@ fn havoc_codegen_stack_overflow() {
 
     assert!(!output.status.success(), "Expected to crash");
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("stack overflow"), "Expected stack overflow in stderr");
+    assert!(
+        stderr.contains("stack overflow"),
+        "Expected stack overflow in stderr"
+    );
 }
