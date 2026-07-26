@@ -115,8 +115,14 @@ mod tests {
         assert_eq!(generate_mock_value(&GlossaType::Number), "42");
         assert_eq!(generate_mock_value(&GlossaType::String), "\"mock_string\"");
         assert_eq!(generate_mock_value(&GlossaType::Boolean), "true");
-        assert_eq!(generate_mock_value(&GlossaType::List(Box::new(GlossaType::Number))), "[]");
-        assert_eq!(generate_mock_value(&GlossaType::Option(Box::new(GlossaType::Number))), "42");
+        assert_eq!(
+            generate_mock_value(&GlossaType::List(Box::new(GlossaType::Number))),
+            "[]"
+        );
+        assert_eq!(
+            generate_mock_value(&GlossaType::Option(Box::new(GlossaType::Number))),
+            "42"
+        );
         assert_eq!(generate_mock_value(&GlossaType::Unknown), "null");
     }
 }
