@@ -12,3 +12,7 @@
 **[Optimizing recursive tree formatting]**
 **Learning:** When formatting a recursive enum representing a tree structure (like `GlossaType`), returning a new `String` at each level of recursion and combining them with `format!` causes many intermediate string allocations. A zero-cost abstraction passes a mutable reference `&mut String` buffer down the recursive stack and appends directly to it.
 **Action:** Replaced recursive `format!` calls in `tell_type` with a `write_tell_type(ty, buf: &mut String)` helper, and pre-allocated the top-level buffer with `String::with_capacity`.
+
+**[Clippy useless borrows in formatting]**
+**Learning:** Passing an explicit reference to `format!` (e.g. `format!("{}", &var)`) when the variable is already a reference or owned value triggers the `clippy::useless_borrows_in_formatting` lint.
+**Action:** Removed redundant `&` from `format!` macro arguments in `src/semantic/conversion.rs`.
