@@ -20,3 +20,6 @@
 **Tangle:** Several modules under `src/tools/` (specifically `cache`, `report`, and `ui`) and `src/semantic/assembly/` (`model`) were exposed as `pub mod`, breaking encapsulation by exposing internal implementation details to the public API.
 **Blueprint:** Modified `src/tools/mod.rs` and `src/semantic/assembly/mod.rs` to restrict these modules with `pub(crate) mod`.
 **Stability:** Achieved higher cohesion by keeping the public API surface minimal and ensuring internal structures don't leak out of their intended domains.
+## [Module Visibility Encapsulation]
+**Tangle:** Several modules under `src/semantic` were marked as `pub mod`, leaking the internal implementation details of the Semantic AST and analysis phases to users.
+**Blueprint:** Modified `src/semantic/mod.rs` to restrict these modules with `pub(crate) mod` while retaining specific `pub use` statements for the public API surface.

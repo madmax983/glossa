@@ -160,7 +160,7 @@ pub use model::*;
 /// # Examples
 ///
 /// ```rust
-/// use glossa::semantic::assembly::Assembler;
+/// use glossa::semantic::Assembler;
 /// let mut asm = Assembler::new();
 /// // Then feed analysis and finalise statement
 /// ```
