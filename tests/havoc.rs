@@ -2,6 +2,7 @@
 use glossa::parser::parse;
 use glossa::parser::parse_greek_numeral;
 use proptest::prelude::*;
+use std::process::Command;
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
@@ -33,4 +34,47 @@ fn test_huge_numeral_overflow_attempt() {
     let res = parse_greek_numeral(&huge_string);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), 90_000_000);
+}
+
+#[test]
+fn havoc_codegen_stack_overflow() {
+    if std::env::var("HAVOC_TRIGGER").is_ok() {
+        let mut expr = glossa::semantic::AnalyzedExpr {
+            expr: glossa::semantic::AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: glossa::semantic::GlossaType::Boolean,
+        };
+        for _ in 0..100000 {
+            expr = glossa::semantic::AnalyzedExpr {
+                expr: glossa::semantic::AnalyzedExprKind::UnaryOp {
+                    op: glossa::morphology::UnaryOp::Not,
+                    operand: Box::new(expr),
+                },
+                glossa_type: glossa::semantic::GlossaType::Boolean,
+            };
+        }
+        let ast = glossa::semantic::AnalyzedProgram {
+            statements: vec![glossa::semantic::AnalyzedStatement::Return {
+                value: Some(Box::new(expr)),
+            }],
+            scope: glossa::semantic::Scope::new(),
+        };
+        glossa::codegen::generate_rust(&ast);
+        return;
+    }
+
+    let exe = std::env::current_exe().unwrap();
+    let output = Command::new(exe)
+        .env("HAVOC_TRIGGER", "1")
+        .arg("--nocapture")
+        .arg("havoc_codegen_stack_overflow")
+        .output()
+        .unwrap();
+
+    // The test SUCCEEDS if the subprocess CRASHED (stack overflow)
+    // The "Red Phase" of Havoc requires writing a test that fails.
+    // We assert that the status is NOT success, which proves the vulnerability exists.
+    assert!(
+        !output.status.success(),
+        "Subprocess should have crashed due to stack overflow!"
+    );
 }
