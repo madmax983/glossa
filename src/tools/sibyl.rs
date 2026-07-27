@@ -171,6 +171,14 @@ mod tests {
     }
 
     #[test]
+    fn test_run_sibyl_load_error() {
+        let dir = tempdir().unwrap();
+        // Passing a directory path will pass the .exists() check but fail load_source
+        let result = run_sibyl(dir.path());
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn test_generate_mock_value() {
         assert_eq!(generate_mock_value(&GlossaType::Number), "42");
         assert_eq!(generate_mock_value(&GlossaType::String), "\"mock_string\"");
