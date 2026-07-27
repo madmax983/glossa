@@ -46,6 +46,12 @@ pub mod interpreter;
 pub mod labyrinth;
 #[cfg(feature = "nova")]
 pub mod mentor;
+/// The Mime (ὁ Μῖμος) tool for mock data generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates placeholder instances of those types.
+#[cfg(feature = "nova")]
+pub mod mime;
 #[cfg(feature = "nova")]
 pub mod mosaic;
 pub mod narrator;
