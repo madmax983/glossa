@@ -186,6 +186,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate mock data instances for all structs in a .γλ file (Requires "nova" feature)
+    Mime {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Transpile a .γλ file to SQL CREATE TABLE schema (Requires "nova" feature)
     Papyrus {
         /// Input file (.γλ)
