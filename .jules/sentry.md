@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Codegen Sub/Mul/Rem Panic Messages Coverage]**
+**Learning:** Found coverage gaps in `generate_bin_op` for runtime panics concerning `checked_sub`, `checked_mul` and `checked_rem` operations on numbers. When asserting against runtime panics in codegen integration tests, the translated Greek panic message (e.g., 'Ὑπερχείλισις ἀριθμοῦ' or 'Διαίρεσις') may be logged to stdout/stderr in addition to the standard English message depending on localization flags.
+**Action:** Wrote explicit codegen integration tests `test_codegen_runtime_sub_overflow_panic`, `test_codegen_runtime_mul_overflow_panic`, and `test_codegen_runtime_rem_by_zero_panic` in `tests/sentry_codegen_perf.rs`. Relaxed assertions for checking panics by providing logical OR alternatives encompassing both standard English and translated Greek string representations.
