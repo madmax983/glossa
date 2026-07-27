@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate mock JSON data from types (Requires "nova" feature)
+    Sibyl {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
