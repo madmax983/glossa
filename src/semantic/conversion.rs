@@ -502,14 +502,14 @@ fn classify_assignment(
 
     let var_name = subject.normalized.clone();
 
-    match scope.lookup_binding(&var_name) {
+    match scope.lookup_binding(var_name.as_str()) {
         None => Err(GlossaError::semantic(format!(
             "Τὸ «{}» οὐχ ὡρίσθη — πρῶτον ὅρισον αὐτό",
             var_name
         ))),
         Some(b) if !b.mutable => Err(GlossaError::semantic(format!(
             "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
-            &var_name
+            var_name
         ))),
         Some(_) => {
             let has_value = !asm_stmt.literals.is_empty()
@@ -528,7 +528,7 @@ fn classify_assignment(
             }
 
             let (value_expr, _) = extract_value(asm_stmt, scope)?;
-            scope.mark_used(&var_name);
+            scope.mark_used(var_name.as_str());
             Ok(Some(AnalyzedStatement::Assignment {
                 name: var_name.clone(),
                 value: value_expr,
