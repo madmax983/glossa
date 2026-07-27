@@ -88,3 +88,28 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_mock_value_collections() {
+        assert_eq!(
+            generate_mock_value(&GlossaType::List(Box::new(GlossaType::Number))),
+            "[42]"
+        );
+        assert_eq!(
+            generate_mock_value(&GlossaType::Set(Box::new(GlossaType::String))),
+            "[«Δοκιμή»]"
+        );
+        assert_eq!(
+            generate_mock_value(&GlossaType::Map(
+                Box::new(GlossaType::String),
+                Box::new(GlossaType::Number)
+            )),
+            "[«Δοκιμή» : 42]"
+        );
+        assert_eq!(generate_mock_value(&GlossaType::Unknown), "«Ἄγνωστον»");
+    }
+}
