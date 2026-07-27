@@ -545,7 +545,9 @@ fn test_codegen_runtime_sub_overflow_panic() {
     assert!(!output.status.success(), "Executable should have panicked");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("arithmetic overflow") || stderr.contains("Arithmetic overflow") || stderr.contains("Ὑπερχείλισις ἀριθμοῦ"),
+        stderr.contains("arithmetic overflow")
+            || stderr.contains("Arithmetic overflow")
+            || stderr.contains("Ὑπερχείλισις ἀριθμοῦ"),
         "Missing panic message: {}",
         stderr
     );
@@ -606,7 +608,9 @@ fn test_codegen_runtime_mul_overflow_panic() {
     assert!(!output.status.success(), "Executable should have panicked");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("arithmetic overflow") || stderr.contains("Arithmetic overflow") || stderr.contains("Ὑπερχείλισις ἀριθμοῦ"),
+        stderr.contains("arithmetic overflow")
+            || stderr.contains("Arithmetic overflow")
+            || stderr.contains("Ὑπερχείλισις ἀριθμοῦ"),
         "Missing panic message: {}",
         stderr
     );
@@ -667,7 +671,9 @@ fn test_codegen_runtime_rem_by_zero_panic() {
     assert!(!output.status.success(), "Executable should have panicked");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("division by zero or overflow") || stderr.contains("Division by zero") || stderr.contains("Διαίρεσις"),
+        stderr.contains("division by zero or overflow")
+            || stderr.contains("Division by zero")
+            || stderr.contains("Διαίρεσις"),
         "Missing panic message: {}",
         stderr
     );
