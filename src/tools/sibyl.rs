@@ -117,7 +117,11 @@ mod tests {
     fn test_run_sibyl_success() {
         let dir = tempdir().unwrap();
         let input_path = dir.path().join("api.γλ");
-        fs::write(&input_path, "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος· ἡλικία ἀριθμοῦ. }.").unwrap();
+        fs::write(
+            &input_path,
+            "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος· ἡλικία ἀριθμοῦ. }.",
+        )
+        .unwrap();
 
         let result = run_sibyl(&input_path);
         assert!(result.is_ok());
@@ -140,6 +144,30 @@ mod tests {
 
         let result = run_sibyl(&input_path);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_sibyl_multiple_types() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("multiple.γλ");
+        fs::write(
+            &input_path,
+            "εἶδος σημεῖον ὁρίζειν { ξ ἀριθμοῦ. }. εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος· ἡλικία ἀριθμοῦ. }.",
+        )
+        .unwrap();
+
+        let result = run_sibyl(&input_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_sibyl_empty_type() {
+        let dir = tempdir().unwrap();
+        let input_path = dir.path().join("empty.γλ");
+        fs::write(&input_path, "εἶδος μονάς ὁρίζειν { }.").unwrap();
+
+        let result = run_sibyl(&input_path);
+        assert!(result.is_ok());
     }
 
     #[test]
