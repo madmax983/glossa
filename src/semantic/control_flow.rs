@@ -863,6 +863,43 @@ mod tests {
         let err = parse_match_pattern(&word_undef, &mut scope);
         assert!(err.is_err());
 
+        // Word with wildcard "ἄλλο"
+        let word_wildcard = Expr::Word(Word::new("ἄλλο"));
+        let res = parse_match_pattern(&word_wildcard, &mut scope).unwrap();
+        if let AnalyzedExprKind::BooleanLiteral(b) = res.expr {
+            assert!(b);
+        } else {
+            panic!("Expected boolean literal");
+        }
+
+        // Word with numeral "δύο"
+        let word_numeral = Expr::Word(Word::new("δύο"));
+        let res = parse_match_pattern(&word_numeral, &mut scope).unwrap();
+        if let AnalyzedExprKind::NumberLiteral(n) = res.expr {
+            assert_eq!(n, 2);
+        } else {
+            panic!("Expected number literal");
+        }
+
+        // Word with defined variable
+        scope.define("ξ".to_string(), GlossaType::Number);
+        let word_var = Expr::Word(Word::new("ξ"));
+        let res = parse_match_pattern(&word_var, &mut scope).unwrap();
+        if let AnalyzedExprKind::Variable(v) = res.expr {
+            assert_eq!(v, "ξ");
+        } else {
+            panic!("Expected variable");
+        }
+
+        // Phrase with defined variable
+        let phrase_var = Expr::Phrase(vec![Expr::Word(Word::new("ξ"))]);
+        let res = parse_match_pattern(&phrase_var, &mut scope).unwrap();
+        if let AnalyzedExprKind::Variable(v) = res.expr {
+            assert_eq!(v, "ξ");
+        } else {
+            panic!("Expected variable");
+        }
+
         // Phrase with boolean literal at the beginning
         let phrase_bool = Expr::Phrase(vec![Expr::BooleanLiteral(true)]);
         let err = parse_match_pattern(&phrase_bool, &mut scope);

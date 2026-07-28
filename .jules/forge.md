@@ -4,3 +4,6 @@
 **Refactored parse_match_pattern**
 **Learning:** Found exact duplicated code handling wildcard, numeral, and variable resolution in both Phrase and Word match arms of `parse_match_pattern`.
 **Action:** Extracted the logic into a named helper function `analyze_match_word`.
+**Refactored string format reference**
+**Learning:** Found redundant reference in `format!` argument: `format!("...", &var_name)`.
+**Action:** Removed redundant `&` to directly pass `var_name` to avoid clippy warning.
