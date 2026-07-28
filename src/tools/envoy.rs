@@ -113,5 +113,32 @@ mod tests {
             glossa_type_to_proto(&GlossaType::List(Box::new(GlossaType::Number))),
             "repeated int64"
         );
+        assert_eq!(
+            glossa_type_to_proto(&GlossaType::Set(Box::new(GlossaType::String))),
+            "repeated string"
+        );
+        assert_eq!(
+            glossa_type_to_proto(&GlossaType::Map(
+                Box::new(GlossaType::String),
+                Box::new(GlossaType::Number)
+            )),
+            "map<string, int64>"
+        );
+        assert_eq!(
+            glossa_type_to_proto(&GlossaType::Option(Box::new(GlossaType::Boolean))),
+            "optional bool"
+        );
+        assert_eq!(
+            glossa_type_to_proto(&GlossaType::Struct {
+                name: "Χρήστης".into(),
+                gender: crate::morphology::Gender::Masculine,
+                fields: vec![]
+            }),
+            "Χρήστης"
+        );
+        assert_eq!(
+            glossa_type_to_proto(&GlossaType::Unknown),
+            "google.protobuf.Any"
+        );
     }
 }

@@ -9,10 +9,8 @@ fn test_run_envoy_success() {
     let dir = tempdir().unwrap();
     let file_path = dir.path().join("schema.γλ");
     let mut file = std::fs::File::create(&file_path).unwrap();
-    file.write_all(
-        "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }.".as_bytes(),
-    )
-    .unwrap();
+    file.write_all("εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. ἡλικία ἀριθμοῦ. }.".as_bytes())
+        .unwrap();
 
     let result = run_envoy(&file_path);
     assert!(result.is_ok());
@@ -22,7 +20,12 @@ fn test_run_envoy_success() {
 fn test_run_envoy_file_not_found() {
     let result = run_envoy(std::path::Path::new("non_existent_file.γλ"));
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Ἀρχεῖον οὐχ εὑρέθη"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Ἀρχεῖον οὐχ εὑρέθη")
+    );
 }
 
 #[test]
