@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Envoy (ὁ Ἄγγελος)
+**Concept:** A CLI tool (`glossa envoy`) that transpiles Glossa type definitions (`εἶδος`) directly to Protocol Buffer (`proto3`) schemas.
+**Fate:** Merged
+**Lesson:** Iterating over the `AnalyzedStatement::TypeDefinition` within the semantic AST and mapping `GlossaType` variants provides a simple, direct bridge for inter-system communication using standard formats like Protobuf.
