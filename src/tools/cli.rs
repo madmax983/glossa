@@ -104,6 +104,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Transpile a .γλ file to Protobuf schema (Requires "nova" feature)
+    Envoy {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Generate a language metrics dashboard
     Report {
         /// Input file (.γλ)

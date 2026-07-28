@@ -35,6 +35,12 @@ pub mod dictionary;
 /// The Haruspex (ὁ Ἱεροσκόπος) tool for visualizing the Semantic AST.
 ///
 /// This experimental tool exports the analyzed program as a Graphviz DOT diagram.
+/// The Envoy (ὁ Ἄγγελος) tool for Protobuf schema generation.
+///
+/// This experimental tool reads Glossa type definitions and automatically
+/// generates corresponding Protocol Buffer `message` definitions.
+#[cfg(feature = "nova")]
+pub mod envoy;
 #[cfg(feature = "nova")]
 pub mod gnomon;
 #[cfg(feature = "nova")]
