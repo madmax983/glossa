@@ -194,15 +194,13 @@ fn format_exprs(exprs: &[AnalyzedExpr]) -> String {
     buf
 }
 
-fn format_types(types: &[GlossaType]) -> String {
-    let mut buf = String::with_capacity(types.len() * 16);
+fn format_types_into(types: &[GlossaType], buf: &mut String) {
     for (i, ty) in types.iter().enumerate() {
         if i > 0 {
             buf.push_str(", ");
         }
-        buf.push_str(&tell_type(ty));
+        tell_type_into(ty, buf);
     }
-    buf
 }
 
 fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
@@ -564,21 +562,54 @@ fn tell_lambda(
 /// (e.g., `Number`, `[Type]`) to help developers map the Greek concepts to
 /// concepts they already understand.
 fn tell_type(ty: &GlossaType) -> String {
+    let mut buf = String::with_capacity(32);
+    tell_type_into(ty, &mut buf);
+    buf
+}
+
+fn tell_type_into(ty: &GlossaType, buf: &mut String) {
     match ty {
-        GlossaType::Number => "Number".to_string(),
-        GlossaType::String => "String".to_string(),
-        GlossaType::Boolean => "Bool".to_string(),
-        GlossaType::List(inner) => format!("[{}]", tell_type(inner)),
-        GlossaType::Set(inner) => format!("Set<{}>", tell_type(inner)),
-        GlossaType::Map(k, v) => format!("Map<{}, {}>", tell_type(k), tell_type(v)),
-        GlossaType::Option(inner) => format!("Option<{}>", tell_type(inner)),
-        GlossaType::Result(ok, err) => format!("Result<{}, {}>", tell_type(ok), tell_type(err)),
-        GlossaType::Struct { name, .. } => name.to_string(),
-        GlossaType::Function { params, returns } => {
-            format!("Fn({}) -> {}", format_types(params), tell_type(returns))
+        GlossaType::Number => buf.push_str("Number"),
+        GlossaType::String => buf.push_str("String"),
+        GlossaType::Boolean => buf.push_str("Bool"),
+        GlossaType::List(inner) => {
+            buf.push('[');
+            tell_type_into(inner, buf);
+            buf.push(']');
         }
-        GlossaType::Unit => "()".to_string(),
-        GlossaType::Unknown => "?".to_string(),
+        GlossaType::Set(inner) => {
+            buf.push_str("Set<");
+            tell_type_into(inner, buf);
+            buf.push('>');
+        }
+        GlossaType::Map(k, v) => {
+            buf.push_str("Map<");
+            tell_type_into(k, buf);
+            buf.push_str(", ");
+            tell_type_into(v, buf);
+            buf.push('>');
+        }
+        GlossaType::Option(inner) => {
+            buf.push_str("Option<");
+            tell_type_into(inner, buf);
+            buf.push('>');
+        }
+        GlossaType::Result(ok, err) => {
+            buf.push_str("Result<");
+            tell_type_into(ok, buf);
+            buf.push_str(", ");
+            tell_type_into(err, buf);
+            buf.push('>');
+        }
+        GlossaType::Struct { name, .. } => buf.push_str(name),
+        GlossaType::Function { params, returns } => {
+            buf.push_str("Fn(");
+            format_types_into(params, buf);
+            buf.push_str(") -> ");
+            tell_type_into(returns, buf);
+        }
+        GlossaType::Unit => buf.push_str("()"),
+        GlossaType::Unknown => buf.push('?'),
     }
 }
 
@@ -747,6 +778,17 @@ mod tests {
             let formatted = tell_expr(&expr);
             assert!(!formatted.is_empty());
         }
+    }
+
+    #[test]
+    fn test_tell_type_complex() {
+        use crate::semantic::GlossaType;
+        let ty = GlossaType::Result(
+            Box::new(GlossaType::Number),
+            Box::new(GlossaType::String),
+        );
+        let formatted = tell_type(&ty);
+        assert_eq!(formatted, "Result<Number, String>");
     }
 
     #[test]
