@@ -8,3 +8,5 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+**Narrator Performance Optimization**\n**Learning:** In Rust, using `.push_str()` with a single-character string literal (e.g., `buf.push_str("?")`) triggers a clippy warning (`clippy::single_char_add_str`).\n**Action:** Use `.push()` with a character literal (e.g., `buf.push('?')`) instead to avoid this when refactoring to use a mutable `String` buffer for performance optimizations.
+**Narrator Performance Optimization**\n**Learning:** In Rust, `cargo fmt --all` will enforce max width and wrap long lines into one when they are short enough, so formatting is required before PR.\n**Action:** Run `cargo fmt --all` before submitting.
