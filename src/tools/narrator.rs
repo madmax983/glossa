@@ -783,10 +783,7 @@ mod tests {
     #[test]
     fn test_tell_type_complex() {
         use crate::semantic::GlossaType;
-        let ty = GlossaType::Result(
-            Box::new(GlossaType::Number),
-            Box::new(GlossaType::String),
-        );
+        let ty = GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String));
         let formatted = tell_type(&ty);
         assert_eq!(formatted, "Result<Number, String>");
     }
