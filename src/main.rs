@@ -70,7 +70,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
+                let _ = &input;
                 miette::bail!(
                     "The 'mosaic' command is experimental. Recompile glossa with '--features nova' to enable it."
                 );
@@ -83,7 +83,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
+                let _ = &input;
                 miette::bail!(
                     "The 'map' command is experimental. Recompile glossa with '--features nova' to enable it."
                 );
@@ -96,7 +96,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
+                let _ = &input;
                 miette::bail!(
                     "The 'labyrinth' command is experimental. Recompile glossa with '--features nova' to enable it."
                 );
@@ -109,7 +109,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
+                let _ = &input;
                 miette::bail!(
                     "The 'weave' command is experimental. Recompile glossa with '--features nova' to enable it."
                 );
@@ -122,7 +122,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
+                let _ = &input;
                 miette::bail!(
                     "The 'alchemist' command is experimental. Recompile glossa with '--features nova' to enable it."
                 );
@@ -135,7 +135,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
+                let _ = &input;
                 miette::bail!(
                     "The 'papyrus' command is experimental. Recompile glossa with '--features nova' to enable it."
                 );
@@ -148,7 +148,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
+                let _ = &input;
                 miette::bail!(
                     "The 'haruspex' command is experimental. Recompile glossa with '--features nova' to enable it."
                 );
@@ -161,7 +161,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
+                let _ = &input;
                 miette::bail!(
                     "The 'audit' command is experimental. Recompile glossa with '--features nova' to enable it."
                 );
@@ -178,9 +178,9 @@ fn main() -> Result<()> {
             );
         }
 
-        Some(Commands::Gnomon { input }) => {
+        Some(Commands::Gnomon { input: _input }) => {
             #[cfg(feature = "nova")]
-            glossa::tools::gnomon::run_gnomon(&input)?;
+            glossa::tools::gnomon::run_gnomon(&_input)?;
 
             #[cfg(not(feature = "nova"))]
             miette::bail!(
@@ -194,7 +194,7 @@ fn main() -> Result<()> {
 
             #[cfg(not(feature = "nova"))]
             {
-                let _ = input;
+                let _ = &input;
                 miette::bail!(
                     "The 'scholar' command is experimental. Recompile glossa with '--features nova' to enable it."
                 );

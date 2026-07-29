@@ -1,0 +1,19 @@
+⚒️ Forge: Refactor "God Functions" in Report, Tester, and Disambiguation
+
+🚮 Smell:
+- `print_test_results` in `src/tools/tester.rs` was massive and handled everything from setting up the summary to failures formatting.
+- `analyze_article` in `src/morphology/disambiguation.rs` had dozens of lines of repetitive boilerplate to build contexts.
+- `fmt` in `src/tools/report.rs` mixed structural table creation and function extraction into one massive block.
+
+✨ Solution:
+- Extracted smaller functions out of the massive `fmt` block in report.rs.
+- Split up `print_test_results` in tester.rs into separate functions.
+- Used an inline lambda to reduce `DisambiguationContext` instantiations in disambiguation.rs.
+- Resolved unused variable warnings in `src/main.rs`.
+
+🧼 Benefit:
+- Reduces cognitive load, keeps functions strictly within smaller sizes.
+- Prevents "God Objects" and limits file size inflation.
+- Removes unused variable compiler warnings.
+
+🛡️ Verification: Tests passed. No logic changed.
