@@ -68,18 +68,19 @@ fn print_dashboard(dot: &str, is_tty: bool) {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
         table.set_header(vec![
-            Cell::new("Metric").add_attribute(Attribute::Bold).fg(Color::Cyan),
-            Cell::new("Value").add_attribute(Attribute::Bold).fg(Color::Cyan),
+            Cell::new("Metric")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+            Cell::new("Value")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
         ]);
 
         table.add_row(vec![
             Cell::new("Nodes"),
             Cell::new(actual_nodes.to_string()),
         ]);
-        table.add_row(vec![
-            Cell::new("Edges"),
-            Cell::new(edges.to_string()),
-        ]);
+        table.add_row(vec![Cell::new("Edges"), Cell::new(edges.to_string())]);
 
         println!("{table}");
         println!();
