@@ -631,6 +631,56 @@ failures:
     }
 
     #[test]
+    fn test_print_tester_helpers() {
+        let results = vec![
+            TestResult {
+                name: "test1".to_string(),
+                status: TestStatus::Ok,
+            },
+            TestResult {
+                name: "test2".to_string(),
+                status: TestStatus::Failed,
+            },
+        ];
+
+        print_tester_header();
+        print_tester_summary(&results, false);
+        print_tester_table(&results);
+
+        use std::process::Output;
+        use std::os::unix::process::ExitStatusExt;
+
+        let output = Output {
+            status: std::process::ExitStatus::from_raw(1),
+            stdout: b"failures:
+
+---- test2 stdout ----
+panicked
+
+failures:
+    test2
+".to_vec(),
+            stderr: Vec::new(),
+        };
+        print_tester_failures(&output, std::str::from_utf8(&output.stdout).unwrap());
+    }
+
+    #[test]
+
+    #[test]
+    fn test_print_tester_helpers_fallback() {
+        use std::process::Output;
+        use std::os::unix::process::ExitStatusExt;
+
+        let output = Output {
+            status: std::process::ExitStatus::from_raw(1),
+            stdout: b"fallback_test".to_vec(),
+            stderr: b"stderr_panic".to_vec(),
+        };
+        print_tester_failures(&output, "fallback_test");
+    }
+
+    #[test]
     fn test_extract_failures_edge_cases() {
         struct TestCase {
             name: &'static str,
