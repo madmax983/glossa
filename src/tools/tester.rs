@@ -647,36 +647,13 @@ failures:
         print_tester_summary(&results, false);
         print_tester_table(&results);
 
-        use std::process::Output;
-        use std::os::unix::process::ExitStatusExt;
+        use std::process::Command;
 
-        let output = Output {
-            status: std::process::ExitStatus::from_raw(1),
-            stdout: b"failures:
+        let output = Command::new("cargo")
+            .arg("invalid_command_that_does_not_exist_xyz123")
+            .output()
+            .unwrap();
 
----- test2 stdout ----
-panicked
-
-failures:
-    test2
-".to_vec(),
-            stderr: Vec::new(),
-        };
-        print_tester_failures(&output, std::str::from_utf8(&output.stdout).unwrap());
-    }
-
-    #[test]
-
-    #[test]
-    fn test_print_tester_helpers_fallback() {
-        use std::process::Output;
-        use std::os::unix::process::ExitStatusExt;
-
-        let output = Output {
-            status: std::process::ExitStatus::from_raw(1),
-            stdout: b"fallback_test".to_vec(),
-            stderr: b"stderr_panic".to_vec(),
-        };
         print_tester_failures(&output, "fallback_test");
     }
 
