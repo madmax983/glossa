@@ -297,6 +297,14 @@ impl<'a> GlossaReport<'a> {
 
 impl Display for GlossaReport<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.format_metrics_table(f)?;
+        self.format_functions_table(f)?;
+        Ok(())
+    }
+}
+
+impl GlossaReport<'_> {
+    fn format_metrics_table(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL).set_header(vec![
             Cell::new("Μετρική (Metric)")
@@ -356,42 +364,47 @@ impl Display for GlossaReport<'_> {
         writeln!(f)?;
         writeln!(f, "{}", table)?;
 
-        // If there are top-level functions, list them
+        Ok(())
+    }
+
+    fn format_functions_table(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut functions = self.program.scope.functions().peekable();
-        if functions.peek().is_some() {
-            writeln!(f, "\n{}", "ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)".bold())?;
-            let mut func_table = Table::new();
-            func_table.load_preset(presets::UTF8_FULL).set_header(vec![
-                "Ὄνομα (Name)",
-                "Παράμετροι (Params)",
-                "Επιστροφή (Returns)",
-            ]);
-
-            for func in functions {
-                // ⚡ Bolt Optimization: Build the formatted string directly to avoid the O(n) heap allocation
-                // of the intermediate Vec<_> created by .collect::<Vec<_>>().join(", ").
-                let mut params = String::with_capacity(func.param_types.len() * 8);
-                for (i, t) in func.param_types.iter().enumerate() {
-                    if i > 0 {
-                        params.push_str(", ");
-                    }
-                    params.push_str(&t.to_string());
-                }
-
-                let ret = func
-                    .return_type
-                    .as_ref()
-                    .map(|t| t.to_string())
-                    .unwrap_or_else(|| "Οὐδέν".to_string());
-
-                func_table.add_row(vec![
-                    Cell::new(&func.name).fg(Color::Cyan),
-                    Cell::new(if params.is_empty() { "-" } else { &params }),
-                    Cell::new(ret).fg(Color::Yellow),
-                ]);
-            }
-            writeln!(f, "{}", func_table)?;
+        if functions.peek().is_none() {
+            return Ok(());
         }
+
+        writeln!(f, "\n{}", "ΣΥΝΑΡΤΗΣΕΙΣ (FUNCTIONS)".bold())?;
+        let mut func_table = Table::new();
+        func_table.load_preset(presets::UTF8_FULL).set_header(vec![
+            "Ὄνομα (Name)",
+            "Παράμετροι (Params)",
+            "Επιστροφή (Returns)",
+        ]);
+
+        for func in functions {
+            // ⚡ Bolt Optimization: Build the formatted string directly to avoid the O(n) heap allocation
+            // of the intermediate Vec<_> created by .collect::<Vec<_>>().join(", ").
+            let mut params = String::with_capacity(func.param_types.len() * 8);
+            for (i, t) in func.param_types.iter().enumerate() {
+                if i > 0 {
+                    params.push_str(", ");
+                }
+                params.push_str(&t.to_string());
+            }
+
+            let ret = func
+                .return_type
+                .as_ref()
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "Οὐδέν".to_string());
+
+            func_table.add_row(vec![
+                Cell::new(&func.name).fg(Color::Cyan),
+                Cell::new(if params.is_empty() { "-" } else { &params }),
+                Cell::new(ret).fg(Color::Yellow),
+            ]);
+        }
+        writeln!(f, "{}", func_table)?;
 
         Ok(())
     }
