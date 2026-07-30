@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Simulator (ὁ Μιμητής)
+**Concept:** A CLI tool (`glossa simulate`) that bypasses `rustc` compilation and executes `.γλ` files directly using the internal interpreter.
+**Fate:** Merged
+**Lesson:** Repurposing the REPL's internal interpreter for one-shot file execution is an easy win for fast debugging and testing. It shows the value of having a self-contained runtime within the compiler infrastructure.

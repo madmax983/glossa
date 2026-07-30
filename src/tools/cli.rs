@@ -180,6 +180,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Simulate execution using the internal interpreter (Requires "nova" feature)
+    Simulate {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Transpile a .γλ file to Python (Requires "nova" feature)
     Alchemist {
         /// Input file (.γλ)
