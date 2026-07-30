@@ -101,7 +101,10 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
                 Err(e) => {
                     table.add_row(vec![
                         Cell::new(i + 1),
-                        Cell::new(format!("Error: {}", e)).fg(Color::Red),
+                        Cell::new(format!(" ✕ Error: {} ", e))
+                            .bg(Color::DarkRed)
+                            .fg(Color::White)
+                            .add_attribute(Attribute::Bold),
                         Cell::new(""),
                         Cell::new(""),
                         Cell::new(""),
