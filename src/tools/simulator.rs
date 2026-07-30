@@ -74,7 +74,6 @@ mod tests {
 mod coverage_tests {
     use super::*;
 
-
     #[test]
     fn test_run_simulator_file_error() {
         let path = Path::new("non_existent_file_simulator.γλ");
