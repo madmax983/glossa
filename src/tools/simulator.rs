@@ -69,3 +69,36 @@ mod tests {
         assert!(result.is_ok());
     }
 }
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+
+
+    #[test]
+    fn test_run_simulator_file_error() {
+        let path = Path::new("non_existent_file_simulator.γλ");
+        let result = run_simulator(path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_simulator_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("parse_error.γλ");
+        std::fs::write(&input_path, b"invalid syntax").unwrap();
+
+        let result = run_simulator(&input_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_simulator_runtime_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("runtime_error.γλ");
+        std::fs::write(&input_path, "1 0 μέρος λέγε.").unwrap(); // division by zero
+
+        let result = run_simulator(&input_path);
+        assert!(result.is_err());
+    }
+}
