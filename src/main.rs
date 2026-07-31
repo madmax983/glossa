@@ -142,19 +142,6 @@ fn main() -> Result<()> {
             }
         }
 
-        Some(Commands::Proxenos { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::proxenos::run_proxenos(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'proxenos' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
-        }
-
         Some(Commands::Haruspex { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::haruspex::run_haruspex(&input)?;
