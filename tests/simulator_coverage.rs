@@ -74,3 +74,51 @@ fn test_run_simulator_multiple_errors() {
     let result = run_simulator(&input_path);
     assert!(result.is_err());
 }
+
+#[test]
+fn test_run_simulator_semantic_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let input_path = dir.path().join("semantic_error.γλ");
+    // Assigning to an undefined variable should cause a semantic error
+    std::fs::write(&input_path, "ψ 10 γίγνεται.\n").unwrap();
+
+    let result = run_simulator(&input_path);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_simulator_semantic_error_early_return() {
+    let dir = tempfile::tempdir().unwrap();
+    let input_path = dir.path().join("semantic_error_early.γλ");
+    // Some completely invalid syntax that fails parse
+    std::fs::write(&input_path, "1 0 μέρος λέγε. \n ψ 10 γίγνεται.\n").unwrap();
+
+    let result = run_simulator(&input_path);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_simulator_multiple_errors_second_fails() {
+    let dir = tempfile::tempdir().unwrap();
+    let input_path = dir.path().join("multiple_errors2.γλ");
+    // Assigning to something valid first, then something invalid
+    std::fs::write(&input_path, "ξ 5 ἔστω.\n1 0 μέρος λέγε.\n").unwrap(); // division by zero
+
+    let result = run_simulator(&input_path);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_simulator_large_script() {
+    let dir = tempfile::tempdir().unwrap();
+    let input_path = dir.path().join("large_script.γλ");
+    // Just evaluate an expression statement, which shouldn't print anything
+    std::fs::write(
+        &input_path,
+        "ξ 5 ἔστω.\n1 2 ἄθροισμα λέγε.\n«κόσμε» λέγε.\n",
+    )
+    .unwrap();
+
+    let result = run_simulator(&input_path);
+    assert!(result.is_ok());
+}
