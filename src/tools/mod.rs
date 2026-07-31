@@ -55,6 +55,12 @@ pub mod narrator;
 /// generates corresponding SQL `CREATE TABLE` statements.
 #[cfg(feature = "nova")]
 pub mod papyrus;
+/// The Proxenos (ὁ Πρόξενος) tool for TypeScript interface generation.
+///
+/// This experimental tool translates Glossa struct definitions (`εἶδος`)
+/// into TypeScript `export interface` statements.
+#[cfg(feature = "nova")]
+pub mod proxenos;
 pub mod repl;
 pub(crate) mod report;
 /// The engine room for executing and building Glossa programs
