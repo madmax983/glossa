@@ -185,24 +185,28 @@ fn add_assignment(table: &mut Table, prefix: &str, name: &str, value: &AnalyzedE
 
 fn format_exprs(exprs: &[AnalyzedExpr]) -> String {
     let mut buf = String::with_capacity(exprs.len() * 16);
-    for (i, expr) in exprs.iter().enumerate() {
-        if i > 0 {
-            buf.push_str(", ");
-        }
-        buf.push_str(&tell_expr(expr));
-    }
+    let _ = write_format_exprs(exprs, &mut buf);
     buf
 }
 
-fn format_types(types: &[GlossaType]) -> String {
-    let mut buf = String::with_capacity(types.len() * 16);
+fn write_format_exprs(exprs: &[AnalyzedExpr], out: &mut String) -> std::fmt::Result {
+    for (i, expr) in exprs.iter().enumerate() {
+        if i > 0 {
+            out.push_str(", ");
+        }
+        write_tell_expr(expr, out)?;
+    }
+    Ok(())
+}
+
+fn write_format_types(types: &[GlossaType], out: &mut String) -> std::fmt::Result {
     for (i, ty) in types.iter().enumerate() {
         if i > 0 {
-            buf.push_str(", ");
+            out.push_str(", ");
         }
-        buf.push_str(&tell_type(ty));
+        write_tell_type(ty, out)?;
     }
-    buf
+    Ok(())
 }
 
 fn add_print(table: &mut Table, prefix: &str, exprs: &[AnalyzedExpr]) {
@@ -452,18 +456,35 @@ fn add_test_decl(
 /// into linear, human-readable strings. Unlike a standard `Debug` representation
 /// which outputs nested structs, this formats operations in a pseudo-code style
 /// that is immediately recognizable to developers.
+/// ⚡ Bolt Optimization: Uses a single pre-allocated String buffer and `std::fmt::Write`
+/// instead of recursive `format!` calls. This eliminates O(N) intermediate heap allocations
+/// when traversing and formatting the AST tree.
 pub(crate) fn tell_expr(expr: &AnalyzedExpr) -> String {
+    let mut result = String::with_capacity(64);
+    let _ = write_tell_expr(expr, &mut result);
+    result
+}
+
+fn write_tell_expr(expr: &AnalyzedExpr, out: &mut String) -> std::fmt::Result {
     match &expr.expr {
-        AnalyzedExprKind::StringLiteral(s) => format!("\"{}\"", s),
-        AnalyzedExprKind::NumberLiteral(n) => format!("{}", n),
-        AnalyzedExprKind::BooleanLiteral(b) => format!("{}", b),
-        AnalyzedExprKind::Variable(name) => format!("`{}`", name),
-        AnalyzedExprKind::VerbCall { verb, args } => tell_verb_call(verb, args),
+        AnalyzedExprKind::StringLiteral(s) => write!(out, "\"{}\"", s),
+        AnalyzedExprKind::NumberLiteral(n) => write!(out, "{}", n),
+        AnalyzedExprKind::BooleanLiteral(b) => write!(out, "{}", b),
+        AnalyzedExprKind::Variable(name) => write!(out, "`{}`", name),
+        AnalyzedExprKind::VerbCall { verb, args } => tell_verb_call(verb, args, out),
         AnalyzedExprKind::BinOp { left, op, right } => {
-            format!("({} {:?} {})", tell_expr(left), op, tell_expr(right))
+            out.push('(');
+            write_tell_expr(left, out)?;
+            write!(out, " {:?} ", op)?;
+            write_tell_expr(right, out)?;
+            out.push(')');
+            Ok(())
         }
         AnalyzedExprKind::UnaryOp { op, operand } => {
-            format!("({:?} {})", op, tell_expr(operand))
+            write!(out, "({:?} ", op)?;
+            write_tell_expr(operand, out)?;
+            out.push(')');
+            Ok(())
         }
         AnalyzedExprKind::Range {
             start,
@@ -471,90 +492,153 @@ pub(crate) fn tell_expr(expr: &AnalyzedExpr) -> String {
             inclusive,
         } => {
             let range_op = if *inclusive { "..=" } else { ".." };
-            format!("{}{}{}", tell_expr(start), range_op, tell_expr(end))
+            write_tell_expr(start, out)?;
+            out.push_str(range_op);
+            write_tell_expr(end, out)?;
+            Ok(())
         }
-        AnalyzedExprKind::ArrayLiteral(exprs) => tell_array_literal(exprs),
-        AnalyzedExprKind::Some(e) => format!("Some({})", tell_expr(e)),
-        AnalyzedExprKind::None => "None".to_string(),
-        AnalyzedExprKind::Ok(e) => format!("Ok({})", tell_expr(e)),
-        AnalyzedExprKind::Err(e) => format!("Err({})", tell_expr(e)),
-        AnalyzedExprKind::Unwrap(e) => format!("{}!", tell_expr(e)),
-        AnalyzedExprKind::Try(e) => format!("{}?", tell_expr(e)),
+        AnalyzedExprKind::ArrayLiteral(exprs) => tell_array_literal(exprs, out),
+        AnalyzedExprKind::Some(e) => {
+            out.push_str("Some(");
+            write_tell_expr(e, out)?;
+            out.push(')');
+            Ok(())
+        }
+        AnalyzedExprKind::None => write!(out, "None"),
+        AnalyzedExprKind::Ok(e) => {
+            out.push_str("Ok(");
+            write_tell_expr(e, out)?;
+            out.push(')');
+            Ok(())
+        }
+        AnalyzedExprKind::Err(e) => {
+            out.push_str("Err(");
+            write_tell_expr(e, out)?;
+            out.push(')');
+            Ok(())
+        }
+        AnalyzedExprKind::Unwrap(e) => {
+            write_tell_expr(e, out)?;
+            out.push('!');
+            Ok(())
+        }
+        AnalyzedExprKind::Try(e) => {
+            write_tell_expr(e, out)?;
+            out.push('?');
+            Ok(())
+        }
         AnalyzedExprKind::IndexAccess { array, index } => {
-            format!("{}[{}]", tell_expr(array), tell_expr(index))
+            write_tell_expr(array, out)?;
+            out.push('[');
+            write_tell_expr(index, out)?;
+            out.push(']');
+            Ok(())
         }
-        AnalyzedExprKind::FunctionCall { func, args } => tell_function_call(func, args),
+        AnalyzedExprKind::FunctionCall { func, args } => tell_function_call(func, args, out),
         AnalyzedExprKind::MethodCall {
             receiver,
             method,
             args,
-        } => tell_method_call(receiver, method, args),
+        } => tell_method_call(receiver, method, args, out),
         AnalyzedExprKind::StructInstantiation {
             type_name,
             fields,
             args,
-        } => tell_struct_instantiation(type_name, fields, args),
+        } => tell_struct_instantiation(type_name, fields, args, out),
         AnalyzedExprKind::Lambda {
             params,
             body,
             capture_mode,
-        } => tell_lambda(params, body, capture_mode),
+        } => tell_lambda(params, body, capture_mode, out),
         AnalyzedExprKind::CollectionNew { collection_type } => {
-            format!("{}::new()", collection_type)
+            write!(out, "{}::new()", collection_type)
         }
         AnalyzedExprKind::Assert { condition } => {
-            format!("assert({})", tell_expr(condition))
+            out.push_str("assert(");
+            write_tell_expr(condition, out)?;
+            out.push(')');
+            Ok(())
         }
         AnalyzedExprKind::AssertEq { left, right } => {
-            format!("assert_eq({}, {})", tell_expr(left), tell_expr(right))
+            out.push_str("assert_eq(");
+            write_tell_expr(left, out)?;
+            out.push_str(", ");
+            write_tell_expr(right, out)?;
+            out.push(')');
+            Ok(())
         }
         AnalyzedExprKind::PropertyAccess { owner, property } => {
-            format!("{}.{}", tell_expr(owner), property)
+            write_tell_expr(owner, out)?;
+            write!(out, ".{}", property)
         }
     }
 }
 
-fn tell_verb_call(verb: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}({})", verb, format_exprs(args))
+fn tell_verb_call(verb: &str, args: &[AnalyzedExpr], out: &mut String) -> std::fmt::Result {
+    write!(out, "{}(", verb)?;
+    write_format_exprs(args, out)?;
+    out.push(')');
+    Ok(())
 }
 
-fn tell_array_literal(exprs: &[AnalyzedExpr]) -> String {
-    format!("[{}]", format_exprs(exprs))
+fn tell_array_literal(exprs: &[AnalyzedExpr], out: &mut String) -> std::fmt::Result {
+    out.push('[');
+    write_format_exprs(exprs, out)?;
+    out.push(']');
+    Ok(())
 }
 
-fn tell_function_call(func: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}({})", func, format_exprs(args))
+fn tell_function_call(func: &str, args: &[AnalyzedExpr], out: &mut String) -> std::fmt::Result {
+    write!(out, "{}(", func)?;
+    write_format_exprs(args, out)?;
+    out.push(')');
+    Ok(())
 }
 
-fn tell_method_call(receiver: &AnalyzedExpr, method: &str, args: &[AnalyzedExpr]) -> String {
-    format!("{}.{}({})", tell_expr(receiver), method, format_exprs(args))
+fn tell_method_call(
+    receiver: &AnalyzedExpr,
+    method: &str,
+    args: &[AnalyzedExpr],
+    out: &mut String,
+) -> std::fmt::Result {
+    write_tell_expr(receiver, out)?;
+    write!(out, ".{}(", method)?;
+    write_format_exprs(args, out)?;
+    out.push(')');
+    Ok(())
 }
 
 fn tell_struct_instantiation(
     type_name: &str,
     fields: &[smol_str::SmolStr],
     args: &[AnalyzedExpr],
-) -> String {
-    let mut buf = String::with_capacity(fields.len() * 16);
+    out: &mut String,
+) -> std::fmt::Result {
+    write!(out, "{} {{ ", type_name)?;
     for (i, (f, a)) in fields.iter().zip(args.iter()).enumerate() {
         if i > 0 {
-            buf.push_str(", ");
+            out.push_str(", ");
         }
-        let _ = write!(&mut buf, "{}: {}", f, tell_expr(a));
+        write!(out, "{}: ", f)?;
+        write_tell_expr(a, out)?;
     }
-    format!("{} {{ {} }}", type_name, buf)
+    out.push_str(" }");
+    Ok(())
 }
 
 fn tell_lambda(
     params: &[smol_str::SmolStr],
     body: &AnalyzedExpr,
     capture_mode: &CaptureMode,
-) -> String {
+    out: &mut String,
+) -> std::fmt::Result {
     let mode = match capture_mode {
         CaptureMode::Borrow => "",
         CaptureMode::Move => "move ",
     };
-    format!("{}|{}| {}", mode, params.join(", "), tell_expr(body))
+    write!(out, "{}|{}| ", mode, params.join(", "))?;
+    write_tell_expr(body, out)?;
+    Ok(())
 }
 
 /// Converts a semantic type into a familiar Rust-like type signature string.
@@ -563,22 +647,64 @@ fn tell_lambda(
 /// the Scroll of Logic translates these into conventional programming type names
 /// (e.g., `Number`, `[Type]`) to help developers map the Greek concepts to
 /// concepts they already understand.
+/// ⚡ Bolt Optimization: Uses a single pre-allocated String buffer and `std::fmt::Write`
+/// instead of recursive `format!` calls. This eliminates intermediate heap allocations
+/// when formatting deeply nested type trees.
 fn tell_type(ty: &GlossaType) -> String {
+    let mut result = String::with_capacity(32);
+    let _ = write_tell_type(ty, &mut result);
+    result
+}
+
+fn write_tell_type(ty: &GlossaType, out: &mut String) -> std::fmt::Result {
     match ty {
-        GlossaType::Number => "Number".to_string(),
-        GlossaType::String => "String".to_string(),
-        GlossaType::Boolean => "Bool".to_string(),
-        GlossaType::List(inner) => format!("[{}]", tell_type(inner)),
-        GlossaType::Set(inner) => format!("Set<{}>", tell_type(inner)),
-        GlossaType::Map(k, v) => format!("Map<{}, {}>", tell_type(k), tell_type(v)),
-        GlossaType::Option(inner) => format!("Option<{}>", tell_type(inner)),
-        GlossaType::Result(ok, err) => format!("Result<{}, {}>", tell_type(ok), tell_type(err)),
-        GlossaType::Struct { name, .. } => name.to_string(),
-        GlossaType::Function { params, returns } => {
-            format!("Fn({}) -> {}", format_types(params), tell_type(returns))
+        GlossaType::Number => write!(out, "Number"),
+        GlossaType::String => write!(out, "String"),
+        GlossaType::Boolean => write!(out, "Bool"),
+        GlossaType::List(inner) => {
+            out.push('[');
+            write_tell_type(inner, out)?;
+            out.push(']');
+            Ok(())
         }
-        GlossaType::Unit => "()".to_string(),
-        GlossaType::Unknown => "?".to_string(),
+        GlossaType::Set(inner) => {
+            out.push_str("Set<");
+            write_tell_type(inner, out)?;
+            out.push('>');
+            Ok(())
+        }
+        GlossaType::Map(k, v) => {
+            out.push_str("Map<");
+            write_tell_type(k, out)?;
+            out.push_str(", ");
+            write_tell_type(v, out)?;
+            out.push('>');
+            Ok(())
+        }
+        GlossaType::Option(inner) => {
+            out.push_str("Option<");
+            write_tell_type(inner, out)?;
+            out.push('>');
+            Ok(())
+        }
+        GlossaType::Result(ok, err) => {
+            out.push_str("Result<");
+            write_tell_type(ok, out)?;
+            out.push_str(", ");
+            write_tell_type(err, out)?;
+            out.push('>');
+            Ok(())
+        }
+        GlossaType::Struct { name, .. } => write!(out, "{}", name),
+        GlossaType::Function { params, returns } => {
+            out.push_str("Fn(");
+            write_format_types(params, out)?;
+            out.push_str(") -> ");
+            write_tell_type(returns, out)?;
+            Ok(())
+        }
+        GlossaType::Unit => write!(out, "()"),
+        GlossaType::Unknown => write!(out, "?"),
     }
 }
 

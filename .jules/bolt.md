@@ -8,3 +8,6 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
+**[Optimizing recursive tell_type and tell_expr string formatting in narrator]**
+**Learning:** Using `format!` recursively for string formatting of expression trees or type trees (e.g., in `tell_expr` and `tell_type` in `src/tools/narrator.rs`) creates multiple intermediate heap-allocated `String`s. These strings are immediately concatenated and dropped, leading to unnecessary allocations on every node of the AST during narration.
+**Action:** Replace recursive `format!` calls with `std::fmt::Write`. Pre-allocate a single mutable `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree functions (like `write_tell_expr` and `write_tell_type`) to eliminate temporary allocations and achieve close to zero-cost serialization.
