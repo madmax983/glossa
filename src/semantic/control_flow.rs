@@ -179,10 +179,7 @@ fn parse_range_bound(
 
 /// Parse a for loop with range (ἀπὸ ... μέχρι/ἕως ...)
 /// Structure: ἀπὸ start μέχρι/ἕως end, body
-fn extract_loop_variable(
-    body_clauses: &[Clause],
-    default_name: &str,
-) -> smol_str::SmolStr {
+fn extract_loop_variable(body_clauses: &[Clause], default_name: &str) -> smol_str::SmolStr {
     if let Some(first_expr) = body_clauses[0].expressions.first() {
         if let Expr::Phrase(terms) = first_expr {
             if let Some(Expr::Word(w)) = terms.first() {
