@@ -119,6 +119,12 @@ pub enum Commands {
     /// Start the interactive tutorial (Requires "nova" feature)
     Mentor,
 
+    /// Generate Protobuf schemas from type definitions (Requires "nova" feature)
+    Messenger {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Compile a .γλ file to Rust source
     Build {
         /// Input file (.γλ)

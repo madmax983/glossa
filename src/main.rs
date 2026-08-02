@@ -36,6 +36,19 @@ fn main() -> Result<()> {
             );
         }
 
+        Some(Commands::Messenger { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::messenger::run_messenger(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'messenger' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Build { input, output }) => {
             build_file(&input, output.as_deref())?;
         }
