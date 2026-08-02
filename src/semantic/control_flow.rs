@@ -179,6 +179,24 @@ fn parse_range_bound(
 
 /// Parse a for loop with range (ἀπὸ ... μέχρι/ἕως ...)
 /// Structure: ἀπὸ start μέχρι/ἕως end, body
+fn extract_loop_variable(body_clauses: &[Clause], default_name: &str) -> smol_str::SmolStr {
+    if let Some(first_expr) = body_clauses[0].expressions.first() {
+        if let Expr::Phrase(terms) = first_expr {
+            if let Some(Expr::Word(w)) = terms.first() {
+                w.normalized.clone()
+            } else {
+                default_name.into()
+            }
+        } else if let Expr::Word(w) = first_expr {
+            w.normalized.clone()
+        } else {
+            default_name.into()
+        }
+    } else {
+        default_name.into()
+    }
+}
+
 fn parse_for_range_loop(
     stmt: &Statement,
     scope: &mut Scope,
@@ -241,21 +259,7 @@ fn parse_for_range_loop(
     }
 
     // Extract variable name from first word of first body clause
-    let variable = if let Some(first_expr) = body_clauses[0].expressions.first() {
-        if let Expr::Phrase(terms) = first_expr {
-            if let Some(Expr::Word(w)) = terms.first() {
-                w.normalized.clone()
-            } else {
-                "i".into()
-            }
-        } else if let Expr::Word(w) = first_expr {
-            w.normalized.clone()
-        } else {
-            "i".into()
-        }
-    } else {
-        "i".into()
-    };
+    let variable = extract_loop_variable(body_clauses, "i");
 
     let body_stmt = Statement::Regular {
         clauses: body_clauses.to_vec(),
@@ -327,21 +331,7 @@ fn parse_for_iteration_loop(
     let body_clauses = &stmt.clauses()[1..];
 
     // Extract variable name from first word of body
-    let variable = if let Some(first_expr) = body_clauses[0].expressions.first() {
-        if let Expr::Phrase(terms) = first_expr {
-            if let Some(Expr::Word(w)) = terms.first() {
-                w.normalized.clone()
-            } else {
-                "x".into()
-            }
-        } else if let Expr::Word(w) = first_expr {
-            w.normalized.clone()
-        } else {
-            "x".into()
-        }
-    } else {
-        "x".into()
-    };
+    let variable = extract_loop_variable(body_clauses, "x");
 
     let body_stmt = Statement::Regular {
         clauses: body_clauses.to_vec(),
