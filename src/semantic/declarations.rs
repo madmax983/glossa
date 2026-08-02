@@ -247,7 +247,8 @@ pub fn analyze_trait_impl(
 
         // Create a child scope for the method body with self bound
         let analyzed_body = scope.with_scope(|method_scope| {
-            let mut analyzed = Vec::with_capacity(method.body.len());
+            let body_stmts = method.body.as_deref().unwrap_or(&[]);
+            let mut analyzed = Vec::with_capacity(body_stmts.len());
             method_scope.define("self".to_string(), struct_type.clone());
 
             // Also bind parameters
@@ -256,7 +257,7 @@ pub fn analyze_trait_impl(
             }
 
             // Analyze the method body using unified helper
-            for body_stmt in &method.body {
+            for body_stmt in body_stmts {
                 analyzed.extend(analyze_statement(body_stmt, method_scope)?);
             }
             Ok::<_, GlossaError>(analyzed)

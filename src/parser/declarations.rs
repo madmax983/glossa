@@ -140,7 +140,7 @@ fn parse_method_parameters(words: &[Word]) -> Vec<FieldDecl> {
 
 /// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
 /// This prevents intermediate heap reallocations when building trait methods.
-fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseError> {
+fn build_trait_method(pair: Pair<'_, Rule>) -> Result<MethodDef, ParseError> {
     let inner_pairs = pair.into_inner();
     let mut words = Vec::with_capacity(inner_pairs.len());
     let mut body_statements = Vec::with_capacity(inner_pairs.len());
@@ -182,7 +182,7 @@ fn build_trait_method(pair: Pair<'_, Rule>) -> Result<TraitMethodDecl, ParseErro
     // Parse parameters (skip method name)
     let params = parse_method_parameters(&words[1..]);
 
-    Ok(TraitMethodDecl {
+    Ok(MethodDef {
         name: method_name,
         params,
         is_default,
@@ -291,7 +291,7 @@ pub(crate) fn build_test_declaration(pair: Pair<'_, Rule>) -> Result<TestDecl, P
 
 /// ⚡ Bolt Optimization: Uses `Vec::with_capacity` based on the inner pairs length.
 /// This prevents intermediate heap reallocations when building implementation methods.
-fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> {
+fn build_impl_method(pair: Pair<'_, Rule>) -> Result<MethodDef, ParseError> {
     let inner_pairs = pair.into_inner();
     let mut words = Vec::with_capacity(inner_pairs.len());
     let mut body = None;
@@ -325,13 +325,14 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<ImplMethodDef, ParseError> 
     // Parse parameters (skip method name)
     let params = parse_method_parameters(&words[1..]);
 
-    Ok(ImplMethodDef {
+    Ok(MethodDef {
         name: method_name,
         params,
+        is_default: false, // Impl methods do not declare 'default', they ARE the concrete body
         body: if let Some(stmt) = body {
-            vec![stmt]
+            Some(vec![stmt])
         } else {
-            vec![]
+            Some(vec![])
         },
     })
 }
