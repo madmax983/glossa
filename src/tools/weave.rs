@@ -16,6 +16,7 @@ use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
+use std::fmt::Write;
 use std::fs;
 use std::path::Path;
 
@@ -62,7 +63,7 @@ pub fn run_weave(input: &Path) -> Result<()> {
 
     let filename = input.file_name().unwrap_or_default().to_string_lossy();
 
-    md.push_str(&format!("# Rosetta Stone: `{}`\n\n", filename));
+    let _ = writeln!(md, "# Rosetta Stone: `{}`\n", filename);
 
     md.push_str("## 📜 ΓΛΩΣΣΑ Source\n\n");
     md.push_str("```glossa\n");
