@@ -237,14 +237,15 @@ pub struct TraitDef {
     /// The shared identifier for this collection of required behaviors or capabilities.
     pub name: Word,
     /// The list of required actions that any adhering archetype must know how to perform.
-    pub methods: Vec<TraitMethodDecl>,
+    pub methods: Vec<MethodDef>,
 }
 
-/// A required behavior inside a [`TraitDef`]
+/// A defined method behavior
 ///
-/// This represents a specific action (method) that forms part of a `χαρακτήρ` (Trait).
-/// It lists the expected verb that conforming types must respond to, alongside
-/// any expected inputs and potential default implementations.
+/// This represents a specific action (method) inside a trait definition (`χαρακτήρ`)
+/// or a trait implementation (`ἐφαρμόζειν`). It lists the expected verb that conforming
+/// types must respond to, alongside any expected inputs, potential default implementations,
+/// or the concrete implementation logic.
 ///
 /// # Examples
 ///
@@ -261,14 +262,15 @@ pub struct TraitDef {
 /// }
 /// ```
 #[derive(Debug, Clone, PartialEq)]
-pub struct TraitMethodDecl {
-    /// The identifier for the specific behavior expected by the trait.
+pub struct MethodDef {
+    /// The identifier for the specific behavior.
     pub name: Word,
     /// The inputs required to perform the action, bound to specific archetypes.
     pub params: Vec<FieldDecl>,
     /// Indicates whether a fallback behavior has been provided for archetypes that do not define their own.
     pub is_default: bool,
-    /// The fallback logic provided when `is_default` is enabled, saving the implementor from rewriting standard behavior.
+    /// The logic sequence to execute. This is the fallback behavior in a trait definition if `is_default` is enabled,
+    /// or the concrete logic in a trait implementation.
     pub body: Option<Vec<Statement>>,
 }
 
@@ -301,39 +303,7 @@ pub struct TraitImplDef {
     /// The established interface or contract being fulfilled.
     pub trait_name: Word,
     /// The concrete actions outlining exactly how this archetype satisfies the trait's requirements.
-    pub methods: Vec<ImplMethodDef>,
-}
-
-/// A concrete method implementation inside a [`TraitImplDef`]
-///
-/// This provides the actual sequence of statements (`body`) that execute
-/// when a trait method is called on a specific type.
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// use glossa::parser::parse;
-/// use glossa::ast::Statement;
-///
-/// let source = "τὸν λέκτην τῷ ἀνθρώπῳ ἐφαρμόζειν {
-///     λέγειν { «Χαῖρε!» λέγε. }
-/// }.";
-/// let program = parse(source).unwrap();
-///
-/// if let Statement::TraitImpl(trait_impl) = &program.statements[0] {
-///     let method = &trait_impl.methods[0];
-///     assert_eq!(method.name.normalized.as_str(), "λεγειν");
-///     assert_eq!(method.body.len(), 1);
-/// }
-/// ```
-#[derive(Debug, Clone, PartialEq)]
-pub struct ImplMethodDef {
-    /// The behavior from the trait that is being explicitly defined.
-    pub name: Word,
-    /// The runtime values provided during execution to carry out the action.
-    pub params: Vec<FieldDecl>,
-    /// The sequence of operations required to fulfill the method's purpose.
-    pub body: Vec<Statement>,
+    pub methods: Vec<MethodDef>,
 }
 
 /// A test block declaration (`δοκιμή`)
