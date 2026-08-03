@@ -1107,11 +1107,33 @@ fn classify_expression(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
-    // Determine if we should attempt to build expressions from literals+operators
-    // or if we are in a fallback scenario (using Subject/Object with operators).
-    // If literals < operators + 1, build_expressions_from_literals_and_ops will fail.
-    // In that case, we only build literals and let the fallback logic handle operators.
+    let mut exprs = build_initial_expressions(asm_stmt)?;
 
+    // If we have operators but couldn't build a full expression from literals alone (usually implies literals < 2),
+    // we should look for Subject/Object to complete the binary expression.
+    #[allow(clippy::collapsible_if)]
+    if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2 {
+        if let Some(bin_expr) = build_fallback_binary_expression(asm_stmt, &exprs) {
+            exprs = vec![bin_expr];
+        }
+    }
+
+    // Fallback: If no literals/ops, check Subject/Object
+    #[allow(clippy::collapsible_if)]
+    if exprs.is_empty() {
+        if let Some(fallback_expr) = build_subject_object_fallback(asm_stmt) {
+            exprs.push(fallback_expr);
+        }
+    }
+
+    apply_propagation(asm_stmt, &mut exprs);
+
+    Ok(AnalyzedStatement::Expression(exprs))
+}
+
+fn build_initial_expressions(
+    asm_stmt: &AssembledStatement,
+) -> Result<Vec<AnalyzedExpr>, GlossaError> {
     let (literals_to_build, operators_to_build) = if !asm_stmt.operators.is_empty()
         && asm_stmt.literals.len() < asm_stmt.operators.len() + 1
     {
@@ -1121,56 +1143,54 @@ fn classify_expression(
         (asm_stmt.literals.as_slice(), asm_stmt.operators.as_slice())
     };
 
-    let mut exprs = build_expressions_from_literals_and_ops(literals_to_build, operators_to_build)?;
+    build_expressions_from_literals_and_ops(literals_to_build, operators_to_build)
+}
 
-    // If we have operators but couldn't build a full expression from literals alone (usually implies literals < 2),
-    // we should look for Subject/Object to complete the binary expression.
-    if !asm_stmt.operators.is_empty() && asm_stmt.literals.len() < 2 {
-        let op = asm_stmt.operators[0];
+fn build_fallback_binary_expression(
+    asm_stmt: &AssembledStatement,
+    exprs: &[AnalyzedExpr],
+) -> Option<AnalyzedExpr> {
+    let op = asm_stmt.operators[0];
 
-        let left = asm_stmt.subject.as_ref().map(|subj| AnalyzedExpr {
+    let left = asm_stmt.subject.as_ref().map(|subj| AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
+        glossa_type: GlossaType::Unknown,
+    })?;
+
+    let right = if let Some(lit_expr) = exprs.first() {
+        Some(lit_expr.clone())
+    } else if let Some(ref obj) = asm_stmt.object {
+        Some(AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+            glossa_type: GlossaType::Unknown,
+        })
+    } else {
+        asm_stmt.nominatives.first().map(|nom| AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
+            glossa_type: GlossaType::Unknown,
+        })
+    }?;
+
+    Some(build_binary_expr(left, op, right))
+}
+
+fn build_subject_object_fallback(asm_stmt: &AssembledStatement) -> Option<AnalyzedExpr> {
+    if let Some(ref subj) = asm_stmt.subject {
+        Some(AnalyzedExpr {
             expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
             glossa_type: GlossaType::Unknown,
-        });
-
-        // Try to get right operand from exprs (literal) or object or nominatives
-        let right = if let Some(lit_expr) = exprs.first() {
-            Some(lit_expr.clone())
-        } else if let Some(ref obj) = asm_stmt.object {
-            Some(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            })
-        } else {
-            asm_stmt.nominatives.first().map(|nom| AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(nom.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            })
-        };
-
-        if let (Some(l), Some(r)) = (left, right) {
-            let bin_expr = build_binary_expr(l, op, r);
-            exprs = vec![bin_expr];
-        }
+        })
+    } else {
+        asm_stmt.object.as_ref().map(|obj| AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
+            glossa_type: GlossaType::Unknown,
+        })
     }
+}
 
-    // Fallback: If no literals/ops, check Subject/Object
-    if exprs.is_empty() {
-        if let Some(ref subj) = asm_stmt.subject {
-            exprs.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(subj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            });
-        } else if let Some(ref obj) = asm_stmt.object {
-            exprs.push(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(obj.lemma.clone()),
-                glossa_type: GlossaType::Unknown,
-            });
-        }
-    }
-
+fn apply_propagation(asm_stmt: &AssembledStatement, exprs: &mut Vec<AnalyzedExpr>) {
+    #[allow(clippy::collapsible_if)]
     if asm_stmt.is_propagate && !exprs.is_empty() {
-        #[allow(clippy::collapsible_if)]
         if let Some(last_expr) = exprs.pop() {
             let try_expr = AnalyzedExpr {
                 glossa_type: last_expr.glossa_type.clone(),
@@ -1179,8 +1199,6 @@ fn classify_expression(
             exprs.push(try_expr);
         }
     }
-
-    Ok(AnalyzedStatement::Expression(exprs))
 }
 
 /// Helper: Common logic for genitive method call parsing
