@@ -2905,7 +2905,7 @@ mod conversion_tests {
     use super::*;
     use crate::semantic::Scope;
     use crate::semantic::assembly::model::{AssembledStatement, Constituent, VerbConstituent};
-    use crate::semantic::model::{AnalyzedExprKind, AnalyzedStatement};
+    use crate::semantic::model::{AnalyzedStatement, AnalyzedExprKind};
 
     #[test]
     fn test_subject_object_fallback() {
