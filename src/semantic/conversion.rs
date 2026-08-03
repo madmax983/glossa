@@ -2899,3 +2899,116 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod conversion_tests {
+    use super::*;
+    use crate::semantic::Scope;
+    use crate::semantic::assembly::model::{AssembledStatement, Constituent, VerbConstituent};
+    use crate::semantic::model::{AnalyzedStatement, AnalyzedExprKind};
+
+    #[test]
+    fn test_subject_object_fallback() {
+        let mut scope = Scope::new();
+
+        let asm_stmt = AssembledStatement {
+            subject: Some(Constituent {
+                lemma: "x".into(),
+                original: "".into(),
+                normalized: "x".into(),
+                case: crate::morphology::models::Case::Nominative,
+                number: Some(crate::morphology::models::Number::Singular),
+                gender: Some(crate::morphology::models::Gender::Masculine),
+                person: None,
+            }),
+            nominatives: vec![],
+            verb: Some(VerbConstituent {
+                lemma: "is".into(),
+                original: "".into(),
+                normalized: "is".into(),
+                person: Some(crate::morphology::models::Person::Third),
+                number: Some(crate::morphology::models::Number::Singular),
+                tense: Some(crate::morphology::models::Tense::Present),
+                mood: Some(crate::morphology::models::Mood::Indicative),
+                voice: Some(crate::morphology::models::Voice::Active),
+            }),
+            object: None,
+            indirect: None,
+            genitives: vec![],
+            adjectives: vec![],
+            literals: vec![],
+            arrays: vec![],
+            index_accesses: vec![],
+            property_accesses: vec![],
+            operators: vec![],
+            blocks: vec![],
+            nested_phrases: vec![],
+            participles: vec![],
+            unwraps: vec![],
+            is_query: false,
+            is_propagate: false,
+            has_mutable_marker: false,
+            has_containment_preposition: false,
+            has_delimiter_preposition: false,
+            string_method: None,
+        };
+
+        let result = classify_assembled_statement(&asm_stmt, &mut scope).unwrap();
+        if let AnalyzedStatement::Expression(exprs) = result {
+            assert_eq!(exprs.len(), 1);
+            assert!(matches!(exprs[0].expr, AnalyzedExprKind::Variable(_)));
+        } else {
+            panic!("Expected expression");
+        }
+
+        let asm_stmt_obj = AssembledStatement {
+            subject: None,
+            nominatives: vec![],
+            verb: Some(VerbConstituent {
+                lemma: "is".into(),
+                original: "".into(),
+                normalized: "is".into(),
+                person: Some(crate::morphology::models::Person::Third),
+                number: Some(crate::morphology::models::Number::Singular),
+                tense: Some(crate::morphology::models::Tense::Present),
+                mood: Some(crate::morphology::models::Mood::Indicative),
+                voice: Some(crate::morphology::models::Voice::Active),
+            }),
+            object: Some(Constituent {
+                lemma: "y".into(),
+                original: "".into(),
+                normalized: "y".into(),
+                case: crate::morphology::models::Case::Accusative,
+                number: Some(crate::morphology::models::Number::Singular),
+                gender: Some(crate::morphology::models::Gender::Masculine),
+                person: None,
+            }),
+            indirect: None,
+            genitives: vec![],
+            adjectives: vec![],
+            literals: vec![],
+            arrays: vec![],
+            index_accesses: vec![],
+            property_accesses: vec![],
+            operators: vec![],
+            blocks: vec![],
+            nested_phrases: vec![],
+            participles: vec![],
+            unwraps: vec![],
+            is_query: false,
+            is_propagate: false,
+            has_mutable_marker: false,
+            has_containment_preposition: false,
+            has_delimiter_preposition: false,
+            string_method: None,
+        };
+
+        let result2 = classify_assembled_statement(&asm_stmt_obj, &mut scope).unwrap();
+        if let AnalyzedStatement::Expression(exprs) = result2 {
+            assert_eq!(exprs.len(), 1);
+            assert!(matches!(exprs[0].expr, AnalyzedExprKind::Variable(_)));
+        } else {
+            panic!("Expected expression");
+        }
+    }
+}
