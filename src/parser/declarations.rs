@@ -329,11 +329,7 @@ fn build_impl_method(pair: Pair<'_, Rule>) -> Result<MethodDef, ParseError> {
         name: method_name,
         params,
         is_default: false, // Impl methods do not declare 'default', they ARE the concrete body
-        body: if let Some(stmt) = body {
-            Some(vec![stmt])
-        } else {
-            Some(vec![])
-        },
+        body: body.map(|stmt| vec![stmt]),
     })
 }
 
