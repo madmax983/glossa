@@ -134,3 +134,7 @@ Signed,
 **YYYY-MM-DD - [DoS Mitigation]
 **Threat:** Memory Exhaustion / Unbounded Allocations via standard IO.
 **Defense:** Wrapped mutable readers using `.by_ref().take(LIMIT)` inside `repl.rs` and `mentor.rs`.
+
+**2026-06-25 - Unsoundness in `Error::downcast_mut()`**
+**Threat:** The `anyhow` crate version 1.0.102 has a known vulnerability (RUSTSEC-2026-0190) involving unsoundness in `Error::downcast_mut()` which could lead to memory safety issues.
+**Defense:** Updated the `anyhow` dependency in `Cargo.lock` to version `1.0.104` via `cargo update -p anyhow` which resolves the vulnerability.
