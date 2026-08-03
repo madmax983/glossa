@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Analyze memory layout and sizing of defined types (Requires "nova" feature)
+    Anatomist {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
