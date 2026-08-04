@@ -875,7 +875,10 @@ test name with spaces ... ok
 
     #[test]
     fn test_print_test_results_coverage() {
+        #[cfg(unix)]
         use std::os::unix::process::ExitStatusExt;
+        #[cfg(windows)]
+        use std::os::windows::process::ExitStatusExt;
 
         let success_output = std::process::Output {
             status: std::process::ExitStatus::from_raw(0),
