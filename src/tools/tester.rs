@@ -872,4 +872,66 @@ test name with spaces ... ok
         // The underlying error bubbles up.
         assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
     }
+
+    #[test]
+    fn test_print_test_results_coverage() {
+        use std::os::unix::process::ExitStatusExt;
+
+        let success_output = std::process::Output {
+            status: std::process::ExitStatus::from_raw(0),
+            stdout: vec![],
+            stderr: vec![],
+        };
+        let fail_output = std::process::Output {
+            status: std::process::ExitStatus::from_raw(256),
+            stdout: b"failures:\n\n---- test stdout ----\nerr\n\nfailures:\n    test\n".to_vec(),
+            stderr: b"stderr output".to_vec(),
+        };
+
+        let empty_results = vec![];
+        let some_results = vec![
+            TestResult {
+                name: "test_ok".to_string(),
+                status: TestStatus::Ok,
+            },
+            TestResult {
+                name: "test_failed".to_string(),
+                status: TestStatus::Failed,
+            },
+            TestResult {
+                name: "tests::test_ignored".to_string(),
+                status: TestStatus::Ignored,
+            },
+        ];
+
+        let fail_output_no_stderr = std::process::Output {
+            status: std::process::ExitStatus::from_raw(256),
+            stdout: vec![],
+            stderr: vec![],
+        };
+
+        // We capture output implicitly by just running these, since they write to stdout.
+        // It's mostly to trigger the code paths for coverage.
+        print_summary_table(true, true);
+        print_summary_table(true, false);
+        print_summary_table(false, true);
+        print_summary_table(false, false);
+
+        print_results_table(&empty_results);
+        print_results_table(&some_results);
+
+        print_failure_details("", &success_output);
+        print_failure_details(
+            "failures:\n\n---- t stdout ----\nmsg\n\nfailures:\n    t\n",
+            &fail_output,
+        );
+        print_failure_details("raw failure", &fail_output);
+        print_failure_details("raw failure", &fail_output_no_stderr);
+
+        print_test_results(
+            &some_results,
+            &fail_output,
+            "failures:\n\n---- t stdout ----\nmsg\n\nfailures:\n    t\n",
+        );
+    }
 }
