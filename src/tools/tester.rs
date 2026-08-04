@@ -280,14 +280,9 @@ fn execute_test_binary(exe_path: &Path, status: &mut Status) -> Result<std::proc
     Ok(test_output)
 }
 
-fn print_test_results(results: &[TestResult], test_output: &std::process::Output, stdout: &str) {
-    println!();
-    println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
-    println!("   {}", "Unit Test Results".italic().dim());
-    println!();
-
-    if test_output.status.success() {
-        if !results.is_empty() {
+fn print_summary_table(success: bool, has_results: bool) {
+    if success {
+        if has_results {
             let mut success_table = Table::new();
             success_table.load_preset(presets::UTF8_FULL);
             success_table.add_row(vec![
@@ -311,7 +306,9 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         println!("{failure_table}");
         println!();
     }
+}
 
+fn print_results_table(results: &[TestResult]) {
     if !results.is_empty() {
         let mut table = Table::new();
         table.load_preset(presets::UTF8_FULL);
@@ -355,41 +352,55 @@ fn print_test_results(results: &[TestResult], test_output: &std::process::Output
         ]);
         println!("{empty_table}");
     }
+}
 
-    // If there were failures, try to extract and print them nicely
-    if !test_output.status.success() {
-        println!();
-        println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
+fn print_failure_details(stdout: &str, test_output: &std::process::Output) {
+    if test_output.status.success() {
+        return;
+    }
 
-        let failures = extract_failures(stdout);
+    println!();
+    println!("{}", "--- 📜 Λεπτoμέρειες (Details) ---".dim());
 
-        if !failures.is_empty() {
-            for (name, msg) in failures {
-                let mut header_table = Table::new();
-                header_table.load_preset(presets::UTF8_FULL);
-                header_table.add_row(vec![
-                    Cell::new(format!(" FAILED: {} ", name))
-                        .bg(Color::DarkRed)
-                        .fg(Color::White)
-                        .add_attribute(Attribute::Bold),
-                ]);
-                println!("{header_table}");
+    let failures = extract_failures(stdout);
 
-                // Create a box for the error message using comfy_table
-                let mut error_table = Table::new();
-                error_table.load_preset(presets::UTF8_FULL);
-                error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
-                println!("{error_table}");
-                println!();
-            }
-        } else {
-            // Fallback to raw output if extraction failed but tests failed
-            println!("{}", stdout);
-            if !test_output.stderr.is_empty() {
-                println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
-            }
+    if !failures.is_empty() {
+        for (name, msg) in failures {
+            let mut header_table = Table::new();
+            header_table.load_preset(presets::UTF8_FULL);
+            header_table.add_row(vec![
+                Cell::new(format!(" FAILED: {} ", name))
+                    .bg(Color::DarkRed)
+                    .fg(Color::White)
+                    .add_attribute(Attribute::Bold),
+            ]);
+            println!("{header_table}");
+
+            // Create a box for the error message using comfy_table
+            let mut error_table = Table::new();
+            error_table.load_preset(presets::UTF8_FULL);
+            error_table.add_row(vec![Cell::new(format!("\n{}\n", msg)).fg(Color::Red)]);
+            println!("{error_table}");
+            println!();
+        }
+    } else {
+        // Fallback to raw output if extraction failed but tests failed
+        println!("{}", stdout);
+        if !test_output.stderr.is_empty() {
+            println!("{}", String::from_utf8_lossy(&test_output.stderr).red());
         }
     }
+}
+
+fn print_test_results(results: &[TestResult], test_output: &std::process::Output, stdout: &str) {
+    println!();
+    println!("   {}", "Γ Λ Ω Σ Σ Α   T E S T E R".bold().cyan());
+    println!("   {}", "Unit Test Results".italic().dim());
+    println!();
+
+    print_summary_table(test_output.status.success(), !results.is_empty());
+    print_results_table(results);
+    print_failure_details(stdout, test_output);
 }
 
 /// Run unit tests defined within a ΓΛΩΣΣΑ file.
@@ -860,5 +871,70 @@ test name with spaces ... ok
         let err_msg = result.unwrap_err().to_string();
         // The underlying error bubbles up.
         assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
+    }
+
+    #[test]
+    fn test_print_test_results_coverage() {
+        #[cfg(unix)]
+        use std::os::unix::process::ExitStatusExt;
+        #[cfg(windows)]
+        use std::os::windows::process::ExitStatusExt;
+
+        let success_output = std::process::Output {
+            status: std::process::ExitStatus::from_raw(0),
+            stdout: vec![],
+            stderr: vec![],
+        };
+        let fail_output = std::process::Output {
+            status: std::process::ExitStatus::from_raw(256),
+            stdout: b"failures:\n\n---- test stdout ----\nerr\n\nfailures:\n    test\n".to_vec(),
+            stderr: b"stderr output".to_vec(),
+        };
+
+        let empty_results = vec![];
+        let some_results = vec![
+            TestResult {
+                name: "test_ok".to_string(),
+                status: TestStatus::Ok,
+            },
+            TestResult {
+                name: "test_failed".to_string(),
+                status: TestStatus::Failed,
+            },
+            TestResult {
+                name: "tests::test_ignored".to_string(),
+                status: TestStatus::Ignored,
+            },
+        ];
+
+        let fail_output_no_stderr = std::process::Output {
+            status: std::process::ExitStatus::from_raw(256),
+            stdout: vec![],
+            stderr: vec![],
+        };
+
+        // We capture output implicitly by just running these, since they write to stdout.
+        // It's mostly to trigger the code paths for coverage.
+        print_summary_table(true, true);
+        print_summary_table(true, false);
+        print_summary_table(false, true);
+        print_summary_table(false, false);
+
+        print_results_table(&empty_results);
+        print_results_table(&some_results);
+
+        print_failure_details("", &success_output);
+        print_failure_details(
+            "failures:\n\n---- t stdout ----\nmsg\n\nfailures:\n    t\n",
+            &fail_output,
+        );
+        print_failure_details("raw failure", &fail_output);
+        print_failure_details("raw failure", &fail_output_no_stderr);
+
+        print_test_results(
+            &some_results,
+            &fail_output,
+            "failures:\n\n---- t stdout ----\nmsg\n\nfailures:\n    t\n",
+        );
     }
 }
