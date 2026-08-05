@@ -13,6 +13,7 @@
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
 use crate::tools::runner::load_source;
 use crate::tools::ui::Status;
+use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
@@ -61,15 +62,33 @@ fn print_dashboard(dot: &str, is_tty: bool) {
         );
         println!();
 
-        let actual_nodes = dot.lines().filter(|l| l.contains("[label=")).count();
-        let edges = dot.matches("->").count();
+        let mut table = Table::new();
+        table.load_preset(presets::UTF8_FULL);
 
-        println!("   {} {}", "Nodes:".bold(), actual_nodes.to_string().cyan());
-        println!("   {} {}", "Edges:".bold(), edges.to_string().cyan());
+        table.set_header(vec![
+            Cell::new("Graphviz DOT Diagram")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Cyan),
+        ]);
+
+        let formatted_dot = format!("```dot\n{}\n```", dot.trim());
+        table.add_row(vec![Cell::new(formatted_dot)]);
+
+        println!("{table}");
         println!();
         println!(
             "   {}",
-            "To view the graph, pipe this command to a file or tool:".dim()
+            "📋 Usage Instructions:".bold().underlined()
+        );
+        println!("   1. Copy the code block above.");
+        println!(
+            "   2. Paste it into {}",
+            "a Graphviz viewer (e.g. GraphvizOnline)".cyan().underlined()
+        );
+        println!();
+        println!(
+            "   {}",
+            "Or pipe this command to a file/tool:".dim()
         );
         println!(
             "   {}",
