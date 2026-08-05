@@ -1,24 +1,36 @@
-Let's fix the clippy warnings about unused variable `input` in `src/main.rs`. We can do `let _ = input;` inside the disabled cfg block for Gnomon to be consistent with others (like Scholar, Papyrus, etc.) or just rename it to `_input`. Looking at others:
-
+1. **Fix `clippy::useless_borrows_in_formatting` in `src/semantic/conversion.rs`**
+   - The CI failed with:
+     ```
+     error: redundant reference in `format!` argument
+     --> src/semantic/conversion.rs:512:13
+      |
+     512 |             &var_name
+      |             ^^^^^^^^^ help: remove the redundant `&`: `var_name`
+     ```
+   - I will use `replace_with_git_merge_diff` to remove the redundant `&` before `var_name` on line 512 in `src/semantic/conversion.rs`.
+   - The exact replacement will be:
 ```rust
-        Some(Commands::Scholar { input }) => {
-            #[cfg(feature = "nova")]
-            glossa::tools::scholar::run_scholar(&input)?;
-
-            #[cfg(not(feature = "nova"))]
-            {
-                let _ = input;
-                miette::bail!(
-                    "The 'scholar' command is experimental. Recompile glossa with '--features nova' to enable it."
-                );
-            }
-        }
+<<<<<<< SEARCH
+        Some(b) if !b.mutable => Err(GlossaError::semantic(format!(
+            "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
+            &var_name
+        ))),
+=======
+        Some(b) if !b.mutable => Err(GlossaError::semantic(format!(
+            "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
+            var_name
+        ))),
+>>>>>>> REPLACE
 ```
-I'll fix Gnomon the same way to resolve the warning, which is part of Forge's responsibilities to leave code better ("Apply `clippy` suggestions..."). Wait, the memory says: "When destructuring variables in a conditionally compiled `match` arm in Rust (e.g., `Some(Commands::MyCommand { input })`), explicitly consume the destructured variables inside the disabled configuration block (e.g., using `let _ = input;`) to prevent `unused_variables` compiler warnings when the feature flag is disabled."
 
-So I will definitely do that for Gnomon.
+2. **Verify changes in `src/semantic/conversion.rs`**
+   - Use `run_in_bash_session` to run `cat src/semantic/conversion.rs | sed -n '505,515p'` to visually inspect the fix.
 
-The main refactor for Forge:
-In `src/tools/tester.rs`, `print_test_results` is 111 lines and violates the "God Function" smell. I'll extract logic out into smaller functions as planned.
+3. **Verify tests and clippy pass**
+   - Use `run_in_bash_session` to run `cargo fmt --all && cargo clippy --all-targets --all-features -- -D warnings && cargo test` to ensure all checks pass.
 
-Let's do a plan review.
+4. **Complete pre-commit steps**
+   - Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+
+5. **Submit PR**
+   - Use the `submit` tool to update the PR with the new fix.
