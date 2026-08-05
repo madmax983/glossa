@@ -76,20 +76,16 @@ fn print_dashboard(dot: &str, is_tty: bool) {
 
         println!("{table}");
         println!();
-        println!(
-            "   {}",
-            "📋 Usage Instructions:".bold().underlined()
-        );
+        println!("   {}", "📋 Usage Instructions:".bold().underlined());
         println!("   1. Copy the code block above.");
         println!(
             "   2. Paste it into {}",
-            "a Graphviz viewer (e.g. GraphvizOnline)".cyan().underlined()
+            "a Graphviz viewer (e.g. GraphvizOnline)"
+                .cyan()
+                .underlined()
         );
         println!();
-        println!(
-            "   {}",
-            "Or pipe this command to a file/tool:".dim()
-        );
+        println!("   {}", "Or pipe this command to a file/tool:".dim());
         println!(
             "   {}",
             "cargo run --features nova --bin glossa -- haruspex <file> > ast.dot".dim()
