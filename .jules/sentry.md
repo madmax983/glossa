@@ -96,3 +96,6 @@
 **[Analyze Unary Expressions]**
 **Learning:** Found potential runtime panics and dead code by leaving `// TODO: Handle Neg and Not` unimplemented in `src/semantic/expressions.rs` inside the `analyze_unaryop` function. This would have panicked with an "Unsupported unary operator" error if `Not` or `Neg` operations were ever used inside expressions.
 **Action:** Implemented proper semantic analysis and type preservation for `Neg` and `Not` operations in expressions, converting AST `UnaryOperator` into `AnalyzedExprKind::UnaryOp` using the `lexicon::UnaryOp` definitions. Added `test_analyze_argument_expr_handles_unary_ops_not_and_neg` to verify coverage.
+**[GitHub Actions Service Unavailable]**
+**Learning:** We received a "Failed to resolve action download info. Error: Service Unavailable" from GitHub Actions. This appears to be a systemic issue with `v4` of several common actions (`actions/checkout`, `actions/cache`, `codecov/codecov-action`) on GitHub currently.
+**Action:** Pinned the GitHub actions versions to explicit minor/patch versions (`actions/checkout@v4.1.7`, `actions/cache@v4.0.2`, `codecov/codecov-action@v4.4.1`) in `.github/workflows/ci.yml` instead of floating major version tags like `v4` to bypass the action resolution failure.
