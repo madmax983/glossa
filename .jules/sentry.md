@@ -99,3 +99,6 @@
 **[GitHub Actions Service Unavailable]**
 **Learning:** We received a "Failed to resolve action download info. Error: Service Unavailable" from GitHub Actions. This appears to be a systemic issue with `v4` of several common actions (`actions/checkout`, `actions/cache`, `codecov/codecov-action`) on GitHub currently.
 **Action:** Pinned the GitHub actions versions to explicit minor/patch versions (`actions/checkout@v4.1.7`, `actions/cache@v4.0.2`, `codecov/codecov-action@v4.4.1`) in `.github/workflows/ci.yml` instead of floating major version tags like `v4` to bypass the action resolution failure.
+**[GitHub Actions Cache Version Deprecation]**
+**Learning:** We received a "This request has been automatically failed because it uses a deprecated version of `actions/cache: v4.0.2`. Please update your workflow to use v3/v4 of actions/cache" from GitHub Actions. Due to my earlier attempt to explicitly pin down the patch version to bypass the 'Service Unavailable' resolution issues, I accidentally tripped a deprecation trigger in GH runners that requires using generic floating tags for cache.
+**Action:** Reverted the `actions/cache@v4.0.2` pin back to the stable floating tag `actions/cache@v3` in `.github/workflows/ci.yml`.
