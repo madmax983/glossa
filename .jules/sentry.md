@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Analyze Unary Expressions]**
+**Learning:** Found potential runtime panics and dead code by leaving `// TODO: Handle Neg and Not` unimplemented in `src/semantic/expressions.rs` inside the `analyze_unaryop` function. This would have panicked with an "Unsupported unary operator" error if `Not` or `Neg` operations were ever used inside expressions.
+**Action:** Implemented proper semantic analysis and type preservation for `Neg` and `Not` operations in expressions, converting AST `UnaryOperator` into `AnalyzedExprKind::UnaryOp` using the `lexicon::UnaryOp` definitions. Added `test_analyze_argument_expr_handles_unary_ops_not_and_neg` to verify coverage.

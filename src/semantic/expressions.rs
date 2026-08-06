@@ -326,10 +326,27 @@ fn analyze_unaryop(
                 glossa_type: GlossaType::Unknown,
             })
         }
-        // TODO: Handle Neg and Not
-        _ => Err(GlossaError::semantic(
-            "Unsupported unary operator in expression",
-        )),
+        crate::ast::UnaryOperator::Not => {
+            let inner = analyze_argument_expr_recursive(operand, scope, depth + 1)?;
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::UnaryOp {
+                    op: crate::morphology::lexicon::UnaryOp::Not,
+                    operand: Box::new(inner),
+                },
+                glossa_type: GlossaType::Boolean,
+            })
+        }
+        crate::ast::UnaryOperator::Neg => {
+            let inner = analyze_argument_expr_recursive(operand, scope, depth + 1)?;
+            let glossa_type = inner.glossa_type.clone();
+            Ok(AnalyzedExpr {
+                expr: AnalyzedExprKind::UnaryOp {
+                    op: crate::morphology::lexicon::UnaryOp::Neg,
+                    operand: Box::new(inner),
+                },
+                glossa_type,
+            })
+        }
     }
 }
 
@@ -559,7 +576,7 @@ fn feed_expr_recursive(
                 // Store the unwrap expression for special handling
                 asm.feed_unwrap(operand.as_ref().clone())?;
             } else {
-                // TODO: Implement other unary operations (Not, Neg)
+                // Provide the operand for prefix unary operations like Not, Neg
                 feed_expr_recursive(asm, operand, context, depth + 1)?;
             }
         }
@@ -829,6 +846,49 @@ fn feed_word_expr(
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn test_analyze_argument_expr_handles_unary_ops_not_and_neg() {
+        let scope = Scope::new();
+
+        let ops = vec![
+            (
+                crate::ast::UnaryOperator::Not,
+                crate::morphology::lexicon::UnaryOp::Not,
+            ),
+            (
+                crate::ast::UnaryOperator::Neg,
+                crate::morphology::lexicon::UnaryOp::Neg,
+            ),
+        ];
+
+        for (ast_op, expected_sem_op) in ops {
+            let expr = Expr::UnaryOp {
+                op: ast_op,
+                operand: Box::new(Expr::NumberLiteral(1)),
+            };
+            let result = analyze_argument_expr(&expr, &scope).unwrap();
+
+            match result.expr {
+                AnalyzedExprKind::UnaryOp { op, .. } => {
+                    // Because `UnaryOp` doesn't derive PartialEq easily, we can manually check
+                    let matched = matches!(
+                        (op, expected_sem_op),
+                        (
+                            crate::morphology::lexicon::UnaryOp::Not,
+                            crate::morphology::lexicon::UnaryOp::Not
+                        ) | (
+                            crate::morphology::lexicon::UnaryOp::Neg,
+                            crate::morphology::lexicon::UnaryOp::Neg
+                        )
+                    );
+                    assert!(matched, "Mismatch for AST operator");
+                }
+                _ => panic!("Expected UnaryOp"),
+            }
+        }
+    }
+
     use super::*;
     use crate::ast::UnaryOperator;
 
