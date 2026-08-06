@@ -134,3 +134,6 @@ Signed,
 **YYYY-MM-DD - [DoS Mitigation]
 **Threat:** Memory Exhaustion / Unbounded Allocations via standard IO.
 **Defense:** Wrapped mutable readers using `.by_ref().take(LIMIT)` inside `repl.rs` and `mentor.rs`.
+**2025-02-20 - Unsoundness in anyhow**
+**Threat:** anyhow < 1.0.104 had unsoundness in `Error::downcast_mut()` allowing memory corruption.
+**Defense:** Updated `anyhow` to a secure version via `cargo update -p anyhow`.
