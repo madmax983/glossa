@@ -1,3 +1,8 @@
+//! Havoc tests for ensuring deep AST cloning and dropping don't overflow the stack.
+//!
+//! This module contains tests that build deeply nested Abstract Syntax Trees
+//! and verify that `clone` and `drop` operations are stack-safe (using `stacker`).
+
 use glossa::ast::{Expr, Word};
 use std::thread;
 

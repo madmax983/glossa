@@ -1,3 +1,9 @@
+//! Sentry performance and stress tests for code generation.
+//!
+//! This module includes tests that ensure the compiler correctly handles
+//! deep or complex Abstract Syntax Trees during the code generation phase,
+//! including expected panics for unsupported constructs.
+
 use glossa::codegen::generate_rust_file;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
