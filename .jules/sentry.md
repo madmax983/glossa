@@ -92,3 +92,17 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**[Analyze Unary Expressions]**
+**Learning:** Found potential runtime panics and dead code by leaving `// TODO: Handle Neg and Not` unimplemented in `src/semantic/expressions.rs` inside the `analyze_unaryop` function. This would have panicked with an "Unsupported unary operator" error if `Not` or `Neg` operations were ever used inside expressions.
+**Action:** Implemented proper semantic analysis and type preservation for `Neg` and `Not` operations in expressions, converting AST `UnaryOperator` into `AnalyzedExprKind::UnaryOp` using the `lexicon::UnaryOp` definitions. Added `test_analyze_argument_expr_handles_unary_ops_not_and_neg` to verify coverage.
+**[GitHub Actions Service Unavailable]**
+**Learning:** We received a "Failed to resolve action download info. Error: Service Unavailable" from GitHub Actions. This appears to be a systemic issue with `v4` of several common actions (`actions/checkout`, `actions/cache`, `codecov/codecov-action`) on GitHub currently.
+**Action:** Pinned the GitHub actions versions to explicit minor/patch versions (`actions/checkout@v4.1.7`, `actions/cache@v4.0.2`, `codecov/codecov-action@v4.4.1`) in `.github/workflows/ci.yml` instead of floating major version tags like `v4` to bypass the action resolution failure.
+**[GitHub Actions Cache Version Deprecation]**
+**Learning:** We received a "This request has been automatically failed because it uses a deprecated version of `actions/cache: v4.0.2`. Please update your workflow to use v3/v4 of actions/cache" from GitHub Actions. Due to my earlier attempt to explicitly pin down the patch version to bypass the 'Service Unavailable' resolution issues, I accidentally tripped a deprecation trigger in GH runners that requires using generic floating tags for cache.
+**Action:** Reverted the `actions/cache@v4.0.2` pin back to the stable floating tag `actions/cache@v3` in `.github/workflows/ci.yml`.
+
+**[GitHub Actions Revert to v4]**
+**Learning:** Found that pinning strictly to minor versions caused node 20 deprecation issues and caching issues in CI due to missing features/deprecation limits in those older exact tags, while the 'Service Unavailable' issues I saw earlier were likely just a transient GitHub outage rather than a permanent problem requiring hard-pinning.
+**Action:** Reverted the github actions versions (checkout, cache, codecov) back to the standard floating major `v4` tag to ensure compatibility with modern github runner environments.
