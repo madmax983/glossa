@@ -91,48 +91,52 @@ pub fn run_mosaic_inner<W: std::io::Write>(source: &str, writer: &mut W) -> Resu
         ]);
 
     for (i, stmt) in program.statements.iter().enumerate() {
-        // Only assemble regular statements (others like TypeDef don't go through Assembler in the same way)
-        // Check if it's a regular statement
-        if let crate::ast::Statement::Regular { .. } = stmt {
-            match assemble_statement(stmt) {
-                Ok(assembled) => {
-                    add_row(&mut table, i + 1, &assembled);
-                }
-                Err(e) => {
-                    table.add_row(vec![
-                        Cell::new(i + 1),
-                        Cell::new(format!("Error: {}", e)).fg(Color::Red),
-                        Cell::new(""),
-                        Cell::new(""),
-                        Cell::new(""),
-                        Cell::new(""),
-                    ]);
-                }
-            }
-        } else {
-            // For non-regular statements, just print the type
-            let type_name = match stmt {
-                crate::ast::Statement::TypeDefinition(_) => "Type Definition",
-                crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
-                crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
-                crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
-                _ => "Unknown",
-            };
-            table.add_row(vec![
-                Cell::new(i + 1),
-                Cell::new(type_name)
-                    .fg(Color::Blue)
-                    .add_attribute(Attribute::Italic),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-            ]);
-        }
+        add_statement_row(&mut table, i, stmt);
     }
 
     writeln!(writer, "{}", table).into_diagnostic()?;
     Ok(())
+}
+
+fn add_statement_row(table: &mut Table, i: usize, stmt: &crate::ast::Statement) {
+    // Only assemble regular statements (others like TypeDef don't go through Assembler in the same way)
+    // Check if it's a regular statement
+    if let crate::ast::Statement::Regular { .. } = stmt {
+        match assemble_statement(stmt) {
+            Ok(assembled) => {
+                add_row(table, i + 1, &assembled);
+            }
+            Err(e) => {
+                table.add_row(vec![
+                    Cell::new(i + 1),
+                    Cell::new(format!("Error: {}", e)).fg(Color::Red),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                    Cell::new(""),
+                ]);
+            }
+        }
+    } else {
+        // For non-regular statements, just print the type
+        let type_name = match stmt {
+            crate::ast::Statement::TypeDefinition(_) => "Type Definition",
+            crate::ast::Statement::TraitDefinition(_) => "Trait Definition",
+            crate::ast::Statement::TraitImpl(_) => "Trait Implementation",
+            crate::ast::Statement::TestDeclaration(_) => "Test Declaration",
+            _ => "Unknown",
+        };
+        table.add_row(vec![
+            Cell::new(i + 1),
+            Cell::new(type_name)
+                .fg(Color::Blue)
+                .add_attribute(Attribute::Italic),
+            Cell::new(""),
+            Cell::new(""),
+            Cell::new(""),
+            Cell::new(""),
+        ]);
+    }
 }
 
 fn format_subject(asm: &AssembledStatement) -> String {
