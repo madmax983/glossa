@@ -102,3 +102,7 @@
 **[GitHub Actions Cache Version Deprecation]**
 **Learning:** We received a "This request has been automatically failed because it uses a deprecated version of `actions/cache: v4.0.2`. Please update your workflow to use v3/v4 of actions/cache" from GitHub Actions. Due to my earlier attempt to explicitly pin down the patch version to bypass the 'Service Unavailable' resolution issues, I accidentally tripped a deprecation trigger in GH runners that requires using generic floating tags for cache.
 **Action:** Reverted the `actions/cache@v4.0.2` pin back to the stable floating tag `actions/cache@v3` in `.github/workflows/ci.yml`.
+
+**[GitHub Actions Revert to v4]**
+**Learning:** Found that pinning strictly to minor versions caused node 20 deprecation issues and caching issues in CI due to missing features/deprecation limits in those older exact tags, while the 'Service Unavailable' issues I saw earlier were likely just a transient GitHub outage rather than a permanent problem requiring hard-pinning.
+**Action:** Reverted the github actions versions (checkout, cache, codecov) back to the standard floating major `v4` tag to ensure compatibility with modern github runner environments.
