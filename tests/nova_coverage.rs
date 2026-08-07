@@ -289,7 +289,11 @@ fn test_run_diplomat_success() {
         .tempfile()
         .expect("Failed to create temp file");
 
-    let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.";
+    let source = "εἶδος Δοκιμή ὁρίζειν {
+        α ἀριθμοῦ.
+        β ὀνόματος.
+        δ λίστης.
+    }.";
     write!(temp_file, "{}", source).expect("Failed to write to temp file");
 
     let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
