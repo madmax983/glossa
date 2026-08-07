@@ -113,12 +113,20 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
         GlossaType::Result(ok, err) => {
             // TypeScript doesn't have a standard Result type, so we use a union
             // like { ok: true, value: T } | { ok: false, error: E }
-            format!("{{ ok: true, value: {} }} | {{ ok: false, error: {} }}", glossa_type_to_ts(ok), glossa_type_to_ts(err))
+            format!(
+                "{{ ok: true, value: {} }} | {{ ok: false, error: {} }}",
+                glossa_type_to_ts(ok),
+                glossa_type_to_ts(err)
+            )
         }
         GlossaType::Struct { name, .. } => name.to_string(),
         GlossaType::Function { params, returns } => {
             let p: Vec<String> = params.iter().map(glossa_type_to_ts).collect();
-            format!("(...args: [{}]) => {}", p.join(", "), glossa_type_to_ts(returns))
+            format!(
+                "(...args: [{}]) => {}",
+                p.join(", "),
+                glossa_type_to_ts(returns)
+            )
         }
         GlossaType::Unit => "void".to_string(),
         _ => "any".to_string(),
@@ -155,7 +163,10 @@ mod tests {
             "number | null"
         );
         assert_eq!(
-            glossa_type_to_ts(&GlossaType::Result(Box::new(GlossaType::Number), Box::new(GlossaType::String))),
+            glossa_type_to_ts(&GlossaType::Result(
+                Box::new(GlossaType::Number),
+                Box::new(GlossaType::String)
+            )),
             "{ ok: true, value: number } | { ok: false, error: string }"
         );
         assert_eq!(

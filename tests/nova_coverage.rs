@@ -281,3 +281,51 @@ fn test_run_scholar_syntax_error() {
 }
 
 // removed test_run_tests_rustc_error because of environment variable pollution causing intermittent failures in parallel execution and it being redundant to runner tests
+
+#[test]
+fn test_run_diplomat_success() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
+    assert!(result.is_ok(), "Diplomat failed: {:?}", result.err());
+}
+
+#[test]
+fn test_run_diplomat_file_not_found() {
+    let path = PathBuf::from("non_existent_file.gl");
+    let result = glossa::tools::diplomat::run_diplomat(&path);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+}
+
+#[test]
+fn test_run_diplomat_parse_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "invalid syntax").expect("Failed to write");
+
+    let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_diplomat_semantic_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    write!(temp_file, "ψ πέντε γίγνεται.").expect("Failed to write");
+
+    let result = glossa::tools::diplomat::run_diplomat(temp_file.path());
+    assert!(result.is_err());
+}
