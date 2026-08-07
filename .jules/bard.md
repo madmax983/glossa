@@ -76,3 +76,7 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+
+## 2024-08-07 - Test Documentation Requirements
+**Confusion:** `cargo doc` flags `missing_docs` in integration test files, and docs for functions are lost if a `use` statement separates the doc block from the function.
+**Clarification:** Added `//!` module-level documentation to integration test files. Moved `use` statements above the documentation blocks so they correctly attach to the function definitions.
