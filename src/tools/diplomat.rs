@@ -129,7 +129,7 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
             )
         }
         GlossaType::Unit => "void".to_string(),
-        _ => "any".to_string(),
+        GlossaType::Unknown => "any".to_string(),
     }
 }
 
@@ -137,6 +137,7 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
 mod tests {
     use super::*;
     use crate::semantic::GlossaType;
+    use crate::morphology::Gender;
 
     #[test]
     fn test_glossa_type_to_ts() {
@@ -168,6 +169,14 @@ mod tests {
                 Box::new(GlossaType::String)
             )),
             "{ ok: true, value: number } | { ok: false, error: string }"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Struct {
+                name: "User".into(),
+                gender: Gender::Masculine,
+                fields: vec![]
+            }),
+            "User"
         );
         assert_eq!(
             glossa_type_to_ts(&GlossaType::Function {
