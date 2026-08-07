@@ -1,3 +1,5 @@
+//! Tests that generated Rust files deny unsafe code.
+
 use glossa::codegen::generate_rust_file;
 use glossa::semantic::{AnalyzedProgram, Scope};
 

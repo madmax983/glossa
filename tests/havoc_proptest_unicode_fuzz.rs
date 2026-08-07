@@ -1,3 +1,5 @@
+//! Fuzz testing for parser using random unicode strings.
+
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 use proptest::prelude::*;

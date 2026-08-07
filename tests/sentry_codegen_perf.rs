@@ -1,3 +1,5 @@
+//! Performance and execution tests for the codegen module.
+
 use glossa::codegen::generate_rust_file;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,

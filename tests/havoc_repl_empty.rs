@@ -1,3 +1,5 @@
+//! Tests for the empty REPL crash.
+
 use glossa::tools::repl::run_repl;
 
 // test wrapper for REPL crash

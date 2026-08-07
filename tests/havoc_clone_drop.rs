@@ -1,3 +1,5 @@
+//! Tests for stack overflow protection during clone and drop.
+
 use glossa::ast::{Expr, Word};
 use std::thread;
 
