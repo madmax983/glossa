@@ -119,7 +119,11 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
                 glossa_type_to_ts(err)
             )
         }
-        GlossaType::Struct { name, .. } => name.to_string(),
+        GlossaType::Struct {
+            name,
+            fields: _fields,
+            gender: _gender,
+        } => name.to_string(),
         GlossaType::Function { params, returns } => {
             let p: Vec<String> = params.iter().map(glossa_type_to_ts).collect();
             format!(
