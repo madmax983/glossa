@@ -165,7 +165,7 @@ mod tests {
     #[test]
     fn test_run_diplomat_file_not_found() {
         let path = Path::new("non_existent_file.γλ");
-        let result = run_diplomat(&path);
+        let result = run_diplomat(path);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
     }
