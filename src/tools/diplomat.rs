@@ -136,8 +136,8 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::semantic::GlossaType;
     use crate::morphology::Gender;
+    use crate::semantic::GlossaType;
 
     #[test]
     fn test_glossa_type_to_ts() {
