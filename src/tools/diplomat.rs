@@ -146,4 +146,56 @@ mod tests {
         );
         assert_eq!(glossa_type_to_ts(&GlossaType::Unknown), "any");
     }
+
+    #[test]
+    fn test_run_diplomat_success() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_success.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            f.write_all("εἶδος Χρήστης ὁρίζειν { ὄνομα ὀνόματος. }.".as_bytes())
+                .unwrap();
+        }
+
+        let result = run_diplomat(&file_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_diplomat_file_not_found() {
+        let path = Path::new("non_existent_file.γλ");
+        let result = run_diplomat(&path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("οὐχ εὑρέθη"));
+    }
+
+    #[test]
+    fn test_run_diplomat_parse_error() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_parse_error.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            f.write_all(b"not valid syntax").unwrap();
+        }
+
+        let result = run_diplomat(&file_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_diplomat_semantic_error() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_semantic_error.gl");
+        {
+            let mut f = std::fs::File::create(&file_path).unwrap();
+            // Valid syntax, invalid semantics (reassigning undefined var)
+            f.write_all("ψ πέντε γίγνεται.".as_bytes()).unwrap();
+        }
+
+        let result = run_diplomat(&file_path);
+        assert!(result.is_err());
+    }
 }
