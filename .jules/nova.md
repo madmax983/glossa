@@ -52,3 +52,13 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## The Diplomat (Code Coverage Fix)
+**Concept:** Fix Codecov failure by removing newly added unused variables in GlossaType::Struct destructuring (, ).
+**Fate:** Fixed
+**Lesson:** When destructuring an enum like GlossaType, and only using some fields, use  if ignoring the rest, or strictly bind them to  prefixed names (e.g. ) if required by code style. But if you bind them to , you must actually ensure they are valid for all contexts to prevent clippy or coverage errors. A  CI check can fail not just because of missing tests, but because a code change touched lines that were previously completely covered and are now somehow evaluated differently or simply the overall patch percentage fell short. In this case, fixing the  destructuring to match the updated enum definition was key.
+
+## The Diplomat (Code Coverage Fix)
+**Concept:** Fix Codecov failure by removing newly added unused variables in GlossaType::Struct destructuring (`fields`, `gender`).
+**Fate:** Fixed
+**Lesson:** When destructuring an enum like GlossaType, and only using some fields, use `..` if ignoring the rest, or strictly bind them to `_` prefixed names (e.g. `_fields`) if required by code style. A `codecov/patch` CI check can fail not just because of missing tests, but because a code change touched lines that were previously completely covered and are now somehow evaluated differently. In this case, fixing the `Struct` destructuring to match the updated enum definition (adding `gender`) was needed because the previous change that dropped `fields` and `gender` entirely caused coverage mismatches.
