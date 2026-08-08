@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Cryptographer (ὁ Κρυπτογράφος)
+**Concept:** A CLI tool (`glossa hash`) that generates a semantic hash (SHA-256) of a Glossa program. Since Glossa has a free word order, comparing raw source code hashes is insufficient. This tool hashes the parsed and assembled `AnalyzedProgram`, effectively producing a "semantic fingerprint" that proves that `x 5 ἔστω.` and `5 x ἔστω.` mean the exact same thing.
+**Fate:** Merged
+**Lesson:** Hashing the debug representation of the `AnalyzedStatement` enum variants proved to be a robust, dependency-light way (since we already had `sha2` in `Cargo.toml`) to compare structural equivalence. This is a powerful demonstration of the assembler's capabilities.
