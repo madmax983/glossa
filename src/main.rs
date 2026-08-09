@@ -201,6 +201,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Panoptes { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::panoptes::run_panoptes(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'panoptes' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Repl) | None => {
             run_repl()?;
         }

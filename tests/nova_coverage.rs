@@ -281,3 +281,12 @@ fn test_run_scholar_syntax_error() {
 }
 
 // removed test_run_tests_rustc_error because of environment variable pollution causing intermittent failures in parallel execution and it being redundant to runner tests
+
+#[test]
+fn test_panoptes_does_not_panic() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let file_path = temp_dir.path().join("test_panoptes.γλ");
+    std::fs::write(&file_path, "ξ 5 ἔστω.").unwrap();
+    let result = glossa::tools::panoptes::run_panoptes(&file_path);
+    assert!(result.is_ok());
+}
