@@ -1,3 +1,5 @@
+//! warden_hashdos.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::tools::Cache;
 use std::path::Path;

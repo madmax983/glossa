@@ -1,3 +1,5 @@
+//! security_dos_file_size.rs integration tests
+
 #![allow(missing_docs)]
 use std::fs::File;
 use std::io::Write;

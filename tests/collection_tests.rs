@@ -1,3 +1,5 @@
+//! collection_tests.rs integration tests
+
 #![allow(missing_docs)]
 //! Collection tests for ΓΛΩΣΣΑ Phase 3
 //!

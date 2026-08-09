@@ -1,3 +1,5 @@
+//! warden_text_dos.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::text::normalize_greek;
 use std::time::Instant;

@@ -1,3 +1,5 @@
+//! havoc_dos.rs integration tests
+
 #![allow(missing_docs)]
 use std::path::Path;
 use std::sync::mpsc;

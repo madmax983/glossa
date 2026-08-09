@@ -1,3 +1,5 @@
+//! warden_index_overflow.rs integration tests
+
 #![allow(missing_docs)]
 //! Warden Exploit Test: Index Truncation
 //!

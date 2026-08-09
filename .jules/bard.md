@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-08-09 - Inner vs Outer Doc Comments and Imports
+**Confusion:** The missing docs error on `to_rust_type` occurred because a `use` statement was placed between the outer doc comment (`///`) and the function. In Rust, documentation comments (`///`) attach directly to the next syntactical item. If an item like a `use` statement is placed between a doc comment and the function or struct it is meant for, `cargo doc` will attach the documentation to the `use` statement instead, resulting in `missing_docs` warnings for the target item.
+**Clarification:** Moving the `use std::fmt::Write;` inside the `to_rust_type` and `write_rust_type` functions rather than placing it between the doc comment and the function resolves the issue.

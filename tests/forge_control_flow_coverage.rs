@@ -1,3 +1,5 @@
+//! forge_control_flow_coverage.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::ast::{Clause, Expr, Statement, Word};
 use glossa::semantic::analyze_statement;

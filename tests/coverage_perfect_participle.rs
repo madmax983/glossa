@@ -1,3 +1,5 @@
+//! coverage_perfect_participle.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::*;
 

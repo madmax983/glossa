@@ -1,3 +1,5 @@
+//! havoc_debug_crash.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::ast::Expr;
 use std::env;

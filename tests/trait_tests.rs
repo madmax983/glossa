@@ -1,3 +1,5 @@
+//! trait_tests.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::ast::Statement;
 use glossa::codegen::generate_rust;

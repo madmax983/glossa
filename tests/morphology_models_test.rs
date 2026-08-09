@@ -1,3 +1,5 @@
+//! morphology_models_test.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::morphology::*;
 

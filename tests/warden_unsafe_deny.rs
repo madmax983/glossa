@@ -1,3 +1,5 @@
+//! warden_unsafe_deny.rs integration tests
+
 use glossa::codegen::generate_rust_file;
 use glossa::semantic::{AnalyzedProgram, Scope};
 

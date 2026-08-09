@@ -1,3 +1,5 @@
+//! havoc_debug_crash_type.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::morphology::Gender;
 use glossa::semantic::GlossaType;

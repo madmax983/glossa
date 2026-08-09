@@ -1,3 +1,5 @@
+//! warden_logic.rs integration tests
+
 #![allow(missing_docs)]
 #[cfg(test)]
 mod tests {

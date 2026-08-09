@@ -1,3 +1,5 @@
+//! sentry_morphology_empty_string.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::morphology::analyze_noun;
 use glossa::morphology::analyze_participle;

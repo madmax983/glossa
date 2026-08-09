@@ -1,3 +1,5 @@
+//! razor_coverage.rs integration tests
+
 #![allow(missing_docs)]
 //! Coverage tests for refactored modules (errors.rs and merged assembler.rs)
 //!

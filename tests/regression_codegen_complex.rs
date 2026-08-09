@@ -1,3 +1,5 @@
+//! regression_codegen_complex.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::codegen::generate_rust;
 use glossa::semantic::{AnalyzedProgram, AnalyzedStatement, GlossaType, Scope};

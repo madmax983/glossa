@@ -1,3 +1,5 @@
+//! havoc_semantic_stack_overflow.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::morphology::BinaryOp;
 use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};

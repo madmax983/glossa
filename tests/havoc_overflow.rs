@@ -1,3 +1,5 @@
+//! havoc_overflow.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::errors::GlossaError;
 use glossa::parser::parse;

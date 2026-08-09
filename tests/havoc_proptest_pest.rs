@@ -1,3 +1,5 @@
+//! havoc_proptest_pest.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::parser::parse;
 use proptest::prelude::*;

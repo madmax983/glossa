@@ -1,3 +1,5 @@
+//! havoc.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::parser::parse;
 use glossa::parser::parse_greek_numeral;

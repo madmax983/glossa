@@ -1,3 +1,5 @@
+//! warden_recursive_struct_mutual.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;

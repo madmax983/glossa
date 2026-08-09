@@ -1,3 +1,5 @@
+//! lambda_tests.rs integration tests
+
 #![allow(missing_docs)]
 //! Lambda tests - participles as closures
 //!

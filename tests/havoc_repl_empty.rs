@@ -1,3 +1,5 @@
+//! havoc_repl_empty.rs integration tests
+
 use glossa::tools::repl::run_repl;
 
 // test wrapper for REPL crash

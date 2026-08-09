@@ -1,3 +1,5 @@
+//! havoc_pest_recursion_depth.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::parser::parse;
 

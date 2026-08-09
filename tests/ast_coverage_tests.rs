@@ -1,3 +1,5 @@
+//! ast_coverage_tests.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::ast::*;
 

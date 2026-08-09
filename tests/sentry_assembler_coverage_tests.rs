@@ -1,3 +1,5 @@
+//! sentry_assembler_coverage_tests.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::morphology::BinaryOp;
 use glossa::morphology::analyze;

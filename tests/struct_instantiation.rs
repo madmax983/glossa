@@ -1,3 +1,5 @@
+//! struct_instantiation.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::parser::parse;
 use glossa::semantic::{AnalyzedExprKind, AnalyzedStatement, analyze_program};

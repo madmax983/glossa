@@ -1,3 +1,5 @@
+//! havoc_dos_unicode.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::text::normalize_greek;
 use proptest::prelude::*;

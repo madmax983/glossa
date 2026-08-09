@@ -1,3 +1,5 @@
+//! coverage_perfect_fold.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::*;
 

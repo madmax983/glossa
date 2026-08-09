@@ -1,3 +1,5 @@
+//! warden_index_tryfrom.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::codegen::generate_rust_file;
 use glossa::semantic::{
