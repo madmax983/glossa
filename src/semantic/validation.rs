@@ -292,4 +292,39 @@ mod tests {
         let result = check_statement_depth(&stmt, 0);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_ast_statement_depth_limit() {
+        let word = crate::ast::Word {
+            original: "T".into(),
+            normalized: "t".into(),
+        };
+        let stmt = crate::ast::Statement::TypeDefinition(crate::ast::TypeDef {
+            name: word,
+            fields: vec![],
+        });
+        let result = check_ast_statement_depth(&stmt, MAX_AST_DEPTH + 1);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::SemanticError { message } => {
+                assert!(message.contains("Recursion limit exceeded in statement analysis"))
+            }
+            _ => panic!("Expected SemanticError"),
+        }
+    }
+
+    #[test]
+    fn test_ast_clause_depth_limit() {
+        let clause = crate::ast::Clause {
+            expressions: vec![],
+        };
+        let result = check_ast_clause_depth(&clause, MAX_AST_DEPTH + 1);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::SemanticError { message } => {
+                assert!(message.contains("Recursion limit exceeded in clause analysis"))
+            }
+            _ => panic!("Expected SemanticError"),
+        }
+    }
 }
