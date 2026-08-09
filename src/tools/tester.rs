@@ -876,3 +876,65 @@ test name with spaces ... ok
         assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
     }
 }
+
+#[cfg(test)]
+mod formatting_tests {
+    use super::*;
+    use std::process::{Command, Output};
+
+    #[test]
+    fn test_print_header() {
+        print_header();
+    }
+
+    #[test]
+    fn test_print_summary_banner() {
+        print_summary_banner(true, true);
+        print_summary_banner(true, false);
+        print_summary_banner(false, true);
+        print_summary_banner(false, false);
+    }
+
+    #[test]
+    fn test_print_results_table() {
+        let results = vec![
+            TestResult {
+                name: "test1".to_string(),
+                status: TestStatus::Ok,
+            },
+            TestResult {
+                name: "test2".to_string(),
+                status: TestStatus::Failed,
+            },
+            TestResult {
+                name: "test3".to_string(),
+                status: TestStatus::Ignored,
+            },
+        ];
+        print_results_table(&results);
+        print_results_table(&[]);
+    }
+
+    #[test]
+    fn test_print_failure_details() {
+        // Create a dummy successful output
+        let success_output = Output {
+            status: Command::new("true").output().unwrap().status,
+            stdout: vec![],
+            stderr: vec![],
+        };
+        print_failure_details(&success_output, "");
+
+        // Create a dummy failing output
+        let failure_output = Output {
+            status: Command::new("false").output().unwrap().status,
+            stdout: vec![],
+            stderr: vec![],
+        };
+        print_failure_details(
+            &failure_output,
+            "failures:\n\n---- test_name stdout ----\nerror here\n",
+        );
+        print_failure_details(&failure_output, "no extractable failure");
+    }
+}
