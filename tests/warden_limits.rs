@@ -1,3 +1,5 @@
+//! warden_limits.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::tools::runner::run_file;
 use std::fs::File;

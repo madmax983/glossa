@@ -1,3 +1,5 @@
+//! compile_tests.rs integration tests
+
 #![allow(missing_docs)]
 //! Integration tests for the ΓΛΩΣΣΑ compiler pipeline
 

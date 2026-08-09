@@ -1,3 +1,5 @@
+//! havoc_nested_tests.rs integration tests
+
 #![allow(missing_docs)]
 #[cfg(test)]
 mod tests {

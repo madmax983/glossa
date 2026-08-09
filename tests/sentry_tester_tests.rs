@@ -1,3 +1,5 @@
+//! sentry_tester_tests.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::tools::tester::run_tests;
 use std::fs;

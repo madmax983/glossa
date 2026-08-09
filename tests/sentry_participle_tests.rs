@@ -1,3 +1,5 @@
+//! sentry_participle_tests.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::morphology::{Case, Gender, Number, Tense, Voice, analyze_participle};
 

@@ -1,3 +1,5 @@
+//! havoc_limits.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::ast::{Clause, Expr, Statement, Word};
 use glossa::semantic::assemble_statement;

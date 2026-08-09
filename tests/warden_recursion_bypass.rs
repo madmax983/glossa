@@ -1,3 +1,5 @@
+//! warden_recursion_bypass.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::parser::parse;
 

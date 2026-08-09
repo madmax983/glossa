@@ -1,3 +1,5 @@
+//! nova_numerals.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::ast::{Expr, Statement};
 use glossa::parser::parse;

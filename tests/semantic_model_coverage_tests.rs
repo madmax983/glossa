@@ -1,3 +1,5 @@
+//! semantic_model_coverage_tests.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedMethod, AnalyzedStatement, AssembledStatement,

@@ -1,3 +1,5 @@
+//! option_result_tests.rs integration tests
+
 #![allow(missing_docs)]
 /// Integration tests for Option<T> and Result<T,E> types in GLOSSA
 ///

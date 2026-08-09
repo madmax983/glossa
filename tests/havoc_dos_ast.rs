@@ -1,3 +1,5 @@
+//! havoc_dos_ast.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::ast::{Clause, Expr, Program, Statement, Word};
 use glossa::semantic::analyze_program;

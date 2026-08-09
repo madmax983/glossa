@@ -1,3 +1,5 @@
+//! havoc_disambiguation_panic.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::morphology::{Case, DisambiguationContext, MorphAnalysis, PartOfSpeech, disambiguate};
 

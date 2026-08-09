@@ -1,3 +1,5 @@
+//! havoc_clone_drop.rs integration tests
+
 use glossa::ast::{Expr, Word};
 use std::thread;
 

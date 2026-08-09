@@ -1,3 +1,5 @@
+//! narrator_coverage.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::parser::parse;
 use glossa::semantic::{

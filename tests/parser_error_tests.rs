@@ -1,3 +1,5 @@
+//! parser_error_tests.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::parser::parse;
 

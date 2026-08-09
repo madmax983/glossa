@@ -1,3 +1,5 @@
+//! havoc_issue_echo.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;

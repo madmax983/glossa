@@ -1,3 +1,5 @@
+//! alchemist_coverage.rs integration tests
+
 #![allow(missing_docs)]
 #![cfg(feature = "nova")]
 

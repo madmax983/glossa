@@ -1,3 +1,5 @@
+//! havoc_proptest_unicode_fuzz.rs integration tests
+
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 use proptest::prelude::*;

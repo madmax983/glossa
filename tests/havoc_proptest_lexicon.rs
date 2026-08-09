@@ -1,3 +1,5 @@
+//! havoc_proptest_lexicon.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::morphology::lookup;
 use proptest::prelude::*;

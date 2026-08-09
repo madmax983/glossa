@@ -1,3 +1,5 @@
+//! operator_tests.rs integration tests
+
 #![allow(missing_docs)]
 //! Operator integration tests for ΓΛΩΣΣΑ
 //!

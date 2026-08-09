@@ -1,3 +1,5 @@
+//! expression_coverage.rs integration tests
+
 #![allow(missing_docs)]
 //! Coverage tests for expression classification paths
 //!

@@ -1,3 +1,5 @@
+//! security_tests.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::codegen::generate_rust;
 use glossa::parser::parse;

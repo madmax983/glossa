@@ -1,3 +1,5 @@
+//! word_order_tests.rs integration tests
+
 #![allow(missing_docs)]
 //! Word-order independence tests for ΓΛΩΣΣΑ
 //!

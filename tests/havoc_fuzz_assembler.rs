@@ -1,3 +1,5 @@
+//! havoc_fuzz_assembler.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::morphology::{Case, MorphAnalysis, Number, PartOfSpeech};
 use glossa::semantic::Assembler;

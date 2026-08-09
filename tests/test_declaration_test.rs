@@ -1,3 +1,5 @@
+//! test_declaration_test.rs integration tests
+
 #![allow(missing_docs)]
 //! Test that δοκιμή test declarations are parsed correctly
 

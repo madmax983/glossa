@@ -1,3 +1,5 @@
+//! codegen_coverage.rs integration tests
+
 #![allow(missing_docs)]
 use glossa::semantic::AnalyzedStatement;
 use glossa::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};

@@ -1,3 +1,5 @@
+//! test_assertions_test.rs integration tests
+
 #![allow(missing_docs)]
 //! Integration tests for δεῖ and ἰσοῦται assertion transpilation
 
