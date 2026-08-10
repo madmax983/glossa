@@ -11,8 +11,8 @@
 //! structure, seeing exactly how expressions are nested and typed.
 
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement};
-use crate::tools::runner::load_source;
-use crate::tools::ui::Status;
+use super::runner::load_source;
+use super::ui::Status;
 use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
@@ -35,7 +35,7 @@ pub fn run_haruspex(input: &Path) -> Result<()> {
         }
     };
 
-    let program = match crate::tools::runner::analyze_source(&source) {
+    let program = match super::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
             status.error("Σφάλμα ἀναλύσεως (Analysis Error)");

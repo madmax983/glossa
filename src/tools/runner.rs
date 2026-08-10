@@ -12,10 +12,10 @@
 //!
 //! # Core Capabilities
 //!
-//! * **Analysis**: [`analyze_source`](crate::tools::runner::analyze_source) parses text and performs semantic validation.
-//! * **Compilation**: [`build_file`](crate::tools::runner::build_file) handles the full pipeline, generating Rust source code and compiling it via `rustc`.
-//! * **Execution**: [`run_file`](crate::tools::runner::run_file) compiles and runs the resulting binary.
-//! * **Validation**: [`check_file`](crate::tools::runner::check_file) validates syntax and semantics without emitting code.
+//! * **Analysis**: [`analyze_source`](super::runner::analyze_source) parses text and performs semantic validation.
+//! * **Compilation**: [`build_file`](super::runner::build_file) handles the full pipeline, generating Rust source code and compiling it via `rustc`.
+//! * **Execution**: [`run_file`](super::runner::run_file) compiles and runs the resulting binary.
+//! * **Validation**: [`check_file`](super::runner::check_file) validates syntax and semantics without emitting code.
 //!
 //! # Safety First
 //!
@@ -24,11 +24,11 @@
 use crate::codegen::generate_rust_file;
 use crate::parser::parse;
 use crate::semantic::{AnalyzedProgram, analyze_program};
-use crate::tools::cache::Cache;
-use crate::tools::highlight::highlight;
-use crate::tools::narrator::tell_tale;
-use crate::tools::report::{CompilationReport, GlossaReport, ProgramStats};
-use crate::tools::ui::Status;
+use super::cache::Cache;
+use super::highlight::highlight;
+use super::narrator::tell_tale;
+use super::report::{CompilationReport, GlossaReport, ProgramStats};
+use super::ui::Status;
 use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use std::fs;

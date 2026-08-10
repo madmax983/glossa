@@ -12,15 +12,15 @@
 //!
 //! # How it Works
 //!
-//! The [`run_auditor`](crate::tools::auditor::run_auditor) function drives the analysis:
+//! The [`run_auditor`](super::auditor::run_auditor) function drives the analysis:
 //! 1. The code is parsed and semantically analyzed.
 //! 2. A custom visitor (`AuditorVisitor`) traverses every statement and expression in the AST.
 //! 3. The visitor tracks variable declarations, usages, and reassignments using HashMaps and HashSets.
 //! 4. After traversal, the findings are cross-referenced to produce a final report,
 //!    which is displayed in a stylized terminal table.
 use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, AnalyzedStatement};
-use crate::tools::runner::load_source;
-use crate::tools::ui::Status;
+use super::runner::load_source;
+use super::ui::Status;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, Table};
 use crossterm::style::Stylize;
@@ -66,7 +66,7 @@ pub fn run_auditor(input: &Path) -> Result<()> {
         }
     };
 
-    let program = match crate::tools::runner::analyze_source(&source) {
+    let program = match super::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
             status.error("Σφάλμα (Error)");

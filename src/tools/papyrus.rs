@@ -11,14 +11,14 @@
 //!
 //! # How it Works
 //!
-//! The [`run_papyrus`](crate::tools::papyrus::run_papyrus) function orchestrates the process:
+//! The [`run_papyrus`](super::papyrus::run_papyrus) function orchestrates the process:
 //! 1. Parses and semantically analyzes the source code.
 //! 2. Scans the Abstract Syntax Tree for `TypeDefinition` nodes.
 //! 3. Maps ΓΛΩΣΣΑ types (`ἀριθμοῦ`, `ὀνόματος`, etc.) to SQL types (`BIGINT`, `TEXT`, etc.).
 //! 4. Outputs formatted SQL code to the terminal using a stylish, colorful table.
 use crate::semantic::{AnalyzedStatement, GlossaType};
-use crate::tools::runner::load_source;
-use crate::tools::ui::Status;
+use super::runner::load_source;
+use super::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use miette::Result;
@@ -61,7 +61,7 @@ pub fn run_papyrus(input: &Path) -> Result<()> {
         }
     };
 
-    let program = match crate::tools::runner::analyze_source(&source) {
+    let program = match super::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
             // Note: Since `analyze_source` unifies parsing and semantics, we

@@ -19,12 +19,12 @@ use std::path::Path;
 
 /// Run the Alchemist tool on a file
 pub fn run_alchemist(input: &Path) -> miette::Result<()> {
-    let source = crate::tools::runner::load_source(input)?;
+    let source = super::runner::load_source(input)?;
 
     let status =
-        crate::tools::ui::Status::start_with_symbol("Χημεία (Transpiling to Python)", "⚗️");
+        super::ui::Status::start_with_symbol("Χημεία (Transpiling to Python)", "⚗️");
 
-    let program = match crate::tools::runner::analyze_source(&source) {
+    let program = match super::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
             status.error("Σφάλμα (Error)");
@@ -424,7 +424,7 @@ fn transpile_expr(expr: &AnalyzedExpr) -> String {
         // Fallback for unsupported complex expressions like Try, Option variants, etc.
         _ => format!(
             "/* Unimplemented expr: {} */",
-            crate::tools::narrator::tell_expr(expr)
+            super::narrator::tell_expr(expr)
         ),
     }
 }

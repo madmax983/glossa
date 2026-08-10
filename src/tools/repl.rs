@@ -334,7 +334,7 @@ impl ReplContext {
 
         // 2. Compile the Virtual File
         // If this fails (parse error, type error), the history remains unchanged.
-        let analyzed = crate::tools::runner::analyze_source(&full_source)
+        let analyzed = super::runner::analyze_source(&full_source)
             .map_err(|e| GlossaError::semantic(e.to_string()))?;
 
         // 3. Detect New Activity
