@@ -190,7 +190,7 @@ fn run_mentor_inner<R: BufRead, W: Write>(input: &mut R, output: &mut W) -> Resu
 }
 
 fn process_submission(source: &str) -> Result<AnalyzedProgram, String> {
-    crate::tools::runner::analyze_source(source).map_err(|e| e.to_string())
+    super::runner::analyze_source(source).map_err(|e| e.to_string())
 }
 
 fn print_banner<W: Write>(w: &mut W) -> Result<()> {

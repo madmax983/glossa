@@ -16,14 +16,14 @@
 //! * **Edges**: The flow of execution.
 
 use crate::semantic::{AnalyzedProgram, AnalyzedStatement};
-use crate::tools::ui::Status;
+use super::ui::Status;
 use comfy_table::{Attribute, Cell, Color, Table, presets};
 use crossterm::style::Stylize;
 use std::path::Path;
 
 /// Run the Labyrinth tool on a file
 pub fn run_labyrinth(input: &Path) -> miette::Result<()> {
-    let source = crate::tools::runner::load_source(input)?;
+    let source = super::runner::load_source(input)?;
     let mut buffer = Vec::new();
     run_labyrinth_inner(&source, &mut buffer)?;
     let output = String::from_utf8(buffer).expect("comfy-table outputs valid UTF-8");
@@ -36,7 +36,7 @@ pub fn run_labyrinth_inner<W: std::io::Write>(source: &str, writer: &mut W) -> m
     use miette::IntoDiagnostic;
     let status = Status::start_with_symbol("Λαβύρινθος (Control Flow Graph)", "🔀");
 
-    let program = match crate::tools::runner::analyze_source(source) {
+    let program = match super::runner::analyze_source(source) {
         Ok(p) => p,
         Err(e) => {
             status.error("Σφάλμα (Error)");

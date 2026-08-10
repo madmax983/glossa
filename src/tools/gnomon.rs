@@ -9,8 +9,8 @@
 //! This tool casts a shadow over the program's AST to estimate its execution time complexity.
 
 use crate::semantic::AnalyzedStatement;
-use crate::tools::runner::load_source;
-use crate::tools::ui::Status;
+use super::runner::load_source;
+use super::ui::Status;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, Table};
 use crossterm::style::Stylize;
@@ -136,7 +136,7 @@ pub fn run_gnomon(input: &Path) -> Result<()> {
         }
     };
 
-    let program = match crate::tools::runner::analyze_source(&source) {
+    let program = match super::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
             status.error("Σφάλμα (Error)");

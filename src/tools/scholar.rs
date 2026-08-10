@@ -19,8 +19,8 @@
 //! 3. Formats them into standardized Markdown tables and headers.
 //! 4. Saves the result alongside the original file.
 
-use crate::tools::runner::load_source;
-use crate::tools::ui::Status;
+use super::runner::load_source;
+use super::ui::Status;
 use crossterm::style::Stylize;
 use miette::Result;
 use std::fmt::Write;
@@ -47,7 +47,7 @@ pub fn run_scholar(input: &Path) -> Result<()> {
     let source = load_source(input)?;
     let status = Status::start_with_symbol("Συγγραφή (Generating Docs)", "📜");
 
-    let program = match crate::tools::runner::analyze_source(&source) {
+    let program = match super::runner::analyze_source(&source) {
         Ok(p) => p,
         Err(e) => {
             status.error("Σφάλμα (Error)");
