@@ -290,3 +290,29 @@ fn test_panoptes_does_not_panic() {
     let result = glossa::tools::panoptes::run_panoptes(&file_path);
     assert!(result.is_ok());
 }
+
+#[test]
+fn test_panoptes_file_not_found() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let file_path = temp_dir.path().join("does_not_exist.γλ");
+    let result = glossa::tools::panoptes::run_panoptes(&file_path);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_panoptes_analyze_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let file_path = temp_dir.path().join("test_panoptes_err.γλ");
+    std::fs::write(&file_path, "ξ 5.").unwrap();
+    let result = glossa::tools::panoptes::run_panoptes(&file_path);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_panoptes_runtime_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let file_path = temp_dir.path().join("test_panoptes_runtime.γλ");
+    std::fs::write(&file_path, "ξ 1 0 μέρος ἔστω.").unwrap();
+    let result = glossa::tools::panoptes::run_panoptes(&file_path);
+    assert!(result.is_err());
+}
