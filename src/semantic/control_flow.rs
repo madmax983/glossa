@@ -532,80 +532,58 @@ fn parse_return_expression(clause: &Clause, scope: &Scope) -> Result<AnalyzedExp
 }
 
 /// Parse a match pattern expression
-fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, GlossaError> {
-    // Pattern is typically: value ᾖ
-    if let Expr::Phrase(terms) = expr {
-        if terms.is_empty() {
-            return Err(GlossaError::semantic("Empty match pattern"));
-        }
+/// Helper: Parse a simple word into a match pattern
+fn parse_simple_word(w: &crate::ast::Word, scope: &Scope) -> Result<AnalyzedExpr, GlossaError> {
+    let normalized = &w.normalized;
 
-        // Get first word (the pattern value)
-        if let Expr::Word(w) = &terms[0] {
-            let normalized = &w.normalized;
-
-            // Check if it's ἄλλο (wildcard)
-            if normalized == "αλλο" {
-                return Ok(AnalyzedExpr {
-                    expr: AnalyzedExprKind::BooleanLiteral(true),
-                    glossa_type: GlossaType::Boolean,
-                });
-            }
-
-            // Check if it's a numeral
-            if let Some(val) = lexicon::numeral_value(normalized) {
-                return Ok(AnalyzedExpr {
-                    expr: AnalyzedExprKind::NumberLiteral(val),
-                    glossa_type: GlossaType::Number,
-                });
-            }
-
-            // Otherwise, treat as variable reference
-            let var_type = scope
-                .lookup(normalized)
-                .cloned()
-                .unwrap_or(GlossaType::Unknown);
-            if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
-                return Err(GlossaError::undefined(normalized.clone()));
-            }
-            return Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable(normalized.clone()),
-                glossa_type: var_type,
-            });
-        }
-    } else if let Expr::Word(w) = expr {
-        let normalized = &w.normalized;
-
-        // Check for wildcard
-        if normalized == "αλλο" {
-            return Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::BooleanLiteral(true),
-                glossa_type: GlossaType::Boolean,
-            });
-        }
-
-        // Check for numeral
-        if let Some(val) = lexicon::numeral_value(normalized) {
-            return Ok(AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(val),
-                glossa_type: GlossaType::Number,
-            });
-        }
-
-        let var_type = scope
-            .lookup(normalized)
-            .cloned()
-            .unwrap_or(GlossaType::Unknown);
-        if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
-            return Err(GlossaError::undefined(normalized.clone()));
-        }
-
+    // Check if it's ἄλλο (wildcard)
+    if normalized == "αλλο" {
         return Ok(AnalyzedExpr {
-            expr: AnalyzedExprKind::Variable(normalized.clone()),
-            glossa_type: var_type,
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
         });
     }
 
-    Err(GlossaError::semantic("Invalid match pattern"))
+    // Check if it's a numeral
+    if let Some(val) = lexicon::numeral_value(normalized) {
+        return Ok(AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(val),
+            glossa_type: GlossaType::Number,
+        });
+    }
+
+    // Otherwise, treat as variable reference
+    let var_type = scope
+        .lookup(normalized)
+        .cloned()
+        .unwrap_or(GlossaType::Unknown);
+    if var_type == GlossaType::Unknown && !scope.is_function(normalized) {
+        return Err(GlossaError::undefined(normalized.clone()));
+    }
+    Ok(AnalyzedExpr {
+        expr: AnalyzedExprKind::Variable(normalized.clone()),
+        glossa_type: var_type,
+    })
+}
+
+fn parse_match_pattern(expr: &Expr, scope: &mut Scope) -> Result<AnalyzedExpr, GlossaError> {
+    // Pattern is typically: value ᾖ
+    let word = match expr {
+        Expr::Phrase(terms) => {
+            if terms.is_empty() {
+                return Err(GlossaError::semantic("Empty match pattern"));
+            }
+            if let Expr::Word(w) = &terms[0] {
+                w
+            } else {
+                return Err(GlossaError::semantic("Invalid match pattern"));
+            }
+        }
+        Expr::Word(w) => w,
+        _ => return Err(GlossaError::semantic("Invalid match pattern")),
+    };
+
+    parse_simple_word(word, scope)
 }
 
 /// Parse a conditional statement (εἰ/ἐάν)
@@ -1405,5 +1383,36 @@ mod tests {
     fn test_check_conditional_start_true_word() {
         let expr = Expr::Word(Word::new("εαν"));
         assert!(check_conditional_start(&expr));
+    }
+
+    #[test]
+    fn test_parse_match_pattern_coverage() {
+        let mut scope = Scope::new();
+
+        // Test wildcard (αλλο)
+        let wildcard_expr = Expr::Word(Word::new("αλλο"));
+        let wildcard_res = super::parse_match_pattern(&wildcard_expr, &mut scope).unwrap();
+        assert_eq!(wildcard_res.glossa_type, GlossaType::Boolean);
+
+        // Test numeral (δυο)
+        let numeral_expr = Expr::Word(Word::new("δυο"));
+        let numeral_res = super::parse_match_pattern(&numeral_expr, &mut scope).unwrap();
+        assert_eq!(numeral_res.glossa_type, GlossaType::Number);
+
+        // Test defined variable
+        scope.define("ονομα".to_string(), GlossaType::String);
+        let var_expr = Expr::Word(Word::new("ονομα"));
+        let var_res = super::parse_match_pattern(&var_expr, &mut scope).unwrap();
+        assert_eq!(var_res.glossa_type, GlossaType::String);
+
+        // Test undefined variable
+        let undef_expr = Expr::Word(Word::new("αγνωστον"));
+        let undef_res = super::parse_match_pattern(&undef_expr, &mut scope);
+        assert!(undef_res.is_err());
+
+        // Test invalid pattern (Empty phrase)
+        let empty_phrase = Expr::Phrase(vec![]);
+        let empty_res = super::parse_match_pattern(&empty_phrase, &mut scope);
+        assert!(empty_res.is_err());
     }
 }
