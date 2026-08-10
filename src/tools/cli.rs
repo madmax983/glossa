@@ -180,6 +180,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Generate TypeScript interfaces from type definitions (Requires "nova" feature)
+    Ambassador {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Transpile a .γλ file to Python (Requires "nova" feature)
     Alchemist {
         /// Input file (.γλ)
