@@ -1384,4 +1384,35 @@ mod tests {
         let expr = Expr::Word(Word::new("εαν"));
         assert!(check_conditional_start(&expr));
     }
+
+    #[test]
+    fn test_parse_match_pattern_coverage() {
+        let mut scope = Scope::new();
+
+        // Test wildcard (αλλο)
+        let wildcard_expr = Expr::Word(Word::new("αλλο"));
+        let wildcard_res = super::parse_match_pattern(&wildcard_expr, &mut scope).unwrap();
+        assert_eq!(wildcard_res.glossa_type, GlossaType::Boolean);
+
+        // Test numeral (δυο)
+        let numeral_expr = Expr::Word(Word::new("δυο"));
+        let numeral_res = super::parse_match_pattern(&numeral_expr, &mut scope).unwrap();
+        assert_eq!(numeral_res.glossa_type, GlossaType::Number);
+
+        // Test defined variable
+        scope.define("ονομα".to_string(), GlossaType::String);
+        let var_expr = Expr::Word(Word::new("ονομα"));
+        let var_res = super::parse_match_pattern(&var_expr, &mut scope).unwrap();
+        assert_eq!(var_res.glossa_type, GlossaType::String);
+
+        // Test undefined variable
+        let undef_expr = Expr::Word(Word::new("αγνωστον"));
+        let undef_res = super::parse_match_pattern(&undef_expr, &mut scope);
+        assert!(undef_res.is_err());
+
+        // Test invalid pattern (Empty phrase)
+        let empty_phrase = Expr::Phrase(vec![]);
+        let empty_res = super::parse_match_pattern(&empty_phrase, &mut scope);
+        assert!(empty_res.is_err());
+    }
 }
