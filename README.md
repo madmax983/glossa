@@ -157,6 +157,13 @@ Translate your code into an English narrative (available without `nova`).
 cargo run --release -- bard examples/quickstart.γλ
 ```
 
+### 5. The Panoptes (Memory Visualizer)
+Execute code in the simulator and view the final memory state of all variables in a grid.
+
+```bash
+cargo run --release --features nova -- panoptes examples/quickstart.γλ
+```
+
 ## Features
 
 - **Greek Syntax**: Write code using authentic Ancient Greek grammatical constructs

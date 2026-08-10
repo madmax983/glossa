@@ -104,6 +104,12 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Run the interpreter and display the final memory state (Requires "nova" feature)
+    Panoptes {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
+
     /// Generate a language metrics dashboard
     Report {
         /// Input file (.γλ)

@@ -204,6 +204,10 @@ impl Interpreter {
         self.output.join("\n")
     }
 
+    pub fn get_environment(&self) -> &Vec<FxHashMap<String, Value>> {
+        &self.env
+    }
+
     fn eval_statement(&mut self, stmt: &AnalyzedStatement) -> Result<(), EvalError> {
         match stmt {
             AnalyzedStatement::Binding { name, value, .. } => {
@@ -651,5 +655,17 @@ mod extra_tests {
 
         interpreter.run(&program).unwrap();
         assert_eq!(interpreter.get_output(), "1");
+    }
+}
+
+#[cfg(test)]
+mod panoptes_tests {
+    use super::*;
+
+    #[test]
+    fn test_get_env() {
+        let interp = Interpreter::new();
+        let env = interp.get_environment();
+        assert!(env.is_empty() || env.len() == 1);
     }
 }

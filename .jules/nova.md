@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Panoptes (ὁ Πανόπτης)
+**Concept:** A CLI tool (`glossa panoptes`) that acts as a runtime debugger, executing code through the Interpreter and printing the final state of all variables in memory using a `comfy-table` grid.
+**Fate:** Proposed
+**Lesson:** Provides a fun way to visualize the interpreter state and gives insight into the simulated variables. Reusing the interpreter gives the perfect bridge between text output and AST.

@@ -49,6 +49,8 @@ pub mod mentor;
 #[cfg(feature = "nova")]
 pub mod mosaic;
 pub mod narrator;
+#[cfg(feature = "nova")]
+pub mod panoptes;
 /// The Papyrus (Πάπυρος) tool for SQL schema generation.
 ///
 /// This experimental tool reads Glossa type definitions and automatically

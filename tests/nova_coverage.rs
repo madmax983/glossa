@@ -281,3 +281,38 @@ fn test_run_scholar_syntax_error() {
 }
 
 // removed test_run_tests_rustc_error because of environment variable pollution causing intermittent failures in parallel execution and it being redundant to runner tests
+
+#[test]
+fn test_panoptes_does_not_panic() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let file_path = temp_dir.path().join("test_panoptes.γλ");
+    std::fs::write(&file_path, "ξ 5 ἔστω.").unwrap();
+    let result = glossa::tools::panoptes::run_panoptes(&file_path);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_panoptes_file_not_found() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let file_path = temp_dir.path().join("does_not_exist.γλ");
+    let result = glossa::tools::panoptes::run_panoptes(&file_path);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_panoptes_analyze_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let file_path = temp_dir.path().join("test_panoptes_err.γλ");
+    std::fs::write(&file_path, "ξ 5.").unwrap();
+    let result = glossa::tools::panoptes::run_panoptes(&file_path);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_panoptes_runtime_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let file_path = temp_dir.path().join("test_panoptes_runtime.γλ");
+    std::fs::write(&file_path, "ξ 1 0 μέρος ἔστω.").unwrap();
+    let result = glossa::tools::panoptes::run_panoptes(&file_path);
+    assert!(result.is_err());
+}
