@@ -1,9 +1,0 @@
---- src/tools/mod.rs
-+++ src/tools/mod.rs
-@@ -28,6 +28,8 @@
- pub mod cartographer;
-+#[cfg(feature = "nova")]
-+pub mod catalog;
- pub mod cli;
- pub mod dictionary;
- pub mod highlight;
