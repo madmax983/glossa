@@ -187,9 +187,12 @@ fn execute_command(command: Option<Commands>) -> Result<()> {
             glossa::tools::gnomon::run_gnomon(&input)?;
 
             #[cfg(not(feature = "nova"))]
-            miette::bail!(
-                "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
-            );
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
         Some(Commands::Scholar { input }) => {
@@ -225,5 +228,67 @@ mod tests {
         };
         let result = execute_command(Some(cmd));
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_execute_command_variants() {
+        let dummy = PathBuf::from("dummy.glossa");
+
+        let _ = execute_command(Some(Commands::Check {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Report {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Highlight {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Bard {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Test {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Build {
+            input: dummy.clone(),
+            output: None,
+        }));
+
+        let _ = execute_command(Some(Commands::Lookup {
+            word: "λόγος".to_string(),
+        }));
+        let _ = execute_command(Some(Commands::Mentor));
+        let _ = execute_command(Some(Commands::Catalog));
+
+        let _ = execute_command(Some(Commands::Mosaic {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Map {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Labyrinth {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Weave {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Alchemist {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Papyrus {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Haruspex {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Audit {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Gnomon {
+            input: dummy.clone(),
+        }));
+        let _ = execute_command(Some(Commands::Scholar {
+            input: dummy.clone(),
+        }));
     }
 }
