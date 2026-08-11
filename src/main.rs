@@ -212,3 +212,18 @@ fn execute_command(command: Option<Commands>) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_execute_command_error() {
+        let cmd = Commands::Run {
+            input: PathBuf::from("does_not_exist.glossa"),
+        };
+        let result = execute_command(Some(cmd));
+        assert!(result.is_err());
+    }
+}
