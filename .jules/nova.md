@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Astrolabe (ὁ Ἀστρολάβος)
+**Concept:** A CLI tool (`glossa astrolabe`) that acts as a scope and variable environment map, extracting defined variables and their inferred `GlossaType` from the semantic AST, formatting them cleanly in a table.
+**Fate:** Merged
+**Lesson:** Tapping into `program.scope.bindings()` proves that the static analyzer stores rich contextual data natively, making debugging and visualization tools trivial to build without modifying core logic.

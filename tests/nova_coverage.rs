@@ -104,6 +104,20 @@ fn test_run_papyrus_syntax_error() {
 }
 
 #[test]
+fn test_run_astrolabe_success() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "ξ 5 ἔστω.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::astrolabe::run_astrolabe(temp_file.path());
+    assert!(result.is_ok(), "Astrolabe failed: {:?}", result.err());
+}
+
+#[test]
 fn test_run_papyrus_semantic_error() {
     let mut temp_file = Builder::new()
         .suffix(".γλ")
