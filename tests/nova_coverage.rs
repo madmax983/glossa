@@ -104,6 +104,57 @@ fn test_run_papyrus_syntax_error() {
 }
 
 #[test]
+fn test_run_astrolabe_success() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    // Includes an immutable and a mutable variable
+    let source = "ξ 5 ἔστω. μετὰ ψ 10 ἔστω.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::astrolabe::run_astrolabe(temp_file.path());
+    assert!(result.is_ok(), "Astrolabe failed: {:?}", result.err());
+}
+
+#[test]
+fn test_run_astrolabe_empty_scope() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    // Valid syntax, but no variables
+    let source = "«χαῖρε» λέγε.";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::astrolabe::run_astrolabe(temp_file.path());
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_run_astrolabe_syntax_error() {
+    let mut temp_file = Builder::new()
+        .suffix(".γλ")
+        .tempfile()
+        .expect("Failed to create temp file");
+
+    let source = "invalid syntax";
+    write!(temp_file, "{}", source).expect("Failed to write to temp file");
+
+    let result = glossa::tools::astrolabe::run_astrolabe(temp_file.path());
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_astrolabe_file_not_found() {
+    let path = PathBuf::from("non_existent_astrolabe_file.γλ");
+    let result = glossa::tools::astrolabe::run_astrolabe(&path);
+    assert!(result.is_err());
+}
+
+#[test]
 fn test_run_papyrus_semantic_error() {
     let mut temp_file = Builder::new()
         .suffix(".γλ")
