@@ -79,3 +79,6 @@
 ## 2026-05-18 - Missing documentation for `to_rust_type`
 **Confusion:** The `to_rust_type` function in `src/codegen.rs` was missing rustdoc comments, leading to warnings when compiling with `-W missing_docs`. The documentation was placed before the `use std::fmt::Write;` statement, making it module-level documentation instead of function-level documentation.
 **Clarification:** I moved the documentation block immediately above the `to_rust_type` function definition and ensured it correctly documents the function's purpose, usage, and examples. I also suppressed missing documentation warnings in test files that were not meant to be public APIs.
+## 2026-05-18 - `clippy::useless_borrows_in_formatting` in conversion
+**Confusion:** The CI failed with a `clippy::useless_borrows_in_formatting` lint in `src/semantic/conversion.rs` at line 512, where a reference (`&var_name`) was passed to the `format!` macro.
+**Clarification:** Passing a reference to a variable that is already borrowed or owned directly inside a `format!` macro (e.g., `format!("{}", &var_name)`) triggers the lint. The fix is to pass the variable directly without the redundant borrow (`format!("{}", var_name)`).
