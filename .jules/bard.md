@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-05-18 - Missing documentation for `to_rust_type`
+**Confusion:** The `to_rust_type` function in `src/codegen.rs` was missing rustdoc comments, leading to warnings when compiling with `-W missing_docs`. The documentation was placed before the `use std::fmt::Write;` statement, making it module-level documentation instead of function-level documentation.
+**Clarification:** I moved the documentation block immediately above the `to_rust_type` function definition and ensured it correctly documents the function's purpose, usage, and examples. I also suppressed missing documentation warnings in test files that were not meant to be public APIs.

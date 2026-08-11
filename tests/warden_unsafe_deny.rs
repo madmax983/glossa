@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::codegen::generate_rust_file;
 use glossa::semantic::{AnalyzedProgram, Scope};
 
