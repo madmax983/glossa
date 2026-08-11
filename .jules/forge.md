@@ -7,3 +7,6 @@
 **Extracted execute_command Coverage Fix**
 **Learning:** Testing CLI command routing variants correctly using `cargo test` required bypassing the `Repl` block via `#[cfg(test)]` to prevent blocking on `stdin`. This exposed a secondary issue where the `run_repl` import became unused during tests.
 **Action:** Guarded both the `run_repl` invocation and its corresponding `use` statement with appropriate `#[cfg]` attributes to satisfy both coverage metrics and strict linting.
+**Extracted execute_experimental_command to Fix Coverage**
+**Learning:** Extracting a large `match` block containing many `#[cfg(not(feature = "nova"))]` arms caused a massive coverage drop (66% hit rate) because those branches are skipped during `cargo test --all-features` in CI. Repeating the same `miette::bail!` block 12 times was also a clear DRY violation.
+**Action:** Extracted all experimental commands into a dedicated `execute_experimental_command` helper function that is globally gated by `#[cfg]`. This consolidated the feature logic, eliminated over 70 lines of duplicated boilerplate, and mathematically restored coverage percentages.
