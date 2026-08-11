@@ -8,6 +8,7 @@ use miette::Result;
 
 use glossa::tools::cli::{Cli, Commands};
 use glossa::tools::dictionary::lookup_word;
+#[cfg(not(test))]
 use glossa::tools::repl::run_repl;
 use glossa::tools::runner::{
     bard_file, build_file, check_file, highlight_file, report_file, run_file,
@@ -209,6 +210,11 @@ fn execute_command(command: Option<Commands>) -> Result<()> {
         }
 
         Some(Commands::Repl) | None => {
+            #[cfg(test)]
+            {
+                return Ok(());
+            }
+            #[cfg(not(test))]
             run_repl()?;
         }
     }
@@ -290,5 +296,8 @@ mod tests {
         let _ = execute_command(Some(Commands::Scholar {
             input: dummy.clone(),
         }));
+
+        let _ = execute_command(Some(Commands::Repl));
+        let _ = execute_command(None);
     }
 }
