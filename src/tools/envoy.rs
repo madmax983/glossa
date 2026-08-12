@@ -107,8 +107,34 @@ mod tests {
             "Array<number>"
         );
         assert_eq!(
+            glossa_type_to_ts(&GlossaType::Set(Box::new(GlossaType::Number))),
+            "Set<number>"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Map(
+                Box::new(GlossaType::String),
+                Box::new(GlossaType::Number)
+            )),
+            "Map<string, number>"
+        );
+        assert_eq!(
             glossa_type_to_ts(&GlossaType::Option(Box::new(GlossaType::String))),
             "string | null"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Struct {
+                name: "User".into(),
+                gender: crate::morphology::Gender::Masculine,
+                fields: vec![],
+            }),
+            "User"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Function {
+                params: vec![],
+                returns: Box::new(GlossaType::Number)
+            }),
+            "any"
         );
         assert_eq!(glossa_type_to_ts(&GlossaType::Unknown), "any");
     }
