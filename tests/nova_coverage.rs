@@ -281,3 +281,45 @@ fn test_run_scholar_syntax_error() {
 }
 
 // removed test_run_tests_rustc_error because of environment variable pollution causing intermittent failures in parallel execution and it being redundant to runner tests
+
+#[cfg(test)]
+#[cfg(feature = "nova")]
+mod envoy_tests {
+    // We would need to expose `glossa_type_to_ts` to test it directly, but we can test it via CLI execution.
+    // Instead, let's create a temporary file and run `envoy` on it.
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_run_envoy() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_schema.γλ");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(
+            file,
+            "εἶδος Χρήστης ὁρίζειν {{\n    ὄνομα ὀνόματος.\n    ἡλικία ἀριθμοῦ.\n}}."
+        )
+        .unwrap();
+
+        let result = glossa::tools::envoy::run_envoy(&file_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_envoy_missing_file() {
+        let result = glossa::tools::envoy::run_envoy(std::path::Path::new("missing_file.γλ"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_envoy_invalid_syntax() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("invalid.γλ");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(file, "this is not valid glossa").unwrap();
+
+        let result = glossa::tools::envoy::run_envoy(&file_path);
+        assert!(result.is_err());
+    }
+}
