@@ -134,3 +134,6 @@ Signed,
 **YYYY-MM-DD - [DoS Mitigation]
 **Threat:** Memory Exhaustion / Unbounded Allocations via standard IO.
 **Defense:** Wrapped mutable readers using `.by_ref().take(LIMIT)` inside `repl.rs` and `mentor.rs`.
+**2023-11-20 - [anyhow Unsoundness CVE]
+**Threat:** Unsoundness in `Error::downcast_mut()` in `anyhow` v1.0.102 (RUSTSEC-2026-0190).
+**Defense:** Updated `anyhow` dependency to v1.0.104 via `cargo update -p anyhow` to pull in the secure version and resolve the vulnerability.
