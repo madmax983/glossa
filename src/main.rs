@@ -183,9 +183,12 @@ fn main() -> Result<()> {
             glossa::tools::gnomon::run_gnomon(&input)?;
 
             #[cfg(not(feature = "nova"))]
-            miette::bail!(
-                "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
-            );
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'gnomon' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
         }
 
         Some(Commands::Scholar { input }) => {
@@ -197,6 +200,19 @@ fn main() -> Result<()> {
                 let _ = input;
                 miette::bail!(
                     "The 'scholar' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
+        Some(Commands::Envoy { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::envoy::run_envoy(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'envoy' command is experimental. Recompile glossa with '--features nova' to enable it."
                 );
             }
         }

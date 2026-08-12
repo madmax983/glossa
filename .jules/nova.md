@@ -52,3 +52,7 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+## 🌟 The Envoy (ὁ Πρέσβυς)
+**Concept:** A CLI tool (`glossa envoy`) that transpile ΓΛΩΣΣΑ structures to TypeScript declarations (`.d.ts`).
+**Fate:** Merged
+**Lesson:** Envoys carry messages. Generating types allows ΓΛΩΣΣΑ to be used to model data schemas that can be shared with web frontends, expanding its usefulness into full-stack development without changing core code.

@@ -218,4 +218,10 @@ pub enum Commands {
         /// Input file (.γλ)
         input: PathBuf,
     },
+
+    /// Generate TypeScript type declarations (Requires "nova" feature)
+    Envoy {
+        /// Input file (.γλ)
+        input: PathBuf,
+    },
 }
