@@ -88,7 +88,12 @@ fn glossa_type_to_ts(g_type: &GlossaType) -> String {
         GlossaType::Set(inner) => format!("Set<{}>", glossa_type_to_ts(inner)),
         GlossaType::Map(k, v) => format!("Map<{}, {}>", glossa_type_to_ts(k), glossa_type_to_ts(v)),
         GlossaType::Option(inner) => format!("{} | null", glossa_type_to_ts(inner)),
+        GlossaType::Result(ok, err) => {
+            format!("{} | {}", glossa_type_to_ts(ok), glossa_type_to_ts(err))
+        }
         GlossaType::Struct { name, .. } => name.to_string(),
+        GlossaType::Function { .. } => "(...args: any[]) => any".to_string(),
+        GlossaType::Unit => "void".to_string(),
         _ => "any".to_string(),
     }
 }
@@ -130,12 +135,20 @@ mod tests {
             "User"
         );
         assert_eq!(
+            glossa_type_to_ts(&GlossaType::Result(
+                Box::new(GlossaType::Number),
+                Box::new(GlossaType::String)
+            )),
+            "number | string"
+        );
+        assert_eq!(
             glossa_type_to_ts(&GlossaType::Function {
                 params: vec![],
                 returns: Box::new(GlossaType::Number)
             }),
-            "any"
+            "(...args: any[]) => any"
         );
+        assert_eq!(glossa_type_to_ts(&GlossaType::Unit), "void");
         assert_eq!(glossa_type_to_ts(&GlossaType::Unknown), "any");
     }
 }
