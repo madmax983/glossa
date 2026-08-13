@@ -322,4 +322,61 @@ mod envoy_tests {
         let result = glossa::tools::envoy::run_envoy(&file_path);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_run_envoy_empty() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("empty.γλ");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(file, "ξ 1 ἔστω.").unwrap();
+
+        let result = glossa::tools::envoy::run_envoy(&file_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_envoy_file_error() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("invalid_utf8.γλ");
+        // write invalid utf8
+        let mut file = File::create(&file_path).unwrap();
+        file.write_all(&[0xFF, 0xFF, 0xFF]).unwrap();
+
+        let result = glossa::tools::envoy::run_envoy(&file_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_envoy_analysis_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("semantic_error.γλ");
+        let mut file = std::fs::File::create(&file_path).unwrap();
+        // Syntactically valid, but assigning to an undefined variable causes semantic error
+        use std::io::Write;
+        writeln!(file, "ψ 10 γίγνεται.").unwrap();
+
+        let result = glossa::tools::envoy::run_envoy(&file_path);
+        assert!(result.is_err());
+        let err_str = result.unwrap_err().to_string();
+        assert!(
+            err_str.contains("Semantic error")
+                || err_str.contains("Analysis error")
+                || err_str.contains("Σφάλμα")
+        );
+    }
+
+    #[test]
+    fn test_run_envoy_complex() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("complex.γλ");
+        let mut file = std::fs::File::create(&file_path).unwrap();
+        use std::io::Write;
+        writeln!(
+            file,
+            "εἶδος Βαθύς ὁρίζειν {{\n    χάρτης ἀριθμοῦ.\n}}.\nεἶδος Πολύπλοκος ὁρίζειν {{\n    λίστη λιστης.\n    βαθύς Βαθύς.\n}}."
+        ).unwrap();
+
+        let result = glossa::tools::envoy::run_envoy(&file_path);
+        assert!(result.is_ok());
+    }
 }
