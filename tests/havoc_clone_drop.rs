@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use glossa::ast::{Expr, Word};
 use std::thread;
 
