@@ -25,6 +25,9 @@ pub mod alchemist;
 #[cfg(feature = "nova")]
 pub mod auditor;
 pub(crate) mod cache;
+/// The Envoy (Ἄγγελος) tool for Protobuf generation.
+#[cfg(feature = "nova")]
+pub mod envoy;
 pub use cache::Cache;
 #[cfg(feature = "nova")]
 pub mod cartographer;
