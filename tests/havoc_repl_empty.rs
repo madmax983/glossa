@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::tools::repl::run_repl;
 
 // test wrapper for REPL crash
