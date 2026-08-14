@@ -292,4 +292,85 @@ mod tests {
         let result = check_statement_depth(&stmt, 0);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_ast_statement_depth_limit_exceeded() {
+        use crate::ast::Statement;
+        let stmt = Statement::Regular {
+            clauses: vec![],
+            is_query: false,
+            is_propagate: false,
+        };
+        let result = check_ast_statement_depth(&stmt, MAX_AST_DEPTH + 1);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::SemanticError { message, .. } => {
+                assert_eq!(message, "Recursion limit exceeded in statement analysis");
+            }
+            _ => panic!("Expected Semantic error"),
+        }
+    }
+
+    #[test]
+    fn test_ast_expr_depth_limit_exceeded() {
+        use crate::ast::Expr;
+        let expr = Expr::Phrase(vec![]);
+        let result = check_ast_expr_depth(&expr, MAX_AST_DEPTH + 1);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::SemanticError { message, .. } => {
+                assert_eq!(message, "Recursion limit exceeded in expression analysis");
+            }
+            _ => panic!("Expected Semantic error"),
+        }
+    }
+
+    #[test]
+    fn test_ast_clause_depth_limit_exceeded() {
+        use crate::ast::Clause;
+        let clause = Clause {
+            expressions: vec![],
+        };
+        let result = check_ast_clause_depth(&clause, MAX_AST_DEPTH + 1);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GlossaError::SemanticError { message, .. } => {
+                assert_eq!(message, "Recursion limit exceeded in clause analysis");
+            }
+            _ => panic!("Expected Semantic error"),
+        }
+    }
+
+    #[test]
+    fn test_analyzed_statement_empty_branches() {
+        let stmt1 = AnalyzedStatement::Break;
+        let result1 = check_statement_depth(&stmt1, 0);
+        assert!(result1.is_ok());
+
+        let stmt2 = AnalyzedStatement::Continue;
+        let result2 = check_statement_depth(&stmt2, 0);
+        assert!(result2.is_ok());
+
+        let stmt3 = AnalyzedStatement::TypeDefinition {
+            name: "TestType".into(),
+            fields: vec![],
+        };
+        let result3 = check_statement_depth(&stmt3, 0);
+        assert!(result3.is_ok());
+
+        let stmt4 = AnalyzedStatement::TraitDefinition {
+            name: "TestTrait".into(),
+            methods: vec![],
+        };
+        let result4 = check_statement_depth(&stmt4, 0);
+        assert!(result4.is_ok());
+
+        let stmt5 = AnalyzedStatement::TraitImplementation {
+            trait_name: "TestTrait".into(),
+            type_name: "TestType".into(),
+            methods: vec![],
+        };
+        let result5 = check_statement_depth(&stmt5, 0);
+        assert!(result5.is_ok());
+    }
 }
