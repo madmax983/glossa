@@ -292,7 +292,10 @@ impl Assembler {
     /// let mut asm = Assembler::new();
     /// asm.feed_string("χαῖρε").unwrap();
     /// ```
-    pub fn feed_string(&mut self, value: impl Into<smol_str::SmolStr>) -> Result<(), AssemblyError> {
+    pub fn feed_string(
+        &mut self,
+        value: impl Into<smol_str::SmolStr>,
+    ) -> Result<(), AssemblyError> {
         Self::check_limit(self.state.literals.len(), MAX_LITERALS, "Literals")?;
         self.state.literals.push(Literal::String(value.into()));
         Ok(())
