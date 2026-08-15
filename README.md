@@ -157,6 +157,13 @@ Translate your code into an English narrative (available without `nova`).
 cargo run --release -- bard examples/quickstart.γλ
 ```
 
+### 5. The Gnomon
+Estimate the Big-O time complexity of a program.
+
+```bash
+cargo run --release --features nova -- gnomon examples/quickstart.γλ
+```
+
 ## Features
 
 - **Greek Syntax**: Write code using authentic Ancient Greek grammatical constructs
