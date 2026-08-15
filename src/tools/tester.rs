@@ -877,7 +877,24 @@ test name with spaces ... ok
 #[cfg(test)]
 mod tests_print {
     use super::*;
-    use std::os::unix::process::ExitStatusExt;
+
+    // A helper to construct a generic std::process::Output with success or failure
+    // using command execution, bypassing Unix/Windows specific process extensions.
+    fn create_mock_output(success: bool) -> std::process::Output {
+        if success {
+            std::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
+                .arg(if cfg!(windows) { "/c" } else { "-c" })
+                .arg("exit 0")
+                .output()
+                .unwrap()
+        } else {
+            std::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
+                .arg(if cfg!(windows) { "/c" } else { "-c" })
+                .arg("exit 1")
+                .output()
+                .unwrap()
+        }
+    }
 
     #[test]
     fn test_print_test_results_coverage() {
@@ -896,23 +913,14 @@ mod tests_print {
             },
         ];
 
-        let output = std::process::Output {
-            status: std::process::ExitStatus::from_raw(0),
-            stdout: vec![],
-            stderr: vec![],
-        };
-
+        let output = create_mock_output(true);
         print_test_results(&results, &output, "");
     }
 
     #[test]
     fn test_print_test_results_empty_success() {
         let results = vec![];
-        let output = std::process::Output {
-            status: std::process::ExitStatus::from_raw(0),
-            stdout: vec![],
-            stderr: vec![],
-        };
+        let output = create_mock_output(true);
         print_test_results(&results, &output, "");
     }
 
@@ -922,11 +930,8 @@ mod tests_print {
             name: "test_fail".to_string(),
             status: TestStatus::Failed,
         }];
-        let output = std::process::Output {
-            status: std::process::ExitStatus::from_raw(256), // non-zero exit
-            stdout: vec![],
-            stderr: vec![],
-        };
+
+        let output = create_mock_output(false);
 
         let stdout_str =
             "failures:\n\n---- test_fail stdout ----\nsome error\n\nfailures:\n    test_fail\n";
