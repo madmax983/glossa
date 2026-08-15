@@ -507,7 +507,7 @@ pub enum AnalyzedExprKind {
     ///
     /// # Example
     /// `«hello»` -> `StringLiteral("hello")`
-    StringLiteral(String),
+    StringLiteral(smol_str::SmolStr),
 
     /// Number literal (integer)
     ///

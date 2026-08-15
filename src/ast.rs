@@ -522,7 +522,7 @@ pub enum Expr {
     ///
     /// # Example
     /// `«χαῖρε κόσμε»`
-    StringLiteral(String),
+    StringLiteral(smol_str::SmolStr),
 
     /// A number literal
     ///

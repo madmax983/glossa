@@ -6,7 +6,7 @@ fn test_expr_clone() {
     let w = Word::new("λέγε");
 
     let all_exprs = vec![
-        Expr::StringLiteral("test".to_string()),
+        Expr::StringLiteral("test".into()),
         Expr::NumberLiteral(42),
         Expr::BooleanLiteral(true),
         Expr::ArrayLiteral(vec![Expr::NumberLiteral(1)]),
@@ -55,7 +55,7 @@ fn test_expr_eq_different_types() {
     let w = Word::new("λέγε");
 
     let all_exprs = vec![
-        Expr::StringLiteral("test".to_string()),
+        Expr::StringLiteral("test".into()),
         Expr::NumberLiteral(42),
         Expr::BooleanLiteral(true),
         Expr::ArrayLiteral(vec![Expr::NumberLiteral(1)]),
@@ -105,8 +105,8 @@ fn test_expr_eq_different_types() {
 #[test]
 fn test_expr_eq_same_variants_different_data() {
     assert_ne!(
-        Expr::StringLiteral("a".to_string()),
-        Expr::StringLiteral("b".to_string())
+        Expr::StringLiteral("a".into()),
+        Expr::StringLiteral("b".into())
     );
     assert_ne!(Expr::NumberLiteral(1), Expr::NumberLiteral(2));
     assert_ne!(Expr::BooleanLiteral(true), Expr::BooleanLiteral(false));
@@ -196,7 +196,7 @@ fn test_expr_drop() {
     let w = Word::new("λέγε");
 
     let all_exprs = vec![
-        Expr::StringLiteral("test".to_string()),
+        Expr::StringLiteral("test".into()),
         Expr::NumberLiteral(42),
         Expr::BooleanLiteral(true),
         Expr::ArrayLiteral(vec![Expr::NumberLiteral(1)]),
@@ -254,7 +254,7 @@ fn test_deep_expr_drop() {
 #[test]
 fn test_expr_debug_formatting() {
     let exprs = vec![
-        Expr::StringLiteral("test".to_string()),
+        Expr::StringLiteral("test".into()),
         Expr::NumberLiteral(42),
         Expr::BooleanLiteral(true),
         Expr::ArrayLiteral(vec![Expr::NumberLiteral(1)]),

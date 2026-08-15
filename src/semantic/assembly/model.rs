@@ -106,7 +106,7 @@ pub struct AssembledStatement {
 /// use glossa::semantic::Literal;
 ///
 /// // Create a string literal embodying truth
-/// let text = Literal::String("Ἀλήθεια".to_string());
+/// let text = Literal::String("Ἀλήθεια".into());
 ///
 /// // A perfect number literal
 /// let perfect_number = Literal::Number(6);
@@ -114,7 +114,7 @@ pub struct AssembledStatement {
 #[derive(Clone)]
 pub enum Literal {
     /// A quoted string literal containing raw text
-    String(String),
+    String(smol_str::SmolStr),
     /// An integer numeric literal or parsed greek numeral
     Number(i64),
     /// A true/false boolean literal (`ἀληθές` or `ψεῦδος`)

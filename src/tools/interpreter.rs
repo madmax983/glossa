@@ -241,7 +241,7 @@ impl Interpreter {
     fn eval_expr(&self, expr: &AnalyzedExpr) -> Result<Value, EvalError> {
         match &expr.expr {
             AnalyzedExprKind::NumberLiteral(n) => Ok(Value::Number(*n)),
-            AnalyzedExprKind::StringLiteral(s) => Ok(Value::String(s.clone())),
+            AnalyzedExprKind::StringLiteral(s) => Ok(Value::String(s.to_string())),
             AnalyzedExprKind::BooleanLiteral(b) => Ok(Value::Boolean(*b)),
             AnalyzedExprKind::Variable(name) => self.lookup_var(name),
             AnalyzedExprKind::BinOp { left, op, right } => {
