@@ -873,3 +873,63 @@ test name with spaces ... ok
         assert!(err_msg.contains("Semantic error") || err_msg.contains("Σφάλμα"));
     }
 }
+
+#[cfg(test)]
+mod tests_print {
+    use super::*;
+    use std::os::unix::process::ExitStatusExt;
+
+    #[test]
+    fn test_print_test_results_coverage() {
+        let results = vec![
+            TestResult {
+                name: "test1".to_string(),
+                status: TestStatus::Ok,
+            },
+            TestResult {
+                name: "test2".to_string(),
+                status: TestStatus::Failed,
+            },
+            TestResult {
+                name: "test3".to_string(),
+                status: TestStatus::Ignored,
+            },
+        ];
+
+        let output = std::process::Output {
+            status: std::process::ExitStatus::from_raw(0),
+            stdout: vec![],
+            stderr: vec![],
+        };
+
+        print_test_results(&results, &output, "");
+    }
+
+    #[test]
+    fn test_print_test_results_empty_success() {
+        let results = vec![];
+        let output = std::process::Output {
+            status: std::process::ExitStatus::from_raw(0),
+            stdout: vec![],
+            stderr: vec![],
+        };
+        print_test_results(&results, &output, "");
+    }
+
+    #[test]
+    fn test_print_test_results_failures() {
+        let results = vec![TestResult {
+            name: "test_fail".to_string(),
+            status: TestStatus::Failed,
+        }];
+        let output = std::process::Output {
+            status: std::process::ExitStatus::from_raw(256), // non-zero exit
+            stdout: vec![],
+            stderr: vec![],
+        };
+
+        let stdout_str =
+            "failures:\n\n---- test_fail stdout ----\nsome error\n\nfailures:\n    test_fail\n";
+        print_test_results(&results, &output, stdout_str);
+    }
+}
