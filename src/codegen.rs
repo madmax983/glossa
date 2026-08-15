@@ -1760,4 +1760,61 @@ mod tests {
             assert!(result.contains("trait G_trait_0"));
         }
     }
+
+    #[test]
+    fn test_generate_binary_op_uncovered_arms() {
+        use crate::semantic::GlossaType;
+        use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(42),
+            glossa_type: GlossaType::Number,
+        };
+
+        let string_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::StringLiteral("foo".to_string()),
+            glossa_type: GlossaType::String,
+        };
+
+        let op_mod = generate_bin_op(BinaryOp::Mod, &string_expr, &string_expr);
+        assert!(op_mod.to_string().contains("%"));
+
+        let op_le = generate_bin_op(BinaryOp::Le, &dummy_expr, &dummy_expr);
+        assert!(op_le.to_string().contains("<="));
+
+        let op_gt = generate_bin_op(BinaryOp::Gt, &dummy_expr, &dummy_expr);
+        assert!(op_gt.to_string().contains(">"));
+    }
+
+    #[test]
+    fn test_generate_unary_op_uncovered_arms() {
+        use crate::semantic::GlossaType;
+        use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(true),
+            glossa_type: GlossaType::Boolean,
+        };
+
+        let op_not = generate_unary_op(UnaryOp::Not, &dummy_expr);
+        assert!(op_not.to_string().contains("!"));
+
+        let op_ref = generate_unary_op(UnaryOp::Ref, &dummy_expr);
+        assert!(op_ref.to_string().contains("&"));
+    }
+
+    #[test]
+    fn test_generate_property_access_uncovered_arm() {
+        use crate::semantic::GlossaType;
+        use crate::semantic::model::{AnalyzedExpr, AnalyzedExprKind};
+        use smol_str::SmolStr;
+        let dummy_expr = AnalyzedExpr {
+            expr: AnalyzedExprKind::Variable(SmolStr::new("foo")),
+            glossa_type: GlossaType::Unknown,
+        };
+
+        let prop = generate_property_access(&dummy_expr, "bar");
+        let result = prop.to_string();
+        assert!(result.contains("foo"));
+        assert!(result.contains("."));
+        assert!(result.contains("bar"));
+    }
 }

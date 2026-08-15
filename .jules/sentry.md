@@ -92,3 +92,7 @@
 **[Parser Unexpected Rule Defensive Checks]
 **Learning:** In the PEG parsing stage, using `match pair.as_rule()` with a generic `_ => Err(ParseError::UnexpectedRule(...))` fallback is good defensive practice, but these branches remain permanently uncovered because the `pest` grammar guarantees input validity before it reaches the AST builder.
 **Action:** Craft manual `pest` `Pairs` (often by parsing mismatched rules intentionally) and feed them to the specific AST builder functions inside an embedded `#[cfg(test)] mod tests` block to cover these critical safety guards.
+
+**2025-03-08 - Codegen Operator Arms Uncovered Tests**
+**Learning:** In `src/codegen.rs`, several matches arms in `generate_bin_op` (like `BinaryOp::Mod`, `BinaryOp::Le`, `BinaryOp::Gt`), `generate_unary_op` (like `UnaryOp::Not`, `UnaryOp::Ref`), and `generate_property_access` were not being covered by the integration or unit test suites.
+**Action:** Identified these uncovered branches via `cargo llvm-cov` output and manually authored focused unit tests that instantiate the necessary `AnalyzedExpr` dummy nodes and invoke the generator functions directly, asserting that their `TokenStream` outputs correctly contain the intended Rust operators (e.g. `%`, `<=`, `>`, `!`, `&`, `.`). Appended these tests into the existing `mod tests` block in `src/codegen.rs` to satisfy coverage metrics and verify edge cases without modifying production code.
