@@ -653,7 +653,7 @@ mod tests {
         // 2. Call
         let call = Expr::Call {
             verb: Word::new("λέγε"),
-            arguments: vec![Expr::StringLiteral("test".to_string())],
+            arguments: vec![Expr::StringLiteral("test".into())],
         };
         h.highlight_expr(&call).unwrap();
         assert!(h.output.contains("λέγε"));

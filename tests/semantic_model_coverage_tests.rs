@@ -127,7 +127,7 @@ fn test_analyzed_statement_debug() {
 #[test]
 fn test_analyzed_expr_kind_debug_all_variants() {
     let variants = vec![
-        AnalyzedExprKind::StringLiteral("test".to_string()),
+        AnalyzedExprKind::StringLiteral("test".into()),
         AnalyzedExprKind::NumberLiteral(1),
         AnalyzedExprKind::BooleanLiteral(true),
         AnalyzedExprKind::Variable(SmolStr::new("x")),

@@ -147,7 +147,7 @@ fn build_literal(pair: Pair<'_, Rule>) -> Result<Expr, ParseError> {
             let content = pair
                 .into_inner()
                 .find(|p| p.as_rule() == Rule::string_content)
-                .map(|p| p.as_str().to_string())
+                .map(|p| smol_str::SmolStr::new(p.as_str()))
                 .unwrap_or_default();
             Ok(Expr::StringLiteral(content))
         }

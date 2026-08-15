@@ -877,7 +877,7 @@ fn try_print_property_access(
             let method_args = if let Some((ref meth, ref delim)) = asm_stmt.string_method {
                 if meth == method {
                     vec![AnalyzedExpr {
-                        expr: AnalyzedExprKind::StringLiteral(delim.clone()),
+                        expr: AnalyzedExprKind::StringLiteral(delim.clone().into()),
                         glossa_type: GlossaType::String,
                     }]
                 } else {

@@ -16,7 +16,7 @@ fn test_generate_statement_expression_optimization() {
 #[test]
 fn test_generate_print_optimization() {
     let args = vec![AnalyzedExpr {
-        expr: AnalyzedExprKind::StringLiteral("hello".to_string()),
+        expr: AnalyzedExprKind::StringLiteral("hello".into()),
         glossa_type: GlossaType::String,
     }];
     let stmt = AnalyzedStatement::Print(args);

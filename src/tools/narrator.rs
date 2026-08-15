@@ -617,7 +617,7 @@ mod tests {
         use crate::semantic::{AnalyzedExpr, AnalyzedExprKind, GlossaType};
 
         let kinds = vec![
-            AnalyzedExprKind::StringLiteral("test".to_string()),
+            AnalyzedExprKind::StringLiteral("test".into()),
             AnalyzedExprKind::NumberLiteral(42),
             AnalyzedExprKind::BooleanLiteral(true),
             AnalyzedExprKind::Variable("var".to_string().into()),
@@ -672,7 +672,7 @@ mod tests {
                 glossa_type: GlossaType::Number,
             })),
             AnalyzedExprKind::Err(Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::StringLiteral("err".to_string()),
+                expr: AnalyzedExprKind::StringLiteral("err".into()),
                 glossa_type: GlossaType::String,
             })),
             AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {

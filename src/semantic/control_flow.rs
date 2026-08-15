@@ -894,12 +894,12 @@ mod tests {
         assert!(err.is_err());
 
         // Match string literal directly
-        let str_expr = Expr::StringLiteral("test".to_string());
+        let str_expr = Expr::StringLiteral("test".into());
         let err = parse_match_pattern(&str_expr, &mut scope);
         assert!(err.is_err());
 
         // Match phrase with string literal
-        let phrase_str = Expr::Phrase(vec![Expr::StringLiteral("test".to_string())]);
+        let phrase_str = Expr::Phrase(vec![Expr::StringLiteral("test".into())]);
         let err = parse_match_pattern(&phrase_str, &mut scope);
         assert!(err.is_err());
 
@@ -938,7 +938,7 @@ mod tests {
         let clause = Clause {
             expressions: vec![Expr::Phrase(vec![
                 Expr::Word(Word::new("δός")),
-                Expr::StringLiteral("test".to_string()),
+                Expr::StringLiteral("test".into()),
             ])],
         };
 
@@ -1154,7 +1154,7 @@ mod tests {
                 },
                 Clause {
                     expressions: vec![Expr::Phrase(vec![
-                        Expr::StringLiteral("γεια".to_string()),
+                        Expr::StringLiteral("γεια".into()),
                         Expr::Word(Word::new("λεγε")),
                     ])],
                 },
@@ -1252,7 +1252,7 @@ mod tests {
                 Clause {
                     expressions: vec![
                         Expr::Phrase(vec![
-                            Expr::StringLiteral("γεια".to_string()),
+                            Expr::StringLiteral("γεια".into()),
                             Expr::Word(Word::new("λεγε")),
                         ]),
                         Expr::Phrase(vec![
@@ -1264,7 +1264,7 @@ mod tests {
                 },
                 Clause {
                     expressions: vec![Expr::Phrase(vec![
-                        Expr::StringLiteral("αντιο".to_string()),
+                        Expr::StringLiteral("αντιο".into()),
                         Expr::Word(Word::new("λεγε")),
                     ])],
                 },
@@ -1303,7 +1303,7 @@ mod tests {
                 Clause {
                     expressions: vec![
                         Expr::Phrase(vec![
-                            Expr::StringLiteral("1".to_string()),
+                            Expr::StringLiteral("1".into()),
                             Expr::Word(Word::new("λεγε")),
                         ]),
                         Expr::Phrase(vec![Expr::Word(Word::new("εαν")), Expr::NumberLiteral(2)]),
@@ -1311,7 +1311,7 @@ mod tests {
                 },
                 Clause {
                     expressions: vec![Expr::Phrase(vec![
-                        Expr::StringLiteral("2".to_string()),
+                        Expr::StringLiteral("2".into()),
                         Expr::Word(Word::new("λεγε")),
                     ])],
                 },
@@ -1353,7 +1353,7 @@ mod tests {
                 },
                 Clause {
                     expressions: vec![Expr::Phrase(vec![
-                        Expr::StringLiteral("γεια".to_string()),
+                        Expr::StringLiteral("γεια".into()),
                         Expr::Word(Word::new("λεγε")),
                     ])],
                 },

@@ -62,7 +62,7 @@ fn test_expr_variants_coverage() {
     let w1 = Word::new("test");
     let _w2 = Word::new("test");
     let exprs = vec![
-        Expr::StringLiteral("s".to_string()),
+        Expr::StringLiteral("s".into()),
         Expr::NumberLiteral(42),
         Expr::BooleanLiteral(true),
         Expr::ArrayLiteral(vec![Expr::NumberLiteral(1), Expr::NumberLiteral(2)]),

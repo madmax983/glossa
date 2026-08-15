@@ -290,11 +290,11 @@ impl Assembler {
     /// use glossa::semantic::Assembler;
     ///
     /// let mut asm = Assembler::new();
-    /// asm.feed_string("χαῖρε".to_string()).unwrap();
+    /// asm.feed_string("χαῖρε").unwrap();
     /// ```
-    pub fn feed_string(&mut self, value: String) -> Result<(), AssemblyError> {
+    pub fn feed_string(&mut self, value: impl Into<smol_str::SmolStr>) -> Result<(), AssemblyError> {
         Self::check_limit(self.state.literals.len(), MAX_LITERALS, "Literals")?;
-        self.state.literals.push(Literal::String(value));
+        self.state.literals.push(Literal::String(value.into()));
         Ok(())
     }
     /// Feed a number literal
@@ -776,7 +776,7 @@ impl Assembler {
                     }
                 };
                 let normalized_original = normalize_greek(&subj.original);
-                self.state.string_method = Some((method_name.to_string(), delim));
+                self.state.string_method = Some((method_name.to_string(), delim.to_string()));
                 self.state
                     .property_accesses
                     .push((normalized_original.to_string(), method_name.to_string()));
@@ -1064,7 +1064,7 @@ mod tests {
     #[test]
     fn test_literals() {
         let mut asm = Assembler::new();
-        asm.feed_string("χαῖρε κόσμε".to_string()).unwrap();
+        asm.feed_string("χαῖρε κόσμε").unwrap();
         let verb = analyze("λεγε");
         asm.feed(&verb, "λέγε").unwrap();
         let stmt = asm.finalize().unwrap();
@@ -1314,7 +1314,7 @@ mod tests {
         };
         asm.feed(&marker_analysis, "κατά").unwrap();
         // 3. Delimiter Literal: ","
-        asm.feed_string(",".to_string()).unwrap();
+        asm.feed_string(",").unwrap();
         // 4. Split Verb: "σχίζεται" (is split)
         let split_verb = MorphAnalysis {
             lemma: std::borrow::Cow::Borrowed("σχιζω"), // assuming lemma for split verb
