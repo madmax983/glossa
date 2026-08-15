@@ -938,3 +938,39 @@ mod tests_print {
         print_test_results(&results, &output, stdout_str);
     }
 }
+
+#[cfg(test)]
+mod tests_print_fallback {
+    use super::*;
+
+    #[test]
+    fn test_print_test_results_failures_fallback() {
+        let results = vec![TestResult {
+            name: "test_fail".to_string(),
+            status: TestStatus::Failed,
+        }];
+
+        // Command to fail and produce stderr
+        let output = std::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
+            .arg(if cfg!(windows) { "/c" } else { "-c" })
+            .arg("echo some stderr output 1>&2 && false")
+            .output()
+            .unwrap_or_else(|_| {
+                // Dummy output just in case command fails to spawn
+                std::process::Output {
+                    status: std::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
+                        .arg(if cfg!(windows) { "/c" } else { "-c" })
+                        .arg("false")
+                        .output()
+                        .unwrap()
+                        .status,
+                    stdout: vec![],
+                    stderr: b"dummy stderr".to_vec(),
+                }
+            });
+
+        // Pass un-extractable stdout to trigger the fallback block
+        let stdout_str = "some unparseable output without standard test markers";
+        print_test_results(&results, &output, stdout_str);
+    }
+}
