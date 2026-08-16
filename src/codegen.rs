@@ -275,6 +275,32 @@ fn transliterate_fmt<W: std::fmt::Write>(text: &str, result: &mut W) -> std::fmt
 /// ```
 use std::fmt::Write;
 
+/// Convert a Glossa type to its Rust equivalent string
+///
+/// This function recursively traverses complex types (like `Vec<Option<i64>>`)
+/// and produces a string that is valid Rust syntax.
+///
+/// # Examples
+///
+/// ```
+/// use glossa::codegen::to_rust_type;
+/// use glossa::semantic::GlossaType;
+///
+/// // Simple types
+/// assert_eq!(to_rust_type(&GlossaType::Number), "i64");
+/// assert_eq!(to_rust_type(&GlossaType::String), "String");
+///
+/// // Complex nested types
+/// let list_of_numbers = GlossaType::List(Box::new(GlossaType::Number));
+/// assert_eq!(to_rust_type(&list_of_numbers), "Vec<i64>");
+///
+/// // Result types
+/// let result_type = GlossaType::Result(
+///     Box::new(GlossaType::Number),
+///     Box::new(GlossaType::String)
+/// );
+/// assert_eq!(to_rust_type(&result_type), "Result<i64, String>");
+/// ```
 pub fn to_rust_type(ty: &GlossaType) -> String {
     let mut result = String::with_capacity(32);
     write_rust_type(ty, &mut result).unwrap();
