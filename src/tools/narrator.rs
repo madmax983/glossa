@@ -620,16 +620,16 @@ mod tests {
             AnalyzedExprKind::StringLiteral("test".to_string()),
             AnalyzedExprKind::NumberLiteral(42),
             AnalyzedExprKind::BooleanLiteral(true),
-            AnalyzedExprKind::Variable("var".to_string().into()),
+            AnalyzedExprKind::Variable("var".into()),
             AnalyzedExprKind::PropertyAccess {
                 owner: Box::new(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable("obj".to_string().into()),
+                    expr: AnalyzedExprKind::Variable("obj".into()),
                     glossa_type: GlossaType::Unknown,
                 }),
-                property: "prop".to_string().into(),
+                property: "prop".into(),
             },
             AnalyzedExprKind::VerbCall {
-                verb: "call".to_string().into(),
+                verb: "call".into(),
                 args: vec![],
             },
             AnalyzedExprKind::BinOp {
@@ -676,16 +676,16 @@ mod tests {
                 glossa_type: GlossaType::String,
             })),
             AnalyzedExprKind::Unwrap(Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable("x".to_string().into()),
+                expr: AnalyzedExprKind::Variable("x".into()),
                 glossa_type: GlossaType::Unknown,
             })),
             AnalyzedExprKind::Try(Box::new(AnalyzedExpr {
-                expr: AnalyzedExprKind::Variable("x".to_string().into()),
+                expr: AnalyzedExprKind::Variable("x".into()),
                 glossa_type: GlossaType::Unknown,
             })),
             AnalyzedExprKind::IndexAccess {
                 array: Box::new(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable("arr".to_string().into()),
+                    expr: AnalyzedExprKind::Variable("arr".into()),
                     glossa_type: GlossaType::Unknown,
                 }),
                 index: Box::new(AnalyzedExpr {
@@ -694,19 +694,19 @@ mod tests {
                 }),
             },
             AnalyzedExprKind::FunctionCall {
-                func: "fn".to_string().into(),
+                func: "fn".into(),
                 args: vec![],
             },
             AnalyzedExprKind::MethodCall {
                 receiver: Box::new(AnalyzedExpr {
-                    expr: AnalyzedExprKind::Variable("obj".to_string().into()),
+                    expr: AnalyzedExprKind::Variable("obj".into()),
                     glossa_type: GlossaType::Unknown,
                 }),
-                method: "meth".to_string().into(),
+                method: "meth".into(),
                 args: vec![],
             },
             AnalyzedExprKind::StructInstantiation {
-                type_name: "Type".to_string().into(),
+                type_name: "Type".into(),
                 fields: vec![],
                 args: vec![],
             },
@@ -761,7 +761,7 @@ mod tests {
         let stmts = vec![
             AnalyzedStatement::Query(vec![dummy_expr.clone()]),
             AnalyzedStatement::For {
-                variable: "i".to_string().into(),
+                variable: "i".into(),
                 iterator: Box::new(dummy_expr.clone()),
                 body: vec![],
             },
