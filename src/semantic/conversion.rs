@@ -509,7 +509,7 @@ fn classify_assignment(
         ))),
         Some(b) if !b.mutable => Err(GlossaError::semantic(format!(
             "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
-            &var_name
+            var_name.clone()
         ))),
         Some(_) => {
             let has_value = !asm_stmt.literals.is_empty()
