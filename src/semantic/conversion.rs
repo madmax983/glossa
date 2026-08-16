@@ -134,45 +134,32 @@ pub fn convert_assembled_to_analyzed(
 ///     _ => panic!("Expected Print statement"),
 /// }
 /// ```
+type StatementClassifier =
+    fn(&AssembledStatement, &mut Scope) -> Result<Option<AnalyzedStatement>, GlossaError>;
+
 pub fn classify_assembled_statement(
     asm_stmt: &AssembledStatement,
     scope: &mut Scope,
 ) -> Result<AnalyzedStatement, GlossaError> {
-    if let Some(res) = classify_iterator_pattern(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_property_access_print(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_function_call(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_genitive_method_call(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_assertion(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_equality_assertion(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_subjunctive_comparison(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_variable_binding(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_assignment(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_collection_mutation(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_print(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = classify_query(asm_stmt, scope)? {
-        return Ok(res);
+    let classifiers: [StatementClassifier; 12] = [
+        classify_iterator_pattern,
+        classify_property_access_print,
+        classify_function_call,
+        classify_genitive_method_call,
+        classify_assertion,
+        classify_equality_assertion,
+        classify_subjunctive_comparison,
+        classify_variable_binding,
+        classify_assignment,
+        classify_collection_mutation,
+        classify_print,
+        classify_query,
+    ];
+
+    for classifier in classifiers {
+        if let Some(res) = classifier(asm_stmt, scope)? {
+            return Ok(res);
+        }
     }
 
     classify_expression(asm_stmt, scope)
@@ -509,7 +496,7 @@ fn classify_assignment(
         ))),
         Some(b) if !b.mutable => Err(GlossaError::semantic(format!(
             "Τὸ «{}» ἀμετάβλητόν ἐστιν — χρῆσον μετά πρὸ τοῦ ὁρισμοῦ",
-            &var_name
+            var_name
         ))),
         Some(_) => {
             let has_value = !asm_stmt.literals.is_empty()
@@ -1608,67 +1595,59 @@ fn extract_object_fallback(
 ///     _ => panic!("Expected NumberLiteral"),
 /// }
 /// ```
+fn extract_nested_phrase(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
+    if let Some(terms) = asm_stmt.nested_phrases.first() {
+        let phrase_expr = Expr::Phrase(terms.clone());
+        let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
+        let ty = analyzed.glossa_type.clone();
+        return Ok(Some((analyzed, ty)));
+    }
+    Ok(None)
+}
+
+fn extract_block(
+    asm_stmt: &AssembledStatement,
+    scope: &Scope,
+) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError> {
+    if let Some(stmts) = asm_stmt.blocks.first() {
+        let block_expr = Expr::Block(stmts.clone());
+        let analyzed = analyze_argument_expr(&block_expr, scope)?;
+        let ty = analyzed.glossa_type.clone();
+        return Ok(Some((analyzed, ty)));
+    }
+    Ok(None)
+}
+
+type ValueExtractor =
+    fn(&AssembledStatement, &Scope) -> Result<Option<(AnalyzedExpr, GlossaType)>, GlossaError>;
+
 pub fn extract_value(
     asm_stmt: &AssembledStatement,
     scope: &Scope,
 ) -> Result<(AnalyzedExpr, GlossaType), GlossaError> {
-    if !asm_stmt.nested_phrases.is_empty() {
-        // Handle nested phrases (parenthesized expressions) which act as values
-        // Usually there is only one for a value expression
-        if let Some(terms) = asm_stmt.nested_phrases.first() {
-            let phrase_expr = Expr::Phrase(terms.clone());
-            // Analyze with recursion depth check reset (as it's a new analysis root)
-            let analyzed = analyze_argument_expr(&phrase_expr, scope)?;
-            let ty = analyzed.glossa_type.clone();
-            return Ok((analyzed, ty));
-        }
-    }
+    let extractors: [ValueExtractor; 13] = [
+        extract_nested_phrase,
+        extract_block,
+        extract_unwrap,
+        extract_enum_from_subject,
+        extract_genitive_method,
+        extract_enum_from_nominatives,
+        extract_property_access,
+        extract_index_access,
+        extract_array,
+        extract_binary_op,
+        extract_enum_from_object,
+        extract_literal,
+        extract_object_fallback,
+    ];
 
-    if !asm_stmt.blocks.is_empty() {
-        // Handle blocks (braced expressions) which act as values
-        if let Some(stmts) = asm_stmt.blocks.first() {
-            let block_expr = Expr::Block(stmts.clone());
-            // Analyze with recursion depth check reset (as it's a new analysis root)
-            // Note: analyze_argument_expr will call analyze_block, which now enforces single-statement logic
-            let analyzed = analyze_argument_expr(&block_expr, scope)?;
-            let ty = analyzed.glossa_type.clone();
-            return Ok((analyzed, ty));
+    for extractor in extractors {
+        if let Some(res) = extractor(asm_stmt, scope)? {
+            return Ok(res);
         }
-    }
-
-    if let Some(res) = extract_unwrap(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = extract_enum_from_subject(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = extract_genitive_method(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = extract_enum_from_nominatives(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = extract_property_access(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = extract_index_access(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = extract_array(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = extract_binary_op(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    // Fix: Check object for enum variants BEFORE literals to avoid shadowing Some(literal) by literal
-    if let Some(res) = extract_enum_from_object(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = extract_literal(asm_stmt, scope)? {
-        return Ok(res);
-    }
-    if let Some(res) = extract_object_fallback(asm_stmt, scope)? {
-        return Ok(res);
     }
 
     // Default
