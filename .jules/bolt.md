@@ -8,6 +8,10 @@
 **[Optimizing recursive type formatting]**
 **Learning:** Using `format!` recursively (e.g., in `to_rust_type` for nested types like `Result<Option<Vec<String>>, i64>`) creates multiple intermediate heap-allocated `String`s that are immediately concatenated and dropped.
 **Action:** Replace recursive `format!` calls with a `write!` macro approach using `std::fmt::Write`. Pre-allocate a single `String` buffer (e.g., `String::with_capacity`) and pass a mutable reference to it down the recursive tree to drastically reduce allocations.
-**[Zero-cost String -> SmolStr Conversion]
+**[Optimizing AST Node Cloning with std::mem::replace]**
+**Learning:** During iterative AST tree building (e.g., when wrapping an expression in successive MethodCalls like .iter().map().filter().collect()), the previous expression current_expr had to be passed into the new node. Because it's stored in a Box, using Box::new(current_expr.clone()) causes an expensive deep clone of the entire recursive AST structure for each method in the chain. However, since the old node is entirely moved into the new node (and we overwrite current_expr immediately after), we can use std::mem::replace(&mut current_expr, AnalyzedExpr { expr: AnalyzedExprKind::None, glossa_type: GlossaType::Unknown }) to safely extract the old tree without a single allocation, effectively a zero-cost transfer of ownership.
+**Action:** Use std::mem::replace to avoid deep cloning of AST nodes when building recursive or iterative tree structures in place.
+
+**[Zero-cost String -> SmolStr Conversion]**
 **Learning:** Using x.to_string().into() when creating a SmolStr from a string literal (&'static str) forces an unnecessary intermediate heap allocation. SmolStr implements From<&str>, meaning .into() can convert a string slice directly without heap allocating for short strings (under 23 bytes).
 **Action:** Replace x.to_string().into() with x.into() when creating SmolStrs from string literals.
