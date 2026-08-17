@@ -24,6 +24,8 @@ pub mod alchemist;
 /// unnecessary mutable bindings, and other code quality issues.
 #[cfg(feature = "nova")]
 pub mod auditor;
+#[cfg(feature = "nova")]
+pub mod automaton;
 pub(crate) mod cache;
 pub use cache::Cache;
 #[cfg(feature = "nova")]

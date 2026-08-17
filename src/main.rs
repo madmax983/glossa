@@ -129,6 +129,19 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Automaton { input }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::automaton::run_automaton(&input)?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                miette::bail!(
+                    "The 'automaton' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Papyrus { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::papyrus::run_papyrus(&input)?;

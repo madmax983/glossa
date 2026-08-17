@@ -281,3 +281,35 @@ fn test_run_scholar_syntax_error() {
 }
 
 // removed test_run_tests_rustc_error because of environment variable pollution causing intermittent failures in parallel execution and it being redundant to runner tests
+
+#[cfg(feature = "nova")]
+#[test]
+fn test_automaton_unsupported_statement_expr() {
+    use glossa::semantic::{
+        AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
+    };
+    use glossa::tools::automaton::transpile_to_js;
+    use smol_str::SmolStr;
+
+    let scope = Scope::new();
+    let program = AnalyzedProgram {
+        statements: vec![
+            AnalyzedStatement::Assignment {
+                name: SmolStr::new("y"),
+                value: AnalyzedExpr {
+                    expr: AnalyzedExprKind::ArrayLiteral(vec![]),
+                    glossa_type: GlossaType::Unknown,
+                },
+            },
+            AnalyzedStatement::Expression(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: GlossaType::Boolean,
+            }]),
+        ],
+        scope,
+    };
+
+    let js = transpile_to_js(&program);
+    assert!(js.contains("/* Unsupported expr */"));
+    assert!(js.contains("/* Unsupported statement */"));
+}
