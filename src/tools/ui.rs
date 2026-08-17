@@ -150,9 +150,12 @@ impl Status {
             return;
         }
 
-        let msg = self.message.as_str().bold().to_string();
+        let msg = format!(
+            "{} [{}]",
+            self.message.as_str().bold(),
+            err.to_string().red()
+        );
         self.print_done("✕".red(), &msg);
-        eprintln!("{}", err);
         self.active = false;
     }
 
