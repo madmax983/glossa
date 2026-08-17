@@ -266,81 +266,86 @@ pub fn try_parse_struct_instantiation(
     }))
 }
 
+fn parse_single_struct_arg(
+    term: &Expr,
+    expected_type: &GlossaType,
+    scope: &Scope,
+) -> Option<AnalyzedExpr> {
+    match term {
+        Expr::Word(word) => {
+            // Convert word to analyzed expression
+            if let Ok(num) = word.original.parse::<i64>() {
+                // Direct numeric literal like "5" stored as word
+                Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(num),
+                    glossa_type: GlossaType::Number,
+                })
+            } else if let Some(num) = crate::morphology::lexicon::numeral_value(&word.normalized) {
+                // Greek numeral word like πέντε -> 5
+                Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::NumberLiteral(num),
+                    glossa_type: GlossaType::Number,
+                })
+            } else {
+                // Variable reference
+                let var_type = scope
+                    .lookup(&word.normalized)
+                    .cloned()
+                    .unwrap_or(GlossaType::Unknown);
+                Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::Variable(word.normalized.clone()),
+                    glossa_type: var_type,
+                })
+            }
+        }
+        Expr::StringLiteral(s) => {
+            let lit_expr = AnalyzedExpr {
+                expr: AnalyzedExprKind::StringLiteral(s.clone()),
+                glossa_type: GlossaType::String,
+            };
+
+            if matches!(expected_type, GlossaType::String) {
+                // Wrap in .to_string() for struct fields expecting String
+                Some(AnalyzedExpr {
+                    expr: AnalyzedExprKind::MethodCall {
+                        receiver: Box::new(lit_expr),
+                        method: "to_string".into(),
+                        args: vec![],
+                    },
+                    glossa_type: GlossaType::String,
+                })
+            } else {
+                Some(lit_expr)
+            }
+        }
+        Expr::NumberLiteral(n) => Some(AnalyzedExpr {
+            expr: AnalyzedExprKind::NumberLiteral(*n),
+            glossa_type: GlossaType::Number,
+        }),
+        Expr::BooleanLiteral(b) => Some(AnalyzedExpr {
+            expr: AnalyzedExprKind::BooleanLiteral(*b),
+            glossa_type: GlossaType::Boolean,
+        }),
+        _ => None, // Unsupported argument type
+    }
+}
+
 fn parse_struct_args(
     args_terms: &[Expr],
     fields_info: &[(SmolStr, GlossaType)],
     scope: &Scope,
 ) -> Option<Vec<AnalyzedExpr>> {
-    let mut args = Vec::with_capacity(args_terms.len());
-    for (i, term) in args_terms.iter().enumerate() {
-        let expected_type = if i < fields_info.len() {
-            &fields_info[i].1
-        } else {
-            &GlossaType::Unknown
-        };
-
-        let analyzed_arg = match term {
-            Expr::Word(word) => {
-                // Convert word to analyzed expression
-                if let Ok(num) = word.original.parse::<i64>() {
-                    // Direct numeric literal like "5" stored as word
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(num),
-                        glossa_type: GlossaType::Number,
-                    }
-                } else if let Some(num) =
-                    crate::morphology::lexicon::numeral_value(&word.normalized)
-                {
-                    // Greek numeral word like πέντε -> 5
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::NumberLiteral(num),
-                        glossa_type: GlossaType::Number,
-                    }
-                } else {
-                    // Variable reference
-                    let var_type = scope
-                        .lookup(&word.normalized)
-                        .cloned()
-                        .unwrap_or(GlossaType::Unknown);
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::Variable(word.normalized.clone()),
-                        glossa_type: var_type,
-                    }
-                }
-            }
-            Expr::StringLiteral(s) => {
-                let lit_expr = AnalyzedExpr {
-                    expr: AnalyzedExprKind::StringLiteral(s.clone()),
-                    glossa_type: GlossaType::String,
-                };
-
-                if matches!(expected_type, GlossaType::String) {
-                    // Wrap in .to_string() for struct fields expecting String
-                    AnalyzedExpr {
-                        expr: AnalyzedExprKind::MethodCall {
-                            receiver: Box::new(lit_expr),
-                            method: "to_string".into(),
-                            args: vec![],
-                        },
-                        glossa_type: GlossaType::String,
-                    }
-                } else {
-                    lit_expr
-                }
-            }
-            Expr::NumberLiteral(n) => AnalyzedExpr {
-                expr: AnalyzedExprKind::NumberLiteral(*n),
-                glossa_type: GlossaType::Number,
-            },
-            Expr::BooleanLiteral(b) => AnalyzedExpr {
-                expr: AnalyzedExprKind::BooleanLiteral(*b),
-                glossa_type: GlossaType::Boolean,
-            },
-            _ => return None, // Unsupported argument type
-        };
-        args.push(analyzed_arg);
-    }
-    Some(args)
+    args_terms
+        .iter()
+        .enumerate()
+        .map(|(i, term)| {
+            let expected_type = fields_info
+                .get(i)
+                .map(|(_, ty)| ty)
+                .unwrap_or(&GlossaType::Unknown);
+            parse_single_struct_arg(term, expected_type, scope)
+        })
+        .collect()
 }
 
 /// Detect iterator patterns with participles
