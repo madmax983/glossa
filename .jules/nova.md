@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Automaton (ὁ Αὐτόματος)
+**Concept:** A JavaScript transpiler (`glossa automaton`) that converts analyzed Glossa programs directly to JavaScript source code, providing an export target for web environments.
+**Fate:** Proposed
+**Lesson:** JavaScript's ubiquity and weak typing makes it a natural target for web-based Glossa playgrounds. Re-using the AST traversal pattern from the Python transpiler proved how versatile the Semantic AST is for arbitrary codegen.
