@@ -285,9 +285,11 @@ fn test_run_scholar_syntax_error() {
 #[cfg(feature = "nova")]
 #[test]
 fn test_automaton_unsupported_statement_expr() {
-    use glossa::semantic::{AnalyzedProgram, AnalyzedStatement, AnalyzedExpr, AnalyzedExprKind, GlossaType, Scope};
-    use smol_str::SmolStr;
+    use glossa::semantic::{
+        AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
+    };
     use glossa::tools::automaton::transpile_to_js;
+    use smol_str::SmolStr;
 
     let scope = Scope::new();
     let program = AnalyzedProgram {
@@ -299,12 +301,10 @@ fn test_automaton_unsupported_statement_expr() {
                     glossa_type: GlossaType::Unknown,
                 },
             },
-            AnalyzedStatement::Expression(vec![
-                AnalyzedExpr {
-                    expr: AnalyzedExprKind::BooleanLiteral(true),
-                    glossa_type: GlossaType::Boolean,
-                }
-            ]),
+            AnalyzedStatement::Expression(vec![AnalyzedExpr {
+                expr: AnalyzedExprKind::BooleanLiteral(true),
+                glossa_type: GlossaType::Boolean,
+            }]),
         ],
         scope,
     };
