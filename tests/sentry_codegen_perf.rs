@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use glossa::codegen::generate_rust_file;
 use glossa::semantic::{
     AnalyzedExpr, AnalyzedExprKind, AnalyzedProgram, AnalyzedStatement, GlossaType, Scope,
@@ -238,7 +239,8 @@ fn test_codegen_runtime_index_panic() {
         stderr.contains("index out of bounds")
             || String::from_utf8_lossy(&output.stdout).contains("Index out of bounds")
             || stderr.contains("Δείκτης ἐκτὸς ὁρίων"),
-        "Missing panic message: {}\nSTDOUT: {}",
+        "Missing panic message: {}
+STDOUT: {}",
         stderr,
         String::from_utf8_lossy(&output.stdout)
     );
