@@ -76,3 +76,6 @@
 ## 2026-05-03 - The Scholar Tool's Missing Link
 **Confusion:** The `src/tools/scholar.rs` module lacked module-level documentation and an executable doc-test for its public `run_scholar` function. It was not telling a story of *why* it existed, only what it was called, making it a "Black Box".
 **Clarification:** Added a comprehensive module-level `//!` documentation block that explicitly outlines the "Missing Link" and explains the philosophy behind automatically generating Markdown API docs from AST definitions. Added an executable `## Examples` block to `run_scholar`.
+## 2026-03-22 - Misattributed Documentation
+**Confusion:** Building the documentation with `-D missing_docs` raised an error on `pub fn to_rust_type` even though it appeared to be documented. The doc block was separated from the function by an intervening `use std::fmt::Write;` statement, which applied the documentation to the import instead.
+**Clarification:** I moved the `use` statement above the documentation block, correctly reattaching the doc-test and documentation to `to_rust_type`.

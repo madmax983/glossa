@@ -1,10 +1,11 @@
+#![allow(missing_docs)]
 use glossa::parser::parse;
 use glossa::semantic::analyze_program;
 use proptest::prelude::*;
 
 proptest! {
     #[test]
-    fn test_weird_unicode_fuzz(s in "\\PC*") {
+    fn test_weird_unicode_fuzz(s in r"\PC*") {
         if let Ok(ast) = parse(&s) {
             let _ = analyze_program(&ast);
         }
