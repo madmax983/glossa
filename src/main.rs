@@ -131,3 +131,34 @@ fn main() -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    #[cfg(not(feature = "nova"))]
+    use super::*;
+    #[cfg(not(feature = "nova"))]
+    use std::path::PathBuf;
+
+    #[test]
+    #[cfg(not(feature = "nova"))]
+    fn test_execute_nova_command_without_nova_feature() {
+        let commands = vec![
+            Commands::Mentor,
+            Commands::Mosaic {
+                input: PathBuf::from("test.γλ"),
+            },
+            Commands::Map {
+                input: PathBuf::from("test.γλ"),
+            },
+            Commands::Catalog,
+        ];
+
+        for cmd in commands {
+            let result = execute_nova_command(cmd);
+            assert!(result.is_err());
+            let err_msg = result.unwrap_err().to_string();
+            assert!(err_msg.contains("is experimental"));
+            assert!(err_msg.contains("Recompile glossa with '--features nova'"));
+        }
+    }
+}
