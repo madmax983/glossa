@@ -161,4 +161,14 @@ mod tests {
             assert!(err_msg.contains("Recompile glossa with '--features nova'"));
         }
     }
+
+    #[test]
+    #[cfg(not(feature = "nova"))]
+    fn test_execute_command_routes_nova_commands() {
+        let cmd = Commands::Mentor;
+        let result = execute_command(cmd);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("is experimental"));
+    }
 }
