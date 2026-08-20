@@ -104,6 +104,16 @@ pub enum Commands {
         input: PathBuf,
     },
 
+    /// Transpile types to TypeScript Declaration files (Requires "nova" feature)
+    Ambassador {
+        /// Input file (.γλ)
+        input: PathBuf,
+
+        /// Output file (.d.ts)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
     /// Generate a language metrics dashboard
     Report {
         /// Input file (.γλ)
