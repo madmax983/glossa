@@ -77,6 +77,20 @@ fn main() -> Result<()> {
             }
         }
 
+        Some(Commands::Ambassador { input, output }) => {
+            #[cfg(feature = "nova")]
+            glossa::tools::ambassador::run_ambassador(&input, output.as_deref())?;
+
+            #[cfg(not(feature = "nova"))]
+            {
+                let _ = input;
+                let _ = output;
+                miette::bail!(
+                    "The 'ambassador' command is experimental. Recompile glossa with '--features nova' to enable it."
+                );
+            }
+        }
+
         Some(Commands::Map { input }) => {
             #[cfg(feature = "nova")]
             glossa::tools::cartographer::run_map(&input)?;

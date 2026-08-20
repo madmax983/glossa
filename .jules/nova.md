@@ -52,3 +52,8 @@
 **Concept:** A CLI tool (`glossa gnomon`) that estimates the Big-O time complexity of a ΓΛΩΣΣΑ program by statically analyzing loop depth in the semantic AST.
 **Fate:** Proposed
 **Lesson:** Statically analyzing the semantic AST provides an easy and dependency-free way to estimate program complexity. The `AnalyzedStatement` enum variants effectively map the control flow (like `While` and `For` loops). Building a visitor pattern over these structures allows powerful tooling with minimal effort.
+
+## 🌟 The Ambassador (ὁ Πρέσβυς)
+**Concept:** A TypeScript Declaration exporter (`glossa ambassador`) that transpiles Glossa struct and trait definitions directly into `.d.ts` interface files for cross-language FFI with frontend web applications.
+**Fate:** Merged
+**Lesson:** Bridging the gap between ancient semantic definitions and modern Web technologies proves the versatility of the language. Parsing the typed definitions cleanly from the AST allows for easy interoperability, expanding Glossa into a potential domain modeling language.
