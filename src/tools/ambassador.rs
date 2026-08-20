@@ -125,6 +125,34 @@ mod tests {
     #[test]
     fn test_glossa_type_to_ts() {
         assert_eq!(glossa_type_to_ts(&GlossaType::Number), "number");
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Set(Box::new(GlossaType::Number))),
+            "Set<number>"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Map(
+                Box::new(GlossaType::String),
+                Box::new(GlossaType::Number)
+            )),
+            "Map<string, number>"
+        );
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Result(
+                Box::new(GlossaType::String),
+                Box::new(GlossaType::String)
+            )),
+            "string | string"
+        );
+        assert_eq!(glossa_type_to_ts(&GlossaType::Unit), "void");
+        assert_eq!(glossa_type_to_ts(&GlossaType::Unknown), "any");
+        assert_eq!(
+            glossa_type_to_ts(&GlossaType::Function {
+                params: vec![GlossaType::Number],
+                returns: Box::new(GlossaType::String)
+            }),
+            "(p0: number) => string"
+        );
+
         assert_eq!(glossa_type_to_ts(&GlossaType::String), "string");
         assert_eq!(glossa_type_to_ts(&GlossaType::Boolean), "boolean");
         assert_eq!(
