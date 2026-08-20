@@ -50,19 +50,19 @@ fn test_ambassador_coverage() {
 #[test]
 fn test_glossa_type_to_ts_coverage() {
     // This is just to satisfy the coverage tool since it's hard to trigger these from the integration test directly
-    let set_type =
+    let _set_type =
         glossa::semantic::GlossaType::Set(Box::new(glossa::semantic::GlossaType::Number));
-    let map_type = glossa::semantic::GlossaType::Map(
+    let _map_type = glossa::semantic::GlossaType::Map(
         Box::new(glossa::semantic::GlossaType::String),
         Box::new(glossa::semantic::GlossaType::Number),
     );
-    let res_type = glossa::semantic::GlossaType::Result(
+    let _res_type = glossa::semantic::GlossaType::Result(
         Box::new(glossa::semantic::GlossaType::String),
         Box::new(glossa::semantic::GlossaType::String),
     );
-    let unit_type = glossa::semantic::GlossaType::Unit;
-    let unknown_type = glossa::semantic::GlossaType::Unknown;
-    let func_type = glossa::semantic::GlossaType::Function {
+    let _unit_type = glossa::semantic::GlossaType::Unit;
+    let _unknown_type = glossa::semantic::GlossaType::Unknown;
+    let _func_type = glossa::semantic::GlossaType::Function {
         params: vec![glossa::semantic::GlossaType::Number],
         returns: Box::new(glossa::semantic::GlossaType::String),
     };
